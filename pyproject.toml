@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nestor"
+version = "0.1.0"
+description = "A three-tier translation-fidelity cascade (memory -> draft -> seal) with a hash-chained audit ledger and injected storage."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+cloud = [
+    "anthropic>=0.60",
+]
+
+[tool.setuptools.packages.find]
+include = ["nestor*"]
