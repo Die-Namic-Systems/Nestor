@@ -15,6 +15,7 @@ from . import (
     cascade,
     engine,
     entity,
+    frank,
     glossary,
     langid,
     matcher,
@@ -31,6 +32,7 @@ from .cascade import (
     translate_text,
 )
 from .entity import EntityResolver
+from .frank import set_forwarder as set_frank_forwarder
 from .matcher import Matcher, NumericMatcher, StringMatcher
 from .memory import get_matcher, set_bilingual_loader, set_matcher
 from .reconcile import Reconciler
@@ -47,6 +49,7 @@ __all__ = [
     "cascade",
     "engine",
     "entity",
+    "frank",
     "get_matcher",
     "get_store",
     "glossary",
@@ -57,6 +60,7 @@ __all__ = [
     "reconcile",
     "segment",
     "set_bilingual_loader",
+    "set_frank_forwarder",
     "set_ledger_path",
     "set_matcher",
     "set_store",
