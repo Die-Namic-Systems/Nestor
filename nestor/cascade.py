@@ -3,8 +3,9 @@
 Segments that reach tier 2 are queued into the injected store's
 documents/segments review pipeline; verification (tier 3) graduates them into
 the TM via ``graduate_segment``. Every passage is appended to a local
-hash-chained ledger (default ``data/ledger.jsonl``) — Nestor's audit trail,
-and the prototype stand-in for FRANK.
+hash-chained ledger (default ``data/ledger.jsonl``) — Nestor's audit trail.
+Install a forwarder with :mod:`nestor.frank` to also mirror every entry into
+FRANK, willow-mcp's shared append-only governance ledger.
 
 Storage is injected (see :mod:`nestor.storage`): pass ``store=`` to the public
 entry functions, or install one globally with ``storage.set_store``.
@@ -22,7 +23,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from . import langid, memory
+from . import frank, langid, memory
 from .engine import get_engine
 from .segment import _split_segments
 from .storage import Storage, get_store
@@ -71,8 +72,19 @@ def _ledger_append(entry: dict) -> None:
         if last:
             prev = hashlib.sha256(last.strip()).hexdigest()
     entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": prev, **entry}
+    line = json.dumps(entry, ensure_ascii=False)
     with open(ledger, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.write(line + "\n")
+    # Mirror into FRANK (willow-mcp's shared governance ledger) when a forwarder
+    # is installed — see nestor.frank. The local chain above is written first and
+    # stays the source of truth: a governance mirror that is down, denied, or
+    # absent must never fail a translation, so the forward is best-effort unless
+    # NESTOR_FRANK_STRICT says otherwise.
+    try:
+        frank.forward(entry, line_hash=hashlib.sha256(line.encode("utf-8")).hexdigest())
+    except Exception:
+        if frank.strict():
+            raise
 
 
 def translate_segment(text: str, source_lang: str, target_lang: str,

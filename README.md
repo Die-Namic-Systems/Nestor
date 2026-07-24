@@ -188,14 +188,49 @@ The reference `SqliteStore` owns `documents`, `segments` and `tm_pairs`, so the
 whole cascade runs end-to-end with no host. Use `SqliteStore(":memory:")` for
 ephemeral runs and tests.
 
-## TODO — FRANK / willow-mcp integration (future, not implemented)
+## FRANK — mirroring the ledger into shared provenance
 
-The hash-chained `data/ledger.jsonl` is a local stand-in for **FRANK**, the
-append-only provenance ledger. A future integration should forward each ledger
-entry to willow-mcp's `frank_append` so the audit trail lives in shared
-provenance infrastructure rather than a local file. The seam is `cascade
-._ledger_append` — that single function is where forwarding would hook in.
-This package deliberately does **not** implement that integration.
+The hash-chained `data/ledger.jsonl` is Nestor's own audit trail. `nestor.frank`
+mirrors every entry into **FRANK**, willow-mcp's append-only governance ledger,
+so the trail also lives in shared provenance infrastructure. It is a third
+injected seam — same shape as storage and the matcher, no upward dependency:
+
+```python
+from nestor import frank
+
+frank.set_forwarder(frank.willow_forwarder())   # opt in
+frank.set_forwarder(None)                       # local ledger only (the default)
+```
+
+A forwarder is any callable `(event_type: str, content: dict) -> None`, so a
+host can supply its own. With none installed nothing is forwarded and behavior
+is exactly what it was.
+
+The bundled `WillowForwarder` speaks **MCP over stdio** and calls willow-mcp's
+`frank_append` tool, so the write passes through the manifest ACL that makes the
+ledger trustworthy — it never touches the governance database directly. It
+spawns the server on first use and reuses that session (a run appends many
+entries; one handshake each would dominate the cost). Configuration comes from
+the environment the willow-mcp project wiring already sets, so an installed seat
+needs no arguments:
+
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `WILLOW_MCP_COMMAND` | server argv, JSON list or plain string | `[sys.executable, "-m", "willow_mcp"]` |
+| `WILLOW_APP_ID` | app seat to call as (needs the `frank_write` permission) | `nestor` |
+| `NESTOR_FRANK_PROJECT` | FRANK project name | `nestor` |
+| `NESTOR_FRANK_STRICT` | raise instead of swallowing forward failures | unset |
+
+Local ledger entries are written **first** and stay the source of truth;
+forwarding is best-effort, because a governance mirror that is down, denied, or
+absent must never fail a translation. Each mirrored entry carries a `local_hash`
+— the sha256 of the local line as written — so the two chains cross-link: a
+FRANK entry maps back to an exact local line, and a rewritten local ledger no
+longer matches its mirror. `event_type` is the entry's `kind`, namespaced
+(`nestor.passage`, `nestor.seal`).
+
+The seam is still `cascade._ledger_append` — that one function is where
+forwarding hooks in.
 
 ## License
 
