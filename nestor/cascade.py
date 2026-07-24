@@ -24,6 +24,7 @@ from typing import Optional
 
 from . import langid, memory
 from .engine import get_engine
+from .ledger import LedgerError
 from .segment import _split_segments
 from .storage import Storage, get_store
 
@@ -61,6 +62,11 @@ class Passage:
 
 def _ledger_append(entry: dict) -> None:
     ledger = _ledger_path()
+    # Fail closed: a ledger that exists but is not a regular file (e.g.
+    # /dev/null) would silently swallow the audit trail. Refuse it (Nestor#2).
+    if ledger.exists() and not ledger.is_file():
+        raise LedgerError(f"ledger path is not a regular file — the audit trail "
+                          f"cannot be suppressed: {ledger}")
     ledger.parent.mkdir(parents=True, exist_ok=True)
     prev = "genesis"
     if ledger.exists():
