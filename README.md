@@ -2,12 +2,95 @@
 
 **Meaning infrastructure. *In medio, fides.***
 
-Nestor is a translation-fidelity engine: a three-tier cascade run per segment,
-backed by a translation memory and a hash-chained audit ledger. It was
-extracted from the `semantic-translator` app into a standalone package with
-**no upward dependency on any host** — persistence is *injected*.
+Nestor is a **verified-match engine**. Its mechanic is domain-agnostic:
 
-## The cascade
+> **normalize an input → fuzzy-match it against a memory of _sealed_ (verified)
+> pairs → serve the match above a threshold, else queue it for a human seal →
+> log every step to a hash-chained ledger.**
+
+Translation is just *one instance* of that mechanic — the one Nestor was
+extracted from. The only translation-specific parts were how text is normalized
+and scored, and those now live behind a small `Matcher` seam. Swap the matcher
+and the very same seal/serve/ledger machinery **resolves entities** and
+**reconciles numbers**. Nestor has **no upward dependency on any host** —
+persistence and the matcher are both *injected*.
+
+| Recipe | Matcher | "source → target" means | Module |
+|--------|---------|--------------------------|--------|
+| Translation | `StringMatcher` | phrase → translation | `nestor.memory` + `nestor.cascade` |
+| Entity resolution | `StringMatcher` | alias/surface → canonical entity | `nestor.entity` |
+| Numeric reconciliation | `NumericMatcher` | figure → labelled baseline | `nestor.reconcile` |
+
+## The Matcher seam
+
+A `Matcher` (`nestor.matcher`) is the domain-specific half of the mechanic —
+everything else (sealing, thresholds, the ledger, storage inversion) is shared:
+
+```python
+@runtime_checkable
+class Matcher(Protocol):
+    def normalize(self, value) -> str: ...              # canonical key
+    def similarity(self, a_norm, b_norm) -> float: ...  # [0.0, 1.0], 1.0 == verified
+```
+
+Two reference matchers ship:
+
+- **`StringMatcher`** — the *exact* historical translation behavior: lowercase,
+  strip punctuation, collapse whitespace (the old `_norm`), then
+  `difflib.SequenceMatcher` ratio (equal normals → `1.0`). It is the module-wide
+  default, so translation scoring is reproduced bit-for-bit.
+- **`NumericMatcher(abs_tol=0.0, pct_tol=0.05)`** — `normalize` parses a number
+  out of a str/int/float (stripping `$ , %` and whitespace) into a canonical
+  float key; non-parseable inputs become a sentinel that never matches.
+  `similarity` is `1.0` inside the tolerance band
+  `tol = max(abs_tol, pct_tol·max(|a|,|b|))`, and decays exponentially
+  `exp(-(|a-b|-tol)/tol)` outside it — continuous at the edge, monotonically
+  toward `0` for a wildly different figure.
+
+`nestor.memory` holds a module-level default matcher (`set_matcher` /
+`get_matcher`), and every public memory function (`add_pair`, `lookup`,
+`best_sealed`, …) accepts an optional `matcher=`. The `tm_pairs` schema is
+**unchanged**: `source_norm` is just whatever the matcher emits, and the
+`source_lang` / `target_lang` columns are treated as generic **domain tags** for
+non-translation use.
+
+### Entity resolution — `nestor.entity` (backs entity-graph gap #15)
+
+```python
+from nestor.entity import EntityResolver
+
+r = EntityResolver(store, domain="company")
+for surface in ["Amazon", "Amazon.com Inc", "AMZN", "AWS"]:
+    r.seal(surface, "Amazon", verifier="analyst", origin="sec-filing")
+
+r.resolve("amazon.com  inc.")   # -> {"canonical": "Amazon", "sealed": True, "confidence": 1.0, "provenance": {...}}
+r.resolve("AMZN")               # -> {"canonical": "Amazon", "sealed": True, ...}
+r.resolve("Alphabet Inc")       # -> {"canonical": None, "sealed": False, "provenance": {"draft": True, ...}}
+```
+
+A match at/above the seal threshold returns the canonical entity with the sealed
+mapping's provenance; below it, the top candidate comes back as an **unsealed
+suggestion** the caller can queue for a human seal. This is the entity-graph
+engine (gap #15) realized on the very same machinery as translation.
+
+### Numeric reconciliation — `nestor.reconcile` ("match the numbers")
+
+```python
+from nestor.reconcile import Reconciler
+
+rc = Reconciler(store, domain="contract", pct_tol=0.05)
+rc.seal_baseline("ceiling", "$1,000,000", verifier="auditor")
+
+rc.check("ceiling", "$1,030,000")   # +3%  -> within_tolerance=True,  flagged=False
+rc.check("ceiling",  1_250_000)     # +25% -> within_tolerance=False, flagged=True, variation=250000.0, variation_pct=0.25
+```
+
+`check` compares an observation to the sealed baseline via the `NumericMatcher`
+tolerance, reports the absolute and proportional variation, and flags
+deviations — the numeric sibling of the translation memory, feeding njord-style
+reconciliation. Every seal and check is written to the ledger.
+
+## The cascade (the translation recipe)
 
 For each text segment, Nestor tries three tiers in order:
 

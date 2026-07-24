@@ -20,17 +20,41 @@ The default loader returns ``[]`` (nothing to seed).
 """
 from __future__ import annotations
 
-import difflib
-import re
 import uuid
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
+from .matcher import Matcher, StringMatcher
 from .storage import Storage, get_store
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
 CONTEXT_THRESHOLD = 0.55  # pairs above this feed the engine as context
+
+
+# --------------------------------------------------------------------------
+# Injected matcher (the domain seam)
+# --------------------------------------------------------------------------
+#
+# The memory used to hardcode text normalization (``_norm``) and difflib
+# scoring. Both are now supplied by an injected :class:`~nestor.matcher.Matcher`
+# so the same seal/serve/ledger mechanic works for translations, entities and
+# numbers. The default is :class:`StringMatcher`, which reproduces the original
+# translation behavior exactly — so every public signature stays
+# backward-compatible.
+
+_matcher: Matcher = StringMatcher()
+
+
+def set_matcher(m: Matcher) -> None:
+    """Install the process-wide matcher used when no explicit ``matcher=`` is passed."""
+    global _matcher
+    _matcher = m
+
+
+def get_matcher(m: Optional[Matcher] = None) -> Matcher:
+    """Resolve the matcher to use — an explicit argument wins, else the global."""
+    return m if m is not None else _matcher
 
 
 # --------------------------------------------------------------------------
@@ -65,7 +89,13 @@ def init_tm(store: Optional[Storage] = None) -> None:
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", text.lower())).strip()
+    """Backward-compatible alias for the default StringMatcher normalization.
+
+    The normalization algorithm now lives in :class:`nestor.matcher.StringMatcher`;
+    this thin wrapper is kept so any host that imported ``memory._norm`` keeps
+    working.
+    """
+    return StringMatcher().normalize(text)
 
 
 def _now() -> str:
@@ -74,11 +104,19 @@ def _now() -> str:
 
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
              status: str = "draft", verifier: str = "", weight: float = 1.0,
-             origin: str = "", store: Optional[Storage] = None) -> dict:
-    """Insert or upgrade a pair. A sealed insert replaces a draft for the same source."""
+             origin: str = "", store: Optional[Storage] = None,
+             matcher: Optional[Matcher] = None) -> dict:
+    """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
+
+    ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
+    they are languages; for entity resolution or numeric reconciliation they
+    carry the entity-type / label bucket. The ``matcher`` (default
+    :class:`StringMatcher`) decides how ``source_text`` is normalized.
+    """
     store = get_store(store)
+    matcher = get_matcher(matcher)
     store.memory_init()
-    norm = _norm(source_text)
+    norm = matcher.normalize(source_text)
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
         if status == "sealed" and (
@@ -96,29 +134,45 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
 
 
 def lookup(source_text: str, source_lang: str, target_lang: str,
-           limit: int = 5, store: Optional[Storage] = None) -> list[dict]:
-    """Ranked matches: [{pair, similarity}], best first. Sealed and draft both returned."""
+           limit: int = 5, store: Optional[Storage] = None,
+           matcher: Optional[Matcher] = None,
+           context_threshold: Optional[float] = None) -> list[dict]:
+    """Ranked matches: [{pair, similarity}], best first. Sealed and draft both returned.
+
+    Scoring is delegated to the injected ``matcher`` (default StringMatcher, so
+    translation behavior is unchanged). ``context_threshold`` overrides the
+    module-level :data:`CONTEXT_THRESHOLD` floor below which candidates are
+    dropped — pass ``0.0`` to keep every candidate (used by the numeric
+    reconciler so a far-off figure is still returned for variation reporting).
+    """
     store = get_store(store)
+    matcher = get_matcher(matcher)
+    ctx = CONTEXT_THRESHOLD if context_threshold is None else context_threshold
     store.memory_init()
-    norm = _norm(source_text)
+    norm = matcher.normalize(source_text)
     rows = store.memory_candidates(source_lang, target_lang)
     scored = []
     for row in rows:
-        if row["source_norm"] == norm:
-            sim = EXACT
-        else:
-            sim = difflib.SequenceMatcher(None, norm, row["source_norm"]).ratio()
-        if sim >= CONTEXT_THRESHOLD:
+        sim = matcher.similarity(norm, row["source_norm"])
+        if sim >= ctx:
             scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
     return scored[:limit]
 
 
 def best_sealed(source_text: str, source_lang: str, target_lang: str,
-                store: Optional[Storage] = None) -> Optional[dict]:
-    """Tier-1 check: the best sealed match at/above SEAL_THRESHOLD, else None."""
-    for m in lookup(source_text, source_lang, target_lang, store=store):
-        if m["pair"]["status"] == "sealed" and m["similarity"] >= SEAL_THRESHOLD:
+                store: Optional[Storage] = None,
+                matcher: Optional[Matcher] = None,
+                seal_threshold: Optional[float] = None,
+                context_threshold: Optional[float] = None) -> Optional[dict]:
+    """Tier-1 check: the best sealed match at/above the seal threshold, else None.
+
+    ``seal_threshold`` overrides the module-level :data:`SEAL_THRESHOLD`.
+    """
+    seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
+    for m in lookup(source_text, source_lang, target_lang, store=store,
+                    matcher=matcher, context_threshold=context_threshold):
+        if m["pair"]["status"] == "sealed" and m["similarity"] >= seal:
             return m
     return None
 

@@ -1,0 +1,177 @@
+"""The matcher seam — Nestor's domain-abstraction boundary.
+
+Nestor's mechanic is domain-agnostic: *normalize an input, fuzzy-match it
+against a memory of SEALED pairs, serve the verified match above a threshold
+(else queue it for a human seal), and log everything to the hash-chained
+ledger.* Only two operations are domain-specific:
+
+  * **normalize(value) -> str** — collapse an input into a canonical key.
+  * **similarity(a_norm, b_norm) -> float** — how alike two canonical keys
+    are, in ``[0.0, 1.0]`` (``1.0`` == a verified match).
+
+Everything else — sealing, thresholds, the ledger, storage inversion — is
+identical whether Nestor is matching TRANSLATIONS, ENTITIES, or NUMBERS. This
+module defines the :class:`Matcher` Protocol and ships the two reference
+matchers:
+
+  * :class:`StringMatcher` — the original translation behavior (lowercase +
+    strip punctuation + collapse whitespace, then difflib ratio). It reproduces
+    Nestor's historical translation-memory scoring bit-for-bit and is the
+    module-wide default.
+  * :class:`NumericMatcher` — parses a number out of a value and scores by
+    tolerance, so Nestor can reconcile FIGURES instead of phrases.
+"""
+from __future__ import annotations
+
+import difflib
+import math
+import re
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class Matcher(Protocol):
+    """The domain-specific half of Nestor's match mechanic.
+
+    A ``Matcher`` turns raw inputs into canonical keys and scores two keys for
+    similarity. Nestor supplies the rest (sealing, thresholds, ledger). Any
+    object exposing these two methods can be injected wherever a matcher is
+    accepted.
+    """
+
+    def normalize(self, value) -> str:
+        """Return a canonical, comparable string key for ``value``.
+
+        The output is what Nestor persists as ``source_norm`` and what
+        :meth:`similarity` compares. Deterministic and idempotent:
+        ``normalize(normalize(x)) == normalize(x)`` should hold for keys.
+        """
+
+    def similarity(self, a_norm: str, b_norm: str) -> float:
+        """Score two normalized keys in ``[0.0, 1.0]`` — ``1.0`` == verified match."""
+
+
+# --------------------------------------------------------------------------
+# StringMatcher — the translation-memory behavior, made explicit
+# --------------------------------------------------------------------------
+
+class StringMatcher:
+    """Text matcher: casefold + strip punctuation + collapse whitespace, then
+    difflib similarity. This is the EXACT algorithm the translation memory used
+    inline (``_norm`` + ``difflib.SequenceMatcher(...).ratio()``), lifted behind
+    the :class:`Matcher` seam. It is Nestor's default matcher, so translation
+    behavior is unchanged.
+    """
+
+    def normalize(self, value) -> str:
+        # Historically ``_norm(text: str)``. Accept non-str defensively by
+        # coercing, but for str inputs this is byte-for-byte the old result.
+        text = value if isinstance(value, str) else str(value)
+        return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", text.lower())).strip()
+
+    def similarity(self, a_norm: str, b_norm: str) -> float:
+        # Equal normals short-circuit to 1.0 (matching the old ``EXACT`` path
+        # in ``memory.lookup``); otherwise the difflib ratio, as before.
+        if a_norm == b_norm:
+            return 1.0
+        return difflib.SequenceMatcher(None, a_norm, b_norm).ratio()
+
+
+# --------------------------------------------------------------------------
+# NumericMatcher — reconcile figures instead of phrases
+# --------------------------------------------------------------------------
+
+# A canonical key that no real parse produces and that never scores > 0, so
+# non-parseable inputs are stored but can never be served as a match.
+_NAN_SENTINEL = "\x00nestor:nan"
+
+# Grab the first numeric token, tolerating a leading sign, decimals and
+# scientific notation. Currency/percent/grouping symbols are stripped first.
+_NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+class NumericMatcher:
+    """Numeric matcher: parse a number, score by tolerance.
+
+    ``normalize`` extracts a number from a str/int/float (stripping ``$ , %``
+    and whitespace) and returns the ``repr`` of the resulting float as its
+    canonical key; anything non-parseable normalizes to a sentinel that never
+    matches.
+
+    ``similarity`` is defined by a tolerance band with exponential decay::
+
+        tol = max(abs_tol, pct_tol * max(|a|, |b|))
+        d   = |a - b|
+        sim = 1.0                       if d <= tol
+              exp(-(d - tol) / tol)     if d >  tol  (tol > 0)
+              0.0                       if d >  tol  (tol == 0)
+
+    So similarity is ``1.0`` everywhere inside the tolerance band, exactly
+    ``1.0`` again at the band's edge (continuous), then decays smoothly and
+    monotonically toward ``0`` as the deviation grows: it is ~``0.37`` one
+    tolerance-width past the edge, ~``0.14`` two widths past, and asymptotically
+    ``0`` for a wildly different figure. With no tolerance at all
+    (``abs_tol=pct_tol=0``) only an exact match scores above ``0``.
+    Non-parseable operands score ``0.0``.
+
+    Tolerances are constructor config:
+
+    * ``abs_tol`` — an absolute slack (same units as the values).
+    * ``pct_tol`` — a proportional slack (fraction of the larger magnitude);
+      the default ``0.05`` means "within 5%."
+    """
+
+    def __init__(self, abs_tol: float = 0.0, pct_tol: float = 0.05) -> None:
+        self.abs_tol = float(abs_tol)
+        self.pct_tol = float(pct_tol)
+
+    # -- parsing ----------------------------------------------------------
+
+    def parse(self, value) -> "float | None":
+        """Extract a number from ``value`` (stripping ``$ , %``/whitespace), or
+        ``None`` if none is found. Public so consumers like the Reconciler can
+        recover the parsed figure without reaching into internals."""
+        if isinstance(value, bool):
+            # bool is a subclass of int; treat True/False as non-numeric so a
+            # stray flag can never masquerade as the figure 1 or 0.
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        s = str(value).strip()
+        if not s:
+            return None
+        # Strip currency/percent/grouping decoration, then extract a number.
+        cleaned = s.replace("$", "").replace(",", "").replace("%", "").replace(" ", "")
+        m = _NUM_RE.search(cleaned)
+        if not m:
+            return None
+        try:
+            return float(m.group())
+        except ValueError:
+            return None
+
+    def normalize(self, value) -> str:
+        num = self.parse(value)
+        if num is None:
+            return _NAN_SENTINEL
+        return repr(num)
+
+    # -- scoring ----------------------------------------------------------
+
+    def similarity(self, a_norm: str, b_norm: str) -> float:
+        if a_norm == _NAN_SENTINEL or b_norm == _NAN_SENTINEL:
+            return 0.0
+        try:
+            a = float(a_norm)
+            b = float(b_norm)
+        except (TypeError, ValueError):
+            return 0.0
+        diff = abs(a - b)
+        tol = max(self.abs_tol, self.pct_tol * max(abs(a), abs(b)))
+        if diff <= tol:
+            return 1.0
+        if tol == 0:
+            # No tolerance configured: only an exact match scores above 0.
+            return 0.0
+        # Continuous at the edge (exp(0)=1) and monotonically -> 0 as diff grows.
+        return math.exp(-(diff - tol) / tol)

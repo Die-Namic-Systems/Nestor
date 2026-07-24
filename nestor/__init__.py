@@ -11,7 +11,18 @@ Standalone package. Persistence is injected via :mod:`nestor.storage`
 """
 from __future__ import annotations
 
-from . import cascade, engine, glossary, langid, memory, segment, storage
+from . import (
+    cascade,
+    engine,
+    entity,
+    glossary,
+    langid,
+    matcher,
+    memory,
+    reconcile,
+    segment,
+    storage,
+)
 from .cascade import (
     Passage,
     graduate_segment,
@@ -19,22 +30,35 @@ from .cascade import (
     translate_segment,
     translate_text,
 )
-from .memory import set_bilingual_loader
+from .entity import EntityResolver
+from .matcher import Matcher, NumericMatcher, StringMatcher
+from .memory import get_matcher, set_bilingual_loader, set_matcher
+from .reconcile import Reconciler
 from .storage import Storage, get_store, set_store
 
 __all__ = [
+    "EntityResolver",
+    "Matcher",
+    "NumericMatcher",
     "Passage",
+    "Reconciler",
     "Storage",
+    "StringMatcher",
     "cascade",
     "engine",
+    "entity",
+    "get_matcher",
+    "get_store",
     "glossary",
     "graduate_segment",
-    "get_store",
     "langid",
+    "matcher",
     "memory",
+    "reconcile",
     "segment",
     "set_bilingual_loader",
     "set_ledger_path",
+    "set_matcher",
     "set_store",
     "storage",
     "translate_segment",
