@@ -24,6 +24,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
+from . import signing
 from .matcher import Matcher, StringMatcher
 from .storage import Storage, get_store
 
@@ -117,18 +118,21 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     matcher = get_matcher(matcher)
     store.memory_init()
     norm = matcher.normalize(source_text)
+    # Bind the seal to a key the store does not hold (Nestor#2). Signing is
+    # opt-in: with no NESTOR_SEAL_KEY, sign_seal returns "" and nothing changes.
+    seal_sig = signing.sign_seal(norm, target_text, verifier) if status == "sealed" else ""
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
         ):
-            store.memory_seal(existing["id"], target_text, verifier, weight)
+            store.memory_seal(existing["id"], target_text, verifier, weight, seal_sig)
             existing = store.memory_find(norm, source_lang, target_lang)
         return existing
     pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
                 status=status, verifier=verifier, weight=weight, origin=origin,
-                created_at=_now())
+                created_at=_now(), seal_sig=seal_sig)
     store.memory_insert(pair)
     return pair
 
@@ -172,7 +176,13 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
     for m in lookup(source_text, source_lang, target_lang, store=store,
                     matcher=matcher, context_threshold=context_threshold):
-        if m["pair"]["status"] == "sealed" and m["similarity"] >= seal:
+        p = m["pair"]
+        # A "sealed" row is served as tier-1 only if its signature is valid.
+        # When signing is disabled (no key) seal_is_valid is always True, so
+        # behavior is unchanged; when enabled, a forged seal is not served.
+        if (p["status"] == "sealed" and m["similarity"] >= seal
+                and signing.seal_is_valid(p["source_norm"], p["target_text"],
+                                          p["verifier"], p.get("seal_sig", ""))):
             return m
     return None
 
