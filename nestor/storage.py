@@ -118,7 +118,7 @@ class Storage(Protocol):
         """
 
     def memory_seal(self, pair_id: str, target_text: str, verifier: str,
-                   weight: float) -> None:
+                   weight: float, seal_sig: str = "") -> None:
         """Upgrade an existing pair to sealed status.
 
         Sets ``target_text``, ``status='sealed'``, ``verifier`` and ``weight``

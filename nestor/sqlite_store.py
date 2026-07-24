@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS tm_pairs (
     verifier    TEXT NOT NULL DEFAULT '',
     weight      REAL NOT NULL DEFAULT 1.0,
     origin      TEXT NOT NULL DEFAULT '',
-    created_at  TEXT NOT NULL
+    created_at  TEXT NOT NULL,
+    seal_sig    TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_segments_document ON segments(document_id);
@@ -185,17 +186,17 @@ class SqliteStore:
             conn.execute(
                 "INSERT INTO tm_pairs VALUES (:id,:source_text,:source_norm,"
                 ":source_lang,:target_text,:target_lang,:status,:verifier,"
-                ":weight,:origin,:created_at)",
-                pair,
+                ":weight,:origin,:created_at,:seal_sig)",
+                {"seal_sig": "", **pair},
             )
 
     def memory_seal(self, pair_id: str, target_text: str, verifier: str,
-                   weight: float) -> None:
+                   weight: float, seal_sig: str = "") -> None:
         with self._db() as conn:
             conn.execute(
                 "UPDATE tm_pairs SET target_text=?, status='sealed', "
-                "verifier=?, weight=? WHERE id=?",
-                (target_text, verifier, weight, pair_id),
+                "verifier=?, weight=?, seal_sig=? WHERE id=?",
+                (target_text, verifier, weight, seal_sig, pair_id),
             )
 
     def memory_candidates(self, source_lang: str,
