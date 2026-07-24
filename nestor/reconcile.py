@@ -83,7 +83,10 @@ class Reconciler:
             observed, label, self.domain, store=self.store,
             matcher=self.matcher, context_threshold=0.0,
         )
-        sealed = [m for m in matches if m["pair"]["status"] == "sealed"]
+        # Verified seals only — a forged "sealed" row must not become a trusted
+        # baseline (Nestor#2 follow-up: this path used to skip the signature
+        # check that best_sealed does).
+        sealed = memory.verified_sealed(matches)
 
         if not sealed:
             result = {

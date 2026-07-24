@@ -164,6 +164,24 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     return scored[:limit]
 
 
+def is_verified_seal(pair: dict) -> bool:
+    """The single definition of "a sealed row we may serve": status is
+    ``sealed`` AND its signature verifies. Every serve path must go through
+    this — ``best_sealed``, the reconciler, and the engine's TM context — so
+    the Nestor#2 signature check can't be bypassed by a bare ``status ==
+    'sealed'`` filter one file over (that regression is the reason this exists).
+    Signing-disabled ⇒ ``seal_is_valid`` is True ⇒ legacy behavior unchanged.
+    """
+    return (pair.get("status") == "sealed" and signing.seal_is_valid(
+        pair["source_norm"], pair["target_text"], pair["verifier"],
+        pair.get("seal_sig", "")))
+
+
+def verified_sealed(matches: list[dict]) -> list[dict]:
+    """Filter ``lookup()`` results to sealed rows whose signature verifies."""
+    return [m for m in matches if is_verified_seal(m["pair"])]
+
+
 def best_sealed(source_text: str, source_lang: str, target_lang: str,
                 store: Optional[Storage] = None,
                 matcher: Optional[Matcher] = None,
@@ -176,13 +194,7 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
     for m in lookup(source_text, source_lang, target_lang, store=store,
                     matcher=matcher, context_threshold=context_threshold):
-        p = m["pair"]
-        # A "sealed" row is served as tier-1 only if its signature is valid.
-        # When signing is disabled (no key) seal_is_valid is always True, so
-        # behavior is unchanged; when enabled, a forged seal is not served.
-        if (p["status"] == "sealed" and m["similarity"] >= seal
-                and signing.seal_is_valid(p["source_norm"], p["target_text"],
-                                          p["verifier"], p.get("seal_sig", ""))):
+        if m["similarity"] >= seal and is_verified_seal(m["pair"]):
             return m
     return None
 
