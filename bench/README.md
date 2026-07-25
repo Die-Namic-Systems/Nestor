@@ -7,8 +7,20 @@ someone remembers.
 
 Every bench writes a JSON blob to `bench/results/<name>.json` containing its
 parameters, the machine it ran on, the git revision, and its raw measurements.
-Runs append, newest last, so a result can be compared against the same bench run
-months earlier.
+Runs accumulate, newest last, so a result can be compared against the same bench
+run months earlier.
+
+**Results are checkpointed after every row**, not written once at the end. Each
+run carries a stable `run_id` and is rewritten in place as it progresses, with
+`"complete": false` until the final row lands. Two reasons, both learned the hard
+way: a long run that dies partway — the first full accuracy run was killed by its
+own timeout, the second by a corpus-size guard — used to take every finished row
+with it; and a bench that writes nothing for half an hour is indistinguishable
+from a bench that has hung. Writes go through a temp file and an atomic replace,
+so a kill mid-write cannot leave truncated JSON where results used to be.
+
+**Check `complete` before citing a number.** A `false` there means the run was
+still going or never finished, and the rows present are a prefix of the plan.
 
 ## Running
 
@@ -65,3 +77,14 @@ something other than what Nestor serves.
 *with the sealed phrase they collided with*. A probe that near-duplicates
 something already sealed is a different finding from one that resembles nothing
 in the corpus, and a bare percentage cannot tell you which you have.
+
+**The fast scan is proved equal, per run.** Scoring every probe against every row
+is the bulk of a run's cost, so `best_match_fast` skips candidates whose difflib
+upper bound (`real_quick_ratio` / `quick_ratio`) cannot beat the best score so
+far — provably the same argmax, less work. `--equiv N` scores N probes *both*
+ways and records any disagreement under `fast_path_equivalence`. Two ways to
+break it silently, both hit while writing it: `ratio()` is **not symmetric**, so
+pinning the row as sequence `b` to reuse difflib's index measures a different
+function; and `autojunk` changes results past 200 elements. Either produces a
+plausible, slightly wrong benchmark rather than an obvious failure — hence the
+per-run check rather than a one-off proof.

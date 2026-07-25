@@ -1,0 +1,299 @@
+{
+  "bench": "accuracy",
+  "runs": [
+    {
+      "run_id": "20260725T070611Z",
+      "recorded_at": "2026-07-25T07:07:05Z",
+      "complete": false,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "f3b096a"
+      },
+      "params": {
+        "sizes": [
+          500,
+          2000,
+          8000,
+          24000
+        ],
+        "prose_sizes": [
+          500,
+          2000,
+          4000
+        ],
+        "probes": 250,
+        "seed": 7,
+        "matcher": "StringMatcher",
+        "thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_seal_threshold": 0.92,
+        "prose_pool": 5073,
+        "scan": "best_match_fast (difflib upper-bound pruning)",
+        "plan_rows": 7
+      },
+      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. misrouted = served but pointing at the wrong pair.",
+      "measurements": [
+        {
+          "corpus": "boilerplate",
+          "size": 500,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.912,
+              "false_seals": 228,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.328,
+              "false_seals": 82,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.028,
+              "false_seals": 7,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.792,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.922,
+              "asked": "the joint penalty terminates any annual clause under section 159",
+              "would_serve_source": "the joint payment terminates any annual clause under section 785",
+              "would_serve_target": "BENCH:473"
+            },
+            {
+              "similarity": 0.915,
+              "asked": "the exclusive term governs any initial deposit under section 425",
+              "would_serve_source": "the exclusive notice governs any initial deposit under section 18",
+              "would_serve_target": "BENCH:148"
+            },
+            {
+              "similarity": 0.91,
+              "asked": "the exclusive payment supersedes any prior breach under section 269",
+              "would_serve_source": "the exclusive payment supersedes any joint breach under section 520",
+              "would_serve_target": "BENCH:389"
+            },
+            {
+              "similarity": 0.909,
+              "asked": "the exclusive clause precedes any prior deposit under section 194",
+              "would_serve_source": "the exclusive clause precedes any partial deposit under section 262",
+              "would_serve_target": "BENCH:338"
+            },
+            {
+              "similarity": 0.904,
+              "asked": "the prior term assigns any mutual audit under section 695",
+              "would_serve_source": "the prior annex assigns any mutual audit under section 189",
+              "would_serve_target": "BENCH:132"
+            }
+          ],
+          "absent_score_percentiles": {
+            "p50": 0.835,
+            "p90": 0.869,
+            "p99": 0.91,
+            "max": 0.922
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "fidelity_check": {
+            "checked": 40,
+            "agreed_with_best_sealed": 40
+          },
+          "fast_path_equivalence": {
+            "checked": 30,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.724,
+              "false_seals": 181,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.108,
+              "false_seals": 27,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.836,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.941,
+              "asked": "the material penalty triggers any initial warranty under section 175",
+              "would_serve_source": "the partial penalty triggers any initial warranty under section 2176",
+              "would_serve_target": "BENCH:1543"
+            },
+            {
+              "similarity": 0.933,
+              "asked": "the annual remedy terminates any material licence under section 1314",
+              "would_serve_source": "the annual remedy terminates any partial licence under section 1821",
+              "would_serve_target": "BENCH:737"
+            },
+            {
+              "similarity": 0.924,
+              "asked": "the material warranty limits any initial remedy under section 1062",
+              "would_serve_source": "the material warranty amends any initial remedy under section 1902",
+              "would_serve_target": "BENCH:163"
+            },
+            {
+              "similarity": 0.921,
+              "asked": "the written annex limits any initial annex under section 1673",
+              "would_serve_source": "the written annex terminates any initial annex under section 1672",
+              "would_serve_target": "BENCH:995"
+            },
+            {
+              "similarity": 0.919,
+              "asked": "the material schedule precedes any mutual contract under section 670",
+              "would_serve_source": "the mutual schedule precedes any mutual contract under section 1039",
+              "would_serve_target": "BENCH:1154"
+            }
+          ],
+          "absent_score_percentiles": {
+            "p50": 0.866,
+            "p90": 0.901,
+            "p99": 0.924,
+            "max": 0.941
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "fidelity_check": {
+            "checked": 40,
+            "agreed_with_best_sealed": 40
+          },
+          "fast_path_equivalence": {
+            "checked": 30,
+            "disagreements": 0,
+            "examples": []
+          }
+        }
+      ]
+    }
+  ]
+}
