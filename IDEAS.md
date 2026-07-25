@@ -37,15 +37,51 @@ If it holds, it is the highest-value change on this list, because it attacks
 false seals without giving up recall the way raising the threshold does.
 `bench_accuracy.py` already records what is needed to test it.
 
-### 1.2 Negative seals — **hypothesis**
+### 1.2 Negative seals — **shipped**
 
-Today a human can seal "this match is right." There is no way to record "this
-match is *wrong*." So a bad fuzzy hit that a reviewer rejects will be served
-again tomorrow, identically, forever. A `rejected` status consulted before
-serving would make review a ratchet in both directions.
+*Was: a human could seal "this match is right" but never record "this match is
+wrong," so a bad fuzzy hit came back identically forever and human attention
+leaked out of the system.*
 
-This is arguably a bigger gap than anything in the performance section: without
-it, human attention leaks.
+Implemented as two distinct refusals, because collapsing them would have been a
+bug:
+
+* **`reject_pair(pair_id, …)`** — the mapping itself is wrong. Sets
+  `status='rejected'`; never served, never offered as engine context again.
+* **`reject_match(source_text, …, pair_id=/target_text=)`** — *this pair is the
+  wrong answer for this query*. The pair stays valid for its own source text.
+
+The second is the false-seal case from the bench, and it is the one that had no
+home in the schema. A false seal is a **correct** pair matched to the wrong
+input, so rejecting the pair would destroy a good verification. It needed a new
+table (`tm_rejections`) keyed on the query, not on the pair.
+
+Design decisions worth remembering:
+
+* **Enforcement lives in `lookup()`**, not `best_sealed()`. Every serve path —
+  `best_sealed`, engine TM context, the entity resolver, the reconciler — goes
+  through `lookup`. Filtering one level up would have left a rejected pair still
+  reaching the engine's system prompt as authoritative reference material.
+* **Rejections are honored even when their signature does not verify**, which is
+  the opposite of how seals are treated. The two fail in opposite directions:
+  honoring a forged seal serves unverified content as verified, whereas honoring
+  a forged rejection merely withholds an answer and degrades to human review —
+  the defined safe state. It grants an attacker nothing either, since writing a
+  forged rejection needs store write access, and anyone with that could delete
+  the sealed row instead. Validity is still recorded and surfaced via
+  `rejection_signature_report` for the curator.
+* **Rejection signatures are domain-separated** from seal signatures (a literal
+  `"rejection"` tag as element 0 of the signed message), so one can never be
+  replayed as the other.
+* **The capability is optional and all-or-nothing.** A host store predating it
+  keeps working; `supports_rejection()` reports partial implementations as no
+  support, because writing rejections nobody reads back is worse than not having
+  the feature. `reject_*` raises rather than silently dropping a human's "no".
+
+Remaining: nothing consumes rejections as *training signal* — a query with
+several rejections is a strong hint that the threshold is wrong for that domain
+(§1.3), and a pair rejected against many different queries is a hint the pair
+itself is junk. Both are now recorded and unread.
 
 ### 1.3 The threshold should be calibrated, not constant — **open**
 

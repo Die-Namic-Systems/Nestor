@@ -19,13 +19,17 @@ Nestor serves is in exactly one of three states, and the state is never a guess:
 | ~ | **draft** | A machine produced it. Queued for review, never served as verified. |
 | ! | **pending** | Nothing to offer. Said plainly rather than improvised. |
 
-A human seals an answer **once**. From then on it is free, instant, and carries
-the provenance of whoever verified it. Every seal, serve and check is appended to
-a hash-chained ledger, so the trail is tamper-evident.
+A human seals an answer once — and can **reject** one just as durably, so a wrong
+match is never served again. Both decisions are signed and both are audited.
+
+From then on a sealed answer is free, instant, and carries the provenance of
+whoever verified it. Every seal, rejection, serve and check is appended to a
+hash-chained ledger, so the trail is tamper-evident.
 
 **Contents** — [Quick start](#quick-start) · [The mechanic](#the-mechanic) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
-[The recipes](#the-recipes) · [The ledger](#the-ledger) ·
+[The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
+[The ledger](#the-ledger) ·
 [Injected storage](#injected-storage) ·
 [Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
 
@@ -37,7 +41,7 @@ a hash-chained ledger, so the trail is tamper-evident.
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q                                  # 65 passed
+pytest -q                                  # 79 passed
 ```
 
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
@@ -119,17 +123,17 @@ draft engine and the governance forwarder are all injected.
 
 ```
 nestor/
-├── __init__.py       public surface — translate_text, translate_segment, graduate_segment
+├── __init__.py       public surface — translate_text, graduate_segment, reject_segment
 ├── cascade.py        the three tiers, and the hash-chained ledger append
-├── memory.py         tier 1 — the sealed pair memory, ranking, seal/serve rules
+├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
-├── sqlite_store.py   reference Storage implementation; owns documents/segments/tm_pairs
+├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
-├── signing.py        bind a seal to a key the store does not hold
+├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
@@ -141,7 +145,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py        timing, environment capture, JSON result recording
 └── results/          committed measurements — parameters, git rev, raw numbers
 
-tests/                65 tests, no network, no fixtures on disk
+tests/                79 tests, no network, no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 ```
 
@@ -207,6 +211,10 @@ Tier 3 — **the seal** — happens when a human verifies a segment: call
 `graduate_segment(...)`, and the verified pair enters the sealed memory, where it
 serves future tier-1 hits.
 
+A reviewer's **no** is recorded too — `reject_segment(...)` — so a wrong
+candidate is never offered for that input again. See
+[Rejection](#rejection--the-reviewers-no).
+
 Pairs are `sealed` (human-verified / curated) or `draft` (machine, awaiting
 seal). Only sealed pairs are served as tier 1; drafts may feed the engine as
 style/terminology context but are never served as verified.
@@ -250,9 +258,62 @@ Every seal and check is written to the ledger.
 
 ---
 
+## Rejection — the reviewer's "no"
+
+Sealing records that an answer is right. Rejection records that one is **wrong**,
+so it is never served again. Both are verification decisions by a human, both are
+signed, and both land in the ledger — otherwise the audit trail only ever records
+agreement.
+
+There are two different refusals, and the distinction matters:
+
+```python
+# 1. The mapping itself is wrong — retire it everywhere.
+memory.reject_pair(pair_id, verifier="rita", reason="wrong time of day")
+
+# 2. This pair is the wrong answer FOR THIS QUERY — it stays valid for its own
+#    source text. This is what a false seal actually is.
+memory.reject_match("the penalty under section 900026", "en", "es",
+                    pair_id=hit["pair"]["id"], verifier="rita",
+                    reason="different section")
+```
+
+A false seal is a *correct* pair matched to the wrong input, so rejecting the
+pair would destroy a good verification. Rejecting the **match** suppresses it for
+that one query and leaves the seal intact:
+
+```
+before: served 'SEALED-ANSWER-9072'  sim=0.971  state=SEALED   <- never verified for this input
+        rita rejects that match once
+after : best_sealed -> None
+        lookup      -> []                     (also hidden from the engine)
+        the real pair still serves its own source, sim=1.0
+```
+
+For a reviewer working the queue, `cascade.reject_segment(segment_id, ...)` is
+the sibling of `graduate_segment` — accept or refuse, and either way it sticks.
+
+Enforcement lives in `memory.lookup()`, which every serve path goes through, so a
+rejected pair is hidden from tier-1 serving *and* from the engine's reference
+context.
+
+> **For hosts:** rejection is an **optional** Storage capability
+> (`memory_reject_pair`, `memory_add_rejection`, `memory_rejections`). A store
+> predating it keeps working untouched; `storage.supports_rejection(store)`
+> reports it. Implement all three or none — partial support counts as none, and
+> the `reject_*` entry points raise rather than silently discard a human's
+> decision.
+>
+> A rejection is honored **even if its signature does not verify** — the reverse
+> of how seals are treated. Suppressing an answer degrades to human review, which
+> is the safe state; serving an unverified one does not. Validity is still
+> reported via `memory.rejection_signature_report(...)`.
+
+---
+
 ## The ledger
 
-Every passage, seal, resolution and check is appended to a hash-chained ledger
+Every passage, seal, rejection, resolution and check is appended to a hash-chained ledger
 (`data/ledger.jsonl` by default). Each line records `prev = sha256(previous
 line)`, so the audit trail is tamper-evident — and all recipes share one chain.
 
@@ -389,9 +450,11 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 - **Lookup is linear in corpus size**, and ~97% of the time is Python-side
   scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
   not high-volume serving.
-- **There is no way to record that a match is *wrong*** — a rejected fuzzy hit
-  will be offered again identically (§1.2).
 - **The memory has no read surface** — no list, export or unseal (§5.2).
+- **Nothing consumes rejections as signal.** Repeated rejections against one
+  query are strong evidence the threshold is wrong for that domain, and a pair
+  rejected against many queries is probably junk. Both are recorded, neither is
+  read (§1.3).
 
 ---
 
@@ -399,7 +462,7 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # 65 tests, no network
+pytest -q                          # 79 tests, no network
 ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/

@@ -178,6 +178,42 @@ def translate_text(text: str, target_lang: str, source_lang: str = "",
     return doc, passages
 
 
+def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
+                   store: Optional[Storage] = None) -> Optional[dict]:
+    """The reviewer's "no" — the missing half of :func:`graduate_segment`.
+
+    A reviewer could always accept a queued draft and never reject one, so a bad
+    candidate came back identically forever and every reviewer paid the same
+    attention tax to dismiss it again. This records the rejection against the
+    segment's source text, so that candidate is never offered for it again —
+    neither served nor fed to the engine as reference material.
+
+    Returns the rejection record, or ``None`` if the segment is unknown or has
+    no candidate to reject. Marks the segment ``rejected`` when the store
+    supports it (``update_segment_status`` is outside the Storage Protocol, so
+    it is best-effort).
+    """
+    store = get_store(store)
+    seg = store.get_segment(segment_id)
+    if not seg or not seg.get("candidate"):
+        return None
+    doc = store.get_document(seg["document_id"]) or {}
+    rejection = memory.reject_match(
+        source_text=seg["source_text"],
+        source_lang=doc.get("source_lang", "en"),
+        target_lang=doc.get("target_lang", "es"),
+        target_text=seg["candidate"], verifier=verifier,
+        reason=reason or f"segment:{segment_id[:8]}", store=store,
+    )
+    updater = getattr(store, "update_segment_status", None)
+    if callable(updater):
+        updater(segment_id, "rejected")
+    _ledger_append({"kind": "reject_segment", "segment_id": segment_id,
+                    "rejection_id": rejection["id"], "verifier": verifier,
+                    "reason": reason})
+    return rejection
+
+
 def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
                      store: Optional[Storage] = None) -> Optional[dict]:
     """Tier 3 → tier 1: a verified segment's pair enters the sealed memory.

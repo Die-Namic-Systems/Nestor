@@ -26,7 +26,7 @@ from typing import Callable, Optional
 
 from . import signing
 from .matcher import Matcher, StringMatcher
-from .storage import Storage, get_store
+from .storage import Storage, get_store, supports_rejection
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -137,6 +137,56 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     return pair
 
 
+def rejected_ids(query_norm: str, source_lang: str, target_lang: str,
+                 store: Storage) -> tuple[set, set]:
+    """``(rejected pair ids, rejected target texts)`` for one query key.
+
+    Returns empty sets when the store has no rejection capability, so a host
+    predating it keeps working unchanged.
+
+    Every recorded rejection is honored, **including one whose signature does
+    not verify**. That is deliberate and the opposite of how seals are treated,
+    because the two fail in opposite directions: honoring a forged seal serves
+    unverified content as verified, while honoring a forged rejection only
+    withholds an answer. Withholding degrades to tier 2 and a human look —
+    Nestor's defined safe state. It also grants an attacker nothing new: writing
+    a forged rejection requires store write access, and anyone with that could
+    simply delete the sealed row instead. Signatures are still recorded and
+    checkable via :func:`rejection_signature_report` for audit.
+    """
+    if not supports_rejection(store):
+        return set(), set()
+    rows = store.memory_rejections(query_norm, source_lang, target_lang)
+    return ({r["pair_id"] for r in rows if r.get("pair_id")},
+            {r["target_text"] for r in rows if r.get("target_text")})
+
+
+def rejection_signature_report(query_norm: str, source_lang: str,
+                               target_lang: str,
+                               store: Optional[Storage] = None) -> list[dict]:
+    """Per-rejection signature validity, for audit and curator surfaces.
+
+    Serving never consults this — see :func:`rejected_ids` — but an unverifiable
+    rejection is still worth surfacing to a human, because it means somebody
+    suppressed an answer without the seal key.
+    """
+    store = get_store(store)
+    if not supports_rejection(store):
+        return []
+    out = []
+    for r in store.memory_rejections(query_norm, source_lang, target_lang):
+        out.append({
+            "pair_id": r.get("pair_id", ""),
+            "target_text": r.get("target_text", ""),
+            "verifier": r.get("verifier", ""),
+            "reason": r.get("reason", ""),
+            "signature_valid": signing.rejection_is_valid(
+                query_norm, r.get("pair_id", ""), r.get("target_text", ""),
+                r.get("verifier", ""), r.get("reject_sig", "")),
+        })
+    return out
+
+
 def lookup(source_text: str, source_lang: str, target_lang: str,
            limit: int = 5, store: Optional[Storage] = None,
            matcher: Optional[Matcher] = None,
@@ -155,8 +205,18 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     store.memory_init()
     norm = matcher.normalize(source_text)
     rows = store.memory_candidates(source_lang, target_lang)
+    # Rejection is enforced HERE, in the one function every serve path goes
+    # through — best_sealed, the engine's TM context, the entity resolver and
+    # the reconciler all call lookup(). Filtering in best_sealed alone would
+    # leave a rejected pair still reaching the engine's system prompt as
+    # authoritative reference material.
+    bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
     scored = []
     for row in rows:
+        if row["status"] == "rejected":
+            continue
+        if row["id"] in bad_pairs or row["target_text"] in bad_targets:
+            continue
         sim = matcher.similarity(norm, row["source_norm"])
         if sim >= ctx:
             scored.append({"pair": row, "similarity": round(sim, 3)})
@@ -197,6 +257,83 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         if m["similarity"] >= seal and is_verified_seal(m["pair"]):
             return m
     return None
+
+
+def _log_rejection(entry: dict) -> None:
+    """Append a rejection to the hash-chained ledger.
+
+    Imported lazily: ``cascade`` imports ``memory`` at module load, so a
+    top-level import here would be circular. By the time any rejection can be
+    recorded, ``cascade`` is loaded.
+
+    A rejection is a verification decision exactly as a seal is — "a human
+    looked and said no" belongs in the audit trail beside "a human looked and
+    said yes", or the trail only ever records agreement.
+    """
+    from .cascade import _ledger_append
+    _ledger_append(entry)
+
+
+def _require_rejection(store: Storage) -> None:
+    if not supports_rejection(store):
+        raise RuntimeError(
+            f"{type(store).__name__} does not implement Nestor's rejection "
+            f"capability. Implement memory_reject_pair, memory_add_rejection "
+            f"and memory_rejections (see nestor.storage.Storage) — refusing to "
+            f"accept a rejection that would be silently discarded."
+        )
+
+
+def reject_match(source_text: str, source_lang: str, target_lang: str,
+                 pair_id: str = "", target_text: str = "", verifier: str = "",
+                 reason: str = "", store: Optional[Storage] = None,
+                 matcher: Optional[Matcher] = None) -> dict:
+    """Record that a candidate is the WRONG answer for ``source_text``.
+
+    Identify what is being rejected by ``pair_id`` (a memory pair that matched
+    this query — the false-seal case) or by ``target_text`` (a raw engine draft
+    with no pair yet), or both. The pair itself stays valid for its own source
+    text; use :func:`reject_pair` when the mapping is wrong in its own right.
+
+    Raises ``RuntimeError`` if the store cannot persist rejections, rather than
+    accepting a "no" it would drop on the floor.
+    """
+    store = get_store(store)
+    _require_rejection(store)
+    matcher = get_matcher(matcher)
+    store.memory_init()
+    if not pair_id and not target_text:
+        raise ValueError("reject_match needs pair_id or target_text — "
+                         "otherwise there is nothing to suppress")
+    norm = matcher.normalize(source_text)
+    rejection = dict(
+        id=str(uuid.uuid4()), query_norm=norm, source_lang=source_lang,
+        target_lang=target_lang, pair_id=pair_id, target_text=target_text,
+        verifier=verifier, reason=reason, created_at=_now(),
+        reject_sig=signing.sign_rejection(norm, pair_id, target_text, verifier),
+    )
+    store.memory_add_rejection(rejection)
+    _log_rejection({"kind": "reject_match", "query_norm": norm,
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "pair_id": pair_id, "verifier": verifier, "reason": reason,
+                    "rejection_id": rejection["id"]})
+    return rejection
+
+
+def reject_pair(pair_id: str, verifier: str = "", reason: str = "",
+                store: Optional[Storage] = None) -> None:
+    """Mark a pair's mapping itself wrong — never served or offered again.
+
+    Use for a bad seal or a bad draft. For "right pair, wrong query" — which is
+    what a false seal actually is — use :func:`reject_match` instead, so a
+    correct verification is not destroyed.
+    """
+    store = get_store(store)
+    _require_rejection(store)
+    store.memory_init()
+    store.memory_reject_pair(pair_id, verifier, reason)
+    _log_rejection({"kind": "reject_pair", "pair_id": pair_id,
+                    "verifier": verifier, "reason": reason})
 
 
 def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,

@@ -3,13 +3,13 @@
   "runs": [
     {
       "run_id": "20260725T070611Z",
-      "recorded_at": "2026-07-25T07:07:05Z",
+      "recorded_at": "2026-07-25T07:09:24Z",
       "complete": false,
       "environment": {
         "python": "3.11.15",
         "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
         "processor": "x86_64",
-        "git_rev": "f3b096a"
+        "git_rev": "3426f34"
       },
       "params": {
         "sizes": [
@@ -276,6 +276,131 @@
             "p90": 0.901,
             "p99": 0.924,
             "max": 0.941
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "fidelity_check": {
+            "checked": 40,
+            "agreed_with_best_sealed": 40
+          },
+          "fast_path_equivalence": {
+            "checked": 30,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 8000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.976,
+              "false_seals": 244,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.364,
+              "false_seals": 91,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.08,
+              "false_seals": 20,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.832,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.974,
+              "asked": "the joint term triggers any joint breach under section 5386",
+              "would_serve_source": "the joint term triggers any joint breach under section 756",
+              "would_serve_target": "BENCH:5202"
+            },
+            {
+              "similarity": 0.971,
+              "asked": "the exclusive schedule precedes any initial licence under section 2674",
+              "would_serve_source": "the exclusive schedule precedes any initial licence under section 5275",
+              "would_serve_target": "BENCH:4450"
+            },
+            {
+              "similarity": 0.968,
+              "asked": "the written notice assigns any prior penalty under section 4390",
+              "would_serve_source": "the written notice assigns any prior penalty under section 1405",
+              "would_serve_target": "BENCH:7993"
+            },
+            {
+              "similarity": 0.941,
+              "asked": "the written renewal terminates any prior warranty under section 6546",
+              "would_serve_source": "the written renewal terminates any prior warranty under section 8020",
+              "would_serve_target": "BENCH:7446"
+            },
+            {
+              "similarity": 0.938,
+              "asked": "the mutual report terminates any final vendor under section 7031",
+              "would_serve_source": "the mutual report terminates any final vendor under section 2484",
+              "would_serve_target": "BENCH:1378"
+            }
+          ],
+          "absent_score_percentiles": {
+            "p50": 0.891,
+            "p90": 0.918,
+            "p99": 0.968,
+            "max": 0.974
           },
           "retyped_score_percentiles": {
             "p50": 1.0,

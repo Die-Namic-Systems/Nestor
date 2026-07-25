@@ -15,7 +15,6 @@ Both are seeded, so a bench run is reproducible.
 from __future__ import annotations
 
 import importlib
-import pkgutil
 import random
 import re
 

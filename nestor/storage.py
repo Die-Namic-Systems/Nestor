@@ -144,10 +144,69 @@ class Storage(Protocol):
         tuples, busiest first. (Was the COUNT/GROUP BY block in ``stats``.)
         """
 
+    # --- rejection (OPTIONAL capability) ---------------------------------
+    #
+    # A reviewer could always record "this is right" (a seal) and never "this
+    # is wrong", so a bad match came back identically forever and every
+    # reviewer paid the same attention tax to dismiss it again. These three
+    # operations close that.
+    #
+    # They are an OPTIONAL extension: a store predating them keeps working and
+    # simply has no rejection capability. Nestor checks with
+    # :func:`supports_rejection` before filtering, and the reject_* entry points
+    # raise a clear RuntimeError rather than silently doing nothing. Implement
+    # all three or none — a store with only some of them is treated as having
+    # none, because writing rejections that are never read is worse than not
+    # having the feature.
+
+    def memory_reject_pair(self, pair_id: str, verifier: str, reason: str) -> None:
+        """Mark a pair itself wrong: set ``status='rejected'`` on ``pair_id``.
+
+        The mapping is bad in its own right, so it must never be served or
+        offered as engine context again. Distinct from a *match* rejection —
+        see :meth:`memory_add_rejection`.
+        """
+
+    def memory_add_rejection(self, rejection: dict) -> None:
+        """Record that something must not be served **for one specific query**.
+
+        ``rejection`` carries: ``id``, ``query_norm``, ``source_lang``,
+        ``target_lang``, ``pair_id`` (``""`` if the rejected candidate has no
+        pair yet), ``target_text``, ``verifier``, ``reason``, ``created_at``,
+        ``reject_sig``.
+
+        The pair named here stays valid for its OWN source text — this says only
+        that it is the wrong answer for ``query_norm``. That distinction is the
+        whole point: a false seal is a good pair matched to the wrong input, and
+        deleting the pair would destroy a correct verification.
+        """
+
+    def memory_rejections(self, query_norm: str, source_lang: str,
+                          target_lang: str) -> list[dict]:
+        """Rejections recorded for exactly this query key and domain.
+
+        Each dict MUST expose ``pair_id``, ``target_text``, ``verifier`` and
+        ``reject_sig``. Returns ``[]`` when there are none.
+        """
+
 
 # --------------------------------------------------------------------------
 # Global injection point
 # --------------------------------------------------------------------------
+
+_REJECTION_OPS = ("memory_reject_pair", "memory_add_rejection", "memory_rejections")
+
+
+def supports_rejection(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional rejection capability.
+
+    All three operations or none: a store that can record rejections but not
+    read them back would let a reviewer believe their "no" was captured while
+    the same bad match kept being served. Partial support is therefore reported
+    as no support.
+    """
+    return all(callable(getattr(store, op, None)) for op in _REJECTION_OPS)
+
 
 _store: "Optional[Storage]" = None
 
