@@ -2,6 +2,11 @@
 
 **Meaning infrastructure. *In medio, fides.***
 
+[![Tests](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml/badge.svg)](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![Dependencies](https://img.shields.io/badge/runtime%20deps-none-lightgrey)](pyproject.toml)
+
 Nestor answers one question about a machine-generated answer: **has a human
 checked this?**
 
@@ -15,8 +20,30 @@ Nestor serves is in exactly one of three states, and the state is never a guess:
 | ! | **pending** | Nothing to offer. Said plainly rather than improvised. |
 
 A human seals an answer **once**. From then on it is free, instant, and carries
-the provenance of whoever verified it. Every seal, every serve, and every
-rejection is appended to a hash-chained ledger, so the trail is tamper-evident.
+the provenance of whoever verified it. Every seal, serve and check is appended to
+a hash-chained ledger, so the trail is tamper-evident.
+
+**Contents** — [Quick start](#quick-start) · [The mechanic](#the-mechanic) ·
+[Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
+[The recipes](#the-recipes) · [The ledger](#the-ledger) ·
+[Injected storage](#injected-storage) ·
+[Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q                                  # 65 passed
+```
+
+Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
+Nestor needs, so the whole cascade runs end-to-end with no host application.
+
+Save this as `demo.py` and run it — it is the entire product in eleven lines:
 
 ```python
 from nestor import cascade, memory, storage
@@ -27,7 +54,6 @@ storage.set_store(SqliteStore(":memory:"))
 # 1. Nothing is known yet. Nestor says so rather than improvising.
 p = cascade.translate_segment("Good evening.", "en", "es")
 print(p.mark, p.state, repr(p.target))
-# ! pending ''
 
 # 2. A human verifies it — once.
 memory.add_pair("Good evening.", "Buenas noches.", "en", "es",
@@ -36,16 +62,28 @@ memory.add_pair("Good evening.", "Buenas noches.", "en", "es",
 # 3. Forever after, including when it is retyped differently.
 p = cascade.translate_segment("good evening", "en", "es")
 print(p.mark, p.state, repr(p.target), p.confidence, p.meta["verifier"])
-# ✓ sealed 'Buenas noches.' 1.0 rudi
 ```
 
-That is the whole product. One human verification, and the answer is free,
-instant and attributed from then on — with both steps recorded in a
-tamper-evident ledger.
+```
+! pending ''
+✓ sealed 'Buenas noches.' 1.0 rudi
+```
 
-> Running the above prints a `RuntimeWarning` about `NESTOR_SEAL_KEY`. That is
-> Nestor telling you seals are being trusted on stored status alone. See
+One human verification, and the answer is free, instant and attributed from then
+on — with both steps recorded in a tamper-evident ledger.
+
+> The run also prints a `RuntimeWarning` about `NESTOR_SEAL_KEY`. That is Nestor
+> telling you seals are being trusted on stored status alone. See
 > [Seal signatures](#seal-signatures) before using it for anything real.
+
+**Installation extras**
+
+```bash
+pip install -e ".[dev]"      # + pytest
+pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
+```
+
+---
 
 ## The mechanic
 
@@ -72,21 +110,40 @@ That last row is not aspirational. A date matcher (normalizing `Q3 2025`,
 CSV-header-to-schema mapper have both been built against the shipped package
 without modifying it.
 
-Nestor has **no upward dependency on any host**, and no runtime dependencies at
-all — persistence, the matcher, the draft engine and the governance forwarder
-are all injected.
+Nestor has **no upward dependency on any host** — persistence, the matcher, the
+draft engine and the governance forwarder are all injected.
 
-## Install
+---
 
-```bash
-pip install -e ".[dev]"      # + pytest
-pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
-pytest -q
+## Project layout
+
 ```
+nestor/
+├── __init__.py       public surface — translate_text, translate_segment, graduate_segment
+├── cascade.py        the three tiers, and the hash-chained ledger append
+├── memory.py         tier 1 — the sealed pair memory, ranking, seal/serve rules
+├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
+├── entity.py         recipe — alias → canonical entity resolution
+├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
+├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
+├── storage.py        the persistence seam — Storage protocol, set_store/get_store
+├── sqlite_store.py   reference Storage implementation; owns documents/segments/tm_pairs
+├── ledger.py         verify() the hash chain — the fail-closed audit check
+├── signing.py        bind a seal to a key the store does not hold
+├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
+├── glossary.py       per-language-pair term locks — tier 2's constraint
+├── langid.py         stopword-profile language identification
+└── segment.py        sentence/segment splitting
 
-Python 3.10+. The reference `SqliteStore` owns every table Nestor needs, so the
-whole cascade runs end-to-end with no host. Use `SqliteStore(":memory:")` for
-ephemeral runs and tests.
+bench/                measuring where the seal threshold stops holding — see bench/README.md
+├── bench_accuracy.py false-seal rate vs recall, swept across thresholds
+├── corpora.py        seeded corpora at both ends of the diversity spectrum
+├── harness.py        timing, environment capture, JSON result recording
+└── results/          committed measurements — parameters, git rev, raw numbers
+
+tests/                65 tests, no network, no fixtures on disk
+IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
+```
 
 ---
 
@@ -129,7 +186,7 @@ cross-talk.
 > scoring needs — word order, structure, magnitude — must survive into that
 > string. That same string is also the store's exact-match dedup key, so
 > collapsing aggressively and scoring richly pull against each other. See
-> `IDEAS.md` §3.1.
+> [`IDEAS.md`](IDEAS.md) §3.1.
 
 ---
 
@@ -150,10 +207,9 @@ Tier 3 — **the seal** — happens when a human verifies a segment: call
 `graduate_segment(...)`, and the verified pair enters the sealed memory, where it
 serves future tier-1 hits.
 
-`nestor.memory` owns the ranking. Pairs are `sealed` (human-verified / curated)
-or `draft` (machine, awaiting seal). Only sealed pairs are served as tier 1;
-drafts may feed the engine as style/terminology context but are never served as
-verified.
+Pairs are `sealed` (human-verified / curated) or `draft` (machine, awaiting
+seal). Only sealed pairs are served as tier 1; drafts may feed the engine as
+style/terminology context but are never served as verified.
 
 ### Entity resolution — `nestor.entity`
 
@@ -164,8 +220,10 @@ r = EntityResolver(store, domain="company")
 for surface in ["Amazon", "Amazon.com Inc", "AMZN", "AWS"]:
     r.seal(surface, "Amazon", verifier="analyst", origin="sec-filing")
 
-r.resolve("amazon.com  inc.")   # -> {"canonical": "Amazon", "sealed": True, "confidence": 1.0, "provenance": {...}}
-r.resolve("Alphabet Inc")       # -> {"canonical": None, "sealed": False, "provenance": {"draft": True, ...}}
+r.resolve("amazon.com  inc.")
+# {'canonical': 'Amazon', 'confidence': 1.0, 'sealed': True, 'provenance': {...}}
+r.resolve("Alphabet Inc")
+# {'canonical': None, 'confidence': 0.0, 'sealed': False, 'provenance': {'draft': True, ...}}
 ```
 
 A match at/above the seal threshold returns the canonical entity with the sealed
@@ -180,8 +238,10 @@ from nestor.reconcile import Reconciler
 rc = Reconciler(store, domain="contract", pct_tol=0.05)
 rc.seal_baseline("ceiling", "$1,000,000", verifier="auditor")
 
-rc.check("ceiling", "$1,030,000")   # +3%  -> within_tolerance=True,  flagged=False
-rc.check("ceiling",  1_250_000)     # +25% -> within_tolerance=False, flagged=True, variation_pct=0.25
+rc.check("ceiling", "$1,030,000")
+# {..., 'within_tolerance': True,  'variation': 30000.0,  'variation_pct': 0.03, 'flagged': False}
+rc.check("ceiling", 1_250_000)
+# {..., 'within_tolerance': False, 'variation': 250000.0, 'variation_pct': 0.25, 'flagged': True}
 ```
 
 `check` compares an observation to the sealed baseline via the `NumericMatcher`
@@ -202,6 +262,11 @@ existing chain is verified before it is extended, so a new entry can never
 launder a tampered history. A broken chain is a refusal, not a warning.
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
+
+```python
+from nestor.ledger import verify
+verify("data/ledger.jsonl")     # (True, 'intact — 18 entries')
+```
 
 ### Seal signatures
 
@@ -249,8 +314,8 @@ operations the cascade and memory need. A host (or the bundled reference store)
 supplies a concrete implementation.
 
 ```python
-storage.set_store(SqliteStore("data/nestor.db"))       # process-wide
-doc, passages = translate_text("Hola.", target_lang="en", store=store)   # or per call
+storage.set_store(SqliteStore("data/nestor.db"))                          # process-wide
+doc, passages = translate_text("Hola.", target_lang="en", store=store)    # or per call
 ```
 
 If neither a global store nor an explicit `store=` is present, Nestor raises a
@@ -291,9 +356,9 @@ Translation-memory operations:
 
 ## Accuracy, and how to measure yours
 
-A tier-1 hit is served verbatim and marked verified, with **no review queue**.
-So the failure that matters is the inverse of the usual one: not a missed match,
-but a phrase that was never verified being served as though it were.
+A tier-1 hit is served verbatim and marked verified, with **no review queue**. So
+the failure that matters is the inverse of the usual one: not a missed match, but
+a phrase that was never verified being served as though it were.
 
 Both are governed by `SEAL_THRESHOLD` (default `0.92`), and they trade against
 each other:
@@ -307,27 +372,44 @@ The right cutoff depends on your corpus. Homogeneous text — contract boilerpla
 templated notices — crowds the score distribution and produces false seals at
 thresholds that are safe on diverse prose.
 
-**So measure it rather than trusting the default.** `bench/` ships a harness that
-sweeps the threshold against corpora at both ends of the diversity spectrum and
-reports false-seal rate against recall at each cutoff:
+**So measure it rather than trusting the default.** `bench/` sweeps the threshold
+against corpora at both ends of the diversity spectrum and reports false-seal
+rate against recall at each cutoff:
 
 ```bash
 python bench/bench_accuracy.py --probes 400
 ```
 
 Results land in `bench/results/*.json` with parameters, environment and git
-revision attached. `bench/README.md` documents the method — including the
-properties a corpus must preserve to produce a meaningful number.
+revision attached. [`bench/README.md`](bench/README.md) documents the method,
+including the properties a corpus must preserve to produce a meaningful number.
 
-Known limits, measured and recorded in `IDEAS.md`:
+Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 - **Lookup is linear in corpus size**, and ~97% of the time is Python-side
   scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
   not high-volume serving.
 - **There is no way to record that a match is *wrong*** — a rejected fuzzy hit
-  will be offered again identically (`IDEAS.md` §1.2).
-- **The memory has no read surface** — no list, export or unseal
-  (`IDEAS.md` §5.2).
+  will be offered again identically (§1.2).
+- **The memory has no read surface** — no list, export or unseal (§5.2).
+
+---
+
+## Development
+
+```bash
+pip install -e ".[dev]"
+pytest -q                          # 65 tests, no network
+ruff check nestor tests            # enforced in CI
+bandit -r nestor -ll -q            # enforced in CI
+python bench/bench_accuracy.py     # measurements -> bench/results/
+```
+
+CI runs lint and the test matrix (Python 3.10 and 3.12) on every pull request,
+plus a daily scheduled run to catch drift. Ideas, open questions and measured
+dead ends live in [`IDEAS.md`](IDEAS.md) — each entry tagged
+**measured / verified / hypothesis / open**, so the confidence level travels with
+the claim.
 
 ## License
 
