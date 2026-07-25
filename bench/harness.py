@@ -37,8 +37,19 @@ def environment() -> dict:
     }
 
 
-def record(name: str, params: dict, measurements, notes: str = "") -> pathlib.Path:
-    """Append one run to ``bench/results/<name>.json`` and return the path."""
+def record(name: str, params: dict, measurements, notes: str = "",
+           run_id: str = "", complete: bool = True) -> pathlib.Path:
+    """Append (or update) one run in ``bench/results/<name>.json``.
+
+    Pass a stable ``run_id`` and call this after every row to checkpoint a long
+    bench as it goes: the matching run is rewritten in place rather than
+    appended again. A run that dies partway then leaves its completed rows on
+    disk instead of taking them with it, and progress is visible in the results
+    file while the bench is still going.
+
+    ``complete=False`` marks the run as in-flight, so a partial result can never
+    be mistaken for a finished one.
+    """
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{name}.json"
     doc = {"bench": name, "runs": []}
@@ -47,15 +58,32 @@ def record(name: str, params: dict, measurements, notes: str = "") -> pathlib.Pa
             doc = json.loads(path.read_text())
         except json.JSONDecodeError:
             pass
-    doc.setdefault("runs", []).append({
+    entry = {
+        "run_id": run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "complete": complete,
         "environment": environment(),
         "params": params,
         "notes": notes,
         "measurements": measurements,
-    })
-    path.write_text(json.dumps(doc, indent=2, sort_keys=False) + "\n")
+    }
+    runs = doc.setdefault("runs", [])
+    for i, prior in enumerate(runs):
+        if run_id and prior.get("run_id") == run_id:
+            runs[i] = entry
+            break
+    else:
+        runs.append(entry)
+    # Write via a temp file in the same directory, then replace: a bench killed
+    # mid-write must not leave truncated JSON where its results used to be.
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(doc, indent=2, sort_keys=False) + "\n")
+    tmp.replace(path)
     return path
+
+
+def new_run_id() -> str:
+    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 
 
 def timed(fn, repeats: int = 1) -> dict:

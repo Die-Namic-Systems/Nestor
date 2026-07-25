@@ -207,29 +207,32 @@ def main() -> None:
         results = []
         plan = ([("boilerplate", s) for s in args.sizes]
                 + [("prose", s) for s in args.prose_sizes])
-        for name, size in plan:
+        run_id = harness.new_run_id()
+        params = {"sizes": args.sizes, "prose_sizes": args.prose_sizes,
+                  "probes": args.probes, "seed": args.seed,
+                  "matcher": "StringMatcher", "thresholds": THRESHOLDS,
+                  "shipped_seal_threshold": memory.SEAL_THRESHOLD,
+                  "prose_pool": corpora.available_prose(),
+                  "scan": "best_match_fast (difflib upper-bound pruning)"}
+        notes = ("false_seal_rate = share of held-out (absent) probes served as a "
+                 "verified tier-1 hit. recall = share of retyped sealed probes "
+                 "served, routed to the correct pair. misrouted = served but "
+                 "pointing at the wrong pair.")
+
+        for i, (name, size) in enumerate(plan):
             print(f"  {name:12s} {size:>6,} pairs ...", flush=True, end="")
             r = run_one(name, size, args.probes, matcher, args.seed,
                         verify=args.verify, equiv_check=args.equiv)
             results.append(r)
             at92 = next(x for x in r["sweep"] if x["threshold"] == 0.92)
             print(f" false-seal {at92['false_seal_rate']:.1%}  "
-                  f"recall {at92['recall']:.1%}  (@0.92)")
-
-        path = harness.record(
-            "accuracy",
-            {"sizes": args.sizes, "prose_sizes": args.prose_sizes,
-             "probes": args.probes, "seed": args.seed,
-             "matcher": "StringMatcher", "thresholds": THRESHOLDS,
-             "shipped_seal_threshold": memory.SEAL_THRESHOLD,
-             "prose_pool": corpora.available_prose(),
-             "scan": "best_match_fast (difflib upper-bound pruning)"},
-            results,
-            notes=("false_seal_rate = share of held-out (absent) probes served as a "
-                   "verified tier-1 hit. recall = share of retyped sealed probes "
-                   "served, routed to the correct pair. misrouted = served but "
-                   "pointing at the wrong pair."),
-        )
+                  f"recall {at92['recall']:.1%}  (@0.92)", flush=True)
+            # Checkpoint after every row. A long bench that dies partway — the
+            # first attempt at this one was killed by its own timeout — must
+            # leave its completed rows on disk rather than take them with it.
+            path = harness.record("accuracy", {**params, "plan_rows": len(plan)},
+                                  results, notes=notes, run_id=run_id,
+                                  complete=(i == len(plan) - 1))
         print(f"\n  -> {path}")
 
 
