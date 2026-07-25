@@ -25,12 +25,13 @@ from typing import Optional
 
 from . import frank, langid, memory
 from .engine import get_engine
-from .ledger import LedgerError
+from .ledger import LedgerError, verify as _ledger_verify
 from .segment import _split_segments
 from .storage import Storage, get_store
 
 _DEFAULT_LEDGER = "data/ledger.jsonl"
 _LEDGER_OVERRIDE: Optional[pathlib.Path] = None
+_verified_ledgers: set[str] = set()  # paths already chain-verified this process
 
 
 def set_ledger_path(path) -> None:
@@ -68,6 +69,21 @@ def _ledger_append(entry: dict) -> None:
     if ledger.exists() and not ledger.is_file():
         raise LedgerError(f"ledger path is not a regular file — the audit trail "
                           f"cannot be suppressed: {ledger}")
+    # A symlinked ledger (or symlinked final component) redirects the chain onto
+    # storage the attacker controls; is_file() follows the link and passes, so
+    # check the link itself (Nestor#2 follow-up).
+    if ledger.is_symlink():
+        raise LedgerError(f"ledger path is a symlink — refusing to chain onto a "
+                          f"redirected audit trail: {ledger}")
+    # Verify the existing chain once per process before extending it: chaining a
+    # new entry onto a tampered history would launder the tamper. A broken chain
+    # is a refusal, not a warning (Nestor#2 — verify() now has a caller).
+    key = str(ledger)
+    if key not in _verified_ledgers and ledger.exists():
+        ok, detail = _ledger_verify(key)
+        if not ok:
+            raise LedgerError(f"ledger chain is broken — refusing to append: {detail}")
+        _verified_ledgers.add(key)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     prev = "genesis"
     if ledger.exists():
