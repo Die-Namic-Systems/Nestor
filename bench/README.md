@@ -73,6 +73,23 @@ and records whether the two agree; `fidelity_check` in the results carries that
 count. A run whose `agreed_with_best_sealed` is below `checked` is measuring
 something other than what Nestor serves.
 
+**The recall column is weaker than it looks — read this before quoting it.**
+`corpora.perturb` re-types a sealed phrase five ways: case, punctuation,
+whitespace, a trailing pad, and a single-character typo. Measured against the
+boilerplate corpus, **81% of those perturbations normalize to a byte-identical
+key**, because `StringMatcher.normalize` erases case, punctuation and whitespace
+*before* scoring. They score exactly 1.0 and are recalled at every threshold. The
+typo is the only kind that survives normalization, and one changed character in a
+70-character phrase still scores ≈0.986.
+
+So a reported "recall 100% at 0.98" means *near-identical inputs are still
+matched* — which was never in doubt. It does **not** show what raising the
+threshold costs for genuinely varied phrasing: a synonym, a reordered clause, a
+different construction. That is exactly where recall would fall, and it is
+currently untested. Any "raising the threshold is free" conclusion drawn from
+this bench is directional only until the perturbation set includes real
+paraphrase.
+
 **Examples travel with rates.** Each result keeps the five worst false seals
 *with the sealed phrase they collided with*. A probe that near-duplicates
 something already sealed is a different finding from one that resembles nothing

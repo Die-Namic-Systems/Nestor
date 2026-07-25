@@ -37,6 +37,20 @@ If it holds, it is the highest-value change on this list, because it attacks
 false seals without giving up recall the way raising the threshold does.
 `bench_accuracy.py` already records what is needed to test it.
 
+**The measured false seals argue for it directly.** Every worst-case collision
+in the bench differs from the phrase it was served *only in the identifier*:
+
+```
+asked : the joint term triggers any joint breach under section 5386
+served: the joint term triggers any joint breach under section 756    sim=0.974
+```
+
+A character-ratio matcher is blind to *which* characters carry the meaning, and
+no choice of threshold fixes that — 0.974 is above any cutoff that preserves
+recall. Either the margin check catches it (the runner-up will be similarly
+close, so the gap collapses) or the matcher has to weight identifier-like tokens.
+This is the strongest evidence so far that threshold tuning alone is a dead end.
+
 ### 1.2 Negative seals — **shipped**
 
 *Was: a human could seal "this match is right" but never record "this match is
@@ -83,17 +97,38 @@ several rejections is a strong hint that the threshold is wrong for that domain
 (§1.3), and a pair rejected against many different queries is a hint the pair
 itself is junk. Both are now recorded and unread.
 
-### 1.3 The threshold should be calibrated, not constant — **open**
+### 1.3 The threshold should be calibrated, not constant — **measured**
 
-`SEAL_THRESHOLD = 0.92` is a single global constant across every domain. But the
-right cutoff plainly depends on corpus density and homogeneity — the same 0.92
-behaves very differently on templated contract language than on diverse prose.
-Options: per-domain thresholds; or a calibration mode that samples the corpus,
-measures the absent-probe score distribution, and *recommends* a threshold for a
-target false-seal rate.
+`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and on
+the boilerplate corpus it is demonstrably set too low. Swept, 250 probes per
+cell (`bench/results/accuracy.json`):
 
-The latter is also the honest marketing story (see §4.2): not "we are accurate,"
-but "here is your false-verification rate, and here is the dial."
+| threshold | 500 pairs | 2,000 | 8,000 | recall |
+|-----------|-----------|-------|-------|--------|
+| 0.90 | 2.8% | 10.8% | 36.4% | 100% |
+| **0.92** (shipped) | 0.4% | 1.6% | **8.0%** | 100% |
+| 0.94 | 0.0% | 0.4% | 1.6% | 100% |
+| 0.96 | 0.0% | 0.0% | 1.2% | 100% |
+| 0.98 | 0.0% | 0.0% | 0.0% | 100% |
+| 1.00 | 0.0% | 0.0% | 0.0% | 83% |
+
+Recall does not move until 1.00, so 0.92 is nowhere near the precision/recall
+knee — moving to 0.96 cuts false seals from 8.0% to 1.2% at no measured cost.
+
+**Do not act on that yet.** The recall column is weak: 81% of the bench's
+perturbations normalize to a byte-identical key (case, punctuation and
+whitespace are erased before scoring), so they score 1.0 and are recalled at any
+threshold. Only a single-character typo survives normalization, and that still
+scores ≈0.986. The bench therefore cannot say what a higher threshold costs for
+genuinely varied phrasing — a synonym, a reordered clause. **Fixing the
+perturbation set to include real paraphrase is a prerequisite for changing the
+default**, and is the single most valuable next bench change.
+
+Longer term this still wants to be per-domain, or a calibration mode that
+samples a corpus, measures its absent-score distribution, and recommends a
+cutoff for a target false-seal rate — which is also the honest marketing story
+(§4.2): not "we are accurate," but "here is your false-verification rate, and
+here is the dial."
 
 ### 1.4 Seal staleness and quorum — **open**
 

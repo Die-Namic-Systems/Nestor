@@ -191,8 +191,8 @@ def _pcts(vals: list[float]) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sizes", type=int, nargs="+", default=[500, 2000, 8000, 24000])
-    ap.add_argument("--prose-sizes", type=int, nargs="+", default=[500, 2000, 8000])
+    ap.add_argument("--sizes", type=int, nargs="*", default=[500, 2000, 8000, 24000])
+    ap.add_argument("--prose-sizes", type=int, nargs="*", default=[500, 2000, 4000])
     ap.add_argument("--probes", type=int, default=150)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--verify", type=int, default=25)
