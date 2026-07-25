@@ -422,13 +422,13 @@
     },
     {
       "run_id": "20260725T154749Z",
-      "recorded_at": "2026-07-25T15:48:40Z",
+      "recorded_at": "2026-07-25T15:51:58Z",
       "complete": false,
       "environment": {
         "python": "3.11.15",
         "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
         "processor": "x86_64",
-        "git_rev": "1a79f17"
+        "git_rev": "ca44fd5"
       },
       "params": {
         "sizes": [],
@@ -565,6 +565,131 @@
             "p90": 0.641,
             "p99": 0.935,
             "max": 0.952
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "fidelity_check": {
+            "checked": 40,
+            "agreed_with_best_sealed": 40
+          },
+          "fast_path_equivalence": {
+            "checked": 30,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.112,
+              "false_seals": 28,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.088,
+              "false_seals": 22,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.056,
+              "false_seals": 14,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.04,
+              "false_seals": 10,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 0.996,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 0.956,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.98,
+              "asked": "Process a GNU tar extended sparse header, version 0.1.",
+              "would_serve_source": "Process a GNU tar extended sparse header, version 1.0.",
+              "would_serve_target": "BENCH:1489"
+            },
+            {
+              "similarity": 0.967,
+              "asked": "with an empty query (the draft states that these are equivalent).",
+              "would_serve_source": "with an empty query; the RFC states that these are equivalent).",
+              "would_serve_target": "BENCH:843"
+            },
+            {
+              "similarity": 0.965,
+              "asked": "gethostbyaddr(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_source": "gethostbyname_ex(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_target": "BENCH:1213"
+            },
+            {
+              "similarity": 0.959,
+              "asked": "Return True if this network is a supernet of other.",
+              "would_serve_source": "Return True if this network is a subnet of other.",
+              "would_serve_target": "BENCH:1987"
+            },
+            {
+              "similarity": 0.957,
+              "asked": "B.rindex(sub[, start[, end]]) -> int Return the highest index in B where subsection sub is found, such that sub is contained within B[start,end].",
+              "would_serve_source": "S.rindex(sub[, start[, end]]) -> int Return the highest index in S where substring sub is found, such that sub is contained within S[start:end].",
+              "would_serve_target": "BENCH:1625"
+            }
+          ],
+          "absent_score_percentiles": {
+            "p50": 0.528,
+            "p90": 0.835,
+            "p99": 0.965,
+            "max": 0.98
           },
           "retyped_score_percentiles": {
             "p50": 1.0,
