@@ -1,6 +1,5 @@
 import hashlib
 
-import pytest
 
 from nestor import cascade, memory
 from nestor.cascade import Passage, graduate_segment, translate_segment, translate_text

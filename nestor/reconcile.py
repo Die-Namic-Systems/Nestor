@@ -14,7 +14,6 @@ independently.
 """
 from __future__ import annotations
 
-from typing import Optional
 
 from . import memory
 from .cascade import _ledger_append
