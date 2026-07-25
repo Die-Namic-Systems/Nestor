@@ -32,7 +32,7 @@ import json
 import os
 import subprocess
 import sys
-from typing import Any, Callable, Optional, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 
 #: FRANK groups entries by project; every Nestor entry lands under this one.
 DEFAULT_PROJECT = "nestor"

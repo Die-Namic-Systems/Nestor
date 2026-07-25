@@ -1,4 +1,3 @@
-import pytest
 
 from nestor.entity import EntityResolver
 

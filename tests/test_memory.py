@@ -1,4 +1,3 @@
-import pytest
 
 from nestor import memory
 

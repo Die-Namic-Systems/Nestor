@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "nestor"
 version = "0.1.0"
 description = "A three-tier translation-fidelity cascade (memory -> draft -> seal) with a hash-chained audit ledger and injected storage."
+license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 dependencies = []
 
@@ -19,3 +20,10 @@ cloud = [
 
 [tool.setuptools.packages.find]
 include = ["nestor*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+# Compact one-line test setup is house style; don't fight it.
+"tests/*" = ["E702", "E741"]

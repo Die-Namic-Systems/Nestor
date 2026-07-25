@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Daily drift catcher, off the :00/:30 peak-load minutes — fleet pattern.
+    - cron: "57 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools
+        run: pip install ruff==0.15.0 bandit
+
+      - name: Ruff (enforced)
+        run: ruff check nestor tests
+
+      - name: Bandit (enforced — tree is clean, keep it that way)
+        run: bandit -r nestor -ll -q
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor and current for requires-python >= 3.10.
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package
+        run: pip install -e . pytest
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
