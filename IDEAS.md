@@ -76,18 +76,46 @@ lookup is linear in corpus size — 293 ms @ 2k pairs, 4.4 s @ 32k, projecting t
 ~135 s @ 1M. **97% of that is Python-side `difflib`, not SQL** (112 ms fetch vs
 4,260 ms scoring at 32k). The database is not the bottleneck; the scoring loop is.
 
-### 2.1 Lossless prefilter via difflib's own bounds — **verified**
+### 2.1 Lossless prefilter via difflib's own bounds — **measured**
 
 `SequenceMatcher` exposes `real_quick_ratio()` (length-based) and
 `quick_ratio()` (multiset-based) as progressively tighter upper bounds on
 `ratio()`. Confirmed in-repo on 20,000 random pairs:
 `ratio() <= quick_ratio() <= real_quick_ratio()`, no violations.
 
-So candidates whose upper bound falls below the threshold can be skipped
+So candidates whose upper bound cannot beat the incumbent best can be skipped
 **without computing `ratio()` at all, and without changing a single result.**
-Same answers, strictly less work. This is the rare optimization with no accuracy
-trade-off, and it belongs in `StringMatcher` — or better, in a `Matcher`-level
-optional `upper_bound(a, b)` hook the memory consults before the real score.
+Implemented as `bench.bench_accuracy.best_match_fast` and measured against the
+naive scan over 120 probes, **0 disagreements** on both corpora:
+
+| Corpus | Rows | Naive | Pruned | Speedup |
+|--------|------|-------|--------|---------|
+| boilerplate | 3,000 | 39.1 s | 10.1 s | **3.9x** |
+| prose | 2,991 | 52.6 s | 50.9 s | **1.0x** |
+
+**The prose result is the interesting one.** Pruning only bites once a *high*
+incumbent exists — on diverse prose the best score stays low (p50 ≈ 0.49), the
+bound almost never falls below it, and nothing gets skipped. So as a general
+speedup this is corpus-dependent and worth much less than it first looks.
+
+**But `best_sealed` doesn't need the argmax — it needs "anything ≥ threshold."**
+Seeding the incumbent at `SEAL_THRESHOLD` instead of `0.0` prunes hard on *both*
+corpora, because now every candidate below 0.92 is skippable from the first row
+rather than only after a good match turns up. That is the version worth
+shipping, and it is still exactly lossless *for that call*. `lookup()` cannot
+use it (it must return sub-threshold candidates as engine context), so this
+wants to be a distinct fast path, not a change to the shared scan.
+
+Two caveats found while implementing it, both easy to get wrong:
+
+* **`ratio()` is not symmetric.** `StringMatcher` computes
+  `SequenceMatcher(None, probe, row)`. Swapping the operands to let difflib
+  cache its `b2j` index across candidates measures a different function.
+* **`autojunk` changes results** on sequences of 200+ elements, so it must be
+  left at the default.
+
+Both would produce a plausible, slightly-wrong benchmark. The equivalence check
+(`--equiv`) exists because of them.
 
 Do this before anything lossy.
 

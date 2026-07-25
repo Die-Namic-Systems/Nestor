@@ -23,6 +23,7 @@ one scan. ``--verify`` checks a sample of those argmax results against the real
 from __future__ import annotations
 
 import argparse
+import difflib
 import random
 import sys
 import tempfile
@@ -49,8 +50,49 @@ def best_match(norm: str, rows: list[dict], matcher) -> tuple[float, str, str]:
     return round(best_sim, 3), best_target, best_source
 
 
+def best_match_fast(norm: str, rows: list[dict], matcher) -> tuple[float, str, str]:
+    """Identical result to :func:`best_match`, computed with far less work.
+
+    ``difflib`` exposes two upper bounds on ``ratio()``: ``real_quick_ratio()``
+    (length-based) and ``quick_ratio()`` (multiset-based), with
+    ``ratio() <= quick_ratio() <= real_quick_ratio()``. A candidate whose upper
+    bound cannot beat the best score so far cannot be the argmax, so its real
+    ratio never needs computing — the answer is unchanged, only the cost.
+
+    Argument order and ``autojunk`` are kept EXACTLY as ``StringMatcher`` has
+    them — ``SequenceMatcher(None, probe_norm, row_norm)`` with autojunk left on.
+    ``ratio()`` is not symmetric and autojunk changes results on sequences of
+    200+ elements, so swapping either one silently measures a different function.
+    That is why the probe is pinned as sequence *a* and the row varies as *b*,
+    even though pinning the row as *b* instead would let difflib cache its b2j
+    index: fidelity first, speed second.
+
+    Only valid for :class:`StringMatcher`, whose ``similarity`` is exactly
+    ``difflib`` ratio with a ``1.0`` short-circuit on equal normals; callers
+    must fall back to :func:`best_match` for any other matcher. ``--equiv``
+    checks the two agree, and ``--verify`` checks the winner against the real
+    ``memory.best_sealed`` path.
+    """
+    sm = difflib.SequenceMatcher(None)
+    sm.set_seq1(norm)
+    best_sim, best_target, best_source = 0.0, "", ""
+    for r in rows:
+        cand = r["source_norm"]
+        if cand == norm:                      # StringMatcher's equal-normals path
+            return 1.0, r["target_text"], r["source_text"]
+        sm.set_seq2(cand)
+        # Upper bounds, cheapest first. Neither can be < the true ratio, so a
+        # candidate failing to beat the incumbent cannot be the argmax.
+        if sm.real_quick_ratio() <= best_sim or sm.quick_ratio() <= best_sim:
+            continue
+        sim = sm.ratio()
+        if sim > best_sim:
+            best_sim, best_target, best_source = sim, r["target_text"], r["source_text"]
+    return round(best_sim, 3), best_target, best_source
+
+
 def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
-            verify: int = 0) -> dict:
+            verify: int = 0, equiv_check: int = 0) -> dict:
     gen = corpora.CORPORA[corpus_name]
     # Draw ONE pool and shuffle-split it. The held-out probes must be
     # statistically exchangeable with the sealed ones: an earlier version of
@@ -72,8 +114,23 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
     idx = rng.sample(range(len(sealed)), min(n_probes, len(sealed)))
     retyped = [(corpora.perturb(sealed[i], rng), f"BENCH:{i}") for i in idx]
 
-    absent_scores = [best_match(matcher.normalize(p), rows, matcher) for p in absent]
-    retyped_scores = [(best_match(matcher.normalize(p), rows, matcher), want)
+    scan = best_match_fast if isinstance(matcher, StringMatcher) else best_match
+
+    # Prove the fast path is not quietly changing the answer, on this corpus,
+    # before using it for every probe.
+    equiv = None
+    if equiv_check and scan is best_match_fast:
+        disagreed = []
+        for p in absent[:equiv_check]:
+            n = matcher.normalize(p)
+            slow, fast = best_match(n, rows, matcher), best_match_fast(n, rows, matcher)
+            if slow != fast:
+                disagreed.append({"probe": p, "slow": slow, "fast": fast})
+        equiv = {"checked": min(equiv_check, len(absent)),
+                 "disagreements": len(disagreed), "examples": disagreed[:3]}
+
+    absent_scores = [scan(matcher.normalize(p), rows, matcher) for p in absent]
+    retyped_scores = [(scan(matcher.normalize(p), rows, matcher), want)
                       for p, want in retyped]
 
     # Prove the argmax shortcut matches the real serve path at the shipped default.
@@ -120,6 +177,7 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
         "absent_score_percentiles": _pcts([s for s, _, _ in absent_scores]),
         "retyped_score_percentiles": _pcts([s for (s, _, _), _ in retyped_scores]),
         "fidelity_check": verified,
+        "fast_path_equivalence": equiv,
     }
 
 
@@ -138,6 +196,8 @@ def main() -> None:
     ap.add_argument("--probes", type=int, default=150)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--verify", type=int, default=25)
+    ap.add_argument("--equiv", type=int, default=25,
+                    help="probes to score BOTH ways, proving the fast path agrees")
     args = ap.parse_args()
 
     harness.seal_key()
@@ -150,7 +210,7 @@ def main() -> None:
         for name, size in plan:
             print(f"  {name:12s} {size:>6,} pairs ...", flush=True, end="")
             r = run_one(name, size, args.probes, matcher, args.seed,
-                        verify=args.verify)
+                        verify=args.verify, equiv_check=args.equiv)
             results.append(r)
             at92 = next(x for x in r["sweep"] if x["threshold"] == 0.92)
             print(f" false-seal {at92['false_seal_rate']:.1%}  "
@@ -162,7 +222,8 @@ def main() -> None:
              "probes": args.probes, "seed": args.seed,
              "matcher": "StringMatcher", "thresholds": THRESHOLDS,
              "shipped_seal_threshold": memory.SEAL_THRESHOLD,
-             "prose_pool": corpora.available_prose()},
+             "prose_pool": corpora.available_prose(),
+             "scan": "best_match_fast (difflib upper-bound pruning)"},
             results,
             notes=("false_seal_rate = share of held-out (absent) probes served as a "
                    "verified tier-1 hit. recall = share of retyped sealed probes "
