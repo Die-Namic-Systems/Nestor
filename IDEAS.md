@@ -99,21 +99,28 @@ itself is junk. Both are now recorded and unread.
 
 ### 1.3 The threshold should be calibrated, not constant — **measured**
 
-`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and on
-the boilerplate corpus it is demonstrably set too low. Swept, 250 probes per
-cell (`bench/results/accuracy.json`):
+`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and it
+is demonstrably set too low on **both** corpora. Complete sweep, 250 probes per
+cell, false-seal rate (`bench/results/accuracy.json`, run `20260726T054918Z`):
 
-| threshold | 500 pairs | 2,000 | 8,000 | recall |
-|-----------|-----------|-------|-------|--------|
-| 0.90 | 2.8% | 10.8% | 36.4% | 100% |
-| **0.92** (shipped) | 0.4% | 1.6% | **8.0%** | 100% |
-| 0.94 | 0.0% | 0.4% | 1.6% | 100% |
-| 0.96 | 0.0% | 0.0% | 1.2% | 100% |
-| 0.98 | 0.0% | 0.0% | 0.0% | 100% |
-| 1.00 | 0.0% | 0.0% | 0.0% | 83% |
+| threshold | boil 500 | boil 2k | boil 8k | boil 24k | prose 500 | prose 2k | prose 4k |
+|-----------|---------:|--------:|--------:|---------:|----------:|---------:|---------:|
+| 0.90 | 2.8% | 10.8% | 36.4% | 56.4% | 2.4% | 5.6% | 10.0% |
+| **0.92** (shipped) | 0.4% | 1.6% | 8.0% | **16.4%** | 2.0% | 4.8% | 6.8% |
+| 0.94 | 0.0% | 0.4% | 1.6% | 4.8% | 0.8% | 4.0% | 3.6% |
+| 0.96 | 0.0% | 0.0% | 1.2% | 0.4% | 0.0% | 1.2% | 1.6% |
+| 0.98 | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | 0.4% | 0.8% |
 
-Recall does not move until 1.00, so 0.92 is nowhere near the precision/recall
-knee — moving to 0.96 cuts false seals from 8.0% to 1.2% at no measured cost.
+Measured recall stays ~100% until 1.00 throughout, so 0.92 is nowhere near the
+precision/recall knee: moving to 0.96 takes the 24k boilerplate case from 16.4%
+to 0.4%.
+
+**Two separate scaling stories, and the prose one is worse than it looks.**
+Boilerplate degrades faster with size (0.4% → 16.4%) but is a synthetic worst
+case. Prose is real English and still reaches 6.8% at only 4,000 pairs, with a
+score distribution whose p50 is ~0.48 — i.e. the *average* probe is nowhere near
+danger and the tail still clears 0.98. A diverse corpus feels safe and is not,
+because real corpora contain genuine near-duplicates.
 
 **Do not act on that yet.** The recall column is weak: 81% of the bench's
 perturbations normalize to a byte-identical key (case, punctuation and
@@ -170,12 +177,25 @@ bound almost never falls below it, and nothing gets skipped. So as a general
 speedup this is corpus-dependent and worth much less than it first looks.
 
 **But `best_sealed` doesn't need the argmax — it needs "anything ≥ threshold."**
-Seeding the incumbent at `SEAL_THRESHOLD` instead of `0.0` prunes hard on *both*
-corpora, because now every candidate below 0.92 is skippable from the first row
-rather than only after a good match turns up. That is the version worth
-shipping, and it is still exactly lossless *for that call*. `lookup()` cannot
-use it (it must return sub-threshold candidates as engine context), so this
-wants to be a distinct fast path, not a change to the shared scan.
+Seeding the incumbent at the threshold instead of `0.0` makes every candidate
+below it skippable from the first row rather than only after a good match turns
+up. Implemented as `best_match_fast(..., floor=)` and measured on *absent*
+probes — the case that previously pruned worst:
+
+| Corpus | Naive | floor=0.0 | floor=0.80 |
+|--------|------:|----------:|-----------:|
+| prose 4,000 | 22.1 s | 18.9 s (1.2x) | **2.5 s (8.8x)** |
+| boilerplate 24,000 | 94.2 s | 15.3 s (6.1x) | 15.5 s (6.1x) |
+
+Zero disagreements above the floor in both. The floor is what rescues prose,
+exactly as predicted; boilerplate gains nothing extra because every probe there
+already scores above 0.80, so nothing is censored. This turned a 24k row that
+had failed to finish in 53 minutes into ~5 minutes, and made the complete
+7-row sweep possible.
+
+**Ship this in `best_sealed`.** `lookup()` cannot use it — it must return
+sub-threshold candidates as engine context — so it wants to be a distinct fast
+path, not a change to the shared scan.
 
 Two caveats found while implementing it, both easy to get wrong:
 

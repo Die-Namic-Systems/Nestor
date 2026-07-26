@@ -26,9 +26,22 @@ still going or never finished, and the rows present are a prefix of the plan.
 
 ```bash
 pip install -e ".[dev]"
-python bench/bench_accuracy.py                  # defaults; a few minutes
-python bench/bench_accuracy.py --probes 400 --sizes 500 2000 8000 24000
+python bench/bench_accuracy.py --probes 250 --verify 15 --equiv 15
+python bench/bench_accuracy.py --resume          # continue an interrupted run
 ```
+
+**Use `--resume`.** The full sweep takes roughly ten minutes and a bench cannot
+count on outliving the session that launched it — three attempts at this one were
+lost to that before rows were checkpointed and reusable. `--resume` reuses rows
+already recorded with the same `--probes`, `--seed` and `--floor`, and recomputes
+only what is missing. Different parameters are a different measurement and are
+never reused.
+
+`--floor` (default `0.80`, the lowest swept threshold) seeds the scan's incumbent
+score so candidates are discarded on their upper bound from the first row. Scores
+below it are censored to `0.0` and reported via `scores_censored_below_floor`;
+the sweep is unaffected, since it never evaluates a threshold that low. It is
+worth ~8.8x on prose. Pass `--floor 0` for exact scores everywhere, much slower.
 
 Nothing here touches `data/` — the ledger is redirected to a temp file and every
 store is `:memory:` unless a bench says otherwise.

@@ -50,8 +50,26 @@ def best_match(norm: str, rows: list[dict], matcher) -> tuple[float, str, str]:
     return round(best_sim, 3), best_target, best_source
 
 
-def best_match_fast(norm: str, rows: list[dict], matcher) -> tuple[float, str, str]:
-    """Identical result to :func:`best_match`, computed with far less work.
+def best_match_fast(norm: str, rows: list[dict], matcher,
+                    floor: float = 0.0) -> tuple[float, str, str]:
+    """Identical result to :func:`best_match` above ``floor``, with far less work.
+
+    ``floor`` seeds the incumbent best score. The sweep never evaluates a
+    threshold below ``min(THRESHOLDS)``, so any probe whose best match scores
+    under that contributes identically to every row of the sweep — its exact
+    score is not needed, only the fact that it is below. Seeding the incumbent
+    there lets a candidate be discarded on its upper bound from the FIRST row
+    rather than only once a good match has turned up.
+
+    That matters precisely where the plain version fails. Pruning bites only
+    when the incumbent is high, so on the low-scoring *absent* probes — which
+    are the entire point of this bench — nothing was being skipped and every
+    scan ran at full cost. With a floor, those become the cheapest probes
+    instead of the most expensive.
+
+    A probe that never beats the floor returns ``(0.0, "", "")``, and its true
+    score is censored: percentiles report ``<floor``. Pass ``floor=0.0`` for
+    exact scores everywhere.
 
     ``difflib`` exposes two upper bounds on ``ratio()``: ``real_quick_ratio()``
     (length-based) and ``quick_ratio()`` (multiset-based), with
@@ -75,7 +93,7 @@ def best_match_fast(norm: str, rows: list[dict], matcher) -> tuple[float, str, s
     """
     sm = difflib.SequenceMatcher(None)
     sm.set_seq1(norm)
-    best_sim, best_target, best_source = 0.0, "", ""
+    best_sim, best_target, best_source = floor, "", ""
     for r in rows:
         cand = r["source_norm"]
         if cand == norm:                      # StringMatcher's equal-normals path
@@ -88,11 +106,13 @@ def best_match_fast(norm: str, rows: list[dict], matcher) -> tuple[float, str, s
         sim = sm.ratio()
         if sim > best_sim:
             best_sim, best_target, best_source = sim, r["target_text"], r["source_text"]
+    if not best_source:                       # nothing beat the floor
+        return 0.0, "", ""
     return round(best_sim, 3), best_target, best_source
 
 
 def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
-            verify: int = 0, equiv_check: int = 0) -> dict:
+            verify: int = 0, equiv_check: int = 0, floor: float = 0.0) -> dict:
     gen = corpora.CORPORA[corpus_name]
     # Draw ONE pool and shuffle-split it. The held-out probes must be
     # statistically exchangeable with the sealed ones: an earlier version of
@@ -114,19 +134,23 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
     idx = rng.sample(range(len(sealed)), min(n_probes, len(sealed)))
     retyped = [(corpora.perturb(sealed[i], rng), f"BENCH:{i}") for i in idx]
 
-    scan = best_match_fast if isinstance(matcher, StringMatcher) else best_match
+    fast = isinstance(matcher, StringMatcher)
+    scan = ((lambda n, rw, mt: best_match_fast(n, rw, mt, floor)) if fast
+            else (lambda n, rw, mt: best_match(n, rw, mt)))
 
     # Prove the fast path is not quietly changing the answer, on this corpus,
     # before using it for every probe.
     equiv = None
-    if equiv_check and scan is best_match_fast:
+    if equiv_check and fast:
         disagreed = []
         for p in absent[:equiv_check]:
             n = matcher.normalize(p)
-            slow, fast = best_match(n, rows, matcher), best_match_fast(n, rows, matcher)
-            if slow != fast:
-                disagreed.append({"probe": p, "slow": slow, "fast": fast})
-        equiv = {"checked": min(equiv_check, len(absent)),
+            a, b = best_match(n, rows, matcher), best_match_fast(n, rows, matcher, floor)
+            # Below the floor the fast path deliberately censors; only
+            # compare where the sweep can actually see a difference.
+            if a[0] >= floor and a != b:
+                disagreed.append({"probe": p, "slow": a, "fast": b})
+        equiv = {"checked": min(equiv_check, len(absent)), "floor": floor,
                  "disagreements": len(disagreed), "examples": disagreed[:3]}
 
     absent_scores = [scan(matcher.normalize(p), rows, matcher) for p in absent]
@@ -174,6 +198,8 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
         "n_absent_probes": len(absent_scores), "n_retyped_probes": len(retyped_scores),
         "sweep": sweep,
         "worst_false_seals": examples,
+        "score_floor": floor,
+        "scores_censored_below_floor": sum(1 for s, _, _ in absent_scores if s == 0.0),
         "absent_score_percentiles": _pcts([s for s, _, _ in absent_scores]),
         "retyped_score_percentiles": _pcts([s for (s, _, _), _ in retyped_scores]),
         "fidelity_check": verified,
@@ -198,6 +224,11 @@ def main() -> None:
     ap.add_argument("--verify", type=int, default=25)
     ap.add_argument("--equiv", type=int, default=25,
                     help="probes to score BOTH ways, proving the fast path agrees")
+    ap.add_argument("--floor", type=float, default=min(THRESHOLDS),
+                    help="seed the scan incumbent here; scores below are censored. "
+                         "0.0 for exact scores everywhere (much slower).")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip (corpus,size) rows already recorded in results")
     args = ap.parse_args()
 
     harness.seal_key()
@@ -213,16 +244,43 @@ def main() -> None:
                   "matcher": "StringMatcher", "thresholds": THRESHOLDS,
                   "shipped_seal_threshold": memory.SEAL_THRESHOLD,
                   "prose_pool": corpora.available_prose(),
-                  "scan": "best_match_fast (difflib upper-bound pruning)"}
+                  "scan": "best_match_fast (difflib upper-bound pruning)",
+                  "floor": args.floor}
         notes = ("false_seal_rate = share of held-out (absent) probes served as a "
                  "verified tier-1 hit. recall = share of retyped sealed probes "
                  "served, routed to the correct pair. misrouted = served but "
                  "pointing at the wrong pair.")
 
+        # Resume: carry forward rows already measured with the SAME parameters.
+        # A long bench cannot rely on outliving the session that started it, so
+        # the unit of progress is one row, and an interrupted run is resumed
+        # rather than restarted. Only rows whose parameters match are reused —
+        # a different probe count or floor is a different measurement.
+        done: dict = {}
+        if args.resume:
+            for prior in harness.load_runs("accuracy"):
+                p = prior.get("params", {})
+                if (p.get("probes"), p.get("seed"), p.get("floor")) != (
+                        args.probes, args.seed, args.floor):
+                    continue
+                for m in prior.get("measurements", []):
+                    done[(m["corpus"], m["size"])] = m
+            if done:
+                print(f"  resuming — {len(done)} row(s) already measured: "
+                      f"{sorted((c, s) for c, s in done)}", flush=True)
+
         for i, (name, size) in enumerate(plan):
+            if (name, size) in done:
+                results.append(done[(name, size)])
+                print(f"  {name:12s} {size:>6,} pairs ... (reused)", flush=True)
+                path = harness.record("accuracy", {**params, "plan_rows": len(plan)},
+                                      results, notes=notes, run_id=run_id,
+                                      complete=(i == len(plan) - 1))
+                continue
             print(f"  {name:12s} {size:>6,} pairs ...", flush=True, end="")
             r = run_one(name, size, args.probes, matcher, args.seed,
-                        verify=args.verify, equiv_check=args.equiv)
+                        verify=args.verify, equiv_check=args.equiv,
+                        floor=args.floor)
             results.append(r)
             at92 = next(x for x in r["sweep"] if x["threshold"] == 0.92)
             print(f" false-seal {at92['false_seal_rate']:.1%}  "

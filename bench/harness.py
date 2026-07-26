@@ -86,6 +86,22 @@ def new_run_id() -> str:
     return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 
 
+def load_runs(name: str) -> list:
+    """Every recorded run for a bench, oldest first. ``[]`` if none.
+
+    Used by ``--resume``: a long bench cannot count on outliving the session
+    that launched it, so completed rows from earlier attempts are reused rather
+    than recomputed.
+    """
+    path = RESULTS / f"{name}.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text()).get("runs", [])
+    except json.JSONDecodeError:
+        return []
+
+
 def timed(fn, repeats: int = 1) -> dict:
     """Run ``fn`` ``repeats`` times; return ms statistics."""
     samples = []
