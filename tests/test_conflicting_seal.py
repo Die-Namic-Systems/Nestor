@@ -136,3 +136,37 @@ def test_conflicting_seal_propagates_through_graduate_segment(store):
     # rita's seal must still be what serves.
     hit = memory.best_sealed("See you soon", "en", "es", store=store)
     assert hit["pair"]["target_text"] == "Hasta pronto"
+
+
+def test_seed_from_corpus_skips_conflicts_instead_of_aborting(store, tmp_path):
+    """A human's seal beats a curated corpus — but a collision must not halt the
+    import. Found by inspection after the guard landed: seeding uses the fixed
+    verifier "corpus", which never matches a person, so a single overlap used to
+    abort mid-load and leave a half-seeded memory."""
+    import json
+    memory.add_pair("hola", "hi there", "es", "en", status="sealed",
+                    verifier="rita", store=store)
+    # Pass the loader explicitly rather than via set_bilingual_loader — that
+    # setter mutates module-level state and would leak into every later test
+    # in the session (it did, on the first run of this test).
+    def loader():
+        return [
+            {"front": "hola", "back": "hello", "lang_front": "es",
+             "lang_back": "en", "lesson": "L1"},
+            {"front": "adios", "back": "bye", "lang_front": "es",
+             "lang_back": "en", "lesson": "L1"},
+        ]
+
+    with pytest.warns(RuntimeWarning, match="skipped"):
+        written = memory.seed_from_corpus(loader=loader, store=store)
+
+    # The non-conflicting pair still landed, both directions.
+    assert memory.best_sealed("adios", "es", "en", store=store) is not None
+    assert memory.best_sealed("bye", "en", "es", store=store) is not None
+    # rita's seal survives untouched.
+    assert memory.best_sealed("hola", "es", "en", store=store)["pair"]["target_text"] == "hi there"
+    assert written == 3, "3 of 4 directions written, 1 skipped"
+
+    kinds = [json.loads(x)["kind"]
+             for x in (tmp_path / "ledger.jsonl").read_text().strip().split("\n")]
+    assert "seed_conflict" in kinds, "a skipped row must not vanish silently"

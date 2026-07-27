@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+import warnings
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
@@ -482,19 +483,54 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
     ``loader`` (or the one set via :func:`set_bilingual_loader`) returns the
     curated bilingual pairs; both directions of each pair are sealed into the
     memory. Returns the number of pairs written.
+
+    **A human's seal beats the corpus.** Seeding uses the fixed verifier
+    ``"corpus"``, which never matches a person, so any phrase a human already
+    sealed differently is a :class:`ConflictingSealError`. Letting that escape
+    would abort a bulk import partway and leave a half-loaded memory, so
+    conflicts are skipped and the rest of the corpus still lands — a curated
+    file must not overrule a person, and must not be able to halt the load
+    either.
+
+    Skips are never silent: each one is written to the ledger as
+    ``seed_conflict`` and the call warns once with the total. A seeding run that
+    quietly dropped rows would be the same "absence reported as success" this
+    codebase refuses everywhere else.
     """
     store = get_store(store)
     loader = loader or _bilingual_loader
     count = 0
+    skipped = 0
+
+    def _seal(src: str, tgt: str, sl: str, tl: str, origin: str) -> int:
+        nonlocal skipped
+        try:
+            add_pair(src, tgt, sl, tl, status="sealed", verifier="corpus",
+                     origin=origin, store=store)
+            return 1
+        except ConflictingSealError:
+            skipped += 1
+            _log_seal_event({
+                "kind": "seed_conflict", "source_lang": sl, "target_lang": tl,
+                "source_sha": _sha(get_matcher().normalize(src)),
+                "target_sha": _sha(tgt), "origin": origin,
+                "verifier": "corpus",
+            })
+            return 0
+
     for item in loader():
         if item.get("front") and item.get("back"):
-            add_pair(item["front"], item["back"], item["lang_front"], item["lang_back"],
-                     status="sealed", verifier="corpus", origin=item.get("lesson", ""),
-                     store=store)
-            add_pair(item["back"], item["front"], item["lang_back"], item["lang_front"],
-                     status="sealed", verifier="corpus", origin=item.get("lesson", ""),
-                     store=store)
-            count += 2
+            origin = item.get("lesson", "")
+            count += _seal(item["front"], item["back"],
+                           item["lang_front"], item["lang_back"], origin)
+            count += _seal(item["back"], item["front"],
+                           item["lang_back"], item["lang_front"], origin)
+    if skipped:
+        warnings.warn(
+            f"seed_from_corpus skipped {skipped} pair(s) already sealed "
+            f"differently by a human — see 'seed_conflict' ledger entries. "
+            f"{count} pair(s) written.",
+            RuntimeWarning, stacklevel=2)
     return count
 
 
