@@ -393,12 +393,46 @@ No `console_scripts`, no entry point, nothing to run without writing Python.
 `nestor seal / resolve / check / ledger verify` would cost little and is the
 prerequisite for §4.3.
 
-### 5.2 The memory is write-only — **verified**
+### 5.2 The memory is write-only — **shipped**
 
-`Storage` has no `memory_list`, `memory_unseal`, `memory_delete` or
-`memory_export`. You can seal a pair but never browse, correct, revoke or export
-one. For a system whose entire value proposition is human verification, the
-human has no way to see what they have verified. Pairs with §1.2.
+*Was: `Storage` had no list, unseal, delete or export. A pair could be sealed but
+never browsed, inspected, revoked or exported — so for a system whose whole value
+is human verification, the human could not see what they had verified.*
+
+`nestor.curator.Curator` is that surface: `list` (filter by status / verifier /
+substring, paginated), `get` (full provenance plus every rejection recorded
+against the pair), `unverifiable`, `unseal`, `restore`, `export`, `summary`.
+Backed by an optional all-or-nothing `Storage` capability
+(`supports_curation`), on the same terms as rejection.
+
+Three decisions worth keeping:
+
+* **Every row reports `servable`, not just `status`.** That column runs the same
+  `is_verified_seal` predicate the serve path uses, so it answers "would Nestor
+  actually serve this?" rather than "does the row say sealed?". `unverifiable()`
+  lists the difference — with signing on, those are rows written by something
+  that never held the seal key. Nothing else surfaces them.
+* **Unseal is not reject.** Unsealing returns a pair to `draft` for
+  re-verification; rejecting retires it as wrong. A curator who is merely unsure
+  should not have to choose between destroying a mapping and leaving a seal
+  standing they no longer trust. Unseal clears `seal_sig` — a `draft` row still
+  carrying a valid signature is a seal waiting to be reactivated by anything
+  that flips the status column back.
+* **Revocation is ledgered** (`unseal`, `restore`). A trail that records every
+  grant of trust and no withdrawal of it is not an audit trail.
+
+**Building this found a real bug in §1.2.** `add_pair` resurrected rejected
+pairs: a curator rejected a bad mapping and the next `graduate_segment` over the
+same source text silently re-sealed it — precisely the leak rejection existed to
+close. `add_pair` now raises `RejectedPairError` instead, so a host driving a
+review queue can surface it as what it is: one human asserting the opposite of
+another's recorded decision. `Curator.restore` is the deliberate way back, and it
+returns to `draft` rather than `sealed`, because a mapping someone once called
+wrong should be re-verified rather than reinstated.
+
+Still missing: no `memory_delete`. Deliberate for now — rejection and unsealing
+preserve the audit trail, and hard deletion would punch a hole in it. A GDPR-style
+erasure path would need to be designed against the ledger, not bolted on.
 
 ### 5.3 Ledger verification is once per process — **verified**
 

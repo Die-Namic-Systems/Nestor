@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from . import (
     cascade,
+    curator,
     engine,
     entity,
     frank,
@@ -36,6 +37,7 @@ from .cascade import (
     translate_segment,
     translate_text,
 )
+from .curator import Curator
 from .entity import EntityResolver
 from .frank import set_forwarder as set_frank_forwarder
 from .matcher import Matcher, NumericMatcher, StringMatcher
@@ -47,9 +49,16 @@ from .memory import (
     set_matcher,
 )
 from .reconcile import Reconciler
-from .storage import Storage, get_store, set_store, supports_rejection
+from .storage import (
+    Storage,
+    get_store,
+    set_store,
+    supports_curation,
+    supports_rejection,
+)
 
 __all__ = [
+    "Curator",
     "EntityResolver",
     "Matcher",
     "NumericMatcher",
@@ -58,6 +67,7 @@ __all__ = [
     "Storage",
     "StringMatcher",
     "cascade",
+    "curator",
     "engine",
     "entity",
     "frank",
@@ -79,6 +89,7 @@ __all__ = [
     "set_matcher",
     "set_store",
     "storage",
+    "supports_curation",
     "supports_rejection",
     "translate_segment",
     "translate_text",

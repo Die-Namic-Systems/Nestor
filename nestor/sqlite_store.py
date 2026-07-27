@@ -254,6 +254,52 @@ class SqliteStore:
                 (query_norm, source_lang, target_lang),
             )]
 
+    # --- curation --------------------------------------------------------
+
+    def memory_list(self, source_lang: str = "", target_lang: str = "",
+                    status: str = "", verifier: str = "", contains: str = "",
+                    limit: int = 50, offset: int = 0) -> list[dict]:
+        where, params = [], []
+        for col, val in (("source_lang", source_lang), ("target_lang", target_lang),
+                         ("status", status), ("verifier", verifier)):
+            if val:
+                where.append(f"{col}=?")
+                params.append(val)
+        if contains:
+            where.append("(LOWER(source_text) LIKE ? OR LOWER(target_text) LIKE ?)")
+            like = f"%{contains.lower()}%"
+            params += [like, like]
+        sql = "SELECT * FROM tm_pairs"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+        params += [max(0, int(limit)), max(0, int(offset))]
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
+
+    def memory_get(self, pair_id: str) -> Optional[dict]:
+        with self._db() as conn:
+            r = conn.execute("SELECT * FROM tm_pairs WHERE id=?",
+                             (pair_id,)).fetchone()
+            return dict(r) if r else None
+
+    def memory_unseal(self, pair_id: str, verifier: str, reason: str) -> None:
+        # seal_sig is cleared, not kept: a 'draft' row still carrying a valid
+        # signature is a seal waiting to be reactivated by anything that flips
+        # the status column back.
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE tm_pairs SET status='draft', seal_sig='', origin=? "
+                "WHERE id=?",
+                (f"unsealed:{verifier}:{reason}"[:200], pair_id),
+            )
+
+    def memory_rejections_for_pair(self, pair_id: str) -> list[dict]:
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT * FROM tm_rejections WHERE pair_id=? ORDER BY created_at",
+                (pair_id,))]
+
     def memory_stats(self) -> dict:
         with self._db() as conn:
             total = conn.execute("SELECT COUNT(*) FROM tm_pairs").fetchone()[0]

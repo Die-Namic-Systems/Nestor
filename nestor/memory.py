@@ -103,10 +103,23 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class RejectedPairError(RuntimeError):
+    """Refusing to re-seal a pair a human previously rejected.
+
+    Raised by :func:`add_pair` rather than silently overwriting the rejection.
+    A host driving a review queue should catch this and surface it to the
+    reviewer as a conflict — one human is asserting the opposite of another's
+    recorded decision, which is exactly the moment that should not pass
+    unnoticed. Pass ``override_rejection=True`` (or restore the pair first via
+    ``Curator.restore``) to proceed deliberately.
+    """
+
+
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
              status: str = "draft", verifier: str = "", weight: float = 1.0,
              origin: str = "", store: Optional[Storage] = None,
-             matcher: Optional[Matcher] = None) -> dict:
+             matcher: Optional[Matcher] = None,
+             override_rejection: bool = False) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
     ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
@@ -123,6 +136,18 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     seal_sig = signing.sign_seal(norm, target_text, verifier) if status == "sealed" else ""
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
+        # A rejected pair must not be resurrected by a routine re-seal. Without
+        # this, a curator rejects a bad mapping and the next graduate_segment
+        # over the same source text silently seals it again — the exact leak
+        # rejection exists to close.
+        if (existing["status"] == "rejected" and status == "sealed"
+                and not override_rejection):
+            raise RejectedPairError(
+                f"pair {existing['id']} was rejected by "
+                f"{existing.get('verifier') or 'a reviewer'!r} and will not be "
+                f"re-sealed implicitly. Restore it first (Curator.restore) or "
+                f"pass override_rejection=True."
+            )
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
         ):

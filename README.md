@@ -29,7 +29,7 @@ hash-chained ledger, so the trail is tamper-evident.
 **Contents** — [Quick start](#quick-start) · [The mechanic](#the-mechanic) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
-[The ledger](#the-ledger) ·
+[The curator](#the-curator--seeing-what-was-verified) · [The ledger](#the-ledger) ·
 [Injected storage](#injected-storage) ·
 [Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
 
@@ -41,7 +41,7 @@ hash-chained ledger, so the trail is tamper-evident.
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q                                  # 79 passed
+pytest -q                                  # 96 passed
 ```
 
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
@@ -127,6 +127,7 @@ nestor/
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
+├── curator.py        the curator surface — browse, audit, unseal, export
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
@@ -145,7 +146,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py        timing, environment capture, JSON result recording
 └── results/          committed measurements — parameters, git rev, raw numbers
 
-tests/                79 tests, no network, no fixtures on disk
+tests/                96 tests, no network, no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 ```
 
@@ -311,9 +312,56 @@ context.
 
 ---
 
+## The curator — seeing what was verified
+
+Sealing without a way to review it is write-only trust. `nestor.curator.Curator`
+is the surface for whoever owns the memory: browse it, inspect provenance, spot
+seals that do not verify, and revoke.
+
+```python
+from nestor.curator import Curator
+
+c = Curator(store, source_lang="en", target_lang="es")
+
+c.list(status="sealed", contains="invoice")   # browse, filter, paginate
+c.get(pair_id)                                # provenance + every rejection against it
+c.unverifiable()                              # says "sealed", would NOT be served
+c.unseal(pair_id, verifier="rita", reason="terminology changed")
+c.export()                                    # the whole memory, JSON-ready
+```
+
+Every row carries **`servable`** alongside `status`, because they are not the
+same question. `servable` runs the identical check the serve path uses, so a row
+marked `sealed` whose signature does not verify shows up as `servable=False` —
+written by something that never held the seal key:
+
+```
+  sealed   servable=True   rita      the annual invoice
+  sealed   servable=False  mallory   forged phrase        <- unverifiable() finds this
+```
+
+**Unsealing is not rejecting.** Unsealing returns a pair to `draft` for
+re-verification; [rejecting](#rejection--the-reviewers-no) retires it as wrong. A
+curator who is merely unsure shouldn't have to choose between destroying a
+mapping and leaving a seal standing they no longer trust. Both are written to the
+ledger — a trail that records every grant of trust and no withdrawal of it isn't
+an audit trail.
+
+Re-sealing a rejected pair raises `RejectedPairError` rather than silently
+resurrecting it; `Curator.restore(pair_id)` is the deliberate way back, and it
+returns the pair to `draft` so it gets re-verified rather than reinstated.
+
+> **For hosts:** curation is an **optional** Storage capability (`memory_list`,
+> `memory_get`, `memory_unseal`, `memory_rejections_for_pair`). A store predating
+> it keeps working; `storage.supports_curation(store)` reports it, and `Curator`
+> raises `CurationUnsupportedError` rather than offering actions the store cannot
+> carry out.
+
+---
+
 ## The ledger
 
-Every passage, seal, rejection, resolution and check is appended to a hash-chained ledger
+Every passage, seal, rejection, unseal, resolution and check is appended to a hash-chained ledger
 (`data/ledger.jsonl` by default). Each line records `prev = sha256(previous
 line)`, so the audit trail is tamper-evident — and all recipes share one chain.
 
@@ -460,7 +508,6 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 - **Lookup is linear in corpus size**, and ~97% of the time is Python-side
   scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
   not high-volume serving.
-- **The memory has no read surface** — no list, export or unseal (§5.2).
 - **Nothing consumes rejections as signal.** Repeated rejections against one
   query are strong evidence the threshold is wrong for that domain, and a pair
   rejected against many queries is probably junk. Both are recorded, neither is
@@ -472,7 +519,7 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # 79 tests, no network
+pytest -q                          # 96 tests, no network
 ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/

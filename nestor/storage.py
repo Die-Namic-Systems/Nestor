@@ -189,6 +189,51 @@ class Storage(Protocol):
         ``reject_sig``. Returns ``[]`` when there are none.
         """
 
+    # --- curation (OPTIONAL capability) -----------------------------------
+    #
+    # Sealing was write-only: a pair could be verified but never browsed,
+    # inspected, revoked or exported. For a system whose entire value is human
+    # verification, the human could not see what they had verified. These four
+    # reads/writes are the curator's surface.
+    #
+    # Optional and all-or-nothing on the same terms as rejection — see
+    # :func:`supports_curation`.
+
+    def memory_list(self, source_lang: str = "", target_lang: str = "",
+                    status: str = "", verifier: str = "", contains: str = "",
+                    limit: int = 50, offset: int = 0) -> list[dict]:
+        """Browse pairs. Empty-string filters mean "no filter on this field".
+
+        ``contains`` is a case-insensitive substring match against source OR
+        target text. Results are newest-first and Nestor treats ``limit`` /
+        ``offset`` as a stable pagination window. Each dict exposes the same
+        columns as :meth:`memory_find`.
+        """
+
+    def memory_get(self, pair_id: str) -> Optional[dict]:
+        """One pair by id, or ``None``."""
+
+    def memory_unseal(self, pair_id: str, verifier: str, reason: str) -> None:
+        """Demote a sealed pair back to ``draft`` and clear its signature.
+
+        Distinct from :meth:`memory_reject_pair`. Unsealing says *"this needs
+        verifying again"* and returns the pair to the review queue, where it can
+        be re-sealed. Rejecting says *"this is wrong"* and retires it. A curator
+        who is merely unsure must not have to choose between destroying a
+        mapping and leaving a seal they no longer trust standing.
+
+        The signature MUST be cleared: a row marked ``draft`` that still carries
+        a valid seal signature is a seal waiting to be reactivated by anything
+        that flips the status column back.
+        """
+
+    def memory_rejections_for_pair(self, pair_id: str) -> list[dict]:
+        """Every rejection recorded against ``pair_id``, across all queries.
+
+        A pair rejected for many different queries is probably junk — this is
+        how a curator sees that.
+        """
+
 
 # --------------------------------------------------------------------------
 # Global injection point
@@ -206,6 +251,21 @@ def supports_rejection(store: "Storage") -> bool:
     as no support.
     """
     return all(callable(getattr(store, op, None)) for op in _REJECTION_OPS)
+
+
+_CURATION_OPS = ("memory_list", "memory_get", "memory_unseal",
+                 "memory_rejections_for_pair")
+
+
+def supports_curation(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional curation capability.
+
+    All four or none, for the same reason as :func:`supports_rejection`: a
+    curator surface that can list but not unseal, or unseal without showing what
+    is being unsealed, is worse than none — it invites a decision the store
+    cannot actually carry out.
+    """
+    return all(callable(getattr(store, op, None)) for op in _CURATION_OPS)
 
 
 _store: "Optional[Storage]" = None
