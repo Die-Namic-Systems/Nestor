@@ -57,11 +57,51 @@ class Matcher(Protocol):
 
 class StringMatcher:
     """Text matcher: casefold + strip punctuation + collapse whitespace, then
-    difflib similarity. This is the EXACT algorithm the translation memory used
-    inline (``_norm`` + ``difflib.SequenceMatcher(...).ratio()``), lifted behind
-    the :class:`Matcher` seam. It is Nestor's default matcher, so translation
-    behavior is unchanged.
+    difflib similarity. This is the algorithm the translation memory used inline
+    (``_norm`` + ``difflib.SequenceMatcher(...).ratio()``), lifted behind the
+    :class:`Matcher` seam. It is Nestor's default matcher.
+
+    Two properties are enforced here that a bare ``SequenceMatcher(...).ratio()``
+    does NOT give you, because both broke serving in measurable ways:
+
+    **1. Scores do not collapse on keys of 200+ characters.** ``difflib``
+    defaults ``autojunk=True``, which — once the second sequence reaches 200
+    elements — treats every element occurring in more than 1% of it as junk and
+    excludes it from matching blocks. On a *character* sequence drawn from a
+    ~40-symbol alphabet that is most of the alphabet, and scores do not degrade
+    gracefully, they fall off a cliff. Measured on two genuinely duplicate
+    functions with 255- and 299-character keys: ``0.3177`` as difflib defaults,
+    ``0.9206`` with ``autojunk=False`` — the difference between "queued for a
+    human" and "served". So ``autojunk`` defaults to ``False`` here.
+
+    **2. ``similarity(a, b) == similarity(b, a)``, always.** ``ratio()`` is not
+    symmetric: its matching-block search is greedy and order-dependent, and
+    ``autojunk`` is applied to the *second* operand only. ``memory.lookup``
+    always scores ``similarity(query, stored_row)``, so without this, *which
+    member of a pair happened to be sealed first* could decide whether a match
+    is served. For an engine whose promise is "a sealed pair either serves or it
+    does not", a serve decision that depends on insertion order is a correctness
+    defect — and it makes the ledger record a decision that cannot be reproduced
+    from the pair's contents. Operands are therefore put in a canonical order
+    before scoring.
+
+    Compatibility: below 200 characters ``autojunk`` is inert (measured: 0
+    differences over 3,000 random pairs), and canonical ordering changes nothing
+    for near-duplicate text (measured: 0 of 500 realistic near-duplicate pairs
+    are order-dependent). Order-dependence below 200 characters shows up only on
+    *dissimilar* pairs, which score far below any serving threshold either way.
+    So real translation segments score exactly as they did.
+
+    Cost: ``autojunk=False`` is dramatically slower on long keys — measured
+    ~1.0x at 100 characters, ~43x at 400, ~78x at 800. It is free precisely
+    where it is inert and expensive precisely where the old answer was wrong.
+    ``StringMatcher(autojunk=True)`` restores the fast path for callers whose
+    keys are short, but it is unsafe above 200 characters and reintroduces both
+    problems above.
     """
+
+    def __init__(self, autojunk: bool = False) -> None:
+        self.autojunk = autojunk
 
     def normalize(self, value) -> str:
         # Historically ``_norm(text: str)``. Accept non-str defensively by
@@ -71,10 +111,16 @@ class StringMatcher:
 
     def similarity(self, a_norm: str, b_norm: str) -> float:
         # Equal normals short-circuit to 1.0 (matching the old ``EXACT`` path
-        # in ``memory.lookup``); otherwise the difflib ratio, as before.
+        # in ``memory.lookup``).
         if a_norm == b_norm:
             return 1.0
-        return difflib.SequenceMatcher(None, a_norm, b_norm).ratio()
+        # Canonical operand order, so the score is a property of the PAIR rather
+        # than of which side the caller happened to pass first. Any total order
+        # works; lexicographic is deterministic and costs a single comparison.
+        if a_norm > b_norm:
+            a_norm, b_norm = b_norm, a_norm
+        return difflib.SequenceMatcher(None, a_norm, b_norm,
+                                       autojunk=self.autojunk).ratio()
 
 
 # --------------------------------------------------------------------------

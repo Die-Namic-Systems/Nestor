@@ -77,13 +77,20 @@ def best_match_fast(norm: str, rows: list[dict], matcher,
     bound cannot beat the best score so far cannot be the argmax, so its real
     ratio never needs computing — the answer is unchanged, only the cost.
 
-    Argument order and ``autojunk`` are kept EXACTLY as ``StringMatcher`` has
-    them — ``SequenceMatcher(None, probe_norm, row_norm)`` with autojunk left on.
-    ``ratio()`` is not symmetric and autojunk changes results on sequences of
-    200+ elements, so swapping either one silently measures a different function.
-    That is why the probe is pinned as sequence *a* and the row varies as *b*,
-    even though pinning the row as *b* instead would let difflib cache its b2j
-    index: fidelity first, speed second.
+    Operand order and ``autojunk`` mirror :class:`StringMatcher` EXACTLY:
+    operands are put in lexicographic order and ``autojunk=False``. Both matter —
+    ``ratio()`` is not symmetric and ``autojunk`` changes results on sequences of
+    200+ elements, so diverging on either silently measures a different function
+    than the one Nestor serves.
+
+    This previously pinned the probe as sequence *a* with autojunk left on, to
+    match the matcher as it was then. When ``StringMatcher`` was fixed to
+    canonicalise order and disable autojunk, ``--equiv`` caught the divergence at
+    1 disagreement in 40 (0.866 vs 0.836 on the same winning row) — which is the
+    entire reason that check runs every time rather than once.
+
+    Canonicalising costs the b2j-cache reuse that pinning one operand allowed:
+    fidelity first, speed second.
 
     Only valid for :class:`StringMatcher`, whose ``similarity`` is exactly
     ``difflib`` ratio with a ``1.0`` short-circuit on equal normals; callers
@@ -91,14 +98,16 @@ def best_match_fast(norm: str, rows: list[dict], matcher,
     checks the two agree, and ``--verify`` checks the winner against the real
     ``memory.best_sealed`` path.
     """
-    sm = difflib.SequenceMatcher(None)
-    sm.set_seq1(norm)
+    sm = difflib.SequenceMatcher(None, autojunk=False)
     best_sim, best_target, best_source = floor, "", ""
     for r in rows:
         cand = r["source_norm"]
         if cand == norm:                      # StringMatcher's equal-normals path
             return 1.0, r["target_text"], r["source_text"]
-        sm.set_seq2(cand)
+        # Canonical operand order, exactly as StringMatcher.similarity does it.
+        lo, hi = (norm, cand) if norm <= cand else (cand, norm)
+        sm.set_seq1(lo)
+        sm.set_seq2(hi)
         # Upper bounds, cheapest first. Neither can be < the true ratio, so a
         # candidate failing to beat the incumbent cannot be the argmax.
         if sm.real_quick_ratio() <= best_sim or sm.quick_ratio() <= best_sim:
