@@ -1,0 +1,2057 @@
+{
+  "bench": "accuracy",
+  "runs": [
+    {
+      "run_id": "20260727T040653Z",
+      "recorded_at": "2026-07-27T04:13:16Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "5b3c8ea"
+      },
+      "params": {
+        "sizes": [
+          500,
+          2000,
+          8000
+        ],
+        "prose_sizes": [
+          500,
+          2000,
+          4000
+        ],
+        "probes": 250,
+        "seed": 7,
+        "matcher": "StringMatcher",
+        "thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_seal_threshold": 0.92,
+        "prose_pool": 5073,
+        "scan": "best_match_fast (difflib upper-bound pruning)",
+        "floor": 0.8,
+        "plan_rows": 6
+      },
+      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. recall_surface uses perturbations mostly erased by normalization; recall_paraphrase uses meaning-preserving rewrites that survive it and is the column that means something. misrouted = served but pointing at the wrong pair.",
+      "measurements": [
+        {
+          "corpus": "boilerplate",
+          "size": 500,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.896,
+              "false_seals": 224,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.328,
+              "false_seals": 82,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.028,
+              "false_seals": 7,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.36,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.248,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.792,
+              "recall_surface": 0.792,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.922,
+              "asked": "the joint penalty terminates any annual clause under section 159",
+              "would_serve_source": "the joint payment terminates any annual clause under section 785",
+              "would_serve_target": "BENCH:473"
+            },
+            {
+              "similarity": 0.915,
+              "asked": "the exclusive term governs any initial deposit under section 425",
+              "would_serve_source": "the exclusive notice governs any initial deposit under section 18",
+              "would_serve_target": "BENCH:148"
+            },
+            {
+              "similarity": 0.91,
+              "asked": "the exclusive payment supersedes any prior breach under section 269",
+              "would_serve_source": "the exclusive payment supersedes any joint breach under section 520",
+              "would_serve_target": "BENCH:389"
+            },
+            {
+              "similarity": 0.909,
+              "asked": "the exclusive clause precedes any prior deposit under section 194",
+              "would_serve_source": "the exclusive clause precedes any partial deposit under section 262",
+              "would_serve_target": "BENCH:338"
+            },
+            {
+              "similarity": 0.904,
+              "asked": "the prior term assigns any mutual audit under section 695",
+              "would_serve_source": "the prior annex assigns any mutual audit under section 189",
+              "would_serve_target": "BENCH:132"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 26,
+          "absent_score_percentiles": {
+            "p50": 0.835,
+            "p90": 0.869,
+            "p99": 0.91,
+            "max": 0.922
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.969,
+            "max": 0.971
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.996,
+              "false_seals": 249,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.724,
+              "false_seals": 181,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.108,
+              "false_seals": 27,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.38,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.252,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.072,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.836,
+              "recall_surface": 0.836,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.941,
+              "asked": "the material penalty triggers any initial warranty under section 175",
+              "would_serve_source": "the partial penalty triggers any initial warranty under section 2176",
+              "would_serve_target": "BENCH:1543"
+            },
+            {
+              "similarity": 0.933,
+              "asked": "the annual remedy terminates any material licence under section 1314",
+              "would_serve_source": "the annual remedy terminates any partial licence under section 1821",
+              "would_serve_target": "BENCH:737"
+            },
+            {
+              "similarity": 0.924,
+              "asked": "the material warranty limits any initial remedy under section 1062",
+              "would_serve_source": "the material warranty amends any initial remedy under section 1902",
+              "would_serve_target": "BENCH:163"
+            },
+            {
+              "similarity": 0.921,
+              "asked": "the written annex limits any initial annex under section 1673",
+              "would_serve_source": "the written annex terminates any initial annex under section 1672",
+              "would_serve_target": "BENCH:995"
+            },
+            {
+              "similarity": 0.919,
+              "asked": "the material schedule precedes any mutual contract under section 670",
+              "would_serve_source": "the mutual schedule precedes any mutual contract under section 1039",
+              "would_serve_target": "BENCH:1154"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 1,
+          "absent_score_percentiles": {
+            "p50": 0.866,
+            "p90": 0.901,
+            "p99": 0.924,
+            "max": 0.941
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.964,
+            "max": 0.97
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 8000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.976,
+              "false_seals": 244,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.364,
+              "false_seals": 91,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.424,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.08,
+              "false_seals": 20,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.304,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.016,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.974,
+              "asked": "the joint term triggers any joint breach under section 5386",
+              "would_serve_source": "the joint term triggers any joint breach under section 756",
+              "would_serve_target": "BENCH:5202"
+            },
+            {
+              "similarity": 0.971,
+              "asked": "the exclusive schedule precedes any initial licence under section 2674",
+              "would_serve_source": "the exclusive schedule precedes any initial licence under section 5275",
+              "would_serve_target": "BENCH:4450"
+            },
+            {
+              "similarity": 0.968,
+              "asked": "the written notice assigns any prior penalty under section 4390",
+              "would_serve_source": "the written notice assigns any prior penalty under section 1405",
+              "would_serve_target": "BENCH:7993"
+            },
+            {
+              "similarity": 0.941,
+              "asked": "the written renewal terminates any prior warranty under section 6546",
+              "would_serve_source": "the written renewal terminates any prior warranty under section 8020",
+              "would_serve_target": "BENCH:7446"
+            },
+            {
+              "similarity": 0.938,
+              "asked": "the mutual report terminates any final vendor under section 7031",
+              "would_serve_source": "the mutual report terminates any final vendor under section 2484",
+              "would_serve_target": "BENCH:1378"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 0,
+          "absent_score_percentiles": {
+            "p50": 0.891,
+            "p90": 0.918,
+            "p99": 0.968,
+            "max": 0.974
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.961,
+            "max": 0.968
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 500,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.704,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.04,
+              "false_seals": 10,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.66,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.024,
+              "false_seals": 6,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.02,
+              "false_seals": 5,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.584,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.008,
+              "false_seals": 2,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.524,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.98,
+              "recall_surface": 0.98,
+              "recall_paraphrase": 0.228,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.076,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.952,
+              "asked": "Fail unless a log message of level *level* or higher is emitted on *logger_name* or its children.",
+              "would_serve_source": "Fail unless no log messages of level *level* or higher are emitted on *logger_name* or its children.",
+              "would_serve_target": "BENCH:329"
+            },
+            {
+              "similarity": 0.942,
+              "asked": "Fragment identifier separated from URL, that allows indirect identification of a secondary resource by reference to a primary resource and additional identifying information.",
+              "would_serve_source": "Fragment identifier, that allows indirect identification of a secondary resource by reference to a primary resource and additional identifying information.",
+              "would_serve_target": "BENCH:230"
+            },
+            {
+              "similarity": 0.935,
+              "asked": ">>> c = Counter('abbb') >>> c |= Counter('bcc') >>> c Counter({'b': 3, 'c': 2, 'a': 1})",
+              "would_serve_source": ">>> c = Counter('abbbc') >>> c -= Counter('bccd') >>> c Counter({'b': 2, 'a': 1})",
+              "would_serve_target": "BENCH:391"
+            },
+            {
+              "similarity": 0.935,
+              "asked": ">>> c = Counter('abbb') >>> c += Counter('bcc') >>> c Counter({'b': 4, 'c': 2, 'a': 1})",
+              "would_serve_source": ">>> c = Counter('abbbc') >>> c -= Counter('bccd') >>> c Counter({'b': 2, 'a': 1})",
+              "would_serve_target": "BENCH:391"
+            },
+            {
+              "similarity": 0.925,
+              "asked": "An ABC with one abstract method __int__.",
+              "would_serve_source": "An ABC with one abstract method __float__.",
+              "would_serve_target": "BENCH:298"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 238,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.0,
+            "p99": 0.935,
+            "max": 0.952
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.952,
+            "p90": 0.989,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.108,
+              "false_seals": 27,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.74,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.088,
+              "false_seals": 22,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.708,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.056,
+              "false_seals": 14,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.62,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.6,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.04,
+              "false_seals": 10,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.556,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.452,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 0.956,
+              "recall_surface": 0.956,
+              "recall_paraphrase": 0.212,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.06,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.98,
+              "asked": "Process a GNU tar extended sparse header, version 0.1.",
+              "would_serve_source": "Process a GNU tar extended sparse header, version 1.0.",
+              "would_serve_target": "BENCH:1489"
+            },
+            {
+              "similarity": 0.967,
+              "asked": "with an empty query (the draft states that these are equivalent).",
+              "would_serve_source": "with an empty query; the RFC states that these are equivalent).",
+              "would_serve_target": "BENCH:843"
+            },
+            {
+              "similarity": 0.965,
+              "asked": "gethostbyaddr(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_source": "gethostbyname_ex(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_target": "BENCH:1213"
+            },
+            {
+              "similarity": 0.959,
+              "asked": "Return True if this network is a supernet of other.",
+              "would_serve_source": "Return True if this network is a subnet of other.",
+              "would_serve_target": "BENCH:1987"
+            },
+            {
+              "similarity": 0.957,
+              "asked": "B.rindex(sub[, start[, end]]) -> int Return the highest index in B where subsection sub is found, such that sub is contained within B[start,end].",
+              "would_serve_source": "S.rindex(sub[, start[, end]]) -> int Return the highest index in S where substring sub is found, such that sub is contained within S[start:end].",
+              "would_serve_target": "BENCH:1625"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 223,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.835,
+            "p99": 0.965,
+            "max": 0.98
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.953,
+            "p90": 0.987,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 4000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.156,
+              "false_seals": 39,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.712,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.14,
+              "false_seals": 35,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.672,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.1,
+              "false_seals": 25,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.624,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.068,
+              "false_seals": 17,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.036,
+              "false_seals": 9,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.56,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.436,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.008,
+              "false_seals": 2,
+              "recall": 0.972,
+              "recall_surface": 0.972,
+              "recall_paraphrase": 0.156,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.036,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 1.0,
+              "asked": "The return value i is such that all e in a[:i] have e <= x, and all e in a[i:] have e > x.",
+              "would_serve_source": "The return value i is such that all e in a[:i] have e < x, and all e in a[i:] have e >= x.",
+              "would_serve_target": "BENCH:1680"
+            },
+            {
+              "similarity": 0.983,
+              "asked": "By default, all communication is in bytes, and therefore any \"input\" should be bytes, and the (stdout, stderr) will be bytes.",
+              "would_serve_source": "By default, all communication is in bytes, and therefore any \"input\" should be bytes, and the stdout and stderr will be bytes.",
+              "would_serve_target": "BENCH:1676"
+            },
+            {
+              "similarity": 0.978,
+              "asked": "Represent and manipulate single IPv4 Addresses.",
+              "would_serve_source": "Represent and manipulate single IPv6 Addresses.",
+              "would_serve_target": "BENCH:2383"
+            },
+            {
+              "similarity": 0.977,
+              "asked": "Represent an address as 16 packed bytes in network (big-endian) order.",
+              "would_serve_source": "Represent an address as 4 packed bytes in network (big-endian) order.",
+              "would_serve_target": "BENCH:3035"
+            },
+            {
+              "similarity": 0.959,
+              "asked": "Return True if this network is a subnet of other.",
+              "would_serve_source": "Return True if this network is a supernet of other.",
+              "would_serve_target": "BENCH:992"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 211,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.906,
+            "p99": 0.978,
+            "max": 1.0
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.954,
+            "p90": 0.983,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20260727T041321Z",
+      "recorded_at": "2026-07-27T04:22:52Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "5b3c8ea"
+      },
+      "params": {
+        "sizes": [
+          500,
+          2000,
+          8000,
+          24000
+        ],
+        "prose_sizes": [
+          500,
+          2000,
+          4000
+        ],
+        "probes": 250,
+        "seed": 7,
+        "matcher": "StringMatcher",
+        "thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_seal_threshold": 0.92,
+        "prose_pool": 5073,
+        "scan": "best_match_fast (difflib upper-bound pruning)",
+        "floor": 0.8,
+        "plan_rows": 7
+      },
+      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. recall_surface uses perturbations mostly erased by normalization; recall_paraphrase uses meaning-preserving rewrites that survive it and is the column that means something. misrouted = served but pointing at the wrong pair.",
+      "measurements": [
+        {
+          "corpus": "boilerplate",
+          "size": 500,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.896,
+              "false_seals": 224,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.328,
+              "false_seals": 82,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.028,
+              "false_seals": 7,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.36,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.248,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.792,
+              "recall_surface": 0.792,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.922,
+              "asked": "the joint penalty terminates any annual clause under section 159",
+              "would_serve_source": "the joint payment terminates any annual clause under section 785",
+              "would_serve_target": "BENCH:473"
+            },
+            {
+              "similarity": 0.915,
+              "asked": "the exclusive term governs any initial deposit under section 425",
+              "would_serve_source": "the exclusive notice governs any initial deposit under section 18",
+              "would_serve_target": "BENCH:148"
+            },
+            {
+              "similarity": 0.91,
+              "asked": "the exclusive payment supersedes any prior breach under section 269",
+              "would_serve_source": "the exclusive payment supersedes any joint breach under section 520",
+              "would_serve_target": "BENCH:389"
+            },
+            {
+              "similarity": 0.909,
+              "asked": "the exclusive clause precedes any prior deposit under section 194",
+              "would_serve_source": "the exclusive clause precedes any partial deposit under section 262",
+              "would_serve_target": "BENCH:338"
+            },
+            {
+              "similarity": 0.904,
+              "asked": "the prior term assigns any mutual audit under section 695",
+              "would_serve_source": "the prior annex assigns any mutual audit under section 189",
+              "would_serve_target": "BENCH:132"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 26,
+          "absent_score_percentiles": {
+            "p50": 0.835,
+            "p90": 0.869,
+            "p99": 0.91,
+            "max": 0.922
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.969,
+            "max": 0.971
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.996,
+              "false_seals": 249,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.724,
+              "false_seals": 181,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.108,
+              "false_seals": 27,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.38,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.252,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.072,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.836,
+              "recall_surface": 0.836,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.941,
+              "asked": "the material penalty triggers any initial warranty under section 175",
+              "would_serve_source": "the partial penalty triggers any initial warranty under section 2176",
+              "would_serve_target": "BENCH:1543"
+            },
+            {
+              "similarity": 0.933,
+              "asked": "the annual remedy terminates any material licence under section 1314",
+              "would_serve_source": "the annual remedy terminates any partial licence under section 1821",
+              "would_serve_target": "BENCH:737"
+            },
+            {
+              "similarity": 0.924,
+              "asked": "the material warranty limits any initial remedy under section 1062",
+              "would_serve_source": "the material warranty amends any initial remedy under section 1902",
+              "would_serve_target": "BENCH:163"
+            },
+            {
+              "similarity": 0.921,
+              "asked": "the written annex limits any initial annex under section 1673",
+              "would_serve_source": "the written annex terminates any initial annex under section 1672",
+              "would_serve_target": "BENCH:995"
+            },
+            {
+              "similarity": 0.919,
+              "asked": "the material schedule precedes any mutual contract under section 670",
+              "would_serve_source": "the mutual schedule precedes any mutual contract under section 1039",
+              "would_serve_target": "BENCH:1154"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 1,
+          "absent_score_percentiles": {
+            "p50": 0.866,
+            "p90": 0.901,
+            "p99": 0.924,
+            "max": 0.941
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.964,
+            "max": 0.97
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 8000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.976,
+              "false_seals": 244,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.364,
+              "false_seals": 91,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.424,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.08,
+              "false_seals": 20,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.304,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.016,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.974,
+              "asked": "the joint term triggers any joint breach under section 5386",
+              "would_serve_source": "the joint term triggers any joint breach under section 756",
+              "would_serve_target": "BENCH:5202"
+            },
+            {
+              "similarity": 0.971,
+              "asked": "the exclusive schedule precedes any initial licence under section 2674",
+              "would_serve_source": "the exclusive schedule precedes any initial licence under section 5275",
+              "would_serve_target": "BENCH:4450"
+            },
+            {
+              "similarity": 0.968,
+              "asked": "the written notice assigns any prior penalty under section 4390",
+              "would_serve_source": "the written notice assigns any prior penalty under section 1405",
+              "would_serve_target": "BENCH:7993"
+            },
+            {
+              "similarity": 0.941,
+              "asked": "the written renewal terminates any prior warranty under section 6546",
+              "would_serve_source": "the written renewal terminates any prior warranty under section 8020",
+              "would_serve_target": "BENCH:7446"
+            },
+            {
+              "similarity": 0.938,
+              "asked": "the mutual report terminates any final vendor under section 7031",
+              "would_serve_source": "the mutual report terminates any final vendor under section 2484",
+              "would_serve_target": "BENCH:1378"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 0,
+          "absent_score_percentiles": {
+            "p50": 0.891,
+            "p90": 0.918,
+            "p99": 0.968,
+            "max": 0.974
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.961,
+            "max": 0.968
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "boilerplate",
+          "size": 24000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 1.0,
+              "false_seals": 250,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.564,
+              "false_seals": 141,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.384,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.164,
+              "false_seals": 41,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.236,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.068,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.024,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.812,
+              "recall_surface": 0.812,
+              "recall_paraphrase": 0.0,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.961,
+              "asked": "the initial payment governs any joint remedy under section 21397",
+              "would_serve_source": "the initial payment governs any joint remedy under section 4196",
+              "would_serve_target": "BENCH:396"
+            },
+            {
+              "similarity": 0.957,
+              "asked": "the written remedy terminates any initial licence under section 10066",
+              "would_serve_source": "the written remedy terminates any initial licence under section 11760",
+              "would_serve_target": "BENCH:3129"
+            },
+            {
+              "similarity": 0.956,
+              "asked": "the annual invoice suspends any partial schedule under section 15984",
+              "would_serve_source": "the annual invoice suspends any partial schedule under section 22125",
+              "would_serve_target": "BENCH:4330"
+            },
+            {
+              "similarity": 0.955,
+              "asked": "the joint remedy terminates any initial breach under section 10192",
+              "would_serve_source": "the joint remedy terminates any initial breach under section 19371",
+              "would_serve_target": "BENCH:6080"
+            },
+            {
+              "similarity": 0.954,
+              "asked": "the joint clause triggers any initial invoice under section 15225",
+              "would_serve_source": "the joint clause triggers any initial invoice under section 11126",
+              "would_serve_target": "BENCH:8479"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 0,
+          "absent_score_percentiles": {
+            "p50": 0.903,
+            "p90": 0.925,
+            "p99": 0.956,
+            "max": 0.961
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.961,
+            "max": 0.964
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 500,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.704,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.04,
+              "false_seals": 10,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.66,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.024,
+              "false_seals": 6,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.02,
+              "false_seals": 5,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.584,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.008,
+              "false_seals": 2,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.524,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.98,
+              "recall_surface": 0.98,
+              "recall_paraphrase": 0.228,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.076,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.952,
+              "asked": "Fail unless a log message of level *level* or higher is emitted on *logger_name* or its children.",
+              "would_serve_source": "Fail unless no log messages of level *level* or higher are emitted on *logger_name* or its children.",
+              "would_serve_target": "BENCH:329"
+            },
+            {
+              "similarity": 0.942,
+              "asked": "Fragment identifier separated from URL, that allows indirect identification of a secondary resource by reference to a primary resource and additional identifying information.",
+              "would_serve_source": "Fragment identifier, that allows indirect identification of a secondary resource by reference to a primary resource and additional identifying information.",
+              "would_serve_target": "BENCH:230"
+            },
+            {
+              "similarity": 0.935,
+              "asked": ">>> c = Counter('abbb') >>> c |= Counter('bcc') >>> c Counter({'b': 3, 'c': 2, 'a': 1})",
+              "would_serve_source": ">>> c = Counter('abbbc') >>> c -= Counter('bccd') >>> c Counter({'b': 2, 'a': 1})",
+              "would_serve_target": "BENCH:391"
+            },
+            {
+              "similarity": 0.935,
+              "asked": ">>> c = Counter('abbb') >>> c += Counter('bcc') >>> c Counter({'b': 4, 'c': 2, 'a': 1})",
+              "would_serve_source": ">>> c = Counter('abbbc') >>> c -= Counter('bccd') >>> c Counter({'b': 2, 'a': 1})",
+              "would_serve_target": "BENCH:391"
+            },
+            {
+              "similarity": 0.925,
+              "asked": "An ABC with one abstract method __int__.",
+              "would_serve_source": "An ABC with one abstract method __float__.",
+              "would_serve_target": "BENCH:298"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 238,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.0,
+            "p99": 0.935,
+            "max": 0.952
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.952,
+            "p90": 0.989,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 2000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.108,
+              "false_seals": 27,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.74,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.088,
+              "false_seals": 22,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.708,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.056,
+              "false_seals": 14,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.62,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.048,
+              "false_seals": 12,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.6,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.04,
+              "false_seals": 10,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.556,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.452,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 0.956,
+              "recall_surface": 0.956,
+              "recall_paraphrase": 0.212,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.06,
+              "misrouted": 1,
+              "misroute_rate": 0.004
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.98,
+              "asked": "Process a GNU tar extended sparse header, version 0.1.",
+              "would_serve_source": "Process a GNU tar extended sparse header, version 1.0.",
+              "would_serve_target": "BENCH:1489"
+            },
+            {
+              "similarity": 0.967,
+              "asked": "with an empty query (the draft states that these are equivalent).",
+              "would_serve_source": "with an empty query; the RFC states that these are equivalent).",
+              "would_serve_target": "BENCH:843"
+            },
+            {
+              "similarity": 0.965,
+              "asked": "gethostbyaddr(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_source": "gethostbyname_ex(host) -> (name, aliaslist, addresslist) Return the true host name, a list of aliases, and a list of IP addresses, for a host.",
+              "would_serve_target": "BENCH:1213"
+            },
+            {
+              "similarity": 0.959,
+              "asked": "Return True if this network is a supernet of other.",
+              "would_serve_source": "Return True if this network is a subnet of other.",
+              "would_serve_target": "BENCH:1987"
+            },
+            {
+              "similarity": 0.957,
+              "asked": "B.rindex(sub[, start[, end]]) -> int Return the highest index in B where subsection sub is found, such that sub is contained within B[start,end].",
+              "would_serve_source": "S.rindex(sub[, start[, end]]) -> int Return the highest index in S where substring sub is found, such that sub is contained within S[start:end].",
+              "would_serve_target": "BENCH:1625"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 223,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.835,
+            "p99": 0.965,
+            "max": 0.98
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.953,
+            "p90": 0.987,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "prose",
+          "size": 4000,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.156,
+              "false_seals": 39,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.712,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.14,
+              "false_seals": 35,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.672,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.1,
+              "false_seals": 25,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.624,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.068,
+              "false_seals": 17,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.036,
+              "false_seals": 9,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.56,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.016,
+              "false_seals": 4,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.436,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.008,
+              "false_seals": 2,
+              "recall": 0.972,
+              "recall_surface": 0.972,
+              "recall_paraphrase": 0.156,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.004,
+              "false_seals": 1,
+              "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.036,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 1.0,
+              "asked": "The return value i is such that all e in a[:i] have e <= x, and all e in a[i:] have e > x.",
+              "would_serve_source": "The return value i is such that all e in a[:i] have e < x, and all e in a[i:] have e >= x.",
+              "would_serve_target": "BENCH:1680"
+            },
+            {
+              "similarity": 0.983,
+              "asked": "By default, all communication is in bytes, and therefore any \"input\" should be bytes, and the (stdout, stderr) will be bytes.",
+              "would_serve_source": "By default, all communication is in bytes, and therefore any \"input\" should be bytes, and the stdout and stderr will be bytes.",
+              "would_serve_target": "BENCH:1676"
+            },
+            {
+              "similarity": 0.978,
+              "asked": "Represent and manipulate single IPv4 Addresses.",
+              "would_serve_source": "Represent and manipulate single IPv6 Addresses.",
+              "would_serve_target": "BENCH:2383"
+            },
+            {
+              "similarity": 0.977,
+              "asked": "Represent an address as 16 packed bytes in network (big-endian) order.",
+              "would_serve_source": "Represent an address as 4 packed bytes in network (big-endian) order.",
+              "would_serve_target": "BENCH:3035"
+            },
+            {
+              "similarity": 0.959,
+              "asked": "Return True if this network is a subnet of other.",
+              "would_serve_source": "Return True if this network is a supernet of other.",
+              "would_serve_target": "BENCH:992"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 211,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.906,
+            "p99": 0.978,
+            "max": 1.0
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.954,
+            "p90": 0.983,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -62,6 +62,46 @@ def _message(source_norm: str, target_text: str, verifier: str) -> bytes:
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
+def _rejection_message(query_norm: str, pair_id: str, target_text: str,
+                       verifier: str) -> bytes:
+    """The bytes a rejection HMAC is taken over.
+
+    Tagged with a literal ``"rejection"`` as element 0 so a rejection signature
+    and a seal signature can never be each other. Seal messages are 3-element
+    arrays of field values; a rejection is a 4-element array whose first element
+    is a constant no ``source_norm`` can produce ambiguity with. Without that
+    domain separation a signature captured from one protocol could be replayed
+    into the other.
+    """
+    return json.dumps(["rejection", query_norm, pair_id, target_text, verifier],
+                      separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def sign_rejection(query_norm: str, pair_id: str, target_text: str,
+                   verifier: str, key: Optional[bytes] = None) -> str:
+    """HMAC-SHA256 over a rejection's bound fields. ``""`` when signing is off."""
+    k = _key(key)
+    if not k:
+        return ""
+    return hmac.new(k, _rejection_message(query_norm, pair_id, target_text, verifier),
+                    hashlib.sha256).hexdigest()
+
+
+def rejection_is_valid(query_norm: str, pair_id: str, target_text: str,
+                       verifier: str, reject_sig: str,
+                       key: Optional[bytes] = None) -> bool:
+    """Whether ``reject_sig`` is a valid rejection signature.
+
+    NOTE: unlike :func:`seal_is_valid`, this is *reporting only* — Nestor honors
+    a rejection whether or not it verifies. See ``memory.rejected_ids`` for why
+    suppression fails safe in a way that serving does not.
+    """
+    if _key(key) is None:
+        return True
+    expected = sign_rejection(query_norm, pair_id, target_text, verifier, key)
+    return bool(reject_sig) and hmac.compare_digest(expected, reject_sig)
+
+
 def sign_seal(source_norm: str, target_text: str, verifier: str,
               key: Optional[bytes] = None) -> str:
     """HMAC-SHA256 over the seal's bound fields. Returns ``""`` when no key is

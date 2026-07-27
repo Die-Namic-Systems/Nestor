@@ -57,8 +57,25 @@ CREATE TABLE IF NOT EXISTS tm_pairs (
     seal_sig    TEXT NOT NULL DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS tm_rejections (
+    id          TEXT PRIMARY KEY,
+    query_norm  TEXT NOT NULL,
+    source_lang TEXT NOT NULL,
+    target_lang TEXT NOT NULL,
+    pair_id     TEXT NOT NULL DEFAULT '',
+    target_text TEXT NOT NULL DEFAULT '',
+    verifier    TEXT NOT NULL DEFAULT '',
+    reason      TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL,
+    reject_sig  TEXT NOT NULL DEFAULT ''
+);
+
 CREATE INDEX IF NOT EXISTS idx_segments_document ON segments(document_id);
 CREATE INDEX IF NOT EXISTS idx_tm_langs ON tm_pairs(source_lang, target_lang, status);
+-- Rejections are read on the hot path (every lookup), keyed by exactly this
+-- triple, so unlike tm_pairs.source_norm this one is indexed from the start.
+CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
+    ON tm_rejections(query_norm, source_lang, target_lang);
 """
 
 
@@ -206,6 +223,82 @@ class SqliteStore:
                 "SELECT * FROM tm_pairs WHERE source_lang=? AND target_lang=?",
                 (source_lang, target_lang),
             )]
+
+    # --- rejection -------------------------------------------------------
+
+    def memory_reject_pair(self, pair_id: str, verifier: str,
+                          reason: str) -> None:
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE tm_pairs SET status='rejected', verifier=?, origin=? "
+                "WHERE id=?",
+                (verifier, f"rejected:{reason}"[:200], pair_id),
+            )
+
+    def memory_add_rejection(self, rejection: dict) -> None:
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO tm_rejections VALUES (:id,:query_norm,:source_lang,"
+                ":target_lang,:pair_id,:target_text,:verifier,:reason,"
+                ":created_at,:reject_sig)",
+                {"pair_id": "", "target_text": "", "verifier": "", "reason": "",
+                 "reject_sig": "", **rejection},
+            )
+
+    def memory_rejections(self, query_norm: str, source_lang: str,
+                          target_lang: str) -> list[dict]:
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT * FROM tm_rejections WHERE query_norm=? AND "
+                "source_lang=? AND target_lang=?",
+                (query_norm, source_lang, target_lang),
+            )]
+
+    # --- curation --------------------------------------------------------
+
+    def memory_list(self, source_lang: str = "", target_lang: str = "",
+                    status: str = "", verifier: str = "", contains: str = "",
+                    limit: int = 50, offset: int = 0) -> list[dict]:
+        where, params = [], []
+        for col, val in (("source_lang", source_lang), ("target_lang", target_lang),
+                         ("status", status), ("verifier", verifier)):
+            if val:
+                where.append(f"{col}=?")
+                params.append(val)
+        if contains:
+            where.append("(LOWER(source_text) LIKE ? OR LOWER(target_text) LIKE ?)")
+            like = f"%{contains.lower()}%"
+            params += [like, like]
+        sql = "SELECT * FROM tm_pairs"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+        params += [max(0, int(limit)), max(0, int(offset))]
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
+
+    def memory_get(self, pair_id: str) -> Optional[dict]:
+        with self._db() as conn:
+            r = conn.execute("SELECT * FROM tm_pairs WHERE id=?",
+                             (pair_id,)).fetchone()
+            return dict(r) if r else None
+
+    def memory_unseal(self, pair_id: str, verifier: str, reason: str) -> None:
+        # seal_sig is cleared, not kept: a 'draft' row still carrying a valid
+        # signature is a seal waiting to be reactivated by anything that flips
+        # the status column back.
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE tm_pairs SET status='draft', seal_sig='', origin=? "
+                "WHERE id=?",
+                (f"unsealed:{verifier}:{reason}"[:200], pair_id),
+            )
+
+    def memory_rejections_for_pair(self, pair_id: str) -> list[dict]:
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT * FROM tm_rejections WHERE pair_id=? ORDER BY created_at",
+                (pair_id,))]
 
     def memory_stats(self) -> dict:
         with self._db() as conn:
