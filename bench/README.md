@@ -51,6 +51,14 @@ store is `:memory:` unless a bench says otherwise.
 | Bench | Question |
 |-------|----------|
 | `bench_accuracy.py` | As the sealed memory fills, how often is an *unverified* phrase served as verified — and what does that cost in recall? |
+| `bench_margin.py` | Does the gap between the best and second-best candidate separate a true match from a false seal? (Tests `IDEAS.md` §1.1 — answer: mostly no.) |
+
+`bench_margin.py` censors margins wider than `top - floor`, so its reported
+percentiles are compressed. The **grid is exact** for every margin it sweeps:
+a measured margin is `min(true_margin, top - floor)`, and since the grid only
+counts probes with `top >= threshold >= 0.90` while the widest swept margin is
+`0.10`, `top - floor >= 0.10` always holds. Censoring can only understate a
+margin, which biases against the hypothesis rather than for it.
 
 ## Corpora
 

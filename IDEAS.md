@@ -21,21 +21,55 @@ marked verified, with no review queue. So the failure mode that matters is a
 phrase which was never verified being served as though it were. Everything in
 this section is downstream of that.
 
-### 1.1 Margin, not just magnitude — **hypothesis**
+### 1.1 Margin, not just magnitude — **measured; mostly falsified**
 
-A false seal happens when many sealed rows resemble the probe about equally. In
-that situation the *absolute* top similarity is a weak signal, but the **gap
-between the best and second-best candidate** should be a strong one: a genuine
-re-typing of a sealed phrase beats its runner-up decisively, whereas a phrase
-that merely looks like the corpus sits in a crowd.
+*The hypothesis was: a false seal happens when many sealed rows resemble the
+probe about equally, so the gap between best and second-best should separate a
+genuine match from a coincidental one — attacking false seals without the recall
+cost of raising the threshold. I called it the highest-value change on this list.
+It is not.*
 
-Proposal: serve tier 1 only when `top >= SEAL_THRESHOLD` **and**
-`top - second >= MARGIN`, where the runner-up is the best candidate pointing at
-a *different* target. Cheap — the scan already visits every row.
+`bench_margin.py`, threshold 0.92, false-seal % / recall %
+(`bench/results/margin.json`):
 
-If it holds, it is the highest-value change on this list, because it attacks
-false seals without giving up recall the way raising the threshold does.
-`bench_accuracy.py` already records what is needed to test it.
+| margin | boil 2k | boil 8k | boil 24k | prose 2k | prose 4k |
+|-------:|--------:|--------:|---------:|---------:|---------:|
+| 0.00 | 1.6 / 100 | 8.0 / 100 | 16.0 / 100 | 4.8 / 99.6 | 6.8 / 100 |
+| 0.03 | 1.6 / 100 | 6.0 / 100 | 10.0 / 99.2 | 4.4 / 99.2 | 6.4 / 98.0 |
+| 0.05 | 1.6 / 99.6 | 3.2 / 98.4 | **4.0 / 96.8** | 4.4 / 96.8 | 6.0 / 93.6 |
+| 0.10 | 0.0 / 91.2 | 0.4 / 70.8 | 0.0 / **44.4** | 3.6 / 91.6 | 5.2 / 88.4 |
+
+**On homogeneous text it half-works.** Boilerplate 24k at margin 0.05 cuts false
+seals 16.0% → 4.0% for 3.2 points of recall. Real, but not free, and nowhere near
+the clean separation the hypothesis predicted — pushing to 0.10 eliminates false
+seals and destroys recall (44%).
+
+**On prose it does nothing but cost recall.** 6.8% → 6.0% at margin 0.05 while
+recall falls 100% → 93.6%. Strictly worse than simply raising the threshold.
+
+The distributions overlap, which is the real verdict. Gap between true-match p10
+and false-seal p90 — positive means separable:
+
+| | boil 2k | boil 8k | boil 24k | prose 2k | prose 4k |
+|---|---:|---:|---:|---:|---:|
+| gap | +0.018 | −0.001 | +0.012 | −0.050 | −0.103 |
+
+**Why it fails, which is the part worth keeping.** The hypothesis assumed false
+seals arise from *crowding* — many near-equal candidates. That is true only in
+templated corpora. In prose a false seal comes from a **genuine near-duplicate**:
+one sentence that really is nearly identical to the probe, with nothing else
+close. So the margin is *wide* precisely when the answer is wrong, and the signal
+inverts. Crowding is an artifact of homogeneous text, not a property of false
+seals.
+
+Not worth shipping as a global rule. Possibly worth it as a per-domain option for
+templated corpora, where it beats raising the threshold — but §1.3's calibration
+work should decide that, not this idea on its own.
+
+Caveat on the recall column here: it inherits the weak perturbation set (§1.3),
+where 81% of probes score exactly 1.0. Their margin is `1.0 − second`, so the
+recall cliff at margin 0.10 is partly an artifact of how close the *rest* of the
+corpus sits to an exact match. The false-seal column does not depend on that.
 
 **The measured false seals argue for it directly.** Every worst-case collision
 in the bench differs from the phrase it was served *only in the identifier*:
