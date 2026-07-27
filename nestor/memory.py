@@ -224,6 +224,11 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             # entry the earlier verification would leave no trace anywhere. A
             # ledger that records every grant of trust and no replacement of one
             # cannot answer "what did this used to say, and who said it".
+            #
+            # Reaching here with a DIFFERENT verifier means the guard above was
+            # explicitly overridden, so `same_verifier: False` in the trail marks
+            # a deliberate overrule rather than an accident. Curator.replaced_seals
+            # surfaces exactly those.
             if replaced_status == "sealed":
                 _log_seal_event({
                     "kind": "seal_replaced", "pair_id": existing["id"],

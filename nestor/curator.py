@@ -135,10 +135,14 @@ class Curator:
         in the ledger. This reads them back.
 
         ``conflicts_only`` (the default) keeps replacements where a *different*
-        verifier overwrote the earlier decision, which is the case worth a
-        human's attention — one person asserting something incompatible with
-        another's recorded verification. Pass ``False`` to include self-
-        corrections, where the same verifier revised their own seal.
+        verifier overwrote the earlier decision. Since ``add_pair`` now raises
+        :class:`~nestor.memory.ConflictingSealError` on exactly that case, an
+        entry here means somebody passed ``override_conflict=True`` — a
+        deliberate decision to overrule another verifier. That is the highest-
+        signal event this surface reports, and the store retains no trace of it.
+
+        Pass ``False`` to include self-corrections, where the same verifier
+        revised their own seal. Those are routine and were never refused.
 
         Targets appear as short digests rather than text: ledger entries are
         mirrored verbatim into shared provenance by :mod:`nestor.frank`, and the

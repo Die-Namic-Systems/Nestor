@@ -1,5 +1,12 @@
 """Overwriting a seal must leave a trace.
 
+Reads alongside ``test_conflicting_seal.py``: that guard REFUSES a
+cross-verifier overwrite, so the replacements recorded here are the ones that
+still happen — a verifier correcting their own earlier seal, or someone
+deliberately passing ``override_conflict=True``. Both destroy a previous
+decision and both need a trace; the override case is the one a curator should
+actually look at.
+
 The memory keeps exactly one row per normalized source, so re-sealing an
 already-sealed source destroys the previous human decision with nothing left in
 the store to show for it. Before this, ``add_pair`` wrote nothing to the ledger
@@ -40,7 +47,8 @@ def test_replacing_a_seal_is_recorded(store, tmp_path):
     memory.add_pair("routing decisions", "pg_bridge shape", "d", "d",
                     status="sealed", verifier="rita", store=store)
     memory.add_pair("routing decisions", "schema.sql shape", "d", "d",
-                    status="sealed", verifier="sam", store=store)
+                    status="sealed", verifier="sam", store=store,
+                    override_conflict=True)
 
     assert "seal_replaced" in _kinds(tmp_path)
     rec = ledger.entries(kind="seal_replaced", path=str(tmp_path / "ledger.jsonl"))[-1]
@@ -55,7 +63,7 @@ def test_the_ledger_chain_survives_a_replacement(store, tmp_path):
     memory.add_pair("alpha", "one", "d", "d", status="sealed", verifier="rita",
                     store=store)
     memory.add_pair("alpha", "two", "d", "d", status="sealed", verifier="sam",
-                    store=store)
+                    store=store, override_conflict=True)
     ok, detail = ledger.verify(str(tmp_path / "ledger.jsonl"))
     assert ok, detail
 
@@ -78,10 +86,23 @@ def test_targets_are_digested_not_copied(store, tmp_path):
     memory.add_pair("gamma", secret, "d", "d", status="sealed", verifier="rita",
                     store=store)
     memory.add_pair("gamma", "replacement", "d", "d", status="sealed",
-                    verifier="sam", store=store)
+                    verifier="sam", store=store, override_conflict=True)
     raw = (tmp_path / "ledger.jsonl").read_text()
     assert secret not in raw
     assert "replacement" not in raw
+
+
+def test_an_unoverridden_conflict_raises_and_records_nothing(store, tmp_path):
+    """The guard runs BEFORE the overwrite, so a refused conflict must leave the
+    seal AND the ledger untouched — no half-applied state."""
+    memory.add_pair("lambda", "one", "d", "d", status="sealed", verifier="rita",
+                    store=store)
+    with pytest.raises(memory.ConflictingSealError):
+        memory.add_pair("lambda", "two", "d", "d", status="sealed",
+                        verifier="sam", store=store)
+    assert "seal_replaced" not in _kinds(tmp_path)
+    still = memory.best_sealed("lambda", "d", "d", store=store)
+    assert still["pair"]["target_text"] == "one", "the refused write must not land"
 
 
 # --- what is NOT a replacement --------------------------------------------
@@ -115,7 +136,7 @@ def test_curator_surfaces_conflicts_and_hides_self_corrections(store):
     memory.add_pair("eta", "one", "d", "d", status="sealed", verifier="rita",
                     store=store)
     memory.add_pair("eta", "two", "d", "d", status="sealed", verifier="sam",
-                    store=store)          # conflict
+                    store=store, override_conflict=True)   # overridden conflict
     memory.add_pair("theta", "one", "d", "d", status="sealed", verifier="rita",
                     store=store)
     memory.add_pair("theta", "two", "d", "d", status="sealed", verifier="rita",
@@ -143,7 +164,7 @@ def test_an_unwritable_ledger_does_not_lose_the_seal(store, tmp_path, monkeypatc
 
     monkeypatch.setattr(memory, "_log_rejection", boom)
     pair = memory.add_pair("iota", "two", "d", "d", status="sealed",
-                           verifier="sam", store=store)
+                           verifier="sam", store=store, override_conflict=True)
     assert pair["target_text"] == "two", "the seal must still have landed"
 
 
@@ -153,7 +174,7 @@ def test_entries_filters_by_kind(store, tmp_path):
     memory.add_pair("kappa", "one", "d", "d", status="sealed", verifier="rita",
                     store=store)
     memory.add_pair("kappa", "two", "d", "d", status="sealed", verifier="sam",
-                    store=store)
+                    store=store, override_conflict=True)
     p = str(tmp_path / "ledger.jsonl")
     assert all(e["kind"] == "seal_replaced"
                for e in ledger.entries(kind="seal_replaced", path=p))
