@@ -116,17 +116,60 @@ class RejectedPairError(RuntimeError):
     """
 
 
+class ConflictingSealError(RuntimeError):
+    """Refusing to overwrite a sealed pair with a different verifier's answer.
+
+    Same structural moment as :class:`RejectedPairError`, one step earlier:
+    before a rejection is ever recorded, a second seal for the same source
+    with a *different* target is itself "one human asserting the opposite of
+    another's recorded decision." Without this guard ``add_pair`` used to
+    call ``store.memory_seal`` right over the old row — same pair id, old
+    target simply gone, nothing raised.
+
+    The signal used to tell a *correction* (proceed) from a *conflict*
+    (raise) is verifier identity: the same non-empty verifier re-sealing its
+    own prior answer is assumed to be a self-correction. Everything else —
+    including an empty verifier on either side — is treated as unknown and
+    therefore conflicting, because an empty ``verifier`` proves nothing about
+    who is asserting it; see :func:`add_pair` for the full reasoning.
+
+    Pass ``override_conflict=True`` to proceed deliberately (mirrors
+    ``override_rejection``).
+    """
+
+
+def _same_verifier(a: str, b: str) -> bool:
+    """Whether two verifier strings may be assumed to name the same actor.
+
+    Deliberately conservative: two *empty* verifiers do NOT count as the same
+    actor. ``verifier`` defaults to ``""`` and is by far the most common value
+    an unauthenticated or scripted caller supplies, so treating "" == "" as
+    "the same person correcting themselves" would silently wave through every
+    anonymous re-seal — exactly the conflict this guard exists to catch. An
+    empty verifier asserts no identity, so it can prove neither sameness nor
+    difference; the safe read is "unknown," which resolves to conflicting.
+    """
+    return bool(a) and bool(b) and a == b
+
+
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
              status: str = "draft", verifier: str = "", weight: float = 1.0,
              origin: str = "", store: Optional[Storage] = None,
              matcher: Optional[Matcher] = None,
-             override_rejection: bool = False) -> dict:
+             override_rejection: bool = False,
+             override_conflict: bool = False) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
     ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
     they are languages; for entity resolution or numeric reconciliation they
     carry the entity-type / label bucket. The ``matcher`` (default
     :class:`StringMatcher`) decides how ``source_text`` is normalized.
+
+    Re-sealing an existing SEALED row with a different ``target_text`` raises
+    :class:`ConflictingSealError` unless ``verifier`` matches the existing
+    row's verifier (a same-actor correction) or ``override_conflict=True`` is
+    passed explicitly. See :class:`ConflictingSealError` for the full
+    rationale, in particular why an empty verifier does not count as a match.
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -148,6 +191,25 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                 f"{existing.get('verifier') or 'a reviewer'!r} and will not be "
                 f"re-sealed implicitly. Restore it first (Curator.restore) or "
                 f"pass override_rejection=True."
+            )
+        # A different verifier asserting a different target for an already-
+        # SEALED source is a conflict, not a routine upgrade — this is the
+        # overwrite the RejectedPairError check above does not catch, because
+        # there was never a rejection recorded, just a second seal silently
+        # clobbering the first. Runs BEFORE the overwrite below, same as the
+        # rejection guard.
+        if (status == "sealed" and existing["status"] == "sealed"
+                and existing["target_text"] != target_text
+                and not override_conflict
+                and not _same_verifier(existing.get("verifier", ""), verifier)):
+            raise ConflictingSealError(
+                f"pair {existing['id']} was sealed by "
+                f"{existing.get('verifier') or 'an unknown verifier'!r} as "
+                f"{existing['target_text']!r}; {verifier or 'an unknown verifier'!r} "
+                f"is now asserting {target_text!r} for the same source. This "
+                f"will not be sealed implicitly. Reject/restore the pair first, "
+                f"reseal as the SAME verifier if this is a self-correction, or "
+                f"pass override_conflict=True."
             )
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
