@@ -116,16 +116,146 @@ CORPORA = {"boilerplate": boilerplate, "prose": prose}
 
 
 # --------------------------------------------------------------------------
-# perturbations — "the same phrase, typed by a human on a different day"
+# perturbations — "the same thing, expressed by a human on a different day"
 # --------------------------------------------------------------------------
+#
+# Split into two TIERS, because they measure completely different things and
+# reporting them together was actively misleading.
+#
+#   SURFACE     — case, punctuation, whitespace, one typo. Measured: 81% of
+#                 these normalize to a byte-identical key, because
+#                 StringMatcher.normalize strips case/punctuation/whitespace
+#                 BEFORE scoring. They score exactly 1.0 and are recalled at
+#                 every threshold, so "recall 100%" over this tier means only
+#                 "near-identical input still matches" — never in doubt.
+#
+#   PARAPHRASE  — meaning-preserving rewrites that SURVIVE normalization:
+#                 synonym substitution, clause reordering, contraction. These
+#                 are what actually stresses a threshold, and what a real
+#                 reviewer produces when they retype from memory rather than
+#                 copy-paste.
+#
+# The paraphrase tier models a human who remembers the GIST and re-expresses it,
+# not an adversary. Every transformation below is meaning-preserving by
+# construction: a reviewer would seal the same target for the output as for the
+# input. That is precisely the property recall is supposed to measure.
 
-def perturb(text: str, rng: random.Random) -> str:
-    """A realistic re-typing of ``text``: case, punctuation, spacing, one typo.
+SURFACE_KINDS = ("case", "punct", "space", "typo", "trail")
+PARAPHRASE_KINDS = ("synonym", "reorder", "contract")
 
-    A matcher SHOULD still serve the sealed pair for these — they are the same
-    segment. Used to measure recall against the false-seal rate.
+# Interchangeable within the boilerplate vocabulary — the generator owns this
+# word pool, so substitution is exactly meaning-preserving.
+_SYN_BOILER = {
+    "contract": "agreement", "clause": "provision", "invoice": "bill",
+    "vendor": "supplier", "payment": "remittance", "schedule": "timetable",
+    "warranty": "guarantee", "licence": "permit", "deposit": "advance",
+    "penalty": "fine", "audit": "review", "report": "statement",
+    "term": "condition", "renewal": "extension", "notice": "notification",
+    "breach": "violation", "remedy": "cure", "annex": "appendix",
+    "terminates": "ends", "governs": "controls", "amends": "modifies",
+    "supersedes": "replaces", "precedes": "predates", "limits": "restricts",
+    "waives": "forgoes", "assigns": "transfers", "triggers": "activates",
+    "suspends": "pauses", "material": "significant", "initial": "first",
+    "annual": "yearly", "mutual": "reciprocal", "written": "documented",
+    "prior": "previous", "joint": "shared", "final": "last",
+    "partial": "incomplete", "exclusive": "sole",
+}
+
+# Conservative substitutions for general technical English. Deliberately small:
+# a wrong entry here turns a recall probe into a false-seal probe and silently
+# corrupts the measurement.
+_SYN_PROSE = {
+    "returns": "gives back", "return": "give back", "cannot": "can not",
+    "must": "has to", "each": "every", "optional": "not required",
+    "specified": "given", "specify": "give", "contains": "holds",
+    "creates": "makes", "removes": "deletes", "allows": "permits",
+    "raises": "throws", "occurs": "happens", "begins": "starts",
+    "additional": "extra", "identical": "the same", "entire": "whole",
+    "attempt": "try", "obtain": "get", "require": "need", "requires": "needs",
+}
+
+_CONTRACTIONS = {
+    "do not": "don't", "does not": "doesn't", "is not": "isn't",
+    "are not": "aren't", "will not": "won't", "cannot": "can't",
+    "it is": "it's", "that is": "that's", "has not": "hasn't",
+}
+
+
+def _substitute(text: str, table: dict, rng: random.Random) -> str:
+    """Replace one word from ``table``. Returns ``text`` unchanged if none apply."""
+    hits = [w for w in table if re.search(rf"\b{re.escape(w)}\b", text)]
+    if not hits:
+        return text
+    w = rng.choice(sorted(hits))
+    return re.sub(rf"\b{re.escape(w)}\b", table[w], text, count=1)
+
+
+def _reorder(text: str, rng: random.Random) -> str:
+    """Move a trailing clause to the front — meaning-preserving in English.
+
+    ``the annual audit governs any notice under section 12``
+    -> ``under section 12, the annual audit governs any notice``
     """
-    kind = rng.choice(("case", "punct", "space", "typo", "trail"))
+    for marker in (" under ", " when ", " if ", " unless ", " because ", " while "):
+        i = text.find(marker)
+        if i > 0:
+            head, tail = text[:i], text[i + 1:]
+            return f"{tail.rstrip('.')}, {head}"
+    if ", " in text:                       # swap around the first comma
+        a, b = text.split(", ", 1)
+        return f"{b.rstrip('.')}, {a}"
+    return text
+
+
+_STOPWORDS = ("the", "a", "an", "of", "to", "that", "any", "this", "its", "then")
+
+
+def _telegraphic(text: str, rng: random.Random) -> str:
+    """Drop a function word — how people retype from memory rather than copy.
+
+    ``Bind the socket to a local address`` -> ``Bind socket to a local address``
+
+    The guaranteed fallback: applicable to essentially any English sentence, and
+    meaning-preserving. Without it the paraphrase tier silently degraded into the
+    identity function on 55% of prose, which would have measured nothing while
+    looking like it measured something.
+    """
+    words = text.split()
+    droppable = [i for i, w in enumerate(words)
+                 if w.strip(".,;:()").lower() in _STOPWORDS]
+    if not droppable:
+        return text
+    i = rng.choice(droppable)
+    return " ".join(words[:i] + words[i + 1:])
+
+
+def perturb(text: str, rng: random.Random, tier: str = "surface") -> str:
+    """Re-express ``text``. ``tier`` is ``"surface"`` or ``"paraphrase"``.
+
+    A matcher SHOULD still serve the sealed pair for either — they denote the
+    same thing. See the tier discussion above for why they are reported apart.
+
+    In the paraphrase tier the strategies are tried in a shuffled order and the
+    first one that actually CHANGES the text wins. An unchanged "paraphrase" is
+    an identity probe wearing a costume: it inflates recall while measuring
+    nothing, which is exactly the flaw that made the surface tier unusable.
+    """
+    if tier == "paraphrase":
+        strategies = [
+            lambda t: _substitute(t, _SYN_BOILER, rng),
+            lambda t: _substitute(t, _SYN_PROSE, rng),
+            lambda t: _substitute(t, _CONTRACTIONS, rng),
+            lambda t: _reorder(t, rng),
+        ]
+        rng.shuffle(strategies)
+        strategies.append(lambda t: _telegraphic(t, rng))   # guaranteed fallback
+        for fn in strategies:
+            out = fn(text)
+            if out != text:
+                return out
+        return text
+
+    kind = rng.choice(SURFACE_KINDS)
     if kind == "case":
         return text.upper() if rng.random() < 0.5 else text.capitalize()
     if kind == "punct":

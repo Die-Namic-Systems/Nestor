@@ -2,14 +2,14 @@
   "bench": "accuracy",
   "runs": [
     {
-      "run_id": "20260726T054408Z",
-      "recorded_at": "2026-07-26T05:49:11Z",
+      "run_id": "20260727T040653Z",
+      "recorded_at": "2026-07-27T04:13:16Z",
       "complete": true,
       "environment": {
         "python": "3.11.15",
         "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
         "processor": "x86_64",
-        "git_rev": "0dcb8fb"
+        "git_rev": "5b3c8ea"
       },
       "params": {
         "sizes": [
@@ -41,7 +41,7 @@
         "floor": 0.8,
         "plan_rows": 6
       },
-      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. misrouted = served but pointing at the wrong pair.",
+      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. recall_surface uses perturbations mostly erased by normalization; recall_paraphrase uses meaning-preserving rewrites that survive it and is the column that means something. misrouted = served but pointing at the wrong pair.",
       "measurements": [
         {
           "corpus": "boilerplate",
@@ -54,6 +54,8 @@
               "false_seal_rate": 0.896,
               "false_seals": 224,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -62,6 +64,8 @@
               "false_seal_rate": 0.328,
               "false_seals": 82,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -70,6 +74,8 @@
               "false_seal_rate": 0.028,
               "false_seals": 7,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.36,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -78,6 +84,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.248,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -86,6 +94,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -94,6 +104,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -102,6 +114,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -110,6 +124,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.792,
+              "recall_surface": 0.792,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -160,6 +176,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.969,
+            "max": 0.971
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -182,6 +205,8 @@
               "false_seal_rate": 0.996,
               "false_seals": 249,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -190,6 +215,8 @@
               "false_seal_rate": 0.724,
               "false_seals": 181,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -198,6 +225,8 @@
               "false_seal_rate": 0.108,
               "false_seals": 27,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.38,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -206,6 +235,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.252,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -214,6 +245,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.072,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -222,6 +255,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -230,6 +265,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -238,6 +275,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.836,
+              "recall_surface": 0.836,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -288,6 +327,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.964,
+            "max": 0.97
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -310,6 +356,8 @@
               "false_seal_rate": 1.0,
               "false_seals": 250,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -318,6 +366,8 @@
               "false_seal_rate": 0.976,
               "false_seals": 244,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -326,6 +376,8 @@
               "false_seal_rate": 0.364,
               "false_seals": 91,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.424,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -334,6 +386,8 @@
               "false_seal_rate": 0.08,
               "false_seals": 20,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.304,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -342,6 +396,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -350,6 +406,8 @@
               "false_seal_rate": 0.012,
               "false_seals": 3,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.016,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -358,6 +416,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -366,6 +426,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -416,6 +478,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.961,
+            "max": 0.968
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -438,6 +507,8 @@
               "false_seal_rate": 0.048,
               "false_seals": 12,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.704,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -446,6 +517,8 @@
               "false_seal_rate": 0.04,
               "false_seals": 10,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.66,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -454,6 +527,8 @@
               "false_seal_rate": 0.024,
               "false_seals": 6,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -462,6 +537,8 @@
               "false_seal_rate": 0.02,
               "false_seals": 5,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.584,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -470,6 +547,8 @@
               "false_seal_rate": 0.008,
               "false_seals": 2,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.524,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -478,6 +557,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -486,6 +567,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.98,
+              "recall_surface": 0.98,
+              "recall_paraphrase": 0.228,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -494,6 +577,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.076,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -544,6 +629,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.952,
+            "p90": 0.989,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -566,6 +658,8 @@
               "false_seal_rate": 0.108,
               "false_seals": 27,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.74,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -574,6 +668,8 @@
               "false_seal_rate": 0.088,
               "false_seals": 22,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.708,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -582,6 +678,8 @@
               "false_seal_rate": 0.056,
               "false_seals": 14,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.62,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -590,6 +688,8 @@
               "false_seal_rate": 0.048,
               "false_seals": 12,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.6,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -598,6 +698,8 @@
               "false_seal_rate": 0.04,
               "false_seals": 10,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.556,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -606,6 +708,8 @@
               "false_seal_rate": 0.012,
               "false_seals": 3,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.452,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -614,6 +718,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 0.956,
+              "recall_surface": 0.956,
+              "recall_paraphrase": 0.212,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -622,6 +728,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.06,
               "misrouted": 1,
               "misroute_rate": 0.004
             }
@@ -672,6 +780,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.953,
+            "p90": 0.987,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -694,6 +809,8 @@
               "false_seal_rate": 0.156,
               "false_seals": 39,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.712,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -702,6 +819,8 @@
               "false_seal_rate": 0.14,
               "false_seals": 35,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.672,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -710,6 +829,8 @@
               "false_seal_rate": 0.1,
               "false_seals": 25,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.624,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -718,6 +839,8 @@
               "false_seal_rate": 0.068,
               "false_seals": 17,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -726,6 +849,8 @@
               "false_seal_rate": 0.036,
               "false_seals": 9,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.56,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -734,6 +859,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.436,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -742,6 +869,8 @@
               "false_seal_rate": 0.008,
               "false_seals": 2,
               "recall": 0.972,
+              "recall_surface": 0.972,
+              "recall_paraphrase": 0.156,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -750,6 +879,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.036,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -800,6 +931,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.954,
+            "p90": 0.983,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -814,14 +952,14 @@
       ]
     },
     {
-      "run_id": "20260726T054918Z",
-      "recorded_at": "2026-07-26T05:56:48Z",
+      "run_id": "20260727T041321Z",
+      "recorded_at": "2026-07-27T04:22:52Z",
       "complete": true,
       "environment": {
         "python": "3.11.15",
         "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
         "processor": "x86_64",
-        "git_rev": "0dcb8fb"
+        "git_rev": "5b3c8ea"
       },
       "params": {
         "sizes": [
@@ -854,7 +992,7 @@
         "floor": 0.8,
         "plan_rows": 7
       },
-      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. misrouted = served but pointing at the wrong pair.",
+      "notes": "false_seal_rate = share of held-out (absent) probes served as a verified tier-1 hit. recall = share of retyped sealed probes served, routed to the correct pair. recall_surface uses perturbations mostly erased by normalization; recall_paraphrase uses meaning-preserving rewrites that survive it and is the column that means something. misrouted = served but pointing at the wrong pair.",
       "measurements": [
         {
           "corpus": "boilerplate",
@@ -867,6 +1005,8 @@
               "false_seal_rate": 0.896,
               "false_seals": 224,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -875,6 +1015,8 @@
               "false_seal_rate": 0.328,
               "false_seals": 82,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -883,6 +1025,8 @@
               "false_seal_rate": 0.028,
               "false_seals": 7,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.36,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -891,6 +1035,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.248,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -899,6 +1045,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -907,6 +1055,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -915,6 +1065,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -923,6 +1075,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.792,
+              "recall_surface": 0.792,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -973,6 +1127,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.969,
+            "max": 0.971
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -995,6 +1156,8 @@
               "false_seal_rate": 0.996,
               "false_seals": 249,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1003,6 +1166,8 @@
               "false_seal_rate": 0.724,
               "false_seals": 181,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1011,6 +1176,8 @@
               "false_seal_rate": 0.108,
               "false_seals": 27,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.38,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1019,6 +1186,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.252,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1027,6 +1196,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.072,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1035,6 +1206,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.028,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1043,6 +1216,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1051,6 +1226,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.836,
+              "recall_surface": 0.836,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -1101,6 +1278,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.964,
+            "max": 0.97
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -1123,6 +1307,8 @@
               "false_seal_rate": 1.0,
               "false_seals": 250,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1131,6 +1317,8 @@
               "false_seal_rate": 0.976,
               "false_seals": 244,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.464,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1139,6 +1327,8 @@
               "false_seal_rate": 0.364,
               "false_seals": 91,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.424,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1147,6 +1337,8 @@
               "false_seal_rate": 0.08,
               "false_seals": 20,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.304,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1155,6 +1347,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.092,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1163,6 +1357,8 @@
               "false_seal_rate": 0.012,
               "false_seals": 3,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.016,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1171,6 +1367,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1179,6 +1377,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -1229,6 +1429,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.939,
+            "p99": 0.961,
+            "max": 0.968
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -1251,6 +1458,8 @@
               "false_seal_rate": 1.0,
               "false_seals": 250,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1259,6 +1468,8 @@
               "false_seal_rate": 1.0,
               "false_seals": 250,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.416,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1267,6 +1478,8 @@
               "false_seal_rate": 0.564,
               "false_seals": 141,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.384,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1275,6 +1488,8 @@
               "false_seal_rate": 0.164,
               "false_seals": 41,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.236,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1283,6 +1498,8 @@
               "false_seal_rate": 0.048,
               "false_seals": 12,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.068,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1291,6 +1508,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.024,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1299,6 +1518,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1307,6 +1528,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.812,
+              "recall_surface": 0.812,
+              "recall_paraphrase": 0.0,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -1357,6 +1580,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.937,
+            "p99": 0.961,
+            "max": 0.964
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -1379,6 +1609,8 @@
               "false_seal_rate": 0.048,
               "false_seals": 12,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.704,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1387,6 +1619,8 @@
               "false_seal_rate": 0.04,
               "false_seals": 10,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.66,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1395,6 +1629,8 @@
               "false_seal_rate": 0.024,
               "false_seals": 6,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1403,6 +1639,8 @@
               "false_seal_rate": 0.02,
               "false_seals": 5,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.584,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1411,6 +1649,8 @@
               "false_seal_rate": 0.008,
               "false_seals": 2,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.524,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1419,6 +1659,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.448,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1427,6 +1669,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.98,
+              "recall_surface": 0.98,
+              "recall_paraphrase": 0.228,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1435,6 +1679,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.076,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -1485,6 +1731,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.952,
+            "p90": 0.989,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -1507,6 +1760,8 @@
               "false_seal_rate": 0.108,
               "false_seals": 27,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.74,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1515,6 +1770,8 @@
               "false_seal_rate": 0.088,
               "false_seals": 22,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.708,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1523,6 +1780,8 @@
               "false_seal_rate": 0.056,
               "false_seals": 14,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.62,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1531,6 +1790,8 @@
               "false_seal_rate": 0.048,
               "false_seals": 12,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.6,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1539,6 +1800,8 @@
               "false_seal_rate": 0.04,
               "false_seals": 10,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.556,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1547,6 +1810,8 @@
               "false_seal_rate": 0.012,
               "false_seals": 3,
               "recall": 0.996,
+              "recall_surface": 0.996,
+              "recall_paraphrase": 0.452,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1555,6 +1820,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 0.956,
+              "recall_surface": 0.956,
+              "recall_paraphrase": 0.212,
               "misrouted": 1,
               "misroute_rate": 0.004
             },
@@ -1563,6 +1830,8 @@
               "false_seal_rate": 0.0,
               "false_seals": 0,
               "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.06,
               "misrouted": 1,
               "misroute_rate": 0.004
             }
@@ -1613,6 +1882,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.953,
+            "p90": 0.987,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15
@@ -1635,6 +1911,8 @@
               "false_seal_rate": 0.156,
               "false_seals": 39,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.712,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1643,6 +1921,8 @@
               "false_seal_rate": 0.14,
               "false_seals": 35,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.672,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1651,6 +1931,8 @@
               "false_seal_rate": 0.1,
               "false_seals": 25,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.624,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1659,6 +1941,8 @@
               "false_seal_rate": 0.068,
               "false_seals": 17,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.6,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1667,6 +1951,8 @@
               "false_seal_rate": 0.036,
               "false_seals": 9,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.56,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1675,6 +1961,8 @@
               "false_seal_rate": 0.016,
               "false_seals": 4,
               "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.436,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1683,6 +1971,8 @@
               "false_seal_rate": 0.008,
               "false_seals": 2,
               "recall": 0.972,
+              "recall_surface": 0.972,
+              "recall_paraphrase": 0.156,
               "misrouted": 0,
               "misroute_rate": 0.0
             },
@@ -1691,6 +1981,8 @@
               "false_seal_rate": 0.004,
               "false_seals": 1,
               "recall": 0.832,
+              "recall_surface": 0.832,
+              "recall_paraphrase": 0.036,
               "misrouted": 0,
               "misroute_rate": 0.0
             }
@@ -1741,6 +2033,13 @@
             "p99": 1.0,
             "max": 1.0
           },
+          "paraphrase_score_percentiles": {
+            "p50": 0.954,
+            "p90": 0.983,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "n_paraphrase_probes": 250,
           "fidelity_check": {
             "checked": 15,
             "agreed_with_best_sealed": 15

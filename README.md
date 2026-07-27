@@ -421,17 +421,27 @@ A tier-1 hit is served verbatim and marked verified, with **no review queue**. S
 the failure that matters is the inverse of the usual one: not a missed match, but
 a phrase that was never verified being served as though it were.
 
-Both are governed by `SEAL_THRESHOLD` (default `0.92`), and they trade against
-each other:
+Both are governed by `SEAL_THRESHOLD` (default `0.92`), and **no value of it is
+good at both jobs.** Measured, 250 probes per cell:
 
-- **Raise it** — fewer false seals, more true matches falling to tier 2. A miss
-  is cheap: it gets reviewed.
-- **Lower it** — more matches served, more of them wrong. A false seal is
-  expensive: nothing flags it, and the ledger faithfully records it as verified.
+| threshold | false seals (24k boilerplate) | recall on real rewrites |
+|-----------|------------------------------:|------------------------:|
+| 0.92 (default) | 16.4% | 23.6% |
+| 0.96 | 0.4% | 2.4% |
 
-The right cutoff depends on your corpus. Homogeneous text — contract boilerplate,
-templated notices — crowds the score distribution and produces false seals at
-thresholds that are safe on diverse prose.
+Raise it and unverified answers stop being served, but so do genuine ones —
+a phrase retyped with one synonym swapped stops matching. Lower it and the
+reverse. That is a limit of character-similarity matching, not a tuning problem,
+and it is why the threshold is exposed rather than tuned for you.
+
+Recall above is measured against **meaning-preserving rewrites** — synonym
+substitution, clause reordering, dropped function words. Measured against
+surface variation only (case, punctuation, whitespace, a typo) recall reads 100%
+in every row of that table, because Nestor's normalization erases those before
+scoring. Ask which one a benchmark is reporting.
+
+The right cutoff also depends on your corpus. Homogeneous text — contract
+boilerplate, templated notices — degrades far faster than diverse prose.
 
 **So measure it rather than trusting the default.** `bench/` sweeps the threshold
 against corpora at both ends of the diversity spectrum and reports false-seal

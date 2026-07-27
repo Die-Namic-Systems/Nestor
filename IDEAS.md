@@ -66,24 +66,30 @@ Not worth shipping as a global rule. Possibly worth it as a per-domain option fo
 templated corpora, where it beats raising the threshold — but §1.3's calibration
 work should decide that, not this idea on its own.
 
-Caveat on the recall column here: it inherits the weak perturbation set (§1.3),
-where 81% of probes score exactly 1.0. Their margin is `1.0 − second`, so the
-recall cliff at margin 0.10 is partly an artifact of how close the *rest* of the
-corpus sits to an exact match. The false-seal column does not depend on that.
+Caveat on the recall column here: `bench_margin.py` still uses the **surface**
+perturbations, where most probes score exactly 1.0, so its margin is
+`1.0 − second` and the recall cliff at 0.10 is partly an artifact of how close
+the rest of the corpus sits to an exact match. Re-running it against the
+paraphrase tier would only make the verdict more negative — paraphrase probes
+score lower, so their margins are narrower — so it was not worth re-running to
+overturn a conclusion that is already "no". The false-seal column never depended
+on the perturbation set.
 
-**The measured false seals argue for it directly.** Every worst-case collision
-in the bench differs from the phrase it was served *only in the identifier*:
+**What the failures actually look like, and why no scalar rule catches them.**
+Every worst-case collision differs from the phrase it was served *only in the
+identifier*:
 
 ```
 asked : the joint term triggers any joint breach under section 5386
 served: the joint term triggers any joint breach under section 756    sim=0.974
 ```
 
-A character-ratio matcher is blind to *which* characters carry the meaning, and
-no choice of threshold fixes that — 0.974 is above any cutoff that preserves
-recall. Either the margin check catches it (the runner-up will be similarly
-close, so the gap collapses) or the matcher has to weight identifier-like tokens.
-This is the strongest evidence so far that threshold tuning alone is a dead end.
+A character-ratio matcher is blind to *which* characters carry the meaning. 0.974
+clears any cutoff that preserves recall, and the margin measurements above show
+the runner-up gap does not reliably collapse either. So neither threshold nor
+margin — the two knobs available on top of a scalar similarity — can separate
+these. The fix has to change what is being *compared*: weight identifier-like
+tokens, or go semantic (§3.1/§3.3).
 
 ### 1.2 Negative seals — **shipped**
 
@@ -133,9 +139,9 @@ itself is junk. Both are now recorded and unread.
 
 ### 1.3 The threshold should be calibrated, not constant — **measured**
 
-`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and it
-is demonstrably set too low on **both** corpora. Complete sweep, 250 probes per
-cell, false-seal rate (`bench/results/accuracy.json`, run `20260726T054918Z`):
+`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and no
+single value works. Complete sweep, 250 probes per cell, false-seal rate
+(`bench/results/accuracy.json`):
 
 | threshold | boil 500 | boil 2k | boil 8k | boil 24k | prose 500 | prose 2k | prose 4k |
 |-----------|---------:|--------:|--------:|---------:|----------:|---------:|---------:|
@@ -145,9 +151,37 @@ cell, false-seal rate (`bench/results/accuracy.json`, run `20260726T054918Z`):
 | 0.96 | 0.0% | 0.0% | 1.2% | 0.4% | 0.0% | 1.2% | 1.6% |
 | 0.98 | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | 0.4% | 0.8% |
 
-Measured recall stays ~100% until 1.00 throughout, so 0.92 is nowhere near the
-precision/recall knee: moving to 0.96 takes the 24k boilerplate case from 16.4%
-to 0.4%.
+**The "free six points" claim this section used to make is dead.** It rested on a
+recall column measured with perturbations that normalization erased. With a real
+paraphrase tier (`bench_accuracy` now reports `recall_surface` and
+`recall_paraphrase` separately), raising the threshold is expensive:
+
+| threshold | boil 24k false-seal | boil 24k paraphrase recall | prose 4k false-seal | prose 4k paraphrase recall |
+|-----------|--------------------:|---------------------------:|--------------------:|---------------------------:|
+| 0.90 | 56.4% | 38.4% | 10.0% | 62.4% |
+| **0.92** | 16.4% | **23.6%** | 6.8% | **60.0%** |
+| 0.94 | 4.8% | 6.8% | 3.6% | 56.0% |
+| 0.96 | 0.4% | 2.4% | 1.6% | 43.6% |
+| 0.98 | 0.0% | 0.0% | 0.8% | 15.6% |
+
+Surface recall reads 100% in every one of those cells. That gap *is* the finding:
+the old column measured whether near-identical input still matches, which was
+never in question.
+
+**There is no threshold that is simultaneously safe and useful.** At 0.96 the
+24k boilerplate case is clean (0.4% false seals) and effectively dead (2.4%
+paraphrase recall). At 0.92 it serves more real rewrites and gets one in six
+answers wrong. Every cutoff is bad at one of the two jobs, on both corpora.
+
+That is a limit of character-ratio matching, not of threshold choice, and it is
+now the strongest argument on this list for §3.1/§3.3 — widening the seam so a
+semantic matcher can be used at all. Tuning `SEAL_THRESHOLD` cannot fix it.
+
+Note the two corpora are not equally stressed: a synonym swap in an 11-word
+boilerplate phrase changes ~9% of its tokens, while dropping one stopword from a
+long prose sentence changes far less (paraphrase score p50 is 0.0 — i.e. below
+the 0.80 floor — for boilerplate, versus 0.95 for prose). The direction holds on
+both; the magnitudes are not comparable across corpora.
 
 **Two separate scaling stories, and the prose one is worse than it looks.**
 Boilerplate degrades faster with size (0.4% → 16.4%) but is a synthetic worst
@@ -156,14 +190,11 @@ score distribution whose p50 is ~0.48 — i.e. the *average* probe is nowhere ne
 danger and the tail still clears 0.98. A diverse corpus feels safe and is not,
 because real corpora contain genuine near-duplicates.
 
-**Do not act on that yet.** The recall column is weak: 81% of the bench's
-perturbations normalize to a byte-identical key (case, punctuation and
-whitespace are erased before scoring), so they score 1.0 and are recalled at any
-threshold. Only a single-character typo survives normalization, and that still
-scores ≈0.986. The bench therefore cannot say what a higher threshold costs for
-genuinely varied phrasing — a synonym, a reordered clause. **Fixing the
-perturbation set to include real paraphrase is a prerequisite for changing the
-default**, and is the single most valuable next bench change.
+The paraphrase tier that settles this was added in `corpora.py`: meaning-
+preserving rewrites (synonym substitution from a curated table, clause
+reordering, contraction, and a guaranteed stopword-drop fallback) that survive
+normalization. 0% of boilerplate and 5% of prose paraphrases normalize to an
+identical key, against 80% for the surface tier.
 
 Longer term this still wants to be per-domain, or a calibration mode that
 samples a corpus, measures its absent-score distribution, and recommends a

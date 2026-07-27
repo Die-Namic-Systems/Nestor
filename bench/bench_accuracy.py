@@ -132,7 +132,14 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
 
     rng = random.Random(seed + 2)
     idx = rng.sample(range(len(sealed)), min(n_probes, len(sealed)))
-    retyped = [(corpora.perturb(sealed[i], rng), f"BENCH:{i}") for i in idx]
+    # Two recall tiers, reported apart. The surface tier is mostly erased by
+    # normalization (81% score exactly 1.0), so on its own it reports ~100%
+    # recall at every threshold and tells you nothing. The paraphrase tier
+    # survives normalization and is what actually stresses a cutoff.
+    retyped = [(corpora.perturb(sealed[i], rng, tier="surface"), f"BENCH:{i}")
+               for i in idx]
+    paraphrased = [(corpora.perturb(sealed[i], rng, tier="paraphrase"), f"BENCH:{i}")
+                   for i in idx]
 
     fast = isinstance(matcher, StringMatcher)
     scan = ((lambda n, rw, mt: best_match_fast(n, rw, mt, floor)) if fast
@@ -156,6 +163,12 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
     absent_scores = [scan(matcher.normalize(p), rows, matcher) for p in absent]
     retyped_scores = [(scan(matcher.normalize(p), rows, matcher), want)
                       for p, want in retyped]
+    # The floor is safe here too: the sweep only ever asks "is the score >= t"
+    # for t >= min(THRESHOLDS) == the floor, and a probe below the floor returns
+    # 0.0, which fails that test correctly. Only the reported percentiles are
+    # censored below the floor — noted in the results, and irrelevant to recall.
+    para_scores = [(scan(matcher.normalize(p), rows, matcher), want)
+                   for p, want in paraphrased]
 
     # Prove the argmax shortcut matches the real serve path at the shipped default.
     verified = None
@@ -174,11 +187,15 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
         served = [(got, want) for (sim, got, _), want in retyped_scores if sim >= t]
         correct = sum(1 for got, want in served if got == want)
         misrouted = len(served) - correct
+        pserved = [(got, want) for (sim, got, _), want in para_scores if sim >= t]
+        pcorrect = sum(1 for got, want in pserved if got == want)
         sweep.append({
             "threshold": t,
             "false_seal_rate": round(false_seals / max(1, len(absent_scores)), 4),
             "false_seals": false_seals,
             "recall": round(correct / max(1, len(retyped_scores)), 4),
+            "recall_surface": round(correct / max(1, len(retyped_scores)), 4),
+            "recall_paraphrase": round(pcorrect / max(1, len(para_scores)), 4),
             "misrouted": misrouted,
             "misroute_rate": round(misrouted / max(1, len(retyped_scores)), 4),
         })
@@ -202,6 +219,8 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
         "scores_censored_below_floor": sum(1 for s, _, _ in absent_scores if s == 0.0),
         "absent_score_percentiles": _pcts([s for s, _, _ in absent_scores]),
         "retyped_score_percentiles": _pcts([s for (s, _, _), _ in retyped_scores]),
+        "paraphrase_score_percentiles": _pcts([s for (s, _, _), _ in para_scores]),
+        "n_paraphrase_probes": len(para_scores),
         "fidelity_check": verified,
         "fast_path_equivalence": equiv,
     }
@@ -248,8 +267,11 @@ def main() -> None:
                   "floor": args.floor}
         notes = ("false_seal_rate = share of held-out (absent) probes served as a "
                  "verified tier-1 hit. recall = share of retyped sealed probes "
-                 "served, routed to the correct pair. misrouted = served but "
-                 "pointing at the wrong pair.")
+                 "served, routed to the correct pair. recall_surface uses "
+                 "perturbations mostly erased by normalization; "
+                 "recall_paraphrase uses meaning-preserving rewrites that "
+                 "survive it and is the column that means something. misrouted "
+                 "= served but pointing at the wrong pair.")
 
         # Resume: carry forward rows already measured with the SAME parameters.
         # A long bench cannot rely on outliving the session that started it, so
@@ -284,7 +306,8 @@ def main() -> None:
             results.append(r)
             at92 = next(x for x in r["sweep"] if x["threshold"] == 0.92)
             print(f" false-seal {at92['false_seal_rate']:.1%}  "
-                  f"recall {at92['recall']:.1%}  (@0.92)", flush=True)
+                  f"recall surface {at92['recall_surface']:.1%} / "
+                  f"paraphrase {at92['recall_paraphrase']:.1%}  (@0.92)", flush=True)
             # Checkpoint after every row. A long bench that dies partway — the
             # first attempt at this one was killed by its own timeout — must
             # leave its completed rows on disk rather than take them with it.

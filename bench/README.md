@@ -94,22 +94,31 @@ and records whether the two agree; `fidelity_check` in the results carries that
 count. A run whose `agreed_with_best_sealed` is below `checked` is measuring
 something other than what Nestor serves.
 
-**The recall column is weaker than it looks — read this before quoting it.**
-`corpora.perturb` re-types a sealed phrase five ways: case, punctuation,
-whitespace, a trailing pad, and a single-character typo. Measured against the
-boilerplate corpus, **81% of those perturbations normalize to a byte-identical
-key**, because `StringMatcher.normalize` erases case, punctuation and whitespace
-*before* scoring. They score exactly 1.0 and are recalled at every threshold. The
-typo is the only kind that survives normalization, and one changed character in a
-70-character phrase still scores ≈0.986.
+**Recall is reported in two tiers. Quote the paraphrase one.**
+`corpora.perturb(..., tier=)` produces either:
 
-So a reported "recall 100% at 0.98" means *near-identical inputs are still
-matched* — which was never in doubt. It does **not** show what raising the
-threshold costs for genuinely varied phrasing: a synonym, a reordered clause, a
-different construction. That is exactly where recall would fall, and it is
-currently untested. Any "raising the threshold is free" conclusion drawn from
-this bench is directional only until the perturbation set includes real
-paraphrase.
+- **`surface`** — case, punctuation, whitespace, a trailing pad, one typo.
+  **80% of these normalize to a byte-identical key**, because
+  `StringMatcher.normalize` strips case/punctuation/whitespace *before* scoring.
+  They score exactly 1.0 and are recalled at every threshold. A "100% recall"
+  over this tier means only *near-identical input still matches* — never in
+  doubt, and for a long time this bench reported nothing else.
+- **`paraphrase`** — meaning-preserving rewrites that survive normalization:
+  synonym substitution from a curated table, clause reordering, contraction, and
+  a stopword-drop fallback. 0% of boilerplate and 5% of prose paraphrases
+  normalize identically.
+
+The gap between them is large and is the point: at the shipped 0.92, boilerplate
+24k reports 100% surface recall and **23.6%** paraphrase recall.
+
+Two properties the paraphrase tier must keep if you extend it. Every
+transformation has to be genuinely meaning-preserving — a rewrite that changes
+meaning is a false-seal probe wearing a recall probe's clothes, and it corrupts
+both columns at once, which is why `_SYN_PROSE` is deliberately small. And a
+"paraphrase" that returns the input unchanged is an identity probe that inflates
+recall while measuring nothing, so strategies are tried in shuffled order until
+one actually changes the text, with `_telegraphic` as a guaranteed fallback.
+Before that fallback existed, 55% of prose paraphrases were silently identity.
 
 **Examples travel with rates.** Each result keeps the five worst false seals
 *with the sealed phrase they collided with*. A probe that near-duplicates
