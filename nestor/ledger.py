@@ -49,3 +49,37 @@ def verify(path: Optional[str] = None) -> Tuple[bool, str]:
         prev = hashlib.sha256(line.encode("utf-8")).hexdigest()
         count += 1
     return True, f"intact — {count} entries"
+
+
+def entries(kind: Optional[str] = None, path: Optional[str] = None,
+            limit: int = 500) -> list[dict]:
+    """Ledger entries, newest last, optionally filtered by ``kind``.
+
+    The chain is the only record of things the store cannot hold. The memory
+    keeps one row per normalized source, so when a seal is replaced the previous
+    target and verifier survive *only* here — reading them back needs an
+    accessor, or the audit trail is write-only in practice.
+
+    Deliberately does NOT verify the chain: a caller investigating a broken
+    ledger still needs to see what is in it. Call :func:`verify` for that, and
+    treat the two answers together.
+    """
+    if path is None:
+        from .cascade import _ledger_path  # lazy: avoid an import cycle
+        p = _ledger_path()
+    else:
+        p = Path(path)
+    if not p.exists():
+        return []
+    out: list[dict] = []
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:                      # noqa: BLE001 — skip, verify() reports it
+            continue
+        if kind is None or rec.get("kind") == kind:
+            out.append(rec)
+    return out[-limit:]

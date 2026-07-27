@@ -24,3 +24,6 @@ dist/
 *.egg
 build/
 dist/
+
+# Agent worktrees are transient scratch, never repo content.
+.claude/worktrees/

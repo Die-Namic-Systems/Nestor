@@ -20,6 +20,7 @@ The default loader returns ``[]`` (nothing to seed).
 """
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Callable, Optional
@@ -151,8 +152,26 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
         ):
+            replaced_target = existing["target_text"]
+            replaced_status = existing["status"]
+            replaced_verifier = existing.get("verifier", "")
             store.memory_seal(existing["id"], target_text, verifier, weight, seal_sig)
             existing = store.memory_find(norm, source_lang, target_lang)
+            # Overwriting a seal destroys a previous human decision, and the
+            # memory keeps only one row per normalized source — so without this
+            # entry the earlier verification would leave no trace anywhere. A
+            # ledger that records every grant of trust and no replacement of one
+            # cannot answer "what did this used to say, and who said it".
+            if replaced_status == "sealed":
+                _log_seal_event({
+                    "kind": "seal_replaced", "pair_id": existing["id"],
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "replaced_verifier": replaced_verifier, "verifier": verifier,
+                    "replaced_target_sha": _sha(replaced_target),
+                    "target_sha": _sha(target_text),
+                    "source_sha": _sha(norm),
+                    "same_verifier": replaced_verifier == verifier,
+                })
         return existing
     pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
@@ -282,6 +301,34 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         if m["similarity"] >= seal and is_verified_seal(m["pair"]):
             return m
     return None
+
+
+def _sha(text: str) -> str:
+    """Short digest of a value for the ledger.
+
+    Targets and source text can be long and can carry content a host would
+    rather not mirror into shared provenance (``nestor.frank`` forwards ledger
+    entries verbatim). A digest still proves *which* text was replaced to anyone
+    holding the original, without putting it in the trail.
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def _log_seal_event(entry: dict) -> None:
+    """Append a seal-lifecycle entry to the hash-chained ledger.
+
+    Best-effort by design. ``add_pair`` is called from bulk seeding paths
+    (``seed_from_corpus``, host importers) where a ledger that is unwritable
+    must not abort the import — the pair is already committed to the store by
+    the time we get here, so raising would leave the caller with a completed
+    write and an exception. The local ledger stays the source of truth for
+    everything that *is* recorded; see :func:`_log_rejection`, which is called
+    from paths where the write can still be refused.
+    """
+    try:
+        _log_rejection(entry)
+    except Exception:                     # noqa: BLE001 — never fail a seal on audit
+        pass
 
 
 def _log_rejection(entry: dict) -> None:

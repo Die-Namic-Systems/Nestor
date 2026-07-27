@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import memory, signing
+from . import ledger, memory, signing
 from .storage import Storage, get_store, supports_curation, supports_rejection
 
 
@@ -125,6 +125,29 @@ class Curator:
         """
         return [p for p in self.list(status="sealed", limit=limit)
                 if not p["servable"]]
+
+    def replaced_seals(self, conflicts_only: bool = True,
+                       limit: int = 200) -> list[dict]:
+        """Seals that were overwritten — someone re-sealed an already-sealed source.
+
+        The memory keeps one row per normalized source, so a replacement leaves
+        no trace in the store at all: the previous target and verifier exist only
+        in the ledger. This reads them back.
+
+        ``conflicts_only`` (the default) keeps replacements where a *different*
+        verifier overwrote the earlier decision, which is the case worth a
+        human's attention — one person asserting something incompatible with
+        another's recorded verification. Pass ``False`` to include self-
+        corrections, where the same verifier revised their own seal.
+
+        Targets appear as short digests rather than text: ledger entries are
+        mirrored verbatim into shared provenance by :mod:`nestor.frank`, and the
+        digest still identifies which text was replaced to anyone holding it.
+        """
+        rows = ledger.entries(kind="seal_replaced", limit=limit)
+        if conflicts_only:
+            rows = [r for r in rows if not r.get("same_verifier", False)]
+        return rows
 
     # -- revoking ---------------------------------------------------------
 
