@@ -2498,13 +2498,13 @@
     },
     {
       "run_id": "20260728T183457Z",
-      "recorded_at": "2026-07-28T18:37:25Z",
-      "complete": false,
+      "recorded_at": "2026-07-28T18:44:26Z",
+      "complete": true,
       "environment": {
         "python": "3.11.15",
         "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
         "processor": "x86_64",
-        "git_rev": "688203d"
+        "git_rev": "d674211"
       },
       "params": {
         "sizes": [],
@@ -2703,6 +2703,157 @@
             "p90": 0.997,
             "p99": 0.999,
             "max": 0.999
+          },
+          "n_paraphrase_probes": 250,
+          "fidelity_check": {
+            "checked": 15,
+            "agreed_with_best_sealed": 15
+          },
+          "fast_path_equivalence": {
+            "checked": 15,
+            "floor": 0.8,
+            "disagreements": 0,
+            "examples": []
+          }
+        },
+        {
+          "corpus": "code",
+          "size": 800,
+          "n_absent_probes": 250,
+          "n_retyped_probes": 250,
+          "sweep": [
+            {
+              "threshold": 0.8,
+              "false_seal_rate": 0.076,
+              "false_seals": 19,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.72,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "false_seal_rate": 0.06,
+              "false_seals": 15,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.684,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "false_seal_rate": 0.044,
+              "false_seals": 11,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.644,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "false_seal_rate": 0.028,
+              "false_seals": 7,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.616,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "false_seal_rate": 0.02,
+              "false_seals": 5,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.588,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "false_seal_rate": 0.012,
+              "false_seals": 3,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.548,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "false_seal_rate": 0.008,
+              "false_seals": 2,
+              "recall": 1.0,
+              "recall_surface": 1.0,
+              "recall_paraphrase": 0.432,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "false_seal_rate": 0.0,
+              "false_seals": 0,
+              "recall": 0.804,
+              "recall_surface": 0.804,
+              "recall_paraphrase": 0.004,
+              "misrouted": 0,
+              "misroute_rate": 0.0
+            }
+          ],
+          "worst_false_seals": [
+            {
+              "similarity": 0.998,
+              "asked": "    def __xor__(self, other):\n        other_value = self._get_value(other)\n        if other_value is NotImplemented:\n            return NotImplemented\n\n        for flag in self, other:\n            if self._get_value(flag) is None:\n                raise TypeError(f\"'{flag}' cannot be combined with other flags with ^\")\n        value = self._value_\n        return self.__class__(value ^ other_value)",
+              "would_serve_source": "    def __or__(self, other):\n        other_value = self._get_value(other)\n        if other_value is NotImplemented:\n            return NotImplemented\n\n        for flag in self, other:\n            if self._get_value(flag) is None:\n                raise TypeError(f\"'{flag}' cannot be combined with other flags with |\")\n        value = self._value_\n        return self.__class__(value | other_value)",
+              "would_serve_target": "BENCH:57"
+            },
+            {
+              "similarity": 0.986,
+              "asked": "    def utcoffset(self):\n        \"\"\"Return the timezone offset as timedelta positive east of UTC (negative west of\n        UTC).\"\"\"\n        if self._tzinfo is None:\n            return None\n        offset = self._tzinfo.utcoffset(self)\n        _check_utc_offset(\"utcoffset\", offset)\n        return offset",
+              "would_serve_source": "    def utcoffset(self):\n        \"\"\"Return the timezone offset as timedelta, positive east of UTC\n         (negative west of UTC).\"\"\"\n        if self._tzinfo is None:\n            return None\n        offset = self._tzinfo.utcoffset(None)\n        _check_utc_offset(\"utcoffset\", offset)\n        return offset",
+              "would_serve_target": "BENCH:262"
+            },
+            {
+              "similarity": 0.963,
+              "asked": "        def onerror(func, path, exc_info):\n            if issubclass(exc_info[0], PermissionError):\n                if repeated and path == name:\n                    if ignore_errors:\n                        return\n                    raise\n\n                try:\n                    if path != name:\n                        _resetperms(_os.path.dirname(path))\n                    _resetperms(path)\n\n                    try:\n                        _os.unlink(path)\n                    except IsADirectoryError:\n                        cls._rmtree(path, ignore_errors=ignore_errors)\n                    except PermissionError:\n                        # The PermissionError handler was originally added for\n                        # FreeBSD in directories, but it seems that it is raised\n                        # on Windows too.\n                        # bpo-43153: Calling _rmtree again may\n                        # raise NotADirectoryError and mask the PermissionError.\n                        # So we must re-raise the current PermissionError if\n                        # path is not a directory.\n                        try:\n                            st = _os.lstat(path)\n                        except OSError:\n                            if ignore_errors:\n                                return\n                            raise\n                        if (_stat.S_ISLNK(st.st_mode) or\n                            not _stat.S_ISDIR(st.st_mode) or\n                            (hasattr(st, 'st_file_attributes') and\n                             st.st_file_attributes & _stat.FILE_ATTRIBUTE_REPARSE_POINT and\n                             st.st_reparse_tag == _stat.IO_REPARSE_TAG_MOUNT_POINT)\n                        ):\n                            if ignore_errors:\n                                return\n                            raise\n                        cls._rmtree(path, ignore_errors=ignore_errors,\n                                    repeated=(path == name))\n                except FileNotFoundError:\n                    pass\n            elif issubclass(exc_info[0], FileNotFoundError):\n                pass\n            else:\n                if not ignore_errors:\n                    raise",
+              "would_serve_source": "    def _rmtree(cls, name, ignore_errors=False, repeated=False):\n        def onerror(func, path, exc_info):\n            if issubclass(exc_info[0], PermissionError):\n                if repeated and path == name:\n                    if ignore_errors:\n                        return\n                    raise\n\n                try:\n                    if path != name:\n                        _resetperms(_os.path.dirname(path))\n                    _resetperms(path)\n\n                    try:\n                        _os.unlink(path)\n                    except IsADirectoryError:\n                        cls._rmtree(path, ignore_errors=ignore_errors)\n                    except PermissionError:\n                        # The PermissionError handler was originally added for\n                        # FreeBSD in directories, but it seems that it is raised\n                        # on Windows too.\n                        # bpo-43153: Calling _rmtree again may\n                        # raise NotADirectoryError and mask the PermissionError.\n                        # So we must re-raise the current PermissionError if\n                        # path is not a directory.\n                        try:\n                            st = _os.lstat(path)\n                        except OSError:\n                            if ignore_errors:\n                                return\n                            raise\n                        if (_stat.S_ISLNK(st.st_mode) or\n                            not _stat.S_ISDIR(st.st_mode) or\n                            (hasattr(st, 'st_file_attributes') and\n                             st.st_file_attributes & _stat.FILE_ATTRIBUTE_REPARSE_POINT and\n                             st.st_reparse_tag == _stat.IO_REPARSE_TAG_MOUNT_POINT)\n                        ):\n                            if ignore_errors:\n                                return\n                            raise\n                        cls._rmtree(path, ignore_errors=ignore_errors,\n                                    repeated=(path == name))\n                except FileNotFoundError:\n                    pass\n            elif issubclass(exc_info[0], FileNotFoundError):\n                pass\n            else:\n                if not ignore_errors:\n                    raise\n\n        _rmtree(name, onerror=onerror)",
+              "would_serve_target": "BENCH:171"
+            },
+            {
+              "similarity": 0.957,
+              "asked": "    def __add__(x1, x2):\n        \"\"\"Add a constant or another NormalDist instance.\n\n        If *other* is a constant, translate mu by the constant,\n        leaving sigma unchanged.\n\n        If *other* is a NormalDist, add both the means and the variances.\n        Mathematically, this works only if the two distributions are\n        independent or if they are jointly normally distributed.\n        \"\"\"\n        if isinstance(x2, NormalDist):\n            return NormalDist(x1._mu + x2._mu, hypot(x1._sigma, x2._sigma))\n        return NormalDist(x1._mu + x2, x1._sigma)",
+              "would_serve_source": "    def __sub__(x1, x2):\n        \"\"\"Subtract a constant or another NormalDist instance.\n\n        If *other* is a constant, translate by the constant mu,\n        leaving sigma unchanged.\n\n        If *other* is a NormalDist, subtract the means and add the variances.\n        Mathematically, this works only if the two distributions are\n        independent or if they are jointly normally distributed.\n        \"\"\"\n        if isinstance(x2, NormalDist):\n            return NormalDist(x1._mu - x2._mu, hypot(x1._sigma, x2._sigma))\n        return NormalDist(x1._mu - x2, x1._sigma)",
+              "would_serve_target": "BENCH:503"
+            },
+            {
+              "similarity": 0.946,
+              "asked": "def _ge_from_le(self, other):\n    'Return a >= b.  Computed by @total_ordering from (not a <= b) or (a == b).'\n    op_result = type(self).__le__(self, other)\n    if op_result is NotImplemented:\n        return op_result\n    return not op_result or self == other",
+              "would_serve_source": "def _lt_from_gt(self, other):\n    'Return a < b.  Computed by @total_ordering from (not a > b) and (a != b).'\n    op_result = type(self).__gt__(self, other)\n    if op_result is NotImplemented:\n        return op_result\n    return not op_result and self != other",
+              "would_serve_target": "BENCH:728"
+            }
+          ],
+          "score_floor": 0.8,
+          "scores_censored_below_floor": 231,
+          "absent_score_percentiles": {
+            "p50": 0.0,
+            "p90": 0.0,
+            "p99": 0.963,
+            "max": 0.998
+          },
+          "retyped_score_percentiles": {
+            "p50": 1.0,
+            "p90": 1.0,
+            "p99": 1.0,
+            "max": 1.0
+          },
+          "paraphrase_score_percentiles": {
+            "p50": 0.973,
+            "p90": 0.996,
+            "p99": 0.999,
+            "max": 1.0
           },
           "n_paraphrase_probes": 250,
           "fidelity_check": {
