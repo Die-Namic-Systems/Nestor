@@ -23377,7 +23377,11 @@
           "split": "B->A",
           "variant": "strict (no substring overlap)"
         }
-      ]
+      ],
+      "superseded": {
+        "by": "the re-run below, against 6ea9b89",
+        "reason": "Measured against the WRONG CORPUS. `params.corpus_revision` is 0c8487a80bed \u2014 terpsi-music's PR #7 head \u2014 not the pinned 6ea9b89 every other recorded stage-3 figure uses. PR #7 deleted docs/SKINS.md and docs/prose.intent, so the gate rejected 16 spans as 'source_file does not exist' and this run measured 86 spans over 10 referents instead of 96 over 14. The probe counts give it away: n=[4, 10, 14, 36] against the correct [4, 12, 14, 41]. The corpus_revision field recorded the mistake correctly and was not read; the run was checked with `| tail -2`, which truncated away the gate's rejection counts. A pinned-revision banner now prints as the LAST line."
+      }
     },
     {
       "run_id": "20260730T231339Z",
@@ -24552,7 +24556,11 @@
           "split": "B->A",
           "variant": "strict (no substring overlap)"
         }
-      ]
+      ],
+      "superseded": {
+        "by": "the re-run below, against 6ea9b89",
+        "reason": "Measured against the WRONG CORPUS. `params.corpus_revision` is 0c8487a80bed \u2014 terpsi-music's PR #7 head \u2014 not the pinned 6ea9b89 every other recorded stage-3 figure uses. PR #7 deleted docs/SKINS.md and docs/prose.intent, so the gate rejected 16 spans as 'source_file does not exist' and this run measured 86 spans over 10 referents instead of 96 over 14. The probe counts give it away: n=[4, 10, 14, 36] against the correct [4, 12, 14, 41]. The corpus_revision field recorded the mistake correctly and was not read; the run was checked with `| tail -2`, which truncated away the gate's rejection counts. A pinned-revision banner now prints as the LAST line."
+      }
     },
     {
       "run_id": "20260730T231340Z",
@@ -25727,7 +25735,11 @@
           "split": "B->A",
           "variant": "strict (no substring overlap)"
         }
-      ]
+      ],
+      "superseded": {
+        "by": "the re-run below, against 6ea9b89",
+        "reason": "Measured against the WRONG CORPUS. `params.corpus_revision` is 0c8487a80bed \u2014 terpsi-music's PR #7 head \u2014 not the pinned 6ea9b89 every other recorded stage-3 figure uses. PR #7 deleted docs/SKINS.md and docs/prose.intent, so the gate rejected 16 spans as 'source_file does not exist' and this run measured 86 spans over 10 referents instead of 96 over 14. The probe counts give it away: n=[4, 10, 14, 36] against the correct [4, 12, 14, 41]. The corpus_revision field recorded the mistake correctly and was not read; the run was checked with `| tail -2`, which truncated away the gate's rejection counts. A pinned-revision banner now prints as the LAST line."
+      }
     },
     {
       "run_id": "20260730T231340Z",
@@ -26894,6 +26906,3532 @@
           ],
           "loo_false_seal": {
             "n": 10,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        }
+      ],
+      "superseded": {
+        "by": "the re-run below, against 6ea9b89",
+        "reason": "Measured against the WRONG CORPUS. `params.corpus_revision` is 0c8487a80bed \u2014 terpsi-music's PR #7 head \u2014 not the pinned 6ea9b89 every other recorded stage-3 figure uses. PR #7 deleted docs/SKINS.md and docs/prose.intent, so the gate rejected 16 spans as 'source_file does not exist' and this run measured 86 spans over 10 referents instead of 96 over 14. The probe counts give it away: n=[4, 10, 14, 36] against the correct [4, 12, 14, 41]. The corpus_revision field recorded the mistake correctly and was not read; the run was checked with `| tail -2`, which truncated away the gate's rejection counts. A pinned-revision banner now prints as the LAST line."
+      }
+    },
+    {
+      "run_id": "20260730T232455Z",
+      "recorded_at": "2026-07-30T23:24:55Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "8500849",
+        "git_dirty": true,
+        "code_digest": "4289b83ee7da"
+      },
+      "params": {
+        "extraction": "bench/results/terpsi_spans.json",
+        "gate": {
+          "in": 120,
+          "kept": 96,
+          "rejected": 24,
+          "by_reason": {
+            "duplicate record": 12,
+            "generic anaphora": 5,
+            "NOT VERBATIM": 7
+          }
+        },
+        "dispersion": {
+          "n": 96,
+          "p10": 0.1714,
+          "p50": 0.7059,
+          "p90": 0.875,
+          "max": 0.9333,
+          "exact_rate": 0.0,
+          "above_0.92": 0.0208
+        },
+        "matcher": "string",
+        "corpus": "/workspace/terpsi-music",
+        "corpus_revision": "6ea9b89daef5",
+        "side_a_declared": [
+          "CLAUDE.md",
+          "README.md",
+          "docs/ARCHITECTURE.md",
+          "docs/CAPABILITY-MAP.md",
+          "docs/CROSSINGS.md",
+          "docs/OPEN-SOURCE-SURVEY.md",
+          "docs/SKINS.md"
+        ],
+        "thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75,
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "diagnostic_thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ]
+      },
+      "notes": "Stage 3 of IDEAS.md 3.4. Every surface and every probe is a verbatim span of one person's prose in terpsi-music, gated by re-reading the source file; a model only labelled which span refers to which file. Split is by SOURCE DOCUMENT and run in both directions, so no string is both sealed and probed and no single arbitrary cut carries the result. Scored twice: 'templated' section references (\u00a7N of the X) are a family whose members differ by a digit, close enough to an exact-match lookup to carry a result on their own, so the variant without them is the conservative number.",
+      "measurements": [
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7143,
+          "score_p50": 0.571,
+          "score_p90": 0.718,
+          "score_max": 0.718,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.5,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 65,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 13,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7857,
+          "score_p50": 0.706,
+          "score_p90": 0.718,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.6429,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.5714,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.5,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 65,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 13,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.5,
+          "score_p50": 0.706,
+          "score_p90": 0.718,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.4286,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7805,
+          "score_p50": 0.706,
+          "score_p90": 0.757,
+          "score_max": 0.757,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.6098,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.5854,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.5854,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.5854,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.1951,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 27,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 11,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.8049,
+          "score_p50": 0.842,
+          "score_p90": 0.878,
+          "score_max": 0.878,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7317,
+              "false_seal_rate": 0.2727
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.6585,
+              "false_seal_rate": 0.1818
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.6098,
+              "false_seal_rate": 0.0909
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.6098,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.5854,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.5854,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.4634,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 27,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 11,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.842,
+          "score_p90": 0.878,
+          "score_max": 0.878,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.2727
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.1818
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0909
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.48,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 65,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 13,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.25,
+          "score_p50": 0.667,
+          "score_p90": 0.733,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 65,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 13,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.667,
+          "score_p90": 0.733,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.25,
+          "score_p50": 0.333,
+          "score_p90": 0.412,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 27,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 11,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.3333,
+          "score_p50": 0.529,
+          "score_p90": 0.733,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0833,
+              "false_seal_rate": 0.2727
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.1818
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0909
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 27,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 11,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.529,
+          "score_p90": 0.733,
+          "score_max": 0.733,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.2727
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.1818
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0909
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        }
+      ]
+    },
+    {
+      "run_id": "20260730T232456Z",
+      "recorded_at": "2026-07-30T23:24:56Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "8500849",
+        "git_dirty": true,
+        "code_digest": "4289b83ee7da"
+      },
+      "params": {
+        "extraction": "bench/results/terpsi_spans.json",
+        "gate": {
+          "in": 120,
+          "kept": 96,
+          "rejected": 24,
+          "by_reason": {
+            "duplicate record": 12,
+            "generic anaphora": 5,
+            "NOT VERBATIM": 7
+          }
+        },
+        "dispersion": {
+          "n": 96,
+          "p10": 0.0,
+          "p50": 0.5,
+          "p90": 1.0,
+          "max": 1.0,
+          "exact_rate": 0.2188,
+          "above_0.92": 0.2188
+        },
+        "matcher": "jaccard",
+        "corpus": "/workspace/terpsi-music",
+        "corpus_revision": "6ea9b89daef5",
+        "side_a_declared": [
+          "CLAUDE.md",
+          "README.md",
+          "docs/ARCHITECTURE.md",
+          "docs/CAPABILITY-MAP.md",
+          "docs/CROSSINGS.md",
+          "docs/OPEN-SOURCE-SURVEY.md",
+          "docs/SKINS.md"
+        ],
+        "thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75,
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "diagnostic_thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ]
+      },
+      "notes": "Stage 3 of IDEAS.md 3.4. Every surface and every probe is a verbatim span of one person's prose in terpsi-music, gated by re-reading the source file; a model only labelled which span refers to which file. Split is by SOURCE DOCUMENT and run in both directions, so no string is both sealed and probed and no single arbitrary cut carries the result. Scored twice: 'templated' section references (\u00a7N of the X) are a family whose members differ by a digit, close enough to an exact-match lookup to carry a result on their own, so the variant without them is the conservative number.",
+      "measurements": [
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7143,
+          "score_p50": 0.333,
+          "score_p90": 0.4,
+          "score_max": 0.4,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.8571,
+          "score_p50": 0.333,
+          "score_p90": 0.5,
+          "score_max": 0.6,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0714,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0714,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.5,
+          "score_p50": 0.333,
+          "score_p90": 0.5,
+          "score_max": 0.6,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7317,
+          "score_p50": 0.5,
+          "score_p90": 0.667,
+          "score_max": 0.667,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7561,
+          "score_p50": 0.5,
+          "score_p90": 0.667,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.3902,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0488,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.6098,
+          "score_p50": 0.5,
+          "score_p90": 0.667,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.3415,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.3415,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.3415,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0488,
+              "0.96": 0.0488
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.0,
+          "score_p90": 0.333,
+          "score_max": 0.333,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.5,
+          "score_p50": 0.333,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.333,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0833,
+          "score_p50": 0.0,
+          "score_p90": 0.0,
+          "score_max": 0.2,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.1667,
+          "score_p50": 0.0,
+          "score_p90": 0.2,
+          "score_max": 0.333,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.0,
+          "score_p90": 0.2,
+          "score_max": 0.333,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        }
+      ]
+    },
+    {
+      "run_id": "20260730T232457Z",
+      "recorded_at": "2026-07-30T23:24:57Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "8500849",
+        "git_dirty": true,
+        "code_digest": "4289b83ee7da"
+      },
+      "params": {
+        "extraction": "bench/results/terpsi_spans.json",
+        "gate": {
+          "in": 120,
+          "kept": 96,
+          "rejected": 24,
+          "by_reason": {
+            "duplicate record": 12,
+            "generic anaphora": 5,
+            "NOT VERBATIM": 7
+          }
+        },
+        "dispersion": {
+          "n": 96,
+          "p10": 0.0,
+          "p50": 1.0,
+          "p90": 1.0,
+          "max": 1.0,
+          "exact_rate": 0.2188,
+          "above_0.92": 0.6979
+        },
+        "matcher": "overlap",
+        "corpus": "/workspace/terpsi-music",
+        "corpus_revision": "6ea9b89daef5",
+        "side_a_declared": [
+          "CLAUDE.md",
+          "README.md",
+          "docs/ARCHITECTURE.md",
+          "docs/CAPABILITY-MAP.md",
+          "docs/CROSSINGS.md",
+          "docs/OPEN-SOURCE-SURVEY.md",
+          "docs/SKINS.md"
+        ],
+        "thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75,
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "shipped_thresholds": [
+          0.8,
+          0.85,
+          0.9,
+          0.92,
+          0.94,
+          0.96,
+          0.98,
+          1.0
+        ],
+        "diagnostic_thresholds": [
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ]
+      },
+      "notes": "Stage 3 of IDEAS.md 3.4. Every surface and every probe is a verbatim span of one person's prose in terpsi-music, gated by re-reading the source file; a model only labelled which span refers to which file. Split is by SOURCE DOCUMENT and run in both directions, so no string is both sealed and probed and no single arbitrary cut carries the result. Scored twice: 'templated' section references (\u00a7N of the X) are a family whose members differ by a digit, close enough to an exact-match lookup to carry a result on their own, so the variant without them is the conservative number.",
+      "measurements": [
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7143,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.8571,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7857,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 14,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7143,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7143,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 14,
+            "rate": {
+              "0.92": 0.2857,
+              "0.96": 0.2857
+            }
+          },
+          "split": "A->B",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7317,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7561,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 41,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.7317,
+          "score_p50": 1.0,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.7073,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 41,
+            "rate": {
+              "0.92": 0.6829,
+              "0.96": 0.6829
+            }
+          },
+          "split": "B->A",
+          "variant": "inclusive"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 14,
+          "rows_intended": 14,
+          "rows_sealed": 14,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.0,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.5,
+          "score_p50": 0.5,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.25,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 14,
+          "rows_intended": 78,
+          "rows_sealed": 61,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 17,
+          "n_probes": 4,
+          "n_absent": 0,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0,
+          "score_p50": 0.5,
+          "score_p90": 1.0,
+          "score_max": 1.0,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 4,
+            "rate": {
+              "0.92": 0.25,
+              "0.96": 0.25
+            }
+          },
+          "split": "A->B",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "canonical only",
+          "referents_sealed": 6,
+          "rows_intended": 6,
+          "rows_sealed": 6,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 0,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0833,
+          "score_p50": 0.0,
+          "score_p90": 0.0,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ human surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.1667,
+          "score_p50": 0.0,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
+            "rate": {
+              "0.92": 0.0,
+              "0.96": 0.0
+            }
+          },
+          "split": "B->A",
+          "variant": "strict (no substring overlap)"
+        },
+        {
+          "arm": "+ WRONG surfaces",
+          "referents_sealed": 6,
+          "rows_intended": 38,
+          "rows_sealed": 24,
+          "rows_refused_as_conflict": 0,
+          "rows_lost_to_duplicate": 14,
+          "n_probes": 12,
+          "n_absent": 11,
+          "recall_ceiling": 1.0,
+          "rank_at_1": 0.0833,
+          "score_p50": 0.0,
+          "score_p90": 0.5,
+          "score_max": 0.5,
+          "by_threshold": [
+            {
+              "threshold": 0.55,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.6,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.65,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.7,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.75,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.8,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.85,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.9,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.92,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.94,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.98,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 1.0,
+              "recall": 0.0,
+              "false_seal_rate": 0.0
+            }
+          ],
+          "loo_false_seal": {
+            "n": 12,
             "rate": {
               "0.92": 0.0,
               "0.96": 0.0

@@ -27,3 +27,9 @@ dist/
 
 # Agent worktrees are transient scratch, never repo content.
 .claude/worktrees/
+
+# Bench runs land here by default; the tracked bench/results/*.json is the
+# PUBLISHED record, written only with NESTOR_BENCH_PUBLISH=1. Running a
+# bench must not dirty the tree — that blocked the first independent
+# reproduction of a result from a clean clone.
+bench/results/local/
