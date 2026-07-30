@@ -1,0 +1,638 @@
+[
+ {
+  "cut": "inclusive",
+  "split": "A->B",
+  "canonical": {
+   "docs/CAPABILITY-MAP.md": "CAPABILITY MAP",
+   "docs/LANE-MODEL.md": "LANE MODEL",
+   "docs/SENSITIVITY.md": "SENSITIVITY",
+   "craft/": "craft",
+   "docs/FLEET-READS.md": "FLEET READS",
+   "docs/schema/001_lanes.proposed.sql": "001 lanes proposed sql",
+   "CLAUDE.md": "CLAUDE",
+   "docs/CROSSINGS.md": "CROSSINGS",
+   "docs/ARCHITECTURE.md": "ARCHITECTURE",
+   "lyrics/get-ready.txt": "get ready txt",
+   "docs/EXTERNAL-ARM.md": "EXTERNAL ARM",
+   "docs/OPEN-SOURCE-SURVEY.md": "OPEN SOURCE SURVEY",
+   "docs/PLAN-GUARDIANSHIP.md": "PLAN GUARDIANSHIP",
+   "voice.py": "voice py"
+  },
+  "sealed": {
+   "docs/CAPABILITY-MAP.md": [
+    "the domain surface",
+    "The domain surface",
+    "the capability map",
+    "The capability map",
+    "the capability map",
+    "§1 of the capability map",
+    "§18 of the capability map",
+    "§19 of the capability map",
+    "§20 of the capability map",
+    "§24 of the capability map's craft-feedback capability",
+    "the capability map",
+    "the capability map",
+    "§1 of the capability map",
+    "§12 of the capability map",
+    "§14 of the capability map",
+    "§17 of the capability map",
+    "§20 of the capability map",
+    "§3 of the capability map",
+    "§4 of the capability map",
+    "§5 of the capability map",
+    "§6 of the capability map",
+    "§7 of the capability map",
+    "§9 of the capability map",
+    "§24 of the capability map"
+   ],
+   "docs/LANE-MODEL.md": [
+    "the W-1/W-3 schema",
+    "The W-1/W-3 schema",
+    "the lane model",
+    "the lane model",
+    "the lane model"
+   ],
+   "docs/SENSITIVITY.md": [
+    "the `L1–L5` rungs",
+    "The `L1`–`L5` rungs",
+    "the class-to-L mapping",
+    "the mapping from these classes onto the existing L-levels",
+    "the sensitivity ladder"
+   ],
+   "craft/": [
+    "the eight text-only checks",
+    "the checker",
+    "the craft checker",
+    "craft checks"
+   ],
+   "docs/FLEET-READS.md": [
+    "The 36 fleet repositories this design rests on"
+   ],
+   "docs/schema/001_lanes.proposed.sql": [
+    "The proposed migration",
+    "Migration 001",
+    "Twelve tables",
+    "migration 001"
+   ],
+   "CLAUDE.md": [
+    "CLAUDE.md's one-line gloss",
+    "twenty numbered rules"
+   ],
+   "docs/CROSSINGS.md": [
+    "a findings record"
+   ],
+   "docs/ARCHITECTURE.md": [
+    "the architecture",
+    "the foundation list from the architecture",
+    "§13 of the architecture",
+    "§13 of the architecture's open question",
+    "§15 of the architecture",
+    "§18 item 7 of the architecture",
+    "§6 of the architecture",
+    "§7.4 of the architecture",
+    "§8.1 of the architecture",
+    "§8.2 of the architecture",
+    "this document's parent",
+    "§5 of the architecture",
+    "§6 of the architecture"
+   ],
+   "lyrics/get-ready.txt": [
+    "the song"
+   ],
+   "docs/EXTERNAL-ARM.md": [
+    "The external arm"
+   ],
+   "docs/OPEN-SOURCE-SURVEY.md": [
+    "Survey finding 1.10"
+   ],
+   "docs/PLAN-GUARDIANSHIP.md": [
+    "a charter about wards"
+   ],
+   "voice.py": [
+    "The rule table"
+   ]
+  },
+  "probes": [
+   [
+    "The ladder",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "CLAUDE.md #17",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md #18 and #19",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md #13",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md #19",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md #19",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md's hard rules",
+    "CLAUDE.md"
+   ],
+   [
+    "CLAUDE.md refusal #4",
+    "CLAUDE.md"
+   ],
+   [
+    "Capability map §6's request",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "the lane schema",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "a numbered refusal list",
+    "CLAUDE.md"
+   ],
+   [
+    "terpsi's list",
+    "CLAUDE.md"
+   ],
+   [
+    "Capability map §22 item 10",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "the capability map's §20 family cases",
+    "docs/CAPABILITY-MAP.md"
+   ]
+  ]
+ },
+ {
+  "cut": "inclusive",
+  "split": "B->A",
+  "canonical": {
+   "docs/ARCHITECTURE.md": "ARCHITECTURE",
+   "docs/CAPABILITY-MAP.md": "CAPABILITY MAP",
+   "docs/SENSITIVITY.md": "SENSITIVITY",
+   "docs/schema/001_lanes.proposed.sql": "001 lanes proposed sql",
+   "CLAUDE.md": "CLAUDE",
+   "docs/LANE-MODEL.md": "LANE MODEL"
+  },
+  "sealed": {
+   "docs/ARCHITECTURE.md": [
+    "the architecture",
+    "the architecture",
+    "the architecture",
+    "the architecture",
+    "the architecture"
+   ],
+   "docs/CAPABILITY-MAP.md": [
+    "the capability map",
+    "the capability map",
+    "Capability map §18",
+    "Capability map §6's request",
+    "The capability map",
+    "capability map §6",
+    "capability map §8",
+    "The capability map",
+    "Capability map §22 item 10",
+    "the capability map",
+    "the capability map's §20 family cases"
+   ],
+   "docs/SENSITIVITY.md": [
+    "The ladder",
+    "the sensitivity ladder"
+   ],
+   "docs/schema/001_lanes.proposed.sql": [
+    "Migration 001",
+    "migration 001",
+    "migration 001",
+    "the lane schema"
+   ],
+   "CLAUDE.md": [
+    "CLAUDE.md #17",
+    "CLAUDE.md #18 and #19",
+    "CLAUDE.md #13",
+    "CLAUDE.md #19",
+    "CLAUDE.md #19",
+    "CLAUDE.md's hard rules",
+    "CLAUDE.md refusal #4",
+    "a numbered refusal list",
+    "terpsi's list"
+   ],
+   "docs/LANE-MODEL.md": [
+    "the lane model"
+   ]
+  },
+  "probes": [
+   [
+    "the domain surface",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "the W-1/W-3 schema",
+    "docs/LANE-MODEL.md"
+   ],
+   [
+    "the `L1–L5` rungs",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "The domain surface",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "The W-1/W-3 schema",
+    "docs/LANE-MODEL.md"
+   ],
+   [
+    "The `L1`–`L5` rungs",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "The proposed migration",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "CLAUDE.md's one-line gloss",
+    "CLAUDE.md"
+   ],
+   [
+    "§1 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§18 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§19 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§20 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§24 of the capability map's craft-feedback capability",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "the class-to-L mapping",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "the mapping from these classes onto the existing L-levels",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "Twelve tables",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "the foundation list from the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§13 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§13 of the architecture's open question",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§15 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§18 item 7 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§6 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§7.4 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§8.1 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§8.2 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "this document's parent",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§1 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§12 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§14 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§17 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§20 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§3 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§4 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§5 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§6 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§7 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "§9 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "twenty numbered rules",
+    "CLAUDE.md"
+   ],
+   [
+    "§5 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§6 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§24 of the capability map",
+    "docs/CAPABILITY-MAP.md"
+   ]
+  ]
+ },
+ {
+  "cut": "strict (no substring overlap)",
+  "split": "A->B",
+  "canonical": {
+   "docs/CAPABILITY-MAP.md": "CAPABILITY MAP",
+   "docs/LANE-MODEL.md": "LANE MODEL",
+   "docs/SENSITIVITY.md": "SENSITIVITY",
+   "craft/": "craft",
+   "docs/FLEET-READS.md": "FLEET READS",
+   "docs/schema/001_lanes.proposed.sql": "001 lanes proposed sql",
+   "CLAUDE.md": "CLAUDE",
+   "docs/CROSSINGS.md": "CROSSINGS",
+   "docs/ARCHITECTURE.md": "ARCHITECTURE",
+   "lyrics/get-ready.txt": "get ready txt",
+   "docs/EXTERNAL-ARM.md": "EXTERNAL ARM",
+   "docs/OPEN-SOURCE-SURVEY.md": "OPEN SOURCE SURVEY",
+   "docs/PLAN-GUARDIANSHIP.md": "PLAN GUARDIANSHIP",
+   "voice.py": "voice py"
+  },
+  "sealed": {
+   "docs/CAPABILITY-MAP.md": [
+    "the domain surface",
+    "The domain surface",
+    "the capability map",
+    "The capability map",
+    "the capability map",
+    "§1 of the capability map",
+    "§18 of the capability map",
+    "§19 of the capability map",
+    "§20 of the capability map",
+    "§24 of the capability map's craft-feedback capability",
+    "the capability map",
+    "the capability map",
+    "§1 of the capability map",
+    "§12 of the capability map",
+    "§14 of the capability map",
+    "§17 of the capability map",
+    "§20 of the capability map",
+    "§3 of the capability map",
+    "§4 of the capability map",
+    "§5 of the capability map",
+    "§6 of the capability map",
+    "§7 of the capability map",
+    "§9 of the capability map",
+    "§24 of the capability map"
+   ],
+   "docs/LANE-MODEL.md": [
+    "the W-1/W-3 schema",
+    "The W-1/W-3 schema",
+    "the lane model",
+    "the lane model",
+    "the lane model"
+   ],
+   "docs/SENSITIVITY.md": [
+    "the `L1–L5` rungs",
+    "The `L1`–`L5` rungs",
+    "the class-to-L mapping",
+    "the mapping from these classes onto the existing L-levels",
+    "the sensitivity ladder"
+   ],
+   "craft/": [
+    "the eight text-only checks",
+    "the checker",
+    "the craft checker",
+    "craft checks"
+   ],
+   "docs/FLEET-READS.md": [
+    "The 36 fleet repositories this design rests on"
+   ],
+   "docs/schema/001_lanes.proposed.sql": [
+    "The proposed migration",
+    "Migration 001",
+    "Twelve tables",
+    "migration 001"
+   ],
+   "CLAUDE.md": [
+    "CLAUDE.md's one-line gloss",
+    "twenty numbered rules"
+   ],
+   "docs/CROSSINGS.md": [
+    "a findings record"
+   ],
+   "docs/ARCHITECTURE.md": [
+    "the architecture",
+    "the foundation list from the architecture",
+    "§13 of the architecture",
+    "§13 of the architecture's open question",
+    "§15 of the architecture",
+    "§18 item 7 of the architecture",
+    "§6 of the architecture",
+    "§7.4 of the architecture",
+    "§8.1 of the architecture",
+    "§8.2 of the architecture",
+    "this document's parent",
+    "§5 of the architecture",
+    "§6 of the architecture"
+   ],
+   "lyrics/get-ready.txt": [
+    "the song"
+   ],
+   "docs/EXTERNAL-ARM.md": [
+    "The external arm"
+   ],
+   "docs/OPEN-SOURCE-SURVEY.md": [
+    "Survey finding 1.10"
+   ],
+   "docs/PLAN-GUARDIANSHIP.md": [
+    "a charter about wards"
+   ],
+   "voice.py": [
+    "The rule table"
+   ]
+  },
+  "probes": [
+   [
+    "The ladder",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "the lane schema",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "a numbered refusal list",
+    "CLAUDE.md"
+   ],
+   [
+    "terpsi's list",
+    "CLAUDE.md"
+   ]
+  ]
+ },
+ {
+  "cut": "strict (no substring overlap)",
+  "split": "B->A",
+  "canonical": {
+   "docs/ARCHITECTURE.md": "ARCHITECTURE",
+   "docs/CAPABILITY-MAP.md": "CAPABILITY MAP",
+   "docs/SENSITIVITY.md": "SENSITIVITY",
+   "docs/schema/001_lanes.proposed.sql": "001 lanes proposed sql",
+   "CLAUDE.md": "CLAUDE",
+   "docs/LANE-MODEL.md": "LANE MODEL"
+  },
+  "sealed": {
+   "docs/ARCHITECTURE.md": [
+    "the architecture",
+    "the architecture",
+    "the architecture",
+    "the architecture",
+    "the architecture"
+   ],
+   "docs/CAPABILITY-MAP.md": [
+    "the capability map",
+    "the capability map",
+    "Capability map §18",
+    "Capability map §6's request",
+    "The capability map",
+    "capability map §6",
+    "capability map §8",
+    "The capability map",
+    "Capability map §22 item 10",
+    "the capability map",
+    "the capability map's §20 family cases"
+   ],
+   "docs/SENSITIVITY.md": [
+    "The ladder",
+    "the sensitivity ladder"
+   ],
+   "docs/schema/001_lanes.proposed.sql": [
+    "Migration 001",
+    "migration 001",
+    "migration 001",
+    "the lane schema"
+   ],
+   "CLAUDE.md": [
+    "CLAUDE.md #17",
+    "CLAUDE.md #18 and #19",
+    "CLAUDE.md #13",
+    "CLAUDE.md #19",
+    "CLAUDE.md #19",
+    "CLAUDE.md's hard rules",
+    "CLAUDE.md refusal #4",
+    "a numbered refusal list",
+    "terpsi's list"
+   ],
+   "docs/LANE-MODEL.md": [
+    "the lane model"
+   ]
+  },
+  "probes": [
+   [
+    "the domain surface",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "the W-1/W-3 schema",
+    "docs/LANE-MODEL.md"
+   ],
+   [
+    "the `L1–L5` rungs",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "The domain surface",
+    "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "The W-1/W-3 schema",
+    "docs/LANE-MODEL.md"
+   ],
+   [
+    "The `L1`–`L5` rungs",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "The proposed migration",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "the class-to-L mapping",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "the mapping from these classes onto the existing L-levels",
+    "docs/SENSITIVITY.md"
+   ],
+   [
+    "Twelve tables",
+    "docs/schema/001_lanes.proposed.sql"
+   ],
+   [
+    "this document's parent",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "twenty numbered rules",
+    "CLAUDE.md"
+   ]
+  ]
+ }
+]
