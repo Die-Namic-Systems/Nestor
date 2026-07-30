@@ -41,7 +41,7 @@ hash-chained ledger, so the trail is tamper-evident.
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q                                  # 96 passed
+pytest -q                                  # count deliberately not quoted
 ```
 
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
@@ -146,7 +146,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py        timing, environment capture, JSON result recording
 └── results/          committed measurements — parameters, git rev, raw numbers
 
-tests/                96 tests, no network, no fixtures on disk
+tests/                no network, no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 ```
 
@@ -367,8 +367,15 @@ line)`, so the audit trail is tamper-evident — and all recipes share one chain
 
 Nestor fails closed on it. Appending refuses if the ledger is a symlink or not a
 regular file (the trail must not be redirectable or suppressible), and the
-existing chain is verified before it is extended, so a new entry can never
-launder a tampered history. A broken chain is a refusal, not a warning.
+existing chain is verified before it is *first* extended in a process, so a
+broken chain is refused rather than silently extended — see `IDEAS.md` §5.3 for
+the once-per-process limit and what it does and does not cost you.
+
+Be precise about what that limit is: the tamper is still **caught**. `verify()`
+fails before and after, and the chain stays broken, so tamper-evidence — the
+load-bearing property — holds completely. What you lose is the early refusal.
+Inside one long-lived process, after the first append, a new entry is chained
+onto a tampered history without a refusal.
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
 
@@ -519,7 +526,7 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # 96 tests, no network
+pytest -q                          # no network
 ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/
