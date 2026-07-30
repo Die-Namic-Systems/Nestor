@@ -17,7 +17,32 @@ import subprocess
 import sys
 import time
 
+#: The **published** record — tracked in git, updated deliberately.
 RESULTS = pathlib.Path(__file__).parent / "results"
+
+#: Where a run lands by default. Gitignored.
+#:
+#: Every bench used to append straight into the tracked file, which meant simply
+#: *running* one dirtied the working tree and blocked the next `git pull`. That
+#: is not hypothetical: it happened to the first person to reproduce a result
+#: from a clean clone, within minutes of pulling the change that documented the
+#: hazard. Their runs and the published ones were the same kind of object in the
+#: same file, so git had no way to merge them and neither did a person.
+#:
+#: Splitting them is not a storage detail, it is the difference between two
+#: claims. A published run is one somebody decided was worth keeping; a local
+#: run is one that happened. Only the first belongs in a record other people
+#: read, and the old layout could not tell them apart — the same failure the
+#: `superseded` markers exist to correct, one level up.
+LOCAL = RESULTS / "local"
+
+#: Set `NESTOR_BENCH_PUBLISH=1` to write the tracked file instead. Deliberate,
+#: per-invocation, and visible in the shell history that produced it.
+PUBLISH_ENV = "NESTOR_BENCH_PUBLISH"
+
+
+def publishing() -> bool:
+    return os.environ.get(PUBLISH_ENV, "").strip() not in ("", "0", "false", "no")
 
 
 ROOT = pathlib.Path(__file__).parent.parent
@@ -89,7 +114,14 @@ def environment(code_files=()) -> dict:
 def record(name: str, params: dict, measurements, notes: str = "",
            run_id: str = "", complete: bool = True,
            code_files=()) -> pathlib.Path:
-    """Append (or update) one run in ``bench/results/<name>.json``.
+    """Append (or update) one run.
+
+    Writes to ``bench/results/local/<name>.json`` — **gitignored** — unless
+    ``NESTOR_BENCH_PUBLISH=1``, which writes the tracked
+    ``bench/results/<name>.json`` instead. See :data:`LOCAL` for why the two are
+    separate; the short version is that running a bench should not dirty the
+    repository, and a run nobody chose to keep should not sit in a file other
+    people read as a record.
 
     Pass a stable ``run_id`` and call this after every row to checkpoint a long
     bench as it goes: the matching run is rewritten in place rather than
@@ -100,8 +132,16 @@ def record(name: str, params: dict, measurements, notes: str = "",
     ``complete=False`` marks the run as in-flight, so a partial result can never
     be mistaken for a finished one.
     """
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / f"{name}.json"
+    target = RESULTS if publishing() else LOCAL
+    target.mkdir(parents=True, exist_ok=True)
+    path = target / f"{name}.json"
+    # A local file starts from the published record, so `--resume` and the
+    # in-place `run_id` rewrite keep working across the split, and a local file
+    # is a superset rather than an orphan.
+    if not path.exists() and not publishing():
+        published = RESULTS / f"{name}.json"
+        if published.exists():
+            path.write_text(published.read_text())
     doc = {"bench": name, "runs": []}
     if path.exists():
         try:
@@ -142,14 +182,20 @@ def load_runs(name: str) -> list:
     Used by ``--resume``: a long bench cannot count on outliving the session
     that launched it, so completed rows from earlier attempts are reused rather
     than recomputed.
+
+    Reads the **local** file when one exists, else the published one — never
+    both concatenated. A local file is seeded from the published record on first
+    write, so it is already a superset; merging the two would double every run
+    that predates the split and quietly inflate any count taken over the result.
     """
-    path = RESULTS / f"{name}.json"
-    if not path.exists():
-        return []
-    try:
-        return json.loads(path.read_text()).get("runs", [])
-    except json.JSONDecodeError:
-        return []
+    for path in (LOCAL / f"{name}.json", RESULTS / f"{name}.json"):
+        if not path.exists():
+            continue
+        try:
+            return json.loads(path.read_text()).get("runs", [])
+        except json.JSONDecodeError:
+            continue
+    return []
 
 
 def timed(fn, repeats: int = 1) -> dict:

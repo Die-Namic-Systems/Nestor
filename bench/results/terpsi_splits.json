@@ -12,7 +12,11 @@
    "CLAUDE.md": "CLAUDE",
    "docs/CROSSINGS.md": "CROSSINGS",
    "docs/ARCHITECTURE.md": "ARCHITECTURE",
-   "lyrics/get-ready.txt": "get ready txt"
+   "lyrics/get-ready.txt": "get ready txt",
+   "docs/EXTERNAL-ARM.md": "EXTERNAL ARM",
+   "docs/OPEN-SOURCE-SURVEY.md": "OPEN SOURCE SURVEY",
+   "docs/PLAN-GUARDIANSHIP.md": "PLAN GUARDIANSHIP",
+   "voice.py": "voice py"
   },
   "sealed": {
    "docs/CAPABILITY-MAP.md": [
@@ -38,7 +42,8 @@
     "§5 of the capability map",
     "§6 of the capability map",
     "§7 of the capability map",
-    "§9 of the capability map"
+    "§9 of the capability map",
+    "§24 of the capability map"
    ],
    "docs/LANE-MODEL.md": [
     "the W-1/W-3 schema",
@@ -50,13 +55,15 @@
    "docs/SENSITIVITY.md": [
     "the `L1–L5` rungs",
     "The `L1`–`L5` rungs",
+    "the class-to-L mapping",
     "the mapping from these classes onto the existing L-levels",
     "the sensitivity ladder"
    ],
    "craft/": [
     "the eight text-only checks",
     "the checker",
-    "the craft checker"
+    "the craft checker",
+    "craft checks"
    ],
    "docs/FLEET-READS.md": [
     "The 36 fleet repositories this design rests on"
@@ -68,7 +75,8 @@
     "migration 001"
    ],
    "CLAUDE.md": [
-    "CLAUDE.md's one-line gloss"
+    "CLAUDE.md's one-line gloss",
+    "twenty numbered rules"
    ],
    "docs/CROSSINGS.md": [
     "a findings record"
@@ -84,10 +92,24 @@
     "§7.4 of the architecture",
     "§8.1 of the architecture",
     "§8.2 of the architecture",
-    "this document's parent"
+    "this document's parent",
+    "§5 of the architecture",
+    "§6 of the architecture"
    ],
    "lyrics/get-ready.txt": [
     "the song"
+   ],
+   "docs/EXTERNAL-ARM.md": [
+    "The external arm"
+   ],
+   "docs/OPEN-SOURCE-SURVEY.md": [
+    "Survey finding 1.10"
+   ],
+   "docs/PLAN-GUARDIANSHIP.md": [
+    "a charter about wards"
+   ],
+   "voice.py": [
+    "The rule table"
    ]
   },
   "probes": [
@@ -260,6 +282,10 @@
     "docs/CAPABILITY-MAP.md"
    ],
    [
+    "the class-to-L mapping",
+    "docs/SENSITIVITY.md"
+   ],
+   [
     "the mapping from these classes onto the existing L-levels",
     "docs/SENSITIVITY.md"
    ],
@@ -350,6 +376,22 @@
    [
     "§9 of the capability map",
     "docs/CAPABILITY-MAP.md"
+   ],
+   [
+    "twenty numbered rules",
+    "CLAUDE.md"
+   ],
+   [
+    "§5 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§6 of the architecture",
+    "docs/ARCHITECTURE.md"
+   ],
+   [
+    "§24 of the capability map",
+    "docs/CAPABILITY-MAP.md"
    ]
   ]
  },
@@ -366,7 +408,11 @@
    "CLAUDE.md": "CLAUDE",
    "docs/CROSSINGS.md": "CROSSINGS",
    "docs/ARCHITECTURE.md": "ARCHITECTURE",
-   "lyrics/get-ready.txt": "get ready txt"
+   "lyrics/get-ready.txt": "get ready txt",
+   "docs/EXTERNAL-ARM.md": "EXTERNAL ARM",
+   "docs/OPEN-SOURCE-SURVEY.md": "OPEN SOURCE SURVEY",
+   "docs/PLAN-GUARDIANSHIP.md": "PLAN GUARDIANSHIP",
+   "voice.py": "voice py"
   },
   "sealed": {
    "docs/CAPABILITY-MAP.md": [
@@ -392,7 +438,8 @@
     "§5 of the capability map",
     "§6 of the capability map",
     "§7 of the capability map",
-    "§9 of the capability map"
+    "§9 of the capability map",
+    "§24 of the capability map"
    ],
    "docs/LANE-MODEL.md": [
     "the W-1/W-3 schema",
@@ -404,13 +451,15 @@
    "docs/SENSITIVITY.md": [
     "the `L1–L5` rungs",
     "The `L1`–`L5` rungs",
+    "the class-to-L mapping",
     "the mapping from these classes onto the existing L-levels",
     "the sensitivity ladder"
    ],
    "craft/": [
     "the eight text-only checks",
     "the checker",
-    "the craft checker"
+    "the craft checker",
+    "craft checks"
    ],
    "docs/FLEET-READS.md": [
     "The 36 fleet repositories this design rests on"
@@ -422,7 +471,8 @@
     "migration 001"
    ],
    "CLAUDE.md": [
-    "CLAUDE.md's one-line gloss"
+    "CLAUDE.md's one-line gloss",
+    "twenty numbered rules"
    ],
    "docs/CROSSINGS.md": [
     "a findings record"
@@ -438,10 +488,24 @@
     "§7.4 of the architecture",
     "§8.1 of the architecture",
     "§8.2 of the architecture",
-    "this document's parent"
+    "this document's parent",
+    "§5 of the architecture",
+    "§6 of the architecture"
    ],
    "lyrics/get-ready.txt": [
     "the song"
+   ],
+   "docs/EXTERNAL-ARM.md": [
+    "The external arm"
+   ],
+   "docs/OPEN-SOURCE-SURVEY.md": [
+    "Survey finding 1.10"
+   ],
+   "docs/PLAN-GUARDIANSHIP.md": [
+    "a charter about wards"
+   ],
+   "voice.py": [
+    "The rule table"
    ]
   },
   "probes": [
@@ -550,6 +614,10 @@
     "docs/schema/001_lanes.proposed.sql"
    ],
    [
+    "the class-to-L mapping",
+    "docs/SENSITIVITY.md"
+   ],
+   [
     "the mapping from these classes onto the existing L-levels",
     "docs/SENSITIVITY.md"
    ],
@@ -560,6 +628,10 @@
    [
     "this document's parent",
     "docs/ARCHITECTURE.md"
+   ],
+   [
+    "twenty numbered rules",
+    "CLAUDE.md"
    ]
   ]
  }

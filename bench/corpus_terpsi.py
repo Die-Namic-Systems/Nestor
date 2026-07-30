@@ -59,6 +59,20 @@ from collections import Counter, defaultdict
 # result carries the revision, because a later revision is a different corpus.
 TERPSI = pathlib.Path(os.environ.get("TERPSI_ROOT", "/workspace/terpsi-music"))
 
+#: The revision every recorded stage-3 figure was measured against.
+#:
+#: `terpsi-music` moved after this corpus was extracted — PR #7 deleted
+#: `docs/SKINS.md` and `docs/prose.intent` — so a run against `main` silently
+#: measures a smaller corpus: 86 spans over 10 referents instead of 96 over 14.
+#: Not comparable, and it looks like an ordinary result.
+#:
+#: This is not hypothetical. Four runs were published against the wrong
+#: revision, and the `corpus_revision` field recorded the mistake faithfully in
+#: the file nobody read. The remedy is therefore a banner at the END of the
+#: output, not another field: the run that went wrong was checked with
+#: `| tail -2`, and everything diagnostic was at the top.
+PINNED_REV = "6ea9b89"
+
 MIN_LEN, MAX_LEN = 8, 90
 
 # Anaphora, not names. A person writing "this document", "that document" or

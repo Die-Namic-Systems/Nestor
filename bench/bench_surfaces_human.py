@@ -319,9 +319,29 @@ def main() -> None:
                     pathlib.Path(__file__).parent.parent / "nestor" / "matcher.py"],
     )
     print(f"\nwrote {path}")
-    d = pathlib.Path("bench/results/terpsi_splits.json")
+    # __file__-relative: this was cwd-relative and silently wrote into
+    # whatever directory the bench happened to be launched from. And it follows
+    # the same published/local switch as the run record — it is a run output, so
+    # regenerating it must not dirty the tree either. Publishing it deliberately
+    # matters because another repository consumes this file.
+    d = ((harness.RESULTS if harness.publishing() else harness.LOCAL)
+         / "terpsi_splits.json")
+    d.parent.mkdir(parents=True, exist_ok=True)
     d.write_text(json.dumps(DUMP, indent=1, ensure_ascii=False))
-    print(f"wrote {d} — the resolved splits, so another implementation\n  can answer the identical probe list rather than a similar one")
+    print(f"wrote {d} — the resolved splits, so another implementation\n"
+          "  can answer the identical probe list rather than a similar one")
+
+    # Last line, deliberately. The run that measured the wrong corpus was
+    # checked with `| tail -2`, so a warning at the top would have been
+    # truncated away exactly as the gate's rejection counts were.
+    rev = corpus_terpsi.corpus_revision()
+    if not rev.startswith(corpus_terpsi.PINNED_REV):
+        print(f"\n{'*' * 70}\n"
+              f"** WRONG CORPUS: TERPSI_ROOT is at {rev}, not {corpus_terpsi.PINNED_REV}.\n"
+              f"** Every figure above measures a DIFFERENT corpus and is not\n"
+              f"** comparable to any recorded stage-3 result.\n"
+              f"**   git -C $TERPSI_ROOT checkout {corpus_terpsi.PINNED_REV}\n"
+              f"{'*' * 70}")
 
 
 def _run_splits(variant, records, side_a, side_b, matcher, results, strict=False) -> None:
