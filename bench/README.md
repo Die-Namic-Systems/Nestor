@@ -74,6 +74,44 @@ other, so `corpora.py` provides both ends of that spectrum:
 
 Both are seeded and reproducible.
 
+## Reading a results file
+
+`results/<bench>.json` is **append-only and tracked in git**, so it accumulates
+every run anyone has made, including the ones that turned out to be wrong. Two
+fields decide whether a run is worth reading, and both have to be checked:
+
+**`superseded`** — present when a later fix invalidated the numbers, with the
+reason written out. The runs are kept rather than deleted: a discarded run is
+still evidence about how the harness moved, and removing it would leave the file
+agreeing with itself for the wrong reason. `surfaces_human.json` carries fifteen.
+
+**`environment.code_digest`** — a hash of the source files the bench declares as
+determining its numbers. Two runs with the same digest ran the same code.
+
+`environment.git_rev` is **not** provenance, and this file is the proof. Every
+one of `surfaces_human.json`'s first 23 runs recorded `111c187`, because the
+bench was untracked while it was being edited: HEAD could not move, so a commit
+hash could not tell a correct run from one produced by a harness carrying two
+known defects. `git_dirty` is recorded for the same reason — a dirty tree makes
+the revision a lower bound on what changed, and nothing more.
+
+Runs recorded before the digest existed carry `code_digest: null`. They are not
+superseded, but they rest on reproduction rather than on a fingerprint: the
+stage-3 figures were reproduced independently on another machine, which is the
+only reason they are still quoted.
+
+```bash
+python - <<'EOF'
+import json
+runs = json.load(open("bench/results/surfaces_human.json"))["runs"]
+for r in runs:
+    if r.get("superseded"):
+        continue
+    print(r["run_id"], r["params"].get("matcher"),
+          r["environment"].get("code_digest"))
+EOF
+```
+
 ## Method notes (read before trusting a number)
 
 **Held-out probes must be exchangeable with sealed ones.** The first version of

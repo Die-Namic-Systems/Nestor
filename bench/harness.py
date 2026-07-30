@@ -7,6 +7,7 @@ list, newest last.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pathlib
@@ -19,26 +20,75 @@ import time
 RESULTS = pathlib.Path(__file__).parent / "results"
 
 
-def _git_rev() -> str:
+ROOT = pathlib.Path(__file__).parent.parent
+
+
+def _git(*args: str) -> str:
     try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                              capture_output=True, text=True,
-                              cwd=pathlib.Path(__file__).parent.parent).stdout.strip()
+        return subprocess.run(["git", *args], capture_output=True, text=True,
+                              cwd=ROOT, timeout=10).stdout.strip()
     except Exception:
-        return "unknown"
+        return ""
 
 
-def environment() -> dict:
+def _git_rev() -> str:
+    return _git("rev-parse", "--short", "HEAD") or "unknown"
+
+
+def _git_dirty() -> bool:
+    """Whether the working tree differs from HEAD, including untracked files.
+
+    ``git_rev`` alone is not provenance, and this repository has the receipts:
+    every one of the first 23 runs in ``results/surfaces_human.json`` recorded
+    ``111c187``, because the bench files were untracked while they were being
+    edited. HEAD never moved, the code changed underneath it, and four of those
+    runs were produced by a harness carrying two defects that were later fixed.
+    **A revision that cannot move is not a version.**
+    """
+    return bool(_git("status", "--porcelain"))
+
+
+def code_digest(paths) -> str:
+    """Short digest over the source that actually produced a run.
+
+    Tied to file *contents*, not to a commit, because the failure this exists to
+    catch is the one a commit hash structurally misses: code that changed while
+    the revision did not. Files are hashed in sorted order together with their
+    repo-relative names, so moving a file changes the digest too.
+
+    Deliberately narrow — the caller declares which files determine its numbers.
+    Hashing all of ``bench/`` would move this digest whenever an unrelated bench
+    was edited, and a fingerprint that cries wolf is one people learn to ignore.
+    """
+    h = hashlib.sha256()
+    for p in sorted({pathlib.Path(x).resolve() for x in paths}):
+        try:
+            rel = p.relative_to(ROOT)
+        except ValueError:
+            rel = pathlib.Path(p.name)
+        h.update(str(rel).encode("utf-8") + b"\0")
+        try:
+            h.update(p.read_bytes())
+        except OSError:
+            h.update(b"<unreadable>")
+        h.update(b"\0")
+    return h.hexdigest()[:12]
+
+
+def environment(code_files=()) -> dict:
     return {
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "processor": platform.processor() or platform.machine(),
         "git_rev": _git_rev(),
+        "git_dirty": _git_dirty(),
+        "code_digest": code_digest(code_files) if code_files else None,
     }
 
 
 def record(name: str, params: dict, measurements, notes: str = "",
-           run_id: str = "", complete: bool = True) -> pathlib.Path:
+           run_id: str = "", complete: bool = True,
+           code_files=()) -> pathlib.Path:
     """Append (or update) one run in ``bench/results/<name>.json``.
 
     Pass a stable ``run_id`` and call this after every row to checkpoint a long
@@ -62,7 +112,7 @@ def record(name: str, params: dict, measurements, notes: str = "",
         "run_id": run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "complete": complete,
-        "environment": environment(),
+        "environment": environment(code_files),
         "params": params,
         "notes": notes,
         "measurements": measurements,

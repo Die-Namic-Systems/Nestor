@@ -307,6 +307,16 @@ def main() -> None:
                "are a family whose members differ by a digit, close enough to an "
                "exact-match lookup to carry a result on their own, so the variant "
                "without them is the conservative number."),
+        # The files whose contents decide these numbers. Not a commit hash:
+        # every one of this file's first 23 runs recorded git_rev 111c187,
+        # because the bench was untracked while it was being edited.
+        code_files=[__file__,
+                    pathlib.Path(__file__).parent / "corpus_terpsi.py",
+                    pathlib.Path(__file__).parent / "token_matchers.py",
+                    pathlib.Path(__file__).parent / "bench_accuracy.py",
+                    pathlib.Path(__file__).parent / "bench_surfaces.py",
+                    pathlib.Path(__file__).parent / "harness.py",
+                    pathlib.Path(__file__).parent.parent / "nestor" / "matcher.py"],
     )
     print(f"\nwrote {path}")
     d = pathlib.Path("bench/results/terpsi_splits.json")
