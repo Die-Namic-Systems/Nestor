@@ -1,0 +1,77 @@
+{
+  "bench": "surfaces_llm_independent",
+  "runs": [
+    {
+      "run_id": "20260730T200443Z",
+      "recorded_at": "2026-07-30T20:04:43Z",
+      "complete": true,
+      "environment": {
+        "python": "3.11.15",
+        "platform": "Linux-6.18.5-x86_64-with-glibc2.39",
+        "processor": "x86_64",
+        "git_rev": "111c187"
+      },
+      "params": {
+        "probes": 300,
+        "absent": 250,
+        "seed": 7,
+        "probe_author": "independent agent, user-search-query framing, never saw sealing surfaces",
+        "caveat": "probe author and surface author are the same model family; real independence is lower than this design implies"
+      },
+      "notes": "Stage 2 with probes from an author independent of both the generator and the sealing model.",
+      "measurements": [
+        {
+          "arm": "generator families",
+          "k": 5,
+          "rows": 1500,
+          "by_threshold": [
+            {
+              "threshold": 0.92,
+              "recall": 0.43,
+              "false_seal_rate": 0.028
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.2933,
+              "false_seal_rate": 0.0
+            }
+          ]
+        },
+        {
+          "arm": "model-authored surfaces",
+          "k": 5,
+          "rows": 1402,
+          "by_threshold": [
+            {
+              "threshold": 0.92,
+              "recall": 0.67,
+              "false_seal_rate": 0.032
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.57,
+              "false_seal_rate": 0.004
+            }
+          ]
+        },
+        {
+          "arm": "canonical only (K=1)",
+          "k": 1,
+          "rows": 300,
+          "by_threshold": [
+            {
+              "threshold": 0.92,
+              "recall": 0.1167,
+              "false_seal_rate": 0.0
+            },
+            {
+              "threshold": 0.96,
+              "recall": 0.0233,
+              "false_seal_rate": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

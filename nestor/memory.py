@@ -354,6 +354,30 @@ def verified_sealed(matches: list[dict]) -> list[dict]:
     return [m for m in matches if is_verified_seal(m["pair"])]
 
 
+def without_forged_seals(matches: list[dict]) -> list[dict]:
+    """Drop rows that *claim* ``sealed`` but whose signature does not verify.
+
+    The weaker sibling of :func:`verified_sealed`, for paths entitled to draw on
+    drafts. ``verified_sealed`` keeps *only* verified sealed rows, which is right
+    for the engine's TM context — that context is presented to the model as
+    authoritative — and wrong for the offline draft path, which the README
+    explicitly permits to draw on drafts. Using it there would close a forgery
+    hole by deleting a documented feature.
+
+    What a forged row actually buys an attacker is worth stating precisely: not
+    a serve. It lands as ``state='draft'`` in the review queue and a human sees
+    it before anything is sealed. But **reviewers anchor hardest on the text
+    they are shown first**, so a forged row reaching the draft influences the
+    outcome more than the system prompt it was deliberately kept out of. A row
+    asserting a status it cannot prove should not be the first thing a person
+    reads.
+
+    A genuine draft is untouched. Only the claim to be sealed is checked.
+    """
+    return [m for m in matches
+            if m["pair"].get("status") != "sealed" or is_verified_seal(m["pair"])]
+
+
 def best_sealed(source_text: str, source_lang: str, target_lang: str,
                 store: Optional[Storage] = None,
                 matcher: Optional[Matcher] = None,
@@ -484,34 +508,57 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
     curated bilingual pairs; both directions of each pair are sealed into the
     memory. Returns the number of pairs written.
 
-    **A human's seal beats the corpus.** Seeding uses the fixed verifier
-    ``"corpus"``, which never matches a person, so any phrase a human already
-    sealed differently is a :class:`ConflictingSealError`. Letting that escape
-    would abort a bulk import partway and leave a half-loaded memory, so
-    conflicts are skipped and the rest of the corpus still lands — a curated
-    file must not overrule a person, and must not be able to halt the load
-    either.
+    **A human's decision beats the corpus, and cannot stop the load.** Seeding
+    uses the fixed verifier ``"corpus"``, which never matches a person, so a
+    phrase a human already sealed differently raises
+    :class:`ConflictingSealError` and one they *rejected* raises
+    :class:`RejectedPairError`. Either escaping would abort a bulk import
+    partway and leave a half-loaded memory, so both are skipped and the rest of
+    the corpus still lands — a curated file must not overrule a person, and must
+    not be able to halt the load either.
 
-    Skips are never silent: each one is written to the ledger as
-    ``seed_conflict`` and the call warns once with the total. A seeding run that
-    quietly dropped rows would be the same "absence reported as success" this
-    codebase refuses everywhere else.
+    Skips are never silent: each is written to the ledger as ``seed_conflict``
+    or ``seed_rejected`` — kept distinct, because "already sealed differently"
+    and "previously rejected" are different facts about the corpus — and the
+    call warns once with both totals. A seeding run that quietly dropped rows
+    would be the same "absence reported as success" this codebase refuses
+    everywhere else.
     """
     store = get_store(store)
     loader = loader or _bilingual_loader
     count = 0
     skipped = 0
+    rejected = 0
 
     def _seal(src: str, tgt: str, sl: str, tl: str, origin: str) -> int:
-        nonlocal skipped
+        nonlocal skipped, rejected
         try:
             add_pair(src, tgt, sl, tl, status="sealed", verifier="corpus",
                      origin=origin, store=store)
             return 1
-        except ConflictingSealError:
-            skipped += 1
+        except (ConflictingSealError, RejectedPairError) as exc:
+            # Both are the same fact — a person already decided about this
+            # phrase and a curated file does not get to overrule them — so both
+            # get the same treatment the docstring's reasoning demands: skip,
+            # log, count, keep loading. `RejectedPairError` was raised a few
+            # lines earlier in `add_pair` and escaped, which aborted the import
+            # at the first previously-rejected phrase and left the rest of the
+            # file silently unloaded. That is precisely the failure the conflict
+            # catch exists to prevent.
+            #
+            # The two `kind`s stay distinct in the ledger. "already sealed
+            # differently by a human" and "previously rejected by a human" are
+            # different facts about the corpus, and collapsing them into one
+            # entry would erase the difference the rejection machinery exists to
+            # preserve.
+            is_conflict = isinstance(exc, ConflictingSealError)
+            if is_conflict:
+                skipped += 1
+            else:
+                rejected += 1
             _log_seal_event({
-                "kind": "seed_conflict", "source_lang": sl, "target_lang": tl,
+                "kind": "seed_conflict" if is_conflict else "seed_rejected",
+                "source_lang": sl, "target_lang": tl,
                 "source_sha": _sha(get_matcher().normalize(src)),
                 "target_sha": _sha(tgt), "origin": origin,
                 "verifier": "corpus",
@@ -525,11 +572,17 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
                            item["lang_front"], item["lang_back"], origin)
             count += _seal(item["back"], item["front"],
                            item["lang_back"], item["lang_front"], origin)
-    if skipped:
+    if skipped or rejected:
+        parts = []
+        if skipped:
+            parts.append(f"{skipped} already sealed differently by a human "
+                         f"(see 'seed_conflict' ledger entries)")
+        if rejected:
+            parts.append(f"{rejected} previously rejected by a human "
+                         f"(see 'seed_rejected' ledger entries)")
         warnings.warn(
-            f"seed_from_corpus skipped {skipped} pair(s) already sealed "
-            f"differently by a human — see 'seed_conflict' ledger entries. "
-            f"{count} pair(s) written.",
+            f"seed_from_corpus skipped {skipped + rejected} pair(s): "
+            f"{'; '.join(parts)}. {count} pair(s) written.",
             RuntimeWarning, stacklevel=2)
     return count
 

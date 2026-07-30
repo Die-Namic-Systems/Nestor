@@ -41,7 +41,18 @@ class OfflineEngine:
 
     def translate(self, text: str, source_lang: str, target_lang: str,
                   store=None) -> Draft | None:
-        matches = memory.lookup(text, source_lang, target_lang, limit=1, store=store)
+        # Forged seals are filtered here for the same reason `_context_pairs`
+        # filters them: a row nobody signed must not be copied verbatim into the
+        # first thing a reviewer reads. `without_forged_seals` rather than
+        # `verified_sealed` because this path is *entitled* to draft rows — the
+        # asymmetry with the context path is deliberate and now written down,
+        # which is what the previous version was missing more than the filter.
+        #
+        # `limit` is raised before filtering: taking the top 1 and then dropping
+        # it returns None where a legitimate second-best match existed, which
+        # would turn a forgery into a denial of service.
+        matches = memory.without_forged_seals(
+            memory.lookup(text, source_lang, target_lang, limit=5, store=store))
         if not matches:
             return None
         m = matches[0]

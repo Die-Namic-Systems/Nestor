@@ -114,6 +114,203 @@ def available_prose() -> int:
 
 CORPORA = {"boilerplate": boilerplate, "prose": prose}
 
+# --------------------------------------------------------------------------
+# aliased — one meaning, several LEXICALLY DISJOINT surfaces (IDEAS.md §3.4)
+# --------------------------------------------------------------------------
+#
+# boilerplate and prose both model "the same sentence, retyped." perturb()
+# then varies them, and the variation lands at similarity 0.62-0.85 — a tight
+# cluster around one canonical string.
+#
+# The miss class §3.4 is about is not that. `AWS` / `Amazon Web Services` score
+# 0.273; `Q3 2025` / `September 30 2025` score 0.500. Those are the SAME
+# referent wearing surfaces that share almost no characters, and no amount of
+# perturbing one string produces the other. bench_surfaces.py was built before
+# this generator existed and was consequently blind to its own subject: the
+# canonical surface won 117 matches out of 117, because in a cluster geometry
+# the centroid is always the best bridge.
+#
+# This generator emits the disjoint case directly. Each meaning is a LIST of
+# surfaces drawn from distinct families, so the return shape differs from the
+# other two corpora — list[list[str]] rather than list[str]. That is deliberate:
+# a meaning with one surface cannot express this phenomenon at all, so the type
+# refuses to represent it.
+
+_CO_PLACE = ("northwind arden belmont crestline dunmore eastgate fairhaven "
+             "glenrock harrowby inverness jarvale kestrel langmere marchford "
+             "norbury oakhurst pendral quarrow ravensby stonebridge").split()
+_CO_TRADE = ("logistics dynamics analytics foundry robotics textiles maritime "
+             "aerospace chemical pharma networks systems holdings ventures "
+             "minerals petroleum insurance shipping timber granite").split()
+_CO_SUFFIX = ("corporation incorporated limited group partners holdings").split()
+_LEG_FIRST = ("bergstrom caldwell delacroix ellsworth fairbanks garrity "
+              "hollingsworth ivanov jorgensen kowalski lindqvist mortimer "
+              "nakamura okonkwo petrov quillan rasmussen sandoval thackeray "
+              "ueland").split()
+_LEG_TRADE = ("freight bros trading works mills supply co brothers "
+              "enterprises industries").split()
+
+
+def _acronym(words: list[str]) -> str:
+    return "".join(w[0] for w in words).upper()
+
+
+def _ticker(words: list[str]) -> str:
+    """A 4-letter ticker from the name's consonants — disjoint from the full
+    form by construction, and stable for a given name."""
+    letters = [c for c in "".join(words) if c not in "aeiou"]
+    return "".join(letters[:4]).upper() or "".join(words)[:4].upper()
+
+
+def aliased(n: int, seed: int = 7, offset: int = 0) -> list[list[str]]:
+    """``n`` meanings, each a list of lexically disjoint surfaces for ONE referent.
+
+    Five families per meaning, in a fixed priority order — roughly how often a
+    real query would use each:
+
+    ==  ==============  ==================================
+    0   full            ``northwind logistics corporation``
+    1   short           ``northwind logistics``
+    2   acronym         ``NLC``
+    3   ticker          ``NRTH``
+    4   legacy name     ``bergstrom freight``
+    ==  ==============  ==================================
+
+    The legacy name shares no words with the others at all — a rename, which is
+    the hardest and most realistic instance of the class: nothing about the
+    current name lets you recover it.
+
+    Unlike :func:`boilerplate` and :func:`prose` this returns a list of surface
+    LISTS. Verify the defining property with :func:`aliased_dispersion` rather
+    than trusting this docstring — the whole reason this generator exists is
+    that a corpus property was once assumed and turned out to be false.
+    """
+    rng = random.Random(seed)
+    out: list[list[str]] = []
+    for i in range(n):
+        place = rng.choice(_CO_PLACE)
+        trade = rng.choice(_CO_TRADE)
+        suffix = rng.choice(_CO_SUFFIX)
+        # The section-style disambiguator keeps meanings distinct at scale
+        # without making the surfaces resemble each other any more than they do.
+        tag = str(offset + i)
+        words = [place, trade]
+        out.append([
+            f"{place} {trade} {suffix} {tag}",
+            f"{place} {trade} {tag}",
+            f"{_acronym(words)}{tag}",
+            f"{_ticker(words)}{tag}",
+            f"{rng.choice(_LEG_FIRST)} {rng.choice(_LEG_TRADE)} {tag}",
+        ])
+    return out
+
+
+_SUFFIX_ABBREV = {"corporation": "corp", "incorporated": "inc", "limited": "ltd",
+                  "group": "grp", "partners": "ptnrs", "holdings": "hldgs"}
+
+
+def aliased_query(surface: str, rng: random.Random) -> str:
+    """Realistic non-exact rendering of one aliased surface.
+
+    :func:`perturb` does not bite on these strings and silently returns them
+    unchanged — 88% of surface-tier and 100% of paraphrase-tier probes
+    normalized identically to their source, which turned the §3.4 bench into a
+    test of whether the exact string was sealed. Its strategies assume long
+    sentences: the synonym tables hold no company vocabulary, ``_reorder`` needs
+    clauses, ``_telegraphic`` needs function words to drop, and the typo rule
+    requires more than 12 characters, so a 3-character acronym passes straight
+    through.
+
+    This applies noise a *person* would introduce when typing a name they know:
+    abbreviating the legal suffix, dotting an acronym, dropping the suffix
+    entirely, or a single typo. Always returns something that differs after
+    normalization when it can — verify with :func:`aliased_query_bite` rather
+    than trusting this docstring.
+    """
+    words = surface.split()
+    choices = []
+
+    if len(words) > 1 and words[-2].lower() in _SUFFIX_ABBREV:
+        choices.append(lambda: " ".join(
+            words[:-2] + [_SUFFIX_ABBREV[words[-2].lower()], words[-1]]))
+        choices.append(lambda: " ".join(words[:-2] + [words[-1]]))   # drop it
+    if len(words) > 2:
+        choices.append(lambda: " ".join(words[:-2] + [words[-1]]))   # drop a word
+    head = words[0]
+    if head.isupper() and len(head) >= 2:
+        choices.append(lambda: ".".join(head) + ". " + " ".join(words[1:]))
+        choices.append(lambda: head[0] + head[1:].lower() + " " + " ".join(words[1:]))
+    if len(surface) > 6:
+        def typo():
+            i = rng.randrange(1, len(surface) - 1)
+            return surface[:i] + rng.choice("aeiourstn") + surface[i + 1:]
+        choices.append(typo)
+
+    rng.shuffle(choices)
+    for fn in choices:
+        out = fn().strip()
+        if out and out.lower() != surface.lower():
+            return out
+    return surface
+
+
+def aliased_query_bite(meanings: list[list[str]], rng_seed: int = 7,
+                       matcher=None) -> dict:
+    """How far :func:`aliased_query` actually moves a surface, measured.
+
+    ``identical`` is the number that matters: if it is high the bench is testing
+    exact lookup, not matching, and every recall figure computed on it is void.
+    """
+    if matcher is None:
+        from nestor.matcher import StringMatcher
+        matcher = StringMatcher()
+    rng = random.Random(rng_seed)
+    sims, identical = [], 0
+    for meaning in meanings:
+        for surf in meaning:
+            probe = aliased_query(surf, rng)
+            a, b = matcher.normalize(probe), matcher.normalize(surf)
+            if a == b:
+                identical += 1
+            sims.append(matcher.similarity(a, b))
+    sims.sort()
+    return {"n": len(sims), "identical": identical,
+            "identical_pct": round(identical / max(1, len(sims)), 4),
+            "p50": round(sims[len(sims) // 2], 3),
+            "p10": round(sims[int(len(sims) * 0.1)], 3)}
+
+
+def aliased_dispersion(meanings: list[list[str]], matcher=None) -> dict:
+    """Measured pairwise similarity WITHIN each meaning's surface set.
+
+    The point of :func:`aliased` is that its surfaces are lexically disjoint.
+    That is a claim about the data, so it is measured here and reported into the
+    bench results rather than asserted in a docstring. If ``median`` drifts up
+    into perturb's 0.62-0.85 band, this corpus has stopped modelling the
+    disjoint case and any §3.4 number computed on it is void.
+    """
+    if matcher is None:
+        from nestor.matcher import StringMatcher
+        matcher = StringMatcher()
+    sims = []
+    for surfaces in meanings:
+        norms = [matcher.normalize(s) for s in surfaces]
+        for a in range(len(norms)):
+            for b in range(a + 1, len(norms)):
+                sims.append(matcher.similarity(norms[a], norms[b]))
+    if not sims:
+        return {}
+    sims.sort()
+    return {
+        "n_pairs": len(sims),
+        "min": round(sims[0], 3),
+        "p50": round(sims[len(sims) // 2], 3),
+        "p90": round(sims[int(len(sims) * 0.9)], 3),
+        "max": round(sims[-1], 3),
+        "mean": round(sum(sims) / len(sims), 3),
+    }
+
+
 
 # --------------------------------------------------------------------------
 # perturbations — "the same thing, expressed by a human on a different day"

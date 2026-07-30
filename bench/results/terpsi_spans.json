@@ -1,0 +1,606 @@
+{
+ "corpus": "rudi193-cmd/terpsi-music",
+ "extracted_by": "seven Claude subagents over disjoint document batches in three waves (precision-first, then two high-recall). Agents LABEL which existing human phrase refers to which file; they author no text. Every span is re-checked against the source file by corpus_terpsi.gate.",
+ "records": [
+  {
+   "span": "the capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the class-to-L mapping",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "the proposed migration",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "a findings record",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CROSSINGS.md"
+  },
+  {
+   "span": "§8.1 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the foundation list from the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§13 of the architecture's open question",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the checker",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "craft/"
+  },
+  {
+   "span": "§24 of the capability map",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§5 of the architecture",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§6 of the architecture",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "Survey finding 1.10",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/OPEN-SOURCE-SURVEY.md"
+  },
+  {
+   "span": "a charter about wards",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/PLAN-GUARDIANSHIP.md"
+  },
+  {
+   "span": "the sensitivity ladder",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "the lane model",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the craft checker",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "craft/"
+  },
+  {
+   "span": "the song",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "lyrics/get-ready.txt"
+  },
+  {
+   "span": "this document's parent",
+   "source_file": "docs/CROSSINGS.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "migration 001",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/SENSITIVITY.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "migration 001",
+   "source_file": "docs/SENSITIVITY.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/LANE-MODEL.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the sensitivity ladder",
+   "source_file": "docs/LANE-MODEL.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "The ladder",
+   "source_file": "docs/LANE-MODEL.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "Migration 001",
+   "source_file": "docs/LANE-MODEL.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "README.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "The domain surface",
+   "source_file": "README.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the eight text-only checks",
+   "source_file": "README.md",
+   "referent": "craft/"
+  },
+  {
+   "span": "The proposed migration",
+   "source_file": "README.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "The W-1/W-3 schema",
+   "source_file": "README.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "The `L1`–`L5` rungs",
+   "source_file": "README.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "The 36 fleet repositories this design rests on",
+   "source_file": "README.md",
+   "referent": "docs/FLEET-READS.md"
+  },
+  {
+   "span": "the domain surface",
+   "source_file": "CLAUDE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the W-1/W-3 schema",
+   "source_file": "CLAUDE.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "the `L1–L5` rungs",
+   "source_file": "CLAUDE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "docs/CRAFT-SOURCES.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/CRAFT-SOURCES.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the survey",
+   "source_file": "docs/EXTERNAL-ARM.md",
+   "referent": "docs/OPEN-SOURCE-SURVEY.md"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/PLAN-GUARDIANSHIP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "docs/RECONCILE-19.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§8.1 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§15 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§13 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§8.2 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§7.4 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§6 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§18 item 7 of the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the foundation list from the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§13 of the architecture's open question",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "the checker",
+   "source_file": "docs/CAPABILITY-MAP.md",
+   "referent": "craft/"
+  },
+  {
+   "span": "the document",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§14 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§7 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§5 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§9 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§4 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§1 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§3 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§6 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§12 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§17 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§20 of the capability map",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the lane model",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "migration 001",
+   "source_file": "docs/OPEN-SOURCE-SURVEY.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "§19 of the capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§18 of the capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§20 of the capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§1 of the capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "§24 of the capability map's craft-feedback capability",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "The capability map",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "a findings record",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/CROSSINGS.md"
+  },
+  {
+   "span": "the lane model",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "the class-to-L mapping",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "that document",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "the mapping from these classes onto the existing L-levels",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "The document",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/SENSITIVITY.md"
+  },
+  {
+   "span": "the proposed migration",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "Migration 001",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "the schema",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "Twelve tables",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "CLAUDE.md's one-line gloss",
+   "source_file": "docs/ARCHITECTURE.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "The capability map",
+   "source_file": "docs/survey/scout-15-practice-mir.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the architecture",
+   "source_file": "docs/survey/scout-15-practice-mir.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "migration 001",
+   "source_file": "docs/survey/scout-13-verify-verifier.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "the lane model",
+   "source_file": "docs/survey/scout-20-comms-translation.md",
+   "referent": "docs/LANE-MODEL.md"
+  },
+  {
+   "span": "the lane schema",
+   "source_file": "docs/survey/scout-20-comms-translation.md",
+   "referent": "docs/schema/001_lanes.proposed.sql"
+  },
+  {
+   "span": "Capability map §22 item 10",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the capability map's §20 items about graduation and records disposition",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the capability map's §20 family cases",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "the capability map",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "a numbered refusal list",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "terpsi's list",
+   "source_file": "docs/survey/scout-24-wildcard.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "§24 of the capability map",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "The external arm",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/EXTERNAL-ARM.md"
+  },
+  {
+   "span": "The charter",
+   "source_file": "docs/SKINS.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "twenty numbered rules",
+   "source_file": "docs/SKINS.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "craft checks",
+   "source_file": "docs/SKINS.md",
+   "referent": "craft/"
+  },
+  {
+   "span": "the module's own docstring",
+   "source_file": "docs/SKINS.md",
+   "referent": "personas.py"
+  },
+  {
+   "span": "The rule table",
+   "source_file": "docs/SKINS.md",
+   "referent": "voice.py"
+  },
+  {
+   "span": "§5 of the architecture",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "§6 of the architecture",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/ARCHITECTURE.md"
+  },
+  {
+   "span": "Survey finding 1.10",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/OPEN-SOURCE-SURVEY.md"
+  },
+  {
+   "span": "a charter about wards",
+   "source_file": "docs/SKINS.md",
+   "referent": "docs/PLAN-GUARDIANSHIP.md"
+  },
+  {
+   "span": "CLAUDE.md #17",
+   "source_file": "docs/survey/scout-01-crypto-escrow.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md #18 and #19",
+   "source_file": "docs/survey/scout-01-crypto-escrow.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md #19",
+   "source_file": "docs/survey/scout-02-metadata.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md #13",
+   "source_file": "docs/survey/scout-02-metadata.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md #19",
+   "source_file": "docs/survey/scout-03-relay-localfirst.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md's hard rules",
+   "source_file": "docs/survey/scout-04-authz-guests.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md's #14",
+   "source_file": "docs/survey/scout-05-bitemporal.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md refusal #4",
+   "source_file": "docs/survey/scout-08-annotation.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "CLAUDE.md #17",
+   "source_file": "docs/survey/scout-09-provenance.md",
+   "referent": "CLAUDE.md"
+  },
+  {
+   "span": "Capability map §18",
+   "source_file": "docs/survey/scout-12-consent-dignity.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "capability map §6",
+   "source_file": "docs/survey/scout-12-consent-dignity.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "capability map §8",
+   "source_file": "docs/survey/scout-12-consent-dignity.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "Capability map §6's request",
+   "source_file": "docs/survey/scout-12-consent-dignity.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  },
+  {
+   "span": "The capability map",
+   "source_file": "docs/survey/scout-12-consent-dignity.md",
+   "referent": "docs/CAPABILITY-MAP.md"
+  }
+ ]
+}
