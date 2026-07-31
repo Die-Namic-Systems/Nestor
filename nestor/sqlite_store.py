@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS tm_rejections (
 CREATE INDEX IF NOT EXISTS idx_segments_document ON segments(document_id);
 CREATE INDEX IF NOT EXISTS idx_tm_langs ON tm_pairs(source_lang, target_lang, status);
 -- Rejections are read on the hot path (every lookup), keyed by exactly this
--- triple, so unlike tm_pairs.source_norm this one is indexed from the start.
+-- triple. tm_pairs.source_norm is indexed via idx_tm_pairs_key (see below).
 CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
     ON tm_rejections(query_norm, source_lang, target_lang);
 """
@@ -85,6 +85,10 @@ CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
 # existed may already hold duplicates, and a CREATE that raises inside the
 # idempotent schema script would brick every later memory_init() on it.
 _UNIQUE_KEY = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_tm_pairs_key "
+               "ON tm_pairs(source_norm, source_lang, target_lang)")
+# When the unique index cannot be built (duplicate norms already present),
+# lookups on every add_pair still need an index (IDEAS §2.3).
+_LOOKUP_KEY = ("CREATE INDEX IF NOT EXISTS idx_tm_pairs_find "
                "ON tm_pairs(source_norm, source_lang, target_lang)")
 
 
@@ -186,6 +190,7 @@ class SqliteStore:
                 f"row, so the uniqueness index could not be created and concurrent "
                 f"seals can still race. Curator.list() shows the duplicates; "
                 f"resolve them and re-open the store.", RuntimeWarning, stacklevel=3)
+            conn.execute(_LOOKUP_KEY)
 
     # --- documents -------------------------------------------------------
 

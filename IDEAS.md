@@ -484,11 +484,14 @@ candidates survived it. That number is from the homogeneous boilerplate corpus,
 which is the worst case for blocking — on diverse prose it should do far better,
 and that is worth measuring before judging the idea. Lossy, unlike §2.1.
 
-### 2.3 Index `source_norm` — **measured**
+### 2.3 Index `source_norm` — **shipped**
 
-`memory_find` runs on every `add_pair` and there is no index on `source_norm`
-(only `(source_lang, target_lang, status)`). Adding one cut ingest from
-~10.1 s/1k to ~4.5 s/1k at 32k rows — **2.3x**, one line of DDL.
+`memory_find` runs on every `add_pair`. Fresh reference databases get
+``idx_tm_pairs_key`` on ``(source_norm, source_lang, target_lang)`` — the same
+unique index §1.8 added for concurrent seals, which also satisfies the measured
+~2.3× ingest win (bench session 2026-07-25). If duplicates already exist and the
+unique index cannot be created, ``idx_tm_pairs_find`` on the same columns is
+installed so lookups stay indexed while the operator resolves the dupes.
 
 ### 2.4 Connection-per-operation — **open**
 
