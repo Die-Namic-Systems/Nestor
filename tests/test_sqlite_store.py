@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import os
+import pathlib
 import shutil
 import threading
 import warnings
 
 import pytest
 
-from nestor import memory
+from nestor import memory, sqlite_store
 from nestor.sqlite_store import SqliteStore
 
 
@@ -48,6 +50,85 @@ def test_file_backed_connection_is_reused_within_a_thread(tmp_path):
         id_first = id(first)
     with store._db() as second:
         assert id(second) == id_first
+
+
+def test_the_idle_pool_is_capped_however_many_threads_arrive(tmp_path):
+    """The reason this is a pool and not a connection per thread.
+
+    ``nestor.ui`` runs HTTP/1.1 keep-alive on ``ThreadingHTTPServer``, so a
+    thread exists per TCP connection: a reload, a reconnect, a monitoring probe.
+    Binding a persistent connection to each of them leaves one descriptor per
+    thread that ever touched the store, freed by the *cyclic* collector rather
+    than promptly — and nothing about running out of descriptors makes Python
+    collect. Measured before this cap: under ``ulimit -n 256`` the store failed
+    after 340 requests with "unable to open database file", which also refuses
+    seals, because the ledger needs to open a file too.
+    """
+    fd_dir = pathlib.Path("/proc/self/fd")
+    if not fd_dir.is_dir():
+        pytest.skip("counts open descriptors; needs /proc")
+
+    db = tmp_path / "pooled.db"
+    store = SqliteStore(str(db))
+    store.memory_init()
+
+    def open_handles() -> int:
+        found = 0
+        for entry in fd_dir.iterdir():
+            try:
+                if os.readlink(entry).startswith(str(db)):
+                    found += 1
+            except OSError:          # the fd closed while we walked
+                continue
+        return found
+
+    def hammer(rounds: int) -> None:
+        for _ in range(rounds):
+            threads = [threading.Thread(target=memory.lookup,
+                                        args=(f"q{i}", "en", "es"),
+                                        kwargs={"store": store}) for i in range(30)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+    hammer(4)                        # fill the pool and create the WAL sidecars
+    settled = open_handles()
+    hammer(8)                        # 360 threads all told, none of them alive now
+    grown = open_handles()
+    # Bounded, not monotone: sidecar handles wobble by one or two between
+    # interpreter versions, so allow a pool's worth of slack. What this has to
+    # catch is growth that *scales with thread count* — the per-thread version
+    # measured 156 -> 272 across exactly these two phases.
+    assert grown <= settled + sqlite_store._POOL_MAX, (
+        f"{grown} descriptors after 360 request threads against {settled} after 120 — "
+        f"a connection that outlives its thread is a descriptor nothing closes")
+    assert len(store._pool) <= sqlite_store._POOL_MAX
+
+
+def test_a_closed_store_refuses_rather_than_answering_from_an_empty_one(tmp_path):
+    """The failure mode matters more than the failure.
+
+    ``close()`` used to leave ``_shared`` at ``None``, which sent the next call
+    down the file path and opened a *fresh* ``:memory:`` database — so a closed
+    store answered "0 sealed" instead of refusing. On a package whose product is
+    "has a human checked this", a plausible wrong answer is worse than a crash.
+    """
+    mem = SqliteStore(":memory:")
+    mem.memory_init()
+    memory.add_pair("hello", "hola", "en", "es", status="sealed",
+                    verifier="rita", store=mem)
+    assert memory.stats(store=mem)["sealed"] == 1
+    mem.close()
+    with pytest.raises(sqlite_store.StoreClosedError):
+        memory.stats(store=mem)
+
+    disk = SqliteStore(str(tmp_path / "closed.db"))
+    disk.memory_init()
+    disk.close()
+    disk.close()                      # idempotent: shutdown paths run twice
+    with pytest.raises(sqlite_store.StoreClosedError):
+        memory.stats(store=disk)
 
 
 def test_close_checkpoints_wal_so_the_main_file_is_self_contained(tmp_path):

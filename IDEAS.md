@@ -503,10 +503,32 @@ i.e. it is noise at this scale. Recorded here so nobody re-derives the same dead
 end.
 
 **There is now a threaded consumer.** `nestor.ui` serves from a thread pool; the
-in-memory store keeps one shared connection behind an ``RLock`` (SQLite objects
-belong to the thread that made them). File-backed stores now hold one persistent
-connection per thread with ``PRAGMA journal_mode=WAL``, so concurrent reviewers
-reuse connections instead of paying connect/teardown on every API call.
+in-memory store keeps one shared connection behind an ``RLock``. File-backed
+stores keep a **bounded pool of idle connections** (``_POOL_MAX``, 8) under
+``PRAGMA journal_mode=WAL``, so concurrent reviewers reuse connections instead of
+paying connect/teardown on every API call. Measured, 3000 single-row reads:
+
+| | time |
+|---|---|
+| a fresh connection per operation | 0.857s |
+| a persistent connection per thread | 0.042s |
+| a bounded idle pool | 0.045s |
+
+The pool exists rather than a connection per thread because of how the threads
+arrive. `ThreadingHTTPServer` under HTTP/1.1 keep-alive makes one thread per TCP
+connection — a reload, a reconnect, a monitoring probe — and a connection bound
+to a thread outlives it: `sqlite3.Connection` sits in reference cycles, so it is
+freed by the *cyclic* collector rather than promptly, and nothing about running
+out of file descriptors makes Python collect. Under ``ulimit -n 256`` the
+per-thread version failed after **340 requests** with ``unable to open database
+file`` where connection-per-operation ran 2000 clean; that also refuses seals,
+because the ledger needs to open a file too. The pool keeps essentially all the
+speed and caps descriptors at the pool size: anything borrowed beyond it is
+closed on return, not accumulated.
+
+``close()`` checkpoints the WAL into the main file and retires the store; using
+one afterwards raises ``StoreClosedError`` rather than quietly reopening, which
+for ``:memory:`` used to mean answering "0 sealed" from a fresh empty database.
 
 Still open: skipping redundant ``memory_init`` schema replay per connection
 (measured as noise for ingest; may matter only at huge table counts).
@@ -1405,10 +1427,13 @@ sorted norms.
 control how often the full chain walk runs on seal/reject preflight and append.
 ``nestor.ui`` sets a five-minute default when the env var is absent.
 
-### 6.5 File-backed SQLite: per-thread connections — **shipped**
+### 6.5 File-backed SQLite: a bounded WAL connection pool — **shipped**
 
 *Follow-up to IDEAS §2.4, 2026-07-31.*
 
-:mod:`nestor.sqlite_store.SqliteStore` reuses one WAL connection per thread on
-disk paths (``:memory:`` unchanged). See ``tests/test_sqlite_store.py`` for a
-concurrent ``add_pair`` smoke test.
+:mod:`nestor.sqlite_store.SqliteStore` reuses WAL connections from a capped idle
+pool on disk paths (``:memory:`` unchanged). Numbers, and why a pool rather than
+one connection per thread, are in §2.4. ``tests/test_sqlite_store.py`` covers
+concurrent ``add_pair``, the descriptor ceiling under 360 request threads, the
+``close()`` checkpoint from a thread that did not do the writing, and the refusal
+to answer from a closed store.

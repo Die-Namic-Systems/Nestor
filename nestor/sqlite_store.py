@@ -115,6 +115,26 @@ def _uid() -> str:
     return str(uuid.uuid4())
 
 
+class StoreClosedError(RuntimeError):
+    """The store was closed and something tried to use it anyway.
+
+    Deliberately not a silent reopen. A closed ``":memory:"`` store has nothing
+    left to reopen *to*, so answering from a fresh empty database would report
+    "no verified answers" — which is a sentence this package must never say by
+    accident. Loud beats plausible.
+    """
+
+
+# Idle connections kept for reuse on a file-backed store. Opening one costs
+# real time (~20x on a single-row read), so a long-lived server should not do it
+# per API call; keeping one per *thread* costs a descriptor for every thread
+# that ever touched the store, and those are freed by the cyclic collector
+# rather than promptly — which runs a UI out of file descriptors long before
+# anything runs a garbage collection. A small idle pool gets the reuse with a
+# ceiling: anything borrowed beyond it is closed on return, not accumulated.
+_POOL_MAX = 8
+
+
 class SqliteStore:
     """A minimal SQLite-backed store. Satisfies ``nestor.storage.Storage``."""
 
@@ -124,9 +144,10 @@ class SqliteStore:
         # so hold a persistent connection open in that case.
         self._shared: Optional[sqlite3.Connection] = None
         # In-memory: one shared connection, serialized with _lock (IDEAS §2.4).
-        # File-backed: one persistent connection per thread so nestor.ui's pool
-        # does not open/close SQLite on every API call.
-        self._thread_local = threading.local()
+        # File-backed: a bounded pool of idle connections (see _POOL_MAX).
+        self._pool: list[sqlite3.Connection] = []
+        self._pool_lock = threading.Lock()
+        self._closed = False
         self._lock = threading.RLock()
         if db_path == ":memory:":
             self._shared = self._connect()
@@ -134,56 +155,68 @@ class SqliteStore:
     def _connect(self) -> sqlite3.Connection:
         if self.db_path != ":memory:":
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        # check_same_thread is relaxed only for the shared connection, and only
-        # because self._lock serializes every use of it.
-        conn = sqlite3.connect(self.db_path,
-                               check_same_thread=(self.db_path != ":memory:"))
+        # check_same_thread is relaxed because no connection is ever used by two
+        # threads at once: the shared one is serialized by self._lock, and a
+        # pooled one is out of the pool for as long as a caller holds it.
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         if self.db_path != ":memory:":
             conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
-    def _thread_conn(self) -> sqlite3.Connection:
-        conn = getattr(self._thread_local, "conn", None)
-        if conn is None:
-            conn = self._connect()
-            self._thread_local.conn = conn
-        return conn
+    def _acquire(self) -> sqlite3.Connection:
+        with self._pool_lock:
+            if self._closed:
+                raise StoreClosedError(f"{self.db_path}: this store has been closed")
+            if self._pool:
+                return self._pool.pop()
+        return self._connect()
+
+    def _release(self, conn: sqlite3.Connection) -> None:
+        """Park a connection for reuse, or close it if the pool is full."""
+        with self._pool_lock:
+            if not self._closed and len(self._pool) < _POOL_MAX:
+                self._pool.append(conn)
+                return
+        conn.close()
 
     def close(self) -> None:
-        """Checkpoint WAL into the main file (IDEAS §2.4).
+        """Checkpoint WAL into the main file and retire the store (IDEAS §2.4).
 
-        While the process holds file-backed connections open, committed rows may
-        live only in ``nestor.db-wal``; a plain copy of ``nestor.db`` is then
-        incomplete. ``nestor.ui`` calls this on shutdown. A checkpoint from
-        *any* connection flushes the whole WAL; only this thread's connection
-        is closed here — others are left to their owning threads (closing them
-        from here raises ``ProgrammingError`` under ``check_same_thread``).
+        While a process holds file-backed connections open, committed rows may
+        live only in ``nestor.db-wal``, so a plain copy of ``nestor.db`` is
+        incomplete; ``nestor.ui`` calls this on shutdown. A checkpoint from any
+        one connection flushes the whole WAL, so this does not need to reach the
+        connections other threads are holding — they are closed when returned.
+
+        The store is not reusable afterwards: see :class:`StoreClosedError`.
         """
+        with self._pool_lock:
+            if self._closed:
+                return
+            self._closed = True
+            idle = list(self._pool)
+            self._pool.clear()
         if self.db_path == ":memory:":
             with self._lock:
                 if self._shared is not None:
                     self._shared.close()
                     self._shared = None
             return
-        own = getattr(self._thread_local, "conn", None)
-        if own is not None:
-            try:
-                own.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            finally:
-                own.close()
-                self._thread_local.conn = None
-            return
-        conn = self._connect()
+        conn = idle.pop() if idle else self._connect()
         try:
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         finally:
             conn.close()
+            for spare in idle:
+                spare.close()
 
     @contextmanager
     def _db(self):
         """Yield a connection; one level of use only — do not nest."""
+        if self._closed:
+            raise StoreClosedError(f"{self.db_path}: this store has been closed")
         if self._shared is not None:
             with self._lock:
                 try:
@@ -193,13 +226,15 @@ class SqliteStore:
                     self._shared.rollback()
                     raise
             return
-        conn = self._thread_conn()
+        conn = self._acquire()
         try:
             yield conn
             conn.commit()
         except Exception:
             conn.rollback()
             raise
+        finally:
+            self._release(conn)
 
     # --- lifecycle -------------------------------------------------------
 
