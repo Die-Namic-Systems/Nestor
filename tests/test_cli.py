@@ -309,3 +309,87 @@ def test_cli_main_ui_help_in_a_subprocess():
     done = _run_cli_subprocess(["ui", "--help"])
     assert done.returncode == 0
     assert "--port" in done.stdout
+
+
+def test_ui_refuses_malformed_ledger_verify_interval_in_subprocess(tmp_path):
+    port = _free_loopback_port()
+    env = _cli_subprocess_env()
+    env["NESTOR_LEDGER_VERIFY_INTERVAL_SEC"] = "5m"
+    done = subprocess.run(
+        [sys.executable, "-u", "-m", "nestor.ui",
+         "--db", str(tmp_path / "n.db"), "--port", str(port)],
+        cwd=REPO,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert done.returncode == 2
+    assert "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" in done.stderr
+    assert "refusing to start" in done.stderr
+    assert not (tmp_path / "n.db").exists()
+
+
+def test_db_checkpoint_cli_writes_copy_and_keeps_store_usable(db, tmp_path):
+    out = tmp_path / "copy.db"
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
+    assert out.is_file()
+    ledger_copy = out.with_name(out.name + ".ledger.jsonl")
+    assert ledger_copy.is_file()
+    assert ledger_copy.read_text() == pathlib.Path(db["ledger"]).read_text()
+    assert run(db, "db", "checkpoint") == cli.EXIT_OK
+    assert run(db, "ask", "good evening") == cli.EXIT_OK
+
+
+def test_db_checkpoint_ledger_sidecar_appends_to_basename(db, tmp_path):
+    """Dots in the db filename must not collapse the ledger sidecar name."""
+    out_a = tmp_path / "nightly" / "2026.07.30"
+    out_b = tmp_path / "nightly" / "2026.07.31"
+    assert run(db, "db", "checkpoint", "--out", str(out_a)) == cli.EXIT_OK
+    assert (tmp_path / "nightly" / "2026.07.30.ledger.jsonl").is_file()
+    assert run(db, "db", "checkpoint", "--out", str(out_b)) == cli.EXIT_OK
+    assert (tmp_path / "nightly" / "2026.07.31.ledger.jsonl").is_file()
+
+
+def test_no_ledger_never_leaves_a_chain_describing_a_different_backup(db, tmp_path, capsys):
+    """`--no-ledger` writes no sidecar; it must not leave an older one either.
+
+    A stale chain beside a freshly written database is worse than no chain at
+    all: the two files look like a matched pair and the store is the one that
+    is ahead, so the backup reads as sealed rows whose ledger entries are
+    missing — the state `_ledger_preflight` refuses to create at seal time.
+    """
+    out = tmp_path / "pair.db"
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
+    sidecar = out.with_name(out.name + ".ledger.jsonl")
+    assert sidecar.is_file()
+    before = sidecar.read_text()
+
+    # The store moves on, and the next backup is taken without the chain.
+    memory.add_pair("a later seal", "un sello posterior", "en", "es",
+                    status="sealed", verifier="rita", store=db["store"])
+
+    assert run(db, "db", "checkpoint", "--out", str(out), "--no-ledger") == cli.EXIT_USAGE
+    assert "refusing to overwrite" in capsys.readouterr().err
+    assert sidecar.read_text() == before, "a refusal changes nothing"
+
+    assert run(db, "db", "checkpoint", "--out", str(out),
+               "--no-ledger", "--force") == cli.EXIT_OK
+    assert out.is_file()
+    assert not sidecar.exists(), "the chain that described the old backup is gone"
+
+
+def test_no_ledger_says_why_a_lone_sidecar_blocks_it(db, tmp_path, capsys):
+    """The db name is free, so the refusal names a file the operator did not
+    type — it has to say why that file is in the way."""
+    out = tmp_path / "orphan.db"
+    out.with_name(out.name + ".ledger.jsonl").write_text("{}\n", encoding="utf-8")
+    assert run(db, "db", "checkpoint", "--out", str(out), "--no-ledger") == cli.EXIT_USAGE
+    assert "describing a different backup" in capsys.readouterr().err
+
+
+def test_db_checkpoint_refuses_existing_out_without_force(db, tmp_path, capsys):
+    out = tmp_path / "copy.db"
+    out.write_text("taken", encoding="utf-8")
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_USAGE
+    assert "refusing to overwrite" in capsys.readouterr().err

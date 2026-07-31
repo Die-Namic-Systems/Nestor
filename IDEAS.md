@@ -24,6 +24,7 @@ threading, config): [`docs/code-review-lessons.md`](docs/code-review-lessons.md)
 
 **Fleet map.** Open IDEAS items vs existing repos (willow-mcp, SAFE store,
 oakenscrolls, bench corpora): [`docs/fleet-integration-map.md`](docs/fleet-integration-map.md).
+Local checkout and commands: [`docs/local-fleet.md`](docs/local-fleet.md).
 
 ---
 
@@ -1444,15 +1445,24 @@ concurrent ``add_pair``, the descriptor ceiling under 360 request threads, the
 ``close()`` checkpoint from a thread that did not do the writing, and the refusal
 to answer from a closed store.
 
-### 6.7 Hot checkpoint / backup while the store is open — **open**
+### 6.7 Hot checkpoint / backup while the store is open — **shipped**
 
-*Proposed 2026-07-31 after PR #24 WAL review.*
+*Proposed 2026-07-31 after PR #24 WAL review; shipped same arc.*
 
-``SqliteStore.close()`` and UI shutdown checkpoint WAL into ``nestor.db``, but
-operators who **rsync or `cp` a live file** during a shift still get an
-incomplete store. Document ``VACUUM INTO`` and ``nestor export`` today; a
-``nestor db checkpoint`` (or equivalent) that runs ``PRAGMA wal_checkpoint`` or
-``VACUUM INTO`` without stopping the review server is the obvious CLI follow-up.
+``nestor db checkpoint`` flushes WAL in place; ``--out`` writes a consistent copy
+via ``VACUUM INTO`` and, by default, copies the hash-chained ledger to
+``<basename>.ledger.jsonl`` beside it (``--no-ledger`` opts out). Operator notes in
+``docs/local-fleet.md``.
+
+Both files are written through a ``.partial`` and ``os.replace``, so a failed
+backup leaves the previous one intact rather than deleting it in favour of one
+that never arrived. Both names are also *claimed* whether or not a given run
+writes the sidecar: a chain left from an earlier backup beside a freshly written
+database is worse than no chain, because the pair looks matched and the store is
+the one that is ahead — sealed rows whose ledger entries are missing, which is
+the state :func:`~nestor.memory.add_pair` refuses to create at seal time. So a
+stale sidecar blocks the run, and ``--force`` removes it along with the database
+it described.
 
 ### 6.8 Skip redundant ``memory_init`` schema replay — **open**
 
@@ -1462,18 +1472,16 @@ Each ``add_pair`` still runs the idempotent schema script on that thread's
 connection. Measured once as noise for ingest; may matter at very large corpora.
 Needs a per-connection "schema ready" flag before changing behaviour.
 
-### 6.9 Subprocess test: UI refuses bad ledger interval env — **open**
+### 6.9 Subprocess test: UI refuses bad ledger interval env — **shipped**
 
 *Follow-up to PR #24.*
 
-``nestor.ui`` validates ``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` at startup; lock
-that with a subprocess test (bad value → exit 2, good message) so regressions
-cannot silently re-enable the once-per-process cache on a typo.
+``tests/test_cli.py`` runs ``nestor.ui`` in a subprocess with
+``NESTOR_LEDGER_VERIFY_INTERVAL_SEC=5m`` and asserts exit 2 before the DB opens.
 
-### 6.10 Seal age in provenance (display only) — **open**
+### 6.10 Seal age in provenance (display only) — **shipped**
 
 *Pointer to IDEAS §1.4.*
 
-Surface ``created_at`` (and optionally verifier tenure) in Memory detail without
-implementing decay or quorum yet — data the ledger and row already hold, not
-consumed by the UI beyond the raw timestamp if shown at all.
+Memory list chips show **relative age**; full ISO timestamp on hover (``title``).
+Decay/quorum policy remains §1.4.

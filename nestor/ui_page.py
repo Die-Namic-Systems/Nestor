@@ -180,6 +180,21 @@ const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
                        source_lang: "", target_lang: "" } };
 
 /* ---------- tiny DOM helper: every value lands as text, never as markup ---- */
+function relativeAge(iso) {
+  if (!iso) return "";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  const sec = Math.floor((Date.now() - t) / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + "m ago";
+  const hr = Math.floor(min / 60);
+  if (hr < 48) return hr + "h ago";
+  const day = Math.floor(hr / 24);
+  if (day < 14) return day + "d ago";
+  return iso.slice(0, 10);
+}
+
 function h(tag, props, ...kids) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -541,7 +556,8 @@ function detailPanel() {
         : null,
       h("span", { class: "chip", text: "by " + (p.verifier || "—") }),
       h("span", { class: "chip", text: p.origin || "no origin" }),
-      h("span", { class: "chip mono", text: p.created_at || "" }),
+      h("span", { class: "chip mono", title: p.created_at || "",
+        text: relativeAge(p.created_at) || "—" }),
       h("span", { class: "chip mono", text: p.id.slice(0, 8) })),
     h("p", { class: "small muted", style: "margin:10px 0 4px",
              text: (p.rejection_count || 0) + " rejection(s) recorded against this pair" }));

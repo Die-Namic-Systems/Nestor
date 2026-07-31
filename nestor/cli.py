@@ -11,6 +11,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor resolve AMZN --domain company  # the entity graph
     nestor check ceiling '$1,030,000' --domain contract
     nestor export --out memory.json       # a portable, re-importable bundle
+    nestor db checkpoint                  # flush WAL into the main file (§6.7)
+    nestor db checkpoint --out copy.db    # db + copy.ledger.jsonl (use --no-ledger to omit chain)
     nestor import memory.json             # DRY RUN by default; --apply commits
     nestor ledger verify                  # exit 1 on a broken chain, for CI
     nestor stats
@@ -33,6 +35,7 @@ import argparse
 import json
 import os
 import pathlib
+import shutil
 import sys
 from typing import Optional
 
@@ -125,6 +128,75 @@ def cmd_match(args) -> int:
 # --------------------------------------------------------------------------
 # moving the memory
 # --------------------------------------------------------------------------
+
+def _ledger_sidecar_path(db_out: pathlib.Path) -> pathlib.Path:
+    """Ledger copy beside a db backup — append, do not replace the last extension."""
+    return db_out.with_name(db_out.name + ".ledger.jsonl")
+
+
+def _replace_file(src: pathlib.Path, dest: pathlib.Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(src, dest)
+
+
+def cmd_db(args) -> int:
+    store = _store(args)
+    if not isinstance(store, SqliteStore):
+        print("db commands require the SQLite store", file=sys.stderr)
+        return EXIT_USAGE
+    if args.db_command == "checkpoint":
+        if args.out:
+            out = pathlib.Path(args.out)
+            ledger_out = _ledger_sidecar_path(out)
+            ledger_src = cascade._ledger_path()
+            copy_ledger = not args.no_ledger and ledger_src.is_file()
+            # Both names are claimed whether or not this run writes the sidecar.
+            # A chain left over from an earlier backup, sitting beside a freshly
+            # written database, is a store paired with a trail that does not
+            # describe it — and it is the store that is ahead, so the pair reads
+            # as sealed rows whose entries are missing. That is the one thing the
+            # sidecar exists to prevent, arriving by the back door.
+            if not args.force:
+                for path in (out, ledger_out):
+                    if path.exists():
+                        why = ("" if path == out or copy_ledger else
+                               " — it would be left describing a different backup")
+                        print(f"refusing to overwrite {path}{why} (pass --force)",
+                              file=sys.stderr)
+                        return EXIT_USAGE
+            out.parent.mkdir(parents=True, exist_ok=True)
+            tmp_db = out.with_name(out.name + ".partial")
+            tmp_db.unlink(missing_ok=True)
+            try:
+                store.backup_into(str(tmp_db))
+                _replace_file(tmp_db, out)
+            except Exception:
+                tmp_db.unlink(missing_ok=True)
+                raise
+            parts = [str(out)]
+            if copy_ledger:
+                tmp_led = ledger_out.with_name(ledger_out.name + ".partial")
+                tmp_led.unlink(missing_ok=True)
+                try:
+                    shutil.copy2(ledger_src, tmp_led)
+                    _replace_file(tmp_led, ledger_out)
+                except Exception:
+                    tmp_led.unlink(missing_ok=True)
+                    raise
+                parts.append(str(ledger_out))
+            else:
+                if not args.no_ledger:
+                    print(f"note: no ledger file at {ledger_src} to copy alongside the db",
+                          file=sys.stderr)
+                # Nothing was written here, so nothing may remain here.
+                ledger_out.unlink(missing_ok=True)
+            print(f"wrote {' and '.join(parts)}", file=sys.stderr)
+        else:
+            store.checkpoint_wal()
+            print(f"checkpointed {args.db}", file=sys.stderr)
+        return EXIT_OK
+    return EXIT_USAGE
+
 
 def cmd_export(args) -> int:
     bundle = portable.export_bundle(_store(args), source_lang=args.source_lang or "",
@@ -401,6 +473,18 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--target-lang", "--to", dest="target_lang", default="")
     exp.add_argument("--no-ledger", action="store_true", help="omit the source chain")
     exp.set_defaults(func=cmd_export)
+
+    dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
+    dbp.add_argument("db_command", choices=("checkpoint",))
+    dbp.add_argument("--out", default="",
+                     help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
+                          "ledger to <basename>.ledger.jsonl beside it unless --no-ledger")
+    dbp.add_argument("--no-ledger", action="store_true",
+                     help="with --out, copy only the database (seals without audit chain); "
+                          "an older sidecar at that name blocks, and --force removes it")
+    dbp.add_argument("--force", action="store_true",
+                     help="with --out, replace existing destination file(s)")
+    dbp.set_defaults(func=cmd_db)
 
     imp = sub.add_parser("import", help="read a bundle (dry run unless --apply)")
     imp.add_argument("file")
