@@ -66,7 +66,20 @@ class Reconciler:
         and ``check``'s ``ambiguous`` flag say so rather than leaving the caller
         to discover it from a figure that quietly passed.
         """
-        num = self.matcher.parse(value)
+        detail = self.matcher.parse_detail(value)
+        num = detail["value"]
+        if detail["partial"]:
+            # A baseline is sealed *and stored as its own text*, so a figure the
+            # matcher only half-read is the one case where the discrepancy is
+            # permanent: the row says "$1,00o,000" and every future check runs
+            # against 100. Reporting it in the result is not enough here — this
+            # is a human sealing a number, which is the moment to say so.
+            warnings.warn(
+                f"the baseline sealed for {label!r} reads {value!r} but the "
+                f"figure compared will be {num!r} — {detail['residue']!r} was "
+                f"not part of the number. Seal the figure you mean, or accept "
+                f"that check() will compare against {num!r}.",
+                RuntimeWarning, stacklevel=2)
         self._guard_existing_baselines(label, value, verifier, num,
                                        override_conflict)
         pair = memory.add_pair(
@@ -80,8 +93,14 @@ class Reconciler:
         _ledger_append({
             "kind": "baseline_seal", "domain": self.domain, "label": label,
             "baseline": num, "verifier": verifier, "pair_id": pair["id"],
+            # A bool, not the text: ledger entries are mirrored verbatim into
+            # shared provenance by nestor.frank, and "the figure was read out of
+            # a longer string" is the auditable fact — the string itself is the
+            # caller's, and it is already in the store.
+            "baseline_partial": detail["partial"],
         })
-        return {"label": label, "baseline": num, "sealed": True,
+        return {"label": label, "baseline": num, "baseline_text": detail["text"],
+                "baseline_partial": detail["partial"], "sealed": True,
                 "pair_id": pair["id"], "verifier": verifier}
 
     # -- one baseline per label -------------------------------------------
@@ -151,12 +170,27 @@ class Reconciler:
              "variation_pct": float,    # variation / |baseline| (a fraction)
              "flagged": bool,
              "ambiguous": bool,         # more than one baseline stands for this label
-             "baseline_count": int}
+             "baseline_count": int,
+             "observed_text": str,      # what the caller actually passed
+             "observed_partial": bool,  # digits were dropped reading it
+             "baseline_text": str,      # the sealed baseline as it was written
+             "baseline_partial": bool}
 
         ``within_tolerance`` is true iff the NumericMatcher scores the pair a
         perfect ``1.0`` (i.e. ``|observed - baseline| <= max(abs_tol,
         pct_tol*max(|.|))``). Anything else with a known baseline is ``flagged``.
         Every check is appended to the ledger.
+
+        **The two ``_text`` / ``_partial`` fields answer "is this figure the one
+        I typed?"** ``NumericMatcher.parse`` searches for a number rather than
+        requiring one, so ``"1,00o,000"`` is compared as ``100``. That is safe —
+        it gets flagged and a human looks — but a result that reports only
+        ``observed: 100.0`` cannot be told apart from one where 100 was
+        genuinely observed, and an audit is exactly where that difference
+        matters. ``observed_partial`` is true when digits were left outside the
+        figure the comparison used; the raw string is beside it so the reader
+        can see both at once. Currency and unit suffixes do not trip it (see
+        ``NumericMatcher.parse_detail``).
 
         When more than one sealed baseline stands for a label, the **newest**
         one is used and ``ambiguous`` is set. It used to be whichever scored
@@ -166,7 +200,8 @@ class Reconciler:
         keeps a label to one baseline, so this is the fallback for stores that
         cannot retire the old one, not the normal path.
         """
-        obs_num = self.matcher.parse(observed)
+        obs = self.matcher.parse_detail(observed)
+        obs_num = obs["value"]
         # context_threshold=0.0 so even a wildly off observation still returns
         # the baseline candidate (we need it to report the variation). The limit
         # is raised past lookup's default because ranking is by similarity and
@@ -186,6 +221,7 @@ class Reconciler:
                 "within_tolerance": False, "variation": None,
                 "variation_pct": None, "flagged": False,
                 "ambiguous": False, "baseline_count": 0,
+                "baseline_text": "", "baseline_partial": False,
             }
         else:
             sealed = sorted(sealed, key=lambda m: m["pair"].get("created_at", ""),
@@ -196,12 +232,20 @@ class Reconciler:
             variation = abs(obs_num - baseline) if obs_num is not None else None
             variation_pct = (variation / abs(baseline)
                              if variation is not None and baseline != 0 else None)
+            # The baseline's own text is what a human sealed; source_norm is the
+            # figure it was read as. They differ exactly when the seal was made
+            # from a partially-parsed value, which is the case worth surfacing.
+            base_text = top["pair"].get("target_text", "")
             result = {
                 "label": label, "baseline": baseline, "observed": obs_num,
                 "within_tolerance": within, "variation": variation,
                 "variation_pct": variation_pct, "flagged": not within,
                 "ambiguous": len(sealed) > 1, "baseline_count": len(sealed),
+                "baseline_text": base_text,
+                "baseline_partial": self.matcher.parse_detail(base_text)["partial"],
             }
+        result["observed_text"] = obs["text"]
+        result["observed_partial"] = obs["partial"]
 
         _ledger_append({
             "kind": "reconcile", "domain": self.domain, "label": label,
@@ -209,5 +253,9 @@ class Reconciler:
             "within_tolerance": result["within_tolerance"],
             "variation": result["variation"], "flagged": result["flagged"],
             "ambiguous": result["ambiguous"],
+            # Flags, not the raw strings — see seal_baseline. "the figure I
+            # compared was not the figure that was typed" is the auditable fact.
+            "observed_partial": result["observed_partial"],
+            "baseline_partial": result["baseline_partial"],
         })
         return result

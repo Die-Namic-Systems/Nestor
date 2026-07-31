@@ -81,19 +81,34 @@ tool this server has, the sealed memory is unchanged.
 with a key the store does not hold, so a row edited to `status='sealed'` will not
 verify and will not be served. `Curator.unverifiable()` and the UI's
 "unverifiable" filter list rows that *say* sealed and would not serve.
-`NESTOR_REQUIRE_SEAL_KEY=1` fails closed instead of degrading.
+`NESTOR_REQUIRE_SEAL_KEY=1` fails closed instead of degrading. For *who* signed
+it rather than merely *that it was signed*, see Q6.
 
-### 6. Who is "rita"? Does the UI authenticate anyone? — **not yet**
+### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, symmetric**
 
-No. The verifier is **typed, not proven** — the same trust model as calling
+Set `NESTOR_KEYRING` and yes. Each verifier has their own key
+(`nestor keys add rita`), a seal's signature verifies under the key of the
+verifier it *names*, and the UI's "acting as" box becomes a sign-in — a verifier
+presents their key, and every decision in that session is recorded and signed as
+them. A name the keyring does not know cannot seal at all; the refusal happens
+before anything is written.
+
+Without a keyring, the old answer still holds and is still said out loud: the
+verifier is **typed, not proven**, which is the same trust model as calling
 `memory.add_pair(verifier="rita")` yourself. Hence loopback by default,
-`--allow-remote` to leave it, and `--read-only` to show without granting.
+`--allow-remote` to leave it, `--read-only` to show without granting.
 
-Real multi-user auth means an identity per verifier and a per-verifier signing
-key, so a seal proves *who*, not just *that the key was present*. The signing
-seam already takes an injected key (`signing.sign_seal(..., key=)`); what's
-missing is a key-per-verifier resolver and a session on the UI. That is the
-biggest single gap between this and a system a regulated buyer deploys.
+What is honestly still missing is the *asymmetric* half. An HMAC is a shared
+secret, so it proves possession of a key rather than the presence of a person,
+and the process holds the keys it verifies against. Ed25519 or a Biscuit
+capability — a signature the server checks with a public key it could not have
+produced — goes through the same `signing.sign_seal(..., key=)` seam.
+
+Revoking a key asks you one question, because Nestor cannot answer it: was the
+key **rotated** (its past seals stand — nobody else held it) or **taken**
+(`--compromised`: its past seals stop serving and land in `unverifiable()`,
+because an HMAC carries no timestamp and they cannot be told apart from the
+thief's)?
 
 ### 7. How do I know the ledger wasn't edited? — **shipped, with a caveat now stated**
 
@@ -105,9 +120,12 @@ nestor ledger verify --expect-head <sha>   # and check against it
 
 Each line's `prev` is the SHA-256 of the previous line, so editing any past entry
 breaks the walk — **except the newest one**, which nothing follows and nothing
-vouches for. Found while writing a CLI test. `--expect-head` closes it for anyone
-who kept the previous tip; `nestor.frank` closes it properly by mirroring every
-entry, with its `local_hash`, into a ledger somebody else holds.
+vouches for. Found while writing a CLI test. Three things narrow it:
+`--expect-head` closes it for anyone who kept the previous tip; every append
+re-checks that the last line *this process* wrote is still there unchanged, so
+an edit during a running shift is refused rather than chained onto; and
+`nestor.frank` closes it properly by mirroring every entry, with its
+`local_hash`, into a ledger somebody else holds.
 
 ### 8. Two instances, two teams. Can they sync? — **partly**
 
@@ -140,15 +158,26 @@ source text.
 Linear in corpus size, and ~97% of the time is Python-side scoring, not SQL:
 293 ms @ 2k pairs, 4.4 s @ 32k, projecting ~135 s @ 1M
 ([`IDEAS.md`](IDEAS.md) §2). Nestor is built for high-value reviewed decisions,
-not high-volume serving. Fixes exist and are measured, not guessed: a lossless
-difflib prefilter (§2.1) is the one that pays.
+not high-volume serving.
+
+The lossless difflib prefilter (§2.1) now ships in `best_sealed`, which is the
+tier-1 path: **14.7x** measured on 4,000 rows with nothing verified matching —
+the case that used to be the most expensive — with identical answers. It is
+lossless, not a heuristic: a candidate whose upper bound cannot clear the
+threshold cannot clear it. `lookup()` is unchanged, because it owes the engine
+sub-threshold candidates as context and so has to score everything. A scan is
+still a scan.
 
 ### 12. How accurate is the matching? — **measured, and it is a trade, not a score**
 
 At the default 0.92 threshold: 16.4% false seals on homogeneous boilerplate,
 23.6% recall on real rewrites. At 0.96: 0.4% and 2.4%. No threshold is good at
 both jobs — that is a limit of character similarity, which is why the dial is
-exposed rather than tuned for you. `bench/` measures it against *your* corpus.
+exposed rather than tuned for you. `bench/` measures the matcher in general;
+`nestor calibrate` measures *your* memory, by finding the sealed pairs that
+already collide in it — near-identical sources with different verified answers —
+and reporting the rate at every cutoff. It is a lower bound (it can only see
+collisions the corpus already contains) and it changes nothing on its own.
 Ask any benchmark whether it reports surface variation or meaning-preserving
 rewrites; against surface variation alone recall reads 100% and means nothing.
 
@@ -168,13 +197,23 @@ review queue are **optional all-or-nothing capabilities** (`supports_rejection`,
 `supports_curation`, `supports_queue`) so an older store keeps working and every
 surface degrades by *saying so* rather than showing an empty list.
 
-### 15. Can I run it as a service for my whole team? — **not yet**
+### 15. Can I run it as a service for my whole team? — **partly**
 
-The UI is a single-operator local tool: no auth (Q6), SQLite by default, and one
-process. What it would take, in order: identity + per-verifier keys, a store that
-handles concurrent writers (the Protocol already allows it), and a decision about
-whether the ledger is per-tenant or shared. None of it is blocked by the design;
-none of it is written.
+Identity is done (Q6): per-verifier keys, sign-in, and decisions attributed to
+the person whose key made them. Two things from that list are not.
+
+A **store that handles concurrent writers.** The Protocol allows one and the
+reference `SqliteStore` is not it; the ledger append takes a process-wide lock
+and a best-effort file lock, which covers two processes on one box and makes no
+promise beyond that.
+
+A decision about whether the **ledger is per-tenant or shared**, which is a
+governance question rather than a code one. `nestor.frank` is the shape of the
+shared answer.
+
+And it still has no transport security or rate limiting of its own — a sign-in
+over a non-loopback bind is a key on the wire. Put it behind something, or keep
+it on loopback.
 
 ### 16. What does a seal cost? Does anything call an API? — **shipped**
 
@@ -192,8 +231,11 @@ The failure modes, and the direction each fails in:
 |---|---|
 | No store configured | `RuntimeError` — never a hidden default database |
 | Ledger unwritable / a symlink / not a regular file | refuses to append; the trail cannot be redirected or suppressed |
-| Ledger chain broken | refuses to append (once per process — §5.3), `verify()` reports it, exit 1 from CI |
+| Ledger chain broken | refuses to append: the whole chain once per process, and the tail this process wrote on every append (§5.3) — `verify()` reports it, exit 1 from CI |
 | `NESTOR_SEAL_KEY` unset | warns once and trusts stored status; `NESTOR_REQUIRE_SEAL_KEY=1` refuses instead |
+| Sealing as a name the keyring does not know | refuses before the store write — no row, no signature, no trail (Q6) |
+| Sealing with a revoked key | refuses; whether its past seals still serve depends on rotated vs `--compromised` (Q6) |
+| Keyring file readable by other users | refuses to load it — it holds every seal key in the deployment |
 | Store can't record a rejection | raises rather than dropping a human's "no" |
 | Engine down / no credentials | falls back to the offline engine; a segment goes `pending`, not wrong |
 | FRANK mirror down | best-effort, local ledger is the source of truth (`NESTOR_FRANK_STRICT` to change that) |

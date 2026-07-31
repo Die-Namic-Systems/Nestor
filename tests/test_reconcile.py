@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from nestor.reconcile import Reconciler
@@ -117,3 +119,69 @@ def test_a_store_that_cannot_retire_says_so_and_check_reports_ambiguity(store, r
     assert res["ambiguous"] is True and res["baseline_count"] == 2
     assert res["baseline"] == 1_000_000.0, "the newest baseline, not the nearest"
     assert res["flagged"] is True
+
+
+# --- the figure that was actually compared (IDEAS 1.9) ----------------------
+#
+# `parse` searches for a number rather than requiring one, so a typo produces a
+# real figure rather than a refusal. The failure direction is safe; the silence
+# was not.
+
+def test_a_partially_read_observation_says_so(store):
+    r = Reconciler(store, domain="contract", pct_tol=0.05)
+    r.seal_baseline("ceiling", "$1,000,000", verifier="auditor")
+
+    res = r.check("ceiling", "$1,00o,000")      # one typo: a letter o for a zero
+    assert res["observed"] == 100.0, "documented behavior: the first number found"
+    assert res["observed_partial"] is True
+    assert res["observed_text"] == "$1,00o,000"
+    assert res["flagged"] is True               # the safe direction, unchanged
+
+
+def test_a_date_is_a_partial_read_too(store):
+    r = Reconciler(store, domain="ledger", pct_tol=0.05)
+    r.seal_baseline("closing", 12, verifier="auditor")
+
+    res = r.check("closing", "12/31/2024")
+    # It compares as 12 and therefore passes, which is precisely the case the
+    # flag exists for: a clean pass on a figure nobody meant to state.
+    assert res["observed"] == 12.0 and res["flagged"] is False
+    assert res["observed_partial"] is True
+
+
+def test_a_currency_or_unit_suffix_is_not_a_partial_read(store):
+    r = Reconciler(store, domain="contract", pct_tol=0.05)
+    r.seal_baseline("ceiling", "$1,000,000 USD", verifier="auditor")
+
+    res = r.check("ceiling", "$1,000,000 USD")
+    assert res["observed"] == 1_000_000.0
+    assert res["observed_partial"] is False, "USD is decoration, not a dropped digit"
+    assert res["baseline_partial"] is False
+    assert res["within_tolerance"] is True
+
+
+def test_sealing_a_half_read_baseline_warns_and_is_reported(store):
+    r = Reconciler(store, domain="contract", pct_tol=0.05)
+    with pytest.warns(RuntimeWarning, match="was not part of the number"):
+        out = r.seal_baseline("ceiling", "$1,00o,000", verifier="auditor")
+    assert out["baseline"] == 100.0 and out["baseline_partial"] is True
+    assert out["baseline_text"] == "$1,00o,000"
+
+    # And every later check carries it, so the discrepancy is not only visible
+    # at the moment of sealing — which is the moment nobody re-reads.
+    res = r.check("ceiling", 100)
+    assert res["baseline_partial"] is True
+    assert res["baseline_text"] == "$1,00o,000"
+
+
+def test_the_ledger_records_that_a_figure_was_half_read(store):
+    r = Reconciler(store, domain="contract", pct_tol=0.05)
+    r.seal_baseline("ceiling", "$1,000,000", verifier="auditor")
+    r.check("ceiling", "$1,00o,000")
+
+    entry = [e for e in read_ledger() if e["kind"] == "reconcile"][-1]
+    assert entry["observed_partial"] is True
+    assert entry["baseline_partial"] is False
+    # The raw strings stay out of the trail: nestor.frank mirrors entries
+    # verbatim into somebody else's ledger.
+    assert "1,00o,000" not in json.dumps(entry)

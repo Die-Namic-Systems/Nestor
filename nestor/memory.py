@@ -448,6 +448,12 @@ def without_forged_seals(matches: list[dict]) -> list[dict]:
             if m["pair"].get("status") != "sealed" or is_verified_seal(m["pair"])]
 
 
+# round(sim, 3) is what a candidate is judged on (see lookup), so a raw score of
+# 0.91951 clears a 0.92 bar. A bound must not prune what rounding would have let
+# through, so the cutoff sits this far below the bar.
+_ROUNDING_SLACK = 0.001
+
+
 def best_sealed(source_text: str, source_lang: str, target_lang: str,
                 store: Optional[Storage] = None,
                 matcher: Optional[Matcher] = None,
@@ -456,13 +462,65 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     """Tier-1 check: the best sealed match at/above the seal threshold, else None.
 
     ``seal_threshold`` overrides the module-level :data:`SEAL_THRESHOLD`.
+
+    **Its own scan, not a filter over** :func:`lookup`. Two reasons, and the
+    second is a defect the first happened to fix:
+
+    * *Speed.* This is the one question where the answer is not the argmax but
+      "is anything at all above the bar", so the bar can seed the scan: every
+      candidate is discardable on its upper bound from the very first row rather
+      than only once a good match has turned up. Measured on absent probes —
+      the case that pruned worst — 22.1 s → 2.5 s on 4,000 prose pairs, 94.2 s →
+      15.5 s on 24,000 boilerplate, zero disagreements above the bar
+      (IDEAS §2.1). ``lookup`` cannot do this: it owes the engine sub-threshold
+      candidates as context, so it has to score everything.
+    * *Correctness.* Going through ``lookup`` meant going through its ``limit``,
+      which defaults to 5. A verified sealed pair ranked sixth behind five
+      drafts was invisible to tier 1 — the memory held a human's verification,
+      the query matched it above threshold, and Nestor drafted a fresh answer
+      instead. Scanning the candidates directly has no top-N to fall out of.
+
+    Rejection, the seal-signature check and the score itself are unchanged and
+    still come from the same places (``rejected_ids``, :func:`is_verified_seal`,
+    the injected matcher), so this is the same decision reached by a shorter
+    road. A matcher that offers no ``similarity_bound`` simply scores every
+    candidate, exactly as before.
     """
+    store = get_store(store)
+    matcher = get_matcher(matcher)
+    store.memory_init()
     seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
-    for m in lookup(source_text, source_lang, target_lang, store=store,
-                    matcher=matcher, context_threshold=context_threshold):
-        if m["similarity"] >= seal and is_verified_seal(m["pair"]):
-            return m
-    return None
+    ctx = CONTEXT_THRESHOLD if context_threshold is None else context_threshold
+    norm = matcher.normalize(source_text)
+    bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
+    bound = getattr(matcher, "similarity_bound", None)
+    if not callable(bound):
+        bound = None
+
+    best: Optional[dict] = None
+    best_sim = 0.0
+    for row in store.memory_candidates(source_lang, target_lang):
+        # Drafts and rejections can never be tier 1, so they are not scored at
+        # all here — the cheapest prune available, and one lookup cannot make.
+        if row["status"] != "sealed":
+            continue
+        if row["id"] in bad_pairs or row["target_text"] in bad_targets:
+            continue
+        # Beat the bar, and then beat the incumbent.
+        need = max(seal, ctx, best_sim) - _ROUNDING_SLACK
+        if bound is not None and bound(norm, row["source_norm"], need) < need:
+            continue
+        raw = matcher.similarity(norm, row["source_norm"])
+        if raw < ctx:                      # lookup's context floor, unrounded
+            continue
+        sim = round(raw, 3)                # what lookup reports, and judges on
+        if sim < seal or sim <= best_sim:
+            continue
+        # Checked last because it is the expensive one (an HMAC), and because a
+        # row that cannot win does not need its signature verified.
+        if is_verified_seal(row):
+            best, best_sim = row, sim
+    return {"pair": best, "similarity": best_sim} if best is not None else None
 
 
 def _sha(text: str) -> str:

@@ -53,6 +53,90 @@ _DEFAULT_LEDGER = "data/ledger.jsonl"
 _LEDGER_OVERRIDE: Optional[pathlib.Path] = None
 _verified_ledgers: set[str] = set()  # paths already chain-verified this process
 
+# path -> (byte offset of the last line THIS process wrote, that line's sha256).
+# The append-time checkpoint; see _check_tail.
+_checkpoints: dict[str, tuple[int, str]] = {}
+
+
+def _line_sha(line: str) -> str:
+    return hashlib.sha256(line.encode("utf-8")).hexdigest()
+
+
+def _check_tail(ledger: pathlib.Path) -> None:
+    """Refuse if the tail has moved under us since this process last wrote to it.
+
+    The full chain walk runs **once per process** (``_verified_ledgers``), which
+    is a deliberate cost trade and leaves a real window: :mod:`nestor.ui` is a
+    long-lived process, so a reviewer's shift is hours of appends after a single
+    verification. Tampering during that shift was caught by the next
+    ``verify()`` — a page render, a CLI run, tomorrow — rather than by the next
+    append, which meanwhile chained new entries onto it and laundered it into
+    history (IDEAS §5.3).
+
+    This closes the tail of that window on every append, for the price of
+    reading the bytes appended since our last one:
+
+    * we remember the offset and hash of the line we last wrote;
+    * that line must still be there, unchanged — it is the entry the chain
+      itself cannot vouch for while it is the newest one (IDEAS §5.5);
+    * anything appended after it, by us or by another process, must chain onto
+      it and onto each other.
+
+    What it does **not** cover, stated plainly: an edit to a line *older* than
+    our checkpoint. That breaks the link at the following line, and only the
+    full walk finds it — so ``verify()`` is still the complete answer, and the
+    Ledger view calls it on every render. The checkpoint is the cheap guard on
+    the part of the chain that is being written right now, not a replacement for
+    the walk.
+
+    The one assumption is that the ledger is bytes-appended-only, which is the
+    same thing the hash chain assumes already: an offset into it stays valid
+    because nothing ahead of it is supposed to move. A rewrite that shifts it
+    lands us mid-line, the hash does not match, and the refusal is correct.
+
+    **The caller must hold the file lock**, shared or exclusive — the same rule
+    :func:`_verify_chain_once` carries, and for the same reason: this reads
+    bytes another process may be part-way through writing, and a torn line reads
+    as a broken chain. Refusing a perfectly good seal because a colleague was
+    mid-append is a worse failure than the one being guarded against.
+    """
+    cp = _checkpoints.get(str(ledger))
+    if cp is None:
+        return
+    offset, digest = cp
+    try:
+        with open(ledger, "rb") as fh:
+            fh.seek(offset)
+            raw = fh.read()
+    except FileNotFoundError:
+        raise LedgerError(
+            f"the ledger this process has been appending to is gone: {ledger}. "
+            f"Its trail cannot be extended somewhere else — restore it, or point "
+            f"NESTOR_LEDGER at the chain you mean to continue.") from None
+    lines = [ln.strip() for ln in raw.decode("utf-8", "replace").splitlines() if ln.strip()]
+    if not lines:
+        raise LedgerError(
+            f"the entry this process last wrote is no longer in {ledger} — the "
+            f"trail was truncated. Refusing to append onto what is left.")
+    if _line_sha(lines[0]) != digest:
+        raise LedgerError(
+            f"the entry this process last wrote to {ledger} has changed since it "
+            f"was written. The newest entry is the one the chain cannot vouch for, "
+            f"and it has been edited — refusing to chain onto a tampered tail.")
+    prev = digest
+    for offset_i, line in enumerate(lines[1:], start=1):
+        try:
+            rec = json.loads(line)
+        except Exception as exc:                      # noqa: BLE001
+            raise LedgerError(f"entry {offset_i} after this process's last append is "
+                              f"not valid JSON ({exc}) — refusing to append") from None
+        if rec.get("prev") != prev:
+            raise LedgerError(
+                f"an entry appended after this process's last one does not chain "
+                f"onto it: prev={rec.get('prev')!r}, expected {prev!r}. Refusing "
+                f"to extend a broken tail.")
+        prev = _line_sha(line)
+
 
 def set_ledger_path(path) -> None:
     """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``)."""
@@ -125,18 +209,24 @@ def ledger_preflight() -> None:
     calls this first, and only writes if the trail will take it. See
     ``memory.add_pair`` and the ``reject_*`` entry points.
 
-    The chain walk takes a **shared** lock — several processes may verify at
-    once, none may do it while a writer holds the exclusive lock.
+    Both reads take a **shared** lock — several processes may verify at once,
+    none may do it while a writer holds the exclusive lock.
     """
     ledger = _ledger_path()
     _refuse_unusable_path(ledger)
-    if str(ledger) in _verified_ledgers or not ledger.exists():
+    if not ledger.exists():
+        # Nothing to open. A checkpoint for a path with no file is the trail
+        # having been deleted under a running process, which _check_tail names.
+        _check_tail(ledger)
         return
+    if str(ledger) in _verified_ledgers and str(ledger) not in _checkpoints:
+        return                       # neither read has anything left to do
     with _append_lock:
         with open(ledger, "r", encoding="utf-8") as f:
             _lock_file(f, shared=True)
             try:
                 _verify_chain_once(ledger)
+                _check_tail(ledger)
             finally:
                 _unlock_file(f)
 
@@ -158,6 +248,12 @@ def ledger_append(entry: dict) -> None:
     where ``fcntl`` is absent the threading lock still holds, and the file lock
     is a lock, not a guarantee about other software.
 
+    Every append also re-checks the tail it is extending — see :func:`_check_tail`
+    — and records where its own line landed, so the next one can do the same.
+    That is the guard the once-per-process chain walk does not give: the walk
+    happens at the start of a long-lived process and the appends keep coming for
+    hours afterwards.
+
     The FRANK mirror is deliberately forwarded **after** the lock is released:
     it speaks to a subprocess over stdio, and holding the ledger's write lock
     across somebody else's I/O would make a slow governance mirror into a stalled
@@ -165,6 +261,12 @@ def ledger_append(entry: dict) -> None:
     """
     ledger = _ledger_path()
     _refuse_unusable_path(ledger)
+    # Ask before opening: "a+" below re-creates a deleted ledger, and a
+    # checkpoint for a path with no file means the trail was removed under a
+    # running process. Re-creating it would quietly start a second chain and
+    # call it the first one. A stat needs no lock and reads no content.
+    if not ledger.exists():
+        _check_tail(ledger)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": "genesis", **entry}
     with _append_lock:
@@ -173,9 +275,11 @@ def ledger_append(entry: dict) -> None:
         with open(ledger, "a+", encoding="utf-8") as f:
             _lock_file(f)
             try:
-                # Inside the lock, for the same reason the tail read is: a chain
-                # walk racing another process's write reads a torn line.
+                # Both reads happen inside the lock, for the same reason the
+                # tail read below does: anything that reads this file while
+                # another process is mid-append sees a torn line.
                 _verify_chain_once(ledger)
+                _check_tail(ledger)
                 f.seek(0)
                 last = ""
                 for raw in f:
@@ -187,6 +291,13 @@ def ledger_append(entry: dict) -> None:
                 f.write(line + "\n")
                 f.flush()
                 os.fsync(f.fileno())
+                # Where our line landed, measured after the write and while the
+                # lock is still held, so no cooperating writer can have moved the
+                # end of the file between the write and the measurement.
+                size = os.fstat(f.fileno()).st_size
+                start = size - len(line.encode("utf-8")) - 1
+                if start >= 0:
+                    _checkpoints[str(ledger)] = (start, _line_sha(line))
             finally:
                 _unlock_file(f)
     # Mirror into FRANK (willow-mcp's shared governance ledger) when a forwarder

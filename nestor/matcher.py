@@ -50,6 +50,21 @@ class Matcher(Protocol):
     def similarity(self, a_norm: str, b_norm: str) -> float:
         """Score two normalized keys in ``[0.0, 1.0]`` — ``1.0`` == verified match."""
 
+    # One optional method, deliberately NOT part of this Protocol:
+    #
+    #     similarity_bound(a_norm, b_norm, floor=0.0) -> float
+    #
+    # An UPPER bound on ``similarity(a_norm, b_norm)`` that is cheaper to
+    # compute than the real thing. ``memory.best_sealed`` uses it to discard
+    # candidates that cannot possibly clear the seal threshold without scoring
+    # them at all — lossless, since a candidate whose upper bound is below the
+    # bar cannot be above it. See :meth:`StringMatcher.similarity_bound`.
+    #
+    # It is optional because a matcher whose ``similarity`` is already cheap
+    # (:class:`NumericMatcher` is arithmetic on two floats) gains nothing, and
+    # requiring it would break every custom matcher already injected against
+    # this Protocol. A matcher without it is scanned exactly as before.
+
 
 # --------------------------------------------------------------------------
 # StringMatcher — the translation-memory behavior, made explicit
@@ -122,6 +137,45 @@ class StringMatcher:
         return difflib.SequenceMatcher(None, a_norm, b_norm,
                                        autojunk=self.autojunk).ratio()
 
+    def similarity_bound(self, a_norm: str, b_norm: str, floor: float = 0.0) -> float:
+        """An upper bound on :meth:`similarity`, cheap first, tighter on demand.
+
+        ``difflib`` publishes two bounds on ``ratio()``:
+        ``real_quick_ratio()`` (lengths only) and ``quick_ratio()`` (a multiset
+        count), with ``ratio() <= quick_ratio() <= real_quick_ratio()``.
+        Confirmed in-repo on 20,000 random pairs, no violations. So a candidate
+        whose bound is below the bar cannot clear the bar, and its real score
+        never needs computing — **the answer does not change, only the cost**
+        (IDEAS §2.1).
+
+        ``floor`` is what the caller needs to beat. The length bound is computed
+        first and returned immediately if it already settles the question; only
+        a candidate that survives it pays for the multiset count. The length
+        bound is inlined rather than taken from a ``SequenceMatcher``, because
+        constructing one indexes the second sequence — which costs more than the
+        bound it would give us, and would throw away the whole point of asking a
+        cheap question first.
+
+        No shared scratch object: :mod:`nestor.ui` scores from a thread pool, and
+        a ``SequenceMatcher`` reused across candidates is mutable state two
+        threads would interleave. Reusing one would buy back difflib's ``b2j``
+        cache, and it is not worth a scoring race.
+        """
+        if a_norm == b_norm:
+            return 1.0
+        la, lb = len(a_norm), len(b_norm)
+        if not la or not lb:
+            return 0.0
+        # difflib.real_quick_ratio(), inlined: the most matches two sequences
+        # can possibly share is the length of the shorter one.
+        bound = 2.0 * min(la, lb) / (la + lb)
+        if bound < floor:
+            return bound
+        if a_norm > b_norm:
+            a_norm, b_norm = b_norm, a_norm
+        return min(bound, difflib.SequenceMatcher(
+            None, a_norm, b_norm, autojunk=self.autojunk).quick_ratio())
+
 
 # --------------------------------------------------------------------------
 # NumericMatcher — reconcile figures instead of phrases
@@ -134,6 +188,18 @@ _NAN_SENTINEL = "\x00nestor:nan"
 # Grab the first numeric token, tolerating a leading sign, decimals and
 # scientific notation. Currency/percent/grouping symbols are stripped first.
 _NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+def _no_parse(text: str) -> dict:
+    """The :meth:`NumericMatcher.parse_detail` shape for "no number in there".
+
+    ``partial`` is False: nothing was compared, so nothing was silently dropped
+    from a comparison. The caller learns this from ``value is None``, which is
+    the louder signal — a non-parseable figure normalizes to a sentinel that
+    never matches anything.
+    """
+    return {"text": text, "value": None, "matched": "", "residue": text,
+            "partial": False}
 
 
 class NumericMatcher:
@@ -177,24 +243,64 @@ class NumericMatcher:
         """Extract a number from ``value`` (stripping ``$ , %``/whitespace), or
         ``None`` if none is found. Public so consumers like the Reconciler can
         recover the parsed figure without reaching into internals."""
+        return self.parse_detail(value)["value"]
+
+    def parse_detail(self, value) -> dict:
+        """:meth:`parse`, plus what it had to ignore to get there.
+
+        Returns ``{"text", "value", "matched", "residue", "partial"}``:
+
+        * ``text`` — ``value`` as given, stringified.
+        * ``value`` — the parsed figure, or ``None``.
+        * ``matched`` — the substring of the cleaned input that became ``value``.
+        * ``residue`` — the cleaned input with ``matched`` removed.
+        * ``partial`` — **there are digits in the residue.**
+
+        That last flag is the whole point of this method. :meth:`parse`
+        *searches* for a number rather than requiring the input to be one, so
+        ``"1,00o,000"`` — one typo — is the figure **100**, and ``"12/31/2024"``
+        is **12**. Both are the documented contract and the failure direction is
+        safe (a wildly wrong figure gets flagged and a human looks), but "the
+        number I compared was not the number you typed" is a bad sentence to have
+        to say in an audit, and until now nothing said it at all.
+
+        Requiring the whole cleaned string to parse would have been the other
+        fix, and it is wrong: it breaks ``"$1,000,000 USD"``, which is a
+        perfectly ordinary way to write a figure. So the signal is not "was
+        anything left over" but "was a *digit* left over" — ``"USD"`` is
+        decoration, ``"o000"`` and ``"/31/2024"`` are the rest of a number that
+        did not make it into the comparison. That distinguishes the two example
+        failures from the legitimate case exactly, with no false alarm on
+        currency or unit suffixes.
+
+        Reporting it beats refusing it: a reconciler that rejected every
+        partially-parsed figure would refuse real inputs, and the caller who can
+        actually tell a typo from a unit suffix is the human this package exists
+        to put in the loop.
+        """
+        text = "" if value is None else str(value)
         if isinstance(value, bool):
             # bool is a subclass of int; treat True/False as non-numeric so a
             # stray flag can never masquerade as the figure 1 or 0.
-            return None
+            return _no_parse(text)
         if isinstance(value, (int, float)):
-            return float(value)
-        s = str(value).strip()
+            return {"text": text, "value": float(value), "matched": text,
+                    "residue": "", "partial": False}
+        s = text.strip()
         if not s:
-            return None
+            return _no_parse(text)
         # Strip currency/percent/grouping decoration, then extract a number.
         cleaned = s.replace("$", "").replace(",", "").replace("%", "").replace(" ", "")
         m = _NUM_RE.search(cleaned)
         if not m:
-            return None
+            return _no_parse(text)
         try:
-            return float(m.group())
+            num = float(m.group())
         except ValueError:
-            return None
+            return _no_parse(text)
+        residue = cleaned[:m.start()] + cleaned[m.end():]
+        return {"text": text, "value": num, "matched": m.group(),
+                "residue": residue, "partial": any(c.isdigit() for c in residue)}
 
     def normalize(self, value) -> str:
         num = self.parse(value)

@@ -24,6 +24,11 @@ Three things it deliberately does:
 * **Writes revocation to the ledger.** Un-verifying is a verification decision.
   If only seals were audited, the trail would record every grant of trust and no
   withdrawal of it.
+* **Reads the rejections back.** Serving consumes one rejection at a time — "not
+  this answer for this query." :meth:`Curator.rejection_signals` reads the pile:
+  a query refused repeatedly says the threshold is wrong for this domain, a pair
+  refused for many unrelated queries says the pair is junk. Both were recorded
+  from the day rejection shipped and read by nothing.
 
 Usage::
 
@@ -39,7 +44,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import ledger, memory, signing
+from . import keyring, ledger, memory, signing
 from .storage import Storage, get_store, supports_curation, supports_rejection
 
 
@@ -80,6 +85,16 @@ class Curator:
         # is the same predicate the serve path uses, so this column answers
         # "would Nestor actually serve this?" rather than "does it say sealed?".
         out["servable"] = memory.is_verified_seal(pair)
+        ring = keyring.get_keyring()
+        if ring is not None:
+            # With per-verifier keys there are more than two answers. "Valid"
+            # covers a seal signed by rita's key and a seal signed by the old
+            # deployment-wide key alike, and those are different facts about who
+            # verified something — which is the whole reason the keyring exists.
+            out["signed_by"] = signing.seal_attribution(
+                pair.get("source_norm", ""), pair.get("target_text", ""),
+                pair.get("verifier", ""), pair.get("seal_sig", ""))
+            out["key_status"] = ring.status(pair.get("verifier", ""))
         return out
 
     def list(self, status: str = "", verifier: str = "", contains: str = "",
@@ -152,6 +167,119 @@ class Curator:
         if conflicts_only:
             rows = [r for r in rows if not r.get("same_verifier", False)]
         return rows
+
+    def rejection_signals(self, min_query: int = 2, min_pair: int = 2,
+                          limit: int = 2000) -> dict:
+        """What the accumulated "no"s say, which nothing used to ask.
+
+        Rejection has been recorded since it shipped and read by exactly one
+        thing: :func:`~nestor.memory.lookup`, which suppresses the specific
+        answer for the specific query. In aggregate the same records say two
+        further things, and both were going unread (IDEAS §1.2):
+
+        * **A query rejected repeatedly** — several different answers offered
+          for one input, all refused — is evidence the *threshold* is wrong for
+          this domain rather than evidence about any one pair. Nestor's
+          ``SEAL_THRESHOLD`` is a single global constant and no single value
+          works across corpora (§1.3); this is the only per-domain signal the
+          system actually collects.
+        * **A pair rejected against many different queries** is evidence about
+          the pair. A good mapping is the wrong answer for a query now and
+          then; one that is wrong for a dozen unrelated inputs is junk, and the
+          curator's next move is :meth:`unseal` or ``reject_pair``.
+
+        Returns ``{"queries": [...], "pairs": [...], "rejections": int,
+        "domain": {...}}``, each list ordered by weight of evidence.
+
+        **Read from the ledger, not the store.** ``memory_rejections`` answers
+        "what was refused for *this* query", which is what serving needs; there
+        is no enumerate-everything call, and adding one would change the
+        Storage Protocol every host implements for a reporting feature. The
+        chain already holds every rejection, in order, with its verifier and
+        reason — the same reason :meth:`replaced_seals` reads it. A store whose
+        rejections predate the ledger, or whose chain was rotated, will report
+        fewer; the count says how many entries were read so that is visible
+        rather than assumed.
+
+        What it deliberately does not do is guess a new threshold. The score a
+        rejected match was made at is not recorded — the rejection knows the
+        query and the answer, not what they scored — so this reports that the
+        dial is wrong here, and :mod:`nestor.calibrate` is what measures where
+        to put it.
+        """
+        entries = ledger.entries(kind="reject_match", limit=limit)
+        if self.source_lang:
+            entries = [e for e in entries if e.get("source_lang") == self.source_lang]
+        if self.target_lang:
+            entries = [e for e in entries if e.get("target_lang") == self.target_lang]
+
+        by_query: dict[str, dict] = {}
+        by_pair: dict[str, dict] = {}
+        for e in entries:
+            query = e.get("query_norm", "")
+            pair_id = e.get("pair_id", "")
+            who = e.get("verifier", "") or "(unknown)"
+            reason = e.get("reason", "")
+            if query:
+                q = by_query.setdefault(query, {
+                    "query_norm": query, "rejections": 0, "verifiers": set(),
+                    "pair_ids": set(), "reasons": [],
+                    "source_lang": e.get("source_lang", ""),
+                    "target_lang": e.get("target_lang", ""),
+                })
+                q["rejections"] += 1
+                q["verifiers"].add(who)
+                if pair_id:
+                    q["pair_ids"].add(pair_id)
+                if reason:
+                    q["reasons"].append(reason)
+            if pair_id:
+                p = by_pair.setdefault(pair_id, {
+                    "pair_id": pair_id, "queries": set(), "verifiers": set(),
+                    "reasons": [],
+                })
+                if query:
+                    p["queries"].add(query)
+                p["verifiers"].add(who)
+                if reason:
+                    p["reasons"].append(reason)
+
+        queries = []
+        for q in by_query.values():
+            if q["rejections"] < min_query:
+                continue
+            queries.append({
+                "query_norm": q["query_norm"], "rejections": q["rejections"],
+                "distinct_answers": len(q["pair_ids"]),
+                "verifiers": sorted(q["verifiers"]), "reasons": q["reasons"][:5],
+                "source_lang": q["source_lang"], "target_lang": q["target_lang"],
+            })
+        queries.sort(key=lambda r: (-r["rejections"], r["query_norm"]))
+
+        pairs = []
+        for p in by_pair.values():
+            if len(p["queries"]) < min_pair:
+                continue
+            row = self.store.memory_get(p["pair_id"]) or {}
+            pairs.append({
+                "pair_id": p["pair_id"], "queries": len(p["queries"]),
+                "query_norms": sorted(p["queries"])[:10],
+                "verifiers": sorted(p["verifiers"]), "reasons": p["reasons"][:5],
+                # The pair may since have been unsealed or rejected outright —
+                # a curator wants to see the ones still standing first.
+                "status": row.get("status", "(gone)"),
+                "source_text": row.get("source_text", ""),
+                "target_text": row.get("target_text", ""),
+                "servable": memory.is_verified_seal(row) if row else False,
+            })
+        pairs.sort(key=lambda r: (-r["queries"], r["pair_id"]))
+
+        return {
+            "queries": queries, "pairs": pairs, "rejections": len(entries),
+            "domain": {"source_lang": self.source_lang or "*",
+                       "target_lang": self.target_lang or "*"},
+            "thresholds": {"min_query": min_query, "min_pair": min_pair},
+        }
 
     # -- revoking ---------------------------------------------------------
 
@@ -233,10 +361,20 @@ class Curator:
         sealed = self.list(status="sealed", limit=100_000)
         draft = self.list(status="draft", limit=100_000)
         rejected = self.list(status="rejected", limit=100_000)
-        return {
+        out = {
             "sealed": len(sealed),
             "draft": len(draft),
             "rejected": len(rejected),
             "sealed_unverifiable": sum(1 for p in sealed if not p["servable"]),
             "verifiers": sorted({p.get("verifier", "") for p in sealed if p.get("verifier")}),
         }
+        ring = keyring.get_keyring()
+        if ring is not None:
+            # Two counts a keyring makes meaningful and a shared key cannot:
+            # seals nobody in particular signed, and seals by a name the
+            # keyring does not know.
+            out["sealed_legacy"] = sum(1 for p in sealed if p.get("signed_by") == "legacy")
+            out["unknown_verifiers"] = sorted(
+                {p.get("verifier", "") for p in sealed
+                 if ring.status(p.get("verifier", "")) == "unknown"})
+        return out

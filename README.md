@@ -93,6 +93,20 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
+The whole argument in one run, against a scratch store it deletes afterwards:
+
+```bash
+python demo/sixty_seconds.py            # --fast to skip the pauses
+```
+
+An answer nobody has verified; one human verifying it once; the same question
+retyped and served with a receipt; a rewrite that is *not* served; the failure
+mode where "thirty days" matches "sixty days" and what to do about it; a seal
+forged straight into the database and refused; then one field edited in one past
+ledger entry, and the chain refusing both to verify and to accept the next
+decision. Every beat asserts its own claim — the script exits non-zero rather
+than narrate something that did not happen, and a test runs it.
+
 Save this as `demo.py` and run it — the whole loop, in the translation recipe:
 
 ```python
@@ -182,8 +196,9 @@ nestor/
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── curator.py        the curator surface — browse, audit, unseal, export
+├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
-├── ui.py             the browser surface — queue, memory, ask, ledger (stdlib only)
+├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
@@ -195,6 +210,7 @@ nestor/
 ├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
+├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
@@ -212,6 +228,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py          timing, environment capture, JSON result recording
 └── results/            committed measurements — parameters, git rev, raw numbers
 
+demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 QUESTIONS.md          the questions this gets asked, answered or admitted
@@ -573,6 +590,9 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
+nestor calibrate --from en --to es       # where the threshold belongs for this corpus
+nestor rejections                        # what the recorded "no"s say in aggregate
+nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke
 nestor ui                                # the browser surface
 nestor serve                             # MCP over stdio, for a model
 ```
@@ -743,6 +763,63 @@ so a row edited to `status='sealed'` directly in the database will not verify an
 will not be served. Without the variable Nestor warns and trusts stored status —
 set `NESTOR_REQUIRE_SEAL_KEY=1` to fail closed instead.
 
+### Who verified it — per-verifier keys
+
+One `NESTOR_SEAL_KEY` proves *the key was present*. It does not prove **who**:
+every verifier signs with it, so `verifier="rita"` is still a string anybody who
+can reach the process can type. A keyring (`nestor.keyring`) gives each verifier
+their own key, so a valid signature over `(source_norm, target_text, "rita")` is
+evidence about rita.
+
+```bash
+nestor keys add rita --keyring keys.json     # prints the key once; the file is 0600
+nestor keys add sam  --keyring keys.json
+export NESTOR_KEYRING=keys.json
+nestor ui --db data/nestor.db                # "acting as" becomes a sign-in
+```
+
+With a keyring in force:
+
+* a seal is signed with the named verifier's key, and a name the keyring does
+  not know **cannot seal** — `UnknownVerifierError`, raised before anything is
+  written;
+* the UI stops taking a typed name. A verifier signs in with their key, and
+  every decision in that session is recorded and signed as them;
+* moving a real signature onto a different name in the database no longer
+  works — it verifies under the key of the verifier it names, or not at all.
+
+A **rejection** by an unregistered name is still recorded and honored, and
+reported as unsigned. Refusing to record a "no" is the one direction rejection
+must not fail in: it would leave a bad answer serving because a reviewer was not
+on a list.
+
+**Revoking a key asks one question, because the answer genuinely differs.** An
+HMAC carries no timestamp, so a signature cannot tell "sealed by rita last
+March" from "forged last night by whoever took rita's key". Nestor will not
+guess:
+
+```bash
+nestor keys revoke rita --reason "left the team"          # rotated
+nestor keys revoke sam  --compromised --reason "stolen"   # taken
+```
+
+| | new seals | seals it already made |
+|---|---|---|
+| rotated (`--reason`) | refused | **keep serving** — nobody else held the key, so they are still that person's verifications |
+| `--compromised` | refused | **stop serving** — indistinguishable from the thief's; the rows surface in `Curator.unverifiable()` and the UI's unverifiable filter for re-verification |
+
+Migrating a store sealed under a single key: `nestor keys add NAME
+--adopt-shared-key` also trusts `NESTOR_SEAL_KEY`, so existing seals keep
+serving and are reported as `legacy` — verified by somebody here, not
+attributable to a person, which is what they always were. Leave it out and they
+land in `unverifiable()` for re-verification instead.
+
+What this is not: a shared secret proves possession of a key, not the presence
+of a person, and the process necessarily holds the keys it verifies against. The
+asymmetric upgrade — a signature checked with a public key the verifier could
+not have produced — is the follow-on, through the same
+`signing.sign_seal(..., key=)` seam.
+
 ### FRANK — mirroring into shared provenance
 
 `nestor.frank` mirrors every ledger entry into **FRANK**, willow-mcp's
@@ -879,15 +956,38 @@ Results land in `bench/results/*.json` with parameters, environment and git
 revision attached. [`bench/README.md`](bench/README.md) documents the method,
 including the properties a corpus must preserve to produce a meaningful number.
 
+The trade is a shape, so there is a chart of it — read-only, stdlib, no build:
+
+```bash
+python bench/serve_ui.py --open       # http://127.0.0.1:8770/ui/
+```
+
+**And then calibrate against the memory you actually have.** The bench measures
+the matcher in general; `nestor calibrate` measures *your* corpus, by asking
+the only question that needs no probe set:
+
+```bash
+nestor calibrate --from en --to es --target 0.01
+```
+
+For each sealed pair, it finds the other sealed pair whose source scores highest
+against it and whose target is **different** — which is exactly a false seal, and
+one that already exists in your memory between two things a human verified. It
+reports the rate at every cutoff, recommends the cheapest one that meets your
+target, and says so plainly when no cutoff reaches it (that is a corpus problem,
+not a dial problem). It changes nothing: moving the threshold is a decision
+about how much unverified content you will serve, and it belongs to a person. It
+is also a *lower* bound — real queries include text the memory has never seen.
+
 Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 - **Lookup is linear in corpus size**, and ~97% of the time is Python-side
   scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
-  not high-volume serving.
-- **Nothing consumes rejections as signal.** Repeated rejections against one
-  query are strong evidence the threshold is wrong for that domain, and a pair
-  rejected against many queries is probably junk. Both are recorded, neither is
-  read (§1.3).
+  not high-volume serving. `best_sealed` prunes losslessly on difflib's own
+  bounds (§2.1), which makes the *absent* case — nothing verified matches —
+  roughly an order of magnitude cheaper, but the scan is still a scan.
+- **The threshold wants calibrating per corpus, not trusting.** No single cutoff
+  is both safe and useful across corpora (§1.3).
 
 ---
 

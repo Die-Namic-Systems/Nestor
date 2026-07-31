@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from nestor import cascade, frank, storage
+from nestor import cascade, frank, keyring, storage
 from nestor.sqlite_store import SqliteStore
 
 
@@ -23,11 +23,14 @@ def isolate_globals(tmp_path):
     saved_forwarder = frank.get_forwarder()
     storage._store = None
     frank.set_forwarder(None)
+    # A keyring left installed by one test decides who may seal in the next one.
+    keyring.set_keyring(None)
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     yield
     storage._store = saved_store
     cascade._LEDGER_OVERRIDE = saved_ledger
     frank.set_forwarder(saved_forwarder)
+    keyring.set_keyring(None)
 
 
 def read_ledger():

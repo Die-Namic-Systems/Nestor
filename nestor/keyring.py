@@ -1,0 +1,370 @@
+"""nestor.keyring — which key signs for which verifier, and which no longer do.
+
+``NESTOR_SEAL_KEY`` closed the forgery Nestor#2 found: a row that merely *says*
+``status='sealed'`` will not serve, because a seal carries an HMAC over its own
+fields and the key is held outside the store. What it did not close is *who*.
+One key signs every seal, so a signature proves the key was present and nothing
+more — and ``verifier`` stayed what it always was: a string anybody who can
+reach the process can type. "A human checked this" meant "somebody with access
+typed a name."
+
+This is the key per verifier. ``rita``'s seals are signed with ``rita``'s key,
+so a valid signature over ``(source_norm, target_text, "rita")`` is evidence
+about *rita* rather than about the deployment. Someone holding ``sam``'s key
+cannot produce one, and a store-writer holding neither cannot produce any.
+
+Three things worth reading before deploying it.
+
+**It is opt-in, and the old behavior is untouched without it.** No keyring
+configured means :mod:`nestor.signing` resolves ``NESTOR_SEAL_KEY`` exactly as
+before. A keyring is installed with :func:`set_keyring`, or found at
+``NESTOR_KEYRING``.
+
+**With a keyring installed, an unknown name cannot seal.** That is the entire
+point, so it fails loudly rather than degrading: sealing as a verifier the
+keyring does not know raises :class:`UnknownVerifierError`, and the seal is
+never written. A store carrying seals from *before* the keyring is the migration
+case, and it has its own answer below.
+
+**Revocation asks one question, because the answer genuinely differs.** An HMAC
+carries no timestamp, so a signature cannot tell "sealed by rita last March"
+from "forged last night by whoever took rita's key". Nestor will not pretend
+otherwise, so :meth:`Keyring.revoke` makes the operator say which happened:
+
+* ``compromised=False`` — *rita left, rotate the key.* Nobody else ever held it,
+  so everything it signed is still a verification rita made. Those seals keep
+  serving; the key simply cannot make new ones.
+* ``compromised=True`` — *the key was taken.* Nothing it signed can be
+  distinguished from something the thief signed, so **none of it serves.** The
+  rows are not deleted or altered: they surface in
+  :meth:`~nestor.curator.Curator.unverifiable` and in the UI's unverifiable
+  filter, which is exactly where a human re-verifies them.
+
+Guessing between those two would be wrong in one direction or the other every
+time — silently retiring a departed colleague's whole body of work, or serving
+a thief's forgeries as human-verified.
+"""
+from __future__ import annotations
+
+import hmac
+import json
+import os
+import pathlib
+import secrets
+import stat
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Optional
+
+
+class KeyringError(RuntimeError):
+    """The keyring cannot be used as given (unreadable, malformed, unsafe)."""
+
+
+class UnknownVerifierError(RuntimeError):
+    """A keyring is installed and this verifier is not in it.
+
+    Raised at *seal* time, before anything is written. With per-verifier keys
+    there is no key to sign with, and signing with somebody else's — or with
+    none — would put a name on a verification that nothing backs.
+    """
+
+
+class RevokedKeyError(RuntimeError):
+    """This verifier's key has been revoked; it cannot make new seals.
+
+    Whether their *existing* seals still serve depends on why it was revoked —
+    see :meth:`Keyring.revoke`.
+    """
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+@dataclass
+class VerifierKey:
+    """One verifier, one key, and what has happened to it."""
+
+    name: str
+    key: bytes
+    revoked_at: str = ""
+    compromised: bool = False
+    reason: str = ""
+    created_at: str = field(default_factory=_now)
+
+    @property
+    def revoked(self) -> bool:
+        return bool(self.revoked_at)
+
+    @property
+    def can_sign(self) -> bool:
+        """A revoked key makes no new seals, whatever the reason."""
+        return not self.revoked
+
+    @property
+    def trusted(self) -> bool:
+        """Whether seals already carrying this key's signature still serve.
+
+        True unless the key was reported *compromised* — see the module
+        docstring for why that distinction is the operator's to make.
+        """
+        return not self.compromised
+
+    def to_json(self) -> dict:
+        return {"name": self.name, "key": self.key.hex(),
+                "revoked_at": self.revoked_at, "compromised": self.compromised,
+                "reason": self.reason, "created_at": self.created_at}
+
+    @classmethod
+    def from_json(cls, raw: dict) -> "VerifierKey":
+        name = str(raw.get("name", "")).strip()
+        if not name:
+            raise KeyringError("a keyring entry needs a 'name'")
+        try:
+            key = bytes.fromhex(str(raw.get("key", "")))
+        except ValueError as exc:
+            raise KeyringError(
+                f"the key for {name!r} is not hex. Keys are stored hex-encoded so "
+                f"the file is unambiguous about bytes; generate one with "
+                f"`nestor keys add {name}`.") from exc
+        if not key:
+            raise KeyringError(f"the key for {name!r} is empty")
+        return cls(name=name, key=key,
+                   revoked_at=str(raw.get("revoked_at", "")),
+                   compromised=bool(raw.get("compromised", False)),
+                   reason=str(raw.get("reason", "")),
+                   created_at=str(raw.get("created_at", "")) or _now())
+
+
+class Keyring:
+    """The verifiers this instance can attribute a seal to.
+
+    ``legacy_key`` is the migration seam and nothing else: a store sealed under
+    a single ``NESTOR_SEAL_KEY`` before the keyring existed carries signatures
+    that no *person's* key can reproduce. Set it and those seals keep serving,
+    reported as ``legacy`` — signed by the deployment, not by anyone in
+    particular, which is the honest description of what they always were. Leave
+    it unset and they land in ``unverifiable()`` for re-verification, which is
+    the stricter and slower road to the same place.
+    """
+
+    def __init__(self, verifiers: Optional[list[VerifierKey]] = None,
+                 legacy_key: Optional[bytes] = None, path: str = "") -> None:
+        self._by_name: dict[str, VerifierKey] = {v.name: v for v in (verifiers or [])}
+        self.legacy_key = legacy_key
+        self.path = path
+
+    # -- reading ----------------------------------------------------------
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._by_name
+
+    def __len__(self) -> int:
+        return len(self._by_name)
+
+    def get(self, name: str) -> Optional[VerifierKey]:
+        return self._by_name.get(name)
+
+    def names(self) -> list[str]:
+        return sorted(self._by_name)
+
+    def entries(self) -> list[VerifierKey]:
+        return [self._by_name[n] for n in self.names()]
+
+    def signing_key(self, name: str) -> bytes:
+        """The key ``name`` signs with, or a refusal saying why they cannot.
+
+        Raises rather than returning ``None``: this is called on the path to
+        writing a seal, and every reason it could fail is a reason not to
+        write one.
+        """
+        entry = self._by_name.get(name)
+        if entry is None:
+            raise UnknownVerifierError(
+                f"{name or '(empty)'!r} is not in the keyring "
+                f"({', '.join(self.names()) or 'no verifiers registered'}). A seal "
+                f"records who verified something; with per-verifier keys there is "
+                f"no key to sign this one with. Add them with `nestor keys add "
+                f"{name or 'NAME'}`, or unset NESTOR_KEYRING to go back to a single "
+                f"shared key.")
+        if not entry.can_sign:
+            raise RevokedKeyError(
+                f"{name!r}'s key was revoked at {entry.revoked_at}"
+                f"{' (reported compromised)' if entry.compromised else ''}"
+                f"{': ' + entry.reason if entry.reason else ''}. It cannot make new "
+                f"seals. Issue a new key with `nestor keys add {name} --rotate`.")
+        return entry.key
+
+    def verifying_key(self, name: str) -> Optional[bytes]:
+        """The key a seal by ``name`` must verify under, or ``None`` for "it
+        cannot be trusted at all".
+
+        A revoked-but-not-compromised key still verifies its own past seals:
+        rita left, rita's verifications stand. A compromised one verifies
+        nothing, because nothing it signed can be told apart from what the
+        thief signed.
+        """
+        entry = self._by_name.get(name)
+        if entry is None or not entry.trusted:
+            return None
+        return entry.key
+
+    def status(self, name: str) -> str:
+        """``"active" | "revoked" | "compromised" | "unknown"`` — for surfaces."""
+        entry = self._by_name.get(name)
+        if entry is None:
+            return "unknown"
+        if entry.compromised:
+            return "compromised"
+        return "revoked" if entry.revoked else "active"
+
+    # -- writing ----------------------------------------------------------
+
+    def add(self, name: str, key: Optional[bytes] = None,
+            rotate: bool = False) -> VerifierKey:
+        """Register ``name`` with ``key`` (a fresh random one by default).
+
+        Replacing an existing entry needs ``rotate=True``. Overwriting a key by
+        accident silently invalidates every seal that verifier ever made, which
+        is not something a typo should be able to do.
+        """
+        name = name.strip()
+        if not name:
+            raise KeyringError("a verifier needs a name")
+        if name in self._by_name and not rotate:
+            raise KeyringError(
+                f"{name!r} already has a key. Replacing it stops every seal they "
+                f"have already made from verifying — pass rotate=True (or "
+                f"`--rotate`) if that is what you mean.")
+        entry = VerifierKey(name=name, key=key or secrets.token_bytes(32))
+        self._by_name[name] = entry
+        return entry
+
+    def revoke(self, name: str, reason: str = "",
+               compromised: bool = False) -> VerifierKey:
+        """Retire ``name``'s key. ``compromised`` decides what happens to its seals.
+
+        ``compromised=False`` — the key is being rotated and nobody else ever
+        held it. Its past seals are still that person's verifications and keep
+        serving; it just cannot make new ones.
+
+        ``compromised=True`` — the key was taken. Every seal it signed becomes
+        unservable, because an HMAC carries no timestamp and there is no way to
+        tell what was signed before the theft from what was signed after. The
+        rows stay in the store and surface in ``Curator.unverifiable()``, which
+        is where a human re-verifies them.
+        """
+        entry = self._by_name.get(name)
+        if entry is None:
+            raise UnknownVerifierError(f"{name!r} is not in the keyring")
+        entry.revoked_at = entry.revoked_at or _now()
+        entry.reason = reason or entry.reason
+        # One-way: a key reported stolen does not become un-stolen because a
+        # later call forgot to say so.
+        entry.compromised = entry.compromised or compromised
+        return entry
+
+    # -- persistence ------------------------------------------------------
+
+    def to_json(self) -> dict:
+        out: dict = {"version": 1, "verifiers": [e.to_json() for e in self.entries()]}
+        if self.legacy_key:
+            out["legacy_key"] = self.legacy_key.hex()
+        return out
+
+    def save(self, path: Optional[str] = None) -> str:
+        """Write the keyring, readable by its owner only.
+
+        This file holds every seal key in the deployment. It is written 0600 and
+        :func:`load` refuses one that is readable by anyone else, for the same
+        reason ``ssh`` does.
+        """
+        target = pathlib.Path(path or self.path)
+        if not target.name:
+            raise KeyringError("no keyring path given")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_name(target.name + ".tmp")
+        # Create with the right mode from the start: a keyring that is briefly
+        # world-readable was briefly world-readable.
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(self.to_json(), fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        os.replace(tmp, target)
+        self.path = str(target)
+        return self.path
+
+
+def load(path: str) -> Keyring:
+    """Read a keyring file. Refuses one other users can read."""
+    p = pathlib.Path(path)
+    if not p.exists():
+        raise KeyringError(f"no keyring at {p}. Create one with `nestor keys add NAME`.")
+    mode = os.stat(p).st_mode
+    if mode & (stat.S_IRWXG | stat.S_IRWXO):
+        raise KeyringError(
+            f"{p} is readable by other users (mode {oct(mode & 0o777)}). It holds "
+            f"every seal key in this deployment — `chmod 600 {p}` and try again.")
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as exc:                              # noqa: BLE001
+        raise KeyringError(f"{p} is not valid JSON: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise KeyringError(f"{p} must contain a JSON object")
+    legacy = raw.get("legacy_key") or ""
+    try:
+        legacy_key = bytes.fromhex(legacy) if legacy else None
+    except ValueError as exc:
+        raise KeyringError(f"{p}: legacy_key is not hex") from exc
+    verifiers = [VerifierKey.from_json(v) for v in raw.get("verifiers", [])]
+    return Keyring(verifiers, legacy_key=legacy_key, path=str(p))
+
+
+# --------------------------------------------------------------------------
+# The process-wide keyring (the same injection shape as store and matcher)
+# --------------------------------------------------------------------------
+
+_keyring: Optional[Keyring] = None
+_loaded_from: Optional[str] = None
+
+
+def set_keyring(k: Optional[Keyring]) -> None:
+    """Install (or with ``None``, remove) the process-wide keyring."""
+    global _keyring, _loaded_from
+    _keyring = k
+    _loaded_from = k.path if k is not None else None
+
+
+def keyring_path() -> str:
+    return os.environ.get("NESTOR_KEYRING", "")
+
+
+def get_keyring() -> Optional[Keyring]:
+    """The installed keyring, the one at ``NESTOR_KEYRING``, or ``None``.
+
+    Cached by path so a keyring is read once, and re-read when the environment
+    points somewhere else. Editing the file under a running process is not
+    picked up — deliberately: a long-lived UI that silently changed who it
+    trusts halfway through a shift would be worse than one that needs a
+    restart. ``nestor keys`` is a separate short-lived process, and a revocation
+    that must take effect now is a restart.
+    """
+    global _keyring, _loaded_from
+    path = keyring_path()
+    if _keyring is not None and (not path or _loaded_from == path):
+        return _keyring
+    if not path:
+        return None
+    _keyring = load(path)
+    _loaded_from = path
+    return _keyring
+
+
+def enabled() -> bool:
+    """Whether per-verifier identity is in force."""
+    return get_keyring() is not None
+
+
+def same_key(a: bytes, b: bytes) -> bool:
+    return hmac.compare_digest(a, b)

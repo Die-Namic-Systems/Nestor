@@ -184,3 +184,20 @@ pinning the row as sequence `b` to reuse difflib's index measures a different
 function; and `autojunk` changes results past 200 elements. Either produces a
 plausible, slightly wrong benchmark rather than an obvious failure — hence the
 per-run check rather than a one-off proof.
+
+## The dashboard
+
+The results are the argument; the JSON is not the shape of it. After at least
+one run:
+
+```bash
+python bench/serve_ui.py --open        # http://127.0.0.1:8770/ui/
+```
+
+Stdlib only, read-only, no store: it serves `bench/ui/` and the committed
+`bench/results/*.json`, and charts the false-seal / paraphrase-recall trade
+across the threshold sweep with a run picker. Open the URL the server prints —
+loading `index.html` from disk cannot fetch the results.
+
+It records nothing. Sealing, rejecting, curating and the review queue are
+`nestor ui`, which is a different port (8765) and a different job.

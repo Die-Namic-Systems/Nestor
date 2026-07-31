@@ -132,12 +132,22 @@ Design decisions worth remembering:
   support, because writing rejections nobody reads back is worse than not having
   the feature. `reject_*` raises rather than silently dropping a human's "no".
 
-Remaining: nothing consumes rejections as *training signal* — a query with
-several rejections is a strong hint that the threshold is wrong for that domain
-(§1.3), and a pair rejected against many different queries is a hint the pair
-itself is junk. Both are now recorded and unread.
+**Reading them back — shipped.** For a while the remaining line here was that
+nothing consumed rejections as *signal*. `Curator.rejection_signals()`,
+`nestor rejections` and the UI's Signals tab now do: a query refused several
+times over is evidence about the **threshold** in that domain (§1.3), and a pair
+refused against many unrelated queries is evidence about the **pair**. Read from
+the ledger rather than the store — `memory_rejections` answers "what was refused
+for this query", which is what serving needs, and there is no enumerate call;
+adding one would change the Storage Protocol every host implements, for a
+reporting feature. The number of entries read is reported, so a rotated chain
+shows as a smaller sample rather than as a clean bill of health.
 
-### 1.3 The threshold should be calibrated, not constant — **measured**
+It deliberately stops short of proposing a threshold. The score a rejected match
+was made at is not recorded, so this says the dial is wrong here and hands over
+to §1.3's calibration.
+
+### 1.3 The threshold should be calibrated, not constant — **measured; the calibration shipped**
 
 `SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and no
 single value works. Complete sweep, 250 probes per cell, false-seal rate
@@ -196,11 +206,26 @@ reordering, contraction, and a guaranteed stopword-drop fallback) that survive
 normalization. 0% of boilerplate and 5% of prose paraphrases normalize to an
 identical key, against 80% for the surface tier.
 
-Longer term this still wants to be per-domain, or a calibration mode that
-samples a corpus, measures its absent-score distribution, and recommends a
-cutoff for a target false-seal rate — which is also the honest marketing story
-(§4.2): not "we are accurate," but "here is your false-verification rate, and
-here is the dial."
+**The calibration mode now exists** — `nestor.calibrate` / `nestor calibrate`.
+It does not import these corpora; it measures the memory a deployment actually
+has, by asking the one question that needs no probe set: for each sealed pair,
+which *other* sealed pair scores highest against it **and has a different
+target**? That is a false seal by definition, already present, between two
+things a human deliberately verified. It reports the rate at every cutoff in
+this same sweep, recommends the lowest one meeting a target rate, and says so
+when none does — that last case being a corpus problem rather than a dial
+problem, and worth naming as such.
+
+Two limits it states in its own output. It is a **lower bound**: real queries
+include text the memory has never held, and this can only see collisions the
+corpus already contains. And it cannot see recall — a memory holds no record of
+the paraphrases nobody has asked yet — so the trade above still has to be read
+from the bench. It changes nothing on its own: moving the threshold is a
+decision about how much unverified content you will serve, and that belongs to
+a person.
+
+That is also the honest marketing story (§4.2): not "we are accurate," but "here
+is your false-verification rate, measured on your corpus, and here is the dial."
 
 ### 1.4 Seal staleness and quorum — **open**
 
@@ -332,7 +357,7 @@ product. It is now `ledger_append` (public, since six modules import it), holdin
 a process lock and an advisory file lock, with the FRANK forward moved outside
 both so a slow mirror cannot stall a review queue.
 
-### 1.9 The numeric matcher takes the first number it finds — **open**
+### 1.9 The numeric matcher takes the first number it finds — **shipped**
 
 `NumericMatcher.parse` strips `$ , %` and then *searches* for a number, so
 `"1,00o,000"` — one typo — parses as **100**, and `"12/31/2024"` parses as 12.
@@ -344,9 +369,24 @@ failure direction is currently safe: a typo produces a wildly wrong figure, whic
 gets *flagged*, and a human looks. But the reverse exists — a stray leading token
 in an otherwise correct figure is silently dropped — and "the number I compared
 was not the number you typed" is a bad sentence to have to say in an audit.
-Options: require the whole cleaned string to parse (breaks `"$1,000,000 USD"`),
-or report the parsed figure back in the result so a caller can see what was
-actually compared. The second is cheap and non-breaking; do that first.
+Requiring the whole cleaned string to parse was the other option, and it is
+wrong: it breaks `"$1,000,000 USD"`, which is an ordinary way to write a figure.
+So the signal shipped is not "was anything left over" but **"was a *digit* left
+over"** — `"USD"` is decoration, `"o000"` and `"/31/2024"` are the rest of a
+number that never reached the comparison. That separates the two failures above
+from the legitimate case exactly, with no false alarm on currency or units.
+
+`NumericMatcher.parse_detail` returns the figure with what it had to ignore;
+`check()` carries `observed_text` / `observed_partial` and the same pair for the
+baseline; `seal_baseline` warns, because a partially-read *baseline* is the one
+case where the discrepancy is permanent — the row says `"$1,00o,000"` forever
+and every future check runs against 100. The ledger records the flags and not
+the raw strings, since `nestor.frank` mirrors entries verbatim into somebody
+else's ledger.
+
+Reporting beat refusing: a reconciler that rejected every partially-parsed
+figure would refuse real inputs, and the person who can tell a typo from a unit
+suffix is the human this package exists to keep in the loop.
 
 ---
 
@@ -357,7 +397,7 @@ lookup is linear in corpus size — 293 ms @ 2k pairs, 4.4 s @ 32k, projecting t
 ~135 s @ 1M. **97% of that is Python-side `difflib`, not SQL** (112 ms fetch vs
 4,260 ms scoring at 32k). The database is not the bottleneck; the scoring loop is.
 
-### 2.1 Lossless prefilter via difflib's own bounds — **measured**
+### 2.1 Lossless prefilter via difflib's own bounds — **shipped**
 
 `SequenceMatcher` exposes `real_quick_ratio()` (length-based) and
 `quick_ratio()` (multiset-based) as progressively tighter upper bounds on
@@ -411,7 +451,24 @@ Two caveats found while implementing it, both easy to get wrong:
 Both would produce a plausible, slightly-wrong benchmark. The equivalence check
 (`--equiv`) exists because of them.
 
-Do this before anything lossy.
+**Shipped**, as `StringMatcher.similarity_bound` plus `best_sealed`'s own scan.
+Re-measured on landing: 4,000 sealed rows, 40 absent probes, 35.6 s → 2.4 s
+(**14.7x**), identical answers. The bound is a matcher method rather than a
+difflib call inside `memory` — the seam is where domain knowledge lives — and it
+is deliberately *not* in the `Matcher` Protocol: `NumericMatcher` gains nothing
+from a bound on two floats, and requiring it would break every custom matcher
+already injected. No bound offered, no pruning, same answer. The length bound is
+inlined rather than taken from a `SequenceMatcher`, because constructing one
+indexes the second sequence, which costs more than the cheap question is worth.
+
+Writing it turned up something the performance work was not looking for.
+`best_sealed` filtered `lookup()`'s result, and `lookup` defaults to `limit=5`.
+Six drafts scoring above a sealed row is not exotic — the engine writes a draft
+for every near miss — and they pushed a human's verification off the end of the
+list, so tier 1 answered "nothing verified, here is a fresh draft" while the
+seal sat in the memory matching at 0.933. There is no top-N to fall out of now.
+
+Do this before anything lossy — and there is still nothing lossy.
 
 ### 2.2 Trigram blocking — **measured, disappointing**
 
@@ -852,6 +909,7 @@ no new dependency, no vector smuggled through a SQL key. §3.3 becomes optional
 rather than blocking — **for the ranking use.** For serving at a safe threshold
 on prose-shaped aliases, stage 3 says surfaces are not a substitute for §3.3 and
 the two are no longer alternatives to each other.
+
 ---
 
 ## 4. Positioning
@@ -893,7 +951,7 @@ Where it wins: high-value, low-volume decisions — contracts, clinical notes,
 regulatory filings. Where it loses: high-volume chat, per §2 numbers. Don't
 pitch into the second; the demo would lose.
 
-### 4.3 The 60-second demo — **open**
+### 4.3 The 60-second demo — **shipped, except the recording**
 
 Highest-leverage missing artifact. An AI gets something wrong; a human corrects
 it **once**; it is right forever after, with a receipt that cannot be forged.
@@ -904,9 +962,23 @@ different reasons.
 No longer blocked on §5.1 — `nestor ui`, `nestor ask` and `nestor serve` all
 exist, and two screens carry the loop with no explaining: a near-match returning
 `~ draft` because it is under the cutoff, and a forged row scoring **1.000**
-returning `! pending`. What is missing is the *artifact* — a scripted sixty
-seconds, recorded, that ends on tampering with the ledger and watching the chain
-refuse.
+returning `! pending`.
+
+`demo/sixty_seconds.py` is the script: eight beats, the exact phrases that
+produce each outcome, paced for a recording and `--fast` for CI. What is left is
+literally the screen capture.
+
+One beat is worth defending, because it is the one a demo usually leaves out.
+Between the near miss and the forgery, the script asks for "sixty days" against
+a phrase sealed for "thirty days" — which scores 0.96 and **is served, wrongly**.
+Showing it is the point: §4.4's argument is that admitting a measured failure
+rate is stronger than claiming accuracy, and a demo that only shows the good
+case is exactly what a compliance buyer has learned to distrust. It lands
+pointing at `bench/`, `nestor calibrate` and the rejection signals — the three
+things that exist to answer it.
+
+Every beat asserts what it narrates and the script exits non-zero if a claim
+does not hold, so it cannot rot into a lie between recordings. A test runs it.
 
 ### 4.4 The bench is a marketing asset — **open**
 
@@ -981,7 +1053,7 @@ Still missing: no `memory_delete`. Deliberate for now — rejection and unsealin
 preserve the audit trail, and hard deletion would punch a hole in it. A GDPR-style
 erasure path would need to be designed against the ledger, not bolted on.
 
-### 5.3 Ledger verification is once per process — **verified**
+### 5.3 Ledger verification is once per process — **verified; the tail closed**
 
 `cascade._verified_ledgers` caches by path, so the chain is checked on first
 append and never again. I watched an append succeed after mid-run tampering. The
@@ -995,8 +1067,28 @@ affordable.
 Nestor process in the repo: a REPL session or a batch run exits, a review server
 stays up for a shift. It verifies the chain on the first append and then trusts
 it for as long as the reviewer keeps working. The Ledger view calls `verify()`
-on every render, so the *reading* is live — but nothing refuses an append after
-the first one, and that is now a realistic window rather than a theoretical one.
+on every render, so the *reading* is live — but nothing refused an append after
+the first one, and that was a realistic window rather than a theoretical one.
+
+**The tail half is closed.** Each append now records where its own line landed
+and that line's hash; the next one re-reads from there, requires its own last
+entry to still be present and unchanged, and requires anything appended since —
+by this process or another — to chain onto it. The cost is the bytes written
+since the last append, not the file, so this is affordable in a way
+re-verification is not. It runs in the preflight as well as under the append
+lock, because a refusal that arrives *after* the caller's store write leaves a
+sealed row with no trail.
+
+What it does not cover, and the docstring says so: an edit to a line older than
+the checkpoint. That still needs the full walk. The checkpoint is the cheap
+guard on the part of the chain being written right now, not a replacement for
+`verify()` — a periodic or TTL'd full re-verification is still open.
+
+One subtlety worth recording, because it was a flake before it was a fix: the
+preflight holds no lock (it cannot — its job is to answer before the caller
+commits), so it must not read a line another thread is flushing and call the
+chain broken. It checks only the checkpoint line, whose bytes were fsynced
+before its offset was recorded; the full tail walk runs again under the lock.
 
 ### 5.4 There was nowhere for the human to sit — **shipped**
 
@@ -1006,10 +1098,11 @@ by typing `graduate_segment` into a REPL; the curator browsed the memory through
 being the human meant writing Python.*
 
 `nestor.ui` — stdlib only (`http.server` plus one inlined page), so the zero
-runtime dependencies hold — with four views: **Queue** (the segments the cascade
+runtime dependencies hold — with five views: **Queue** (the segments the cascade
 left for review), **Memory** (the curator's list, provenance and revocation),
 **Ask** (run the cascade and see the state that came back, with the ranked
-candidates behind it), **Ledger** (`verify()`'s verdict beside the chain).
+candidates behind it), **Signals** (below), **Ledger** (`verify()`'s verdict
+beside the chain).
 
 Decisions worth keeping:
 
@@ -1017,6 +1110,18 @@ Decisions worth keeping:
   near-match scoring 0.875 comes back `~ draft` because the cutoff is 0.92, and
   a forged row scoring **1.000** comes back `! pending` — sealed, not servable,
   by mallory. §4.3's 60-second demo is that second screen.
+* **The Memory list admits it has a second page.** It stopped at 50 rows with
+  nothing to say it had. "No pairs match" and "no more pairs on this page" read
+  identically when the page is the only thing you can see, so a curator whose
+  memory is larger than one page was looking at an arbitrary slice of it and had
+  no way to know. It asks for one row more than it shows, which is how it learns
+  there is a next page — the Storage Protocol has no count, and adding one for a
+  pager would be the wrong trade.
+* **Signals is for the questions no single row answers.** Seals somebody
+  overwrote (which the store keeps no trace of at all — only the ledger does,
+  and `add_pair` refuses a different verifier's overwrite, so an entry there
+  means a human overruled another human), plus §1.2's two rejection aggregates.
+  Three findings the package recorded and nothing displayed.
 * **An empty verifier is refused, not defaulted.** `memory._same_verifier`
   treats `""` as *unknown* rather than as a person, so a UI that quietly sent it
   would file every decision under an actor who is nobody and turn every
@@ -1085,10 +1190,15 @@ the honest framing — the fix is not local, it is "someone else remembers."
 `nestor.frank` is that taken to its conclusion, mirroring every entry with its
 `local_hash` into a ledger somebody else holds.
 
-Open: an append-time checkpoint (write the head to a sidecar the ledger writer
-does not own), and whether §5.3's once-per-process verification should re-check
-the head on every append rather than the whole chain — cheap, and it catches
-mid-run tampering of the tail.
+**The in-process half shipped** (§5.3): every append remembers the line it
+wrote and refuses to continue if that line has changed, so while an entry is the
+tip, the process that wrote it still knows what it said. That is the closest
+thing to a local fix there is — it survives the entry being newest, but not the
+process restarting.
+
+Still open: a checkpoint written to a sidecar the ledger's writer does not own,
+which is the only version that survives a restart, and which is `nestor.frank`
+again in miniature — the fix is not local, it is "someone else remembers."
 
 ### 5.6 Nothing could leave — **shipped**
 
@@ -1145,3 +1255,45 @@ ordinary cache. This is also why `nestor.answer` exists: the browser, the
 terminal and the model now share one definition of what Nestor answers, because a
 system that tells a model "verified" while showing a curator "draft" has already
 lost the argument.
+
+### 5.8 A verifier was a string anybody could type — **shipped**
+
+*Was: everything about trust here was rigorous except the name. A seal was bound
+to a key the store does not hold — but ONE key for the whole deployment, so a
+valid signature proved the key was present and nothing about who used it.
+`verifier="rita"` was a string anyone who could reach the process could type,
+and "a human checked this" meant "somebody with access typed a name."*
+
+`nestor.keyring` gives each verifier their own key. A seal's signature verifies
+under the key of the verifier it *names*, or not at all — so moving a real
+signature onto a more senior name in the database stops working, and a name the
+keyring does not know cannot seal, raised from `sign_seal` before `add_pair`
+touches the store. The UI's "acting as" box becomes a sign-in: a verifier
+presents their key, and the typed name is then ignored entirely, because a field
+that must match something already known is only a way to produce confusing
+errors.
+
+**Revocation is the part that needed a decision, and the decision was not to
+guess.** An HMAC carries no timestamp, so a signature cannot distinguish "sealed
+by rita last March" from "forged last night by whoever took rita's key". So the
+operator says which happened. A *rotated* key makes no new seals and keeps its
+old ones — nobody else ever held it, so they are still that person's
+verifications. A *compromised* one makes no new seals and loses its old ones,
+which land in `Curator.unverifiable()` for re-verification rather than being
+deleted. Picking either automatically is wrong every time: one silently retires
+a departed colleague's entire body of work, the other serves a thief's
+forgeries as human-verified.
+
+Opt-in throughout, and the shared-key deployment is byte-for-byte unchanged
+without it. Migration is `nestor keys add NAME --adopt-shared-key`, after which
+pre-keyring seals keep serving and report as `legacy` — verified by somebody
+here, not attributable to a person, which is what they always were.
+
+A rejection by an unregistered name is still recorded and honored, and reported
+as unsigned; refusing to record a "no" is the one direction rejection must not
+fail in, and it is the same asymmetry §1.2 already argues for signatures.
+
+Still open, and the same follow-on Nestor#2 named: the asymmetric upgrade. A
+shared secret proves possession of a key, not the presence of a person, and the
+process necessarily holds the keys it verifies against. Ed25519 or a Biscuit
+capability goes through the same `signing.sign_seal(..., key=)` seam.
