@@ -96,9 +96,16 @@ def test_graduate_segment_seals_pair_and_ledgers(store):
     assert hit is not None
     assert hit["pair"]["target_text"] == "Hasta pronto"
 
+    # Two joined facts: the pair was sealed (written by add_pair, so a seal is
+    # audited whatever the entry point), and this segment is the one a human
+    # decided.
     seal_entries = [e for e in read_ledger() if e.get("kind") == "seal"]
     assert len(seal_entries) == 1
-    assert seal_entries[0]["segment_id"] == seg["id"]
+    assert seal_entries[0]["verifier"] == "alice"
+    graduated = [e for e in read_ledger() if e.get("kind") == "segment_sealed"]
+    assert len(graduated) == 1
+    assert graduated[0]["segment_id"] == seg["id"]
+    assert graduated[0]["pair_id"] == seal_entries[0]["pair_id"]
 
 
 def test_graduate_segment_none_without_candidate(store):

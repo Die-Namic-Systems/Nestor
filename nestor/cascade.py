@@ -239,6 +239,10 @@ def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
     updater = getattr(store, "update_segment_status", None)
     if callable(updater):
         updater(segment_id, "verified")
-    _ledger_append({"kind": "seal", "segment_id": segment_id,
-                    "pair_id": pair["id"], "verifier": verifier})
+    # `add_pair` writes the "seal" entry for the pair itself; this one records
+    # the other half — which queued segment a human decided, and in which
+    # document — so the two join in the trail without saying "seal" twice.
+    _ledger_append({"kind": "segment_sealed", "segment_id": segment_id,
+                    "document_id": seg["document_id"], "pair_id": pair["id"],
+                    "verifier": verifier})
     return pair

@@ -223,7 +223,7 @@ def test_a_reviewer_can_correct_a_draft_before_sealing_it(app, tmp_path):
     assert queued(app) == []
 
     entry = [json.loads(x) for x in (tmp_path / "ledger.jsonl").read_text().splitlines()
-             if json.loads(x).get("kind") == "seal"][-1]
+             if json.loads(x).get("kind") == "segment_sealed"][-1]
     assert entry["edited"] is True and entry["draft_sha"] == memory._sha("el reporte mensual")
 
 
@@ -416,6 +416,56 @@ def test_csrf_refuses_a_cross_site_post_and_allows_the_page_itself():
     assert "does not match host" in ui.csrf_reason("POST", headers, "127.0.0.1:8765")
     headers = {"X-Nestor-UI": "1", "Origin": "http://127.0.0.1:8765"}
     assert ui.csrf_reason("POST", headers, "127.0.0.1:8765") is None
+
+
+def _strip_js_literals(js: str) -> str:
+    """Blank out strings, template literals, regexes-as-strings and comments.
+
+    Crude on purpose: it only has to leave the delimiters that structure the
+    code, so the balance check below can see them.
+    """
+    out, i, n = [], 0, len(js)
+    while i < n:
+        c = js[i]
+        if c in "\"'`":
+            quote, i = c, i + 1
+            while i < n and js[i] != quote:
+                i += 2 if js[i] == "\\" else 1
+            i += 1
+            out.append('""')
+        elif js.startswith("//", i):
+            while i < n and js[i] != "\n":
+                i += 1
+        elif js.startswith("/*", i):
+            i = js.find("*/", i) + 2 or n
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def test_the_pages_javascript_is_structurally_balanced():
+    """The page ships as a Python string, so nothing else ever parses it.
+
+    A stray paren in it is invisible to every other test here and fatal in the
+    browser — the whole page renders blank. This is the cheap standing guard;
+    it caught exactly that.
+    """
+    from nestor.ui_page import PAGE
+    js = _strip_js_literals(PAGE.split("<script>", 1)[1].rsplit("</script>", 1)[0])
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack, line = [], 1
+    for ch in js:
+        if ch == "\n":
+            line += 1
+        elif ch in "([{":
+            stack.append((ch, line))
+        elif ch in pairs:
+            assert stack, f"unbalanced {ch!r} at line {line} of the page script"
+            opener, opened = stack.pop()
+            assert opener == pairs[ch], (
+                f"{ch!r} at line {line} closes {opener!r} opened at line {opened}")
+    assert not stack, f"unclosed {stack[-1][0]!r} from line {stack[-1][1]}"
 
 
 def test_the_page_is_self_contained():

@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
+nestor = "nestor.cli:main"
 nestor-ui = "nestor.ui:main"
 
 [project.optional-dependencies]

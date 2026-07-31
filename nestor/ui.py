@@ -54,11 +54,9 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Mapping, Optional
 
-from . import cascade, ledger as ledger_mod, memory, signing, storage
+from . import answer, cascade, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
-from .engine import get_engine
 from .entity import EntityResolver
-from .matcher import Matcher, NumericMatcher, StringMatcher
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .storage import Storage, supports_curation, supports_queue, supports_rejection
@@ -238,11 +236,45 @@ def _ledger_view(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     kind = _str(query, "kind") or None
     rows = ledger_mod.entries(kind=kind, limit=max(1, min(_int(query, "limit", 200), 2000)))
     kinds = sorted({r.get("kind", "") for r in ledger_mod.entries(limit=2000) if r.get("kind")})
-    return {"ok": ok, "detail": detail, "entries": list(reversed(rows)), "kinds": kinds}
+    # The tip travels with the verdict: the walk cannot vouch for the newest
+    # entry, so a human who wants that guarantee has to pin this value somewhere
+    # the ledger's writer cannot reach.
+    return {"ok": ok, "detail": detail, "head": ledger_mod.head(),
+            "entries": list(reversed(rows)), "kinds": kinds}
 
 
 def _export(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     return app.curator(_str(query, "source_lang"), _str(query, "target_lang")).export()
+
+
+def _bundle(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """The portable, re-importable form — signatures and all."""
+    return portable.export_bundle(app.store, source_lang=_str(query, "source_lang"),
+                                  target_lang=_str(query, "target_lang"),
+                                  include_ledger=_str(query, "ledger", "1") != "0")
+
+
+def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Bring a bundle in — as a report first, and only then for real.
+
+    ``dry_run`` defaults to true here as it does in the library: an import
+    decides what this instance will serve as human-verified, so the human sees
+    the report (what would land sealed, what would be demoted for failing to
+    verify, what conflicts) before anything is written. Committing it is a
+    verification decision, so it needs a name like every other one.
+    """
+    bundle = payload.get("bundle")
+    if not isinstance(bundle, dict):
+        raise ApiError(400, "send the bundle as a JSON object under 'bundle'",
+                       code="bad_request")
+    dry_run = payload.get("dry_run", True) is not False
+    who = "" if dry_run else _verifier(payload)
+    try:
+        return portable.import_bundle(bundle, store=app.store, dry_run=dry_run,
+                                      verifier=who,
+                                      override_conflicts=bool(payload.get("override_conflicts")))
+    except portable.BundleError as exc:
+        raise ApiError(400, str(exc), code="bad_bundle") from exc
 
 
 # --------------------------------------------------------------------------
@@ -260,23 +292,10 @@ def _ask(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict
     text = _str(payload, "text")
     if not text:
         raise ApiError(400, "nothing to ask", code="bad_request")
-    source_lang = _str(payload, "source_lang") or app.source_lang
-    target_lang = _str(payload, "target_lang") or app.target_lang
-    passage = cascade.translate_segment(
-        text, source_lang, target_lang, engine=get_engine(app.engine_name),
-        store=app.store)
-    matches = [
-        {"similarity": m["similarity"], "status": m["pair"]["status"],
-         "servable": memory.is_verified_seal(m["pair"]),
-         "id": m["pair"]["id"], "source_text": m["pair"]["source_text"],
-         "target_text": m["pair"]["target_text"], "verifier": m["pair"].get("verifier", "")}
-        for m in memory.lookup(text, source_lang, target_lang, limit=5, store=app.store)
-    ]
-    return {"passage": {"source": passage.source, "target": passage.target,
-                        "state": passage.state, "mark": passage.mark,
-                        "tier": passage.tier, "engine": passage.engine,
-                        "confidence": passage.confidence, "meta": passage.meta},
-            "matches": matches, "threshold": memory.SEAL_THRESHOLD}
+    return answer.ask(app.store, text,
+                      _str(payload, "source_lang") or app.source_lang,
+                      _str(payload, "target_lang") or app.target_lang,
+                      engine_name=app.engine_name)
 
 
 def _domains(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -304,19 +323,7 @@ def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, An
     surface = _str(payload, "surface")
     if not surface:
         raise ApiError(400, "nothing to resolve", code="bad_request")
-    domain = _str(payload, "domain") or "entity"
-    resolver = EntityResolver(app.store, domain=domain)
-    result = resolver.resolve(surface)
-    result["domain"] = domain
-    result["candidates"] = [
-        {"similarity": m["similarity"], "status": m["pair"]["status"],
-         "servable": memory.is_verified_seal(m["pair"]), "id": m["pair"]["id"],
-         "surface": m["pair"]["source_text"], "canonical": m["pair"]["target_text"],
-         "verifier": m["pair"].get("verifier", "")}
-        for m in memory.lookup(surface, domain, domain, limit=5, store=app.store)
-    ]
-    result["threshold"] = memory.SEAL_THRESHOLD
-    return result
+    return answer.resolve(app.store, surface, _str(payload, "domain") or "entity")
 
 
 def _entity_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -346,17 +353,10 @@ def _reconcile_check(app: App, query: Mapping[str, Any], payload: Mapping[str, A
     if not label or not observed:
         raise ApiError(400, "a check needs a label and an observed value",
                        code="bad_request")
-    rc = _reconciler(payload, app)
-    result = rc.check(label, observed)
-    result["domain"] = rc.domain
-    result["tolerance"] = {"abs_tol": rc.matcher.abs_tol, "pct_tol": rc.matcher.pct_tol}
-    # Every standing baseline, not just the one used: `ambiguous` says a label
-    # has more than one, and a number is not an explanation.
-    result["baselines"] = [
-        {"value": r["target_text"], "verifier": r.get("verifier", ""),
-         "created_at": r.get("created_at", ""), "id": r["id"]}
-        for r in rc.sealed_baselines(label)]
-    return result
+    return answer.check(app.store, label, observed,
+                        domain=_str(payload, "domain") or "value",
+                        abs_tol=_float(payload, "abs_tol", 0.0),
+                        pct_tol=_float(payload, "pct_tol", 0.05))
 
 
 def _reconcile_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -381,37 +381,12 @@ def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
     text = _str(payload, "text")
     if not text:
         raise ApiError(400, "nothing to match", code="bad_request")
-    source_lang = _str(payload, "source_lang") or app.source_lang
-    target_lang = _str(payload, "target_lang") or app.target_lang
-    kind = _str(payload, "matcher", "string")
-    if kind == "numeric":
-        m: Matcher = NumericMatcher(abs_tol=_float(payload, "abs_tol", 0.0),
-                                    pct_tol=_float(payload, "pct_tol", 0.05))
-    elif kind == "string":
-        m = StringMatcher()
-    else:
-        raise ApiError(400, f"unknown matcher {kind!r} — this UI can drive the two "
-                            f"shipped matchers; a custom one is injected in code.",
-                       code="bad_request")
-    hit = memory.best_sealed(text, source_lang, target_lang, store=app.store,
-                             matcher=m, context_threshold=0.0)
-    matches = memory.lookup(text, source_lang, target_lang, limit=8, store=app.store,
-                            matcher=m, context_threshold=0.0)
-    return {
-        "normalized": m.normalize(text),
-        "served": bool(hit),
-        "target": hit["pair"]["target_text"] if hit else "",
-        "verifier": hit["pair"].get("verifier", "") if hit else "",
-        "confidence": hit["similarity"] if hit else 0.0,
-        "threshold": memory.SEAL_THRESHOLD,
-        "matcher": kind,
-        "matches": [
-            {"similarity": mm["similarity"], "status": mm["pair"]["status"],
-             "servable": memory.is_verified_seal(mm["pair"]), "id": mm["pair"]["id"],
-             "source_text": mm["pair"]["source_text"],
-             "target_text": mm["pair"]["target_text"],
-             "verifier": mm["pair"].get("verifier", "")} for mm in matches],
-    }
+    return answer.match(app.store, text,
+                        _str(payload, "source_lang") or app.source_lang,
+                        _str(payload, "target_lang") or app.target_lang,
+                        matcher=_str(payload, "matcher", "string"),
+                        abs_tol=_float(payload, "abs_tol", 0.0),
+                        pct_tol=_float(payload, "pct_tol", 0.05))
 
 
 def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -434,10 +409,13 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
                            verifier=who, origin=_str(payload, "origin", "ui"),
                            store=app.store, override_conflict=override,
                            override_rejection=override)
-    cascade._ledger_append({"kind": "seal", "pair_id": pair["id"], "verifier": who,
-                            "source_lang": source_lang, "target_lang": target_lang,
-                            "source_sha": memory._sha(pair["source_norm"]),
-                            "origin": "ui", "override": override})
+    # add_pair ledgers the seal itself. What it cannot know is that a human was
+    # shown another human's decision and chose to overrule it anyway, so that —
+    # and only that — is recorded here.
+    if override:
+        cascade._ledger_append({"kind": "seal_override", "pair_id": pair["id"],
+                                "verifier": who, "source_lang": source_lang,
+                                "target_lang": target_lang, "origin": "ui"})
     return {"pair": app.curator().get(pair["id"]) or pair}
 
 
@@ -524,8 +502,9 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         override_conflict=bool(payload.get("override")),
         override_rejection=bool(payload.get("override")))
     app.store.update_segment_status(segment_id, "verified")
-    cascade._ledger_append({"kind": "seal", "segment_id": segment_id,
-                            "pair_id": pair["id"], "verifier": who, "edited": True,
+    cascade._ledger_append({"kind": "segment_sealed", "segment_id": segment_id,
+                            "document_id": seg["document_id"], "pair_id": pair["id"],
+                            "verifier": who, "edited": True,
                             "draft_sha": memory._sha(seg.get("candidate", "")),
                             "origin": "ui:queue"})
     return {"pair": pair, "segment_id": segment_id, "edited": True}
@@ -553,6 +532,8 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/ledger"): _ledger_view,
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
+    ("GET", "/api/bundle"): _bundle,
+    ("POST", "/api/import"): _import,
     ("POST", "/api/ask"): _ask,
     ("POST", "/api/match"): _match,
     ("POST", "/api/entity/resolve"): _entity_resolve,
@@ -672,8 +653,9 @@ def _make_handler(app: App) -> type[BaseHTTPRequestHandler]:
             query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
             status, payload = dispatch(app, "GET", parsed.path, query)
             extra = None
-            if parsed.path == "/api/export" and status == 200:
-                extra = {"Content-Disposition": 'attachment; filename="nestor-export.json"'}
+            if parsed.path in ("/api/export", "/api/bundle") and status == 200:
+                name = "nestor-export.json" if parsed.path == "/api/export" else "nestor-bundle.json"
+                extra = {"Content-Disposition": f'attachment; filename="{name}"'}
             self._send_json(status, payload, extra)
 
         def do_HEAD(self) -> None:                             # noqa: N802

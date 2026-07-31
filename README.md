@@ -30,9 +30,14 @@ hash-chained ledger, so the trail is tamper-evident.
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
 [The curator](#the-curator--seeing-what-was-verified) ·
-[The UI](#the-ui--where-the-human-sits) · [The ledger](#the-ledger) ·
-[Injected storage](#injected-storage) ·
+[The UI](#the-ui--where-the-human-sits) · [The CLI](#the-cli) ·
+[Export & import](#export-and-import--taking-the-memory-elsewhere) ·
+[Serving a model](#serving-a-model--and-the-one-thing-it-cannot-do) ·
+[The ledger](#the-ledger) · [Injected storage](#injected-storage) ·
 [Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
+
+Frequently asked, honestly answered — including the "not yet"s:
+[**QUESTIONS.md**](QUESTIONS.md).
 
 ---
 
@@ -133,8 +138,12 @@ nestor/
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── curator.py        the curator surface — browse, audit, unseal, export
+├── answer.py         what Nestor answers — one definition, shared by every surface
 ├── ui.py             the browser surface — queue, memory, ask, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
+├── cli.py            the terminal surface — ask, export, import, ledger verify
+├── serve.py          the model surface — MCP over stdio; it cannot seal
+├── portable.py       export/import a memory without laundering trust
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
@@ -155,6 +164,7 @@ bench/                measuring where the seal threshold stops holding — see b
 
 tests/                no network, no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
+QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 
 ---
@@ -501,6 +511,113 @@ call a paid API.
 
 ---
 
+## The CLI
+
+```bash
+nestor ask "Good evening."               # ✓ sealed  Buenas noches.  (verified by rita)
+nestor resolve AMZN --domain company     # the entity graph
+nestor check ceiling '$1,030,000' --domain contract
+nestor export --out memory.json          # a portable bundle
+nestor import memory.json                # dry run; --apply commits
+nestor ledger verify                     # exit 1 on a broken chain
+nestor stats
+nestor ui                                # the browser surface
+nestor serve                             # MCP over stdio, for a model
+```
+
+**Exit codes mean something.** `0` is the good answer, `1` is the bad one — an
+unverified answer, a flagged figure, a broken chain, an import with conflicts —
+and `2` is a usage error. So `nestor ledger verify` is a CI gate and `nestor ask`
+belongs in a shell conditional:
+
+```bash
+nestor ask "$phrase" >/dev/null || echo "nothing verified for that — ask a human"
+```
+
+## Export and import — taking the memory elsewhere
+
+```bash
+nestor export --out memory.json          # pairs, rejections, signatures, digest
+nestor import memory.json                # reports what would happen
+nestor import memory.json --apply --verifier rita
+```
+
+Export is easy. Import is the half worth explaining, because **a bundle is a
+file, and a file claiming `"status": "sealed"` is making exactly the claim a seal
+signature exists to distrust** — the same claim a forged database row makes. So
+import applies the serve path's rule rather than a softer one:
+
+| Incoming row | What happens |
+|---|---|
+| sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you |
+| sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, and never served |
+| draft | imported as a draft |
+| same source, a *different* target | **conflict**: listed for a human, never resolved silently |
+
+```
+would import: 16 sealed, 1 demoted to draft (signature does not verify here),
+              1 draft, 0 already present, 1 rejection(s)
+
+nothing was written — re-run with --apply to commit.
+```
+
+Dry run by default, in the library and the CLI both, because an import decides
+what an instance will serve as human-verified. The UI has the same flow with the
+report on screen. **The ledger does not merge** — a hash chain has one history by
+construction, so a bundle carries the source chain for *reading* and the import
+itself is what gets appended locally.
+
+`--format csv` is offered and is deliberately lossy: it drops signatures, so a
+CSV round-trip cannot carry a verifiable seal. Use it to read a memory, not to
+move one.
+
+## Serving a model — and the one thing it cannot do
+
+```bash
+nestor serve --db data/nestor.db         # MCP over stdio, stdlib only
+```
+
+```json
+{"mcpServers": {"nestor": {"command": "nestor",
+                           "args": ["serve", "--db", "data/nestor.db"],
+                           "env": {"NESTOR_SEAL_KEY": "…"}}}}
+```
+
+A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
+`nestor_provenance`, `nestor_ledger_verify` — and `nestor_propose`, which queues
+its answer for a human as a `draft`.
+
+**It cannot seal.** Not "sealing is disabled by default" — there is no sealing
+tool, no flag that adds one, and no argument to any existing tool that produces
+one. A plausible-sounding name gets a refusal that explains why:
+
+```
+PermissionError: 'nestor_seal' is not available to a model. This server
+deliberately withholds: seal, unseal, reject, override a conflicting seal,
+import a bundle, edit the ledger. Verification is a human act — use
+nestor_propose to put an answer in front of one.
+```
+
+That is the product, not a precaution. "Has a human checked this?" is worth
+exactly as much as the difficulty of getting a machine's output marked as
+checked, so `tests/test_serve.py` pins it as a property: after a model has called
+every tool this server has, the sealed memory is unchanged.
+
+What comes back is the **state**, not just a string — so an agent can cite a
+human, or decline:
+
+```
+ask "good evening"                 -> verified=True  state=sealed   by=rita
+ask "wire the funds to the new account"
+                                   -> verified=False state=pending
+                                      (top candidate scored 1.0, servable=False)
+```
+
+A perfect match, and the model is still told it has nothing verified — because
+that row was written by something that never held the seal key.
+
+---
+
 ## The ledger
 
 Every passage, seal, rejection, unseal, resolution and check is appended to a hash-chained ledger
@@ -525,6 +642,22 @@ Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
 from nestor.ledger import verify
 verify("data/ledger.jsonl")     # (True, 'intact — 18 entries')
 ```
+
+**The walk cannot vouch for the newest entry.** Every line is verified by the
+line after it, so the last one — the one that just recorded who sealed what — has
+nothing following it, and editing it leaves the chain walking clean. That is a
+property of hash chains, not a bug in the verifier, but "the most recent decision
+is the editable one" is a strange thing for an audit trail to leave unsaid. Pin
+the tip somewhere the ledger's writer cannot reach:
+
+```bash
+head=$(nestor ledger head)                    # store this in CI, a monitor, anywhere else
+nestor ledger verify --expect-head "$head"    # exit 1 if the tip moved unexpectedly
+```
+
+[FRANK](#frank--mirroring-into-shared-provenance) is the same idea taken to its
+conclusion: every entry mirrored into a ledger somebody else holds, each carrying
+its own `local_hash`.
 
 ### Seal signatures
 

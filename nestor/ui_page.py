@@ -378,7 +378,8 @@ function viewMemory() {
   if (!S.pairs.length) list.append(h("p", { class: "empty", text: "No pairs match." }));
   for (const p of S.pairs) list.append(pairRow(p));
 
-  view.append(h("div", { class: "grid" }, list, h("div", {}, detailPanel(), sealForm())));
+  view.append(h("div", { class: "grid" }, list,
+                h("div", {}, detailPanel(), sealForm(), portableCard())));
 }
 
 function pairRow(p) {
@@ -511,6 +512,89 @@ async function submitSeal() {
     }
     toast(e.message, "err");
   }
+}
+
+function portableCard() {
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Take it elsewhere" }),
+    h("div", { class: "row" },
+      h("a", { href: "/api/bundle", download: "nestor-bundle.json" },
+        h("button", { class: "small" }, "Export bundle")),
+      h("a", { href: "/api/export", download: "nestor-export.json" },
+        h("button", { class: "small" }, "Curator JSON")),
+      h("span", { class: "spacer" }),
+      h("label", { class: "small muted" }, "Import ",
+        h("input", { type: "file", accept: ".json,application/json", id: "import-file",
+                     disabled: S.state.read_only, style: "max-width:150px",
+                     onchange: (e) => readBundle(e.target.files[0]) }))),
+    h("p", { class: "small muted", style: "margin:10px 0 0",
+      text: "A bundle carries the pairs, the rejections and the signatures. Importing " +
+            "reports first and writes nothing until you confirm — and a seal whose " +
+            "signature does not verify here lands as a draft for review, never as sealed." }));
+  if (S.importReport) card.append(importReport(S.importReport));
+  return card;
+}
+
+function readBundle(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      S.importBundle = JSON.parse(reader.result);
+    } catch (e) {
+      return toast("That file is not JSON: " + e.message, "err");
+    }
+    try {
+      S.importReport = await api("/api/import", { bundle: S.importBundle, dry_run: true });
+      render();
+    } catch (e) { toast(e.message, "err"); }
+  };
+  reader.readAsText(file);
+}
+
+function importReport(r) {
+  const box = h("div", { style: "margin-top:12px;border-top:1px solid var(--line);padding-top:10px" },
+    h("div", { class: "row" },
+      h("span", { class: "chip", text: r.sealed + " would land sealed" }),
+      r.demoted ? h("span", { class: "badge warn", title: "signature does not verify here",
+                              text: r.demoted + " demoted to draft" }) : null,
+      r.drafts ? h("span", { class: "chip", text: r.drafts + " draft" }) : null,
+      r.existing ? h("span", { class: "chip", text: r.existing + " already here" }) : null,
+      r.conflicts.length ? h("span", { class: "badge bad", text: r.conflicts.length + " conflict(s)" }) : null,
+      r.rejections ? h("span", { class: "chip", text: r.rejections + " rejection(s)" }) : null));
+  for (const c of r.conflicts) {
+    box.append(h("div", { class: "small", style: "margin-top:6px" },
+      h("div", { text: c.source_text }),
+      h("div", { class: "muted", text: "here: " + c.here.target_text + " (" + (c.here.verifier || "—") +
+                                       ")  ·  incoming: " + c.incoming.target_text +
+                                       " (" + (c.incoming.verifier || "—") + ")" })));
+  }
+  box.append(h("div", { class: "row", style: "margin-top:10px" },
+    h("button", { class: "primary small", disabled: S.state.read_only, onclick: applyImport },
+      "Write these to the memory"),
+    h("button", { class: "small", onclick: () => { S.importReport = null; S.importBundle = null; render(); } },
+      "Discard"),
+    r.conflicts.length
+      ? h("label", { class: "row small muted", style: "gap:6px" },
+          h("input", { type: "checkbox", id: "import-override" }), "take the incoming answer where we disagree")
+      : null));
+  return box;
+}
+
+async function applyImport() {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const override = $("import-override") ? $("import-override").checked : false;
+  const out = await act("/api/import",
+    { bundle: S.importBundle, dry_run: false, verifier: verifier(), override_conflicts: override },
+    "Imported.");
+  if (out) {
+    S.importReport = null; S.importBundle = null;
+    if (out.demoted) {
+      toast(out.demoted + " pair(s) claimed sealed but do not verify here — they are " +
+            "drafts in the queue now.", "err");
+    }
+  }
+  render();
 }
 
 /* ---------- Ask: one mechanic, four recipes -------------------------------- */
@@ -884,7 +968,13 @@ function viewLedger() {
       h("select", { onchange: (e) => { S.ledgerKind = e.target.value; refresh(); } },
         ...[["", "every kind"]].concat(l.kinds.map((k) => [k, k]))
           .map(([v, t]) => h("option", { value: v, selected: (S.ledgerKind || "") === v }, t))),
-      h("span", { class: "chip mono", text: S.state.ledger.path }))));
+      h("span", { class: "chip mono", text: S.state.ledger.path })),
+    h("p", { class: "small muted", style: "margin:10px 0 0" },
+      "The walk vouches for every entry except the newest — nothing follows it to " +
+      "carry its hash. Pin this tip somewhere the ledger's writer cannot reach " +
+      "(CI, a monitor) and check against it: ",
+      h("code", { class: "mono", text: "nestor ledger verify --expect-head " + (l.head || "").slice(0, 16) + "…" })),
+    h("p", { class: "small mono muted", style: "margin:4px 0 0", text: "head " + (l.head || "") })));
 
   const card = h("div", { class: "card" });
   if (!l.entries.length) card.append(h("p", { class: "empty", text: "Nothing recorded yet." }));

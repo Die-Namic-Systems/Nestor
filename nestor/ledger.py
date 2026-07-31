@@ -19,19 +19,57 @@ class LedgerError(RuntimeError):
     audit trail) or its hash-chain is broken."""
 
 
-def verify(path: Optional[str] = None) -> Tuple[bool, str]:
+def _path(path: Optional[str] = None) -> Path:
+    if path is None:
+        from .cascade import _ledger_path  # lazy: avoid an import cycle
+        return _ledger_path()
+    return Path(path)
+
+
+def head(path: Optional[str] = None) -> str:
+    """SHA-256 of the last line — the chain's current tip.
+
+    The value the **next** entry will carry as its ``prev``, and the one thing
+    that protects the newest entry: see :func:`verify`. Returns ``"genesis"``
+    for an absent or empty ledger, so a fresh instance has a head like any other.
+    """
+    p = _path(path)
+    if not p.exists():
+        return "genesis"
+    last = ""
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        if raw.strip():
+            last = raw.strip()
+    return hashlib.sha256(last.encode("utf-8")).hexdigest() if last else "genesis"
+
+
+def verify(path: Optional[str] = None,
+           expected_head: Optional[str] = None) -> Tuple[bool, str]:
     """Walk the chain: line N's ``prev`` must equal SHA-256 of line N-1's bytes,
     rooted at ``"genesis"``. Returns ``(ok, detail)``.
 
     Editing any past line changes its hash, so the next line's ``prev`` no
     longer matches — the break is detected here.
+
+    **Except for the last line.** Each line is vouched for by the line after it,
+    so the newest entry has nothing after it to vouch for it: edit it, and the
+    walk still passes. That is a property of the chain, not a bug in the walk,
+    and it is not marginal — the newest entry is the one that just recorded who
+    sealed what, and "the most recent decision is the editable one" is a strange
+    thing for an audit trail to leave unsaid.
+
+    ``expected_head`` closes it, for a caller who knows where the chain was: pass
+    a previously recorded :func:`head` and this refuses a tip that does not match
+    it. Anything that keeps that value outside the file works — a CI variable, a
+    monitoring system, the ops process that ran the last check. :mod:`nestor.frank`
+    is the same idea taken to its conclusion: every entry is mirrored into a
+    ledger held by somebody else, carrying its own ``local_hash``.
     """
-    if path is None:
-        from .cascade import _ledger_path  # lazy: avoid an import cycle
-        p = _ledger_path()
-    else:
-        p = Path(path)
+    p = _path(path)
     if not p.exists():
+        if expected_head and expected_head != "genesis":
+            return False, (f"no ledger at {p}, but head {expected_head[:16]}… was "
+                           f"expected — the trail is missing, not empty")
         return True, "no ledger yet"
     prev = "genesis"
     count = 0
@@ -48,6 +86,10 @@ def verify(path: Optional[str] = None) -> Tuple[bool, str]:
                            f"expected {prev!r}")
         prev = hashlib.sha256(line.encode("utf-8")).hexdigest()
         count += 1
+    if expected_head and expected_head != prev:
+        return False, (f"chain walks clean over {count} entries but its head is "
+                       f"{prev[:16]}…, not the expected {expected_head[:16]}… — the "
+                       f"last entry was edited, or entries were added or removed")
     return True, f"intact — {count} entries"
 
 
@@ -64,11 +106,7 @@ def entries(kind: Optional[str] = None, path: Optional[str] = None,
     ledger still needs to see what is in it. Call :func:`verify` for that, and
     treat the two answers together.
     """
-    if path is None:
-        from .cascade import _ledger_path  # lazy: avoid an import cycle
-        p = _ledger_path()
-    else:
-        p = Path(path)
+    p = _path(path)
     if not p.exists():
         return []
     out: list[dict] = []

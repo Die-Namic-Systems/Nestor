@@ -158,7 +158,8 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
              origin: str = "", store: Optional[Storage] = None,
              matcher: Optional[Matcher] = None,
              override_rejection: bool = False,
-             override_conflict: bool = False) -> dict:
+             override_conflict: bool = False,
+             audit: bool = True) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
     ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
@@ -171,6 +172,18 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     row's verifier (a same-actor correction) or ``override_conflict=True`` is
     passed explicitly. See :class:`ConflictingSealError` for the full
     rationale, in particular why an empty verifier does not count as a match.
+
+    **A seal made here is ledgered here.** This is the one function that turns a
+    pair into a sealed one, and for a long time it recorded nothing: the seal
+    entries in the chain came from the *callers* that happened to write them
+    (``graduate_segment``, the recipes, the UI), so a host calling ``add_pair``
+    directly — the shortest path to a sealed row, and the one every importer
+    takes — produced a verified answer with no trail, while the README promised
+    every seal was appended. The entry is written from here now, so the promise
+    holds regardless of the entry point. ``audit=False`` is for bulk paths that
+    record their own aggregate entry instead; :func:`seed_from_corpus` is the
+    only caller that uses it, so that a 10k-pair import writes one line rather
+    than ten thousand.
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -230,6 +243,13 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             # explicitly overridden, so `same_verifier: False` in the trail marks
             # a deliberate overrule rather than an accident. Curator.replaced_seals
             # surfaces exactly those.
+            if audit:
+                _log_seal_event({
+                    "kind": "seal", "pair_id": existing["id"], "verifier": verifier,
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "source_sha": _sha(norm), "origin": origin,
+                    "upgraded_from": replaced_status,
+                })
             if replaced_status == "sealed":
                 _log_seal_event({
                     "kind": "seal_replaced", "pair_id": existing["id"],
@@ -246,6 +266,12 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                 status=status, verifier=verifier, weight=weight, origin=origin,
                 created_at=_now(), seal_sig=seal_sig)
     store.memory_insert(pair)
+    if status == "sealed" and audit:
+        _log_seal_event({
+            "kind": "seal", "pair_id": pair["id"], "verifier": verifier,
+            "source_lang": source_lang, "target_lang": target_lang,
+            "source_sha": _sha(norm), "origin": origin, "upgraded_from": "",
+        })
     return pair
 
 
@@ -534,7 +560,7 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
         nonlocal skipped, rejected
         try:
             add_pair(src, tgt, sl, tl, status="sealed", verifier="corpus",
-                     origin=origin, store=store)
+                     origin=origin, store=store, audit=False)
             return 1
         except (ConflictingSealError, RejectedPairError) as exc:
             # Both are the same fact — a person already decided about this
@@ -572,6 +598,13 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
                            item["lang_front"], item["lang_back"], origin)
             count += _seal(item["back"], item["front"],
                            item["lang_back"], item["lang_front"], origin)
+    # One entry for the run, rather than one per pair: a curated file is a
+    # single act by a single (non-human) verifier, and `audit=False` above keeps
+    # a 10k-pair import from burying every human decision in the chain.
+    if count:
+        _log_seal_event({"kind": "corpus_seed", "verifier": "corpus",
+                         "sealed": count, "skipped_conflict": skipped,
+                         "skipped_rejected": rejected})
     if skipped or rejected:
         parts = []
         if skipped:

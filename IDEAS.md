@@ -245,6 +245,32 @@ values distinct keys needs its own uniqueness rule, and §3.1's warning about th
 seam being lossy has a second edge here: what the normalizer *separates* matters
 as much as what it collapses.
 
+### 1.6 A seal could be made without being ledgered — **shipped**
+
+*Was: `memory.add_pair(status="sealed")` wrote nothing to the chain.*
+
+Found by a CLI test that filtered the ledger for `seal` entries and got none,
+against a database that had two sealed pairs in it. The seal entries in the chain
+came from the *callers* that happened to write one — `graduate_segment`, the
+recipes, the UI — so the shortest path to a sealed row, and the one every
+importer and host integration takes, produced a verified answer with no trail.
+Meanwhile the README's first paragraph promised every seal was appended.
+
+The entry is written from `add_pair` now, which is the one function that turns a
+pair into a sealed one, so the promise holds regardless of entry point.
+`graduate_segment`'s own entry became `segment_sealed` — which segment, in which
+document, a human decided — so the trail carries both facts and says "seal" once.
+`seed_from_corpus` passes `audit=False` and writes a single `corpus_seed` entry
+instead, because a 10k-pair curated import is one act by one non-human verifier
+and burying every human decision under ten thousand lines would be its own kind
+of unauditable.
+
+Worth naming the pattern, because it is the second instance: **a guarantee
+enforced by convention at call sites is not enforced.** The first was
+`is_verified_seal` (§1.2's regression — a bare `status == "sealed"` filter one
+file over). Both were fixed the same way: move the rule into the single function
+that cannot be bypassed.
+
 ---
 
 ## 2. Performance — the scan
@@ -422,15 +448,26 @@ Publishing `bench/results/` is a differentiator, not an exposure.
 
 ## 5. Missing surface
 
-### 5.1 There is no CLI — **partly addressed**
+### 5.1 There is no CLI — **shipped**
 
 *Was: no `console_scripts`, no entry point, nothing to run without writing
 Python.*
 
-There is now one entry point — `nestor-ui` (§5.4) — so "nothing to run" is no
-longer true, and §4.3's 60-second demo has something to point at. A terminal CLI
-(`nestor seal / resolve / check / ledger verify`) is still missing and still
-cheap; the UI does not replace it for scripting, CI, or a host with no browser.
+`nestor` (`nestor.cli`): `ask`, `resolve`, `check`, `match`, `export`, `import`,
+`ledger verify|entries|head`, `stats`, and delegation to `ui` and `serve`, which
+own their own flags rather than having them mirrored and left to drift.
+
+Two decisions worth keeping. **Exit codes carry the answer** — 0 for a verified
+one, 1 for an unverified answer, a flagged figure, a broken chain or an import
+with conflicts, 2 for usage — so `nestor ledger verify` is a CI gate and `nestor
+ask` works in a shell conditional. That is the difference between a CLI and a
+pretty-printer. And **`import` is a dry run until `--apply`**, like every other
+decision here that changes what gets served as verified.
+
+Sealing is deliberately *not* a subcommand. It would be the one place in the
+codebase where a verification could be made by something with no face — a script,
+a cron job, a CI runner — and `--verifier "$USER"` is not a human checking
+anything. Seals are made in the UI or in code that a person is driving.
 
 ### 5.2 The memory is write-only — **shipped**
 
@@ -555,3 +592,80 @@ human wrote the answer" stay distinguishable.
 Still missing: no pagination in Memory beyond the first 50 rows, and no view over
 `Curator.replaced_seals` — the highest-signal thing the curator surface reports,
 and the one the ledger holds alone.
+
+### 5.5 The newest ledger entry is vouched for by nothing — **shipped (mitigated)**
+
+Every line is verified by the line *after* it, so the last one has nothing
+following it: edit it and `verify()` still walks clean. Found while writing a CLI
+test that tampered with a one-entry ledger and could not make it fail.
+
+It is a property of hash chains rather than a bug, but it is not marginal: the
+newest entry is the one that just recorded who sealed what, so "the most recent
+decision is the editable one" is a bad thing to leave unwritten. `ledger.head()`
+returns the tip and `verify(expected_head=…)` refuses one that moved
+unexpectedly; `nestor ledger head` / `nestor ledger verify --expect-head` put it
+in CI. That only helps a caller who kept the value *outside* the file, which is
+the honest framing — the fix is not local, it is "someone else remembers."
+`nestor.frank` is that taken to its conclusion, mirroring every entry with its
+`local_hash` into a ledger somebody else holds.
+
+Open: an append-time checkpoint (write the head to a sidecar the ledger writer
+does not own), and whether §5.3's once-per-process verification should re-check
+the head on every append rather than the whole chain — cheap, and it catches
+mid-run tampering of the tail.
+
+### 5.6 Nothing could leave — **shipped**
+
+*Was: `Curator.export()` produced a human-readable dump and there was no way back
+in. A memory could be read and never moved.*
+
+`nestor.portable`: `export_bundle` (pairs, rejections, signatures, a canonical
+`digest`, the source chain for reading), `verify_bundle`, `import_bundle`,
+`pairs_csv`. CLI and UI both.
+
+The design question is import, not export. A bundle is a file, and a file saying
+`"status": "sealed"` is making exactly the claim a seal signature exists to
+distrust — the same claim a forged database row makes, which Nestor already
+refuses to serve. So import applies the identical rule: a seal is honored only if
+it verifies **here**, and one that does not lands as a `draft` in the review
+queue, counted and warned about. Two instances sharing a `NESTOR_SEAL_KEY` move
+verified pairs between them and the verification survives, because it was never
+in the row to begin with. Two instances that do not share a key move *candidates*
+— which is the correct answer, not a degraded one.
+
+Three smaller decisions: conflicts are listed rather than resolved (a bundle
+asserting a different target for a source this instance sealed is two humans
+disagreeing through a file); the chain does **not** merge, because splicing
+another instance's entries in would produce a chain that verifies while
+describing events that never happened here, so only the import event is appended;
+and the CSV drops signatures on purpose, so nobody mistakes a spreadsheet
+round-trip for a way to carry a seal.
+
+### 5.7 A model had no way in — **shipped**
+
+*Was: every surface assumed a human. The obvious deployment — an agent that
+consults verified answers before improvising — required writing an integration.*
+
+`nestor serve` speaks MCP over stdio (newline-delimited JSON-RPC, so stdlib only
+and the zero-dependency core holds). Seven tools: ask, resolve, check, match,
+provenance, ledger_verify, propose.
+
+**The load-bearing decision is what is absent.** There is no sealing tool, no
+flag that adds one, and no argument to an existing tool that produces one; a
+plausible name gets a refusal that explains why. A model's only write is
+`propose`, which queues a candidate as a `draft` exactly where a tier-2 engine's
+output lands. This is not caution — it is the whole proposition. "Has a human
+checked this?" is worth precisely as much as the difficulty of getting a
+machine's output marked as checked, and a server that let a model seal, however
+carefully, would be a system where the machine grades its own work.
+`tests/test_serve.py` pins it as a property rather than a policy: after a model
+calls every tool the server has, the sealed memory is unchanged.
+
+The other half is what comes *back*. Every answer carries the state, the
+verifier, the confidence and the candidates with their scores — so an agent can
+say "verified by rita", quote a pair id an auditor can look up, or decline
+because nothing was sealed. Returning only the text would have made Nestor an
+ordinary cache. This is also why `nestor.answer` exists: the browser, the
+terminal and the model now share one definition of what Nestor answers, because a
+system that tells a model "verified" while showing a curator "draft" has already
+lost the argument.
