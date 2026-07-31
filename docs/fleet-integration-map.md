@@ -96,7 +96,7 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 
 | Fleet piece | Plug |
 |-------------|------|
-| **`nestor db checkpoint`** | In-place WAL flush; ``--out`` for ``VACUUM INTO`` |
+| **`nestor db checkpoint`** | In-place WAL flush; ``--out`` + ``<stem>.ledger.jsonl`` (``--no-ledger`` to omit) |
 | **`nestor export`** / **`Curator.export`** | Portable bundle backup |
 | **`SqliteStore.close()`** | Checkpoint on UI shutdown |
 | **`docs/local-fleet.md`** | Operator runbook with fleet paths |

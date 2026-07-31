@@ -12,7 +12,7 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor check ceiling '$1,030,000' --domain contract
     nestor export --out memory.json       # a portable, re-importable bundle
     nestor db checkpoint                  # flush WAL into the main file (§6.7)
-    nestor db checkpoint --out copy.db    # consistent backup while the store is open
+    nestor db checkpoint --out copy.db    # db + copy.ledger.jsonl (use --no-ledger to omit chain)
     nestor import memory.json             # DRY RUN by default; --apply commits
     nestor ledger verify                  # exit 1 on a broken chain, for CI
     nestor stats
@@ -35,6 +35,7 @@ import argparse
 import json
 import os
 import pathlib
+import shutil
 import sys
 from typing import Optional
 
@@ -135,9 +136,28 @@ def cmd_db(args) -> int:
         return EXIT_USAGE
     if args.db_command == "checkpoint":
         if args.out:
-            pathlib.Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-            store.backup_into(args.out)
-            print(f"wrote {args.out}", file=sys.stderr)
+            out = pathlib.Path(args.out)
+            ledger_out = out.with_suffix(".ledger.jsonl")
+            targets = [out] if args.no_ledger else [out, ledger_out]
+            for path in targets:
+                if path.exists() and not args.force:
+                    print(f"refusing to overwrite {path} (pass --force)", file=sys.stderr)
+                    return EXIT_USAGE
+            out.parent.mkdir(parents=True, exist_ok=True)
+            if args.force:
+                for path in targets:
+                    path.unlink(missing_ok=True)
+            store.backup_into(str(out))
+            parts = [str(out)]
+            if not args.no_ledger:
+                ledger_src = cascade._ledger_path()
+                if ledger_src.is_file():
+                    shutil.copy2(ledger_src, ledger_out)
+                    parts.append(str(ledger_out))
+                else:
+                    print(f"note: no ledger file at {ledger_src} to copy alongside the db",
+                          file=sys.stderr)
+            print(f"wrote {' and '.join(parts)}", file=sys.stderr)
         else:
             store.checkpoint_wal()
             print(f"checkpointed {args.db}", file=sys.stderr)
@@ -424,7 +444,12 @@ def build_parser() -> argparse.ArgumentParser:
     dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
     dbp.add_argument("db_command", choices=("checkpoint",))
     dbp.add_argument("--out", default="",
-                     help="write a consistent copy here (VACUUM INTO) instead of in-place checkpoint")
+                     help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
+                          "ledger to <stem>.ledger.jsonl unless --no-ledger (restore both together)")
+    dbp.add_argument("--no-ledger", action="store_true",
+                     help="with --out, copy only the database (seals without audit chain)")
+    dbp.add_argument("--force", action="store_true",
+                     help="with --out, replace existing destination file(s)")
     dbp.set_defaults(func=cmd_db)
 
     imp = sub.add_parser("import", help="read a bundle (dry run unless --apply)")

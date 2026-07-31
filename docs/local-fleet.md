@@ -17,15 +17,21 @@ Assume a sibling checkout tree:
   willow-mcp/             # FRANK, egress_authorization (§5.8 borrow)
 ```
 
-Run once after fetch:
+Run after `git fetch` when you want `local/fleet-integration` to track the fleet
+remote branches named in `scripts/fleet-local-checkout.sh`:
 
 ```bash
 ./scripts/fleet-local-checkout.sh
 ```
 
-That creates **`local/fleet-integration`** tracking branches where fleet work
-lives on `origin` (terpsi coat-hat, SAFE App Forge doc branch). Your previous
-branch tip is untouched; switch back with `git checkout main` / `master`.
+The script **fast-forwards** `local/fleet-integration` when `origin/<branch>` still
+exists; it does **not** reset that branch with `git checkout -B`. Commits you made
+only on `local/fleet-integration` stay unless the fast-forward cannot run (you
+merged locally — resolve or delete the branch to recreate). The branch you were
+**on before the script runs** is unchanged except that the script checks out
+`local/fleet-integration` in each repo and prints how to switch back. When a
+remote branch has been deleted after merge, the script skips that repo and leaves
+your current branch as-is.
 
 ## Nestor on PATH
 
@@ -96,7 +102,7 @@ pytest tests/test_almanac_seam_nestor.py -q
 nestor ledger head
 nestor ledger verify --expect-head "$(cat /path/to/pinned-head.txt)"
 nestor db checkpoint              # §6.7 — WAL flush without stopping the UI
-nestor db checkpoint --out /backup/nestor-$(date +%F).db
+nestor db checkpoint --out /backup/nestor-$(date +%F).db   # also writes …ledger.jsonl
 nestor export --out /backup/memory.json
 ```
 

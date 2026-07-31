@@ -334,5 +334,15 @@ def test_db_checkpoint_cli_writes_copy_and_keeps_store_usable(db, tmp_path):
     out = tmp_path / "copy.db"
     assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
     assert out.is_file()
+    ledger_copy = out.with_suffix(".ledger.jsonl")
+    assert ledger_copy.is_file()
+    assert ledger_copy.read_text() == pathlib.Path(db["ledger"]).read_text()
     assert run(db, "db", "checkpoint") == cli.EXIT_OK
     assert run(db, "ask", "good evening") == cli.EXIT_OK
+
+
+def test_db_checkpoint_refuses_existing_out_without_force(db, tmp_path, capsys):
+    out = tmp_path / "copy.db"
+    out.write_text("taken", encoding="utf-8")
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_USAGE
+    assert "refusing to overwrite" in capsys.readouterr().err

@@ -1450,7 +1450,8 @@ to answer from a closed store.
 *Proposed 2026-07-31 after PR #24 WAL review; shipped same arc.*
 
 ``nestor db checkpoint`` flushes WAL in place; ``--out`` writes a consistent copy
-via ``VACUUM INTO`` without closing the store. Operator notes in
+via ``VACUUM INTO`` and, by default, copies the hash-chained ledger to
+``<stem>.ledger.jsonl`` beside it (``--no-ledger`` opts out). Operator notes in
 ``docs/local-fleet.md``.
 
 ### 6.8 Skip redundant ``memory_init`` schema replay — **open**
