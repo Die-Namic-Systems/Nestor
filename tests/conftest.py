@@ -13,7 +13,7 @@ from nestor.sqlite_store import SqliteStore
 # running it has a real keyring that has never heard of her.
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
                      "NESTOR_LEDGER", "NESTOR_FRANK_STRICT", "WILLOW_MCP_COMMAND",
-                     "WILLOW_APP_ID")
+                     "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
 
 
 @pytest.fixture

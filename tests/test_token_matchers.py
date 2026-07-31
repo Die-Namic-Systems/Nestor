@@ -24,11 +24,18 @@ def test_best_match_uses_score_for_token_matchers():
     }]
     probe = "AWS cloud"
     j = TokenJaccard()
-    sim_norm_only = j.similarity(j.normalize(probe), rows[0]["source_norm"])
     sim_via_best = best_match(probe, rows, j)[0]
     assert sim_via_best == round(j.score(probe, rows[0]["source_text"]), 3)
-    # score path tokenizes raw probe; norm-only path can differ when punctuation splits tokens.
-    assert sim_via_best >= 0.0
+
+
+def test_norm_only_similarity_can_differ_from_score():
+    """``best_match`` uses ``score``; comparing norms alone is not the same path."""
+    j = TokenJaccard()
+    probe = "Amazon Web Services"
+    stored_norm = "amazon web"  # stale or partial norm key
+    norm_only = j.similarity(j.normalize(probe), stored_norm)
+    via_score = j.score(probe, "Amazon Web Services")
+    assert round(norm_only, 3) != round(via_score, 3)
 
 
 def test_match_similarity_prefers_score_on_token_matcher():

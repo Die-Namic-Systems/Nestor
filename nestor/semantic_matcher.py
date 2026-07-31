@@ -105,6 +105,8 @@ class SemanticMatcher:
         b = "" if raw_b is None else str(raw_b)
         if not a.strip() or not b.strip():
             return 0.0
+        if self.normalize(a) == self.normalize(b):
+            return 1.0
         if a == b:
             return 1.0
         return _cosine(self._embed(a), self._embed(b))

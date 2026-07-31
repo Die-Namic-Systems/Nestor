@@ -54,6 +54,15 @@ def test_build_matcher_semantic_refuses_without_fastembed():
         answer.build_matcher("semantic")
 
 
+@requires_semantic
+def test_score_returns_one_when_normalized_forms_match():
+    """Retype-equivalent queries must not score below 1.0 on the embedding path."""
+    m = SemanticMatcher()
+    raw_a, raw_b = "Good evening.", "GOOD  evening!!"
+    assert m.normalize(raw_a) == m.normalize(raw_b)
+    assert m.score(raw_a, raw_b) == 1.0
+
+
 def test_unknown_matcher_still_refused():
     with pytest.raises(ValueError, match="unknown matcher"):
         answer.build_matcher("vector")
