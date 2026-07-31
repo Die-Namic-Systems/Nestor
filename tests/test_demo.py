@@ -48,7 +48,27 @@ def test_it_cleans_up_after_itself_unless_told_not_to(tmp_path):
         "the default run must not leave a store behind"
 
 
-def test_it_never_touches_the_repo(tmp_path):
-    """It runs from the repo root, so a stray default path would land in data/."""
+def _snapshot(directory):
+    """Every file under ``directory``, by size and mtime. ``None`` if absent."""
+    if not directory.exists():
+        return None
+    return {p.relative_to(directory): (p.stat().st_size, p.stat().st_mtime_ns)
+            for p in sorted(directory.rglob("*")) if p.is_file()}
+
+
+def test_it_never_touches_the_repo():
+    """It runs from the repo root, so a stray default path would land in data/.
+
+    The assertion cannot be "data/ does not exist". That directory is gitignored
+    precisely because it is where a real store lives — every launch command in
+    the README points at ``data/nestor.db`` — so anyone who has started the UI
+    from this checkout has one, and asserting its absence turns their ordinary
+    setup into a test failure. A false alarm dressed as a regression is worse
+    than the regression: it teaches people the suite is unreliable.
+
+    So snapshot it and assert the demo left it exactly as it found it, which is
+    the thing actually being claimed.
+    """
+    before = _snapshot(REPO / "data")
     assert run().returncode == 0
-    assert not (REPO / "data").exists(), "the demo wrote into the working tree"
+    assert _snapshot(REPO / "data") == before, "the demo wrote into the working tree"
