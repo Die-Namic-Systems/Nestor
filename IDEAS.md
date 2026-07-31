@@ -22,6 +22,9 @@ leave it only in chat.
 **Review lessons.** Durable checklist from PR review rounds (persistence, audit,
 threading, config): [`docs/code-review-lessons.md`](docs/code-review-lessons.md).
 
+**Fleet map.** Open IDEAS items vs existing repos (willow-mcp, SAFE store,
+oakenscrolls, bench corpora): [`docs/fleet-integration-map.md`](docs/fleet-integration-map.md).
+
 ---
 
 ## 1. Correctness — the seal that shouldn't have served
