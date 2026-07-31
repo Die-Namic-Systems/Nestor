@@ -325,15 +325,25 @@ def load(path: str) -> Keyring:
 # The process-wide keyring (the same injection shape as store and matcher)
 # --------------------------------------------------------------------------
 
-_keyring: Optional[Keyring] = None
+# An explicitly injected keyring, and separately the one read from the
+# environment. Keeping them apart is what makes the precedence below decidable:
+# with one variable for both, "installed" and "happens to be cached" are the
+# same state and the environment can overwrite an injection.
+_injected: Optional[Keyring] = None
+_from_env: Optional[Keyring] = None
 _loaded_from: Optional[str] = None
 
 
 def set_keyring(k: Optional[Keyring]) -> None:
-    """Install (or with ``None``, remove) the process-wide keyring."""
-    global _keyring, _loaded_from
-    _keyring = k
-    _loaded_from = k.path if k is not None else None
+    """Install the process-wide keyring. **Wins over ``NESTOR_KEYRING``.**
+
+    ``None`` removes the injection, after which the environment is consulted
+    again — the same shape as :func:`nestor.storage.set_store` and
+    :func:`nestor.cascade.set_ledger_path`, which is documented as winning over
+    ``NESTOR_LEDGER`` for exactly this reason.
+    """
+    global _injected
+    _injected = k
 
 
 def keyring_path() -> str:
@@ -343,22 +353,35 @@ def keyring_path() -> str:
 def get_keyring() -> Optional[Keyring]:
     """The installed keyring, the one at ``NESTOR_KEYRING``, or ``None``.
 
-    Cached by path so a keyring is read once, and re-read when the environment
-    points somewhere else. Editing the file under a running process is not
+    **An injected keyring wins.** It used to be the other way around whenever
+    the two disagreed: an injection whose path differed from ``NESTOR_KEYRING``
+    fell through to loading the environment's, so a caller that had said
+    "trust exactly these verifiers" silently got somebody else's set. That is
+    the wrong direction for an injection seam — the argument is the caller's
+    explicit statement of intent, and the environment is the default it is
+    overriding. It also meant that anyone with ``NESTOR_KEYRING`` exported in
+    their shell could not run this package's own test suite, or the demo, or
+    any host that installs its own keyring, without the environment quietly
+    deciding who was allowed to seal.
+
+    The environment's keyring is cached by path, so it is read once and re-read
+    if the variable moves. Editing the *file* under a running process is not
     picked up — deliberately: a long-lived UI that silently changed who it
     trusts halfway through a shift would be worse than one that needs a
     restart. ``nestor keys`` is a separate short-lived process, and a revocation
     that must take effect now is a restart.
     """
-    global _keyring, _loaded_from
+    global _from_env, _loaded_from
+    if _injected is not None:
+        return _injected
     path = keyring_path()
-    if _keyring is not None and (not path or _loaded_from == path):
-        return _keyring
     if not path:
         return None
-    _keyring = load(path)
+    if _from_env is not None and _loaded_from == path:
+        return _from_env
+    _from_env = load(path)
     _loaded_from = path
-    return _keyring
+    return _from_env
 
 
 def enabled() -> bool:

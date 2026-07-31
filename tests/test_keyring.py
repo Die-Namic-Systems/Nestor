@@ -264,3 +264,56 @@ def test_signing_in_survives_read_only(store, ring):
     assert sign_in(ro, "rita", ring.get("rita").key)[0] == 200
     assert dispatch(ro, "POST", "/api/seal", {},
                     {"source": "x", "target": "y"})[0] == 403
+
+
+# --- the injection seam has to win, and the suite has to be hermetic ---------
+#
+# Reported by the first person to install this: `pytest -q` gave 125 failed /
+# 98 errors on a machine where NESTOR_KEYRING was exported — which the README
+# tells you to export. Two distinct defects behind one symptom.
+
+def test_an_injected_keyring_wins_over_the_environment(monkeypatch, tmp_path):
+    """`set_keyring` is the injection seam; the variable is the default it
+    overrides. It used to be the other way round whenever the two disagreed."""
+    theirs = keyring.Keyring(path=str(tmp_path / "theirs.json"))
+    theirs.add("rita")
+    theirs.save()
+    monkeypatch.setenv("NESTOR_KEYRING", theirs.path)
+
+    mine = keyring.Keyring(path=str(tmp_path / "mine.json"))
+    mine.add("bob")
+    keyring.set_keyring(mine)
+
+    assert keyring.get_keyring().names() == ["bob"]
+    # And clearing the injection hands control back to the environment.
+    keyring.set_keyring(None)
+    assert keyring.get_keyring().names() == ["rita"]
+
+
+def test_an_injected_keyring_wins_even_with_no_path_of_its_own(monkeypatch, tmp_path):
+    """A Keyring built in memory has path="" — it must not be treated as
+    "nothing was injected"."""
+    theirs = keyring.Keyring(path=str(tmp_path / "theirs.json"))
+    theirs.add("rita")
+    theirs.save()
+    monkeypatch.setenv("NESTOR_KEYRING", theirs.path)
+
+    inline = keyring.Keyring()
+    inline.add("bob")
+    keyring.set_keyring(inline)
+    assert keyring.get_keyring().names() == ["bob"]
+
+
+def test_the_suite_does_not_inherit_the_developers_environment(monkeypatch):
+    """conftest's isolate_globals unsets these for the duration. If this ever
+    fails, every test that seals under a name starts depending on the shell
+    the suite was launched from."""
+    import os
+
+    from conftest import CONFIGURED_BY_ENV
+
+    for name in CONFIGURED_BY_ENV:
+        assert name not in os.environ, f"{name} leaked into the test environment"
+    # A test that wants one still sets it, and it takes effect normally.
+    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+    assert signing.signing_enabled()
