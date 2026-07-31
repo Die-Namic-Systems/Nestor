@@ -182,6 +182,7 @@ nestor/
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── curator.py        the curator surface — browse, audit, unseal, export
+├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
 ├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
@@ -942,6 +943,23 @@ The trade is a shape, so there is a chart of it — read-only, stdlib, no build:
 ```bash
 python bench/serve_ui.py --open       # http://127.0.0.1:8770/ui/
 ```
+
+**And then calibrate against the memory you actually have.** The bench measures
+the matcher in general; `nestor calibrate` measures *your* corpus, by asking
+the only question that needs no probe set:
+
+```bash
+nestor calibrate --from en --to es --target 0.01
+```
+
+For each sealed pair, it finds the other sealed pair whose source scores highest
+against it and whose target is **different** — which is exactly a false seal, and
+one that already exists in your memory between two things a human verified. It
+reports the rate at every cutoff, recommends the cheapest one that meets your
+target, and says so plainly when no cutoff reaches it (that is a corpus problem,
+not a dial problem). It changes nothing: moving the threshold is a decision
+about how much unverified content you will serve, and it belongs to a person. It
+is also a *lower* bound — real queries include text the memory has never seen.
 
 Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 

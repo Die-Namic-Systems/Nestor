@@ -206,6 +206,18 @@ def cmd_ledger(args) -> int:
     return EXIT_OK
 
 
+def cmd_calibrate(args) -> int:
+    """Where the threshold should sit for this corpus. See :mod:`nestor.calibrate`."""
+    from . import calibrate as calibrate_mod
+    result = calibrate_mod.calibrate(
+        _store(args), source_lang=args.source_lang, target_lang=args.target_lang,
+        target_rate=args.target, sample=args.sample, seed=args.seed)
+    _emit(result, args.json, calibrate_mod.summarize(result))
+    # A corpus no threshold in the sweep can make safe is the bad answer, and it
+    # should be usable in a shell conditional like every other one here.
+    return EXIT_OK if result["recommended"] is not None else EXIT_ANSWER_IS_NO
+
+
 def cmd_keys(args) -> int:
     """Who can seal, and with what. See :mod:`nestor.keyring`."""
     path = args.keyring or keyring_mod.keyring_path()
@@ -404,6 +416,16 @@ def build_parser() -> argparse.ArgumentParser:
     led.add_argument("--kind", default="", help="filter entries by kind")
     led.add_argument("--limit", type=int, default=50)
     led.set_defaults(func=cmd_ledger)
+
+    cal = sub.add_parser("calibrate",
+                         help="where the seal threshold should sit for this corpus")
+    domain_args(cal)
+    cal.add_argument("--target", type=float, default=0.01,
+                     help="acceptable collision rate (default: 0.01 — one in a hundred)")
+    cal.add_argument("--sample", type=int, default=300,
+                     help="rows to probe; 0 for the whole corpus (default: 300)")
+    cal.add_argument("--seed", type=int, default=0, help="sampling seed")
+    cal.set_defaults(func=cmd_calibrate)
 
     keys = sub.add_parser("keys", help="who can seal, and with what key")
     keys.add_argument("keys_command", choices=("list", "add", "revoke"))

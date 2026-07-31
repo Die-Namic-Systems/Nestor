@@ -139,6 +139,35 @@ def test_another_writer_appending_is_not_tampering(live_ledger):
         cascade._ledger_append({"kind": "e"})
 
 
+def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
+    """The checkpoint reads the ledger, so it reads it the way everything else
+    here does: holding the lock. A reader without one catches another writer
+    mid-append, sees a torn line, and refuses a perfectly good seal."""
+    import threading
+
+    gate = threading.Barrier(6)
+    failures = []
+
+    def spam(n):
+        gate.wait(timeout=5)
+        for i in range(15):
+            try:
+                cascade.ledger_preflight()          # what add_pair does first
+                cascade._ledger_append({"kind": "passage", "who": n, "i": i})
+            except Exception as exc:                # noqa: BLE001
+                failures.append(f"{type(exc).__name__}: {exc}")
+
+    threads = [threading.Thread(target=spam, args=(n,)) for n in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not failures, failures[:3]
+    assert len(live_ledger.read_text().splitlines()) == 93   # 3 + 6*15
+    assert ledger.verify(str(live_ledger))[0]
+
+
 def test_the_checkpoint_does_not_replace_the_walk(live_ledger):
     """Stated in the docstring, pinned here: an edit *older* than our checkpoint
     is a job for verify(), and the Ledger view calls it on every render.
