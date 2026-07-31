@@ -128,13 +128,58 @@ Nestor-only (see §2.4).
 
 ---
 
+## `terpsi-music` — remote branches (2026-07-31)
+
+**Remotes:** only `origin/main` (`d2817f2`, PR #15 merged) and
+`origin/claude/coat-hat-check-p6obau` (`3b9bc9c`, **~121 commits ahead of
+`main`**, no open PR). Merge-base with `main` is current `main` — the coat-hat
+line is purely additive.
+
+### What the branch is
+
+Not a bench tweak — a **FERPA/COPPA youth-program stack** landed on the branch:
+
+| Area | Branch contents | Nestor IDEAS plug |
+|------|-----------------|-------------------|
+| **`store/`** S-1 + S-2 | Postgres roles, migrations, RLS (`003_row_security.sql`), `session.py`, read/write/narration paths; **one read predicate in Python**, SQL policies compiled to match | Pattern for “guard in one place” (`test_store_differential.py` keeps SQL ↔ Python honest) — analogous to ledger tail vs full walk |
+| **`records/`** | Predicates only (no writes); attendance, fees ledger, adjudication seams | **§5.2 erasure / tombstones** — fees ledger “aid invisible, nowhere to put a PAN”; append + lane model vs `memory_delete` |
+| **`venue/`**, **`surfaces/`** | Readings, sourcing, serving tests | Future **Nestor consumer**: transcripts as **`draft` until sealed** (ARCHITECTURE §16, cites Nestor cascade) |
+| **`tools/audit.py`**, **`conform.py`**, **`manifest.py`** | Eight-gate conformance; doc notes **Nestor + Jeles cleared same gates in SAFE #88** | Same promotion discipline as `promote_check.py` |
+| **`docs/FLEET-READS.md`** | Tier-1 read list; **Nestor verified at `111c187`** (`Curator.servable`, seal states) | Living integration spec — **update pin** when nestor moves (fleet map is stale vs `5c377e6`) |
+| **`docs/ARCHITECTURE.md`** | §14 component table: **EntityResolver**, **Reconciler**, seal cascade, `servable` | Direct map to nestor **recipes** (entity, numeric, tier-1 serve) — terpsi as **host app**, not duplicate engine |
+| **`docs/PLAN-STORE.md`** | Store plan S-3+ still open (sealing, at-rest keys) | **§5.8** / lane sealing may eventually call `nestor.signing` or host-specific crypto |
+
+### Bench corpus (`corpus_terpsi.py`)
+
+- **`PINNED_REV = 6ea9b89`** is still an ancestor of **both** `main` and coat-hat;
+  `docs/SKINS.md` and `craft/` prose paths still exist on the branch.
+- **121 commits after the pin** change the *product* (store, records), not
+  necessarily the extracted span JSON — re-run `bench_surfaces_human` with
+  `corpus_revision` if you point `TERPSI_ROOT` at coat-hat instead of the pin.
+- **Do not** assume `main` == old “music-only” tree; README on both tips is
+  already the youth-program architecture doc.
+
+### Integration direction (terpsi → nestor, not the reverse)
+
+| Open Nestor IDEAS | Terpsi branch offers |
+|-------------------|----------------------|
+| §4.2 verification positioning | ARCHITECTURE §“engine called Nestor” + FLEET-READS confirmed rows |
+| §1.4 / §6.10 provenance | L1–L5 ladder (`docs/SENSITIVITY.md`), seal vs confidence vs provenance split in ARCHITECTURE |
+| §5.2 no delete | Lane model + draft writes + planned `invalid_at` ending (store header) |
+| §5.5 external checkpoint | Guardian relay / aggregate export gating (§9 item 10 on branch) — **policy** parallel to FRANK, not same code |
+| §4.4 marketing | Real domain story (minors, adjudication) **stronger** than bench prose alone — pair demo + terpsi narrative |
+
+**Practical next step:** merge or PR-review `claude/coat-hat-check-p6obau` when store S-2 is stable; refresh FLEET-READS Nestor SHA to current `master`; keep bench pin at `6ea9b89` until a deliberate re-extraction.
+
+---
+
 ## Cross-cutting fleet hooks (not a single IDEAS §)
 
 | Piece | Nestor touchpoint |
 |-------|-------------------|
 | **`safe-app-store` `promote_check.py`** | Nestor is a **worked promotion** example (`semantic_seam`: Matcher) |
 | **`willow-mcp` `integration_list`** | Surface nestor/frank as an integration status line in ops docs |
-| **`terpsi-music` path** | External corpus for bench only — keep path documented in `corpus_terpsi.py` |
+| **`terpsi-music`** | Bench: `corpus_terpsi` + `PINNED_REV`; product: **`claude/coat-hat-check-p6obau`** store/records + ARCHITECTURE as Nestor **host** spec (see section above) |
 | **Sync between instances** (`TODO.md` §2) | **No** continuous sync in fleet; `portable` import/export + human conflict queue remains the model; FRANK is audit sync, not data sync |
 
 ---
