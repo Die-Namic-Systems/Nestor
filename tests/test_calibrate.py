@@ -5,6 +5,8 @@ safe and useful everywhere — then the numbers sat in bench/results/ with nothi
 reading them. This measures the same trade against the memory a deployment
 actually has.
 """
+
+import os
 import pytest
 
 from nestor import calibrate, memory
@@ -100,8 +102,8 @@ def test_a_duplicate_is_not_a_collision(store):
     assert out["current_rate"] == 0.0 and out["examples"] == []
 
 
-def test_only_servable_seals_are_measured(store, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+def test_only_servable_seals_are_measured(store, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     forged = seal(store, "the payment is due on the first of the month",
                   "el pago vence el primero del mes")
     seal(store, "the payment is due on the first of the year",
@@ -123,16 +125,35 @@ def test_an_empty_domain_says_there_is_nothing_to_calibrate(store):
     assert "nothing to calibrate" in calibrate.summarize(out)
 
 
-def test_the_cli_exits_non_zero_when_no_threshold_is_safe(store, monkeypatch, capsys):
-    from nestor import storage
+def test_the_cli_exits_non_zero_when_no_threshold_is_safe(store, tmp_path, capsys, seal_key):
+    from nestor import cascade
+
     seal(store, "please transfer the outstanding balance of the quarterly invoice "
                 "to account number 4471",
          "transfiera el saldo pendiente de la factura trimestral a la cuenta 4471")
     seal(store, "please transfer the outstanding balance of the quarterly invoice "
                 "to account number 4472",
          "transfiera el saldo pendiente de la factura trimestral a la cuenta 4472")
-    monkeypatch.setattr(storage, "_store", store)
-    monkeypatch.setattr("nestor.cli._store", lambda args: store)
+    db = tmp_path / "nestor.db"
+    ledger = cascade._ledger_path()
 
-    assert cli_main(["calibrate", "--from", "en", "--to", "es", "--target", "0"]) == 1
+    assert cli_main([
+        "--db", str(db), "--ledger", str(ledger),
+        "calibrate", "--from", "en", "--to", "es", "--target", "0",
+    ]) == 1
     assert "no cutoff separates them" in capsys.readouterr().out
+
+
+def test_the_cli_calibrate_accepts_matcher(store, tmp_path, capsys, seal_key):
+    import json
+    from nestor import cascade
+
+    seal(store, "the invoice is overdue", "la factura está vencida")
+    db = tmp_path / "nestor.db"
+    ledger = cascade._ledger_path()
+    assert cli_main([
+        "--db", str(db), "--ledger", str(ledger), "--json",
+        "calibrate", "--from", "en", "--to", "es", "--matcher", "string", "--sample", "0",
+    ]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["matcher"] == "StringMatcher"

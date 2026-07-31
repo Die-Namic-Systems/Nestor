@@ -27,6 +27,7 @@ from typing import Optional
 from . import frank, langid, memory
 from .engine import get_engine
 from .ledger import LedgerError, verify as _ledger_verify
+from .matcher import matcher_audit_fields
 from .segment import _split_segments
 from .storage import Storage, get_store
 
@@ -139,9 +140,39 @@ def _check_tail(ledger: pathlib.Path) -> None:
 
 
 def set_ledger_path(path) -> None:
-    """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``)."""
+    """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``).
+
+    Pointing at a **different** chain drops the in-process verify and checkpoint
+    state, because that state describes the old file: carrying it over would
+    have this process check one chain's tail against another's.
+
+    Re-asserting the **same** path does not, and the distinction is worth the
+    branch. A caller saying where the ledger already is has not changed chains,
+    and clearing the checkpoint would quietly hand back the tail guard
+    (:func:`_check_tail`) for the rest of the process — which is exactly the
+    window §5.3 exists to close, given the surface most likely to re-assert its
+    own configuration is the long-lived one. :func:`reset_ledger_session` is the
+    way to say "start over" on purpose.
+    """
     global _LEDGER_OVERRIDE
-    _LEDGER_OVERRIDE = pathlib.Path(path)
+    new = pathlib.Path(path)
+    # Unknown counts as changed: an override arriving where there was none may
+    # or may not be the chain NESTOR_LEDGER already named, and resetting costs
+    # a re-verification while not resetting could trust a stale checkpoint.
+    changed = _LEDGER_OVERRIDE is None or _LEDGER_OVERRIDE != new
+    _LEDGER_OVERRIDE = new
+    if changed:
+        reset_ledger_session()
+
+
+def reset_ledger_session() -> None:
+    """Drop in-process verify/checkpoint state without changing the path.
+
+    Changing the ledger file or simulating a fresh process (tests, tooling) must
+    not inherit another chain's ``_verified_ledgers`` / ``_checkpoints`` cache.
+    """
+    _verified_ledgers.clear()
+    _checkpoints.clear()
 
 
 def _ledger_path() -> pathlib.Path:
@@ -323,11 +354,14 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
     # tier 1 — Nestor's ledger
     hit = memory.best_sealed(text, source_lang, target_lang, store=store)
     if hit:
+        m = memory.get_matcher()
+        audit = matcher_audit_fields(m)
         passage = Passage(source=text, target=hit["pair"]["target_text"], tier=1,
                           state="sealed", engine="memory",
                           confidence=hit["similarity"],
                           meta={"pair_id": hit["pair"]["id"],
-                                "verifier": hit["pair"]["verifier"]})
+                                "verifier": hit["pair"]["verifier"],
+                                **audit})
     else:
         # tier 2 — Nova's draft
         engine = engine or get_engine()
@@ -355,6 +389,8 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
         "source_lang": source_lang, "target_lang": target_lang,
         "source_sha": hashlib.sha256(text.encode()).hexdigest()[:16],
         "segment_id": passage.segment_id,
+        **({k: v for k, v in passage.meta.items()
+            if k.startswith("matcher")} if passage.tier == 1 else {}),
     })
     return passage
 

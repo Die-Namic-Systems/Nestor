@@ -149,12 +149,12 @@ def leave_one_out_false_seals(sealed: dict[str, list[str]],
                     pass
         by_ref[ref] = store.memory_candidates("en", "es")
 
-    def score(n, rows):
+    def score(probe, rows):
         if isinstance(matcher, StringMatcher):
-            return best_match_fast(n, rows, matcher, 0.0)[0]
-        return best_match(n, rows, matcher)[0]
+            return best_match_fast(probe, rows, matcher, 0.0)[0]
+        return best_match(probe, rows, matcher)[0]
 
-    sims = [score(matcher.normalize(p), by_ref[ref])
+    sims = [score(p, by_ref[ref])
             for p, ref in probes if ref in by_ref]
     n = max(1, len(sims))
     return {"n": len(sims),
@@ -193,10 +193,10 @@ def score_arm(label: str, sealed: dict[str, list[str]], probes: list[tuple[str, 
     # floor=0.0 either way: the fast path censors scores below the lowest
     # threshold, which is the range this corpus lives in, so a floor would
     # report "0.000 recall" and destroy the evidence for why.
-    scorer = (lambda n: best_match_fast(n, rows, matcher, 0.0)) \
-        if isinstance(matcher, StringMatcher) else (lambda n: best_match(n, rows, matcher))
-    scored = [(*scorer(matcher.normalize(p)), f"TERPSI:{ref}") for p, ref in probes]
-    absent_scored = [scorer(matcher.normalize(p)) for p in absent]
+    scorer = (lambda p: best_match_fast(p, rows, matcher, 0.0)) \
+        if isinstance(matcher, StringMatcher) else (lambda p: best_match(p, rows, matcher))
+    scored = [(*scorer(p), f"TERPSI:{ref}") for p, ref in probes]
+    absent_scored = [scorer(p) for p in absent]
 
     # rank@1: how often the correct referent is the argmax, threshold ignored.
     # This is the number that separates the two failure modes. If rank@1 is high

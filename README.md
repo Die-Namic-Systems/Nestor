@@ -195,6 +195,7 @@ nestor/
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
+├── semantic_matcher.py  optional SemanticMatcher (nestor[semantic] / fastembed)
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
@@ -246,9 +247,13 @@ everything else (sealing, thresholds, the ledger, storage inversion) is shared:
 class Matcher(Protocol):
     def normalize(self, value) -> str: ...              # canonical key
     def similarity(self, a_norm, b_norm) -> float: ...  # [0.0, 1.0], 1.0 == verified
+    # optional: score(raw_a, raw_b) -> float — memory prefers this when present
 ```
 
-Two reference matchers ship:
+`match_similarity()` in `nestor.matcher` is what `lookup` / `best_sealed` call:
+normalized-key scoring when there is no `score`, raw surfaces when there is.
+
+Two core matchers ship with zero dependencies; a third is optional:
 
 - **`StringMatcher`** — the historical translation behavior: lowercase, strip
   punctuation, collapse whitespace, then `difflib.SequenceMatcher` ratio (equal
@@ -261,6 +266,15 @@ Two reference matchers ship:
   `tol = max(abs_tol, pct_tol·max(|a|,|b|))`, and decays exponentially
   `exp(-(|a-b|-tol)/tol)` outside it — continuous at the edge, monotonically
   toward `0` for a wildly different figure.
+- **`SemanticMatcher`** *(optional)* — `pip install nestor[semantic]` adds
+  `fastembed` only. Lexical dedup via `StringMatcher`; `score(raw_a, raw_b)`
+  compares embeddings (default model `BAAI/bge-small-en-v1.5`). Use
+  `matcher=semantic` on `nestor match`, the UI Match view, or MCP
+  `nestor_match`. Re-calibrate thresholds — they are not comparable to
+  character-ratio scores.
+
+Set `NESTOR_SEMANTIC_TEST=1` and install `nestor[semantic]` to run the optional
+integration test that checks the §3.1 acronym case (`AWS` vs `Amazon Web Services`).
 
 `nestor.memory` holds a module-level default matcher (`set_matcher` /
 `get_matcher`), and every public memory function (`add_pair`, `lookup`,
@@ -270,12 +284,13 @@ Two reference matchers ship:
 non-translation use — so one store holds several disjoint graphs without
 cross-talk.
 
-> **Writing your own matcher?** `normalize()` is the *only* channel between a raw
-> input and `similarity()`, which sees normalized keys and nothing else. Anything
-> scoring needs — word order, structure, magnitude — must survive into that
-> string. That same string is also the store's exact-match dedup key, so
-> collapsing aggressively and scoring richly pull against each other. See
-> [`IDEAS.md`](IDEAS.md) §3.1.
+> **Writing your own matcher?** `normalize()` is persisted as ``source_norm`` and
+> used for exact dedup. Scoring normally goes through ``similarity(a_norm,
+> b_norm)`` on those keys. If scoring needs information that must not be
+> collapsed into the dedup key — word order, token structure, anything a semantic
+> matcher would need — implement optional ``score(raw_a, raw_b)``; memory will
+> compare the query to each row's ``source_text`` that way instead. The two jobs
+> no longer pull against each other. See [`IDEAS.md`](IDEAS.md) §3.1.
 
 ---
 
@@ -590,7 +605,7 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
-nestor calibrate --from en --to es       # where the threshold belongs for this corpus
+nestor calibrate --from en --to es       # where the threshold belongs for this corpus (--matcher too)
 nestor rejections                        # what the recorded "no"s say in aggregate
 nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke
 nestor ui                                # the browser surface
@@ -968,7 +983,11 @@ the only question that needs no probe set:
 
 ```bash
 nestor calibrate --from en --to es --target 0.01
+nestor calibrate --from en --to es --matcher semantic --target 0.01  # needs nestor[semantic]
 ```
+
+Pass ``--matcher`` when you serve with ``semantic`` or token bench matchers —
+the shipped ``0.92`` default was measured for ``StringMatcher``.
 
 For each sealed pair, it finds the other sealed pair whose source scores highest
 against it and whose target is **different** — which is exactly a false seal, and

@@ -7,18 +7,57 @@ rather than both meaning "the program ran". These tests pin that, and pin that
 """
 from __future__ import annotations
 
+import os
+import pathlib
+import subprocess
+import sys
+
 import json
+import re
+import socket
 
 import pytest
 
+from conftest import CONFIGURED_BY_ENV
 from nestor import cli, memory, storage
 from nestor.sqlite_store import SqliteStore
 
+REPO = pathlib.Path(__file__).resolve().parent.parent
+
+
+def _cli_subprocess_env() -> dict[str, str]:
+    """Hermetic env for a child ``python -m nestor.cli`` (no developer exports)."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(
+        x for x in (str(REPO), env.get("PYTHONPATH", "")) if x
+    )
+    for name in CONFIGURED_BY_ENV:
+        env.pop(name, None)
+    env["NESTOR_SEAL_KEY"] = "test-key"
+    return env
+
+
+def _free_loopback_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def _run_cli_subprocess(argv: list[str], *, timeout: float = 10.0) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-u", "-m", "nestor.cli", *argv],
+        cwd=REPO,
+        env=_cli_subprocess_env(),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
 
 @pytest.fixture()
-def db(tmp_path, monkeypatch):
+def db(tmp_path, seal_key):
     """A file-backed instance the CLI can open by path, as a user would."""
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     path = tmp_path / "nestor.db"
     ledger = tmp_path / "ledger.jsonl"
     store = SqliteStore(str(path))
@@ -176,27 +215,97 @@ def test_stats_says_what_is_in_there_and_whether_signing_is_on(db, capsys):
 
 # --- delegation ------------------------------------------------------------
 
-def test_ui_and_serve_own_their_own_flags(monkeypatch):
-    seen = {}
-    def record(name):
-        def entry(argv):
-            seen[name] = argv
-            return 0
-        return entry
-    monkeypatch.setattr(cli.ui, "main", record("ui"))
-    monkeypatch.setattr(cli.serve, "main", record("serve"))
-    assert cli.main(["ui", "--port", "9999"]) == 0
-    assert cli.main(["serve", "--read-only"]) == 0
-    assert seen == {"ui": ["--port", "9999"], "serve": ["--read-only"]}
+def test_ui_and_serve_own_their_own_flags():
+    assert cli.split_delegated(["ui", "--port", "9999"]) == ("ui", ["--port", "9999"])
+    assert cli.split_delegated(["serve", "--read-only"]) == ("serve", ["--read-only"])
 
 
-def test_global_flags_still_work_before_a_delegated_subcommand(monkeypatch):
-    """`nestor --db x.db ui` — typed by anyone who used --db for anything else."""
-    seen = {}
-    monkeypatch.setattr(cli.ui, "main", lambda argv: seen.setdefault("ui", argv) is None and 0)
-    assert cli.main(["--db", "x.db", "--ledger", "x.jsonl", "--json", "ui", "--port", "1"]) == 0
-    assert seen["ui"] == ["--db", "x.db", "--ledger", "x.jsonl", "--port", "1"]
+def test_global_flags_still_work_before_a_delegated_subcommand():
+    """``nestor --db x.db ui`` — typed by anyone who used --db for anything else."""
+    assert cli.split_delegated(
+        ["--db", "x.db", "--ledger", "x.jsonl", "--json", "ui", "--port", "1"],
+    ) == ("ui", ["--db", "x.db", "--ledger", "x.jsonl", "--port", "1"])
     # An explicit flag after the subcommand still wins, since argparse takes the last.
     assert cli.split_delegated(["--db", "a", "ui", "--db", "b"])[1] == ["--db", "a", "--db", "b"]
     # And a normal subcommand is untouched.
     assert cli.split_delegated(["--db", "a", "stats"]) == (None, ["--db", "a", "stats"])
+
+
+def test_cli_main_reaches_ui_in_a_subprocess(tmp_path):
+    """``nestor ui`` is delegated in a real process, not only via split_delegated."""
+    db = tmp_path / "nestor.db"
+    ledger = tmp_path / "ledger.jsonl"
+    port = _free_loopback_port()
+    proc = subprocess.Popen(
+        [sys.executable, "-u", "-m", "nestor.cli",
+         "ui", "--db", str(db), "--ledger", str(ledger), "--port", str(port)],
+        cwd=REPO,
+        env=_cli_subprocess_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        banner = proc.stdout.readline()
+        store_line = proc.stdout.readline()
+        assert "Nestor UI" in banner
+        assert re.search(rf":{port}/", banner)
+        assert str(db) in store_line
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+
+
+def test_cli_main_carries_global_flags_to_ui_in_a_subprocess(tmp_path):
+    db = tmp_path / "nestor.db"
+    ledger = tmp_path / "ledger.jsonl"
+    port = _free_loopback_port()
+    proc = subprocess.Popen(
+        [sys.executable, "-u", "-m", "nestor.cli",
+         "--db", str(db), "--ledger", str(ledger),
+         "ui", "--port", str(port)],
+        cwd=REPO,
+        env=_cli_subprocess_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        proc.stdout.readline()
+        store_line = proc.stdout.readline()
+        ledger_line = proc.stdout.readline()
+        assert str(db) in store_line
+        assert str(ledger) in ledger_line
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+
+
+def test_cli_main_reaches_serve_in_a_subprocess(tmp_path):
+    db = tmp_path / "nestor.db"
+    ledger = tmp_path / "ledger.jsonl"
+    proc = subprocess.Popen(
+        [sys.executable, "-u", "-m", "nestor.cli",
+         "--db", str(db), "--ledger", str(ledger),
+         "serve", "--read-only"],
+        cwd=REPO,
+        env=_cli_subprocess_env(),
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        line = proc.stderr.readline()
+        assert "read-only" in line
+        assert str(db) in line
+        assert str(ledger) in line
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+
+
+def test_cli_main_ui_help_in_a_subprocess():
+    done = _run_cli_subprocess(["ui", "--help"])
+    assert done.returncode == 0
+    assert "--port" in done.stdout

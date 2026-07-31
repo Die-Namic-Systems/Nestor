@@ -8,6 +8,8 @@ with.
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from nestor import cascade, memory, signing, storage
@@ -15,8 +17,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def store(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def store(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     s = SqliteStore(":memory:")
     s.init_db()
@@ -175,8 +177,8 @@ class _LegacyStore(SqliteStore):
     memory_rejections = None
 
 
-def test_a_store_without_rejection_still_works(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def test_a_store_without_rejection_still_works(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "l.jsonl")
     legacy = _LegacyStore(":memory:")
     legacy.init_db()
@@ -186,8 +188,8 @@ def test_a_store_without_rejection_still_works(tmp_path, monkeypatch):
     assert memory.best_sealed("epsilon", "en", "es", store=legacy)
 
 
-def test_rejection_refuses_rather_than_silently_dropping(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def test_rejection_refuses_rather_than_silently_dropping(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "l.jsonl")
     legacy = _LegacyStore(":memory:")
     legacy.init_db()

@@ -106,11 +106,15 @@ def test_the_ui_serves_the_same_answer(store, rejected):
     assert [q["query_norm"] for q in out["queries"]] == ["the account is in arrears"]
 
 
-def test_the_cli_reports_it(store, rejected, tmp_path, monkeypatch, capsys):
-    from nestor import storage
-    monkeypatch.setattr(storage, "_store", store)
-    monkeypatch.setattr("nestor.cli._store", lambda args: store)
-    assert cli_main(["rejections", "--from", "en", "--to", "es"]) == 0
+def test_the_cli_reports_it(store, rejected, tmp_path, capsys, seal_key):
+    from nestor import cascade
+
+    db = tmp_path / "nestor.db"
+    ledger = cascade._ledger_path()
+    assert cli_main([
+        "--db", str(db), "--ledger", str(ledger),
+        "rejections", "--from", "en", "--to", "es",
+    ]) == 0
     out = capsys.readouterr().out
     assert "the account is in arrears" in out
     assert "terms and conditions apply" in out

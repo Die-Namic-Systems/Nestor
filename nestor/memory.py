@@ -46,12 +46,32 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from . import signing
-from .matcher import Matcher, StringMatcher
+from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import Storage, get_store, supports_rejection
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
 CONTEXT_THRESHOLD = 0.55  # pairs above this feed the engine as context
+
+_warned_score_threshold = False
+
+
+def _warn_score_matcher_default_threshold(matcher: Matcher,
+                                        seal_threshold: Optional[float]) -> None:
+    """Once per process: default SEAL_THRESHOLD is tuned for StringMatcher."""
+    global _warned_score_threshold
+    if _warned_score_threshold or seal_threshold is not None:
+        return
+    if not uses_raw_score(matcher):
+        return
+    _warned_score_threshold = True
+    warnings.warn(
+        f"SEAL_THRESHOLD={SEAL_THRESHOLD} was measured for StringMatcher "
+        f"(character difflib), not for {type(matcher).__name__}.score() — "
+        f"unrelated text often scores 0.7–0.8 on embedding matchers. Measure "
+        f"with ``nestor calibrate --matcher …`` on your corpus before trusting "
+        f"serves at the shipped default.",
+        RuntimeWarning, stacklevel=3)
 
 
 # --------------------------------------------------------------------------
@@ -376,10 +396,13 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     """Ranked matches: [{pair, similarity}], best first. Sealed and draft both returned.
 
     Scoring is delegated to the injected ``matcher`` (default StringMatcher, so
-    translation behavior is unchanged). ``context_threshold`` overrides the
-    module-level :data:`CONTEXT_THRESHOLD` floor below which candidates are
-    dropped — pass ``0.0`` to keep every candidate (used by the numeric
-    reconciler so a far-off figure is still returned for variation reporting).
+    translation behavior is unchanged). When the matcher implements
+    ``score(raw_a, raw_b)``, each candidate is scored from the query text and
+    the row's ``source_text``; otherwise ``similarity`` on normalized keys.
+    ``context_threshold`` overrides the module-level :data:`CONTEXT_THRESHOLD`
+    floor below which candidates are dropped — pass ``0.0`` to keep every
+    candidate (used by the numeric reconciler so a far-off figure is still
+    returned for variation reporting).
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -393,13 +416,34 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     # leave a rejected pair still reaching the engine's system prompt as
     # authoritative reference material.
     bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
-    scored = []
+    eligible = []
     for row in rows:
         if row["status"] == "rejected":
             continue
         if row["id"] in bad_pairs or row["target_text"] in bad_targets:
             continue
-        sim = matcher.similarity(norm, row["source_norm"])
+        eligible.append(row)
+
+    scored: list[dict] = []
+    raw_score = uses_raw_score(matcher)
+    batch = getattr(matcher, "scores_against", None)
+    sims: dict[str, float] = {}
+    if raw_score and callable(batch):
+        # Batch only the rows a raw score can actually be taken over. A row with
+        # no surface text has nothing to embed, and `match_similarity` answers it
+        # from the stored norms instead — so handing it to the batch would score
+        # it by a different rule than `best_sealed` uses, and the two functions
+        # would disagree about the same row. `lookup` is what the reviewer and
+        # the engine see; `best_sealed` is the serve decision. They have to
+        # agree, so the split happens here rather than inside a matcher.
+        batched = [r for r in eligible if (r.get("source_text") or "").strip()]
+        if batched:
+            sims = dict(zip((r["id"] for r in batched),
+                            batch(source_text, [r["source_text"] for r in batched])))
+    for row in eligible:
+        sim = sims[row["id"]] if row["id"] in sims else match_similarity(
+            matcher, source_text, norm,
+            row.get("source_text", ""), row["source_norm"], _raw_score=raw_score)
         if sim >= ctx:
             scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
@@ -490,11 +534,14 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     matcher = get_matcher(matcher)
     store.memory_init()
     seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
+    _warn_score_matcher_default_threshold(matcher, seal_threshold)
     ctx = CONTEXT_THRESHOLD if context_threshold is None else context_threshold
     norm = matcher.normalize(source_text)
     bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
     bound = getattr(matcher, "similarity_bound", None)
-    if not callable(bound):
+    raw_score = uses_raw_score(matcher)
+    if not callable(bound) or raw_score:
+        # Bounds are defined on normalized keys; invalid when score() sees raw text.
         bound = None
 
     best: Optional[dict] = None
@@ -510,7 +557,9 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         need = max(seal, ctx, best_sim) - _ROUNDING_SLACK
         if bound is not None and bound(norm, row["source_norm"], need) < need:
             continue
-        raw = matcher.similarity(norm, row["source_norm"])
+        raw = match_similarity(matcher, source_text, norm,
+                               row.get("source_text", ""), row["source_norm"],
+                               _raw_score=raw_score)
         if raw < ctx:                      # lookup's context floor, unrounded
             continue
         sim = round(raw, 3)                # what lookup reports, and judges on

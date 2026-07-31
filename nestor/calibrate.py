@@ -39,7 +39,7 @@ import random
 from typing import Optional
 
 from . import memory
-from .matcher import Matcher
+from .matcher import Matcher, match_similarity, matcher_audit_fields, uses_raw_score
 from .storage import Storage, get_store
 
 # The sweep bench/ uses, so a number from here and a number from there can be
@@ -90,7 +90,8 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
         picked = random.Random(seed).sample(rows, sample)
 
     bound = getattr(matcher, "similarity_bound", None)
-    if not callable(bound):
+    raw_score = uses_raw_score(matcher)
+    if not callable(bound) or raw_score:
         bound = None
 
     worst: list[dict] = []
@@ -107,8 +108,12 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
             if bound is not None and bound(probe["source_norm"],
                                            other["source_norm"], need) < need:
                 continue
-            sim = round(matcher.similarity(probe["source_norm"],
-                                           other["source_norm"]), 3)
+            sim = round(match_similarity(
+                matcher,
+                probe.get("source_text", ""), probe["source_norm"],
+                other.get("source_text", ""), other["source_norm"],
+                _raw_score=raw_score,
+            ), 3)
             if sim > best_sim:
                 best_sim, best_row = sim, other
         if best_row is not None and best_sim >= floor:
@@ -140,6 +145,7 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
         "target_rate": target_rate, "recommended": recommended,
         "examples": worst[:examples],
         "floor": floor,
+        **matcher_audit_fields(matcher),
     }
 
 

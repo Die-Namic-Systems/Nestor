@@ -25,22 +25,32 @@ from .matcher import Matcher, NumericMatcher, StringMatcher
 from .reconcile import Reconciler
 from .storage import Storage
 
-MATCHERS = ("string", "numeric")
+MATCHERS = ("string", "numeric", "semantic")
 
 
 def build_matcher(name: str = "string", abs_tol: float = 0.0,
                   pct_tol: float = 0.05) -> Matcher:
-    """One of the two shipped matchers, by name.
+    """One of the shipped matchers, by name.
 
     A custom matcher is injected in code (``memory.set_matcher``); a name coming
     off a wire cannot conjure one, so an unknown name is refused rather than
     quietly resolved to the default — the default would score a completely
     different notion of similarity under a name the caller chose deliberately.
+
+    ``semantic`` needs ``pip install nestor[semantic]`` (fastembed). Thresholds
+    tuned for :class:`~nestor.matcher.StringMatcher` are not portable — measure
+    with ``nestor calibrate`` on your corpus.
     """
     if name == "string":
         return StringMatcher()
     if name == "numeric":
         return NumericMatcher(abs_tol=abs_tol, pct_tol=pct_tol)
+    if name == "semantic":
+        from .semantic_matcher import SemanticMatcher
+        try:
+            return SemanticMatcher()
+        except ImportError as exc:
+            raise ValueError(str(exc)) from exc
     raise ValueError(f"unknown matcher {name!r} — the shipped matchers are "
                      f"{', '.join(MATCHERS)}; a custom one is injected in code.")
 

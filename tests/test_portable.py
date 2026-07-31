@@ -8,6 +8,8 @@ rather than trusting it or dropping it.
 """
 from __future__ import annotations
 
+import os
+
 import json
 
 import pytest
@@ -27,9 +29,9 @@ def fresh_store():
 
 
 @pytest.fixture()
-def source(tmp_path, monkeypatch):
+def source(tmp_path, seal_key):
     """An instance with something worth exporting."""
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "shared-key")
+    os.environ['NESTOR_SEAL_KEY'] = 'shared-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     s = fresh_store()
     storage.set_store(s)
@@ -81,7 +83,7 @@ def test_csv_is_readable_and_says_what_it_drops(source):
 
 # --- import ----------------------------------------------------------------
 
-def test_a_bundle_moves_between_instances_that_share_a_key(source, tmp_path, monkeypatch):
+def test_a_bundle_moves_between_instances_that_share_a_key(source, tmp_path, seal_key):
     bundle = portable.export_bundle(source)
     destination = fresh_store()
 
@@ -95,7 +97,7 @@ def test_a_bundle_moves_between_instances_that_share_a_key(source, tmp_path, mon
     assert memory.best_sealed("the annual invoices", "en", "es", store=destination) is None
 
 
-def test_a_seal_that_does_not_verify_here_lands_as_a_draft(source, monkeypatch):
+def test_a_seal_that_does_not_verify_here_lands_as_a_draft(source, seal_key):
     """The whole point. A file's word is not a verification."""
     bundle = portable.export_bundle(source)
     bundle["pairs"].append({
@@ -117,9 +119,9 @@ def test_a_seal_that_does_not_verify_here_lands_as_a_draft(source, monkeypatch):
     assert memory.best_sealed("wire the funds", "en", "es", store=destination) is None
 
 
-def test_a_different_key_demotes_everything_rather_than_serving_it(source, monkeypatch):
+def test_a_different_key_demotes_everything_rather_than_serving_it(source, seal_key):
     bundle = portable.export_bundle(source)
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "a-different-instance-key")
+    os.environ['NESTOR_SEAL_KEY'] = 'a-different-instance-key'
     destination = fresh_store()
     with pytest.warns(RuntimeWarning):
         report = portable.import_bundle(bundle, store=destination, dry_run=False)

@@ -18,13 +18,13 @@ from nestor.ui import App, Sessions, dispatch
 
 
 @pytest.fixture
-def ring(monkeypatch, tmp_path):
+def ring(tmp_path):
     k = keyring.Keyring(path=str(tmp_path / "keys.json"))
     k.add("rita")
     k.add("sam")
     k.save()
     keyring.set_keyring(k)
-    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
+    os.environ.pop("NESTOR_SEAL_KEY", None)
     return k
 
 
@@ -111,8 +111,8 @@ def test_rotating_a_key_needs_saying_so(ring):
 
 # --- migration: seals that predate the keyring -------------------------------
 
-def test_seals_from_the_shared_key_era_can_be_adopted(monkeypatch, tmp_path, store):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "the-old-deployment-key")
+def test_seals_from_the_shared_key_era_can_be_adopted(tmp_path, store):
+    os.environ['NESTOR_SEAL_KEY'] = 'the-old-deployment-key'
     pair = memory.add_pair("the invoice is overdue", "la factura está vencida",
                            "en", "es", status="sealed", verifier="rita", store=store)
     assert memory.is_verified_seal(pair)
@@ -121,7 +121,7 @@ def test_seals_from_the_shared_key_era_can_be_adopted(monkeypatch, tmp_path, sto
     k = keyring.Keyring(legacy_key=b"the-old-deployment-key", path=str(tmp_path / "k.json"))
     k.add("rita")
     keyring.set_keyring(k)
-    monkeypatch.delenv("NESTOR_SEAL_KEY")
+    os.environ.pop("NESTOR_SEAL_KEY", None)
 
     assert memory.best_sealed("the invoice is overdue", "en", "es", store=store)
     row = Curator(store).get(pair["id"])
@@ -135,9 +135,9 @@ def test_seals_from_the_shared_key_era_can_be_adopted(monkeypatch, tmp_path, sto
     assert memory.best_sealed("the invoice is overdue", "en", "es", store=store) is None
 
 
-def test_without_a_keyring_nothing_changes(monkeypatch, store):
+def test_without_a_keyring_nothing_changes(store):
     """The whole feature is opt-in; the shared-key deployment is untouched."""
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "one-key")
+    os.environ['NESTOR_SEAL_KEY'] = 'one-key'
     keyring.set_keyring(None)
     for who in ("rita", "mallory", ""):
         pair = memory.add_pair(f"phrase {who}", f"frase {who}", "en", "es",
@@ -272,13 +272,13 @@ def test_signing_in_survives_read_only(store, ring):
 # 98 errors on a machine where NESTOR_KEYRING was exported — which the README
 # tells you to export. Two distinct defects behind one symptom.
 
-def test_an_injected_keyring_wins_over_the_environment(monkeypatch, tmp_path):
+def test_an_injected_keyring_wins_over_the_environment(tmp_path):
     """`set_keyring` is the injection seam; the variable is the default it
     overrides. It used to be the other way round whenever the two disagreed."""
     theirs = keyring.Keyring(path=str(tmp_path / "theirs.json"))
     theirs.add("rita")
     theirs.save()
-    monkeypatch.setenv("NESTOR_KEYRING", theirs.path)
+    os.environ["NESTOR_KEYRING"] = str(theirs.path)
 
     mine = keyring.Keyring(path=str(tmp_path / "mine.json"))
     mine.add("bob")
@@ -290,13 +290,13 @@ def test_an_injected_keyring_wins_over_the_environment(monkeypatch, tmp_path):
     assert keyring.get_keyring().names() == ["rita"]
 
 
-def test_an_injected_keyring_wins_even_with_no_path_of_its_own(monkeypatch, tmp_path):
+def test_an_injected_keyring_wins_even_with_no_path_of_its_own(tmp_path):
     """A Keyring built in memory has path="" — it must not be treated as
     "nothing was injected"."""
     theirs = keyring.Keyring(path=str(tmp_path / "theirs.json"))
     theirs.add("rita")
     theirs.save()
-    monkeypatch.setenv("NESTOR_KEYRING", theirs.path)
+    os.environ["NESTOR_KEYRING"] = str(theirs.path)
 
     inline = keyring.Keyring()
     inline.add("bob")
@@ -304,7 +304,7 @@ def test_an_injected_keyring_wins_even_with_no_path_of_its_own(monkeypatch, tmp_
     assert keyring.get_keyring().names() == ["bob"]
 
 
-def test_the_suite_does_not_inherit_the_developers_environment(monkeypatch):
+def test_the_suite_does_not_inherit_the_developers_environment():
     """conftest's isolate_globals unsets these for the duration. If this ever
     fails, every test that seals under a name starts depending on the shell
     the suite was launched from."""
@@ -315,7 +315,7 @@ def test_the_suite_does_not_inherit_the_developers_environment(monkeypatch):
     for name in CONFIGURED_BY_ENV:
         assert name not in os.environ, f"{name} leaked into the test environment"
     # A test that wants one still sets it, and it takes effect normally.
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     assert signing.signing_enabled()
 
 
@@ -329,8 +329,8 @@ def test_the_suite_does_not_inherit_the_developers_environment(monkeypatch):
 # misconfiguration, which is the inconsistency that made it a bug rather than
 # an unfriendly message.
 
-def test_a_missing_keyring_file_says_which_variable_sent_you_there(monkeypatch, tmp_path):
-    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+def test_a_missing_keyring_file_says_which_variable_sent_you_there(tmp_path):
+    os.environ["NESTOR_KEYRING"] = str(tmp_path / "never-made.json")
     with pytest.raises(keyring.KeyringError) as caught:
         keyring.get_keyring()
     message = str(caught.value)
@@ -339,17 +339,17 @@ def test_a_missing_keyring_file_says_which_variable_sent_you_there(monkeypatch, 
     assert "unset NESTOR_KEYRING" in message, "and how to get out of it"
 
 
-def test_a_configured_keyring_is_never_silently_ignored(monkeypatch, tmp_path):
+def test_a_configured_keyring_is_never_silently_ignored(tmp_path):
     """The refusal itself is right: identity that is switched on and unreadable
     must not degrade to off, or the operator believes seals name a person when
     they do not."""
-    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+    os.environ["NESTOR_KEYRING"] = str(tmp_path / "never-made.json")
     with pytest.raises(keyring.KeyringError):
         keyring.enabled()
 
 
-def test_preflight_refuses_before_a_surface_binds_anything(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+def test_preflight_refuses_before_a_surface_binds_anything(tmp_path, capsys):
+    os.environ["NESTOR_KEYRING"] = str(tmp_path / "never-made.json")
     from nestor import serve as serve_mod
     from nestor import ui as ui_mod
 
@@ -361,11 +361,11 @@ def test_preflight_refuses_before_a_surface_binds_anything(monkeypatch, tmp_path
         assert not (tmp_path / "n.db").exists(), "and before it opens the store"
 
 
-def test_preflight_is_quiet_when_there_is_nothing_wrong(monkeypatch, tmp_path):
+def test_preflight_is_quiet_when_there_is_nothing_wrong(tmp_path):
     assert keyring.preflight() is None            # no keyring configured at all
 
     ring = keyring.Keyring(path=str(tmp_path / "k.json"))
     ring.add("rita")
     ring.save()
-    monkeypatch.setenv("NESTOR_KEYRING", ring.path)
+    os.environ["NESTOR_KEYRING"] = str(ring.path)
     assert keyring.preflight().names() == ["rita"]

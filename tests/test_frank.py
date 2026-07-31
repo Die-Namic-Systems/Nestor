@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 
 import pytest
 
@@ -102,8 +103,8 @@ def test_forwarder_failure_does_not_fail_the_translation(store):
     assert len(read_ledger()) == 1   # local ledger is still the source of truth
 
 
-def test_strict_mode_surfaces_forwarder_failure(store, monkeypatch):
-    monkeypatch.setenv("NESTOR_FRANK_STRICT", "1")
+def test_strict_mode_surfaces_forwarder_failure(store, seal_key):
+    os.environ["NESTOR_FRANK_STRICT"] = "1"
     frank.set_forwarder(RecordingForwarder(fail=True))
     with pytest.raises(frank.FrankUnavailable):
         cascade.translate_segment("Hello there.", "en", "es",
@@ -114,7 +115,7 @@ def test_strict_mode_surfaces_forwarder_failure(store, monkeypatch):
 # ── the willow-mcp adapter ────────────────────────────────────────────────────
 
 
-def test_willow_forwarder_speaks_mcp_and_calls_frank_append(monkeypatch, tmp_path):
+def test_willow_forwarder_speaks_mcp_and_calls_frank_append(tmp_path):
     """Drive the adapter against a stub MCP server over real pipes."""
     server = tmp_path / "stub_server.py"
     server.write_text(
@@ -144,8 +145,8 @@ def test_willow_forwarder_speaks_mcp_and_calls_frank_append(monkeypatch, tmp_pat
     )
     import sys
 
-    monkeypatch.setenv("WILLOW_MCP_COMMAND", json.dumps([sys.executable, str(server)]))
-    monkeypatch.setenv("WILLOW_APP_ID", "nestor")
+    os.environ["WILLOW_MCP_COMMAND"] = json.dumps([sys.executable, str(server)])
+    os.environ["WILLOW_APP_ID"] = "nestor"
 
     with frank.willow_forwarder() as fwd:
         fwd("nestor.passage", {"kind": "passage", "tier": 1})
@@ -160,7 +161,7 @@ def test_willow_forwarder_speaks_mcp_and_calls_frank_append(monkeypatch, tmp_pat
     assert args["content"] == {"kind": "passage", "tier": 1}
 
 
-def test_willow_forwarder_raises_on_in_band_tool_error(monkeypatch, tmp_path):
+def test_willow_forwarder_raises_on_in_band_tool_error(tmp_path):
     """A gate denial comes back as {"error": ...} in the tool payload, not as a
     JSON-RPC error — it must still be treated as a failure."""
     import sys
@@ -185,7 +186,7 @@ def test_willow_forwarder_raises_on_in_band_tool_error(monkeypatch, tmp_path):
         "    sys.stdout.flush()\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("WILLOW_MCP_COMMAND", json.dumps([sys.executable, str(server)]))
+    os.environ["WILLOW_MCP_COMMAND"] = json.dumps([sys.executable, str(server)])
 
     fwd = frank.willow_forwarder()
     try:
@@ -195,13 +196,13 @@ def test_willow_forwarder_raises_on_in_band_tool_error(monkeypatch, tmp_path):
         fwd.close()
 
 
-def test_willow_forwarder_reports_an_unstartable_server(monkeypatch):
-    monkeypatch.setenv("WILLOW_MCP_COMMAND", json.dumps(["/nonexistent/willow-mcp"]))
+def test_willow_forwarder_reports_an_unstartable_server():
+    os.environ["WILLOW_MCP_COMMAND"] = json.dumps(["/nonexistent/willow-mcp"])
     fwd = frank.willow_forwarder()
     with pytest.raises(frank.FrankUnavailable, match="could not start"):
         fwd("nestor.passage", {"kind": "passage"})
 
 
-def test_willow_mcp_command_accepts_a_plain_string(monkeypatch):
-    monkeypatch.setenv("WILLOW_MCP_COMMAND", "python3 -m willow_mcp")
+def test_willow_mcp_command_accepts_a_plain_string():
+    os.environ["WILLOW_MCP_COMMAND"] = "python3 -m willow_mcp"
     assert frank._default_command() == ["python3", "-m", "willow_mcp"]

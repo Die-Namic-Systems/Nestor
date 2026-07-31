@@ -8,6 +8,10 @@ ledger.* Only two operations are domain-specific:
   * **normalize(value) -> str** — collapse an input into a canonical key.
   * **similarity(a_norm, b_norm) -> float** — how alike two canonical keys
     are, in ``[0.0, 1.0]`` (``1.0`` == a verified match).
+  * **score(raw_a, raw_b) -> float** *(optional)* — compare original inputs.
+    When present, :mod:`nestor.memory` prefers this over ``similarity`` on the
+    stored norms so ``normalize`` can stay aggressive for dedup without smuggling
+    scoring structure through ``source_norm`` (IDEAS §3.1).
 
 Everything else — sealing, thresholds, the ledger, storage inversion — is
 identical whether Nestor is matching TRANSLATIONS, ENTITIES, or NUMBERS. This
@@ -64,6 +68,72 @@ class Matcher(Protocol):
     # (:class:`NumericMatcher` is arithmetic on two floats) gains nothing, and
     # requiring it would break every custom matcher already injected against
     # this Protocol. A matcher without it is scanned exactly as before.
+    #
+    # Optional raw scoring, also deliberately NOT part of this Protocol:
+    #
+    #     score(raw_a, raw_b) -> float
+    #
+    # ``memory.lookup`` and ``memory.best_sealed`` call this when implemented,
+    # passing the query text and each row's ``source_text``. ``similarity`` remains
+    # required for paths that only have norms (e.g. calibration on stored keys
+    # when no ``score`` is offered). A matcher whose ``score`` disagrees with
+    # ``similarity`` on the same pair must not offer ``similarity_bound`` — the
+    # bound is defined on normalized keys only.
+
+
+def uses_raw_score(matcher) -> bool:
+    """True when ``matcher`` exposes a callable ``score`` method."""
+    return callable(getattr(matcher, "score", None))
+
+
+def match_similarity(matcher: Matcher, query_text: str, query_norm: str,
+                     stored_text: str, stored_norm: str,
+                     *, _raw_score: bool | None = None) -> float:
+    """How alike a query is to one stored row.
+
+    Uses ``matcher.score(query_text, stored_text)`` when available and
+    ``stored_text`` is non-empty after strip; otherwise ``similarity(query_norm,
+    stored_norm)``.
+
+    Pass ``_raw_score`` when calling in a loop (the result of
+    :func:`uses_raw_score`) so the check is not repeated per candidate.
+    """
+    stored = (stored_text or "").strip()
+    use_raw = uses_raw_score(matcher) if _raw_score is None else _raw_score
+    if use_raw and stored:
+        return matcher.score(query_text, stored)  # type: ignore[attr-defined]
+    return matcher.similarity(query_norm, stored_norm)
+
+
+def matcher_audit_fields(matcher) -> dict:
+    """Ledger fields naming which matcher (and model) scored a tier-1 serve.
+
+    Enough to answer "why was this served at 0.94" after the scoring changes
+    underneath a memory — an embedding model upgrade moves every score, and a
+    trail that records the number without the thing that produced it cannot say
+    so.
+
+    **Not a stable identifier.** A matcher that sets no ``name`` is recorded by
+    its class name, which a rename or a move changes without changing any
+    behaviour, and two unrelated matchers may share one. Read it as a label for
+    a human comparing entries from the same deployment, not as a key to join on
+    or a version to pin against. A matcher that wants to be identifiable across
+    refactors should carry its own ``name``, and one whose scoring is versioned
+    should carry that in ``model_name``.
+
+    Fields are metadata only — no query text and no stored surface — because
+    :mod:`nestor.frank` mirrors ledger entries verbatim into a ledger somebody
+    else holds.
+    """
+    fields: dict[str, str] = {
+        "matcher": str(getattr(matcher, "name", None) or type(matcher).__name__),
+    }
+    model = getattr(matcher, "model_name", None)
+    if model:
+        fields["matcher_model"] = str(model)
+    if uses_raw_score(matcher):
+        fields["matcher_scoring"] = "score"
+    return fields
 
 
 # --------------------------------------------------------------------------

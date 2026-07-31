@@ -1027,7 +1027,8 @@ function matchForm() {
       h("span", { class: "muted", text: "→" }),
       h("input", { id: "m-tl", value: q.target_lang || d.target_lang, size: 6, title: "target domain tag" }),
       h("select", { id: "m-matcher" },
-        ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"]].map(([v, t]) =>
+        ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"],
+            ["semantic", "SemanticMatcher (optional extra)"]].map(([v, t]) =>
           h("option", { value: v, selected: (q.matcher || "string") === v }, t))),
       h("button", { class: "primary", disabled: S.state.read_only, onclick: submitMatch }, "Look up")),
     h("p", { class: "small muted", style: "margin:8px 0 0" },

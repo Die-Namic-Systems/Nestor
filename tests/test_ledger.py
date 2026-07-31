@@ -1,22 +1,21 @@
 """Ledger verification + fail-closed audit (Nestor#2, RT-N2/RT-N3)."""
 import json
+import threading
 
 import pytest
 
 from nestor import cascade, ledger
 
 
-def test_verify_intact_then_detects_tamper(tmp_path, monkeypatch):
+def test_verify_intact_then_detects_tamper(tmp_path):
     lp = tmp_path / "ledger.jsonl"
-    monkeypatch.setattr(cascade, "_LEDGER_OVERRIDE", None)
-    monkeypatch.setenv("NESTOR_LEDGER", str(lp))
+    cascade.set_ledger_path(lp)
     for k in ("a", "b", "c"):
         cascade._ledger_append({"kind": k})
 
     ok, detail = ledger.verify(str(lp))
     assert ok, detail
 
-    # Edit a past entry — the chain must break at the next line.
     lines = lp.read_text().splitlines()
     rec = json.loads(lines[0]); rec["kind"] = "TAMPERED"
     lines[0] = json.dumps(rec, ensure_ascii=False)
@@ -27,21 +26,15 @@ def test_verify_intact_then_detects_tamper(tmp_path, monkeypatch):
     assert "broken chain" in detail
 
 
-def test_ledger_refuses_non_file(monkeypatch):
-    # NESTOR_LEDGER=/dev/null previously suppressed the audit trail silently.
-    monkeypatch.setattr(cascade, "_LEDGER_OVERRIDE", None)
-    monkeypatch.setenv("NESTOR_LEDGER", "/dev/null")
+def test_ledger_refuses_non_file():
+    cascade.set_ledger_path("/dev/null")
     with pytest.raises(ledger.LedgerError):
         cascade._ledger_append({"kind": "vanishes"})
 
 
-def test_append_refuses_to_extend_a_tampered_chain(tmp_path, monkeypatch):
-    # B10: verify() now has a caller — a fresh process refuses to chain onto a
-    # ledger whose history was edited while it was down.
+def test_append_refuses_to_extend_a_tampered_chain(tmp_path):
     lp = tmp_path / "ledger.jsonl"
-    monkeypatch.setattr(cascade, "_LEDGER_OVERRIDE", None)
-    monkeypatch.setattr(cascade, "_verified_ledgers", set())
-    monkeypatch.setenv("NESTOR_LEDGER", str(lp))
+    cascade.set_ledger_path(lp)
     for k in ("a", "b", "c"):
         cascade._ledger_append({"kind": k})
 
@@ -50,26 +43,16 @@ def test_append_refuses_to_extend_a_tampered_chain(tmp_path, monkeypatch):
     lines[0] = json.dumps(rec, ensure_ascii=False)
     lp.write_text("\n".join(lines) + "\n")
 
-    monkeypatch.setattr(cascade, "_verified_ledgers", set())  # simulate reboot
+    cascade.reset_ledger_session()
     with pytest.raises(ledger.LedgerError):
         cascade._ledger_append({"kind": "d"})
 
 
-# --- the append-time checkpoint (IDEAS 5.3, 5.5) ----------------------------
-#
-# The chain walk runs once per process. nestor.ui is a long-lived process, so a
-# reviewer's shift is hours of appends after a single verification — and
-# tampering inside that window used to be caught by the next verify(), not by
-# the next append, which meanwhile chained onto it.
-
 @pytest.fixture
-def live_ledger(tmp_path, monkeypatch):
+def live_ledger(tmp_path):
     """A ledger this process has already verified and appended to."""
     lp = tmp_path / "ledger.jsonl"
-    monkeypatch.setattr(cascade, "_LEDGER_OVERRIDE", None)
-    monkeypatch.setattr(cascade, "_verified_ledgers", set())
-    monkeypatch.setattr(cascade, "_checkpoints", {})
-    monkeypatch.setenv("NESTOR_LEDGER", str(lp))
+    cascade.set_ledger_path(lp)
     for k in ("a", "b", "c"):
         cascade._ledger_append({"kind": k})
     assert ledger.verify(str(lp))[0]
@@ -77,13 +60,11 @@ def live_ledger(tmp_path, monkeypatch):
 
 
 def test_a_mid_run_edit_of_the_newest_entry_is_refused(live_ledger):
-    """The entry the chain cannot vouch for is the one this catches."""
     lines = live_ledger.read_text().splitlines()
     rec = json.loads(lines[-1]); rec["kind"] = "TAMPERED"
     lines[-1] = json.dumps(rec, ensure_ascii=False)
     live_ledger.write_text("\n".join(lines) + "\n")
 
-    # verify() still walks clean — nothing follows the last line to indict it.
     ok, _ = ledger.verify(str(live_ledger))
     assert ok, "the whole point: the walk cannot see this"
 
@@ -103,8 +84,7 @@ def test_deleting_the_ledger_mid_run_is_refused(live_ledger):
         cascade._ledger_append({"kind": "d"})
 
 
-def test_the_refusal_lands_before_the_store_write(live_ledger, store):
-    """A seal refused *after* its row is written is the state this prevents."""
+def test_the_refusal_lands_before_the_store_write(live_ledger, store, seal_key):
     from nestor import memory
 
     lines = live_ledger.read_text().splitlines()
@@ -119,7 +99,6 @@ def test_the_refusal_lands_before_the_store_write(live_ledger, store):
 
 
 def test_another_writer_appending_is_not_tampering(live_ledger):
-    """A second process extending the chain is normal; only a break is not."""
     import hashlib
 
     last = live_ledger.read_text().splitlines()[-1]
@@ -128,11 +107,9 @@ def test_another_writer_appending_is_not_tampering(live_ledger):
     with live_ledger.open("a") as fh:
         fh.write(line + "\n")
 
-    cascade._ledger_append({"kind": "d"})            # accepted
+    cascade._ledger_append({"kind": "d"})
     assert ledger.verify(str(live_ledger))[0]
 
-    # But an entry that does NOT chain onto ours is refused, even though it
-    # arrived after our checkpoint.
     with live_ledger.open("a") as fh:
         fh.write(json.dumps({"kind": "orphan", "prev": "genesis"}) + "\n")
     with pytest.raises(ledger.LedgerError, match="does not chain"):
@@ -140,11 +117,6 @@ def test_another_writer_appending_is_not_tampering(live_ledger):
 
 
 def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
-    """The checkpoint reads the ledger, so it reads it the way everything else
-    here does: holding the lock. A reader without one catches another writer
-    mid-append, sees a torn line, and refuses a perfectly good seal."""
-    import threading
-
     gate = threading.Barrier(6)
     failures = []
 
@@ -152,9 +124,9 @@ def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
         gate.wait(timeout=5)
         for i in range(15):
             try:
-                cascade.ledger_preflight()          # what add_pair does first
+                cascade.ledger_preflight()
                 cascade._ledger_append({"kind": "passage", "who": n, "i": i})
-            except Exception as exc:                # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 failures.append(f"{type(exc).__name__}: {exc}")
 
     threads = [threading.Thread(target=spam, args=(n,)) for n in range(6)]
@@ -164,38 +136,53 @@ def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
         t.join()
 
     assert not failures, failures[:3]
-    assert len(live_ledger.read_text().splitlines()) == 93   # 3 + 6*15
+    assert len(live_ledger.read_text().splitlines()) == 93
     assert ledger.verify(str(live_ledger))[0]
 
 
-def test_the_checkpoint_does_not_replace_the_walk(live_ledger):
-    """Stated in the docstring, pinned here: an edit *older* than our checkpoint
-    is a job for verify(), and the Ledger view calls it on every render.
+def test_re_asserting_the_same_ledger_path_keeps_the_tail_guard(live_ledger):
+    """`set_ledger_path` is how a surface says where its ledger is, and a
+    long-lived surface is the one most likely to say it more than once. Saying
+    it again is not a change of chain, so it must not drop the checkpoint —
+    doing that would hand back the tail guard for the rest of the shift, which
+    is the window the checkpoint exists to close."""
+    cascade.set_ledger_path(live_ledger)          # the same path, said again
 
-    The edit has to preserve byte length to get past the checkpoint at all — a
-    rewrite that changes the length shifts every offset after it, our own
-    included, and gets refused as a moved tail. That is a side effect of the
-    mechanism rather than a guarantee it makes, which is exactly why the walk
-    stays the complete answer.
-    """
+    lines = live_ledger.read_text().splitlines()
+    rec = json.loads(lines[-1]); rec["kind"] = "TAMPERED"
+    lines[-1] = json.dumps(rec, ensure_ascii=False)
+    live_ledger.write_text("\n".join(lines) + "\n")
+
+    with pytest.raises(ledger.LedgerError, match="tampered tail"):
+        cascade._ledger_append({"kind": "d"})
+
+
+def test_pointing_at_another_ledger_does_drop_it(live_ledger, tmp_path):
+    """The other half: a different chain must not inherit this one's checkpoint,
+    or the first append would check one file's tail against another's."""
+    other = tmp_path / "other.jsonl"
+    cascade.set_ledger_path(other)
+    cascade._ledger_append({"kind": "first"})
+    assert ledger.verify(str(other))[0]
+    assert len(other.read_text().splitlines()) == 1
+
+
+def test_the_checkpoint_does_not_replace_the_walk(live_ledger):
     lines = live_ledger.read_text().splitlines()
     assert '"kind": "a"' in lines[0]
     lines[0] = lines[0].replace('"kind": "a"', '"kind": "z"')
     live_ledger.write_text("\n".join(lines) + "\n")
 
-    cascade._ledger_append({"kind": "d"})            # the checkpoint is silent
+    cascade._ledger_append({"kind": "d"})
     ok, detail = ledger.verify(str(live_ledger))
-    assert not ok and "broken chain" in detail       # the walk is not
+    assert not ok and "broken chain" in detail
 
 
-def test_ledger_refuses_a_symlink(tmp_path, monkeypatch):
-    # B14b: is_file() follows symlinks, so ledger.jsonl -> attacker_file passed.
+def test_ledger_refuses_a_symlink(tmp_path):
     real = tmp_path / "attacker.jsonl"
     real.write_text("")
     link = tmp_path / "ledger.jsonl"
     link.symlink_to(real)
-    monkeypatch.setattr(cascade, "_LEDGER_OVERRIDE", None)
-    monkeypatch.setattr(cascade, "_verified_ledgers", set())
-    monkeypatch.setenv("NESTOR_LEDGER", str(link))
+    cascade.set_ledger_path(link)
     with pytest.raises(ledger.LedgerError):
         cascade._ledger_append({"kind": "redirected"})

@@ -70,9 +70,9 @@ def score_arm(label: str, surface_sets: list[list[str]], k: int,
     actual = memory.stats(store=store)["sealed"]
     rows = store.memory_candidates("en", "es")
 
-    scored = [(*best_match_fast(matcher.normalize(p), rows, matcher, FLOOR), expect, fam)
+    scored = [(*best_match_fast(p, rows, matcher, FLOOR), expect, fam)
               for p, expect, fam in probes]
-    absent_scored = [best_match_fast(matcher.normalize(p), rows, matcher, FLOOR)
+    absent_scored = [best_match_fast(p, rows, matcher, FLOOR)
                      for p in absent]
 
     out = {"arm": label, "surfaces_per_meaning": k, "meanings": len(surface_sets),

@@ -32,25 +32,30 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from bench import corpora, harness  # noqa: E402
 from nestor import memory  # noqa: E402
-from nestor.matcher import StringMatcher  # noqa: E402
+from nestor.matcher import StringMatcher, match_similarity  # noqa: E402
+
 
 THRESHOLDS = [0.80, 0.85, 0.90, 0.92, 0.94, 0.96, 0.98, 1.00]
 
 
-def best_match(norm: str, rows: list[dict], matcher) -> tuple[float, str, str]:
+def best_match(probe: str, rows: list[dict], matcher) -> tuple[float, str, str]:
     """(best similarity, that row's target, that row's source) — what
     ``best_sealed`` would serve. The source comes back too: without it a false
     seal can't be judged, because a probe that near-duplicates a sealed phrase
     is a different finding from one that doesn't resemble it at all."""
+    norm = matcher.normalize(probe)
     best_sim, best_target, best_source = 0.0, "", ""
     for r in rows:
-        sim = matcher.similarity(norm, r["source_norm"])
+        sim = match_similarity(
+            matcher, probe, norm,
+            r.get("source_text", ""), r["source_norm"],
+        )
         if sim > best_sim:
             best_sim, best_target, best_source = sim, r["target_text"], r["source_text"]
     return round(best_sim, 3), best_target, best_source
 
 
-def best_match_fast(norm: str, rows: list[dict], matcher,
+def best_match_fast(probe: str, rows: list[dict], matcher,
                     floor: float = 0.0) -> tuple[float, str, str]:
     """Identical result to :func:`best_match` above ``floor``, with far less work.
 
@@ -98,6 +103,7 @@ def best_match_fast(norm: str, rows: list[dict], matcher,
     checks the two agree, and ``--verify`` checks the winner against the real
     ``memory.best_sealed`` path.
     """
+    norm = matcher.normalize(probe)
     sm = difflib.SequenceMatcher(None, autojunk=False)
     best_sim, best_target, best_source = floor, "", ""
     for r in rows:
@@ -151,8 +157,8 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
                    for i in idx]
 
     fast = isinstance(matcher, StringMatcher)
-    scan = ((lambda n, rw, mt: best_match_fast(n, rw, mt, floor)) if fast
-            else (lambda n, rw, mt: best_match(n, rw, mt)))
+    scan = ((lambda p, rw, mt: best_match_fast(p, rw, mt, floor)) if fast
+            else (lambda p, rw, mt: best_match(p, rw, mt)))
 
     # Prove the fast path is not quietly changing the answer, on this corpus,
     # before using it for every probe.
@@ -160,8 +166,7 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
     if equiv_check and fast:
         disagreed = []
         for p in absent[:equiv_check]:
-            n = matcher.normalize(p)
-            a, b = best_match(n, rows, matcher), best_match_fast(n, rows, matcher, floor)
+            a, b = best_match(p, rows, matcher), best_match_fast(p, rows, matcher, floor)
             # Below the floor the fast path deliberately censors; only
             # compare where the sweep can actually see a difference.
             if a[0] >= floor and a != b:
@@ -169,14 +174,14 @@ def run_one(corpus_name: str, size: int, n_probes: int, matcher, seed: int,
         equiv = {"checked": min(equiv_check, len(absent)), "floor": floor,
                  "disagreements": len(disagreed), "examples": disagreed[:3]}
 
-    absent_scores = [scan(matcher.normalize(p), rows, matcher) for p in absent]
-    retyped_scores = [(scan(matcher.normalize(p), rows, matcher), want)
+    absent_scores = [scan(p, rows, matcher) for p in absent]
+    retyped_scores = [(scan(p, rows, matcher), want)
                       for p, want in retyped]
     # The floor is safe here too: the sweep only ever asks "is the score >= t"
     # for t >= min(THRESHOLDS) == the floor, and a probe below the floor returns
     # 0.0, which fails that test correctly. Only the reported percentiles are
     # censored below the floor — noted in the results, and irrelevant to recall.
-    para_scores = [(scan(matcher.normalize(p), rows, matcher), want)
+    para_scores = [(scan(p, rows, matcher), want)
                    for p, want in paraphrased]
 
     # Prove the argmax shortcut matches the real serve path at the shipped default.

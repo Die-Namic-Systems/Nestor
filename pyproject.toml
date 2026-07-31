@@ -21,6 +21,9 @@ dev = [
 cloud = [
     "anthropic>=0.60",
 ]
+semantic = [
+    "fastembed>=0.4",
+]
 
 [tool.pytest.ini_options]
 # `bench` is not an installed package (only `nestor*` is, below), so it imports

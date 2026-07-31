@@ -15,6 +15,8 @@ overwrite was neither raised nor recorded.
 """
 from __future__ import annotations
 
+import os
+
 import json
 
 import pytest
@@ -25,8 +27,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def store(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def store(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     s = SqliteStore(":memory:")
     s.init_db()
@@ -152,7 +154,7 @@ def test_curator_surfaces_conflicts_and_hides_self_corrections(store):
 
 # --- audit must never break a write ---------------------------------------
 
-def test_an_unwritable_ledger_does_not_lose_the_seal(store, tmp_path, monkeypatch):
+def test_an_unwritable_ledger_does_not_lose_the_seal(store, monkeypatch, seal_key):
     """The pair is already committed by the time the entry is written, so
     raising here would leave the caller with a completed write and an
     exception. Bulk seeding paths must not abort on an unwritable trail."""

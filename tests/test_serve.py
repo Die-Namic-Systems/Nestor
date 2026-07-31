@@ -8,6 +8,8 @@ called every tool this server has, the sealed memory is exactly as it was.
 """
 from __future__ import annotations
 
+import os
+
 import io
 import json
 
@@ -19,8 +21,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def server(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def server(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     store = SqliteStore(":memory:")
     store.init_db()
@@ -161,7 +163,7 @@ def test_read_only_withholds_even_the_proposal(server):
 def test_a_bad_argument_comes_back_as_a_readable_tool_error(server):
     """The model must be able to read the refusal and change what it does."""
     assert "nothing to ask" in call(server, "nestor_ask", text="  ")["error"]
-    assert "unknown matcher" in call(server, "nestor_match", text="x", matcher="semantic")["error"]
+    assert "unknown matcher" in call(server, "nestor_match", text="x", matcher="vector")["error"]
     bad = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
                          "params": {"name": "nestor_ask", "arguments": "not-an-object"}})
     assert bad["error"]["code"] == -32602

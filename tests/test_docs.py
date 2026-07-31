@@ -14,6 +14,8 @@ Prose is not checked and cannot be. These pin the parts that rot silently.
 """
 from __future__ import annotations
 
+import os
+
 import io
 import pathlib
 import re
@@ -205,14 +207,15 @@ def runnable_examples() -> list[tuple[str, str, str]]:
                          runnable_examples(),
                          ids=[e[0] for e in runnable_examples()])
 def test_the_readme_examples_print_what_the_readme_says_they_print(
-        name, demo, expected, tmp_path, monkeypatch):
+        name, demo, expected, tmp_path, seal_key):
     """Executed, not read. They are the first things anyone runs.
 
     The ledger lands under the working directory, so this runs in a temp one —
     a doc test that wrote into the repo would be its own kind of wrong.
     """
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
+    prev_cwd = os.getcwd()
+    os.chdir(tmp_path)
+    os.environ.pop("NESTOR_SEAL_KEY", None)
     import nestor.storage as storage_module
     saved = storage_module._store
     printed = io.StringIO()
@@ -224,6 +227,7 @@ def test_the_readme_examples_print_what_the_readme_says_they_print(
                 exec(compile(demo, "README quick start", "exec"), {"__name__": "__main__"})
     finally:
         storage_module._store = saved
+        os.chdir(prev_cwd)
 
     assert printed.getvalue() == expected, (
         f"{name} prints:\n{printed.getvalue()}\nthe README claims:\n{expected}")

@@ -13,10 +13,14 @@ decision is recorded at all.
 """
 from __future__ import annotations
 
+import os
+
 import json
 import threading
 import urllib.error
 import urllib.request
+
+import importlib.util
 
 import pytest
 
@@ -25,8 +29,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def app(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def app(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     store = SqliteStore(":memory:")
     store.init_db()
@@ -361,8 +365,25 @@ def test_match_is_the_bare_seam_over_any_domain(filled):
 
 
 def test_an_unknown_matcher_is_refused_rather_than_defaulted(filled):
+    status, out = post(filled, "/api/match", text="x", matcher="vector")
+    assert status == 400 and "unknown matcher" in out["error"]
+
+
+def test_semantic_without_extra_is_refused_not_defaulted(filled):
+    if importlib.util.find_spec("fastembed"):
+        pytest.skip("fastembed installed — run test_semantic_match_when_extra_installed")
     status, out = post(filled, "/api/match", text="x", matcher="semantic")
-    assert status == 400 and "custom one is injected in code" in out["error"]
+    assert status == 400
+    assert "semantic" in out["error"].lower()
+    assert "nestor[semantic]" in out["error"] or "optional" in out["error"].lower()
+
+
+def test_semantic_match_when_extra_installed(filled):
+    if not importlib.util.find_spec("fastembed"):
+        pytest.skip("pip install nestor[semantic]")
+    status, out = post(filled, "/api/match", text="hello", matcher="semantic")
+    assert status == 200
+    assert out["matcher"] == "semantic"
 
 
 def test_the_recipes_ask_who_is_sealing_too(app):
@@ -390,8 +411,8 @@ def test_read_only_refuses_every_decision(filled):
     assert get(filled, "/api/pairs")[1]["count"] == 2
 
 
-def test_a_store_without_the_optional_capabilities_says_so(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+def test_a_store_without_the_optional_capabilities_says_so(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     cascade.set_ledger_path(tmp_path / "l.jsonl")
 
     class _Legacy(SqliteStore):

@@ -34,6 +34,10 @@ would be worse than useless here:
 Neither is proposed as a replacement for `StringMatcher` on translation memory,
 where character-level edits are the domain. They are proposed as evidence about
 where the ceiling is.
+
+Both classes implement ``score(raw_a, raw_b)`` so :mod:`nestor.memory` and the
+bench compare probe text to each row's ``source_text`` via token sets, while
+``normalize`` remains a sorted bag-of-tokens dedup key (IDEAS §3.1).
 """
 from __future__ import annotations
 
@@ -73,6 +77,9 @@ class _TokenMatcherBase:
     def _sets(self, a_norm: str, b_norm: str) -> tuple[set[str], set[str]]:
         return set(a_norm.split()), set(b_norm.split())
 
+    def _sets_raw(self, raw_a, raw_b) -> tuple[set[str], set[str]]:
+        return set(_tokens(raw_a)), set(_tokens(raw_b))
+
 
 class TokenJaccard(_TokenMatcherBase):
     """|A∩B| / |A∪B|."""
@@ -85,6 +92,12 @@ class TokenJaccard(_TokenMatcherBase):
             return 0.0
         return len(a & b) / len(a | b)
 
+    def score(self, raw_a, raw_b) -> float:
+        a, b = self._sets_raw(raw_a, raw_b)
+        if not a or not b:
+            return 0.0
+        return len(a & b) / len(a | b)
+
 
 class TokenOverlap(_TokenMatcherBase):
     """|A∩B| / min(|A|,|B|) — containment, symmetric."""
@@ -93,6 +106,12 @@ class TokenOverlap(_TokenMatcherBase):
 
     def similarity(self, a_norm: str, b_norm: str) -> float:
         a, b = self._sets(a_norm, b_norm)
+        if not a or not b:
+            return 0.0
+        return len(a & b) / min(len(a), len(b))
+
+    def score(self, raw_a, raw_b) -> float:
+        a, b = self._sets_raw(raw_a, raw_b)
         if not a or not b:
             return 0.0
         return len(a & b) / min(len(a), len(b))
