@@ -1,0 +1,178 @@
+{
+ "authored_by": "Claude subagents, one independent pass each, no shared context",
+ "prompt_note": "Each pass saw ONLY the 14 canonical names — no repository, no file access, no web, and no knowledge of which project they belong to. Tool use was forbidden and each pass returned with zero tool calls, so the surfaces are derived from the names alone. Overlap with the human corpus is measured every run rather than asserted here.",
+ "passes": {
+  "A": {
+   "CLAUDE": [
+    "agent instructions for this repo",
+    "the playground ground rules",
+    "repo conventions file for the assistant",
+    "what the bot is told before it starts"
+   ],
+   "craft": [
+    "how we write things here",
+    "quality bar and taste notes",
+    "the workmanship guide",
+    "standards for doing the work well"
+   ],
+   "ARCHITECTURE": [
+    "how the system fits together",
+    "the design doc",
+    "component layout and boundaries",
+    "high level structure overview"
+   ],
+   "CAPABILITY MAP": [
+    "what the system can and cannot do",
+    "the feature inventory",
+    "coverage of abilities by area",
+    "matrix of supported functions"
+   ],
+   "CROSSINGS": [
+    "where the boundaries get traversed",
+    "seams between subsystems",
+    "the interface handoff notes",
+    "points where two sides meet"
+   ],
+   "EXTERNAL ARM": [
+    "the outward facing side",
+    "third party and outside relations",
+    "public facing branch of the project",
+    "what we expose beyond the org"
+   ],
+   "FLEET READS": [
+    "reading across all instances",
+    "the multi machine survey",
+    "batch scan over every unit",
+    "aggregate pull from the whole set"
+   ],
+   "LANE MODEL": [
+    "how the tracks are defined",
+    "the pathway abstraction",
+    "channel structure and routing",
+    "tiers and how work is split"
+   ],
+   "OPEN SOURCE SURVEY": [
+    "what else is out there already",
+    "prior art and licence review",
+    "landscape scan of existing tools",
+    "comparison of public projects"
+   ],
+   "PLAN GUARDIANSHIP": [
+    "safeguarding design decisions",
+    "route never receive plan",
+    "the child protection approach",
+    "duty of care write up"
+   ],
+   "SENSITIVITY": [
+    "the sensitivity ladder",
+    "how data gets classified",
+    "handling rules for delicate material",
+    "confidentiality tiers"
+   ],
+   "001 lanes proposed sql": [
+    "the first migration for lanes",
+    "schema draft for the track tables",
+    "proposed database changes numbered 001",
+    "track model ddl"
+   ],
+   "get ready txt": [
+    "setup notes before starting",
+    "the preparation checklist",
+    "onboarding steps plain text",
+    "what to do first"
+   ],
+   "voice py": [
+    "the speech module",
+    "audio handling code",
+    "tone and phrasing implementation",
+    "python file for spoken output"
+   ]
+  },
+  "B": {
+   "CLAUDE": [
+    "the agent instructions file",
+    "repo rules for AI agents",
+    "the playground ground rules doc",
+    "how the assistant should behave here"
+   ],
+   "craft": [
+    "the craft notes",
+    "workmanship guidelines doc",
+    "quality practices writeup",
+    "how we build things here"
+   ],
+   "ARCHITECTURE": [
+    "the system design doc",
+    "how the pieces fit together",
+    "the architecture writeup",
+    "high level system overview"
+   ],
+   "CAPABILITY MAP": [
+    "what the system can do",
+    "the feature inventory doc",
+    "capabilities overview chart",
+    "the skills-and-features map"
+   ],
+   "CROSSINGS": [
+    "the handoff points doc",
+    "where systems intersect",
+    "the crossings writeup",
+    "boundary transition notes"
+   ],
+   "EXTERNAL ARM": [
+    "the outward-facing component",
+    "third-party interface doc",
+    "the external integration piece",
+    "outreach arm description"
+   ],
+   "FLEET READS": [
+    "the device telemetry doc",
+    "fleet data ingestion notes",
+    "reading data from the fleet",
+    "sensor readout summary"
+   ],
+   "LANE MODEL": [
+    "the lanes data model",
+    "how lanes are structured",
+    "the lane schema doc",
+    "traffic lane representation"
+   ],
+   "OPEN SOURCE SURVEY": [
+    "survey of open source options",
+    "the OSS landscape review",
+    "comparison of open source tools",
+    "third party library research"
+   ],
+   "PLAN GUARDIANSHIP": [
+    "who owns the roadmap",
+    "the plan stewardship doc",
+    "governance over the plan",
+    "keeping the plan on track"
+   ],
+   "SENSITIVITY": [
+    "the sensitivity ladder",
+    "data sensitivity levels doc",
+    "how sensitive info is handled",
+    "the risk tiers writeup"
+   ],
+   "001 lanes proposed sql": [
+    "the proposed lanes schema",
+    "sql migration for lanes",
+    "draft lanes table definition",
+    "new lanes database script"
+   ],
+   "get ready txt": [
+    "the setup checklist file",
+    "prep notes before launch",
+    "onboarding readiness notes",
+    "getting started text file"
+   ],
+   "voice py": [
+    "the voice module script",
+    "text to speech python file",
+    "audio handling code",
+    "the voice interface implementation"
+   ]
+  }
+ }
+}

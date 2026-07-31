@@ -83,6 +83,10 @@ SWEEP = tuple(sorted(set(DIAGNOSTIC_THRESHOLDS) | set(THRESHOLDS)))
 
 DUMP = []
 
+#: Model-authored surfaces, keyed by authoring pass then by canonical name.
+#: Populated in main(); empty means the arm is simply not built.
+AUTHORED: dict = {}
+
 SIDE_A = {
     "docs/ARCHITECTURE.md", "docs/CAPABILITY-MAP.md", "docs/CROSSINGS.md",
     "docs/SKINS.md", "docs/OPEN-SOURCE-SURVEY.md", "README.md", "CLAUDE.md",
@@ -238,6 +242,8 @@ def main() -> None:
     ap.add_argument("--extraction", default="bench/results/terpsi_spans.json")
     ap.add_argument("--matcher", default="string",
                     choices=["string", "jaccard", "overlap"])
+    ap.add_argument("--authored", default="bench/results/terpsi_authored.json",
+                    help="model-authored surfaces; the arm is skipped if absent")
     args = ap.parse_args()
 
     matcher = {'string': StringMatcher, 'jaccard': TokenJaccard,
@@ -277,6 +283,31 @@ def main() -> None:
           f"over {len(refs)} referents — applied, as the conservative choice")
 
 
+
+    # Model-authored surfaces, plus the check that they were authored rather
+    # than copied. The authoring agents were told not to read anything; this
+    # verifies it instead of trusting it. A surface that exactly matches a human
+    # span is not proof of cheating on its own — "the sensitivity ladder" is the
+    # obvious name and both may reach it — but a HIGH rate means the model saw
+    # the corpus, and stage 2's first authoring pass was discarded for exactly
+    # that. Reported every run, like every other property this bench depends on.
+    ap_path = pathlib.Path(args.authored)
+    if ap_path.exists():
+        doc = json.loads(ap_path.read_text())
+        AUTHORED.update(doc["passes"])
+        human_norm = {matcher.normalize(r["span"]) for r in all_records}
+        print(f"\nmodel-authored surfaces: {len(AUTHORED)} independent pass(es)")
+        for name, authored in sorted(AUTHORED.items()):
+            flat = [x for v in authored.values() for x in v]
+            hit = sum(1 for x in flat if matcher.normalize(x) in human_norm)
+            rate = hit / max(1, len(flat))
+            print(f"  {name}: {len(flat)} surfaces over {len(authored)} names; "
+                  f"{hit} ({rate:.1%}) exactly match a human span")
+            if rate > 0.10:
+                print("  ** high overlap with the human corpus — suspect the "
+                      "authoring saw it, and discard the pass **")
+    else:
+        print(f"\nno {ap_path} — the model-surfaces arm is not built")
 
     harness.quiet_ledger(tempfile.mkdtemp())
     harness.seal_key("bench-key")
@@ -419,6 +450,27 @@ def _run_splits(variant, records, side_a, side_b, matcher, results, strict=False
                          {r: [corpus_terpsi._canonical(r)] + rotated[r] for r in refs}))
         else:
             print("  ** one referent — the negative control cannot be built **")
+
+        # The cell stages 2 and 3 between them do not cover: surfaces authored
+        # by a MODEL, answering probes authored by a PERSON.
+        #
+        # Stage 2 was model-vs-model and stage 3 human-vs-human, and the 1.8x
+        # disagreement in stage 2 could not be settled from inside it because
+        # probe author and surface author were the same model family. Here the
+        # probe list is unchanged — identical strings, identical drops, computed
+        # from the HUMAN sealed set with StringMatcher — so the model arm is
+        # comparable to the human arm row for row and only the sealed surfaces
+        # differ. That is the whole design; anything that changes the probes
+        # between these two arms destroys the comparison.
+        #
+        # The model saw only the canonical names, so the sets are keyed by
+        # canonical rather than by referent path.
+        for pass_name, authored in sorted(AUTHORED.items()):
+            model_sealed = {}
+            for r in refs:
+                canon = corpus_terpsi._canonical(r)
+                model_sealed[r] = [canon] + list(authored.get(canon, ()))
+            arms.append((f"+ model surfaces ({pass_name})", model_sealed))
 
         for label, sealed in arms:
             r = score_arm(label, sealed, probes, absent, matcher)

@@ -247,6 +247,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sizes", type=int, nargs="*", default=[500, 2000, 8000, 24000])
     ap.add_argument("--prose-sizes", type=int, nargs="*", default=[500, 2000, 4000])
+    ap.add_argument("--code-sizes", type=int, nargs="*", default=[300, 800],
+                    help="long-key corpus (200+ char normals) — the autojunk regime")
     ap.add_argument("--probes", type=int, default=150)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--verify", type=int, default=25)
@@ -265,13 +267,20 @@ def main() -> None:
         matcher = StringMatcher()
         results = []
         plan = ([("boilerplate", s) for s in args.sizes]
-                + [("prose", s) for s in args.prose_sizes])
+                + [("prose", s) for s in args.prose_sizes]
+                + [("code", s) for s in args.code_sizes])
         run_id = harness.new_run_id()
         params = {"sizes": args.sizes, "prose_sizes": args.prose_sizes,
+                  "code_sizes": args.code_sizes,
                   "probes": args.probes, "seed": args.seed,
                   "matcher": "StringMatcher", "thresholds": THRESHOLDS,
                   "shipped_seal_threshold": memory.SEAL_THRESHOLD,
                   "prose_pool": corpora.available_prose(),
+                  "code_pool": corpora.available_code(),
+                  # Recorded every run so the blind spot that hid two matcher
+                  # bugs stays visible: if spans_autojunk_threshold is false,
+                  # this run cannot see the regime where difflib changes.
+                  "length_coverage": corpora.length_coverage(),
                   "scan": "best_match_fast (difflib upper-bound pruning)",
                   "floor": args.floor}
         notes = ("false_seal_rate = share of held-out (absent) probes served as a "
