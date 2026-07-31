@@ -6,7 +6,7 @@ through ``graduate_segment`` calls typed into a REPL, and the curator browsed
 the sealed memory through :class:`~nestor.curator.Curator`. Both are library
 surfaces. Neither is a place a person can sit down at.
 
-This is that place. One local page, four views, each one a surface the package
+This is that place. One local page, five views, each one a surface the package
 already has and nobody could see:
 
 * **Queue** — the segments the cascade left for review. Seal one as drafted,
@@ -21,6 +21,11 @@ already has and nobody could see:
   resolve an entity, reconcile a figure, or run the bare seam over any domain.
   The state is the point: ✓ sealed, ~ draft, ! pending — with the ranked
   candidates that produced it and what each one scored.
+* **Signals** — three things the package records that no single row shows:
+  seals somebody overwrote (which the store keeps no trace of at all), queries
+  the reviewers keep refusing (evidence about the *threshold* in this domain),
+  and pairs refused against many unrelated queries (evidence the pair is junk,
+  while it is still being served).
 * **Ledger** — the chain's verify result, its head, and the entries themselves,
   so the audit trail can be read where the decisions are made.
 

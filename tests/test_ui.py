@@ -527,3 +527,50 @@ def test_sealing_by_hand_can_open_a_brand_new_domain(filled):
     assert memory.best_sealed("sku-4471-b", "sku", "product", store=filled.store)
     # And it stays out of the translation memory it has nothing to do with.
     assert memory.best_sealed("SKU-4471-B", "en", "es", store=filled.store) is None
+
+
+# --- Signals: what the memory says that no single row does ------------------
+
+def test_pairs_paginate_past_the_first_page(app):
+    """The Memory list stopped at 50 rows with nothing to say it had."""
+    for i in range(60):
+        memory.add_pair(f"clause {i}", f"cláusula {i}", "en", "es",
+                        status="sealed", verifier="rita", store=app.store)
+
+    first = get(app, "/api/pairs", limit="51")[1]["pairs"]
+    assert len(first) == 51, "the page asks for one extra row to learn there is more"
+    second = get(app, "/api/pairs", limit="51", offset="50")[1]["pairs"]
+    assert len(second) == 10
+    ids = {p["id"] for p in first[:50]}
+    assert not (ids & {p["id"] for p in second}), "pages must not overlap"
+
+
+def test_replaced_seals_has_a_view(filled):
+    memory.add_pair("the annual invoice", "la factura del año", "en", "es",
+                    status="sealed", verifier="sam", override_conflict=True,
+                    store=filled.store)
+    status, out = get(filled, "/api/replaced-seals")
+    assert status == 200
+    assert len(out["replaced"]) == 1
+    entry = out["replaced"][0]
+    assert entry["replaced_verifier"] == "rita" and entry["verifier"] == "sam"
+    assert entry["same_verifier"] is False
+    # Digests, not text: nestor.frank mirrors entries verbatim elsewhere.
+    assert "la factura anual" not in json.dumps(entry)
+
+
+def test_replaced_seals_hides_self_corrections_unless_asked(filled):
+    memory.add_pair("the annual invoice", "la factura del año", "en", "es",
+                    status="sealed", verifier="rita", store=filled.store)
+    assert get(filled, "/api/replaced-seals")[1]["replaced"] == []
+    assert len(get(filled, "/api/replaced-seals", all="1")[1]["replaced"]) == 1
+
+
+def test_rejections_are_summarised_for_the_page(filled):
+    for target in ("la factura anual", "una frase"):
+        memory.reject_match("the yearly bill", "en", "es", target_text=target,
+                            verifier="sam", reason="no", store=filled.store)
+    status, out = get(filled, "/api/rejections")
+    assert status == 200
+    assert [q["query_norm"] for q in out["queries"]] == ["the yearly bill"]
+    assert out["queries"][0]["rejections"] == 2

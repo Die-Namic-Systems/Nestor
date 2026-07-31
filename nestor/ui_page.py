@@ -150,11 +150,17 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 "use strict";
 
 const TABS = [
-  ["queue",  "Queue"],
-  ["memory", "Memory"],
-  ["ask",    "Ask"],
-  ["ledger", "Ledger"],
+  ["queue",   "Queue"],
+  ["memory",  "Memory"],
+  ["ask",     "Ask"],
+  ["signals", "Signals"],
+  ["ledger",  "Ledger"],
 ];
+
+// How many pairs the Memory list shows at once. One more than this is asked
+// for, so "is there a next page" is answered by the server's own result
+// instead of by a count query the Storage Protocol does not have.
+const PAGE = 50;
 
 // The recipes: one mechanic — normalize, match against sealed pairs, serve
 // above the threshold or don't — with a different matcher and a different
@@ -167,7 +173,8 @@ const RECIPES = [
 ];
 
 const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
-            ledger: null, result: null, domains: [],
+            ledger: null, result: null, domains: [], signals: null,
+            offset: 0, more: false,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" } };
@@ -375,9 +382,25 @@ function viewMemory() {
   const list = h("div", { class: "card" });
   if (!S.pairs.length) list.append(h("p", { class: "empty", text: "No pairs match." }));
   for (const p of S.pairs) list.append(pairRow(p));
+  if (S.pairs.length || S.offset) list.append(pager());
 
   view.append(h("div", { class: "grid" }, list,
                 h("div", {}, detailPanel(), sealForm(), portableCard())));
+}
+
+// The list stopped at 50 rows with nothing to say it had. A curator whose
+// memory is larger than one page was looking at an arbitrary slice of it and
+// had no way to know — "no pairs match" and "no more pairs on this page" read
+// identically when the page is the only thing you can see.
+function pager() {
+  const first = S.offset + 1, last = S.offset + S.pairs.length;
+  return h("div", { class: "row small muted", style: "border-top:1px solid var(--line);padding-top:10px;margin-top:4px" },
+    h("button", { class: "small", disabled: S.offset === 0,
+                  onclick: () => { S.offset = Math.max(0, S.offset - PAGE); refresh(); } }, "‹ Previous"),
+    h("button", { class: "small", disabled: !S.more,
+                  onclick: () => { S.offset += PAGE; refresh(); } }, "Next ›"),
+    h("span", { text: S.pairs.length ? `showing ${first}–${last}${S.more ? "" : " (end)"}`
+                                     : "past the end" }));
 }
 
 function pairRow(p) {
@@ -1080,6 +1103,116 @@ function tabs() {
   }
 }
 
+/* ---------- Signals: what the memory says that no single row does ---------- */
+//
+// Three findings the package records and nothing displayed. Each one is a
+// question about the memory as a whole rather than about a pair, which is why
+// none of them fit in the Memory list.
+
+function viewSignals() {
+  const view = $("view");
+  if (!S.state.capabilities.curation) {
+    view.append(h("div", { class: "card" }, h("p", { class: "empty",
+      text: "This store does not implement the curation capability (storage.supports_curation)." })));
+    return;
+  }
+  view.append(replacedCard(), rejectedQueriesCard(), junkPairsCard());
+}
+
+function replacedCard() {
+  const rows = (S.signals && S.signals.replaced) || [];
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Seals that were overwritten" }),
+    h("p", { class: "small muted", text:
+      "The memory keeps one row per source, so a replaced seal leaves no trace in the "
+      + "store — the previous target and verifier exist only in the ledger. Sealing over "
+      + "another verifier's answer is refused, so an entry here means somebody chose to "
+      + "overrule a recorded human decision." }),
+    h("div", { class: "row small" },
+      h("label", { class: "row small", style: "gap:6px" },
+        h("input", { type: "checkbox", checked: !!S.showAllReplaced,
+                     onchange: (e) => { S.showAllReplaced = e.target.checked; refresh(); } }),
+        "include self-corrections")));
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: S.showAllReplaced
+      ? "No seal has ever been replaced." : "No seal has been overruled by a different verifier." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["when", "pair", "replaced verifier", "by", "old → new target"].map((t) => h("th", { text: t }))));
+  for (const r of rows) {
+    table.append(h("tr", {},
+      h("td", { class: "small muted", text: (r.ts || "").slice(0, 19).replace("T", " ") }),
+      h("td", { class: "mono small", text: (r.pair_id || "").slice(0, 8) }),
+      h("td", { text: r.replaced_verifier || "(unknown)" }),
+      h("td", {}, h("b", { text: r.verifier || "(unknown)" }), " ",
+        r.same_verifier ? h("span", { class: "chip", text: "self" })
+                        : h("span", { class: "chip", style: "color:var(--rejected);border-color:var(--rejected)", text: "overruled" })),
+      // Digests, not text: nestor.frank mirrors ledger entries verbatim into a
+      // ledger somebody else holds, so the trail carries hashes.
+      h("td", { class: "mono small",
+                text: (r.replaced_target_sha || "?") + " → " + (r.target_sha || "?") })));
+  }
+  card.append(table);
+  return card;
+}
+
+function rejectedQueriesCard() {
+  const sig = (S.signals && S.signals.rejections) || { queries: [], pairs: [], rejections: 0 };
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Queries the reviewers keep refusing" }),
+    h("p", { class: "small muted", text:
+      "Several different answers offered for one input, all refused. That is evidence about "
+      + "the THRESHOLD in this domain rather than about any one pair — and the seal threshold "
+      + "is one global constant, which no single value fits across corpora. Read from the "
+      + `chain: ${sig.rejections} rejection(s) seen.` }));
+  if (!sig.queries.length) {
+    card.append(h("p", { class: "empty", text: "No query has been refused more than once." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["times", "query (normalized)", "distinct answers", "reviewers"].map((t) => h("th", { text: t }))));
+  for (const q of sig.queries) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(q.rejections) })),
+      h("td", { class: "mono small", text: q.query_norm }),
+      h("td", { text: String(q.distinct_answers) }),
+      h("td", { class: "small", text: q.verifiers.join(", ") })));
+  }
+  card.append(table);
+  return card;
+}
+
+function junkPairsCard() {
+  const sig = (S.signals && S.signals.rejections) || { pairs: [] };
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Pairs refused against many queries" }),
+    h("p", { class: "small muted", text:
+      "A good mapping is the wrong answer now and then. One that is wrong for many unrelated "
+      + "inputs is junk — and a sealed one is still being served while reviewers keep saying no. "
+      + "Open it in Memory to unseal or reject it." }));
+  if (!sig.pairs.length) {
+    card.append(h("p", { class: "empty", text: "No pair has been refused for more than one query." }));
+    return card;
+  }
+  for (const p of sig.pairs) {
+    card.append(h("div", { class: "pair",
+                           onclick: async () => { S.tab = "memory"; await refresh(); openPair(p.pair_id); } },
+      h("div", { class: "texts" },
+        mark(p.status),
+        h("span", { class: "src", text: p.source_text || "(row is gone)" }),
+        h("span", { class: "arrow", text: "→" }),
+        h("span", { text: p.target_text })),
+      h("div", { class: "row small muted", style: "margin-top:4px" },
+        h("span", { class: "chip", text: p.queries + " queries refused" }),
+        h("span", { class: "chip", text: p.status }),
+        p.servable ? h("span", { class: "chip", style: "color:var(--rejected);border-color:var(--rejected)",
+                                 text: "still served" }) : null,
+        h("span", { class: "small", text: p.query_norms.slice(0, 4).join(" · ") }))));
+  }
+  return card;
+}
+
 function applyFilters() {
   const picked = $("f-domain").value === "" ? null : S.domains[Number($("f-domain").value)];
   S.filters = {
@@ -1087,6 +1220,7 @@ function applyFilters() {
     verifier: $("f-verifier").value.trim(), unverifiable: $("f-unverifiable").checked ? "1" : "",
     source_lang: picked ? picked.source_lang : "", target_lang: picked ? picked.target_lang : "",
   };
+  S.offset = 0;               // a new filter is a new list, not page 3 of it
   refresh();
 }
 
@@ -1097,6 +1231,7 @@ function render() {
   if (S.tab === "queue") viewQueue();
   else if (S.tab === "memory") viewMemory();
   else if (S.tab === "ask") viewAsk();
+  else if (S.tab === "signals") viewSignals();
   else viewLedger();
 }
 
@@ -1107,7 +1242,19 @@ async function refresh() {
     if (S.tab === "queue" && S.state.capabilities.queue) S.queue = await api("/api/queue");
     if (S.tab === "memory" && S.state.capabilities.curation) {
       const q = new URLSearchParams(S.filters);
-      S.pairs = (await api("/api/pairs?" + q.toString())).pairs;
+      q.set("offset", String(S.offset));
+      q.set("limit", String(PAGE + 1));   // the extra row answers "is there more"
+      const rows = (await api("/api/pairs?" + q.toString())).pairs;
+      S.more = rows.length > PAGE;
+      S.pairs = rows.slice(0, PAGE);
+    }
+    if (S.tab === "signals" && S.state.capabilities.curation) {
+      const q = new URLSearchParams({ source_lang: S.filters.source_lang,
+                                      target_lang: S.filters.target_lang });
+      S.signals = {
+        replaced: (await api("/api/replaced-seals?all=" + (S.showAllReplaced ? "1" : "0"))).replaced,
+        rejections: await api("/api/rejections?" + q.toString()),
+      };
     }
     if (S.tab === "ledger") {
       S.ledger = await api("/api/ledger?limit=200&kind=" + encodeURIComponent(S.ledgerKind || ""));
