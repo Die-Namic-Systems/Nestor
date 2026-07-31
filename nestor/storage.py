@@ -234,6 +234,42 @@ class Storage(Protocol):
         how a curator sees that.
         """
 
+    # --- review queue (OPTIONAL capability) -------------------------------
+    #
+    # The reviewer's half of the surface was write-only in exactly the way the
+    # memory was: ``translate_text`` *creates* documents and segments for tier-3
+    # review, and nothing could read them back. The queue existed and could not
+    # be worked without querying the host's own database directly — so the one
+    # human the schema was built for could not see their own queue.
+    #
+    # Optional and all-or-nothing on the same terms as rejection and curation —
+    # see :func:`supports_queue`. ``update_segment_status`` is part of the set
+    # rather than an extra: a queue you can list but not clear offers the same
+    # item forever, which is the attention tax rejection exists to end.
+
+    def list_documents(self, status: str = "", limit: int = 50,
+                       offset: int = 0) -> list[dict]:
+        """Browse documents, newest first. ``status=""`` means no filter.
+
+        Each dict exposes the columns :meth:`get_document` returns.
+        """
+
+    def list_segments(self, document_id: str = "", status: str = "",
+                      limit: int = 200, offset: int = 0) -> list[dict]:
+        """Browse segments, oldest first within a document (reading order).
+
+        Empty-string filters mean "no filter on this field". Each dict exposes
+        the columns :meth:`get_segment` returns, plus ``status`` — a reviewer
+        needs to see what is still pending, not just what exists.
+        """
+
+    def update_segment_status(self, segment_id: str, status: str) -> None:
+        """Set a segment's ``status`` column. No-op if the id is unknown.
+
+        Nestor writes ``verified`` when a segment is graduated and ``rejected``
+        when it is refused, so a decided segment leaves the queue.
+        """
+
 
 # --------------------------------------------------------------------------
 # Global injection point
@@ -266,6 +302,20 @@ def supports_curation(store: "Storage") -> bool:
     cannot actually carry out.
     """
     return all(callable(getattr(store, op, None)) for op in _CURATION_OPS)
+
+
+_QUEUE_OPS = ("list_documents", "list_segments", "update_segment_status")
+
+
+def supports_queue(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional review-queue capability.
+
+    All three or none, for the same reason as the other two: a queue that lists
+    work but cannot record the decision leaves the reviewer looking at segments
+    they have already sealed, and a reviewer who cannot trust the queue to empty
+    stops trusting the queue.
+    """
+    return all(callable(getattr(store, op, None)) for op in _QUEUE_OPS)
 
 
 _store: "Optional[Storage]" = None

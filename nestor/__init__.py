@@ -9,13 +9,27 @@ A reviewer's "no" is recorded too: ``reject_segment`` (and ``memory.reject_match
 / ``memory.reject_pair``) suppress a wrong candidate so it is never offered for
 that input again, and land in the same ledger as a seal.
 
+Translation is one *recipe*. The same seal/serve/ledger mechanic resolves
+entities (:class:`~nestor.entity.EntityResolver`) and reconciles figures
+(:class:`~nestor.reconcile.Reconciler`) behind the :mod:`nestor.matcher` seam.
+
+Surfaces, each a thin transport over :mod:`nestor.answer` so they cannot disagree
+about what is verified — imported on demand rather than here, since a library
+import should not pull in an HTTP server:
+
+  * :mod:`nestor.ui`     — the browser (``nestor ui``)
+  * :mod:`nestor.cli`    — the terminal (``nestor``)
+  * :mod:`nestor.serve`  — a model, over MCP (``nestor serve``); it cannot seal
+
 Standalone package. Persistence is injected via :mod:`nestor.storage`
 (``set_store`` / ``get_store``); a reference SQLite implementation lives in
-:mod:`nestor.sqlite_store`.
+:mod:`nestor.sqlite_store`. :mod:`nestor.portable` moves a memory between
+instances without laundering trust.
 """
 from __future__ import annotations
 
 from . import (
+    answer,
     cascade,
     curator,
     engine,
@@ -25,6 +39,7 @@ from . import (
     langid,
     matcher,
     memory,
+    portable,
     reconcile,
     segment,
     storage,
@@ -70,6 +85,7 @@ __all__ = [
     "RejectedPairError",
     "Storage",
     "StringMatcher",
+    "answer",
     "cascade",
     "curator",
     "engine",
@@ -82,6 +98,7 @@ __all__ = [
     "langid",
     "matcher",
     "memory",
+    "portable",
     "reconcile",
     "reject_match",
     "reject_pair",

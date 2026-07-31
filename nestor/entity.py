@@ -45,18 +45,29 @@ class EntityResolver:
     # -- sealing ----------------------------------------------------------
 
     def seal(self, surface: str, canonical: str, verifier: str = "",
-             weight: float = 1.0, origin: str = "") -> dict:
+             weight: float = 1.0, origin: str = "",
+             override_conflict: bool = False,
+             override_rejection: bool = False) -> dict:
         """Seal a verified ``surface -> canonical`` alias mapping.
 
         The alias is the pair's source, the canonical entity its target; the
         domain rides in both language tags. Returns the sealed mapping and logs
         it to the ledger.
+
+        Two aliases resolving to *different* canonicals is the entity graph's
+        version of a conflicting seal — ``AWS`` meaning one company to one
+        analyst and another to the next is precisely the disagreement worth
+        stopping — so :class:`~nestor.memory.ConflictingSealError` and
+        :class:`~nestor.memory.RejectedPairError` propagate, and the overrides
+        are passed through rather than hidden behind the recipe.
         """
         pair = memory.add_pair(
             source_text=surface, target_text=canonical,
             source_lang=self.domain, target_lang=self.domain,
             status="sealed", verifier=verifier, weight=weight, origin=origin,
             store=self.store, matcher=self.matcher,
+            override_conflict=override_conflict,
+            override_rejection=override_rejection,
         )
         _ledger_append({
             "kind": "entity_seal", "domain": self.domain,
@@ -68,10 +79,13 @@ class EntityResolver:
                 "pair_id": pair["id"], "verifier": verifier}
 
     def add_alias(self, surface: str, canonical: str, verifier: str = "",
-                  weight: float = 1.0, origin: str = "") -> dict:
+                  weight: float = 1.0, origin: str = "",
+                  override_conflict: bool = False,
+                  override_rejection: bool = False) -> dict:
         """Convenience alias for :meth:`seal` — reads naturally as a graph op."""
         return self.seal(surface, canonical, verifier=verifier, weight=weight,
-                         origin=origin)
+                         origin=origin, override_conflict=override_conflict,
+                         override_rejection=override_rejection)
 
     # -- resolving --------------------------------------------------------
 

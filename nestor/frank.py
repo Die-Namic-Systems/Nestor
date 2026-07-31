@@ -31,6 +31,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import threading
+import time
 import sys
 from typing import Any, Optional, Protocol, runtime_checkable
 
@@ -125,6 +127,11 @@ class WillowForwarder:
         self._env = env
         self._proc: Optional[subprocess.Popen] = None
         self._next_id = 0
+        # One request in flight at a time. The forwarder owns a single stdio
+        # pipe, and nestor.ui appends to the ledger from a thread pool, so two
+        # threads could otherwise interleave writes on it and read each other's
+        # replies.
+        self._lock = threading.RLock()
 
     # ── MCP plumbing ──────────────────────────────────────────────────────────
 
@@ -150,14 +157,70 @@ class WillowForwarder:
                 continue  # server logging on stdout — not our frame
 
     def _request(self, method: str, params: dict) -> dict:
-        self._next_id += 1
-        self._send({"jsonrpc": "2.0", "id": self._next_id, "method": method, "params": params})
-        while True:
-            frame = self._read()
-            if frame.get("id") == self._next_id:
-                if "error" in frame:
-                    raise FrankUnavailable(f"{method}: {frame['error']}")
-                return frame.get("result") or {}
+        with self._lock:
+            self._next_id += 1
+            want = self._next_id
+            self._send({"jsonrpc": "2.0", "id": want, "method": method, "params": params})
+            deadline = time.monotonic() + self._timeout
+            while True:
+                frame = self._read_before(deadline)
+                if frame.get("id") == want:
+                    if "error" in frame:
+                        raise FrankUnavailable(f"{method}: {frame['error']}")
+                    return frame.get("result") or {}
+
+    def _read_before(self, deadline: float) -> dict:
+        """Read one frame, or give up. ``timeout`` was accepted and never used.
+
+        The constructor has taken a ``timeout`` since this module was written and
+        applied it to nothing: the read below is a blocking ``readline`` on a
+        subprocess pipe, so a governance mirror that accepted the connection and
+        then stopped answering hung the caller forever. Every seal, every serve
+        and every rejection goes through ``cascade.ledger_append`` and, when a
+        forwarder is installed, through here — so "the mirror is wedged" became
+        "Nestor is wedged", which is the precise opposite of this module's
+        contract that a mirror being down must never fail a translation.
+
+        On timeout the subprocess is killed rather than left running. A stream
+        with an unanswered request on it cannot be resynchronized — the next
+        reply would be read as the answer to the next question — so the honest
+        move is to drop the connection and let ``_connect`` start a clean one.
+        The raise lands in ``forward``'s best-effort handler, which warns unless
+        ``NESTOR_FRANK_STRICT`` says to propagate.
+        """
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            self._abandon()
+            raise FrankUnavailable(f"no reply within {self._timeout}s")
+        box: dict = {}
+
+        def read() -> None:
+            try:
+                box["frame"] = self._read()
+            except Exception as exc:                # noqa: BLE001 — reported below
+                box["error"] = exc
+
+        reader = threading.Thread(target=read, daemon=True)
+        reader.start()
+        reader.join(remaining)
+        if reader.is_alive():
+            # Killing the process makes the blocked readline return, so the
+            # thread ends rather than leaking for the life of the program.
+            self._abandon()
+            raise FrankUnavailable(f"no reply within {self._timeout}s")
+        if "error" in box:
+            raise box["error"]
+        return box.get("frame") or {}
+
+    def _abandon(self) -> None:
+        """Drop a subprocess that stopped answering, without waiting on it."""
+        proc, self._proc = self._proc, None
+        if proc is None:
+            return
+        try:
+            proc.kill()
+        except OSError:                             # pragma: no cover — already gone
+            pass
 
     def _connect(self) -> None:
         if self._proc is not None and self._proc.poll() is None:

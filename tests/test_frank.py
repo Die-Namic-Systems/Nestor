@@ -55,9 +55,12 @@ def test_every_ledger_entry_is_forwarded(store):
     cascade.translate_segment("Good morning", "en", "es",
                               engine=OfflineEngine(), store=store)
 
-    assert len(fwd.calls) == 1
-    event_type, content = fwd.calls[0]
-    assert event_type == "nestor.passage"
+    # Two entries, two forwards: the seal itself and the passage that served
+    # from it. `add_pair` used to write nothing, so this read `== 1`.
+    assert [e for e, _ in fwd.calls] == ["nestor.seal", "nestor.passage"]
+    _, sealed = fwd.calls[0]
+    assert sealed["verifier"] == "tester" and sealed["source_lang"] == "en"
+    _, content = fwd.calls[1]
     assert content["source_lang"] == "en"
     assert content["tier"] == 1
 
@@ -84,7 +87,8 @@ def test_seal_entries_forward_as_their_own_event(store):
 
     cascade.graduate_segment(seg["id"], verifier="tester", store=store)
 
-    assert [e for e, _ in fwd.calls] == ["nestor.seal"]
+    # The pair-level seal (from add_pair) and the segment-level decision.
+    assert [e for e, _ in fwd.calls] == ["nestor.seal", "nestor.segment_sealed"]
 
 
 # ── best-effort contract ──────────────────────────────────────────────────────

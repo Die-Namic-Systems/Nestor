@@ -210,6 +210,144 @@ in provenance; a `weight` that decays; N-of-M verification for high-stakes
 domains. The ledger already records who sealed what and when, so the data is
 there — nothing consumes it.
 
+### 1.5 A numeric label could hold several baselines — **shipped**
+
+*Was: `Reconciler.seal_baseline` let a label accumulate baselines, and `check`
+scored an observation against whichever it sat nearest.*
+
+Found while building the numeric view of the UI (§5.4). The conflicting-seal
+guard in `add_pair` keys on the **normalized source**, and under a
+`NumericMatcher` every figure is its own key — so a second baseline for a label
+was never an overwrite to catch, it was an insert. Both stayed sealed. Then
+`check` ranked by similarity, i.e. by nearness to the observation, which is
+precisely the wrong tie-break: the figure most likely to excuse an observation
+is the one closest to it. Reproduced —
+
+```
+seal_baseline("ceiling", "$5,000,000", verifier="auditor")   # superseded
+seal_baseline("ceiling", "$1,000,000", verifier="auditor")   # the standing one
+check("ceiling", "$4,900,000")  ->  flagged: False           # against the old ceiling
+```
+
+A recipe whose entire job is to flag a deviation must not let a caller add the
+baseline that excuses it. `seal_baseline` now raises `ConflictingSealError` when
+a different verifier restates a label's figure, retires the superseded baseline
+on a self-correction or explicit override, and ledgers `baseline_replaced`.
+`check` uses the **newest** baseline, not the nearest, and reports `ambiguous`
+with a count when more than one stands — which is what a store that cannot
+retire (no curation capability) now degrades to, loudly, instead of silently.
+
+Worth noting what this is an instance of: **the shared guards protect a recipe
+only as far as the matcher's notion of identity reaches.** The entity recipe is
+fine — two canonicals for one alias collide on the same normalized surface, so
+`add_pair` catches it. Any future matcher whose normalization makes distinct
+values distinct keys needs its own uniqueness rule, and §3.1's warning about the
+seam being lossy has a second edge here: what the normalizer *separates* matters
+as much as what it collapses.
+
+### 1.6 A seal could be made without being ledgered — **shipped**
+
+*Was: `memory.add_pair(status="sealed")` wrote nothing to the chain.*
+
+Found by a CLI test that filtered the ledger for `seal` entries and got none,
+against a database that had two sealed pairs in it. The seal entries in the chain
+came from the *callers* that happened to write one — `graduate_segment`, the
+recipes, the UI — so the shortest path to a sealed row, and the one every
+importer and host integration takes, produced a verified answer with no trail.
+Meanwhile the README's first paragraph promised every seal was appended.
+
+The entry is written from `add_pair` now, which is the one function that turns a
+pair into a sealed one, so the promise holds regardless of entry point.
+`graduate_segment`'s own entry became `segment_sealed` — which segment, in which
+document, a human decided — so the trail carries both facts and says "seal" once.
+`seed_from_corpus` passes `audit=False` and writes a single `corpus_seed` entry
+instead, because a 10k-pair curated import is one act by one non-human verifier
+and burying every human decision under ten thousand lines would be its own kind
+of unauditable.
+
+**A follow-up found the same fix had inverted the priorities.** Routing the entry
+through `_log_seal_event` — which swallows ledger failures so a bulk import
+cannot half-write — meant a seal onto a *broken chain* was accepted, served, and
+recorded nowhere, while `reject_pair` and `unseal` on the same chain raised and
+refused. Granting trust failed open; withdrawing it failed closed. Exactly
+backwards, and invisible because both paths "worked".
+
+`cascade.ledger_preflight()` now applies the append's refusals *before* the store
+is touched, so a decision that cannot be audited is refused rather than made, and
+the post-write append warns instead of passing silently. A draft still lands on a
+broken chain, which is the right line: a draft is not a verification.
+
+Worth naming the pattern, because it is the second instance: **a guarantee
+enforced by convention at call sites is not enforced.** The first was
+`is_verified_seal` (§1.2's regression — a bare `status == "sealed"` filter one
+file over). Both were fixed the same way: move the rule into the single function
+that cannot be bypassed.
+
+### 1.7 An import could revive a pair a human had rejected — **shipped**
+
+*Was: `portable.import_bundle(override_conflicts=True)` wrote through
+`store.memory_seal` directly, so `RejectedPairError` — which `add_pair` raises
+for exactly this — was structurally unreachable. A pair rejected as fraudulent
+came back sealed and serving, and the report said "sealed: 1".*
+
+Found by an adversarial read of the docs against the code, and it is §5.2's bug
+wearing a different coat: a guarantee enforced at one call site, and a second
+path into the store that never passes it. The first time it was
+`graduate_segment`; this time it was a file.
+
+The fix is a second switch, not a stronger one. `override_conflicts` means
+"their answer wins where we disagree", and a rejection is **not** a competing
+answer — it is a decision that the mapping is wrong. So rejected rows get their
+own bucket in the report, their own warning, their own CLI line, and their own
+`override_rejections` flag, mirroring the two `add_pair` has had all along. The
+UI deliberately has no checkbox for it: reviving a rejection through a file
+import should cost a considered command, and `Curator.restore` is the documented
+way back.
+
+### 1.8 Two threads could seal the same phrase, and both won — **shipped**
+
+*Was: `add_pair` read, decided, then wrote, with nothing making that atomic and
+no key constraint behind it. Two concurrent seals of the same new source each
+found nothing and each inserted — two sealed rows for one normalized source, no
+`ConflictingSealError`, and no answer to which one serves.*
+
+Reachable the moment the UI existed: it serves from a thread pool, so two
+reviewers pressing **Seal** on the same phrase is all it takes. The guard was
+written when every caller was a REPL.
+
+Fixed in two places, because a check and an invariant are different things. The
+reference store now carries a unique index on `(source_norm, source_lang,
+target_lang)` — the invariant the curator, the exporter and every serve path
+already assumed, now enforced by something no caller can talk past. And
+`add_pair` catches the collision, re-reads, and takes the existing-row path, so
+the loser gets the `ConflictingSealError` it should have had. A pre-existing
+database holding duplicates cannot take the index; that degrades with a warning
+naming the count rather than failing every later call.
+
+**The ledger had the same disease, and worse consequences.** `_ledger_append`
+read the tail and wrote the next line unsynchronized: eight threads appending
+concurrently wrote all 160 entries and left a chain `verify()` rejects. Not a
+lost entry — a trail that indicts itself, on the one file whose integrity is the
+product. It is now `ledger_append` (public, since six modules import it), holding
+a process lock and an advisory file lock, with the FRANK forward moved outside
+both so a slow mirror cannot stall a review queue.
+
+### 1.9 The numeric matcher takes the first number it finds — **open**
+
+`NumericMatcher.parse` strips `$ , %` and then *searches* for a number, so
+`"1,00o,000"` — one typo — parses as **100**, and `"12/31/2024"` parses as 12.
+Its docstring says "extract a number … or None", so this is the documented
+behavior, not a bug against its own contract.
+
+Whether it is the right contract for a reconciler is the open question. The
+failure direction is currently safe: a typo produces a wildly wrong figure, which
+gets *flagged*, and a human looks. But the reverse exists — a stray leading token
+in an otherwise correct figure is silently dropped — and "the number I compared
+was not the number you typed" is a bad sentence to have to say in an audit.
+Options: require the whole cleaned string to parse (breaks `"$1,000,000 USD"`),
+or report the parsed figure back in the result so a caller can see what was
+actually compared. The second is cheap and non-breaking; do that first.
+
 ---
 
 ## 2. Performance — the scan
@@ -297,6 +435,13 @@ and **was wrong** — stubbing `memory_init` out made things marginally *slower*
 i.e. it is noise at this scale. Recorded here so nobody re-derives the same dead
 end. The connection churn may still matter under concurrency; unmeasured.
 
+**There is now a threaded consumer.** `nestor.ui` serves from a thread pool, and
+that turned the shared `":memory:"` connection into an error — SQLite objects
+belong to the thread that made them — so it is guarded by a lock, while
+file-backed stores keep opening per operation and are thread-safe by that
+accident. Whether the churn costs anything under real concurrent review is still
+unmeasured, and now worth measuring rather than hypothesising about.
+
 ---
 
 ## 3. The Matcher seam
@@ -330,8 +475,14 @@ Written from outside the package, with **zero changes to `nestor/`**:
   `EntityResolver` **unchanged**, just with a token matcher. `'TOTAL DUE'` →
   `amount_due` at 1.0; `'Name of Customer'` correctly queued for review at 0.667.
 
-The README advertises three recipes. The seam supports a category. That gap is a
-positioning problem more than an engineering one (§4.1).
+The README advertised three recipes; the seam supports a category. The UI's Ask
+view narrowed that gap by exposing the seam itself as a fourth choice — any two
+domain tags, either shipped matcher, showing the normalized key and every
+candidate's score — so a custom recipe is drivable without writing a surface for
+it. What is still true is that a matcher written outside the package cannot be
+selected from a UI or an MCP call, because a name off a wire cannot conjure one;
+it has to be injected in code (`memory.set_matcher`). The rest is positioning
+(§4.1).
 
 ### 3.3 Semantic matcher — **open**
 
@@ -344,12 +495,27 @@ optional extra, never core.
 
 ## 4. Positioning
 
-### 4.1 Lead with the mechanic, not translation — **open**
+### 4.1 Lead with the mechanic, not translation — **shipped**
 
-The README opens with translation and reaches the general mechanic four sections
-down. Everything I found suggests the general mechanic *is* the product and
-translation is the origin story. Restructure so the first screen is
-seal → serve → audit, with translation as one recipe among several.
+*Was: the README opened on a translation demo and reached the general mechanic a
+section later, so the first screen said "translation memory" to anyone skimming.*
+
+The mechanic is now the first section: the loop, then the recipe table, then one
+line placing translation as the origin story rather than the boundary. The quick
+start runs the loop **twice** — once in translation, once as an alias graph with
+no translation in it — because "domain-agnostic" is a claim, and two runnable
+files are evidence. Both are executed by `tests/test_docs.py` and diffed against
+the output printed beneath them, so the second one cannot quietly rot while the
+first is the only one anybody runs.
+
+The entity example ends on the line worth arriving at: a near miss comes back
+**unsealed with a suggestion**, not as an answer with a lower score. That is the
+same three-state answer the translation demo gives, in a domain where nobody
+would call it translation memory — which is the whole argument of §4.2 made
+without asserting it.
+
+Still open, and deliberately separate: §4.2's positioning line, and §4.3's
+recorded demo.
 
 ### 4.2 The category is AI verification, not translation memory — **open**
 
@@ -374,7 +540,12 @@ Then tamper with the ledger and watch the chain refuse. That is the entire
 product in one loop, and it lands on an engineer and a compliance officer for
 different reasons.
 
-Blocked on §5.1 — there is currently nothing to run.
+No longer blocked on §5.1 — `nestor ui`, `nestor ask` and `nestor serve` all
+exist, and two screens carry the loop with no explaining: a near-match returning
+`~ draft` because it is under the cutoff, and a forged row scoring **1.000**
+returning `! pending`. What is missing is the *artifact* — a scripted sixty
+seconds, recorded, that ends on tampering with the ledger and watching the chain
+refuse.
 
 ### 4.4 The bench is a marketing asset — **open**
 
@@ -387,11 +558,26 @@ Publishing `bench/results/` is a differentiator, not an exposure.
 
 ## 5. Missing surface
 
-### 5.1 There is no CLI — **verified**
+### 5.1 There is no CLI — **shipped**
 
-No `console_scripts`, no entry point, nothing to run without writing Python.
-`nestor seal / resolve / check / ledger verify` would cost little and is the
-prerequisite for §4.3.
+*Was: no `console_scripts`, no entry point, nothing to run without writing
+Python.*
+
+`nestor` (`nestor.cli`): `ask`, `resolve`, `check`, `match`, `export`, `import`,
+`ledger verify|entries|head`, `stats`, and delegation to `ui` and `serve`, which
+own their own flags rather than having them mirrored and left to drift.
+
+Two decisions worth keeping. **Exit codes carry the answer** — 0 for a verified
+one, 1 for an unverified answer, a flagged figure, a broken chain or an import
+with conflicts, 2 for usage — so `nestor ledger verify` is a CI gate and `nestor
+ask` works in a shell conditional. That is the difference between a CLI and a
+pretty-printer. And **`import` is a dry run until `--apply`**, like every other
+decision here that changes what gets served as verified.
+
+Sealing is deliberately *not* a subcommand. It would be the one place in the
+codebase where a verification could be made by something with no face — a script,
+a cron job, a CI runner — and `--verifier "$USER"` is not a human checking
+anything. Seals are made in the UI or in code that a person is driving.
 
 ### 5.2 The memory is write-only — **shipped**
 
@@ -443,3 +629,158 @@ tampering that happens while it runs. Options: periodic re-verification, verify
 the tail only, or make the cache TTL'd. Related: `verify()` cost grows linearly
 with ledger length, so checkpointing may be needed before re-verification is
 affordable.
+
+**The UI makes this sharper, not worse.** `nestor.ui` is the first long-lived
+Nestor process in the repo: a REPL session or a batch run exits, a review server
+stays up for a shift. It verifies the chain on the first append and then trusts
+it for as long as the reviewer keeps working. The Ledger view calls `verify()`
+on every render, so the *reading* is live — but nothing refuses an append after
+the first one, and that is now a realistic window rather than a theoretical one.
+
+### 5.4 There was nowhere for the human to sit — **shipped**
+
+*Was: every surface was a library surface. The reviewer worked the tier-2 queue
+by typing `graduate_segment` into a REPL; the curator browsed the memory through
+`Curator`. For a system whose entire claim is that a human checked the answer,
+being the human meant writing Python.*
+
+`nestor.ui` — stdlib only (`http.server` plus one inlined page), so the zero
+runtime dependencies hold — with four views: **Queue** (the segments the cascade
+left for review), **Memory** (the curator's list, provenance and revocation),
+**Ask** (run the cascade and see the state that came back, with the ranked
+candidates behind it), **Ledger** (`verify()`'s verdict beside the chain).
+
+Decisions worth keeping:
+
+* **Ask is the demo.** Two screens carry the product with no explaining: a
+  near-match scoring 0.875 comes back `~ draft` because the cutoff is 0.92, and
+  a forged row scoring **1.000** comes back `! pending` — sealed, not servable,
+  by mallory. §4.3's 60-second demo is that second screen.
+* **An empty verifier is refused, not defaulted.** `memory._same_verifier`
+  treats `""` as *unknown* rather than as a person, so a UI that quietly sent it
+  would file every decision under an actor who is nobody and turn every
+  anonymous re-seal into a conflict. The API asks who is deciding.
+* **The library's refusals reach the human verbatim.** A `ConflictingSealError`
+  comes back as a 409 carrying its own message — *"pair … was sealed by 'rita'
+  as 'Buenas noches.'; 'sam' is now asserting …"* — and the override is a second,
+  deliberate click. Declining leaves the memory untouched.
+* **No authentication, said out loud.** The verifier is typed, not proven. Hence
+  loopback by default, `--allow-remote` to leave it, a custom-header requirement
+  so another tab cannot POST a seal in, `default-src 'none'` so the page cannot
+  ship the memory anywhere, and `--read-only` for showing without granting.
+
+**All four recipes, not just translation.** The Ask view is a recipe picker —
+Translate (the cascade), Entity (alias → canonical), Numeric (figure → baseline,
+with tolerance and variation) and Match (the bare seam: any two domain tags,
+either shipped matcher, showing the normalized key and every candidate's score).
+Each seals from the same screen, into the same memory, through the same ledger.
+The Memory view's domain picker lists every tag pair in the store with its size,
+so several disjoint graphs in one database are visible rather than assumed.
+
+The UI does **not** infer a recipe from a domain's tags. `("company","company")`
+is probably an entity graph and `("en","es")` probably a translation, but nothing
+enforces either, and a surface that guessed wrong would mislabel someone's data
+with total confidence. The human picks; the UI reports what exists. §4.1's "lead
+with the mechanic, not translation" now has a screen that does it.
+
+**Building it found three real bugs.** `graduate_segment` never marked its
+segment decided, so a sealed segment stayed `pending` and the queue offered it
+forever — the accept-side twin of the attention tax §1.2's rejection work removed
+from the reject side; invisible until something rendered the queue.
+`SqliteStore`'s shared `:memory:` connection was single-threaded, which no test
+caught because nothing had ever served Nestor from more than one thread. And the
+third is its own entry — §1.5.
+
+The Queue view lets a reviewer **correct** a draft before sealing it, not only
+accept or reject it, because review is usually "nearly" — right apart from one
+term. Without that, correcting meant rejecting the segment and sealing the fixed
+text somewhere else, and the trail recorded a refusal where a correction
+happened. A corrected seal is ledgered with `edited: true` and the digest of the
+draft that was *not* sealed, so "a human accepted the machine's answer" and "a
+human wrote the answer" stay distinguishable.
+
+Sealing by hand picks its domain from the ones the store actually holds (or
+opens a new one), rather than the language pair the process started with — the
+last place in the UI that still assumed translation, and the reason to keep
+asking "which surface here is quietly single-recipe?"
+
+Still missing: no pagination in Memory beyond the first 50 rows, and no view over
+`Curator.replaced_seals` — the highest-signal thing the curator surface reports,
+and the one the ledger holds alone.
+
+### 5.5 The newest ledger entry is vouched for by nothing — **shipped (mitigated)**
+
+Every line is verified by the line *after* it, so the last one has nothing
+following it: edit it and `verify()` still walks clean. Found while writing a CLI
+test that tampered with a one-entry ledger and could not make it fail.
+
+It is a property of hash chains rather than a bug, but it is not marginal: the
+newest entry is the one that just recorded who sealed what, so "the most recent
+decision is the editable one" is a bad thing to leave unwritten. `ledger.head()`
+returns the tip and `verify(expected_head=…)` refuses one that moved
+unexpectedly; `nestor ledger head` / `nestor ledger verify --expect-head` put it
+in CI. That only helps a caller who kept the value *outside* the file, which is
+the honest framing — the fix is not local, it is "someone else remembers."
+`nestor.frank` is that taken to its conclusion, mirroring every entry with its
+`local_hash` into a ledger somebody else holds.
+
+Open: an append-time checkpoint (write the head to a sidecar the ledger writer
+does not own), and whether §5.3's once-per-process verification should re-check
+the head on every append rather than the whole chain — cheap, and it catches
+mid-run tampering of the tail.
+
+### 5.6 Nothing could leave — **shipped**
+
+*Was: `Curator.export()` produced a human-readable dump and there was no way back
+in. A memory could be read and never moved.*
+
+`nestor.portable`: `export_bundle` (pairs, rejections, signatures, a canonical
+`digest`, the source chain for reading), `verify_bundle`, `import_bundle`,
+`pairs_csv`. CLI and UI both.
+
+The design question is import, not export. A bundle is a file, and a file saying
+`"status": "sealed"` is making exactly the claim a seal signature exists to
+distrust — the same claim a forged database row makes, which Nestor already
+refuses to serve. So import applies the identical rule: a seal is honored only if
+it verifies **here**, and one that does not lands as a `draft` in the review
+queue, counted and warned about. Two instances sharing a `NESTOR_SEAL_KEY` move
+verified pairs between them and the verification survives, because it was never
+in the row to begin with. Two instances that do not share a key move *candidates*
+— which is the correct answer, not a degraded one.
+
+Three smaller decisions: conflicts are listed rather than resolved (a bundle
+asserting a different target for a source this instance sealed is two humans
+disagreeing through a file); the chain does **not** merge, because splicing
+another instance's entries in would produce a chain that verifies while
+describing events that never happened here, so only the import event is appended;
+and the CSV drops signatures on purpose, so nobody mistakes a spreadsheet
+round-trip for a way to carry a seal.
+
+### 5.7 A model had no way in — **shipped**
+
+*Was: every surface assumed a human. The obvious deployment — an agent that
+consults verified answers before improvising — required writing an integration.*
+
+`nestor serve` speaks MCP over stdio (newline-delimited JSON-RPC, so stdlib only
+and the zero-dependency core holds). Seven tools: ask, resolve, check, match,
+provenance, ledger_verify, propose.
+
+**The load-bearing decision is what is absent.** There is no sealing tool, no
+flag that adds one, and no argument to an existing tool that produces one; a
+plausible name gets a refusal that explains why. A model's only write is
+`propose`, which queues a candidate as a `draft` exactly where a tier-2 engine's
+output lands. This is not caution — it is the whole proposition. "Has a human
+checked this?" is worth precisely as much as the difficulty of getting a
+machine's output marked as checked, and a server that let a model seal, however
+carefully, would be a system where the machine grades its own work.
+`tests/test_serve.py` pins it as a property rather than a policy: after a model
+calls every tool the server has, the sealed memory is unchanged.
+
+The other half is what comes *back*. Every answer carries the state, the
+verifier, the confidence and the candidates with their scores — so an agent can
+say "verified by rita", quote a pair id an auditor can look up, or decline
+because nothing was sealed. Returning only the text would have made Nestor an
+ordinary cache. This is also why `nestor.answer` exists: the browser, the
+terminal and the model now share one definition of what Nestor answers, because a
+system that tells a model "verified" while showing a curator "draft" has already
+lost the argument.

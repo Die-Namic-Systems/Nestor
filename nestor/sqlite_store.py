@@ -15,7 +15,9 @@ Usage::
 from __future__ import annotations
 
 import sqlite3
+import threading
 import uuid
+import warnings
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -79,6 +81,13 @@ CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
 """
 
 
+# Kept out of _SCHEMA and created separately: a database written before this
+# existed may already hold duplicates, and a CREATE that raises inside the
+# idempotent schema script would brick every later memory_init() on it.
+_UNIQUE_KEY = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_tm_pairs_key "
+               "ON tm_pairs(source_norm, source_lang, target_lang)")
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -95,20 +104,39 @@ class SqliteStore:
         # A ":memory:" database only survives for the life of one connection,
         # so hold a persistent connection open in that case.
         self._shared: Optional[sqlite3.Connection] = None
+        # Guards the shared connection only. A file-backed store opens a
+        # connection per operation, so threads never share one and SQLite's own
+        # file locking applies; the in-memory store has exactly one connection
+        # and would otherwise raise "SQLite objects created in a thread can only
+        # be used in that same thread" under any threaded host — including
+        # nestor.ui, which serves requests from a thread pool.
+        self._lock = threading.RLock()
         if db_path == ":memory:":
             self._shared = self._connect()
 
     def _connect(self) -> sqlite3.Connection:
         if self.db_path != ":memory:":
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
+        # check_same_thread is relaxed only for the shared connection, and only
+        # because self._lock serializes every use of it.
+        conn = sqlite3.connect(self.db_path,
+                               check_same_thread=(self.db_path != ":memory:"))
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
     @contextmanager
     def _db(self):
-        conn = self._shared or self._connect()
+        if self._shared is not None:
+            with self._lock:
+                try:
+                    yield self._shared
+                    self._shared.commit()
+                except Exception:
+                    self._shared.rollback()
+                    raise
+            return
+        conn = self._connect()
         try:
             yield conn
             conn.commit()
@@ -116,19 +144,48 @@ class SqliteStore:
             conn.rollback()
             raise
         finally:
-            if self._shared is None:
-                conn.close()
+            conn.close()
 
     # --- lifecycle -------------------------------------------------------
 
     def init_db(self) -> None:
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_unique_key(conn)
 
     def memory_init(self) -> None:
         # tm_pairs is created by the same schema script; keep it idempotent.
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_unique_key(conn)
+
+    def _ensure_unique_key(self, conn: sqlite3.Connection) -> None:
+        """One row per (normalized source, domain) — enforced by the database.
+
+        Nestor's guards read a pair, decide, then write it, and nothing made that
+        sequence atomic: two threads sealing the same phrase at once each found
+        nothing and each inserted, leaving two sealed rows for one source with no
+        ConflictingSealError and no way to say which one serves. The UI is a
+        threaded server, so this is reachable by two reviewers pressing Seal at
+        the same moment. A unique index turns the invariant from a convention
+        every caller must honor into something the store cannot violate;
+        ``memory.add_pair`` catches the collision and re-reads.
+
+        A pre-existing database may already contain duplicates, in which case the
+        index cannot be created. That degrades to the old behavior and says so,
+        rather than failing every subsequent call.
+        """
+        try:
+            conn.execute(_UNIQUE_KEY)
+        except sqlite3.IntegrityError:
+            dupes = conn.execute(
+                "SELECT COUNT(*) FROM (SELECT source_norm, source_lang, target_lang "
+                "FROM tm_pairs GROUP BY 1,2,3 HAVING COUNT(*) > 1)").fetchone()[0]
+            warnings.warn(
+                f"{self.db_path}: {dupes} normalized source(s) have more than one "
+                f"row, so the uniqueness index could not be created and concurrent "
+                f"seals can still race. Curator.list() shows the duplicates; "
+                f"resolve them and re-open the store.", RuntimeWarning, stacklevel=3)
 
     # --- documents -------------------------------------------------------
 
@@ -156,6 +213,18 @@ class SqliteStore:
             conn.execute("UPDATE documents SET status=? WHERE id=?",
                          (status, document_id))
 
+    def list_documents(self, status: str = "", limit: int = 50,
+                       offset: int = 0) -> list[dict]:
+        sql = "SELECT * FROM documents"
+        params: list = []
+        if status:
+            sql += " WHERE status=?"
+            params.append(status)
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+        params += [max(0, int(limit)), max(0, int(offset))]
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
+
     # --- segments --------------------------------------------------------
 
     def create_segment(self, document_id: str, position: int,
@@ -179,9 +248,30 @@ class SqliteStore:
                              (segment_id,)).fetchone()
             return dict(r) if r else None
 
+    def list_segments(self, document_id: str = "", status: str = "",
+                      limit: int = 200, offset: int = 0) -> list[dict]:
+        # Ordered by position, not by time: a reviewer reads a document in the
+        # order it was written, and `created_at` ties within one cascade run.
+        where, params = [], []
+        for col, val in (("document_id", document_id), ("status", status)):
+            if val:
+                where.append(f"{col}=?")
+                params.append(val)
+        sql = "SELECT * FROM segments"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at, document_id, position LIMIT ? OFFSET ?"
+        params += [max(0, int(limit)), max(0, int(offset))]
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
+
     def update_segment_status(self, segment_id: str, status: str) -> None:
-        """Not required by the Protocol, but handy for hosts/tests driving
-        a segment to 'verified' before graduating it."""
+        """Record a reviewer's decision on a queued segment.
+
+        Part of the optional queue capability (``supports_queue``): Nestor
+        writes 'verified' on graduation and 'rejected' on refusal, so a decided
+        segment leaves the queue instead of being offered again.
+        """
         with self._db() as conn:
             conn.execute("UPDATE segments SET status=? WHERE id=?",
                          (status, segment_id))

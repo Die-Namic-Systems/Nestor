@@ -158,7 +158,8 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
              origin: str = "", store: Optional[Storage] = None,
              matcher: Optional[Matcher] = None,
              override_rejection: bool = False,
-             override_conflict: bool = False) -> dict:
+             override_conflict: bool = False,
+             audit: bool = True, _racing: bool = False) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
     ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
@@ -171,10 +172,26 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     row's verifier (a same-actor correction) or ``override_conflict=True`` is
     passed explicitly. See :class:`ConflictingSealError` for the full
     rationale, in particular why an empty verifier does not count as a match.
+
+    **A seal made here is ledgered here.** This is the one function that turns a
+    pair into a sealed one, and for a long time it recorded nothing: the seal
+    entries in the chain came from the *callers* that happened to write them
+    (``graduate_segment``, the recipes, the UI), so a host calling ``add_pair``
+    directly — the shortest path to a sealed row, and the one every importer
+    takes — produced a verified answer with no trail, while the README promised
+    every seal was appended. The entry is written from here now, so the promise
+    holds regardless of the entry point. ``audit=False`` is for bulk paths that
+    record their own aggregate entry instead; :func:`seed_from_corpus` is the
+    only caller that uses it, so that a 10k-pair import writes one line rather
+    than ten thousand.
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
     store.memory_init()
+    # A seal has to be auditable to be a seal. Refuse before touching the store,
+    # so a broken or unwritable chain cannot leave a verified row with no trail.
+    if status == "sealed" and audit:
+        _ledger_preflight()
     norm = matcher.normalize(source_text)
     # Bind the seal to a key the store does not hold (Nestor#2). Signing is
     # opt-in: with no NESTOR_SEAL_KEY, sign_seal returns "" and nothing changes.
@@ -230,6 +247,13 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             # explicitly overridden, so `same_verifier: False` in the trail marks
             # a deliberate overrule rather than an accident. Curator.replaced_seals
             # surfaces exactly those.
+            if audit:
+                _log_seal_event({
+                    "kind": "seal", "pair_id": existing["id"], "verifier": verifier,
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "source_sha": _sha(norm), "origin": origin,
+                    "upgraded_from": replaced_status,
+                })
             if replaced_status == "sealed":
                 _log_seal_event({
                     "kind": "seal_replaced", "pair_id": existing["id"],
@@ -245,7 +269,34 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
                 status=status, verifier=verifier, weight=weight, origin=origin,
                 created_at=_now(), seal_sig=seal_sig)
-    store.memory_insert(pair)
+    try:
+        store.memory_insert(pair)
+    except Exception:
+        # Somebody inserted the same normalized source between our memory_find
+        # above and this line. That window is real — nestor.ui seals from a
+        # thread pool — and it used to end with two sealed rows for one source,
+        # no ConflictingSealError, and no answer to which one serves.
+        #
+        # A store that enforces uniqueness on (source_norm, source_lang,
+        # target_lang) turns that race into this failure, and the failure into
+        # the correct outcome: re-run, take the existing-row path above, and let
+        # the ordinary guards decide — which raises ConflictingSealError when the
+        # winner is a different verifier with a different answer. `_racing`
+        # bounds it to one retry, so a genuine insert error still surfaces.
+        if _racing or not store.memory_find(norm, source_lang, target_lang):
+            raise
+        return add_pair(source_text, target_text, source_lang, target_lang,
+                        status=status, verifier=verifier, weight=weight,
+                        origin=origin, store=store, matcher=matcher,
+                        override_rejection=override_rejection,
+                        override_conflict=override_conflict, audit=audit,
+                        _racing=True)
+    if status == "sealed" and audit:
+        _log_seal_event({
+            "kind": "seal", "pair_id": pair["id"], "verifier": verifier,
+            "source_lang": source_lang, "target_lang": target_lang,
+            "source_sha": _sha(norm), "origin": origin, "upgraded_from": "",
+        })
     return pair
 
 
@@ -406,21 +457,43 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
+def _ledger_preflight() -> None:
+    """Refuse now if the trail will not take the entry we are about to earn.
+
+    Imported lazily for the same reason as :func:`_log_rejection`.
+    """
+    from .cascade import ledger_preflight
+    ledger_preflight()
+
+
 def _log_seal_event(entry: dict) -> None:
     """Append a seal-lifecycle entry to the hash-chained ledger.
 
-    Best-effort by design. ``add_pair`` is called from bulk seeding paths
-    (``seed_from_corpus``, host importers) where a ledger that is unwritable
-    must not abort the import — the pair is already committed to the store by
-    the time we get here, so raising would leave the caller with a completed
-    write and an exception. The local ledger stays the source of truth for
-    everything that *is* recorded; see :func:`_log_rejection`, which is called
-    from paths where the write can still be refused.
+    Called *after* the store write, so it cannot raise: the pair is already
+    committed by the time we get here, and raising would hand the caller a
+    completed write plus an exception — a sealed row and a traceback, which is
+    worse than either.
+
+    That is only defensible because the write is preceded by
+    :func:`_ledger_preflight`, which applies the same refusals *before* anything
+    is written. Without it this was a silent hole with the priorities exactly
+    inverted: withdrawing trust (``reject_pair``, ``unseal``) failed closed on a
+    broken chain while granting it sailed through unrecorded, so the one
+    decision the trail exists to capture was the one it could miss.
+
+    What is left is a genuine edge — the ledger becoming unwritable in the
+    window between the preflight and here — and it warns rather than passing
+    silently, because a sealed row with no entry is exactly the thing a curator
+    needs to hear about.
     """
     try:
         _log_rejection(entry)
-    except Exception:                     # noqa: BLE001 — never fail a seal on audit
-        pass
+    except Exception as exc:              # noqa: BLE001 — never fail a seal on audit
+        warnings.warn(
+            f"a seal was written but its ledger entry was not: {type(exc).__name__}: "
+            f"{exc}. The store and the trail now disagree; run "
+            f"nestor.ledger.verify() and reconcile before trusting this row.",
+            RuntimeWarning, stacklevel=2)
 
 
 def _log_rejection(entry: dict) -> None:
@@ -464,6 +537,7 @@ def reject_match(source_text: str, source_lang: str, target_lang: str,
     """
     store = get_store(store)
     _require_rejection(store)
+    _ledger_preflight()          # refuse before recording, not after
     matcher = get_matcher(matcher)
     store.memory_init()
     if not pair_id and not target_text:
@@ -494,6 +568,7 @@ def reject_pair(pair_id: str, verifier: str = "", reason: str = "",
     """
     store = get_store(store)
     _require_rejection(store)
+    _ledger_preflight()          # a refusal must not follow a completed write
     store.memory_init()
     store.memory_reject_pair(pair_id, verifier, reason)
     _log_rejection({"kind": "reject_pair", "pair_id": pair_id,
@@ -534,7 +609,7 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
         nonlocal skipped, rejected
         try:
             add_pair(src, tgt, sl, tl, status="sealed", verifier="corpus",
-                     origin=origin, store=store)
+                     origin=origin, store=store, audit=False)
             return 1
         except (ConflictingSealError, RejectedPairError) as exc:
             # Both are the same fact — a person already decided about this
@@ -572,6 +647,13 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
                            item["lang_front"], item["lang_back"], origin)
             count += _seal(item["back"], item["front"],
                            item["lang_back"], item["lang_front"], origin)
+    # One entry for the run, rather than one per pair: a curated file is a
+    # single act by a single (non-human) verifier, and `audit=False` above keeps
+    # a 10k-pair import from burying every human decision in the chain.
+    if count:
+        _log_seal_event({"kind": "corpus_seed", "verifier": "corpus",
+                         "sealed": count, "skipped_conflict": skipped,
+                         "skipped_rejected": rejected})
     if skipped or rejected:
         parts = []
         if skipped:
