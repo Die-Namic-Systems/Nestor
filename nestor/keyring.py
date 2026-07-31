@@ -379,9 +379,34 @@ def get_keyring() -> Optional[Keyring]:
         return None
     if _from_env is not None and _loaded_from == path:
         return _from_env
-    _from_env = load(path)
+    try:
+        _from_env = load(path)
+    except KeyringError as exc:
+        # Refusing is right — a keyring that is configured and unreadable must
+        # not be silently ignored, or identity is off while the operator
+        # believes it is on. But the person reading this set a variable, quite
+        # possibly a while ago, so say which variable and how to get out of it.
+        raise KeyringError(
+            f"{exc} NESTOR_KEYRING points there — `unset NESTOR_KEYRING` to run "
+            f"without per-verifier identity.") from None
     _loaded_from = path
     return _from_env
+
+
+def preflight() -> Optional[Keyring]:
+    """Resolve the keyring now, so a broken configuration refuses at startup.
+
+    Everything else reaches the keyring lazily, from inside a serve path. That
+    is the wrong moment to discover ``NESTOR_KEYRING`` points at a file that is
+    not there: :mod:`nestor.ui` had already printed its banner and bound its
+    port by then, so the operator got a traceback where a running server should
+    have been, and the short-lived CLI commands refused cleanly for the same
+    misconfiguration. Long-lived surfaces call this before they bind anything.
+
+    Returns the keyring (or ``None`` if identity is off) and raises
+    :class:`KeyringError` if one is configured and unusable.
+    """
+    return get_keyring()
 
 
 def enabled() -> bool:

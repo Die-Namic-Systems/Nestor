@@ -904,12 +904,17 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
-    if args.keyring:
-        try:
+    # Resolve identity before anything is opened or bound. A keyring that is
+    # configured and unusable is a refusal either way, and the difference
+    # between refusing here and refusing lazily is a clean message versus a
+    # traceback under a banner that says the server started.
+    try:
+        if args.keyring:
             keyring.set_keyring(keyring.load(args.keyring))
-        except keyring.KeyringError as exc:
-            print(f"refusing to start: {exc}", file=sys.stderr)
-            return 2
+        keyring.preflight()
+    except keyring.KeyringError as exc:
+        print(f"refusing to start: {exc}", file=sys.stderr)
+        return 2
 
     store = SqliteStore(args.db)
     store.init_db()

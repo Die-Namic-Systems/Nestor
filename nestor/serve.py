@@ -43,7 +43,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, Optional, TextIO
 
-from . import answer, cascade, ledger as ledger_mod, memory, signing, storage
+from . import answer, cascade, keyring, ledger as ledger_mod, memory, signing, storage
 from .sqlite_store import SqliteStore
 from .storage import Storage
 
@@ -358,6 +358,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
+    # Before the protocol stream opens: a KeyringError raised mid-session would
+    # surface to the model as a broken tool call rather than as a configuration
+    # problem somebody can fix.
+    try:
+        keyring.preflight()
+    except keyring.KeyringError as exc:
+        print(f"refusing to start: {exc}", file=sys.stderr)
+        return 2
     store = SqliteStore(args.db)
     store.init_db()
     store.memory_init()
