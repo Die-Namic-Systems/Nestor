@@ -66,6 +66,34 @@ def test_close_checkpoints_wal_so_the_main_file_is_self_contained(tmp_path):
     assert memory.stats(store=SqliteStore(str(closed_copy)))["sealed"] == 1
 
 
+def test_close_after_worker_threads_checkpoints_from_main(tmp_path):
+    """UI shutdown runs close() on the main thread after pool workers sealed."""
+    db = tmp_path / "pool.db"
+    store = SqliteStore(str(db))
+    store.memory_init()
+    errors: list[BaseException] = []
+    lock = threading.Lock()
+
+    def worker(i: int) -> None:
+        try:
+            memory.add_pair(f"src {i}", f"tgt {i}", "en", "es",
+                            status="sealed", verifier="rita", store=store)
+        except BaseException as exc:
+            with lock:
+                errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
+    store.close()
+    copy = tmp_path / "after-close.db"
+    shutil.copy(db, copy)
+    assert memory.stats(store=SqliteStore(str(copy)))["sealed"] == 6
+
+
 def test_memory_init_indexes_source_norm_for_memory_find(tmp_path):
     """IDEAS §2.3 — memory_find on every add_pair must not table-scan."""
     db = tmp_path / "nestor.db"
