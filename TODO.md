@@ -53,14 +53,13 @@ file no longer a secret and change the deployment story considerably.
 
 ## 3. Smaller, and known
 
-* **A periodic or TTL'd full chain re-verification.** Every append now re-checks
-  the tail this process wrote, which closes the window that actually mattered in
-  a long-lived UI — but an edit to a line *older* than that checkpoint still
-  waits for the next `verify()`. §5.3.
 * **A checkpoint somebody else holds.** The append-time checkpoint lives in
   process memory, so it does not survive a restart. The version that does is a
   sidecar the ledger's writer cannot reach — which is `nestor.frank`'s argument
   again in miniature. §5.5.
+* **Hot backup while WAL is open.** TTL'd full walks and `SqliteStore.close()`
+  on UI exit helped; a plain `cp` of `nestor.db` during a shift is still
+  incomplete. §6.7; [`docs/code-review-lessons.md`](docs/code-review-lessons.md).
 * **Seal staleness and quorum.** A seal is true forever and one person's seal is
   enough. Neither is obviously right for a regulated buyer, and neither has been
   argued through. §1.4.
@@ -84,7 +83,8 @@ source was assumed by four modules and enforced by none.
 If you add a write path, the question to ask is not "did I remember the guard" —
 it is "can this guard be reached around", and then move the rule into the one
 place that cannot be bypassed. `IDEAS.md` §1.6, §1.7 and §1.8 are the three
-worked examples.
+worked examples. [`docs/code-review-lessons.md`](docs/code-review-lessons.md)
+collects the pre-PR checklist from the PR #22–#24 review rounds.
 
 The same test retired the held-back bench branch: it carried a second review
 surface, weaker than `nestor.ui`, that could seal into the same store. The
