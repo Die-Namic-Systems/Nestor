@@ -50,6 +50,21 @@ class Matcher(Protocol):
     def similarity(self, a_norm: str, b_norm: str) -> float:
         """Score two normalized keys in ``[0.0, 1.0]`` — ``1.0`` == verified match."""
 
+    # One optional method, deliberately NOT part of this Protocol:
+    #
+    #     similarity_bound(a_norm, b_norm, floor=0.0) -> float
+    #
+    # An UPPER bound on ``similarity(a_norm, b_norm)`` that is cheaper to
+    # compute than the real thing. ``memory.best_sealed`` uses it to discard
+    # candidates that cannot possibly clear the seal threshold without scoring
+    # them at all — lossless, since a candidate whose upper bound is below the
+    # bar cannot be above it. See :meth:`StringMatcher.similarity_bound`.
+    #
+    # It is optional because a matcher whose ``similarity`` is already cheap
+    # (:class:`NumericMatcher` is arithmetic on two floats) gains nothing, and
+    # requiring it would break every custom matcher already injected against
+    # this Protocol. A matcher without it is scanned exactly as before.
+
 
 # --------------------------------------------------------------------------
 # StringMatcher — the translation-memory behavior, made explicit
@@ -121,6 +136,45 @@ class StringMatcher:
             a_norm, b_norm = b_norm, a_norm
         return difflib.SequenceMatcher(None, a_norm, b_norm,
                                        autojunk=self.autojunk).ratio()
+
+    def similarity_bound(self, a_norm: str, b_norm: str, floor: float = 0.0) -> float:
+        """An upper bound on :meth:`similarity`, cheap first, tighter on demand.
+
+        ``difflib`` publishes two bounds on ``ratio()``:
+        ``real_quick_ratio()`` (lengths only) and ``quick_ratio()`` (a multiset
+        count), with ``ratio() <= quick_ratio() <= real_quick_ratio()``.
+        Confirmed in-repo on 20,000 random pairs, no violations. So a candidate
+        whose bound is below the bar cannot clear the bar, and its real score
+        never needs computing — **the answer does not change, only the cost**
+        (IDEAS §2.1).
+
+        ``floor`` is what the caller needs to beat. The length bound is computed
+        first and returned immediately if it already settles the question; only
+        a candidate that survives it pays for the multiset count. The length
+        bound is inlined rather than taken from a ``SequenceMatcher``, because
+        constructing one indexes the second sequence — which costs more than the
+        bound it would give us, and would throw away the whole point of asking a
+        cheap question first.
+
+        No shared scratch object: :mod:`nestor.ui` scores from a thread pool, and
+        a ``SequenceMatcher`` reused across candidates is mutable state two
+        threads would interleave. Reusing one would buy back difflib's ``b2j``
+        cache, and it is not worth a scoring race.
+        """
+        if a_norm == b_norm:
+            return 1.0
+        la, lb = len(a_norm), len(b_norm)
+        if not la or not lb:
+            return 0.0
+        # difflib.real_quick_ratio(), inlined: the most matches two sequences
+        # can possibly share is the length of the shorter one.
+        bound = 2.0 * min(la, lb) / (la + lb)
+        if bound < floor:
+            return bound
+        if a_norm > b_norm:
+            a_norm, b_norm = b_norm, a_norm
+        return min(bound, difflib.SequenceMatcher(
+            None, a_norm, b_norm, autojunk=self.autojunk).quick_ratio())
 
 
 # --------------------------------------------------------------------------
