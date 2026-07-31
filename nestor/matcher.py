@@ -87,17 +87,35 @@ def uses_raw_score(matcher) -> bool:
 
 
 def match_similarity(matcher: Matcher, query_text: str, query_norm: str,
-                     stored_text: str, stored_norm: str) -> float:
+                     stored_text: str, stored_norm: str,
+                     *, _raw_score: bool | None = None) -> float:
     """How alike a query is to one stored row.
 
     Uses ``matcher.score(query_text, stored_text)`` when available and
     ``stored_text`` is non-empty after strip; otherwise ``similarity(query_norm,
     stored_norm)``.
+
+    Pass ``_raw_score`` when calling in a loop (the result of
+    :func:`uses_raw_score`) so the check is not repeated per candidate.
     """
     stored = (stored_text or "").strip()
-    if uses_raw_score(matcher) and stored:
+    use_raw = uses_raw_score(matcher) if _raw_score is None else _raw_score
+    if use_raw and stored:
         return matcher.score(query_text, stored)  # type: ignore[attr-defined]
     return matcher.similarity(query_norm, stored_norm)
+
+
+def matcher_audit_fields(matcher) -> dict:
+    """Ledger fields naming which matcher (and model) scored a tier-1 serve."""
+    fields: dict[str, str] = {
+        "matcher": str(getattr(matcher, "name", None) or type(matcher).__name__),
+    }
+    model = getattr(matcher, "model_name", None)
+    if model:
+        fields["matcher_model"] = str(model)
+    if uses_raw_score(matcher):
+        fields["matcher_scoring"] = "score"
+    return fields
 
 
 # --------------------------------------------------------------------------

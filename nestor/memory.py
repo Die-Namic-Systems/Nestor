@@ -53,6 +53,26 @@ EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
 CONTEXT_THRESHOLD = 0.55  # pairs above this feed the engine as context
 
+_warned_score_threshold = False
+
+
+def _warn_score_matcher_default_threshold(matcher: Matcher,
+                                        seal_threshold: Optional[float]) -> None:
+    """Once per process: default SEAL_THRESHOLD is tuned for StringMatcher."""
+    global _warned_score_threshold
+    if _warned_score_threshold or seal_threshold is not None:
+        return
+    if not uses_raw_score(matcher):
+        return
+    _warned_score_threshold = True
+    warnings.warn(
+        f"SEAL_THRESHOLD={SEAL_THRESHOLD} was measured for StringMatcher "
+        f"(character difflib), not for {type(matcher).__name__}.score() — "
+        f"unrelated text often scores 0.7–0.8 on embedding matchers. Measure "
+        f"with ``nestor calibrate --matcher …`` on your corpus before trusting "
+        f"serves at the shipped default.",
+        RuntimeWarning, stacklevel=3)
+
 
 # --------------------------------------------------------------------------
 # Injected matcher (the domain seam)
@@ -396,16 +416,29 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     # leave a rejected pair still reaching the engine's system prompt as
     # authoritative reference material.
     bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
-    scored = []
+    eligible = []
     for row in rows:
         if row["status"] == "rejected":
             continue
         if row["id"] in bad_pairs or row["target_text"] in bad_targets:
             continue
-        sim = match_similarity(matcher, source_text, norm,
-                              row.get("source_text", ""), row["source_norm"])
-        if sim >= ctx:
-            scored.append({"pair": row, "similarity": round(sim, 3)})
+        eligible.append(row)
+
+    scored: list[dict] = []
+    raw_score = uses_raw_score(matcher)
+    batch = getattr(matcher, "scores_against", None)
+    if raw_score and callable(batch):
+        sims = batch(source_text, [r.get("source_text", "") for r in eligible])
+        for row, sim in zip(eligible, sims):
+            if sim >= ctx:
+                scored.append({"pair": row, "similarity": round(sim, 3)})
+    else:
+        for row in eligible:
+            sim = match_similarity(matcher, source_text, norm,
+                                  row.get("source_text", ""), row["source_norm"],
+                                  _raw_score=raw_score)
+            if sim >= ctx:
+                scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
     return scored[:limit]
 
@@ -494,11 +527,13 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     matcher = get_matcher(matcher)
     store.memory_init()
     seal = SEAL_THRESHOLD if seal_threshold is None else seal_threshold
+    _warn_score_matcher_default_threshold(matcher, seal_threshold)
     ctx = CONTEXT_THRESHOLD if context_threshold is None else context_threshold
     norm = matcher.normalize(source_text)
     bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
     bound = getattr(matcher, "similarity_bound", None)
-    if not callable(bound) or uses_raw_score(matcher):
+    raw_score = uses_raw_score(matcher)
+    if not callable(bound) or raw_score:
         # Bounds are defined on normalized keys; invalid when score() sees raw text.
         bound = None
 
@@ -516,7 +551,8 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         if bound is not None and bound(norm, row["source_norm"], need) < need:
             continue
         raw = match_similarity(matcher, source_text, norm,
-                               row.get("source_text", ""), row["source_norm"])
+                               row.get("source_text", ""), row["source_norm"],
+                               _raw_score=raw_score)
         if raw < ctx:                      # lookup's context floor, unrounded
             continue
         sim = round(raw, 3)                # what lookup reports, and judges on

@@ -63,6 +63,30 @@ def test_score_returns_one_when_normalized_forms_match():
     assert m.score(raw_a, raw_b) == 1.0
 
 
+@requires_semantic
+def test_score_matcher_warns_on_default_seal_threshold(store, seal_key):
+  import warnings
+  from nestor import memory
+  from nestor.semantic_matcher import SemanticMatcher
+
+  m = SemanticMatcher()
+  memory.add_pair("Good evening.", "Buenos noches.", "en", "es",
+                  status="sealed", verifier="rita", store=store, matcher=m)
+  memory._warned_score_threshold = False
+  with warnings.catch_warnings(record=True) as caught:
+      warnings.simplefilter("always", RuntimeWarning)
+      memory.best_sealed("Good evening", "en", "es", store=store, matcher=m)
+  assert any("SEAL_THRESHOLD" in str(w.message) for w in caught)
+
+
+@requires_semantic
+def test_scores_against_batches_uncached_texts():
+    m = SemanticMatcher()
+    scores = m.scores_against("hello world", ["hello there", "completely different topic"])
+    assert len(scores) == 2
+    assert all(0.0 <= s <= 1.0 for s in scores)
+
+
 def test_unknown_matcher_still_refused():
     with pytest.raises(ValueError, match="unknown matcher"):
         answer.build_matcher("vector")

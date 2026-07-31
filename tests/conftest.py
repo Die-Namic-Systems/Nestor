@@ -11,6 +11,14 @@ from nestor.sqlite_store import SqliteStore
 # these three. A suite whose result depends on the shell it was launched from
 # is not a suite; a test that seals as "rita" must not fail because the person
 # running it has a real keyring that has never heard of her.
+#
+# We clear these explicitly rather than relying on pytest's monkeypatch for
+# every name: monkeypatch restores only what a test sets, but many tests need
+# the developer's real exports cleared without listing every future variable.
+# Tests that need a knob set ``os.environ[...]`` in the test body or request a
+# fixture such as :func:`seal_key`; this fixture restores the developer's own
+# values afterwards. Fault injection (e.g. a broken ledger append) still uses
+# ``monkeypatch`` where that is the right tool.
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
                      "NESTOR_LEDGER", "NESTOR_FRANK_STRICT", "WILLOW_MCP_COMMAND",
                      "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")

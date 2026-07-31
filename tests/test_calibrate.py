@@ -142,3 +142,18 @@ def test_the_cli_exits_non_zero_when_no_threshold_is_safe(store, tmp_path, capsy
         "calibrate", "--from", "en", "--to", "es", "--target", "0",
     ]) == 1
     assert "no cutoff separates them" in capsys.readouterr().out
+
+
+def test_the_cli_calibrate_accepts_matcher(store, tmp_path, capsys, seal_key):
+    import json
+    from nestor import cascade
+
+    seal(store, "the invoice is overdue", "la factura está vencida")
+    db = tmp_path / "nestor.db"
+    ledger = cascade._ledger_path()
+    assert cli_main([
+        "--db", str(db), "--ledger", str(ledger), "--json",
+        "calibrate", "--from", "en", "--to", "es", "--matcher", "string", "--sample", "0",
+    ]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["matcher"] == "StringMatcher"

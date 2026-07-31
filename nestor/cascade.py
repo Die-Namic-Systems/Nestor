@@ -27,6 +27,7 @@ from typing import Optional
 from . import frank, langid, memory
 from .engine import get_engine
 from .ledger import LedgerError, verify as _ledger_verify
+from .matcher import matcher_audit_fields
 from .segment import _split_segments
 from .storage import Storage, get_store
 
@@ -334,11 +335,14 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
     # tier 1 — Nestor's ledger
     hit = memory.best_sealed(text, source_lang, target_lang, store=store)
     if hit:
+        m = memory.get_matcher()
+        audit = matcher_audit_fields(m)
         passage = Passage(source=text, target=hit["pair"]["target_text"], tier=1,
                           state="sealed", engine="memory",
                           confidence=hit["similarity"],
                           meta={"pair_id": hit["pair"]["id"],
-                                "verifier": hit["pair"]["verifier"]})
+                                "verifier": hit["pair"]["verifier"],
+                                **audit})
     else:
         # tier 2 — Nova's draft
         engine = engine or get_engine()
@@ -366,6 +370,8 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
         "source_lang": source_lang, "target_lang": target_lang,
         "source_sha": hashlib.sha256(text.encode()).hexdigest()[:16],
         "segment_id": passage.segment_id,
+        **({k: v for k, v in passage.meta.items()
+            if k.startswith("matcher")} if passage.tier == 1 else {}),
     })
     return passage
 

@@ -211,10 +211,11 @@ def cmd_ledger(args) -> int:
 
 def cmd_calibrate(args) -> int:
     """Where the threshold should sit for this corpus. See :mod:`nestor.calibrate`."""
-    from . import calibrate as calibrate_mod
+    from . import answer, calibrate as calibrate_mod
+    matcher = answer.build_matcher(args.matcher, abs_tol=args.abs_tol, pct_tol=args.pct_tol)
     result = calibrate_mod.calibrate(
         _store(args), source_lang=args.source_lang, target_lang=args.target_lang,
-        target_rate=args.target, sample=args.sample, seed=args.seed)
+        target_rate=args.target, sample=args.sample, seed=args.seed, matcher=matcher)
     _emit(result, args.json, calibrate_mod.summarize(result))
     # A corpus no threshold in the sweep can make safe is the bad answer, and it
     # should be usable in a shell conditional like every other one here.
@@ -423,6 +424,10 @@ def build_parser() -> argparse.ArgumentParser:
     cal = sub.add_parser("calibrate",
                          help="where the seal threshold should sit for this corpus")
     domain_args(cal)
+    cal.add_argument("--matcher", default="string", choices=answer.MATCHERS,
+                     help="matcher to measure (default: string)")
+    cal.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
+    cal.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
     cal.add_argument("--target", type=float, default=0.01,
                      help="acceptable collision rate (default: 0.01 — one in a hundred)")
     cal.add_argument("--sample", type=int, default=300,

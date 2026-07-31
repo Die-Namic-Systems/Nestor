@@ -31,6 +31,9 @@ def test_translate_segment_tier1_from_sealed_memory(store):
     assert p.state == "sealed"
     assert p.target == "Buenos días"
     assert p.engine == "memory"
+    assert p.meta.get("matcher") == "StringMatcher"
+    entry = read_ledger()[-1]
+    assert entry["matcher"] == "StringMatcher"
 
 
 def test_translate_segment_tier2_draft_and_queues_segment(store):
