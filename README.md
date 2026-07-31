@@ -183,7 +183,7 @@ nestor/
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── answer.py         what Nestor answers — one definition, shared by every surface
-├── ui.py             the browser surface — queue, memory, ask, ledger (stdlib only)
+├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
@@ -195,6 +195,7 @@ nestor/
 ├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
+├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
@@ -742,6 +743,63 @@ Set `NESTOR_SEAL_KEY` and every seal is bound to a key the store does not hold,
 so a row edited to `status='sealed'` directly in the database will not verify and
 will not be served. Without the variable Nestor warns and trusts stored status —
 set `NESTOR_REQUIRE_SEAL_KEY=1` to fail closed instead.
+
+### Who verified it — per-verifier keys
+
+One `NESTOR_SEAL_KEY` proves *the key was present*. It does not prove **who**:
+every verifier signs with it, so `verifier="rita"` is still a string anybody who
+can reach the process can type. A keyring (`nestor.keyring`) gives each verifier
+their own key, so a valid signature over `(source_norm, target_text, "rita")` is
+evidence about rita.
+
+```bash
+nestor keys add rita --keyring keys.json     # prints the key once; the file is 0600
+nestor keys add sam  --keyring keys.json
+export NESTOR_KEYRING=keys.json
+nestor ui --db data/nestor.db                # "acting as" becomes a sign-in
+```
+
+With a keyring in force:
+
+* a seal is signed with the named verifier's key, and a name the keyring does
+  not know **cannot seal** — `UnknownVerifierError`, raised before anything is
+  written;
+* the UI stops taking a typed name. A verifier signs in with their key, and
+  every decision in that session is recorded and signed as them;
+* moving a real signature onto a different name in the database no longer
+  works — it verifies under the key of the verifier it names, or not at all.
+
+A **rejection** by an unregistered name is still recorded and honored, and
+reported as unsigned. Refusing to record a "no" is the one direction rejection
+must not fail in: it would leave a bad answer serving because a reviewer was not
+on a list.
+
+**Revoking a key asks one question, because the answer genuinely differs.** An
+HMAC carries no timestamp, so a signature cannot tell "sealed by rita last
+March" from "forged last night by whoever took rita's key". Nestor will not
+guess:
+
+```bash
+nestor keys revoke rita --reason "left the team"          # rotated
+nestor keys revoke sam  --compromised --reason "stolen"   # taken
+```
+
+| | new seals | seals it already made |
+|---|---|---|
+| rotated (`--reason`) | refused | **keep serving** — nobody else held the key, so they are still that person's verifications |
+| `--compromised` | refused | **stop serving** — indistinguishable from the thief's; the rows surface in `Curator.unverifiable()` and the UI's unverifiable filter for re-verification |
+
+Migrating a store sealed under a single key: `nestor keys add NAME
+--adopt-shared-key` also trusts `NESTOR_SEAL_KEY`, so existing seals keep
+serving and are reported as `legacy` — verified by somebody here, not
+attributable to a person, which is what they always were. Leave it out and they
+land in `unverifiable()` for re-verification instead.
+
+What this is not: a shared secret proves possession of a key, not the presence
+of a person, and the process necessarily holds the keys it verifies against. The
+asymmetric upgrade — a signature checked with a public key the verifier could
+not have produced — is the follow-on, through the same
+`signing.sign_seal(..., key=)` seam.
 
 ### FRANK — mirroring into shared provenance
 

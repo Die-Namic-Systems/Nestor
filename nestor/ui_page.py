@@ -126,7 +126,7 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 <header>
   <div class="brand"><b>Nestor</b> <span>In medio, fides</span></div>
   <div class="spacer"></div>
-  <div class="who">
+  <div class="who" id="who">
     <label for="verifier">acting as</label>
     <input id="verifier" placeholder="your name" size="14" autocomplete="off">
   </div>
@@ -174,7 +174,7 @@ const RECIPES = [
 
 const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
             ledger: null, result: null, domains: [], signals: null,
-            offset: 0, more: false,
+            offset: 0, more: false, session: null, typedVerifier: "",
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" } };
@@ -204,7 +204,68 @@ function toast(message, kind) {
   setTimeout(() => box.remove(), kind === "err" ? 9000 : 4000);
 }
 
-function verifier() { return $("verifier").value.trim(); }
+function verifier() {
+  const box = $("verifier");
+  return box ? box.value.trim() : (S.session ? S.session.verifier : "");
+}
+
+/* ---------- identity -------------------------------------------------------
+ *
+ * Without a keyring the "acting as" box is a text field, and the honest
+ * description of that is: this UI seals as whatever you type. With one, the
+ * same corner becomes a sign-in — a verifier presents their own seal key, and
+ * every decision in the session is signed with it, so the name on a seal is
+ * evidence about a person rather than evidence that somebody typed it.
+ *
+ * The token is kept here and sent with every write; the key is not kept at all.
+ */
+function whoBox() {
+  const box = $("who");
+  box.replaceChildren();
+  const id = (S.state && S.state.identity) || { required: false };
+  if (!id.required) {
+    box.append(h("label", { for: "verifier", text: "acting as" }),
+      h("input", { id: "verifier", placeholder: "your name", size: 14, autocomplete: "off",
+                   value: S.typedVerifier || "",
+                   onchange: (e) => { S.typedVerifier = e.target.value.trim();
+                                      localStorage.setItem("nestor.verifier", S.typedVerifier); } }));
+    return;
+  }
+  if (S.session && S.session.verifier) {
+    box.append(h("label", { text: "signed in as" }),
+      h("b", { text: S.session.verifier }),
+      h("button", { class: "small", onclick: signOut }, "Sign out"));
+    return;
+  }
+  const names = id.verifiers || [];
+  box.append(h("label", { text: "sign in" }),
+    names.length
+      ? h("select", { id: "who-name" }, ...names.map((n) => h("option", { value: n }, n)))
+      : h("input", { id: "who-name", placeholder: "verifier", size: 10 }),
+    h("input", { id: "who-key", type: "password", placeholder: "seal key", size: 16,
+                 autocomplete: "off",
+                 onkeydown: (e) => { if (e.key === "Enter") signIn(); } }),
+    h("button", { class: "primary small", onclick: signIn }, "Sign in"));
+}
+
+async function signIn() {
+  const name = $("who-name").value.trim(), key = $("who-key").value.trim();
+  try {
+    const out = await api("/api/session", { verifier: name, key });
+    S.session = { token: out.token, verifier: out.verifier };
+    localStorage.setItem("nestor.session", out.token);
+    toast("signed in as " + out.verifier);
+    refresh();
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function signOut() {
+  const token = S.session ? S.session.token : "";
+  S.session = null;
+  localStorage.removeItem("nestor.session");
+  try { await api("/api/session/end", { session: token }); } catch (e) { /* already gone */ }
+  refresh();
+}
 
 function askFor(title, placeholder) {
   return new Promise((resolve) => {
@@ -224,10 +285,21 @@ async function api(path, body) {
   if (body !== undefined) {
     opts.method = "POST";
     opts.headers["Content-Type"] = "application/json";
+    // Every write carries the session, in one place rather than at each call
+    // site — a decision that forgot it would be refused, which is the right
+    // failure, but a page that has to remember is a page that will not.
+    if (S.session && S.session.token && body.session === undefined) {
+      body = { ...body, session: S.session.token };
+    }
     opts.body = JSON.stringify(body);
   }
   const res = await fetch(path, opts);
   const data = await res.json().catch(() => ({ error: res.statusText }));
+  if (res.status === 401 && data.code === "session_required" && S.session) {
+    S.session = null;                    // the shift ended, or the UI restarted
+    localStorage.removeItem("nestor.session");
+    refresh();
+  }
   if (!res.ok) { const e = new Error(data.error || "request failed"); e.data = data; e.status = res.status; throw e; }
   return data;
 }
@@ -403,6 +475,34 @@ function pager() {
                                      : "past the end" }));
 }
 
+// Whose key signed a seal, when that is a question with more than one answer.
+// "Valid" covers a seal signed by rita's key and one signed by the old
+// deployment-wide key alike, and those are different facts about who verified
+// something — which is the whole reason per-verifier keys exist.
+function keyChip(p) {
+  if (!p.key_status) return null;                      // no keyring: nothing to say
+  const bad = "color:var(--rejected);border-color:var(--rejected)";
+  if (p.key_status === "compromised") {
+    return h("span", { class: "chip", style: bad, title:
+      "this key was reported stolen: nothing it signed can be told apart from the "
+      + "thief's, so none of it is served", text: "key compromised" });
+  }
+  if (p.key_status === "unknown" && p.status === "sealed") {
+    return h("span", { class: "chip", style: bad, title:
+      "the keyring has no key for this verifier", text: "unknown verifier" });
+  }
+  if (p.signed_by === "legacy") {
+    return h("span", { class: "chip", title:
+      "signed by the deployment-wide key from before the keyring — verified by "
+      + "somebody here, not attributable to a person", text: "legacy key" });
+  }
+  if (p.key_status === "revoked") {
+    return h("span", { class: "chip", title:
+      "key retired; the seals it already made stand", text: "key retired" });
+  }
+  return null;
+}
+
 function pairRow(p) {
   return h("div", { class: "pair", onclick: () => openPair(p.id) },
     h("div", { class: "texts" },
@@ -414,6 +514,7 @@ function pairRow(p) {
       h("span", { class: "chip", text: p.status }),
       servableChip(p),
       p.verifier ? h("span", { class: "chip", text: "by " + p.verifier }) : h("span", { class: "chip", text: "no verifier" }),
+      keyChip(p),
       h("span", { class: "chip", text: (p.source_lang || "?") + "→" + (p.target_lang || "?") })));
 }
 
@@ -1086,6 +1187,11 @@ function badges() {
     box.append(h("span", { class: "badge bad", title: "sealed rows Nestor would refuse to serve",
                            text: c.sealed_unverifiable + " unverifiable" }));
   }
+  if (s.identity && s.identity.required) {
+    box.append(h("span", { class: "badge good", title:
+      "each verifier signs with their own key, so a seal names a person",
+      text: "per-verifier keys" }));
+  }
   box.append(h("span", { class: s.signing_enabled ? "badge good" : "badge warn",
     title: s.signing_enabled ? "seals are bound to a key the store does not hold"
                              : "NESTOR_SEAL_KEY is not set: any row claiming 'sealed' is trusted",
@@ -1225,7 +1331,7 @@ function applyFilters() {
 }
 
 function render() {
-  tabs(); badges();
+  tabs(); badges(); whoBox();
   const view = $("view");
   view.replaceChildren();
   if (S.tab === "queue") viewQueue();
@@ -1237,7 +1343,14 @@ function render() {
 
 async function refresh() {
   try {
-    S.state = await api("/api/state");
+    S.state = await api("/api/state?session="
+                        + encodeURIComponent(S.session ? S.session.token : ""));
+    // The server is the authority on whether a token is still good; a stale one
+    // in localStorage must not leave the header claiming somebody is signed in.
+    if (S.state.identity && S.state.identity.required && !S.state.identity.signed_in) {
+      S.session = null;
+      localStorage.removeItem("nestor.session");
+    }
     S.domains = (await api("/api/domains")).domains;
     if (S.tab === "queue" && S.state.capabilities.queue) S.queue = await api("/api/queue");
     if (S.tab === "memory" && S.state.capabilities.curation) {
@@ -1265,10 +1378,13 @@ async function refresh() {
   }
 }
 
-$("verifier").value = localStorage.getItem("nestor.verifier") || "";
-$("verifier").addEventListener("change", () => localStorage.setItem("nestor.verifier", verifier()));
-api("/api/state").then((s) => {
-  if (!$("verifier").value && s.verifier_hint) $("verifier").value = s.verifier_hint;
+S.typedVerifier = localStorage.getItem("nestor.verifier") || "";
+const savedToken = localStorage.getItem("nestor.session");
+api("/api/state?session=" + encodeURIComponent(savedToken || "")).then((s) => {
+  if (!S.typedVerifier && s.verifier_hint) S.typedVerifier = s.verifier_hint;
+  if (s.identity && s.identity.signed_in) {
+    S.session = { token: savedToken, verifier: s.identity.signed_in };
+  }
   refresh();
 });
 </script>

@@ -28,11 +28,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import sys
 from typing import Optional
 
-from . import answer, cascade, ledger as ledger_mod, memory, portable, serve, signing, storage, ui
+from . import (answer, cascade, keyring as keyring_mod, ledger as ledger_mod, memory,
+               portable, serve, signing, storage, ui)
 from .sqlite_store import SqliteStore
 
 EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
@@ -204,6 +206,77 @@ def cmd_ledger(args) -> int:
     return EXIT_OK
 
 
+def cmd_keys(args) -> int:
+    """Who can seal, and with what. See :mod:`nestor.keyring`."""
+    path = args.keyring or keyring_mod.keyring_path()
+    if not path:
+        print("no keyring path: pass --keyring PATH or set NESTOR_KEYRING.\n"
+              "Without one, every verifier signs with the single NESTOR_SEAL_KEY "
+              "and a seal proves the key was present, not who was.", file=sys.stderr)
+        return EXIT_USAGE
+
+    if args.keys_command == "list":
+        ring = keyring_mod.load(path)
+        rows = [{"name": e.name, "status": ring.status(e.name),
+                 "created_at": e.created_at, "revoked_at": e.revoked_at,
+                 "reason": e.reason} for e in ring.entries()]
+        human = [f"{len(rows)} verifier(s) in {path}"]
+        for r in rows:
+            note = f"  {r['reason']}" if r["reason"] else ""
+            human.append(f"  {r['status']:<12} {r['name']}{note}")
+        if ring.legacy_key:
+            human.append("  legacy       (seals made before this keyring still verify)")
+        _emit({"keyring": path, "verifiers": rows,
+               "legacy_key": bool(ring.legacy_key)}, args.json, "\n".join(human))
+        return EXIT_OK
+
+    # add / revoke both write, so both start from whatever is there (or nothing).
+    try:
+        ring = keyring_mod.load(path)
+    except keyring_mod.KeyringError:
+        if args.keys_command != "add":
+            raise
+        ring = keyring_mod.Keyring(path=path)
+
+    if args.keys_command == "add":
+        if args.adopt_shared_key:
+            shared = os.environ.get("NESTOR_SEAL_KEY", "")
+            if not shared:
+                print("--adopt-shared-key needs NESTOR_SEAL_KEY set: it is the key "
+                      "your existing seals were signed with.", file=sys.stderr)
+                return EXIT_USAGE
+            ring.legacy_key = shared.encode()
+        entry = ring.add(args.name, rotate=args.rotate)
+        ring.save(path)
+        _emit({"keyring": path, "name": entry.name, "key": entry.key.hex(),
+               "rotated": args.rotate},
+              args.json,
+              f"added {entry.name} to {path}\n"
+              f"  key  {entry.key.hex()}\n"
+              f"  This is the only time it is printed. {entry.name} needs it to sign in "
+              f"to the UI; the file itself is 0600 and holds the copy Nestor verifies "
+              f"against."
+              + ("\n  Seals made under the old shared key will keep verifying, "
+                 "reported as 'legacy'." if args.adopt_shared_key else ""))
+        return EXIT_OK
+
+    entry = ring.revoke(args.name, reason=args.reason, compromised=args.compromised)
+    ring.save(path)
+    consequence = ("Every seal it signed stops being served and lands in the "
+                   "unverifiable list for re-verification — a stolen key's seals "
+                   "cannot be told apart from the thief's."
+                   if entry.compromised else
+                   "Seals it already made keep serving: nobody else held the key, so "
+                   "they are still that person's verifications. It just cannot make "
+                   "new ones.")
+    _emit({"keyring": path, "name": entry.name, "revoked_at": entry.revoked_at,
+           "compromised": entry.compromised, "reason": entry.reason},
+          args.json,
+          f"revoked {entry.name} at {entry.revoked_at}\n  {consequence}\n"
+          f"  A running UI keeps its loaded keyring until it is restarted.")
+    return EXIT_OK
+
+
 def cmd_rejections(args) -> int:
     """What the accumulated "no"s say — the signal nothing used to read."""
     store = _store(args)
@@ -331,6 +404,23 @@ def build_parser() -> argparse.ArgumentParser:
     led.add_argument("--kind", default="", help="filter entries by kind")
     led.add_argument("--limit", type=int, default=50)
     led.set_defaults(func=cmd_ledger)
+
+    keys = sub.add_parser("keys", help="who can seal, and with what key")
+    keys.add_argument("keys_command", choices=("list", "add", "revoke"))
+    keys.add_argument("name", nargs="?", default="", help="the verifier")
+    keys.add_argument("--keyring", default="",
+                      help="keyring file (default: NESTOR_KEYRING)")
+    keys.add_argument("--rotate", action="store_true",
+                      help="replace an existing key — every seal it made stops verifying")
+    keys.add_argument("--reason", default="", help="recorded with a revocation")
+    keys.add_argument("--compromised", action="store_true",
+                      help="the key was TAKEN, not merely retired: everything it "
+                           "signed stops being served, because a stolen key's seals "
+                           "cannot be told apart from the thief's")
+    keys.add_argument("--adopt-shared-key", dest="adopt_shared_key", action="store_true",
+                      help="also trust NESTOR_SEAL_KEY, so seals made before this "
+                           "keyring keep verifying (reported as 'legacy')")
+    keys.set_defaults(func=cmd_keys)
 
     rej = sub.add_parser("rejections",
                          help="what the recorded 'no's say in aggregate")

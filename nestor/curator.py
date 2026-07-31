@@ -44,7 +44,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import ledger, memory, signing
+from . import keyring, ledger, memory, signing
 from .storage import Storage, get_store, supports_curation, supports_rejection
 
 
@@ -85,6 +85,16 @@ class Curator:
         # is the same predicate the serve path uses, so this column answers
         # "would Nestor actually serve this?" rather than "does it say sealed?".
         out["servable"] = memory.is_verified_seal(pair)
+        ring = keyring.get_keyring()
+        if ring is not None:
+            # With per-verifier keys there are more than two answers. "Valid"
+            # covers a seal signed by rita's key and a seal signed by the old
+            # deployment-wide key alike, and those are different facts about who
+            # verified something — which is the whole reason the keyring exists.
+            out["signed_by"] = signing.seal_attribution(
+                pair.get("source_norm", ""), pair.get("target_text", ""),
+                pair.get("verifier", ""), pair.get("seal_sig", ""))
+            out["key_status"] = ring.status(pair.get("verifier", ""))
         return out
 
     def list(self, status: str = "", verifier: str = "", contains: str = "",
@@ -351,10 +361,20 @@ class Curator:
         sealed = self.list(status="sealed", limit=100_000)
         draft = self.list(status="draft", limit=100_000)
         rejected = self.list(status="rejected", limit=100_000)
-        return {
+        out = {
             "sealed": len(sealed),
             "draft": len(draft),
             "rejected": len(rejected),
             "sealed_unverifiable": sum(1 for p in sealed if not p["servable"]),
             "verifiers": sorted({p.get("verifier", "") for p in sealed if p.get("verifier")}),
         }
+        ring = keyring.get_keyring()
+        if ring is not None:
+            # Two counts a keyring makes meaningful and a shared key cannot:
+            # seals nobody in particular signed, and seals by a name the
+            # keyring does not know.
+            out["sealed_legacy"] = sum(1 for p in sealed if p.get("signed_by") == "legacy")
+            out["unknown_verifiers"] = sorted(
+                {p.get("verifier", "") for p in sealed
+                 if ring.status(p.get("verifier", "")) == "unknown"})
+        return out

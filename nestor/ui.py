@@ -35,12 +35,14 @@ Deliberate properties, in the same spirit as the rest of the package:
   dependency count stays zero, and the page loads nothing from the network — a
   Content-Security-Policy of ``default-src 'none'`` is served with it, so an
   audit surface cannot phone anywhere.
-* **Loopback by default, and no authentication.** The verifier is *typed*, not
-  proven: this UI can seal as any name. That is the same trust model as calling
-  ``memory.add_pair(verifier="rita")`` yourself, and it is why binding to a
-  non-loopback address requires ``--allow-remote`` and prints what it costs.
-  Seal *signatures* (``NESTOR_SEAL_KEY``) are what make a seal unforgeable by
-  someone with database access; nothing here weakens or replaces them.
+* **Loopback by default, and authentication only if you set up keys.** With no
+  keyring the verifier is *typed*, not proven: this UI seals as whatever you
+  type, which is the same trust model as calling ``memory.add_pair(verifier=
+  "rita")`` yourself. Set ``NESTOR_KEYRING`` (see :mod:`nestor.keyring`) and the
+  "acting as" box becomes a sign-in — a verifier presents their own seal key and
+  every decision in the session is signed with it, so the name on a seal is
+  evidence about a person. Either way, binding to a non-loopback address
+  requires ``--allow-remote`` and prints what it costs.
 * **Read-only mode.** ``--read-only`` refuses every mutating call at the API
   layer, for showing the memory to someone without handing them the ability to
   change it.
@@ -61,14 +63,17 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import json
+import secrets
 import sys
+import threading
 import urllib.parse
 import webbrowser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Mapping, Optional
 
-from . import answer, cascade, ledger as ledger_mod, memory, portable, signing, storage
+from . import answer, cascade, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
 from .entity import EntityResolver
 from .reconcile import Reconciler
@@ -89,6 +94,72 @@ class ApiError(Exception):
         self.code = code
 
 
+class Sessions:
+    """Who is signed in, and until when.
+
+    The "acting as" box was a text field: this UI could seal as any name,
+    because ``verifier`` was a string and nothing anywhere could tell one from
+    another. With a keyring installed it stops being a text field. Signing in
+    means presenting the verifier's own seal key, and every decision made in
+    that session is signed with it — so a seal by ``rita`` is evidence about
+    rita rather than evidence that somebody typed "rita".
+
+    What this is not: it is a shared secret, so it proves possession of a key
+    rather than the presence of a person, and the server necessarily holds the
+    keys it verifies against. The asymmetric upgrade — a signature the server
+    checks with a public key it could not have produced — is the follow-on, and
+    it is the same seam (``signing.sign_seal(..., key=)``) either way.
+
+    Tokens live in memory only. Restarting the UI signs everyone out, which is
+    also how a revocation takes effect.
+    """
+
+    def __init__(self, hours: float = 8.0) -> None:
+        self.hours = hours
+        self._lock = threading.Lock()
+        self._tokens: dict[str, tuple[str, datetime]] = {}
+
+    def open(self, verifier: str, key_hex: str) -> dict:
+        """Check a verifier's key and hand back a token, or refuse."""
+        ring = keyring.get_keyring()
+        if ring is None:
+            raise ApiError(400, "no keyring is configured, so there is nobody to "
+                                "sign in as", code="no_keyring")
+        try:
+            expected = ring.signing_key(verifier)
+        except keyring.UnknownVerifierError as exc:
+            raise ApiError(403, str(exc), code="unknown_verifier") from exc
+        except keyring.RevokedKeyError as exc:
+            raise ApiError(403, str(exc), code="revoked_key") from exc
+        try:
+            offered = bytes.fromhex((key_hex or "").strip())
+        except ValueError:
+            offered = b""
+        if not offered or not keyring.same_key(offered, expected):
+            raise ApiError(403, f"that is not {verifier}'s key.", code="bad_key")
+        token = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(hours=self.hours)
+        with self._lock:
+            self._tokens[token] = (verifier, expires)
+        return {"token": token, "verifier": verifier, "expires_at": expires.isoformat()}
+
+    def close(self, token: str) -> None:
+        with self._lock:
+            self._tokens.pop(token, None)
+
+    def whois(self, token: str) -> Optional[str]:
+        """The verifier this token names, or ``None`` if it is unknown or stale."""
+        with self._lock:
+            found = self._tokens.get(token or "")
+            if found is None:
+                return None
+            verifier, expires = found
+            if datetime.now(timezone.utc) >= expires:
+                del self._tokens[token]
+                return None
+        return verifier
+
+
 @dataclass
 class App:
     """Everything a request needs: the store, the domain, and the policy."""
@@ -100,6 +171,7 @@ class App:
     read_only: bool = False
     verifier_hint: str = ""
     db_path: str = ""
+    sessions: Sessions = field(default_factory=Sessions)
 
     def curator(self, source_lang: str = "", target_lang: str = "") -> Curator:
         """A curator over one domain, or over every domain when both are empty.
@@ -137,7 +209,7 @@ def _float(params: Mapping[str, Any], key: str, default: float) -> float:
         return default
 
 
-def _verifier(payload: Mapping[str, Any]) -> str:
+def _verifier(app: App, payload: Mapping[str, Any]) -> str:
     """The name a decision is recorded under — required, never defaulted.
 
     ``memory`` treats an empty verifier as *unknown* rather than as a person:
@@ -145,7 +217,21 @@ def _verifier(payload: Mapping[str, Any]) -> str:
     conflict rather than a self-correction (see ``memory._same_verifier``).
     A UI that quietly sent ``""`` would file every decision under that unknown
     actor, so it asks instead.
+
+    **With a keyring installed the name comes from the session, not the
+    request.** The typed name is ignored entirely rather than checked against
+    the session, because a field that must equal something already known is
+    just a way to get a confusing error; the session is the answer to "who is
+    this", and the seal is then signed with that verifier's own key.
     """
+    if keyring.enabled():
+        who = app.sessions.whois(_str(payload, "session"))
+        if not who:
+            raise ApiError(401, "Sign in first: this instance has a keyring, so a "
+                                "decision is recorded under the verifier whose key "
+                                "made it, not under a typed name.",
+                           code="session_required")
+        return who
     who = _str(payload, "verifier")
     if not who:
         raise ApiError(400, "Who is making this decision? Set a name in the "
@@ -187,8 +273,16 @@ def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
     summary: dict = {}
     if caps["curation"]:
         summary = app.curator().summary()
+    ring = keyring.get_keyring()
+    # The verifier names are not a secret — they are printed on every seal the
+    # memory holds. The keys are, and never leave the file.
+    identity = {"required": ring is not None,
+                "verifiers": [n for n in (ring.names() if ring else [])
+                              if ring.status(n) == "active"],
+                "signed_in": app.sessions.whois(_str(query, "session")) or ""}
     return {
         "read_only": app.read_only,
+        "identity": identity,
         "signing_enabled": signing.signing_enabled(),
         "engine": app.engine_name,
         "db": app.db_path,
@@ -199,6 +293,16 @@ def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
         "summary": summary,
         "ledger": {"ok": ok, "detail": detail, "path": str(cascade._ledger_path())},
     }
+
+
+def _session_open(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Sign in as a verifier by presenting their seal key. See :class:`Sessions`."""
+    return app.sessions.open(_str(payload, "verifier"), _str(payload, "key"))
+
+
+def _session_end(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    app.sessions.close(_str(payload, "session"))
+    return {"signed_out": True}
 
 
 def _pairs(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -302,7 +406,7 @@ def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
         raise ApiError(400, "send the bundle as a JSON object under 'bundle'",
                        code="bad_request")
     dry_run = payload.get("dry_run", True) is not False
-    who = "" if dry_run else _verifier(payload)
+    who = "" if dry_run else _verifier(app, payload)
     try:
         return portable.import_bundle(bundle, store=app.store, dry_run=dry_run,
                                       verifier=who,
@@ -369,7 +473,7 @@ def _entity_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     domain = _str(payload, "domain") or "entity"
     override = bool(payload.get("override"))
     return EntityResolver(app.store, domain=domain).seal(
-        surface, canonical, verifier=_verifier(payload),
+        surface, canonical, verifier=_verifier(app, payload),
         origin=_str(payload, "origin", "ui"),
         override_conflict=override, override_rejection=override)
 
@@ -400,7 +504,7 @@ def _reconcile_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, An
         raise ApiError(400, "a baseline needs a label and a value", code="bad_request")
     override = bool(payload.get("override"))
     return _reconciler(payload, app).seal_baseline(
-        label, value, verifier=_verifier(payload),
+        label, value, verifier=_verifier(app, payload),
         origin=_str(payload, "origin", "ui"),
         override_conflict=override, override_rejection=override)
 
@@ -435,7 +539,7 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
     target = _str(payload, "target")
     if not source or not target:
         raise ApiError(400, "a seal needs both a source and a target", code="bad_request")
-    who = _verifier(payload)
+    who = _verifier(app, payload)
     source_lang = _str(payload, "source_lang") or app.source_lang
     target_lang = _str(payload, "target_lang") or app.target_lang
     override = bool(payload.get("override"))
@@ -454,7 +558,7 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
 
 
 def _unseal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
-    out = app.curator().unseal(_pair_id(payload), verifier=_verifier(payload),
+    out = app.curator().unseal(_pair_id(payload), verifier=_verifier(app, payload),
                                reason=_str(payload, "reason"))
     if out is None:
         raise ApiError(404, "no such pair", code="not_found")
@@ -462,7 +566,7 @@ def _unseal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
 
 
 def _restore(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
-    out = app.curator().restore(_pair_id(payload), verifier=_verifier(payload),
+    out = app.curator().restore(_pair_id(payload), verifier=_verifier(app, payload),
                                 reason=_str(payload, "reason"))
     if out is None:
         raise ApiError(404, "no such pair", code="not_found")
@@ -473,7 +577,7 @@ def _reject_pair(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     """The mapping itself is wrong — retire it everywhere."""
     _require_rejection(app)
     pair_id = _pair_id(payload)
-    memory.reject_pair(pair_id, verifier=_verifier(payload),
+    memory.reject_pair(pair_id, verifier=_verifier(app, payload),
                        reason=_str(payload, "reason"), store=app.store)
     return {"pair": app.curator().get(pair_id)}
 
@@ -494,7 +598,7 @@ def _reject_match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
         source, _str(payload, "source_lang") or app.source_lang,
         _str(payload, "target_lang") or app.target_lang,
         pair_id=_str(payload, "pair_id"), target_text=_str(payload, "target_text"),
-        verifier=_verifier(payload), reason=_str(payload, "reason"), store=app.store)
+        verifier=_verifier(app, payload), reason=_str(payload, "reason"), store=app.store)
     return {"rejection": {k: v for k, v in rejection.items() if k != "reject_sig"}}
 
 
@@ -515,7 +619,7 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     """
     _require_queue(app)
     segment_id = _str(payload, "segment_id")
-    who = _verifier(payload)
+    who = _verifier(app, payload)
     edited = _str(payload, "target")
     seg = app.store.get_segment(segment_id)
     if not seg or not (seg.get("candidate") or edited):
@@ -548,7 +652,7 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
     _require_queue(app)
     _require_rejection(app)
     segment_id = _str(payload, "segment_id")
-    rejection = cascade.reject_segment(segment_id, verifier=_verifier(payload),
+    rejection = cascade.reject_segment(segment_id, verifier=_verifier(app, payload),
                                        reason=_str(payload, "reason"), store=app.store)
     if rejection is None:
         raise ApiError(404, "no such segment, or it has no candidate to reject",
@@ -557,6 +661,9 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
 
 
 Handler = Callable[[App, Mapping[str, Any], Mapping[str, Any]], dict]
+
+# POSTs that record nothing, and so survive --read-only.
+_NO_DECISION = ("/api/session", "/api/session/end")
 
 _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/state"): _state,
@@ -569,6 +676,8 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
     ("GET", "/api/bundle"): _bundle,
+    ("POST", "/api/session"): _session_open,
+    ("POST", "/api/session/end"): _session_end,
     ("POST", "/api/import"): _import,
     ("POST", "/api/ask"): _ask,
     ("POST", "/api/match"): _match,
@@ -597,7 +706,10 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
     handler = _ROUTES.get((method, path))
     if handler is None:
         return 404, {"error": f"no such endpoint: {method} {path}", "code": "not_found"}
-    if method == "POST" and app.read_only:
+    # Signing in records nothing and changes nothing, so it is not a "decision"
+    # in the sense --read-only refuses. Refusing it would leave a read-only page
+    # unable to say who is looking, which helps nobody.
+    if method == "POST" and app.read_only and path not in _NO_DECISION:
         return 403, {"error": "this UI is running --read-only; no decision can be "
                               "recorded from it.", "code": "read_only"}
     try:
@@ -608,6 +720,10 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
         return 409, {"error": str(exc), "code": "conflicting_seal"}
     except memory.RejectedPairError as exc:
         return 409, {"error": str(exc), "code": "rejected_pair"}
+    except keyring.UnknownVerifierError as exc:
+        return 403, {"error": str(exc), "code": "unknown_verifier"}
+    except keyring.RevokedKeyError as exc:
+        return 403, {"error": str(exc), "code": "revoked_key"}
     except (ValueError, RuntimeError) as exc:
         return 400, {"error": f"{type(exc).__name__}: {exc}", "code": "refused"}
 
@@ -759,7 +875,14 @@ def build_parser() -> argparse.ArgumentParser:
                    help="draft engine used by the Ask view (default: offline — a click "
                         "in a browser should not silently call a paid API)")
     p.add_argument("--verifier", default="",
-                   help="prefill the 'acting as' name (still asserted, never proven)")
+                   help="prefill the 'acting as' name (still asserted, never proven — "
+                        "with a keyring, verifiers sign in with their key instead)")
+    p.add_argument("--keyring", default="",
+                   help="per-verifier seal keys (default: NESTOR_KEYRING). With one, "
+                        "the 'acting as' box becomes a sign-in and a seal is signed "
+                        "by the verifier it names")
+    p.add_argument("--session-hours", dest="session_hours", type=float, default=8.0,
+                   help="how long a sign-in lasts (default: 8 — a shift)")
     p.add_argument("--read-only", action="store_true",
                    help="refuse every decision; browse and audit only")
     p.add_argument("--allow-remote", action="store_true",
@@ -781,6 +904,12 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
+    if args.keyring:
+        try:
+            keyring.set_keyring(keyring.load(args.keyring))
+        except keyring.KeyringError as exc:
+            print(f"refusing to start: {exc}", file=sys.stderr)
+            return 2
 
     store = SqliteStore(args.db)
     store.init_db()
@@ -789,7 +918,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     app = App(store=store, source_lang=args.source_lang, target_lang=args.target_lang,
               engine_name=args.engine, read_only=args.read_only,
-              verifier_hint=args.verifier, db_path=args.db)
+              verifier_hint=args.verifier, db_path=args.db,
+              sessions=Sessions(hours=args.session_hours))
 
     httpd = serve(app, args.host, args.port)
     url = f"http://{args.host or '127.0.0.1'}:{args.port}/"
@@ -799,6 +929,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"  engine   {args.engine}")
     if args.read_only:
         print("  mode     read-only — no decision can be recorded")
+    ring = keyring.get_keyring()
+    if ring is not None:
+        print(f"  keyring  {ring.path or '(injected)'} — "
+              f"{len(ring.names())} verifier(s); a decision needs a sign-in")
+    else:
+        print("  verifier typed, not proven — anyone reaching this port can seal as "
+              "any name (set NESTOR_KEYRING for per-verifier keys)")
     if not signing.signing_enabled():
         print("  WARNING  NESTOR_SEAL_KEY is not set: seals are trusted on stored "
               "status alone, and this UI cannot tell a real one from a forged row.")
