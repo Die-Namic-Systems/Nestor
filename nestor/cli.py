@@ -14,6 +14,9 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor import memory.json             # DRY RUN by default; --apply commits
     nestor ledger verify                  # exit 1 on a broken chain, for CI
     nestor stats
+    nestor calibrate --from en --to es    # where the threshold belongs for this corpus
+    nestor rejections                     # what the recorded "no"s say in aggregate
+    nestor keys add rita                  # a key per verifier (list / add / revoke)
     nestor ui                             # the browser surface
     nestor serve                          # MCP over stdio, for a model
 

@@ -590,6 +590,9 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
+nestor calibrate --from en --to es       # where the threshold belongs for this corpus
+nestor rejections                        # what the recorded "no"s say in aggregate
+nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke
 nestor ui                                # the browser surface
 nestor serve                             # MCP over stdio, for a model
 ```
