@@ -29,7 +29,7 @@ MATCHERS = ("string", "numeric", "semantic")
 
 
 def build_matcher(name: str = "string", abs_tol: float = 0.0,
-                  pct_tol: float = 0.05) -> Matcher:
+                  pct_tol: float = 0.05, persist: bool = True) -> Matcher:
     """One of the shipped matchers, by name.
 
     A custom matcher is injected in code (``memory.set_matcher``); a name coming
@@ -40,6 +40,9 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
     ``semantic`` needs ``pip install nestor[semantic]`` (fastembed). Thresholds
     tuned for :class:`~nestor.matcher.StringMatcher` are not portable — measure
     with ``nestor calibrate`` on your corpus.
+
+    ``persist=False`` stops the semantic matcher writing its embedding cache;
+    the other matchers never write anything and ignore it.
     """
     if name == "string":
         return StringMatcher()
@@ -48,7 +51,7 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
     if name == "semantic":
         from .semantic_matcher import SemanticMatcher
         try:
-            return SemanticMatcher()
+            return SemanticMatcher(persist=persist)
         except ImportError as exc:
             raise ValueError(str(exc)) from exc
     raise ValueError(f"unknown matcher {name!r} — the shipped matchers are "
@@ -120,11 +123,12 @@ def check(store: Storage, label: str, observed, domain: str = "value",
 
 
 def match(store: Storage, text: str, source_lang: str, target_lang: str,
-          matcher: str = "string", abs_tol: float = 0.0, pct_tol: float = 0.05) -> dict:
+          matcher: str = "string", abs_tol: float = 0.0, pct_tol: float = 0.05,
+          persist: bool = True) -> dict:
     """The bare mechanic over any domain: normalize, score, would it be served?"""
     if not text.strip():
         raise ValueError("nothing to match")
-    m = build_matcher(matcher, abs_tol=abs_tol, pct_tol=pct_tol)
+    m = build_matcher(matcher, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
     hit = memory.best_sealed(text, source_lang, target_lang, store=store, matcher=m,
                              context_threshold=0.0)
     return {

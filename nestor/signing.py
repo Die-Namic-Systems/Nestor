@@ -31,6 +31,17 @@ Every function here resolves its key the same way, in this order:
 
 So the shared-key deployment is unchanged, the keyring deployment attributes
 seals to people, and the two are the same code path.
+
+Three protocols, three domains
+------------------------------
+Seals, rejections and cached embeddings are each MAC'd here, and each message is
+tagged so a signature from one can never verify in another. The third arrived
+with the embedding cache (IDEAS §6.4) and is worth stating plainly: a seal binds
+*what a human approved*, but under :class:`~nestor.semantic_matcher.SemanticMatcher`
+the serve decision is taken over embedding vectors, and a vector read back out
+of the store is an input to that decision. Signing the seal and not the vector
+would leave a store-writer able to change what a sealed row matches without
+forging anything — the same shape as Nestor#2, one object over.
 """
 from __future__ import annotations
 
@@ -151,6 +162,96 @@ def _message(source_norm: str, target_text: str, verifier: str) -> bytes:
     canonical encoding.)"""
     return json.dumps([source_norm, target_text, verifier],
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def _embedding_message(pair_id: str, model_name: str, source_sha: str,
+                       blob: bytes) -> bytes:
+    """The bytes an embedding-cache HMAC is taken over.
+
+    Tagged ``"embedding"`` as element 0 for the same reason a rejection is: a
+    signature from one protocol must not verify in another. The vector itself
+    enters as a digest of its packed bytes rather than a list of floats, so the
+    message is a fixed size and does not depend on ``repr`` of a float.
+
+    ``pair_id`` and ``model_name`` are inside the message, not just the lookup
+    key — otherwise a valid entry could be moved onto a different row, which is
+    the same attack with an extra step.
+    """
+    return json.dumps(["embedding", pair_id, model_name, source_sha,
+                       hashlib.sha256(blob).hexdigest()],
+                      separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def cache_key(key: Optional[bytes] = None) -> Optional[bytes]:
+    """The key a cached embedding is MAC'd with — deployment-wide, not per-person.
+
+    A seal names a verifier and so is signed with *their* key. Nothing about a
+    cached vector belongs to a person: it is a machine's arithmetic over text
+    already in the row. What it needs is a key the store does not hold, which is
+    the only property that makes the MAC worth taking.
+
+    ``NESTOR_CACHE_KEY`` first, so a deployment can separate the two secrets;
+    then ``NESTOR_SEAL_KEY``; then a keyring's ``legacy_key``, which is the one
+    deployment-wide secret a keyring carries. A keyring with no legacy key has
+    no deployment-wide secret at all, and inventing one out of per-verifier keys
+    would mean every ``keys add`` silently invalidated the whole cache.
+    """
+    if key is not None:
+        return key
+    env = os.environ.get("NESTOR_CACHE_KEY")
+    if env:
+        return env.encode()
+    shared = _key(None)
+    if shared:
+        return shared
+    ring = keyring_mod.get_keyring()
+    if ring is not None and ring.legacy_key:
+        return ring.legacy_key
+    return None
+
+
+def cache_trust(key: Optional[bytes] = None) -> str:
+    """How far a stored embedding may be trusted: the cache's serve policy.
+
+    * ``"signed"`` — a key is available; a cached vector is used iff it verifies.
+    * ``"unsigned"`` — signing is off entirely. The store is already fully
+      trusted (any row in it can claim ``status="sealed"``), so requiring a MAC
+      on the cache would protect nothing while costing every deployment that
+      never turned signing on. Accept, exactly as :func:`seal_is_valid` does.
+    * ``"unavailable"`` — signing is ON but no deployment-wide key exists. The
+      store is *not* trusted and the cache cannot be checked, so it is not read.
+      Embeddings are recomputed: slower, never wrong.
+    """
+    if cache_key(key) is not None:
+        return "signed"
+    return "unavailable" if signing_enabled() else "unsigned"
+
+
+def sign_embedding(pair_id: str, model_name: str, source_sha: str, blob: bytes,
+                   key: Optional[bytes] = None) -> str:
+    """HMAC-SHA256 over a cached embedding. ``""`` when no cache key exists."""
+    k = cache_key(key)
+    if not k:
+        return ""
+    return hmac.new(k, _embedding_message(pair_id, model_name, source_sha, blob),
+                    hashlib.sha256).hexdigest()
+
+
+def embedding_is_valid(pair_id: str, model_name: str, source_sha: str,
+                       blob: bytes, sig: str, key: Optional[bytes] = None) -> bool:
+    """Whether a cached vector may be used instead of recomputing it.
+
+    Unlike :func:`seal_is_valid` this never raises and never warns: a cache miss
+    is not a refusal to serve, it is an embed call. Failing here costs latency,
+    so the safe answer is always available and there is no reason to degrade.
+    """
+    trust = cache_trust(key)
+    if trust == "unsigned":
+        return True
+    if trust == "unavailable":
+        return False
+    expected = sign_embedding(pair_id, model_name, source_sha, blob, key)
+    return bool(sig) and hmac.compare_digest(expected, sig)
 
 
 def _rejection_message(query_norm: str, pair_id: str, target_text: str,

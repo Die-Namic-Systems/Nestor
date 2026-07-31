@@ -730,6 +730,10 @@ def reject_pair(pair_id: str, verifier: str = "", reason: str = "",
     _ledger_preflight()          # a refusal must not follow a completed write
     store.memory_init()
     store.memory_reject_pair(pair_id, verifier, reason)
+    # A rejected pair is never scored again, so its cached vector is dead weight
+    # that nothing else prunes. (`reject_match` deliberately does not do this:
+    # it rejects one query against the pair, and the pair still answers others.)
+    _drop_stored_embeddings(store, pair_id)
     _log_rejection({"kind": "reject_pair", "pair_id": pair_id,
                     "verifier": verifier, "reason": reason})
 

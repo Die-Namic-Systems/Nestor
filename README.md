@@ -277,6 +277,32 @@ Two core matchers ship with zero dependencies; a third is optional:
 Set `NESTOR_SEMANTIC_TEST=1` and install `nestor[semantic]` to run the optional
 integration test that checks the §3.1 acronym case (`AWS` vs `Amazon Web Services`).
 
+#### The embedding cache is signed, for the same reason a seal is
+
+Embedding a row costs real time, so `SqliteStore` caches each vector in
+`tm_embeddings`, keyed by `(pair_id, model_name)`. That cache is **an input to
+the serve decision**: under `SemanticMatcher` the score comes from the vectors,
+not from the text. A seal signature covers `(source_norm, target_text,
+verifier)` — it says what a human approved, and nothing about what the row
+*matches*. So a store-writer who cannot forge a seal could still choose which
+queries a sealed row answers, by writing the vector. Same shape as
+[Nestor#2](https://github.com/rudi193-cmd/Nestor/issues/2), one object over.
+
+Each cached vector therefore carries an HMAC over
+`(pair_id, model_name, source_sha, vector)`, and one that does not verify is
+**recomputed rather than used** — a bad cache entry costs latency, never an
+answer. The key comes from `NESTOR_CACHE_KEY`, else `NESTOR_SEAL_KEY`, else a
+keyring's `legacy_key`:
+
+| what is configured | what the cache does |
+| --- | --- |
+| nothing (signing off) | used unsigned — the store is already fully trusted, so a MAC would protect nothing |
+| `NESTOR_SEAL_KEY`, or `NESTOR_CACHE_KEY` | signed and verified on every read |
+| a keyring with **no** `legacy_key` and no `NESTOR_SEAL_KEY` | **disabled** — there is no deployment-wide key to sign with, and reading a cache it cannot check is exactly the hole above. Set `NESTOR_CACHE_KEY` to turn it back on; Nestor warns once |
+
+`--read-only` surfaces read the cache but never write it: matching is a read,
+and a reader who passed `--read-only` did not agree to a write.
+
 `nestor.memory` holds a module-level default matcher (`set_matcher` /
 `get_matcher`), and every public memory function (`add_pair`, `lookup`,
 `best_sealed`, …) accepts an optional `matcher=`. The `tm_pairs` schema is

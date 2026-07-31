@@ -79,11 +79,18 @@ CREATE INDEX IF NOT EXISTS idx_tm_langs ON tm_pairs(source_lang, target_lang, st
 CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
     ON tm_rejections(query_norm, source_lang, target_lang);
 
+-- Cached embeddings for the semantic matcher. `source_sha` catches staleness
+-- (the row's surface text changed); `sig` catches tampering, which the sha
+-- cannot -- it is a digest of text sitting in the next table over, so whoever
+-- writes the vector writes the sha. Under SemanticMatcher these vectors are an
+-- input to the serve decision, so an unverifiable one is recomputed rather than
+-- used. ON DELETE CASCADE because a deleted pair's vectors are unreachable.
 CREATE TABLE IF NOT EXISTS tm_embeddings (
-    pair_id     TEXT NOT NULL,
+    pair_id     TEXT NOT NULL REFERENCES tm_pairs(id) ON DELETE CASCADE,
     model_name  TEXT NOT NULL,
     source_sha  TEXT NOT NULL,
     embedding   BLOB NOT NULL,
+    sig         TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (pair_id, model_name)
 );
 """
@@ -164,12 +171,14 @@ class SqliteStore:
         with self._db() as conn:
             conn.executescript(_SCHEMA)
             self._ensure_unique_key(conn)
+            self._ensure_embedding_schema(conn)
 
     def memory_init(self) -> None:
         # tm_pairs is created by the same schema script; keep it idempotent.
         with self._db() as conn:
             conn.executescript(_SCHEMA)
             self._ensure_unique_key(conn)
+            self._ensure_embedding_schema(conn)
 
     def _ensure_unique_key(self, conn: sqlite3.Connection) -> None:
         """One row per (normalized source, domain) — enforced by the database.
@@ -199,6 +208,22 @@ class SqliteStore:
                 f"seals can still race. Curator.list() shows the duplicates; "
                 f"resolve them and re-open the store.", RuntimeWarning, stacklevel=3)
             conn.execute(_LOOKUP_KEY)
+
+    def _ensure_embedding_schema(self, conn: sqlite3.Connection) -> None:
+        """Bring a ``tm_embeddings`` written before ``sig`` existed up to date.
+
+        ``CREATE TABLE IF NOT EXISTS`` is a no-op on an existing table, so a
+        database opened by an earlier build keeps the unsigned shape and every
+        ``SELECT sig`` on it raises. This drops and rebuilds it instead of
+        ALTERing, because it is a *cache*: the cost of throwing it away is one
+        recomputation, and rebuilding is the only way to also pick up the
+        foreign key, which ALTER TABLE cannot add.
+        """
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(tm_embeddings)")}
+        if not cols or "sig" in cols:
+            return
+        conn.execute("DROP TABLE tm_embeddings")
+        conn.executescript(_SCHEMA)
 
     # --- documents -------------------------------------------------------
 
@@ -330,27 +355,33 @@ class SqliteStore:
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 
     def embedding_load(self, pair_id: str,
-                       model_name: str) -> Optional[tuple[str, tuple[float, ...]]]:
+                       model_name: str) -> Optional[tuple[str, bytes, str]]:
+        """``(source_sha, packed_vector, sig)`` — the packed bytes, not floats.
+
+        The MAC is taken over exactly these bytes, so unpacking here and
+        repacking to check it would make the check a test of ``struct``'s
+        round-trip rather than of the stored value. The caller unpacks after it
+        has decided to trust them.
+        """
         with self._db() as conn:
             row = conn.execute(
-                "SELECT source_sha, embedding FROM tm_embeddings "
+                "SELECT source_sha, embedding, sig FROM tm_embeddings "
                 "WHERE pair_id=? AND model_name=?",
                 (pair_id, model_name),
             ).fetchone()
         if not row:
             return None
-        from .embedding_store import blob_to_vec
-        return row[0], blob_to_vec(row[1])
+        return row[0], bytes(row[1]), row[2]
 
     def embedding_save(self, pair_id: str, model_name: str, source_sha: str,
-                       vec: tuple[float, ...]) -> None:
-        from .embedding_store import vec_to_blob
+                       blob: bytes, sig: str = "") -> None:
         with self._db() as conn:
             conn.execute(
-                "INSERT INTO tm_embeddings(pair_id, model_name, source_sha, embedding) "
-                "VALUES (?,?,?,?) ON CONFLICT(pair_id, model_name) DO UPDATE SET "
-                "source_sha=excluded.source_sha, embedding=excluded.embedding",
-                (pair_id, model_name, source_sha, vec_to_blob(vec)),
+                "INSERT INTO tm_embeddings(pair_id, model_name, source_sha, embedding, sig) "
+                "VALUES (?,?,?,?,?) ON CONFLICT(pair_id, model_name) DO UPDATE SET "
+                "source_sha=excluded.source_sha, embedding=excluded.embedding, "
+                "sig=excluded.sig",
+                (pair_id, model_name, source_sha, blob, sig),
             )
 
     def embedding_drop(self, pair_id: str) -> None:

@@ -1357,8 +1357,30 @@ model_name)`` with a ``source_sha`` so a changed surface is not served from a
 stale embedding. :meth:`~nestor.semantic_matcher.SemanticMatcher.scores_against_for_rows`
 hydrates the in-process LRU from the store before batching and writes back after
 embed. :func:`~nestor.memory.add_pair` drops stored embeddings when the raw
-``source_text`` for an existing normalized key changes. Other ``Storage``
-implementations are unaffected (duck-typed via :func:`~nestor.embedding_store.supports_embedding_store`).
+``source_text`` for an existing normalized key changes, and
+:func:`~nestor.memory.reject_pair` drops them outright; ``tm_embeddings`` has a
+foreign key onto ``tm_pairs`` with ``ON DELETE CASCADE``, so nothing is left
+behind by a delete either. Other ``Storage`` implementations are unaffected
+(duck-typed via :func:`~nestor.embedding_store.supports_embedding_store`).
+
+**A cached vector is signed, because it is a serve input.** ``source_sha``
+catches *staleness*; it cannot catch *tampering*, being a digest of text in the
+row next to it. Under ``SemanticMatcher`` the score comes from the vectors, so a
+store-writer who cannot forge a seal could otherwise still choose which queries
+a sealed row answers — Nestor#2 one object over. Each entry therefore carries an
+HMAC over ``(pair_id, model_name, source_sha, vector)``
+(:func:`~nestor.signing.sign_embedding`), and one that does not verify is
+recomputed rather than used: a bad entry costs latency, never an answer.
+:func:`~nestor.signing.cache_trust` decides the policy — ``"unsigned"`` with
+signing off (the store is already fully trusted), ``"signed"`` with a key, and
+``"unavailable"`` when signing is on but no deployment-wide key exists, in which
+case the cache is disabled in both directions and says so once.
+
+Persistence is also opt-out per matcher (``SemanticMatcher(persist=False)``,
+threaded from ``--read-only`` on both surfaces): matching is a read, and it was
+writing one row per candidate *per serve* until hydration started reporting
+which ids it had already filled. Measured over 20 rows with the in-process LRU
+cleared each time: 20 UPSERTs on the cold serve, **0** on every serve after.
 
 ### 6.3 Bench token matchers: `score` + harness `match_similarity` — **shipped**
 

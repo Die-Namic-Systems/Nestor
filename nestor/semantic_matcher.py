@@ -16,7 +16,7 @@ import threading
 from collections import OrderedDict
 from typing import Optional
 
-from .embedding_store import source_text_sha, supports_embedding_store
+from .embedding_store import load_embedding, save_embedding, supports_embedding_store
 from .matcher import Matcher, StringMatcher
 
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
@@ -61,14 +61,21 @@ class SemanticMatcher:
         are available. Defaults to :class:`StringMatcher`.
     cache_size:
         Number of embedded strings to retain in memory (LRU).
+    persist:
+        Whether newly computed vectors may be written to the store's embedding
+        cache. ``False`` for a read-only surface: matching is a read, and a
+        reader who passed ``--read-only`` did not agree to a write just because
+        the matcher would like one. Reading the cache is unaffected.
     """
 
     name = "semantic"
 
     def __init__(self, model_name: str = DEFAULT_MODEL,
                  dedup: Optional[Matcher] = None,
-                 cache_size: int = _CACHE_MAX) -> None:
+                 cache_size: int = _CACHE_MAX,
+                 persist: bool = True) -> None:
         self.model_name = model_name
+        self.persist = persist
         self._dedup = dedup or StringMatcher()
         self._cache_size = max(1, cache_size)
         self._cache: OrderedDict[str, tuple[float, ...]] = OrderedDict()
@@ -131,40 +138,47 @@ class SemanticMatcher:
         """Like :meth:`scores_against`, with optional store-backed embedding cache."""
         texts = [r.get("source_text") or "" for r in rows]
         with self._lock:
-            self._hydrate_embeddings_from_store(rows, store)
+            cached = self._hydrate_embeddings_from_store(rows, store)
             scores = self._scores_against_unlocked(query_text, texts)
-            self._persist_embeddings_to_store(rows, texts, store)
+            self._persist_embeddings_to_store(rows, texts, store, cached)
         return scores
 
-    def _hydrate_embeddings_from_store(self, rows: list[dict], store) -> None:
+    def _hydrate_embeddings_from_store(self, rows: list[dict], store) -> set[str]:
+        """Fill the in-memory cache from the store; return the ids it came from.
+
+        Those ids already hold a current, verified entry, so
+        :meth:`_persist_embeddings_to_store` must not write them again — a cache
+        whose steady state is one UPSERT per row per serve is not a cache.
+        """
         if not store or not supports_embedding_store(store):
-            return
+            return set()
+        cached: set[str] = set()
         for row in rows:
             text = (row.get("source_text") or "").strip()
             if not text:
                 continue
-            hit = store.embedding_load(row["id"], self.model_name)
-            if hit is None:
+            vec = load_embedding(store, row["id"], self.model_name, text)
+            if vec is None:
                 continue
-            sha, vec = hit
-            if sha != source_text_sha(text):
-                store.embedding_drop(row["id"])
-                continue
-            self._remember(text, vec)
+            cached.add(row["id"])
+            # Only when absent: an in-memory vector is the model's own float64
+            # output, and the stored one has been through float32.
+            if text not in self._cache:
+                self._remember(text, vec)
+        return cached
 
-    def _persist_embeddings_to_store(self, rows: list[dict],
-                                     texts: list[str], store) -> None:
-        if not store or not supports_embedding_store(store):
+    def _persist_embeddings_to_store(self, rows: list[dict], texts: list[str],
+                                     store, cached: set[str]) -> None:
+        if not store or not supports_embedding_store(store) or not self.persist:
             return
         for row, text in zip(rows, texts):
             raw = (text or "").strip()
-            if not raw:
+            if not raw or row["id"] in cached:
                 continue
             vec = self._cache.get(raw)
             if vec is None:
                 continue
-            store.embedding_save(row["id"], self.model_name,
-                                 source_text_sha(raw), vec)
+            save_embedding(store, row["id"], self.model_name, raw, vec)
 
     def _scores_against_unlocked(self, query_text: str,
                                  stored_texts: list[str]) -> list[float]:
