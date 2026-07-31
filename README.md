@@ -239,6 +239,7 @@ bench/                measuring where the seal threshold stops holding — see b
 demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
+docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 
