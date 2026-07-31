@@ -67,7 +67,34 @@ connections. Document non-reentrant `_db()` if introduced.
 - Hermetic tests; subprocess CLI; monkeypatch only for fault injection.
 - README accuracy over stronger-than-true claims (ledger refusal window).
 
-### 7. Pre-PR operator checklist
+### 7. Sabotage the guard you care about
+
+For security- or audit-sensitive branches (TTL cache stale, positive interval,
+prefilter short-circuit), **break the implementation once** and confirm exactly
+one test fails. A test that stays green when the branch is nop’d is decoration.
+
+### 8. Two paths in; one guard
+
+Four 2026-07-31 defects were the same shape: a guarantee at call sites and a
+second path into the store that never passed it (import vs `add_pair`, UI vs
+playground). Pre-PR question: **can this rule be reached around?** If yes, move
+the rule to the one place that cannot be bypassed. See `TODO.md` and IDEAS
+§1.6–§1.8.
+
+### 9. Answers a narrower question
+
+Nothing was bypassed, but the code answered the wrong question — e.g. tier-1
+ranking that only considered the top *k* candidates while a verified seal sat
+sixth. Ask what happens when the easy case does not hold, not only “did we call
+the guard.”
+
+### 10. Running backup (WAL)
+
+Clean shutdown checkpoints help; **rsync/cp while the UI is up** still needs an
+operator story beyond “stop the server.” Until a first-class command exists,
+document SQLite `VACUUM INTO` or `nestor export`; see IDEAS §6.7.
+
+### 11. Pre-PR operator checklist
 
 Before opening a PR that touches store, ledger, or long-lived surfaces:
 
@@ -79,10 +106,13 @@ Before opening a PR that touches store, ledger, or long-lived surfaces:
 | Concurrent / pooled threads? | FD leak, cross-thread `close` |
 | Entrypoint-specific defaults? | UI 300s vs CLI 0 |
 | Audit/serve decision path? | refuse vs degrade |
+| Second write path? | import, UI, CLI divergence |
+| Guard only on happy ranking? | top-k hides valid seal |
 
 ## References
 
-- IDEAS §2.4, §5.3, §6.5–§6.6
+- IDEAS §1.4, §1.6–§1.8, §2.4, §5.3, §6.5–§6.7
+- `TODO.md` — queue and “how this repo finds things”
 - PR #24 review threads (WAL, TTL env, `close()` threading)
 - `tests/test_sqlite_store.py` (WAL snapshot, threaded `close`)
 - `tests/test_ledger_verify_interval.py` (TTL, env parse)

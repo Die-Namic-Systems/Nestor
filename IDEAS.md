@@ -1440,3 +1440,37 @@ one connection per thread, are in §2.4. ``tests/test_sqlite_store.py`` covers
 concurrent ``add_pair``, the descriptor ceiling under 360 request threads, the
 ``close()`` checkpoint from a thread that did not do the writing, and the refusal
 to answer from a closed store.
+
+### 6.7 Hot checkpoint / backup while the store is open — **open**
+
+*Proposed 2026-07-31 after PR #24 WAL review.*
+
+``SqliteStore.close()`` and UI shutdown checkpoint WAL into ``nestor.db``, but
+operators who **rsync or `cp` a live file** during a shift still get an
+incomplete store. Document ``VACUUM INTO`` and ``nestor export`` today; a
+``nestor db checkpoint`` (or equivalent) that runs ``PRAGMA wal_checkpoint`` or
+``VACUUM INTO`` without stopping the review server is the obvious CLI follow-up.
+
+### 6.8 Skip redundant ``memory_init`` schema replay — **open**
+
+*Follow-up to IDEAS §2.4.*
+
+Each ``add_pair`` still runs the idempotent schema script on that thread's
+connection. Measured once as noise for ingest; may matter at very large corpora.
+Needs a per-connection "schema ready" flag before changing behaviour.
+
+### 6.9 Subprocess test: UI refuses bad ledger interval env — **open**
+
+*Follow-up to PR #24.*
+
+``nestor.ui`` validates ``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` at startup; lock
+that with a subprocess test (bad value → exit 2, good message) so regressions
+cannot silently re-enable the once-per-process cache on a typo.
+
+### 6.10 Seal age in provenance (display only) — **open**
+
+*Pointer to IDEAS §1.4.*
+
+Surface ``created_at`` (and optionally verifier tenure) in Memory detail without
+implementing decay or quorum yet — data the ledger and row already hold, not
+consumed by the UI beyond the raw timestamp if shown at all.
