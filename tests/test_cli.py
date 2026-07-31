@@ -351,6 +351,43 @@ def test_db_checkpoint_ledger_sidecar_appends_to_basename(db, tmp_path):
     assert (tmp_path / "nightly" / "2026.07.31.ledger.jsonl").is_file()
 
 
+def test_no_ledger_never_leaves_a_chain_describing_a_different_backup(db, tmp_path, capsys):
+    """`--no-ledger` writes no sidecar; it must not leave an older one either.
+
+    A stale chain beside a freshly written database is worse than no chain at
+    all: the two files look like a matched pair and the store is the one that
+    is ahead, so the backup reads as sealed rows whose ledger entries are
+    missing — the state `_ledger_preflight` refuses to create at seal time.
+    """
+    out = tmp_path / "pair.db"
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
+    sidecar = out.with_name(out.name + ".ledger.jsonl")
+    assert sidecar.is_file()
+    before = sidecar.read_text()
+
+    # The store moves on, and the next backup is taken without the chain.
+    memory.add_pair("a later seal", "un sello posterior", "en", "es",
+                    status="sealed", verifier="rita", store=db["store"])
+
+    assert run(db, "db", "checkpoint", "--out", str(out), "--no-ledger") == cli.EXIT_USAGE
+    assert "refusing to overwrite" in capsys.readouterr().err
+    assert sidecar.read_text() == before, "a refusal changes nothing"
+
+    assert run(db, "db", "checkpoint", "--out", str(out),
+               "--no-ledger", "--force") == cli.EXIT_OK
+    assert out.is_file()
+    assert not sidecar.exists(), "the chain that described the old backup is gone"
+
+
+def test_no_ledger_says_why_a_lone_sidecar_blocks_it(db, tmp_path, capsys):
+    """The db name is free, so the refusal names a file the operator did not
+    type — it has to say why that file is in the way."""
+    out = tmp_path / "orphan.db"
+    out.with_name(out.name + ".ledger.jsonl").write_text("{}\n", encoding="utf-8")
+    assert run(db, "db", "checkpoint", "--out", str(out), "--no-ledger") == cli.EXIT_USAGE
+    assert "describing a different backup" in capsys.readouterr().err
+
+
 def test_db_checkpoint_refuses_existing_out_without_force(db, tmp_path, capsys):
     out = tmp_path / "copy.db"
     out.write_text("taken", encoding="utf-8")

@@ -148,11 +148,22 @@ def cmd_db(args) -> int:
         if args.out:
             out = pathlib.Path(args.out)
             ledger_out = _ledger_sidecar_path(out)
-            targets = [out] if args.no_ledger else [out, ledger_out]
-            for path in targets:
-                if path.exists() and not args.force:
-                    print(f"refusing to overwrite {path} (pass --force)", file=sys.stderr)
-                    return EXIT_USAGE
+            ledger_src = cascade._ledger_path()
+            copy_ledger = not args.no_ledger and ledger_src.is_file()
+            # Both names are claimed whether or not this run writes the sidecar.
+            # A chain left over from an earlier backup, sitting beside a freshly
+            # written database, is a store paired with a trail that does not
+            # describe it — and it is the store that is ahead, so the pair reads
+            # as sealed rows whose entries are missing. That is the one thing the
+            # sidecar exists to prevent, arriving by the back door.
+            if not args.force:
+                for path in (out, ledger_out):
+                    if path.exists():
+                        why = ("" if path == out or copy_ledger else
+                               " — it would be left describing a different backup")
+                        print(f"refusing to overwrite {path}{why} (pass --force)",
+                              file=sys.stderr)
+                        return EXIT_USAGE
             out.parent.mkdir(parents=True, exist_ok=True)
             tmp_db = out.with_name(out.name + ".partial")
             tmp_db.unlink(missing_ok=True)
@@ -163,21 +174,22 @@ def cmd_db(args) -> int:
                 tmp_db.unlink(missing_ok=True)
                 raise
             parts = [str(out)]
-            if not args.no_ledger:
-                ledger_src = cascade._ledger_path()
-                if ledger_src.is_file():
-                    tmp_led = ledger_out.with_name(ledger_out.name + ".partial")
+            if copy_ledger:
+                tmp_led = ledger_out.with_name(ledger_out.name + ".partial")
+                tmp_led.unlink(missing_ok=True)
+                try:
+                    shutil.copy2(ledger_src, tmp_led)
+                    _replace_file(tmp_led, ledger_out)
+                except Exception:
                     tmp_led.unlink(missing_ok=True)
-                    try:
-                        shutil.copy2(ledger_src, tmp_led)
-                        _replace_file(tmp_led, ledger_out)
-                    except Exception:
-                        tmp_led.unlink(missing_ok=True)
-                        raise
-                    parts.append(str(ledger_out))
-                else:
+                    raise
+                parts.append(str(ledger_out))
+            else:
+                if not args.no_ledger:
                     print(f"note: no ledger file at {ledger_src} to copy alongside the db",
                           file=sys.stderr)
+                # Nothing was written here, so nothing may remain here.
+                ledger_out.unlink(missing_ok=True)
             print(f"wrote {' and '.join(parts)}", file=sys.stderr)
         else:
             store.checkpoint_wal()
@@ -468,7 +480,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
                           "ledger to <basename>.ledger.jsonl beside it unless --no-ledger")
     dbp.add_argument("--no-ledger", action="store_true",
-                     help="with --out, copy only the database (seals without audit chain)")
+                     help="with --out, copy only the database (seals without audit chain); "
+                          "an older sidecar at that name blocks, and --force removes it")
     dbp.add_argument("--force", action="store_true",
                      help="with --out, replace existing destination file(s)")
     dbp.set_defaults(func=cmd_db)

@@ -1454,6 +1454,16 @@ via ``VACUUM INTO`` and, by default, copies the hash-chained ledger to
 ``<basename>.ledger.jsonl`` beside it (``--no-ledger`` opts out). Operator notes in
 ``docs/local-fleet.md``.
 
+Both files are written through a ``.partial`` and ``os.replace``, so a failed
+backup leaves the previous one intact rather than deleting it in favour of one
+that never arrived. Both names are also *claimed* whether or not a given run
+writes the sidecar: a chain left from an earlier backup beside a freshly written
+database is worse than no chain, because the pair looks matched and the store is
+the one that is ahead — sealed rows whose ledger entries are missing, which is
+the state :func:`~nestor.memory.add_pair` refuses to create at seal time. So a
+stale sidecar blocks the run, and ``--force`` removes it along with the database
+it described.
+
 ### 6.8 Skip redundant ``memory_init`` schema replay — **open**
 
 *Follow-up to IDEAS §2.4.*

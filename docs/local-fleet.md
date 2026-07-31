@@ -106,6 +106,14 @@ nestor db checkpoint --out /backup/nestor-$(date +%F).db   # also …$(date +%F)
 nestor export --out /backup/memory.json
 ```
 
+`--out` writes the database *and* its hash-chained ledger; **restore both
+together** — a store without its chain is sealed rows nothing can audit. Re-running
+to a name that already exists refuses rather than overwriting; `--force` replaces
+both halves. `--no-ledger` copies the database alone, and because a leftover
+chain beside a newer database is a mismatched pair rather than a partial one, it
+refuses if a sidecar is already sitting at that name (`--force` removes it).
+A backup that fails part-way leaves the previous one intact.
+
 FRANK forwarding: see README `NESTOR_FRANK_*` and willow-mcp `frank_append` when
 a shared governance chain is up.
 
