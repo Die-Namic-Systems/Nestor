@@ -574,3 +574,16 @@ def test_rejections_are_summarised_for_the_page(filled):
     assert status == 200
     assert [q["query_norm"] for q in out["queries"]] == ["the yearly bill"]
     assert out["queries"][0]["rejections"] == 2
+
+
+def test_the_numeric_check_tells_the_page_the_figure_was_half_read(filled):
+    """The matcher searches for a number rather than requiring one, so a typo
+    becomes a real figure. The page can only warn about it if the API says so."""
+    post(filled, "/api/reconcile/seal", label="ceiling", value="$1,000,000",
+         verifier="rita", domain="contract")
+    status, out = post(filled, "/api/reconcile/check", label="ceiling",
+                       observed="$1,00o,000", domain="contract")
+    assert status == 200
+    assert out["observed"] == 100.0 and out["observed_partial"] is True
+    assert out["observed_text"] == "$1,00o,000"
+    assert out["baseline_partial"] is False and out["flagged"] is True

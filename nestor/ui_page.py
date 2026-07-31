@@ -938,6 +938,24 @@ async function submitNumeric() {
   catch (e) { toast(e.message, "err"); }
 }
 
+function partialParse(r) {
+  const bad = [];
+  if (r.observed_partial) bad.push(["observed", r.observed_text, r.observed]);
+  if (r.baseline_partial) bad.push(["baseline", r.baseline_text, r.baseline]);
+  if (!bad.length) return null;
+  const box = h("div", { class: "banner small",
+                         style: "border-left:3px solid var(--draft);padding-left:10px;margin:10px 0" });
+  for (const [which, text, value] of bad) {
+    box.append(h("p", { style: "margin:2px 0" },
+      h("b", { text: "the " + which + " figure is not what was typed: " }),
+      h("span", { class: "mono", text: String(text) }),
+      " was read as ",
+      h("span", { class: "mono", text: String(value) }),
+      " — digits were left outside the number."));
+  }
+  return box;
+}
+
 function numericResult(r) {
   const state = r.baseline === null ? "pending" : (r.within_tolerance ? "sealed" : "rejected");
   const label = { pending: "no baseline", sealed: "within tolerance", rejected: "flagged" }[state];
@@ -963,6 +981,11 @@ function numericResult(r) {
         h("td", { class: "mono", text: pct(r.variation_pct) }),
         h("td", { class: "mono small muted",
                   text: "±" + num(r.tolerance.abs_tol) + " or " + pct(r.tolerance.pct_tol) }))),
+    // The matcher SEARCHES for a number rather than requiring one, so
+    // "1,00o,000" — one typo — is compared as 100. The failure direction is
+    // safe, but "the number I compared was not the number you typed" is a bad
+    // sentence in an audit and a worse one to discover later.
+    partialParse(r),
     h("p", { class: "small muted", text: explain }),
     h("div", { class: "row" },
       h("input", { id: "num-baseline", placeholder: "verified baseline for " + r.label,
