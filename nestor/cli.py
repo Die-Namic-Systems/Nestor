@@ -204,6 +204,40 @@ def cmd_ledger(args) -> int:
     return EXIT_OK
 
 
+def cmd_rejections(args) -> int:
+    """What the accumulated "no"s say — the signal nothing used to read."""
+    store = _store(args)
+    if not storage.supports_curation(store):
+        print(f"{type(store).__name__} cannot browse the memory "
+              f"(see storage.supports_curation)", file=sys.stderr)
+        return EXIT_USAGE
+    from .curator import Curator
+    out = Curator(store, args.source_lang, args.target_lang).rejection_signals(
+        min_query=args.min_query, min_pair=args.min_pair)
+    lines = [f"{out['rejections']} rejection(s) in the chain for "
+             f"{out['domain']['source_lang']}→{out['domain']['target_lang']}"]
+    if out["queries"]:
+        lines.append(f"\n  queries refused {args.min_query}+ times — the threshold "
+                     f"may be wrong for this domain (nestor calibrate):")
+        for q in out["queries"][:args.limit]:
+            lines.append(f"    {q['rejections']}x  {q['query_norm'][:60]!r}  "
+                         f"({q['distinct_answers']} distinct answer(s), "
+                         f"{', '.join(q['verifiers'])})")
+    if out["pairs"]:
+        lines.append(f"\n  pairs refused against {args.min_pair}+ different queries — "
+                     f"probably junk; unseal or reject:")
+        for p in out["pairs"][:args.limit]:
+            mark = "✓" if p["servable"] else " "
+            lines.append(f"    {p['queries']}x {mark} {p['pair_id'][:8]}  "
+                         f"{p['source_text'][:36]!r} → {p['target_text'][:36]!r} "
+                         f"[{p['status']}]")
+    if not out["queries"] and not out["pairs"]:
+        lines.append("  nothing above the reporting thresholds — no domain-level "
+                     "signal yet, which is itself the answer.")
+    _emit(out, args.json, "\n".join(lines))
+    return EXIT_OK
+
+
 def cmd_stats(args) -> int:
     store = _store(args)
     ok, detail = ledger_mod.verify()
@@ -297,6 +331,18 @@ def build_parser() -> argparse.ArgumentParser:
     led.add_argument("--kind", default="", help="filter entries by kind")
     led.add_argument("--limit", type=int, default=50)
     led.set_defaults(func=cmd_ledger)
+
+    rej = sub.add_parser("rejections",
+                         help="what the recorded 'no's say in aggregate")
+    rej.add_argument("--source-lang", "--from", dest="source_lang", default="",
+                     help="limit to one domain (default: everything)")
+    rej.add_argument("--target-lang", "--to", dest="target_lang", default="")
+    rej.add_argument("--min-query", dest="min_query", type=int, default=2,
+                     help="report a query refused at least this many times (default: 2)")
+    rej.add_argument("--min-pair", dest="min_pair", type=int, default=2,
+                     help="report a pair refused for at least this many queries (default: 2)")
+    rej.add_argument("--limit", type=int, default=20)
+    rej.set_defaults(func=cmd_rejections)
 
     st = sub.add_parser("stats", help="what is in the memory, and is the chain intact")
     st.set_defaults(func=cmd_stats)

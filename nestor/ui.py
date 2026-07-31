@@ -252,6 +252,26 @@ def _ledger_view(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
             "entries": list(reversed(rows)), "kinds": kinds}
 
 
+def _replaced_seals(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Seals somebody overwrote — the one thing the store keeps no trace of.
+
+    ``add_pair`` refuses a different verifier's overwrite, so an entry here with
+    ``same_verifier: false`` means a human was shown another human's decision and
+    chose to overrule it. That is the highest-signal event the curator surface
+    has, and it lived in a library method with no view.
+    """
+    return {"replaced": app.curator().replaced_seals(
+        conflicts_only=_str(query, "all") != "1",
+        limit=max(1, min(_int(query, "limit", 200), 2000)))}
+
+
+def _rejections(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """The aggregate the recorded "no"s add up to. See Curator.rejection_signals."""
+    return app.curator(_str(query, "source_lang"), _str(query, "target_lang")
+                       ).rejection_signals(min_query=max(1, _int(query, "min_query", 2)),
+                                           min_pair=max(1, _int(query, "min_pair", 2)))
+
+
 def _export(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     return app.curator(_str(query, "source_lang"), _str(query, "target_lang")).export()
 
@@ -539,6 +559,8 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/pair"): _pair,
     ("GET", "/api/queue"): _queue,
     ("GET", "/api/ledger"): _ledger_view,
+    ("GET", "/api/replaced-seals"): _replaced_seals,
+    ("GET", "/api/rejections"): _rejections,
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
     ("GET", "/api/bundle"): _bundle,
