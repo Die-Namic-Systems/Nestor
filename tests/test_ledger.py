@@ -140,6 +140,33 @@ def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
     assert ledger.verify(str(live_ledger))[0]
 
 
+def test_re_asserting_the_same_ledger_path_keeps_the_tail_guard(live_ledger):
+    """`set_ledger_path` is how a surface says where its ledger is, and a
+    long-lived surface is the one most likely to say it more than once. Saying
+    it again is not a change of chain, so it must not drop the checkpoint —
+    doing that would hand back the tail guard for the rest of the shift, which
+    is the window the checkpoint exists to close."""
+    cascade.set_ledger_path(live_ledger)          # the same path, said again
+
+    lines = live_ledger.read_text().splitlines()
+    rec = json.loads(lines[-1]); rec["kind"] = "TAMPERED"
+    lines[-1] = json.dumps(rec, ensure_ascii=False)
+    live_ledger.write_text("\n".join(lines) + "\n")
+
+    with pytest.raises(ledger.LedgerError, match="tampered tail"):
+        cascade._ledger_append({"kind": "d"})
+
+
+def test_pointing_at_another_ledger_does_drop_it(live_ledger, tmp_path):
+    """The other half: a different chain must not inherit this one's checkpoint,
+    or the first append would check one file's tail against another's."""
+    other = tmp_path / "other.jsonl"
+    cascade.set_ledger_path(other)
+    cascade._ledger_append({"kind": "first"})
+    assert ledger.verify(str(other))[0]
+    assert len(other.read_text().splitlines()) == 1
+
+
 def test_the_checkpoint_does_not_replace_the_walk(live_ledger):
     lines = live_ledger.read_text().splitlines()
     assert '"kind": "a"' in lines[0]

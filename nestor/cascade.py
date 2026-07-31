@@ -140,10 +140,29 @@ def _check_tail(ledger: pathlib.Path) -> None:
 
 
 def set_ledger_path(path) -> None:
-    """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``)."""
+    """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``).
+
+    Pointing at a **different** chain drops the in-process verify and checkpoint
+    state, because that state describes the old file: carrying it over would
+    have this process check one chain's tail against another's.
+
+    Re-asserting the **same** path does not, and the distinction is worth the
+    branch. A caller saying where the ledger already is has not changed chains,
+    and clearing the checkpoint would quietly hand back the tail guard
+    (:func:`_check_tail`) for the rest of the process — which is exactly the
+    window §5.3 exists to close, given the surface most likely to re-assert its
+    own configuration is the long-lived one. :func:`reset_ledger_session` is the
+    way to say "start over" on purpose.
+    """
     global _LEDGER_OVERRIDE
-    _LEDGER_OVERRIDE = pathlib.Path(path)
-    reset_ledger_session()
+    new = pathlib.Path(path)
+    # Unknown counts as changed: an override arriving where there was none may
+    # or may not be the chain NESTOR_LEDGER already named, and resetting costs
+    # a re-verification while not resetting could trust a stale checkpoint.
+    changed = _LEDGER_OVERRIDE is None or _LEDGER_OVERRIDE != new
+    _LEDGER_OVERRIDE = new
+    if changed:
+        reset_ledger_session()
 
 
 def reset_ledger_session() -> None:

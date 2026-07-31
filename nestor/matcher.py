@@ -106,7 +106,25 @@ def match_similarity(matcher: Matcher, query_text: str, query_norm: str,
 
 
 def matcher_audit_fields(matcher) -> dict:
-    """Ledger fields naming which matcher (and model) scored a tier-1 serve."""
+    """Ledger fields naming which matcher (and model) scored a tier-1 serve.
+
+    Enough to answer "why was this served at 0.94" after the scoring changes
+    underneath a memory — an embedding model upgrade moves every score, and a
+    trail that records the number without the thing that produced it cannot say
+    so.
+
+    **Not a stable identifier.** A matcher that sets no ``name`` is recorded by
+    its class name, which a rename or a move changes without changing any
+    behaviour, and two unrelated matchers may share one. Read it as a label for
+    a human comparing entries from the same deployment, not as a key to join on
+    or a version to pin against. A matcher that wants to be identifiable across
+    refactors should carry its own ``name``, and one whose scoring is versioned
+    should carry that in ``model_name``.
+
+    Fields are metadata only — no query text and no stored surface — because
+    :mod:`nestor.frank` mirrors ledger entries verbatim into a ledger somebody
+    else holds.
+    """
     fields: dict[str, str] = {
         "matcher": str(getattr(matcher, "name", None) or type(matcher).__name__),
     }
