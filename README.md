@@ -605,7 +605,7 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
-nestor calibrate --from en --to es       # where the threshold belongs for this corpus
+nestor calibrate --from en --to es       # where the threshold belongs for this corpus (--matcher too)
 nestor rejections                        # what the recorded "no"s say in aggregate
 nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke
 nestor ui                                # the browser surface
@@ -983,7 +983,11 @@ the only question that needs no probe set:
 
 ```bash
 nestor calibrate --from en --to es --target 0.01
+nestor calibrate --from en --to es --matcher semantic --target 0.01  # needs nestor[semantic]
 ```
+
+Pass ``--matcher`` when you serve with ``semantic`` or token bench matchers —
+the shipped ``0.92`` default was measured for ``StringMatcher``.
 
 For each sealed pair, it finds the other sealed pair whose source scores highest
 against it and whose target is **different** — which is exactly a false seal, and
