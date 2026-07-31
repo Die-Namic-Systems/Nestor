@@ -99,6 +99,40 @@ def get_matcher(m: Optional[Matcher] = None) -> Matcher:
     return m if m is not None else _matcher
 
 
+def _raw_score_sims(matcher: Matcher, query_text: str,
+                    rows: list[dict]) -> tuple[bool, dict[str, float]]:
+    """Map row id → raw similarity, batching ``scores_against`` when offered.
+
+    Rows with no ``source_text`` are omitted from the map; they must be scored
+    through :func:`~nestor.matcher.match_similarity` on stored norms so
+    :func:`lookup` and :func:`best_sealed` stay aligned.
+    """
+    raw_score = uses_raw_score(matcher)
+    sims: dict[str, float] = {}
+    if not raw_score:
+        return raw_score, sims
+    batch = getattr(matcher, "scores_against", None)
+    if not callable(batch):
+        return raw_score, sims
+    batched = [r for r in rows if (r.get("source_text") or "").strip()]
+    if not batched:
+        return raw_score, sims
+    scores = batch(query_text, [r["source_text"] for r in batched])
+    sims = dict(zip((r["id"] for r in batched), scores))
+    return raw_score, sims
+
+
+def _similarity_for_row(matcher: Matcher, query_text: str, query_norm: str,
+                        row: dict, *, raw_score: bool,
+                        sims: dict[str, float]) -> float:
+    if row["id"] in sims:
+        return sims[row["id"]]
+    return match_similarity(
+        matcher, query_text, query_norm,
+        row.get("source_text", ""), row["source_norm"],
+        _raw_score=raw_score)
+
+
 # --------------------------------------------------------------------------
 # Injected bilingual-pair loader (was a host import of learn._load_bilingual_pairs)
 # --------------------------------------------------------------------------
@@ -425,25 +459,10 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
         eligible.append(row)
 
     scored: list[dict] = []
-    raw_score = uses_raw_score(matcher)
-    batch = getattr(matcher, "scores_against", None)
-    sims: dict[str, float] = {}
-    if raw_score and callable(batch):
-        # Batch only the rows a raw score can actually be taken over. A row with
-        # no surface text has nothing to embed, and `match_similarity` answers it
-        # from the stored norms instead — so handing it to the batch would score
-        # it by a different rule than `best_sealed` uses, and the two functions
-        # would disagree about the same row. `lookup` is what the reviewer and
-        # the engine see; `best_sealed` is the serve decision. They have to
-        # agree, so the split happens here rather than inside a matcher.
-        batched = [r for r in eligible if (r.get("source_text") or "").strip()]
-        if batched:
-            sims = dict(zip((r["id"] for r in batched),
-                            batch(source_text, [r["source_text"] for r in batched])))
+    raw_score, sims = _raw_score_sims(matcher, source_text, eligible)
     for row in eligible:
-        sim = sims[row["id"]] if row["id"] in sims else match_similarity(
-            matcher, source_text, norm,
-            row.get("source_text", ""), row["source_norm"], _raw_score=raw_score)
+        sim = _similarity_for_row(matcher, source_text, norm, row,
+                                  raw_score=raw_score, sims=sims)
         if sim >= ctx:
             scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
@@ -546,20 +565,22 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
 
     best: Optional[dict] = None
     best_sim = 0.0
+    candidates: list[dict] = []
     for row in store.memory_candidates(source_lang, target_lang):
-        # Drafts and rejections can never be tier 1, so they are not scored at
-        # all here — the cheapest prune available, and one lookup cannot make.
         if row["status"] != "sealed":
             continue
         if row["id"] in bad_pairs or row["target_text"] in bad_targets:
             continue
+        candidates.append(row)
+
+    raw_score, sims = _raw_score_sims(matcher, source_text, candidates)
+    for row in candidates:
         # Beat the bar, and then beat the incumbent.
         need = max(seal, ctx, best_sim) - _ROUNDING_SLACK
         if bound is not None and bound(norm, row["source_norm"], need) < need:
             continue
-        raw = match_similarity(matcher, source_text, norm,
-                               row.get("source_text", ""), row["source_norm"],
-                               _raw_score=raw_score)
+        raw = _similarity_for_row(matcher, source_text, norm, row,
+                                  raw_score=raw_score, sims=sims)
         if raw < ctx:                      # lookup's context floor, unrounded
             continue
         sim = round(raw, 3)                # what lookup reports, and judges on

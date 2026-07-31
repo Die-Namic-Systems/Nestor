@@ -1335,16 +1335,19 @@ Services")` beats `StringMatcher` on the same pair (IDEAS §3.1's motivating
 case, ~0.273 on character ratio). See ``tests/test_semantic_integration.py`` and
 ``nestor.semantic_matcher.integration_tests_enabled``.
 
-### 6.2 Batch-embed in `lookup` / `best_sealed` — **open**
+### 6.2 Batch-embed in `lookup` / `best_sealed` — **shipped**
 
-*Proposed 2026-07-31 after §3.3 shipped.*
+*Proposed 2026-07-31 after §3.3 shipped; implemented across PR #22 and follow-up.*
 
-`SemanticMatcher` embeds one string per `score()` call. A large memory scanned
-linearly will re-embed the same `source_text` on every probe. Cache per matcher
-instance helps within a process; batching (embed all candidate surfaces once per
-query, or maintain a sealed-row embedding table invalidated on write) is the
-next step if semantic matching is used on big corpora. Related: §2.1 scan cost,
-but embeddings dominate once the matcher is not difflib.
+Matchers that implement ``scores_against`` (notably :class:`~nestor.semantic_matcher.SemanticMatcher`)
+embed uncached query and candidate surfaces in one ``fastembed`` call per scan.
+:func:`~nestor.memory.lookup` and :func:`~nestor.memory.best_sealed` share
+``_raw_score_sims`` so both paths batch the same way; rows with no
+``source_text`` still score through norms only.
+
+**Still open:** a sealed-row embedding table persisted with the store and
+invalidated on write — the next step when the same corpus is probed many times
+without restarting the process, or when embed cost dominates even with batching.
 
 ### 6.3 Bench token matchers: `score` + harness `match_similarity` — **shipped**
 

@@ -244,6 +244,13 @@ def test_lookup_batches_when_the_matcher_can(store):
     assert m.batch_calls == 1, "one call for the candidate set, not one per row"
 
 
+def test_best_sealed_batches_when_the_matcher_can(store):
+    m = ScoreMatcher()
+    _seal(store, matcher=m)
+    memory.best_sealed("Good evening.", "en", "es", store=store, matcher=m)
+    assert m.batch_calls == 1
+
+
 def test_lookup_and_best_sealed_agree_on_a_row_with_no_surface_text(store):
     """A row with no source_text has nothing to take a raw score over, so
     `match_similarity` answers it from the stored norms. The batch path has to
