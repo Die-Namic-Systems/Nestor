@@ -484,11 +484,14 @@ candidates survived it. That number is from the homogeneous boilerplate corpus,
 which is the worst case for blocking — on diverse prose it should do far better,
 and that is worth measuring before judging the idea. Lossy, unlike §2.1.
 
-### 2.3 Index `source_norm` — **measured**
+### 2.3 Index `source_norm` — **shipped**
 
-`memory_find` runs on every `add_pair` and there is no index on `source_norm`
-(only `(source_lang, target_lang, status)`). Adding one cut ingest from
-~10.1 s/1k to ~4.5 s/1k at 32k rows — **2.3x**, one line of DDL.
+`memory_find` runs on every `add_pair`. Fresh reference databases get
+``idx_tm_pairs_key`` on ``(source_norm, source_lang, target_lang)`` — the same
+unique index §1.8 added for concurrent seals, which also satisfies the measured
+~2.3× ingest win (bench session 2026-07-25). If duplicates already exist and the
+unique index cannot be created, ``idx_tm_pairs_find`` on the same columns is
+installed so lookups stay indexed while the operator resolves the dupes.
 
 ### 2.4 Connection-per-operation — **open**
 
@@ -1335,16 +1338,49 @@ Services")` beats `StringMatcher` on the same pair (IDEAS §3.1's motivating
 case, ~0.273 on character ratio). See ``tests/test_semantic_integration.py`` and
 ``nestor.semantic_matcher.integration_tests_enabled``.
 
-### 6.2 Batch-embed in `lookup` / `best_sealed` — **open**
+### 6.2 Batch-embed in `lookup` / `best_sealed` — **shipped**
 
-*Proposed 2026-07-31 after §3.3 shipped.*
+*Proposed 2026-07-31 after §3.3 shipped; implemented across PR #22 and follow-up.*
 
-`SemanticMatcher` embeds one string per `score()` call. A large memory scanned
-linearly will re-embed the same `source_text` on every probe. Cache per matcher
-instance helps within a process; batching (embed all candidate surfaces once per
-query, or maintain a sealed-row embedding table invalidated on write) is the
-next step if semantic matching is used on big corpora. Related: §2.1 scan cost,
-but embeddings dominate once the matcher is not difflib.
+Matchers that implement ``scores_against`` (notably :class:`~nestor.semantic_matcher.SemanticMatcher`)
+embed uncached query and candidate surfaces in one ``fastembed`` call per scan.
+:func:`~nestor.memory.lookup` and :func:`~nestor.memory.best_sealed` share
+``_raw_score_sims`` so both paths batch the same way; rows with no
+``source_text`` still score through norms only. Persisted vectors per row are §6.4.
+
+### 6.4 Persisted row embeddings (`tm_embeddings`) — **shipped**
+
+*Follow-up to §6.2, 2026-07-31.*
+
+:mod:`nestor.sqlite_store.SqliteStore` stores one vector per ``(pair_id,
+model_name)`` with a ``source_sha`` so a changed surface is not served from a
+stale embedding. :meth:`~nestor.semantic_matcher.SemanticMatcher.scores_against_for_rows`
+hydrates the in-process LRU from the store before batching and writes back after
+embed. :func:`~nestor.memory.add_pair` drops stored embeddings when the raw
+``source_text`` for an existing normalized key changes, and
+:func:`~nestor.memory.reject_pair` drops them outright; ``tm_embeddings`` has a
+foreign key onto ``tm_pairs`` with ``ON DELETE CASCADE``, so nothing is left
+behind by a delete either. Other ``Storage`` implementations are unaffected
+(duck-typed via :func:`~nestor.embedding_store.supports_embedding_store`).
+
+**A cached vector is signed, because it is a serve input.** ``source_sha``
+catches *staleness*; it cannot catch *tampering*, being a digest of text in the
+row next to it. Under ``SemanticMatcher`` the score comes from the vectors, so a
+store-writer who cannot forge a seal could otherwise still choose which queries
+a sealed row answers — Nestor#2 one object over. Each entry therefore carries an
+HMAC over ``(pair_id, model_name, source_sha, vector)``
+(:func:`~nestor.signing.sign_embedding`), and one that does not verify is
+recomputed rather than used: a bad entry costs latency, never an answer.
+:func:`~nestor.signing.cache_trust` decides the policy — ``"unsigned"`` with
+signing off (the store is already fully trusted), ``"signed"`` with a key, and
+``"unavailable"`` when signing is on but no deployment-wide key exists, in which
+case the cache is disabled in both directions and says so once.
+
+Persistence is also opt-out per matcher (``SemanticMatcher(persist=False)``,
+threaded from ``--read-only`` on both surfaces): matching is a read, and it was
+writing one row per candidate *per serve* until hydration started reporting
+which ids it had already filled. Measured over 20 rows with the in-process LRU
+cleared each time: 20 UPSERTs on the cold serve, **0** on every serve after.
 
 ### 6.3 Bench token matchers: `score` + harness `match_similarity` — **shipped**
 

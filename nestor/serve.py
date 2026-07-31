@@ -206,7 +206,11 @@ class Server:
             return answer.match(store, str(args.get("text", "")), sl, tl,
                                 matcher=str(args.get("matcher") or "string"),
                                 abs_tol=float(args.get("abs_tol") or 0.0),
-                                pct_tol=float(args.get("pct_tol") or 0.05))
+                                pct_tol=float(args.get("pct_tol") or 0.05),
+                                # A match is a read. The semantic matcher would
+                                # like to cache its vectors, and --read-only did
+                                # not agree to that.
+                                persist=not self.read_only)
         if name == "nestor_provenance":
             found = answer.provenance(store, str(args.get("pair_id", "")))
             if found is None:

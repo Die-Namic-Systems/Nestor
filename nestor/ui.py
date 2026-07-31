@@ -524,7 +524,11 @@ def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
                         _str(payload, "target_lang") or app.target_lang,
                         matcher=_str(payload, "matcher", "string"),
                         abs_tol=_float(payload, "abs_tol", 0.0),
-                        pct_tol=_float(payload, "pct_tol", 0.05))
+                        pct_tol=_float(payload, "pct_tol", 0.05),
+                        # /match is in _NO_DECISION, so --read-only allows it.
+                        # That is a promise it records nothing, and the semantic
+                        # matcher's embedding cache is a write like any other.
+                        persist=not app.read_only)
 
 
 def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
