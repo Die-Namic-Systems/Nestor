@@ -387,11 +387,15 @@ Publishing `bench/results/` is a differentiator, not an exposure.
 
 ## 5. Missing surface
 
-### 5.1 There is no CLI — **verified**
+### 5.1 There is no CLI — **partly addressed**
 
-No `console_scripts`, no entry point, nothing to run without writing Python.
-`nestor seal / resolve / check / ledger verify` would cost little and is the
-prerequisite for §4.3.
+*Was: no `console_scripts`, no entry point, nothing to run without writing
+Python.*
+
+There is now one entry point — `nestor-ui` (§5.4) — so "nothing to run" is no
+longer true, and §4.3's 60-second demo has something to point at. A terminal CLI
+(`nestor seal / resolve / check / ledger verify`) is still missing and still
+cheap; the UI does not replace it for scripting, CI, or a host with no browser.
 
 ### 5.2 The memory is write-only — **shipped**
 
@@ -443,3 +447,61 @@ tampering that happens while it runs. Options: periodic re-verification, verify
 the tail only, or make the cache TTL'd. Related: `verify()` cost grows linearly
 with ledger length, so checkpointing may be needed before re-verification is
 affordable.
+
+**The UI makes this sharper, not worse.** `nestor.ui` is the first long-lived
+Nestor process in the repo: a REPL session or a batch run exits, a review server
+stays up for a shift. It verifies the chain on the first append and then trusts
+it for as long as the reviewer keeps working. The Ledger view calls `verify()`
+on every render, so the *reading* is live — but nothing refuses an append after
+the first one, and that is now a realistic window rather than a theoretical one.
+
+### 5.4 There was nowhere for the human to sit — **shipped**
+
+*Was: every surface was a library surface. The reviewer worked the tier-2 queue
+by typing `graduate_segment` into a REPL; the curator browsed the memory through
+`Curator`. For a system whose entire claim is that a human checked the answer,
+being the human meant writing Python.*
+
+`nestor.ui` — stdlib only (`http.server` plus one inlined page), so the zero
+runtime dependencies hold — with four views: **Queue** (the segments the cascade
+left for review), **Memory** (the curator's list, provenance and revocation),
+**Ask** (run the cascade and see the state that came back, with the ranked
+candidates behind it), **Ledger** (`verify()`'s verdict beside the chain).
+
+Decisions worth keeping:
+
+* **Ask is the demo.** Two screens carry the product with no explaining: a
+  near-match scoring 0.875 comes back `~ draft` because the cutoff is 0.92, and
+  a forged row scoring **1.000** comes back `! pending` — sealed, not servable,
+  by mallory. §4.3's 60-second demo is that second screen.
+* **An empty verifier is refused, not defaulted.** `memory._same_verifier`
+  treats `""` as *unknown* rather than as a person, so a UI that quietly sent it
+  would file every decision under an actor who is nobody and turn every
+  anonymous re-seal into a conflict. The API asks who is deciding.
+* **The library's refusals reach the human verbatim.** A `ConflictingSealError`
+  comes back as a 409 carrying its own message — *"pair … was sealed by 'rita'
+  as 'Buenas noches.'; 'sam' is now asserting …"* — and the override is a second,
+  deliberate click. Declining leaves the memory untouched.
+* **No authentication, said out loud.** The verifier is typed, not proven. Hence
+  loopback by default, `--allow-remote` to leave it, a custom-header requirement
+  so another tab cannot POST a seal in, `default-src 'none'` so the page cannot
+  ship the memory anywhere, and `--read-only` for showing without granting.
+
+**Building it found two real bugs.** `graduate_segment` never marked its segment
+decided, so a sealed segment stayed `pending` and the queue offered it forever —
+the accept-side twin of the attention tax §1.2's rejection work removed from the
+reject side; invisible until something rendered the queue. And `SqliteStore`'s
+shared `:memory:` connection was single-threaded, which no test caught because
+nothing had ever served Nestor from more than one thread.
+
+The Queue view lets a reviewer **correct** a draft before sealing it, not only
+accept or reject it, because review is usually "nearly" — right apart from one
+term. Without that, correcting meant rejecting the segment and sealing the fixed
+text somewhere else, and the trail recorded a refusal where a correction
+happened. A corrected seal is ledgered with `edited: true` and the digest of the
+draft that was *not* sealed, so "a human accepted the machine's answer" and "a
+human wrote the answer" stay distinguishable.
+
+Still missing: no pagination in Memory beyond the first 50 rows, and no view over
+`Curator.replaced_seals` — the highest-signal thing the curator surface reports,
+and the one the ledger holds alone.

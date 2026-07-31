@@ -229,6 +229,16 @@ def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
         status="sealed", verifier=verifier, weight=weight, origin=f"doc:{seg['document_id'][:8]}",
         store=store,
     )
+    # Mark the segment decided, exactly as `reject_segment` does. Without this a
+    # sealed segment stayed 'pending' forever: the pair was in the memory and
+    # serving, while the queue still offered it for review — the accept side of
+    # the same "the same item comes back identically" tax rejection exists to
+    # end. Best-effort for a store predating the queue capability
+    # (`storage.supports_queue`), which is why it is a getattr rather than a
+    # Protocol call.
+    updater = getattr(store, "update_segment_status", None)
+    if callable(updater):
+        updater(segment_id, "verified")
     _ledger_append({"kind": "seal", "segment_id": segment_id,
                     "pair_id": pair["id"], "verifier": verifier})
     return pair

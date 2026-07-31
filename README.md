@@ -29,7 +29,8 @@ hash-chained ledger, so the trail is tamper-evident.
 **Contents** — [Quick start](#quick-start) · [The mechanic](#the-mechanic) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
-[The curator](#the-curator--seeing-what-was-verified) · [The ledger](#the-ledger) ·
+[The curator](#the-curator--seeing-what-was-verified) ·
+[The UI](#the-ui--where-the-human-sits) · [The ledger](#the-ledger) ·
 [Injected storage](#injected-storage) ·
 [Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
 
@@ -75,6 +76,10 @@ print(p.mark, p.state, repr(p.target), p.confidence, p.meta["verifier"])
 
 One human verification, and the answer is free, instant and attributed from then
 on — with both steps recorded in a tamper-evident ledger.
+
+Prefer to click rather than type? `python -m nestor.ui --db data/nestor.db` opens
+the same three states, the review queue and the ledger in a browser — see
+[The UI](#the-ui--where-the-human-sits).
 
 > The run also prints a `RuntimeWarning` about `NESTOR_SEAL_KEY`. That is Nestor
 > telling you seals are being trusted on stored status alone. See
@@ -128,6 +133,8 @@ nestor/
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── curator.py        the curator surface — browse, audit, unseal, export
+├── ui.py             the browser surface — queue, memory, ask, ledger (stdlib only)
+├── ui_page.py        the single self-contained page ui.py serves
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
@@ -356,6 +363,81 @@ returns the pair to `draft` so it gets re-verified rather than reinstated.
 > it keeps working; `storage.supports_curation(store)` reports it, and `Curator`
 > raises `CurationUnsupportedError` rather than offering actions the store cannot
 > carry out.
+
+---
+
+## The UI — where the human sits
+
+Everything above is a library surface. Nestor's whole claim is that *a human
+checked this*, and until now that human had to write Python to do it: the
+reviewer worked the queue through `graduate_segment` calls typed into a REPL,
+the curator browsed the memory through `Curator`. `nestor.ui` is the place a
+person can actually sit down at.
+
+```bash
+python -m nestor.ui --db data/nestor.db          # http://127.0.0.1:8765
+nestor-ui --db data/nestor.db --open             # same, via the console script
+```
+
+Stdlib only — `http.server` and one inlined page — so the runtime dependency
+count stays zero. Four views, each one a surface the package already had and
+nobody could see:
+
+| View | What it is |
+|------|-----------|
+| **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; the segment leaves the queue and the decision is signed and ledgered. |
+| **Memory** | The curator's view: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, export. Every row shows `servable` beside `status`. |
+| **Ask** | Run the cascade over a phrase and see which of the three states came back — with the ranked candidates that produced it, and what each one scored. |
+| **Ledger** | `verify()`'s verdict and the chain itself, so the audit trail can be read where the decisions are made. |
+
+The Ask view is the one to open first, because it shows the product rather than
+describing it. Asking for a phrase that only *nearly* matches a sealed one:
+
+```
+~ draft   tier 2   offline-tm   confidence 0.7
+Firme y devuelva el formulario adjunto.
+A machine produced it. Queued for review, never served as verified.
+
+Ranked candidates. A sealed one serves only at or above 0.92.
+✓  0.875   Please sign and return the attached form. → Firme y devuelva el formulario adjunto.
+```
+
+And asking for one whose only match is a row that *claims* to be sealed but was
+written without the seal key — the forgery `Curator.unverifiable()` exists to
+surface, seen from the serve side:
+
+```
+! pending   tier 0
+—
+Nothing to offer. Said plainly rather than improvised.
+
+✓  1.000   wire the funds to the new account → transfiera los fondos a la cuenta nueva
+           sealed · NOT SERVABLE · by mallory
+```
+
+A perfect match, and the answer is still *pending*. That is the whole product in
+one screen.
+
+**What the UI does not do is authenticate anybody.** The verifier is typed, not
+proven — the same trust model as calling `memory.add_pair(verifier="rita")`
+yourself. So it binds to loopback and refuses a public bind unless you pass
+`--allow-remote`, mutating requests are refused unless they carry the page's own
+header (so another browser tab cannot POST a seal into it), and the page is
+served with `Content-Security-Policy: default-src 'none'` — an audit surface
+should not be able to ship the memory it is displaying anywhere. Seal
+*signatures* (`NESTOR_SEAL_KEY`) remain the thing that makes a seal unforgeable;
+nothing here weakens them, and the header badge tells you when they are off.
+
+`--read-only` refuses every decision at the API layer, for showing the memory to
+someone without handing them the ability to change it. `--engine` defaults to
+`offline` rather than `auto`, because a click in a browser should not silently
+call a paid API.
+
+> **For hosts:** the queue view needs a third **optional** Storage capability —
+> `list_documents`, `list_segments`, `update_segment_status`
+> (`storage.supports_queue`). Without it the other three views work and the
+> queue says so, rather than showing an empty list that means "this store cannot
+> tell you".
 
 ---
 
