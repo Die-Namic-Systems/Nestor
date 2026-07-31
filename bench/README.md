@@ -52,6 +52,11 @@ store is `:memory:` unless a bench says otherwise.
 |-------|----------|
 | `bench_accuracy.py` | As the sealed memory fills, how often is an *unverified* phrase served as verified — and what does that cost in recall? |
 | `bench_margin.py` | Does the gap between the best and second-best candidate separate a true match from a false seal? (Tests `IDEAS.md` §1.1 — answer: mostly no.) |
+| `bench_surfaces.py` | If one meaning is sealed under several lexically different surfaces, how much recall does that buy, and at what false-seal cost? (`IDEAS.md` §3.4, stage 1.) |
+| `bench_surfaces_llm.py` | The same question with the surfaces *authored by a model* rather than generated — and, in its independent framing, with the probes authored by a different agent than the aliases. (§3.4, stage 2.) |
+| `bench_surfaces_human.py` | The same again with a person authoring both sides, against real prose (`corpus_terpsi.py`). The stage that overturned stage 1's headline. (§3.4, stage 3.) |
+| `token_matchers.py` | Do token-weighted matchers separate the identifier collisions a character-ratio matcher cannot? (§3.4, stage 4 — the matcher, not the corpus, was the binding constraint.) |
+| `corpus_terpsi.py` | Not a bench: the real-prose corpus stage 3 runs against, with its span and split checks. |
 
 `bench_margin.py` censors margins wider than `top - floor`, so its reported
 percentiles are compressed. The **grid is exact** for every margin it sweeps:
@@ -59,6 +64,12 @@ a measured margin is `min(true_margin, top - floor)`, and since the grid only
 counts probes with `top >= threshold >= 0.90` while the widest swept margin is
 `0.10`, `top - floor >= 0.10` always holds. Censoring can only understate a
 margin, which biases against the hypothesis rather than for it.
+
+The surfaces benches were run in stages, each with its prediction **written down
+before the run** — `STAGE2-PREDICTION.md` and `STAGE3-PREDICTION.md` in this
+directory. Stage 3 overturned stage 1's headline result, which is the reason
+those files are worth keeping: the prediction is evidence about what the run was
+expected to show, and it is only evidence if it predates the answer.
 
 ## Corpora
 

@@ -123,8 +123,18 @@ def _env_names_in_code() -> set[str]:
 
 
 def test_documented_environment_variables_exist():
+    """Every knob the docs name must be one the code reads.
+
+    TODO.md is exempt in this direction and only this one: it exists to describe
+    work that is *not* in the tree yet — including a variable on an unmerged
+    branch — so requiring its identifiers to resolve would invert its purpose.
+    The reverse check below still covers it, so a real variable can be documented
+    there and nowhere else without slipping past.
+    """
     documented = set()
-    for text in DOCS.values():
+    for name, text in DOCS.items():
+        if name == "TODO.md":
+            continue
         documented |= set(re.findall(r"`(NESTOR_[A-Z_]+|WILLOW_[A-Z_]+)`", text))
     unknown = sorted(documented - _env_names_in_code())
     assert not unknown, f"documented but read nowhere: {unknown}"
