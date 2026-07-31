@@ -26,7 +26,7 @@ From then on a sealed answer is free, instant, and carries the provenance of
 whoever verified it. Every seal, rejection, serve and check is appended to a
 hash-chained ledger, so the trail is tamper-evident.
 
-**Contents** — [Quick start](#quick-start) · [The mechanic](#the-mechanic) ·
+**Contents** — [The mechanic](#the-mechanic) · [Quick start](#quick-start) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
 [The curator](#the-curator--seeing-what-was-verified) ·
@@ -38,6 +38,40 @@ hash-chained ledger, so the trail is tamper-evident.
 
 Frequently asked, honestly answered — including the "not yet"s:
 [**QUESTIONS.md**](QUESTIONS.md).
+
+---
+
+## The mechanic
+
+One loop, and it knows nothing about language:
+
+> **normalize an input → fuzzy-match it against a memory of _sealed_ (verified)
+> pairs → serve the match above a threshold, else queue it for a human seal →
+> append every step to a hash-chained ledger.**
+
+That loop is the product. What it compares — sentences, aliases, figures, dates,
+column headers — is decided by a `Matcher`, a two-method seam holding the only
+domain-specific code in the system. Everything the value depends on is on the
+other side of it: what counts as verified, who verified it, what gets served,
+what gets queued, and what the audit trail records.
+
+| Recipe | Matcher | "source → target" means | Module |
+|--------|---------|--------------------------|--------|
+| Translation | `StringMatcher` | phrase → translation | `nestor.memory` + `nestor.cascade` |
+| Entity resolution | `StringMatcher` | alias/surface → canonical entity | `nestor.entity` |
+| Numeric reconciliation | `NumericMatcher` | figure → labelled baseline | `nestor.reconcile` |
+| *yours* | *yours* | *whatever you can normalize and score* | — |
+
+Translation is where Nestor was extracted from, and the examples below use it
+most because it needs no setup to read. It is the origin story, not the boundary.
+
+That last row is not aspirational. A date matcher (normalizing `Q3 2025`,
+`September 30, 2025` and `30/09/2025` to one key, scoring by day-window) and a
+CSV-header-to-schema mapper have both been built against the shipped package
+without modifying it.
+
+Nestor has **no upward dependency on any host** — persistence, the matcher, the
+draft engine and the governance forwarder are all injected.
 
 ---
 
@@ -53,7 +87,8 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
-Save this as `demo.py` and run it — it is the entire product in eleven lines:
+Save this as `demo.py` and run it — the whole loop, in the translation recipe,
+in eleven lines:
 
 ```python
 from nestor import cascade, memory, storage
@@ -82,6 +117,40 @@ print(p.mark, p.state, repr(p.target), p.confidence, p.meta["verifier"])
 One human verification, and the answer is free, instant and attributed from then
 on — with both steps recorded in a tamper-evident ledger.
 
+Now the same loop with no translation in it. Save this as `entities.py`: an
+alias graph, where "source → target" means *surface form → the entity it
+denotes*, and the only thing that changed is which recipe is imported.
+
+```python
+from nestor import storage
+from nestor.entity import EntityResolver
+from nestor.sqlite_store import SqliteStore
+
+storage.set_store(SqliteStore(":memory:"))
+graph = EntityResolver(storage.get_store(), domain="company")
+
+# 1. An analyst verifies two aliases — once each.
+graph.seal("Amazon.com Inc", "Amazon", verifier="analyst")
+graph.seal("AMZN", "Amazon", verifier="analyst")
+
+# 2. A spelling nobody sealed, of an alias somebody did.
+hit = graph.resolve("amazon.com,  inc.")
+print(hit["sealed"], hit["canonical"], hit["provenance"]["verifier"])
+
+# 3. Close, but not close enough to serve as verified.
+near = graph.resolve("Amazon Web Services")
+print(near["sealed"], near["canonical"], near["provenance"]["suggestion"])
+```
+
+```
+True Amazon analyst
+False None Amazon
+```
+
+Same seal, same threshold, same ledger. The third line is the one to notice:
+a near miss comes back **unsealed with a suggestion**, not as an answer with a
+lower score — because "probably Amazon" is not a thing a human checked.
+
 Prefer to click rather than type? `python -m nestor.ui --db data/nestor.db` opens
 the same three states, the review queue and the ledger in a browser — see
 [The UI](#the-ui--where-the-human-sits).
@@ -96,36 +165,6 @@ the same three states, the review queue and the ledger in a browser — see
 pip install -e ".[dev]"      # + pytest
 pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
 ```
-
----
-
-## The mechanic
-
-Nestor's core loop is domain-agnostic:
-
-> **normalize an input → fuzzy-match it against a memory of _sealed_ (verified)
-> pairs → serve the match above a threshold, else queue it for a human seal →
-> log every step to a hash-chained ledger.**
-
-Translation is one *instance* of that loop — the one Nestor was extracted from.
-The only translation-specific parts are how text is normalized and scored, and
-those live behind a small `Matcher` seam. Swap the matcher and the same
-seal/serve/ledger machinery **resolves entities** and **reconciles numbers**.
-
-| Recipe | Matcher | "source → target" means | Module |
-|--------|---------|--------------------------|--------|
-| Translation | `StringMatcher` | phrase → translation | `nestor.memory` + `nestor.cascade` |
-| Entity resolution | `StringMatcher` | alias/surface → canonical entity | `nestor.entity` |
-| Numeric reconciliation | `NumericMatcher` | figure → labelled baseline | `nestor.reconcile` |
-| *yours* | *yours* | *whatever you can normalize and score* | — |
-
-That last row is not aspirational. A date matcher (normalizing `Q3 2025`,
-`September 30, 2025` and `30/09/2025` to one key, scoring by day-window) and a
-CSV-header-to-schema mapper have both been built against the shipped package
-without modifying it.
-
-Nestor has **no upward dependency on any host** — persistence, the matcher, the
-draft engine and the governance forwarder are all injected.
 
 ---
 

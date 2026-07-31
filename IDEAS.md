@@ -418,18 +418,27 @@ optional extra, never core.
 
 ## 4. Positioning
 
-### 4.1 Lead with the mechanic, not translation — **open**
+### 4.1 Lead with the mechanic, not translation — **shipped**
 
-The README opens on the three states, then a translation demo, and reaches the
-general mechanic in the next section. Everything I found suggests the general
-mechanic *is* the product and translation is the origin story. Restructure so the
-first screen is seal → serve → audit, with translation as one recipe among
-several.
+*Was: the README opened on a translation demo and reached the general mechanic a
+section later, so the first screen said "translation memory" to anyone skimming.*
 
-The surfaces got there first (§5.4): the UI's Ask view is a recipe picker, the
-CLI has `resolve` and `check` beside `ask`, and the MCP server offers all four.
-The prose is now the part still leading with translation — including the quick
-start, which is the first thing anyone runs.
+The mechanic is now the first section: the loop, then the recipe table, then one
+line placing translation as the origin story rather than the boundary. The quick
+start runs the loop **twice** — once in translation, once as an alias graph with
+no translation in it — because "domain-agnostic" is a claim, and two runnable
+files are evidence. Both are executed by `tests/test_docs.py` and diffed against
+the output printed beneath them, so the second one cannot quietly rot while the
+first is the only one anybody runs.
+
+The entity example ends on the line worth arriving at: a near miss comes back
+**unsealed with a suggestion**, not as an answer with a lower score. That is the
+same three-state answer the translation demo gives, in a domain where nobody
+would call it translation memory — which is the whole argument of §4.2 made
+without asserting it.
+
+Still open, and deliberately separate: §4.2's positioning line, and §4.3's
+recorded demo.
 
 ### 4.2 The category is AI verification, not translation memory — **open**
 

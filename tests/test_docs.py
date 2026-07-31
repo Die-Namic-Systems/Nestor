@@ -174,17 +174,33 @@ def test_the_readme_still_refuses_to_hardcode_counts_that_drift():
 
 # --- the example everyone runs first ---------------------------------------
 
-def test_the_quick_start_prints_what_the_readme_says_it_prints(tmp_path, monkeypatch):
-    """Executed, not read. It is the first thing anyone runs.
+def runnable_examples() -> list[tuple[str, str, str]]:
+    """Every ``Save this as `x.py`\u200b`` example, with the output printed below it.
+
+    The convention is the promise: if the README tells you to save and run it,
+    this runs it. Snippets *without* that introduction are illustrative — the
+    rejection and curator sections show transcripts built from earlier state —
+    and executing those would be testing a fiction.
+    """
+    out = []
+    for name, rest in re.findall(r"Save this as `([\w.]+)`(.*?)(?=Save this as `|\Z)",
+                                 README, re.S):
+        found = re.search(r"```python\n(.*?)```.*?```\n(.*?)```", rest, re.S)
+        if found:
+            out.append((name, found.group(1), found.group(2)))
+    return out
+
+
+@pytest.mark.parametrize("name,demo,expected",
+                         runnable_examples(),
+                         ids=[e[0] for e in runnable_examples()])
+def test_the_readme_examples_print_what_the_readme_says_they_print(
+        name, demo, expected, tmp_path, monkeypatch):
+    """Executed, not read. They are the first things anyone runs.
 
     The ledger lands under the working directory, so this runs in a temp one —
     a doc test that wrote into the repo would be its own kind of wrong.
     """
-    after = README.split("Save this as", 1)[1]
-    # The example, then the first plain fence after it: what it prints.
-    example = re.search(r"```python\n(.*?)```.*?```\n(.*?)```", after, re.S)
-    demo, expected = example.group(1), example.group(2)
-
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
     import nestor.storage as storage_module
@@ -200,7 +216,7 @@ def test_the_quick_start_prints_what_the_readme_says_it_prints(tmp_path, monkeyp
         storage_module._store = saved
 
     assert printed.getvalue() == expected, (
-        f"the quick start prints:\n{printed.getvalue()}\nthe README claims:\n{expected}")
+        f"{name} prints:\n{printed.getvalue()}\nthe README claims:\n{expected}")
 
 
 def test_the_readme_documents_the_warning_the_quick_start_emits():
