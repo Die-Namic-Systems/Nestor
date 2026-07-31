@@ -57,6 +57,9 @@ from typing import Any, Callable, Mapping, Optional
 from . import cascade, ledger as ledger_mod, memory, signing, storage
 from .curator import CurationUnsupportedError, Curator
 from .engine import get_engine
+from .entity import EntityResolver
+from .matcher import Matcher, NumericMatcher, StringMatcher
+from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .storage import Storage, supports_curation, supports_queue, supports_rejection
 from .ui_page import PAGE
@@ -111,6 +114,13 @@ def _str(params: Mapping[str, Any], key: str, default: str = "") -> str:
 def _int(params: Mapping[str, Any], key: str, default: int) -> int:
     try:
         return int(params.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _float(params: Mapping[str, Any], key: str, default: float) -> float:
+    try:
+        return float(params.get(key, default))
     except (TypeError, ValueError):
         return default
 
@@ -269,6 +279,141 @@ def _ask(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict
             "matches": matches, "threshold": memory.SEAL_THRESHOLD}
 
 
+def _domains(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Every graph in the store, as domain tag pairs with their sizes.
+
+    ``source_lang`` / ``target_lang`` are generic domain tags — languages for
+    translation, the entity type for a graph, ``label``/``domain`` for a numeric
+    bucket — so one store holds several disjoint graphs. This is how a human
+    sees which ones are actually in there instead of guessing tag names.
+
+    The recipe is NOT inferred from the tags. ``("company", "company")`` is
+    probably an entity graph and ``("en", "es")`` probably a translation, but
+    nothing enforces either, and a UI that guessed wrong would mislabel someone's
+    data with total confidence. The human picks the recipe; this only reports
+    what exists.
+    """
+    stats = memory.stats(store=app.store)
+    return {"domains": [{"source_lang": sl, "target_lang": tl, "count": n}
+                        for sl, tl, n in stats.get("lang_pairs", [])],
+            "total": stats.get("total", 0)}
+
+
+def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Alias → canonical entity, with the same three answers the cascade gives."""
+    surface = _str(payload, "surface")
+    if not surface:
+        raise ApiError(400, "nothing to resolve", code="bad_request")
+    domain = _str(payload, "domain") or "entity"
+    resolver = EntityResolver(app.store, domain=domain)
+    result = resolver.resolve(surface)
+    result["domain"] = domain
+    result["candidates"] = [
+        {"similarity": m["similarity"], "status": m["pair"]["status"],
+         "servable": memory.is_verified_seal(m["pair"]), "id": m["pair"]["id"],
+         "surface": m["pair"]["source_text"], "canonical": m["pair"]["target_text"],
+         "verifier": m["pair"].get("verifier", "")}
+        for m in memory.lookup(surface, domain, domain, limit=5, store=app.store)
+    ]
+    result["threshold"] = memory.SEAL_THRESHOLD
+    return result
+
+
+def _entity_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    surface = _str(payload, "surface")
+    canonical = _str(payload, "canonical")
+    if not surface or not canonical:
+        raise ApiError(400, "an alias needs both a surface and a canonical entity",
+                       code="bad_request")
+    domain = _str(payload, "domain") or "entity"
+    override = bool(payload.get("override"))
+    return EntityResolver(app.store, domain=domain).seal(
+        surface, canonical, verifier=_verifier(payload),
+        origin=_str(payload, "origin", "ui"),
+        override_conflict=override, override_rejection=override)
+
+
+def _reconciler(payload: Mapping[str, Any], app: App) -> Reconciler:
+    return Reconciler(app.store, domain=_str(payload, "domain") or "value",
+                      abs_tol=_float(payload, "abs_tol", 0.0),
+                      pct_tol=_float(payload, "pct_tol", 0.05))
+
+
+def _reconcile_check(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """A figure against its sealed baseline: within tolerance, flagged, or nothing."""
+    label = _str(payload, "label")
+    observed = _str(payload, "observed")
+    if not label or not observed:
+        raise ApiError(400, "a check needs a label and an observed value",
+                       code="bad_request")
+    rc = _reconciler(payload, app)
+    result = rc.check(label, observed)
+    result["domain"] = rc.domain
+    result["tolerance"] = {"abs_tol": rc.matcher.abs_tol, "pct_tol": rc.matcher.pct_tol}
+    # Every standing baseline, not just the one used: `ambiguous` says a label
+    # has more than one, and a number is not an explanation.
+    result["baselines"] = [
+        {"value": r["target_text"], "verifier": r.get("verifier", ""),
+         "created_at": r.get("created_at", ""), "id": r["id"]}
+        for r in rc.sealed_baselines(label)]
+    return result
+
+
+def _reconcile_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    label = _str(payload, "label")
+    value = _str(payload, "value")
+    if not label or not value:
+        raise ApiError(400, "a baseline needs a label and a value", code="bad_request")
+    override = bool(payload.get("override"))
+    return _reconciler(payload, app).seal_baseline(
+        label, value, verifier=_verifier(payload),
+        origin=_str(payload, "origin", "ui"),
+        override_conflict=override, override_rejection=override)
+
+
+def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """The bare mechanic over any domain: normalize, score, serve or don't.
+
+    No engine, no queue, no recipe — the seam itself, for a domain someone built
+    with the shipped matchers. It answers the only question Nestor ever answers:
+    would this be served as verified, and what did the candidates score?
+    """
+    text = _str(payload, "text")
+    if not text:
+        raise ApiError(400, "nothing to match", code="bad_request")
+    source_lang = _str(payload, "source_lang") or app.source_lang
+    target_lang = _str(payload, "target_lang") or app.target_lang
+    kind = _str(payload, "matcher", "string")
+    if kind == "numeric":
+        m: Matcher = NumericMatcher(abs_tol=_float(payload, "abs_tol", 0.0),
+                                    pct_tol=_float(payload, "pct_tol", 0.05))
+    elif kind == "string":
+        m = StringMatcher()
+    else:
+        raise ApiError(400, f"unknown matcher {kind!r} — this UI can drive the two "
+                            f"shipped matchers; a custom one is injected in code.",
+                       code="bad_request")
+    hit = memory.best_sealed(text, source_lang, target_lang, store=app.store,
+                             matcher=m, context_threshold=0.0)
+    matches = memory.lookup(text, source_lang, target_lang, limit=8, store=app.store,
+                            matcher=m, context_threshold=0.0)
+    return {
+        "normalized": m.normalize(text),
+        "served": bool(hit),
+        "target": hit["pair"]["target_text"] if hit else "",
+        "verifier": hit["pair"].get("verifier", "") if hit else "",
+        "confidence": hit["similarity"] if hit else 0.0,
+        "threshold": memory.SEAL_THRESHOLD,
+        "matcher": kind,
+        "matches": [
+            {"similarity": mm["similarity"], "status": mm["pair"]["status"],
+             "servable": memory.is_verified_seal(mm["pair"]), "id": mm["pair"]["id"],
+             "source_text": mm["pair"]["source_text"],
+             "target_text": mm["pair"]["target_text"],
+             "verifier": mm["pair"].get("verifier", "")} for mm in matches],
+    }
+
+
 def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Seal a pair directly — the tier-3 decision, made by hand.
 
@@ -407,7 +552,13 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/queue"): _queue,
     ("GET", "/api/ledger"): _ledger_view,
     ("GET", "/api/export"): _export,
+    ("GET", "/api/domains"): _domains,
     ("POST", "/api/ask"): _ask,
+    ("POST", "/api/match"): _match,
+    ("POST", "/api/entity/resolve"): _entity_resolve,
+    ("POST", "/api/entity/seal"): _entity_seal,
+    ("POST", "/api/reconcile/check"): _reconcile_check,
+    ("POST", "/api/reconcile/seal"): _reconcile_seal,
     ("POST", "/api/seal"): _seal,
     ("POST", "/api/unseal"): _unseal,
     ("POST", "/api/restore"): _restore,

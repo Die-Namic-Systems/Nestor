@@ -264,6 +264,21 @@ rc.check("ceiling", 1_250_000)
 tolerance, reports absolute and proportional variation, and flags deviations.
 Every seal and check is written to the ledger.
 
+**A label has exactly one baseline.** That needed its own guard, because
+`add_pair`'s conflicting-seal check keys on the normalized source and under a
+`NumericMatcher` every figure is its own key — so a second baseline for a label
+was not an overwrite, it was an insert. Both stayed sealed, and `check` scored an
+observation against whichever it sat *nearest*: the one figure guaranteed to
+excuse it. A `$4,900,000` spend passed cleanly against a superseded `$5,000,000`
+ceiling while the standing `$1,000,000` one went unconsulted. Now a differing
+figure from a different verifier raises `ConflictingSealError`; a same-verifier
+restatement (or an explicit `override_conflict`) retires the superseded baseline
+and ledgers the replacement. Where a store cannot retire it, `check` reports
+`ambiguous=True` and uses the newest rather than the nearest.
+
+All three recipes are driven from [the UI](#the-ui--where-the-human-sits) — same
+memory, same threshold, same ledger, four buttons.
+
 ---
 
 ## Rejection — the reviewer's "no"
@@ -386,9 +401,32 @@ nobody could see:
 | View | What it is |
 |------|-----------|
 | **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; the segment leaves the queue and the decision is signed and ledgered. |
-| **Memory** | The curator's view: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, export. Every row shows `servable` beside `status`. |
-| **Ask** | Run the cascade over a phrase and see which of the three states came back — with the ranked candidates that produced it, and what each one scored. |
+| **Memory** | The curator's view over any domain in the store: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, export. Every row shows `servable` beside `status`. |
+| **Ask** | The mechanic, in whichever recipe you pick — translate, resolve an entity, reconcile a figure, or run the bare seam. Each answer comes with the ranked candidates that produced it and what they scored. |
 | **Ledger** | `verify()`'s verdict and the chain itself, so the audit trail can be read where the decisions are made. |
+
+### Ask is recipe-shaped, not translation-shaped
+
+The [recipes](#the-recipes) are four buttons, over one memory and one ledger:
+
+| Recipe | What you type | What comes back |
+|--------|---------------|-----------------|
+| **Translate** | a phrase, and two language tags | the cascade's three states — sealed, draft, pending |
+| **Entity** | a surface form, and an entity domain | the canonical entity, or an *unsealed suggestion* to seal, or nothing |
+| **Numeric** | a label, a figure, and a tolerance | within tolerance / flagged with the exact variation / no baseline yet |
+| **Match** | any value, any two domain tags, either shipped matcher | the normalized key, every candidate's score, and whether it would be served |
+
+Each one seals from the same screen — an alias, a baseline, a translation — and
+every seal, resolve, check and rejection lands in the one hash-chained ledger.
+The Memory view's domain picker lists every tag pair actually in the store
+(`en → es`, `company`, `ceiling → contract`, …) with its size, so several
+disjoint graphs in one database are visible rather than assumed.
+
+> The UI never *infers* which recipe a domain belongs to. `("company",
+> "company")` is probably an entity graph and `("en", "es")` probably a
+> translation, but nothing enforces either, and a surface that guessed wrong
+> would mislabel someone's data with total confidence. You pick the recipe; it
+> reports what exists.
 
 The Ask view is the one to open first, because it shows the product rather than
 describing it. Asking for a phrase that only *nearly* matches a sealed one:
@@ -417,6 +455,28 @@ Nothing to offer. Said plainly rather than improvised.
 
 A perfect match, and the answer is still *pending*. That is the whole product in
 one screen.
+
+The same screen in the **Entity** recipe, resolving `amazon web services, inc.`
+against a sealed alias graph — an alias scoring 0.905 is below the cutoff, so
+what comes back is an offer to seal, not an answer:
+
+```
+~ draft   domain company   confidence 0.905   via "Amazon Web Services"
+Amazon
+Nothing verified matched closely enough. This is a suggestion to seal, not an answer.
+
+✓  0.905   Amazon Web Services → Amazon      sealed · by analyst
+✓  0.611   Amazon.com Inc      → Amazon      sealed · by analyst
+```
+
+And in **Numeric**, an observation against a sealed contract ceiling:
+
+```
+✗ flagged   ceiling · contract
+baseline    observed    variation   as %      tolerance
+1,000,000   1,250,000   250,000     25.00%    ±0 or 5.00%
+Outside the tolerance band. The variation is reported, not smoothed.
+```
 
 **What the UI does not do is authenticate anybody.** The verifier is typed, not
 proven — the same trust model as calling `memory.add_pair(verifier="rita")`

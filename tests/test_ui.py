@@ -256,13 +256,134 @@ def test_ask_with_nothing_to_ask_is_refused(filled):
     assert post(filled, "/api/ask", text="  ")[0] == 400
 
 
+# --- the other recipes -----------------------------------------------------
+#
+# Translation is one instance of the mechanic, and the UI is not allowed to be
+# translation-shaped. These drive the entity graph, the numeric reconciler and
+# the bare seam through the same API, against the same memory.
+
+def test_domains_lists_every_graph_in_the_store_without_guessing_the_recipe(filled):
+    post(filled, "/api/entity/seal", surface="AMZN", canonical="Amazon",
+         domain="company", verifier="analyst")
+    post(filled, "/api/reconcile/seal", label="ceiling", value="$1,000,000",
+         domain="contract", verifier="auditor")
+
+    domains = {(d["source_lang"], d["target_lang"]): d["count"]
+               for d in get(filled, "/api/domains")[1]["domains"]}
+    assert domains[("en", "es")] == 2            # the translation memory
+    assert domains[("company", "company")] == 1  # an entity graph
+    assert domains[("ceiling", "contract")] == 1  # a numeric bucket, keyed by label
+
+
+def test_entity_resolution_gives_the_same_three_answers(app):
+    unknown = post(app, "/api/entity/resolve", surface="Amazon", domain="company")[1]
+    assert unknown["canonical"] is None and unknown["sealed"] is False
+
+    post(app, "/api/entity/seal", surface="Amazon.com Inc", canonical="Amazon",
+         domain="company", verifier="analyst")
+
+    sealed = post(app, "/api/entity/resolve", surface="amazon.com  inc.", domain="company")[1]
+    assert sealed["canonical"] == "Amazon" and sealed["sealed"] is True
+    assert sealed["provenance"]["verifier"] == "analyst"
+
+    # Below the threshold the top candidate comes back as a suggestion to seal,
+    # never as an answer.
+    near = post(app, "/api/entity/resolve", surface="Amazon.com Incorporated",
+                domain="company")[1]
+    assert near["canonical"] is None and near["provenance"]["suggestion"] == "Amazon"
+
+
+def test_entity_domains_stay_disjoint_through_the_api(app):
+    post(app, "/api/entity/seal", surface="Apple", canonical="Apple Inc.",
+         domain="company", verifier="a")
+    post(app, "/api/entity/seal", surface="Tim", canonical="Tim Cook",
+         domain="person", verifier="b")
+    assert post(app, "/api/entity/resolve", surface="apple", domain="person")[1]["canonical"] is None
+    assert post(app, "/api/entity/resolve", surface="apple", domain="company")[1]["canonical"] == "Apple Inc."
+
+
+def test_two_analysts_disagreeing_about_an_alias_is_a_409(app):
+    post(app, "/api/entity/seal", surface="AWS", canonical="Amazon",
+         domain="company", verifier="analyst")
+    status, out = post(app, "/api/entity/seal", surface="AWS", canonical="Amazon Web Services",
+                       domain="company", verifier="other")
+    assert status == 409 and out["code"] == "conflicting_seal"
+    assert post(app, "/api/entity/resolve", surface="AWS", domain="company")[1]["canonical"] == "Amazon"
+
+    status, _ = post(app, "/api/entity/seal", surface="AWS", canonical="Amazon Web Services",
+                     domain="company", verifier="other", override=True)
+    assert status == 200
+
+
+def test_numeric_reconciliation_reports_variation_not_just_a_verdict(app):
+    none_yet = post(app, "/api/reconcile/check", label="ceiling", observed="$900,000",
+                    domain="contract")[1]
+    assert none_yet["baseline"] is None and none_yet["flagged"] is False
+
+    post(app, "/api/reconcile/seal", label="ceiling", value="$1,000,000",
+         domain="contract", verifier="auditor")
+
+    ok = post(app, "/api/reconcile/check", label="ceiling", observed="$1,030,000",
+              domain="contract", pct_tol=0.05)[1]
+    assert ok["within_tolerance"] is True and ok["flagged"] is False
+    assert ok["variation"] == 30_000.0 and round(ok["variation_pct"], 3) == 0.03
+
+    bad = post(app, "/api/reconcile/check", label="ceiling", observed="1250000",
+               domain="contract", pct_tol=0.05)[1]
+    assert bad["flagged"] is True and bad["variation"] == 250_000.0
+    assert bad["ambiguous"] is False and [b["value"] for b in bad["baselines"]] == ["$1,000,000"]
+
+
+def test_a_second_baseline_from_another_auditor_is_a_409(app):
+    """The figure that would excuse the deviation cannot be added quietly."""
+    post(app, "/api/reconcile/seal", label="ceiling", value="$1,000,000",
+         domain="contract", verifier="auditor")
+    status, out = post(app, "/api/reconcile/seal", label="ceiling", value="$1,250,000",
+                       domain="contract", verifier="someone-else")
+    assert status == 409 and out["code"] == "conflicting_seal"
+    assert post(app, "/api/reconcile/check", label="ceiling", observed="$1,240,000",
+                domain="contract")[1]["flagged"] is True
+
+
+def test_match_is_the_bare_seam_over_any_domain(filled):
+    hit = post(filled, "/api/match", text="THE ANNUAL INVOICE!!", source_lang="en",
+               target_lang="es")[1]
+    assert hit["served"] is True and hit["target"] == "la factura anual"
+    assert hit["normalized"] == "the annual invoice", "the key the matcher reduced it to"
+
+    post(filled, "/api/reconcile/seal", label="ceiling", value="1000000",
+         domain="contract", verifier="auditor")
+    numeric = post(filled, "/api/match", text="1,000,001", source_lang="ceiling",
+                   target_lang="contract", matcher="numeric", pct_tol=0.05)[1]
+    assert numeric["served"] is True, "inside the tolerance band the numeric matcher scores 1.0"
+    assert post(filled, "/api/match", text="2,000,000", source_lang="ceiling",
+                target_lang="contract", matcher="numeric", pct_tol=0.001)[1]["served"] is False
+
+
+def test_an_unknown_matcher_is_refused_rather_than_defaulted(filled):
+    status, out = post(filled, "/api/match", text="x", matcher="semantic")
+    assert status == 400 and "custom one is injected in code" in out["error"]
+
+
+def test_the_recipes_ask_who_is_sealing_too(app):
+    assert post(app, "/api/entity/seal", surface="AMZN", canonical="Amazon",
+                domain="company")[1]["code"] == "verifier_required"
+    assert post(app, "/api/reconcile/seal", label="ceiling", value="1",
+                domain="contract")[1]["code"] == "verifier_required"
+
+
 # --- policy ----------------------------------------------------------------
 
 def test_read_only_refuses_every_decision(filled):
     filled.read_only = True
     for path, payload in [("/api/seal", {"source": "a", "target": "b", "verifier": "rita"}),
                           ("/api/unseal", {"pair_id": "x", "verifier": "rita"}),
-                          ("/api/ask", {"text": "the annual invoice"})]:
+                          ("/api/ask", {"text": "the annual invoice"}),
+                          ("/api/entity/seal", {"surface": "a", "canonical": "b",
+                                                "verifier": "rita"}),
+                          ("/api/reconcile/seal", {"label": "l", "value": "1",
+                                                   "verifier": "rita"}),
+                          ("/api/match", {"text": "the annual invoice"})]:
         status, out = ui.dispatch(filled, "POST", path, {}, payload)
         assert status == 403 and out["code"] == "read_only"
     # Reading still works, and nothing was written.

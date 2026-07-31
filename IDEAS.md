@@ -210,6 +210,41 @@ in provenance; a `weight` that decays; N-of-M verification for high-stakes
 domains. The ledger already records who sealed what and when, so the data is
 there — nothing consumes it.
 
+### 1.5 A numeric label could hold several baselines — **shipped**
+
+*Was: `Reconciler.seal_baseline` let a label accumulate baselines, and `check`
+scored an observation against whichever it sat nearest.*
+
+Found while building the numeric view of the UI (§5.4). The conflicting-seal
+guard in `add_pair` keys on the **normalized source**, and under a
+`NumericMatcher` every figure is its own key — so a second baseline for a label
+was never an overwrite to catch, it was an insert. Both stayed sealed. Then
+`check` ranked by similarity, i.e. by nearness to the observation, which is
+precisely the wrong tie-break: the figure most likely to excuse an observation
+is the one closest to it. Reproduced —
+
+```
+seal_baseline("ceiling", "$5,000,000", verifier="auditor")   # superseded
+seal_baseline("ceiling", "$1,000,000", verifier="auditor")   # the standing one
+check("ceiling", "$4,900,000")  ->  flagged: False           # against the old ceiling
+```
+
+A recipe whose entire job is to flag a deviation must not let a caller add the
+baseline that excuses it. `seal_baseline` now raises `ConflictingSealError` when
+a different verifier restates a label's figure, retires the superseded baseline
+on a self-correction or explicit override, and ledgers `baseline_replaced`.
+`check` uses the **newest** baseline, not the nearest, and reports `ambiguous`
+with a count when more than one stands — which is what a store that cannot
+retire (no curation capability) now degrades to, loudly, instead of silently.
+
+Worth noting what this is an instance of: **the shared guards protect a recipe
+only as far as the matcher's notion of identity reaches.** The entity recipe is
+fine — two canonicals for one alias collide on the same normalized surface, so
+`add_pair` catches it. Any future matcher whose normalization makes distinct
+values distinct keys needs its own uniqueness rule, and §3.1's warning about the
+seam being lossy has a second edge here: what the normalizer *separates* matters
+as much as what it collapses.
+
 ---
 
 ## 2. Performance — the scan
@@ -487,12 +522,27 @@ Decisions worth keeping:
   so another tab cannot POST a seal in, `default-src 'none'` so the page cannot
   ship the memory anywhere, and `--read-only` for showing without granting.
 
-**Building it found two real bugs.** `graduate_segment` never marked its segment
-decided, so a sealed segment stayed `pending` and the queue offered it forever —
-the accept-side twin of the attention tax §1.2's rejection work removed from the
-reject side; invisible until something rendered the queue. And `SqliteStore`'s
-shared `:memory:` connection was single-threaded, which no test caught because
-nothing had ever served Nestor from more than one thread.
+**All four recipes, not just translation.** The Ask view is a recipe picker —
+Translate (the cascade), Entity (alias → canonical), Numeric (figure → baseline,
+with tolerance and variation) and Match (the bare seam: any two domain tags,
+either shipped matcher, showing the normalized key and every candidate's score).
+Each seals from the same screen, into the same memory, through the same ledger.
+The Memory view's domain picker lists every tag pair in the store with its size,
+so several disjoint graphs in one database are visible rather than assumed.
+
+The UI does **not** infer a recipe from a domain's tags. `("company","company")`
+is probably an entity graph and `("en","es")` probably a translation, but nothing
+enforces either, and a surface that guessed wrong would mislabel someone's data
+with total confidence. The human picks; the UI reports what exists. §4.1's "lead
+with the mechanic, not translation" now has a screen that does it.
+
+**Building it found three real bugs.** `graduate_segment` never marked its
+segment decided, so a sealed segment stayed `pending` and the queue offered it
+forever — the accept-side twin of the attention tax §1.2's rejection work removed
+from the reject side; invisible until something rendered the queue.
+`SqliteStore`'s shared `:memory:` connection was single-threaded, which no test
+caught because nothing had ever served Nestor from more than one thread. And the
+third is its own entry — §1.5.
 
 The Queue view lets a reviewer **correct** a draft before sealing it, not only
 accept or reject it, because review is usually "nearly" — right apart from one

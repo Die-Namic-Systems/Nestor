@@ -156,9 +156,21 @@ const TABS = [
   ["ledger", "Ledger"],
 ];
 
+// The recipes: one mechanic — normalize, match against sealed pairs, serve
+// above the threshold or don't — with a different matcher and a different
+// meaning for "source → target". Translation is one instance, not the product.
+const RECIPES = [
+  ["translate", "Translate", "phrase → verified translation, through the three-tier cascade"],
+  ["entity",    "Entity",    "alias/surface → canonical entity, over a sealed alias graph"],
+  ["numeric",   "Numeric",   "figure → sealed baseline, with tolerance and variation"],
+  ["match",     "Match",     "the bare seam: any domain, either shipped matcher"],
+];
+
 const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
-            ledger: null, result: null, filters: { status: "", contains: "", verifier: "",
-            unverifiable: "" } };
+            ledger: null, result: null, domains: [],
+            recipe: localStorage.getItem("nestor.recipe") || "translate",
+            filters: { status: "", contains: "", verifier: "", unverifiable: "",
+                       source_lang: "", target_lang: "" } };
 
 /* ---------- tiny DOM helper: every value lands as text, never as markup ---- */
 function h(tag, props, ...kids) {
@@ -340,6 +352,19 @@ function viewMemory() {
         ...[["", "any status"], ["sealed", "sealed"], ["draft", "draft"], ["rejected", "rejected"]]
           .map(([v, t]) => h("option", { value: v, selected: f.status === v }, t))),
       h("input", { id: "f-verifier", placeholder: "verifier", value: f.verifier, size: 12 }),
+      // Domains are the store's generic tag pairs — languages for translation,
+      // an entity type for a graph, label/domain for a numeric bucket. One store
+      // holds several disjoint graphs, so browsing has to be able to say which.
+      h("select", { id: "f-domain", title: "domain (source → target tags)" },
+        h("option", { value: "", selected: !f.source_lang && !f.target_lang }, "every domain"),
+        // The value is the index into S.domains, not the tags joined by a
+        // separator: a domain tag is arbitrary text and may contain anything.
+        ...S.domains.map((d, i) => h("option", {
+          value: String(i),
+          selected: f.source_lang === d.source_lang && f.target_lang === d.target_lang,
+        }, (d.source_lang === d.target_lang ? d.source_lang
+                                            : d.source_lang + " → " + d.target_lang) +
+           "  (" + d.count + ")"))),
       h("label", { class: "row small", style: "gap:6px" },
         h("input", { type: "checkbox", id: "f-unverifiable", checked: f.unverifiable === "1" }),
         "unverifiable only"),
@@ -447,7 +472,12 @@ async function restore(p) {
 }
 
 function sealForm() {
-  const d = S.state.domain;
+  // Follows the domain being browsed, so sealing by hand while filtered to an
+  // entity graph does not silently file the pair under the translation tags.
+  const f = S.filters;
+  const d = f.source_lang || f.target_lang
+    ? { source_lang: f.source_lang, target_lang: f.target_lang }
+    : S.state.domain;
   const card = h("div", { class: "card" },
     h("h2", { text: "Seal a pair by hand" }),
     h("input", { id: "seal-source", placeholder: "source text", style: "width:100%;margin-bottom:6px" }),
@@ -483,36 +513,312 @@ async function submitSeal() {
   }
 }
 
-/* ---------- Ask ----------------------------------------------------------- */
+/* ---------- Ask: one mechanic, four recipes -------------------------------- */
 function viewAsk() {
-  const d = S.state.domain;
-  $("view").append(h("div", { class: "card" },
+  const view = $("view");
+  const picker = h("div", { class: "card" },
     h("h2", { text: "Ask Nestor" }),
-    h("p", { class: "muted small", style: "margin-top:0",
-      text: "Runs the cascade and shows which of the three states came back. Every ask is appended to the ledger, like any other serve." }),
+    h("div", { class: "row", style: "margin-bottom:6px" },
+      ...RECIPES.map(([id, label]) =>
+        h("button", { class: S.recipe === id ? "primary small" : "small",
+          onclick: () => { S.recipe = id; localStorage.setItem("nestor.recipe", id);
+                           S.result = null; render(); } }, label))),
+    h("p", { class: "muted small", style: "margin:0",
+      text: RECIPES.find((r) => r[0] === S.recipe)[2] +
+            " — same seal, same threshold, same ledger." }));
+  view.append(picker);
+  view.append({ translate: translateForm, entity: entityForm,
+                numeric: numericForm, match: matchForm }[S.recipe]());
+  if (S.result && S.result.recipe === S.recipe) {
+    view.append({ translate: translateResult, entity: entityResult,
+                  numeric: numericResult, match: matchResult }[S.recipe](S.result));
+  }
+}
+
+function remembered(key, fallback) { return localStorage.getItem("nestor." + key) || fallback; }
+function remember(key, value) { localStorage.setItem("nestor." + key, value); return value; }
+function asked() { return S.result && S.result.recipe === S.recipe ? S.result.query : {}; }
+
+function domainList(id) {
+  // The tag pairs actually in the store, offered as completions. Which recipe
+  // a domain belongs to is the human's call — nothing here guesses.
+  return h("datalist", { id },
+    ...S.domains.map((d) => h("option", { value: d.source_lang === d.target_lang
+      ? d.source_lang : d.source_lang + " → " + d.target_lang })));
+}
+
+/* --- translate: the three-tier cascade ------------------------------------ */
+function translateForm() {
+  const d = S.state.domain, q = asked();
+  return h("div", { class: "card" },
     // The asked text stays in the box across the re-render: a reviewer reads the
     // answer against the question, and after sealing they usually ask it again.
-    h("textarea", { id: "ask-text", placeholder: "text to look up…" },
-      S.result ? S.result.query.text : ""),
+    h("textarea", { id: "ask-text", placeholder: "text to look up…" }, q.text || ""),
     h("div", { class: "row", style: "margin-top:8px" },
-      h("input", { id: "ask-sl", value: d.source_lang, size: 4 }),
+      h("input", { id: "ask-sl", value: q.source_lang || d.source_lang, size: 4 }),
       h("span", { class: "muted", text: "→" }),
-      h("input", { id: "ask-tl", value: d.target_lang, size: 4 }),
+      h("input", { id: "ask-tl", value: q.target_lang || d.target_lang, size: 4 }),
       h("span", { class: "chip", text: "engine: " + S.state.engine }),
       h("span", { class: "spacer" }),
-      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitAsk }, "Ask"))));
-  if (S.result) $("view").append(resultCard(S.result));
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitAsk }, "Ask")));
 }
 
 async function submitAsk() {
   const text = $("ask-text").value.trim();
   if (!text) return;
   const body = { text, source_lang: $("ask-sl").value, target_lang: $("ask-tl").value };
-  try { S.result = { ...(await api("/api/ask", body)), query: body }; render(); }
+  try { S.result = { recipe: "translate", ...(await api("/api/ask", body)), query: body }; render(); }
   catch (e) { toast(e.message, "err"); }
 }
 
-function resultCard(r) {
+/* --- entity: alias → canonical -------------------------------------------- */
+function entityForm() {
+  const q = asked();
+  return h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("input", { id: "ent-surface", placeholder: "surface form, e.g. AMZN",
+                   value: q.surface || "", style: "flex:1;min-width:220px",
+                   onkeydown: (e) => { if (e.key === "Enter") submitEntity(); } }),
+      h("input", { id: "ent-domain", list: "nestor-domains", size: 10, title: "entity domain tag",
+                   value: q.domain || remembered("entityDomain", "entity") }),
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitEntity }, "Resolve")),
+    domainList("nestor-domains"));
+}
+
+async function submitEntity() {
+  const surface = $("ent-surface").value.trim();
+  if (!surface) return;
+  const body = { surface, domain: remember("entityDomain", $("ent-domain").value.trim() || "entity") };
+  try { S.result = { recipe: "entity", ...(await api("/api/entity/resolve", body)), query: body }; render(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function entityResult(r) {
+  const state = r.sealed ? "sealed" : (r.provenance && r.provenance.suggestion ? "draft" : "pending");
+  const explain = {
+    sealed: "A human verified that this alias denotes this entity.",
+    draft: "Nothing verified matched closely enough. This is a suggestion to seal, not an answer.",
+    pending: "No alias in this graph comes close. Said plainly rather than guessed.",
+  }[state];
+  const prov = r.provenance || {};
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" }, mark(state), h("b", { class: state, text: state }),
+      h("span", { class: "chip", text: "domain " + r.domain }),
+      r.confidence ? h("span", { class: "chip mono", text: "confidence " + r.confidence }) : null,
+      prov.verifier ? h("span", { class: "chip", text: "verified by " + prov.verifier }) : null,
+      prov.sealed_surface ? h("span", { class: "chip", text: "via “" + prov.sealed_surface + "”" }) : null),
+    h("p", { style: "font-size:17px;margin:10px 0 2px",
+             text: r.canonical || prov.suggestion || "—" }),
+    h("p", { class: "small muted", style: "margin-top:0", text: explain }));
+
+  if (!r.sealed) {
+    card.append(h("div", { class: "row", style: "margin-top:10px" },
+      h("span", { class: "muted small", text: r.query.surface + "  →" }),
+      h("input", { id: "ent-canonical", value: prov.suggestion || "",
+                   placeholder: "canonical entity", style: "flex:1;min-width:200px" }),
+      h("button", { class: "primary small", disabled: S.state.read_only,
+        onclick: () => sealAlias(r) }, "Seal alias")));
+  }
+  card.append(candidates(r.candidates, r.threshold, "alias", "entity",
+    (m) => rejectMatch({ source: r.query.surface, source_lang: r.domain,
+                         target_lang: r.domain }, m)));
+  return card;
+}
+
+async function sealAlias(r) {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const canonical = $("ent-canonical").value.trim();
+  if (!canonical) return toast("Nothing to seal — type the canonical entity.", "err");
+  const body = { surface: r.query.surface, canonical, domain: r.domain,
+                 verifier: verifier(), origin: "ui:entity" };
+  await sealWithOverride("/api/entity/seal", body,
+    "Sealed. That alias now resolves to " + canonical + ".");
+}
+
+/* --- numeric: figure vs sealed baseline ----------------------------------- */
+function numericForm() {
+  const q = asked();
+  return h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("input", { id: "num-label", placeholder: "label, e.g. ceiling", size: 14,
+                   value: q.label || remembered("numLabel", "") }),
+      h("input", { id: "num-observed", placeholder: "observed figure, e.g. $1,030,000",
+                   value: q.observed || "", style: "flex:1;min-width:180px",
+                   onkeydown: (e) => { if (e.key === "Enter") submitNumeric(); } }),
+      h("input", { id: "num-domain", list: "nestor-domains", size: 9, title: "domain tag",
+                   value: q.domain || remembered("numDomain", "value") }),
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitNumeric }, "Check")),
+    h("div", { class: "row small muted", style: "margin-top:8px" },
+      "tolerance", h("input", { id: "num-abs", size: 6, title: "absolute tolerance",
+                                value: q.abs_tol !== undefined ? q.abs_tol : remembered("numAbs", "0") }),
+      "absolute, or", h("input", { id: "num-pct", size: 6, title: "proportional tolerance, as a fraction",
+                                   value: q.pct_tol !== undefined ? q.pct_tol : remembered("numPct", "0.05") }),
+      "proportional — whichever is wider"),
+    domainList("nestor-domains"));
+}
+
+function numericBody() {
+  return {
+    label: remember("numLabel", $("num-label").value.trim()),
+    observed: $("num-observed").value.trim(),
+    domain: remember("numDomain", $("num-domain").value.trim() || "value"),
+    abs_tol: remember("numAbs", $("num-abs").value.trim() || "0"),
+    pct_tol: remember("numPct", $("num-pct").value.trim() || "0.05"),
+  };
+}
+
+async function submitNumeric() {
+  const body = numericBody();
+  if (!body.label || !body.observed) return toast("A check needs a label and a figure.", "err");
+  try { S.result = { recipe: "numeric", ...(await api("/api/reconcile/check", body)), query: body }; render(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function numericResult(r) {
+  const state = r.baseline === null ? "pending" : (r.within_tolerance ? "sealed" : "rejected");
+  const label = { pending: "no baseline", sealed: "within tolerance", rejected: "flagged" }[state];
+  const explain = {
+    pending: "No verified baseline for this label. Nothing to check against — seal one below.",
+    sealed: "Inside the tolerance band around a human-verified baseline.",
+    rejected: "Outside the tolerance band. The variation is reported, not smoothed.",
+  }[state];
+  const pct = (x) => x === null || x === undefined ? "—" : (x * 100).toFixed(2) + "%";
+  const num = (x) => x === null || x === undefined ? "—" : x.toLocaleString();
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" }, mark(state), h("b", { class: state, text: label }),
+      h("span", { class: "chip", text: r.label + " · " + r.domain }),
+      r.ambiguous ? h("span", { class: "badge bad", title: "more than one sealed baseline stands for this label",
+                                text: r.baseline_count + " baselines — ambiguous" }) : null),
+    h("table", {},
+      h("tr", {}, h("th", { text: "baseline" }), h("th", { text: "observed" }),
+        h("th", { text: "variation" }), h("th", { text: "as %" }), h("th", { text: "tolerance" })),
+      h("tr", {},
+        h("td", { class: "mono", text: num(r.baseline) }),
+        h("td", { class: "mono", text: num(r.observed) }),
+        h("td", { class: "mono", text: num(r.variation) }),
+        h("td", { class: "mono", text: pct(r.variation_pct) }),
+        h("td", { class: "mono small muted",
+                  text: "±" + num(r.tolerance.abs_tol) + " or " + pct(r.tolerance.pct_tol) }))),
+    h("p", { class: "small muted", text: explain }),
+    h("div", { class: "row" },
+      h("input", { id: "num-baseline", placeholder: "verified baseline for " + r.label,
+                   value: r.baseline === null ? r.query.observed : "",
+                   style: "flex:1;min-width:200px" }),
+      h("button", { class: "primary small", disabled: S.state.read_only,
+        onclick: () => sealBaseline(r) }, "Seal baseline")));
+  if (r.baselines && r.baselines.length) {
+    card.append(h("p", { class: "small muted", style: "margin:12px 0 2px",
+      text: "Standing baseline(s) for this label — a label should have exactly one:" }));
+    for (const b of r.baselines) {
+      card.append(h("div", { class: "small" },
+        h("span", { class: "mono", text: b.value }),
+        h("span", { class: "chip", text: "by " + (b.verifier || "—") }),
+        h("span", { class: "chip mono", text: (b.created_at || "").slice(0, 19).replace("T", " ") })));
+    }
+  }
+  return card;
+}
+
+async function sealBaseline(r) {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const value = $("num-baseline").value.trim();
+  if (!value) return toast("Nothing to seal — type the verified figure.", "err");
+  await sealWithOverride("/api/reconcile/seal",
+    { ...r.query, value, verifier: verifier(), origin: "ui:numeric" },
+    "Baseline sealed for " + r.label + ".");
+}
+
+/* --- match: the bare seam ------------------------------------------------- */
+function matchForm() {
+  const d = S.state.domain, q = asked();
+  return h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("input", { id: "m-text", placeholder: "value to normalize and score…",
+                   value: q.text || "", style: "flex:1;min-width:220px",
+                   onkeydown: (e) => { if (e.key === "Enter") submitMatch(); } }),
+      h("input", { id: "m-sl", value: q.source_lang || d.source_lang, size: 6, title: "source domain tag" }),
+      h("span", { class: "muted", text: "→" }),
+      h("input", { id: "m-tl", value: q.target_lang || d.target_lang, size: 6, title: "target domain tag" }),
+      h("select", { id: "m-matcher" },
+        ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"]].map(([v, t]) =>
+          h("option", { value: v, selected: (q.matcher || "string") === v }, t))),
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitMatch }, "Look up")),
+    h("p", { class: "small muted", style: "margin:8px 0 0" },
+      "No engine, no queue, no recipe — normalize, score against the sealed pairs in this domain, ",
+      "and answer the only question Nestor answers: would this be served as verified?"));
+}
+
+async function submitMatch() {
+  const text = $("m-text").value.trim();
+  if (!text) return;
+  const body = { text, source_lang: $("m-sl").value.trim(), target_lang: $("m-tl").value.trim(),
+                 matcher: $("m-matcher").value };
+  try { S.result = { recipe: "match", ...(await api("/api/match", body)), query: body }; render(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function matchResult(r) {
+  const state = r.served ? "sealed" : (r.matches.length ? "draft" : "pending");
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" }, mark(state),
+      h("b", { class: state, text: r.served ? "would be served" : "would not be served" }),
+      h("span", { class: "chip", text: r.matcher }),
+      h("span", { class: "chip mono", title: "the key the matcher reduced this to",
+                  text: "normalized: " + r.normalized }),
+      r.confidence ? h("span", { class: "chip mono", text: "confidence " + r.confidence }) : null),
+    r.served ? h("p", { style: "font-size:17px;margin:10px 0 2px", text: r.target }) : null,
+    r.served && r.verifier ? h("p", { class: "small muted", style: "margin-top:0",
+                                      text: "verified by " + r.verifier }) : null);
+  card.append(candidates(r.matches, r.threshold, "source", "target",
+    (m) => rejectMatch(r.query, m)));
+  return card;
+}
+
+/* --- shared: candidates, sealing, rejecting ------------------------------- */
+function candidates(rows, threshold, leftLabel, rightLabel, onReject) {
+  const box = h("div", {}, h("p", { class: "small muted", style: "margin:14px 0 4px",
+    text: rows.length ? "Ranked candidates. A sealed one serves only at or above " + threshold + "."
+                      : "No candidate scored high enough to be worth showing." }));
+  if (!rows.length) return box;
+  const table = h("table", {}, h("tr", {}, h("th", { text: "" }), h("th", { text: "similarity" }),
+    h("th", { text: leftLabel + " → " + rightLabel }), h("th", { text: "" })));
+  for (const m of rows) {
+    const left = m.source_text !== undefined ? m.source_text : m.surface;
+    const right = m.target_text !== undefined ? m.target_text : m.canonical;
+    table.append(h("tr", {},
+      h("td", {}, mark(m.status)),
+      h("td", {}, sim(m.similarity)),
+      h("td", {},
+        h("div", { text: left + "  →  " + right }),
+        h("div", { class: "small muted" },
+          h("span", { class: "chip", text: m.status }),
+          m.status === "sealed" && !m.servable ? h("span", { class: "badge bad", text: "not servable" }) : null,
+          m.verifier ? h("span", { class: "chip", text: "by " + m.verifier }) : null)),
+      h("td", {}, onReject ? h("button", { class: "small danger", disabled: S.state.read_only,
+        title: "wrong answer for THIS query — the pair stays valid for its own source",
+        onclick: () => onReject(m) }, "Wrong for this") : null)));
+  }
+  box.append(table);
+  return box;
+}
+
+async function sealWithOverride(path, body, okMessage) {
+  try {
+    await api(path, body);
+    toast(okMessage, "ok");
+    await refresh();
+  } catch (e) {
+    if (e.data && (e.data.code === "conflicting_seal" || e.data.code === "rejected_pair")) {
+      if (confirm(e.message + "\n\nOverride and seal anyway? This is recorded as a deliberate overrule.")) {
+        await act(path, { ...body, override: true }, "Sealed with an explicit override.");
+      }
+      return;
+    }
+    toast(e.message, "err");
+  }
+}
+
+function translateResult(r) {
   const p = r.passage;
   const explain = {
     sealed: "A human verified this. Served verbatim.",
@@ -537,24 +843,8 @@ function resultCard(r) {
         "Seal this answer")));
   }
 
-  const table = h("table", {}, h("tr", {},
-    h("th", { text: "" }), h("th", { text: "similarity" }), h("th", { text: "pair" }), h("th", { text: "" })));
-  for (const m of r.matches) {
-    table.append(h("tr", {},
-      h("td", {}, mark(m.status)),
-      h("td", {}, sim(m.similarity)),
-      h("td", {},
-        h("div", { text: m.source_text + "  →  " + m.target_text }),
-        h("div", { class: "small muted" },
-          h("span", { class: "chip", text: m.status }),
-          m.status === "sealed" && !m.servable ? h("span", { class: "badge bad", text: "not servable" }) : null,
-          m.verifier ? h("span", { class: "chip", text: "by " + m.verifier }) : null)),
-      h("td", {}, h("button", { class: "small danger", disabled: S.state.read_only,
-        title: "wrong answer for THIS query — the pair stays valid for its own source",
-        onclick: () => rejectMatch(r, m) }, "Wrong for this"))));
-  }
-  card.append(h("p", { class: "small muted", style: "margin:14px 0 4px",
-    text: "Ranked candidates. A sealed one serves only at or above " + r.threshold + "." }), table);
+  card.append(candidates(r.matches, r.threshold, "source", "target",
+    (m) => rejectMatch(r.query, m)));
   return card;
 }
 
@@ -562,30 +852,24 @@ async function sealFromAsk(r) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
   const target = $("ask-seal-target").value.trim();
   if (!target) return toast("Nothing to seal — type the verified text.", "err");
-  const body = { source: r.query.text, target, source_lang: r.query.source_lang,
-                 target_lang: r.query.target_lang, verifier: verifier(), origin: "ui:ask" };
-  try {
-    await api("/api/seal", body);
-    toast("Sealed. Ask again and it serves as tier 1.", "ok");
-    await refresh();
-  } catch (e) {
-    if (e.data && (e.data.code === "conflicting_seal" || e.data.code === "rejected_pair")) {
-      if (confirm(e.message + "\n\nOverride and seal anyway?")) {
-        await act("/api/seal", { ...body, override: true }, "Sealed with an explicit override.");
-      }
-      return;
-    }
-    toast(e.message, "err");
-  }
+  await sealWithOverride("/api/seal",
+    { source: r.query.text, target, source_lang: r.query.source_lang,
+      target_lang: r.query.target_lang, verifier: verifier(), origin: "ui:ask" },
+    "Sealed. Ask again and it serves as tier 1.");
 }
 
-async function rejectMatch(r, m) {
+// `query` carries whatever the recipe asked with — the text and the two domain
+// tags. Rejection is domain-generic: it suppresses one answer for one query key,
+// whether that query was a phrase, an alias or a figure.
+async function rejectMatch(query, m) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
   const reason = await askFor("Why is this the wrong answer for this query?", "reason");
   if (reason === null) return;
   await act("/api/reject-match", {
-    source: r.query.text, source_lang: r.query.source_lang, target_lang: r.query.target_lang,
-    pair_id: m.id, target_text: m.target_text, verifier: verifier(), reason,
+    source: query.source !== undefined ? query.source : query.text,
+    source_lang: query.source_lang, target_lang: query.target_lang,
+    pair_id: m.id, target_text: m.target_text !== undefined ? m.target_text : m.canonical,
+    verifier: verifier(), reason,
   }, "Suppressed for this query. The pair still serves its own source text.");
 }
 
@@ -651,9 +935,11 @@ function tabs() {
 }
 
 function applyFilters() {
+  const picked = $("f-domain").value === "" ? null : S.domains[Number($("f-domain").value)];
   S.filters = {
     contains: $("f-contains").value.trim(), status: $("f-status").value,
     verifier: $("f-verifier").value.trim(), unverifiable: $("f-unverifiable").checked ? "1" : "",
+    source_lang: picked ? picked.source_lang : "", target_lang: picked ? picked.target_lang : "",
   };
   refresh();
 }
@@ -671,6 +957,7 @@ function render() {
 async function refresh() {
   try {
     S.state = await api("/api/state");
+    S.domains = (await api("/api/domains")).domains;
     if (S.tab === "queue" && S.state.capabilities.queue) S.queue = await api("/api/queue");
     if (S.tab === "memory" && S.state.capabilities.curation) {
       const q = new URLSearchParams(S.filters);

@@ -15,10 +15,12 @@ independently.
 from __future__ import annotations
 
 
+import warnings
+
 from . import memory
 from .cascade import _ledger_append
 from .matcher import NumericMatcher
-from .storage import Storage
+from .storage import Storage, supports_curation
 
 
 class Reconciler:
@@ -34,19 +36,46 @@ class Reconciler:
     # -- sealing ----------------------------------------------------------
 
     def seal_baseline(self, label: str, value, verifier: str = "",
-                      origin: str = "") -> dict:
+                      origin: str = "", override_conflict: bool = False,
+                      override_rejection: bool = False) -> dict:
         """Seal a canonical numeric baseline for ``label``.
 
         The value's canonical numeric key is the pair's source (so an
         observation can be matched against it numerically); the raw value string
         is the target. Returns the sealed baseline and logs it.
+
+        Re-baselining a label to a *different* figure is a conflicting seal —
+        one auditor restating another's verified number — and it needed its own
+        guard, because ``add_pair``'s does not fire here. That guard keys on the
+        *normalized source*, and under a ``NumericMatcher`` every figure is its
+        own key: a second baseline for the same label was not an overwrite at
+        all, it was an insert. Both stayed sealed, and :meth:`check` then scored
+        an observation against whichever one it happened to sit nearest, so
+        ``$1,240,000`` passed cleanly against a superseded ``$1,250,000`` ceiling
+        while the standing ``$1,000,000`` one went unconsulted. A recipe whose
+        entire job is to flag a deviation cannot let a caller add the baseline
+        that excuses it.
+
+        So a differing figure from a different verifier raises
+        :class:`~nestor.memory.ConflictingSealError`. A same-verifier restatement
+        proceeds — that is an auditor correcting their own number — and so does
+        an explicit ``override_conflict``; in both cases the superseded baselines
+        are unsealed so exactly one stands, and the replacement is ledgered.
+        Retiring needs the optional curation capability; without it the new
+        baseline is still sealed, the old ones remain, and both the warning here
+        and ``check``'s ``ambiguous`` flag say so rather than leaving the caller
+        to discover it from a figure that quietly passed.
         """
         num = self.matcher.parse(value)
+        self._guard_existing_baselines(label, value, verifier, num,
+                                       override_conflict)
         pair = memory.add_pair(
             source_text=str(value), target_text=str(value),
             source_lang=label, target_lang=self.domain,
             status="sealed", verifier=verifier, origin=origin,
             store=self.store, matcher=self.matcher,
+            override_conflict=override_conflict,
+            override_rejection=override_rejection,
         )
         _ledger_append({
             "kind": "baseline_seal", "domain": self.domain, "label": label,
@@ -54,6 +83,58 @@ class Reconciler:
         })
         return {"label": label, "baseline": num, "sealed": True,
                 "pair_id": pair["id"], "verifier": verifier}
+
+    # -- one baseline per label -------------------------------------------
+
+    def sealed_baselines(self, label: str) -> list[dict]:
+        """Every verified sealed baseline row for ``label``, newest first.
+
+        Normally one. More than one means a replacement could not be retired
+        (see :meth:`seal_baseline`), and a caller reading a single ``baseline``
+        deserves to be able to see that.
+        """
+        rows = [r for r in self.store.memory_candidates(label, self.domain)
+                if memory.is_verified_seal(r)]
+        return sorted(rows, key=lambda r: r.get("created_at", ""), reverse=True)
+
+    def _guard_existing_baselines(self, label: str, value, verifier: str,
+                                  num, override_conflict: bool) -> None:
+        """Refuse, or retire, the baselines this one supersedes."""
+        superseded = [r for r in self.sealed_baselines(label)
+                      if r["source_norm"] != self.matcher.normalize(value)]
+        if not superseded:
+            return
+        if not override_conflict and not all(
+                memory._same_verifier(r.get("verifier", ""), verifier) for r in superseded):
+            others = ", ".join(sorted({r.get("verifier") or "an unknown verifier"
+                                       for r in superseded}))
+            raise memory.ConflictingSealError(
+                f"{label!r} already has a sealed baseline of "
+                f"{[r['target_text'] for r in superseded]} from {others}; "
+                f"{verifier or 'an unknown verifier'!r} is now asserting {value!r}. "
+                f"This will not be sealed implicitly — a second baseline does not "
+                f"replace the first, it joins it, and check() would then have two "
+                f"figures to pass against. Reseal as the SAME verifier if this is "
+                f"your own correction, or pass override_conflict=True."
+            )
+        can_retire = supports_curation(self.store)
+        for row in superseded:
+            if can_retire:
+                self.store.memory_unseal(
+                    row["id"], verifier, f"superseded by baseline {value}")
+            _ledger_append({
+                "kind": "baseline_replaced", "domain": self.domain, "label": label,
+                "pair_id": row["id"], "replaced_baseline": row["target_text"],
+                "replaced_verifier": row.get("verifier", ""), "verifier": verifier,
+                "baseline": num, "retired": can_retire,
+            })
+        if not can_retire:
+            warnings.warn(
+                f"{type(self.store).__name__} cannot unseal (see "
+                f"storage.supports_curation), so {len(superseded)} superseded "
+                f"baseline(s) for {label!r} stay sealed. check() will report "
+                f"ambiguous=True; retire them by hand before trusting a result.",
+                RuntimeWarning, stacklevel=3)
 
     # -- checking ---------------------------------------------------------
 
@@ -68,19 +149,31 @@ class Reconciler:
              "within_tolerance": bool,
              "variation": float,        # absolute |observed - baseline|
              "variation_pct": float,    # variation / |baseline| (a fraction)
-             "flagged": bool}
+             "flagged": bool,
+             "ambiguous": bool,         # more than one baseline stands for this label
+             "baseline_count": int}
 
         ``within_tolerance`` is true iff the NumericMatcher scores the pair a
         perfect ``1.0`` (i.e. ``|observed - baseline| <= max(abs_tol,
         pct_tol*max(|.|))``). Anything else with a known baseline is ``flagged``.
         Every check is appended to the ledger.
+
+        When more than one sealed baseline stands for a label, the **newest**
+        one is used and ``ambiguous`` is set. It used to be whichever scored
+        highest, i.e. whichever sat closest to the observation — the one choice
+        guaranteed to under-report a deviation, since the figure most likely to
+        excuse an observation is the one nearest it. :meth:`seal_baseline` now
+        keeps a label to one baseline, so this is the fallback for stores that
+        cannot retire the old one, not the normal path.
         """
         obs_num = self.matcher.parse(observed)
         # context_threshold=0.0 so even a wildly off observation still returns
-        # the baseline candidate (we need it to report the variation).
+        # the baseline candidate (we need it to report the variation). The limit
+        # is raised past lookup's default because ranking is by similarity and
+        # the baseline we want is the newest, which may not be in the top 5.
         matches = memory.lookup(
             observed, label, self.domain, store=self.store,
-            matcher=self.matcher, context_threshold=0.0,
+            matcher=self.matcher, context_threshold=0.0, limit=100,
         )
         # Verified seals only — a forged "sealed" row must not become a trusted
         # baseline (Nestor#2 follow-up: this path used to skip the signature
@@ -92,8 +185,11 @@ class Reconciler:
                 "label": label, "baseline": None, "observed": obs_num,
                 "within_tolerance": False, "variation": None,
                 "variation_pct": None, "flagged": False,
+                "ambiguous": False, "baseline_count": 0,
             }
         else:
+            sealed = sorted(sealed, key=lambda m: m["pair"].get("created_at", ""),
+                            reverse=True)
             top = sealed[0]
             baseline = float(top["pair"]["source_norm"])
             within = top["similarity"] == 1.0
@@ -104,6 +200,7 @@ class Reconciler:
                 "label": label, "baseline": baseline, "observed": obs_num,
                 "within_tolerance": within, "variation": variation,
                 "variation_pct": variation_pct, "flagged": not within,
+                "ambiguous": len(sealed) > 1, "baseline_count": len(sealed),
             }
 
         _ledger_append({
@@ -111,5 +208,6 @@ class Reconciler:
             "baseline": result["baseline"], "observed": result["observed"],
             "within_tolerance": result["within_tolerance"],
             "variation": result["variation"], "flagged": result["flagged"],
+            "ambiguous": result["ambiguous"],
         })
         return result
