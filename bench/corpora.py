@@ -1,7 +1,9 @@
-"""Deterministic corpora for the bench, spanning the diversity spectrum.
+"""Deterministic corpora for the bench, spanning diversity AND key length.
 
-Two shapes, because Nestor's accuracy depends almost entirely on how much the
-sealed phrases resemble each other:
+Three shapes. Diversity matters because Nestor's accuracy depends on how much
+the sealed phrases resemble each other; **key length matters because difflib
+behaves differently past 200 characters**, and for a long time nothing here
+reached that far:
 
 * :func:`boilerplate` — templated legal text drawn from a small word pool. Near
   worst case for a character-ratio matcher: every phrase shares most of its
@@ -10,7 +12,13 @@ sealed phrases resemble each other:
   library's docstrings. No network, no fixtures to vendor, and genuinely
   diverse vocabulary and length.
 
-Both are seeded, so a bench run is reproducible.
+* :func:`code` — real Python function sources, every one normalizing to 200+
+  characters. Exists because the other two do not: difflib's ``autojunk``
+  engages at 200 elements, and StringMatcher was broken in exactly that regime
+  (scores collapsing, `similarity` not symmetric) while this bench reported
+  everything healthy. See :func:`length_coverage`.
+
+All are seeded, so a bench run is reproducible.
 """
 from __future__ import annotations
 
@@ -112,7 +120,138 @@ def available_prose() -> int:
     return len(_CACHE or [])
 
 
-CORPORA = {"boilerplate": boilerplate, "prose": prose}
+# --------------------------------------------------------------------------
+# code — the LONG end, which nothing else here reaches
+# --------------------------------------------------------------------------
+#
+# Every other corpus normalizes well under 200 characters: boilerplate to ~70,
+# prose to 40-180. That left difflib's ``autojunk`` regime — which engages once
+# the compared sequence reaches 200 elements — completely untested, and it is
+# where StringMatcher was found to be broken (scores collapsing from ~0.95 to
+# ~0.55, and `similarity` not symmetric). A real code corpus found both defects
+# in one pass; this bench could not have.
+#
+# Function bodies are the natural long unit: offline, deterministic, and shaped
+# like a genuine Nestor use case (the entity/schema-mapping recipes match code
+# identifiers and SQL).
+
+_CODE_MODULES = ("json argparse logging inspect difflib pathlib datetime collections "
+                 "functools statistics shutil socket sqlite3 subprocess threading "
+                 "unittest csv configparser dataclasses decimal enum gzip hashlib "
+                 "heapq http.client ipaddress mimetypes pickle pprint queue sched "
+                 "shlex smtplib ssl string tarfile tempfile tokenize traceback uuid "
+                 "zipfile asyncio base64 bdb calendar cmd codecs copy ftplib "
+                 "getpass glob gettext imaplib io locale mailbox netrc nntplib "
+                 "optparse os platform plistlib poplib pstats pydoc random re "
+                 "secrets selectors shelve signal site stat struct symtable "
+                 "textwrap timeit types typing warnings weakref webbrowser "
+                 "xml.etree.ElementTree zoneinfo").split()
+
+# Lower bound puts every unit past the autojunk threshold — the whole point.
+# Upper bound keeps the bench tractable: with autojunk=False (now the default,
+# and required for correctness) scoring costs ~43x at 400 characters and ~78x at
+# 800, so unbounded 8k-character outliers would dominate a run without testing
+# anything the 200-1500 band does not.
+_CODE_MIN_NORM = 200
+_CODE_MAX_NORM = 1500
+
+_CODE_CACHE: "list[str] | None" = None
+
+
+def _harvest_code() -> list[str]:
+    """Function sources from the stdlib, sliced by line number.
+
+    Deliberately NOT ``ast.get_source_segment``: that re-scans the whole file per
+    node, which made harvesting ~31s and put that on every CI run through the
+    coverage guard. Splitting each module once and slicing by ``lineno`` /
+    ``end_lineno`` is the same result for whole statements, ~100x faster.
+    """
+    import ast
+    import inspect
+    out: list[str] = []
+    m = _string_matcher()
+    for name in _CODE_MODULES:
+        try:
+            src = inspect.getsource(importlib.import_module(name))
+            tree = ast.parse(src)
+        except Exception:
+            continue
+        lines = src.splitlines()
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            end = getattr(node, "end_lineno", None)
+            if end is None:
+                continue
+            seg = "\n".join(lines[node.lineno - 1:end])
+            if _CODE_MIN_NORM <= len(m.normalize(seg)) <= _CODE_MAX_NORM:
+                out.append(seg)
+    return out
+
+
+def _string_matcher():
+    from nestor.matcher import StringMatcher
+    return StringMatcher()
+
+
+def code(n: int, seed: int = 7, offset: int = 0) -> list[str]:
+    """``n`` real Python function sources, every one normalizing to 200+ chars."""
+    global _CODE_CACHE
+    if _CODE_CACHE is None:
+        uniq = sorted(set(_harvest_code()))
+        random.Random(4321).shuffle(uniq)
+        _CODE_CACHE = uniq
+    pool = _CODE_CACHE
+    if n > len(pool):
+        raise ValueError(f"code corpus holds {len(pool)} functions; asked for {n}. "
+                         f"Add modules to _CODE_MODULES or lower the requested size.")
+    start = offset % len(pool)
+    out = pool[start:start + n]
+    if len(out) < n:
+        out += pool[:n - len(out)]
+    return out
+
+
+def available_code() -> int:
+    code(1)
+    return len(_CODE_CACHE or [])
+
+
+CORPORA = {"boilerplate": boilerplate, "prose": prose, "code": code}
+
+# difflib engages its ``autojunk`` heuristic once the compared sequence reaches
+# this many elements, changing scores materially. A corpus set that never
+# crosses it cannot detect a defect that only appears above it.
+AUTOJUNK_THRESHOLD = 200
+
+
+def length_coverage(sample: int = 300) -> dict:
+    """Normalized key-length stats per corpus, and whether the set spans the
+    ``autojunk`` boundary.
+
+    This exists so the blind spot that hid two real matcher bugs is *visible* in
+    every result file rather than implicit in the choice of corpora. If
+    ``spans_autojunk_threshold`` is False, this bench cannot see the regime where
+    difflib changes behaviour, whatever else it reports.
+    """
+    m = _string_matcher()
+    out: dict = {"autojunk_threshold": AUTOJUNK_THRESHOLD, "corpora": {}}
+    any_over = False
+    for name, gen in CORPORA.items():
+        try:
+            lens = sorted(len(m.normalize(x)) for x in gen(sample))
+        except ValueError:                      # pool smaller than the sample
+            lens = sorted(len(m.normalize(x)) for x in gen(50))
+        at = lambda q: lens[min(len(lens) - 1, int(q * len(lens)))]  # noqa: E731
+        over = sum(1 for x in lens if x >= AUTOJUNK_THRESHOLD)
+        any_over = any_over or over > 0
+        out["corpora"][name] = {
+            "p10": at(.10), "p50": at(.50), "p90": at(.90),
+            "min": lens[0], "max": lens[-1],
+            "share_over_autojunk_threshold": round(over / len(lens), 3),
+        }
+    out["spans_autojunk_threshold"] = any_over
+    return out
 
 # --------------------------------------------------------------------------
 # aliased — one meaning, several LEXICALLY DISJOINT surfaces (IDEAS.md §3.4)
