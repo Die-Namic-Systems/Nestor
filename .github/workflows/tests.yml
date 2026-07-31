@@ -53,8 +53,14 @@ jobs:
       - name: Install package
         run: pip install -e . pytest
 
+      # The command the README tells a human to type. It used to be
+      # `python -m pytest tests/ -q`, which put the repo root on sys.path where
+      # bare `pytest` does not — so CI ran five bench-coverage tests that a
+      # developer following the README silently skipped, and the disagreement
+      # is what kept it quiet. A gate that runs a different command from the
+      # docs is testing something nobody else runs.
       - name: Run tests
-        run: python -m pytest tests/ -q
+        run: pytest -q
 
   # Aggregate gate: branch protection requires a single check named "test"
   # across the whole fleet. Green only when lint and every matrix leg are.
