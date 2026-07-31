@@ -123,12 +123,10 @@ class SqliteStore:
         # A ":memory:" database only survives for the life of one connection,
         # so hold a persistent connection open in that case.
         self._shared: Optional[sqlite3.Connection] = None
-        # Guards the shared connection only. A file-backed store opens a
-        # connection per operation, so threads never share one and SQLite's own
-        # file locking applies; the in-memory store has exactly one connection
-        # and would otherwise raise "SQLite objects created in a thread can only
-        # be used in that same thread" under any threaded host — including
-        # nestor.ui, which serves requests from a thread pool.
+        # In-memory: one shared connection, serialized with _lock (IDEAS §2.4).
+        # File-backed: one persistent connection per thread so nestor.ui's pool
+        # does not open/close SQLite on every API call.
+        self._thread_local = threading.local()
         self._lock = threading.RLock()
         if db_path == ":memory:":
             self._shared = self._connect()
@@ -142,6 +140,15 @@ class SqliteStore:
                                check_same_thread=(self.db_path != ":memory:"))
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
+        if self.db_path != ":memory:":
+            conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+    def _thread_conn(self) -> sqlite3.Connection:
+        conn = getattr(self._thread_local, "conn", None)
+        if conn is None:
+            conn = self._connect()
+            self._thread_local.conn = conn
         return conn
 
     @contextmanager
@@ -155,15 +162,13 @@ class SqliteStore:
                     self._shared.rollback()
                     raise
             return
-        conn = self._connect()
+        conn = self._thread_conn()
         try:
             yield conn
             conn.commit()
         except Exception:
             conn.rollback()
             raise
-        finally:
-            conn.close()
 
     # --- lifecycle -------------------------------------------------------
 

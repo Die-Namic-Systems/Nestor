@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import warnings
 
 import pytest
@@ -13,6 +14,39 @@ from nestor.sqlite_store import SqliteStore
 def _pair_row(pair_id: str, source: str, norm: str, target: str) -> tuple:
     return (pair_id, source, norm, "en", target, "es", "sealed", "rita",
             1.0, "", "2026-07-31T00:00:00+00:00", "")
+
+
+def test_file_backed_store_survives_concurrent_add_pair(tmp_path):
+    """IDEAS §2.4 — nestor.ui serves from a thread pool on one SqliteStore."""
+    store = SqliteStore(str(tmp_path / "threads.db"))
+    store.memory_init()
+    errors: list[BaseException] = []
+    lock = threading.Lock()
+
+    def worker(i: int) -> None:
+        try:
+            memory.add_pair(f"source {i}", f"target {i}", "en", "es",
+                            status="sealed", verifier="rita", store=store)
+        except BaseException as exc:
+            with lock:
+                errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(24)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
+    assert memory.stats(store=store)["sealed"] == 24
+
+
+def test_file_backed_connection_is_reused_within_a_thread(tmp_path):
+    store = SqliteStore(str(tmp_path / "reuse.db"))
+    store.memory_init()
+    with store._db() as first:
+        id_first = id(first)
+    with store._db() as second:
+        assert id(second) == id_first
 
 
 def test_memory_init_indexes_source_norm_for_memory_find(tmp_path):

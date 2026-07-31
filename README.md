@@ -764,8 +764,11 @@ entry was present.
 Be precise about what that limit is: the tamper is still **caught**. `verify()`
 fails before and after, and the chain stays broken, so tamper-evidence — the
 load-bearing property — holds completely. What you lose is the early refusal.
-Inside one long-lived process, after the first append, a new entry is chained
-onto a tampered history without a refusal.
+Inside one long-lived process, after the first append, a new entry can chain onto
+a tampered history without a refusal unless you set a re-verify interval.
+``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` (or ``cascade.set_ledger_verify_interval``)
+controls how often the full walk runs on seal/reject: ``0`` is once per process
+(default for batch/CLI); ``nestor.ui`` defaults to 300 seconds when unset.
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
 

@@ -20,6 +20,7 @@ import json
 import os
 import pathlib
 import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -53,6 +54,8 @@ _append_lock = threading.Lock()
 _DEFAULT_LEDGER = "data/ledger.jsonl"
 _LEDGER_OVERRIDE: Optional[pathlib.Path] = None
 _verified_ledgers: set[str] = set()  # paths already chain-verified this process
+_verified_at: dict[str, float] = {}   # monotonic time of last full walk per path
+_VERIFY_INTERVAL_OVERRIDE: Optional[float] = None  # tests / nestor.ui default
 
 # path -> (byte offset of the last line THIS process wrote, that line's sha256).
 # The append-time checkpoint; see _check_tail.
@@ -172,7 +175,44 @@ def reset_ledger_session() -> None:
     not inherit another chain's ``_verified_ledgers`` / ``_checkpoints`` cache.
     """
     _verified_ledgers.clear()
+    _verified_at.clear()
     _checkpoints.clear()
+
+
+def ledger_verify_interval_sec() -> float:
+    """Seconds between full chain walks on append/preflight (IDEAS §5.3).
+
+    * ``0`` (default): walk once per process, then trust the cache until exit.
+    * ``> 0``: re-walk when this many seconds have passed since the last walk.
+    * ``< 0``: walk on every append/preflight (no cache).
+
+  Set via ``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` or :func:`set_ledger_verify_interval`.
+    """
+    if _VERIFY_INTERVAL_OVERRIDE is not None:
+        return _VERIFY_INTERVAL_OVERRIDE
+    raw = os.environ.get("NESTOR_LEDGER_VERIFY_INTERVAL_SEC", "0").strip()
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0
+
+
+def set_ledger_verify_interval(seconds: Optional[float]) -> None:
+    """Override :func:`ledger_verify_interval_sec` (``None`` restores env/default)."""
+    global _VERIFY_INTERVAL_OVERRIDE
+    _VERIFY_INTERVAL_OVERRIDE = seconds
+
+
+def _ledger_verify_cache_stale(key: str) -> bool:
+    """Whether the once-per-process cache should be ignored for a full walk."""
+    interval = ledger_verify_interval_sec()
+    if key not in _verified_ledgers:
+        return True
+    if interval < 0:
+        return True
+    if interval == 0:
+        return False
+    return time.monotonic() - _verified_at.get(key, 0.0) >= interval
 
 
 def _ledger_path() -> pathlib.Path:
@@ -221,13 +261,21 @@ def _verify_chain_once(ledger: pathlib.Path) -> None:
     perfectly good seal. That is not hypothetical: it turned a green branch red
     the first time two processes appended at once in CI, and it failed exactly
     once per process, because the result is cached below.
+
+    When :func:`ledger_verify_interval_sec` is positive, the cache expires and
+    the walk runs again — closing the mid-shift window where history could be
+    edited and new appends would still chain from an intact tail (IDEAS §5.3).
     """
     key = str(ledger)
-    if key not in _verified_ledgers and ledger.exists():
-        ok, detail = _ledger_verify(key)
-        if not ok:
-            raise LedgerError(f"ledger chain is broken — refusing to append: {detail}")
-        _verified_ledgers.add(key)
+    if not ledger.exists():
+        return
+    if not _ledger_verify_cache_stale(key):
+        return
+    ok, detail = _ledger_verify(key)
+    if not ok:
+        raise LedgerError(f"ledger chain is broken — refusing to append: {detail}")
+    _verified_ledgers.add(key)
+    _verified_at[key] = time.monotonic()
 
 
 def ledger_preflight() -> None:
@@ -250,8 +298,10 @@ def ledger_preflight() -> None:
         # having been deleted under a running process, which _check_tail names.
         _check_tail(ledger)
         return
-    if str(ledger) in _verified_ledgers and str(ledger) not in _checkpoints:
-        return                       # neither read has anything left to do
+    key = str(ledger)
+    if key in _verified_ledgers and key not in _checkpoints:
+        if not _ledger_verify_cache_stale(key):
+            return                       # neither read has anything left to do
     with _append_lock:
         with open(ledger, "r", encoding="utf-8") as f:
             _lock_file(f, shared=True)

@@ -63,6 +63,7 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import json
+import os
 import secrets
 import sys
 import threading
@@ -863,6 +864,9 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
+_UI_DEFAULT_LEDGER_VERIFY_SEC = 300.0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="nestor-ui",
@@ -908,6 +912,11 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
+    # Long-lived review server: re-walk the chain periodically on seal/reject,
+    # not only on the first append of the shift (IDEAS §5.3). Batch CLI jobs keep
+    # the default once-per-process cache unless the operator sets the env var.
+    if "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" not in os.environ:
+        cascade.set_ledger_verify_interval(_UI_DEFAULT_LEDGER_VERIFY_SEC)
     # Resolve identity before anything is opened or bound. A keyring that is
     # configured and unusable is a refusal either way, and the difference
     # between refusing here and refusing lazily is a clean message versus a
