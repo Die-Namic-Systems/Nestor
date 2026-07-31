@@ -427,18 +427,25 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     scored: list[dict] = []
     raw_score = uses_raw_score(matcher)
     batch = getattr(matcher, "scores_against", None)
+    sims: dict[str, float] = {}
     if raw_score and callable(batch):
-        sims = batch(source_text, [r.get("source_text", "") for r in eligible])
-        for row, sim in zip(eligible, sims):
-            if sim >= ctx:
-                scored.append({"pair": row, "similarity": round(sim, 3)})
-    else:
-        for row in eligible:
-            sim = match_similarity(matcher, source_text, norm,
-                                  row.get("source_text", ""), row["source_norm"],
-                                  _raw_score=raw_score)
-            if sim >= ctx:
-                scored.append({"pair": row, "similarity": round(sim, 3)})
+        # Batch only the rows a raw score can actually be taken over. A row with
+        # no surface text has nothing to embed, and `match_similarity` answers it
+        # from the stored norms instead — so handing it to the batch would score
+        # it by a different rule than `best_sealed` uses, and the two functions
+        # would disagree about the same row. `lookup` is what the reviewer and
+        # the engine see; `best_sealed` is the serve decision. They have to
+        # agree, so the split happens here rather than inside a matcher.
+        batched = [r for r in eligible if (r.get("source_text") or "").strip()]
+        if batched:
+            sims = dict(zip((r["id"] for r in batched),
+                            batch(source_text, [r["source_text"] for r in batched])))
+    for row in eligible:
+        sim = sims[row["id"]] if row["id"] in sims else match_similarity(
+            matcher, source_text, norm,
+            row.get("source_text", ""), row["source_norm"], _raw_score=raw_score)
+        if sim >= ctx:
+            scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
     return scored[:limit]
 

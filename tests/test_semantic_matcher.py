@@ -1,4 +1,12 @@
-"""SemanticMatcher — requires nestor[semantic] when fastembed is installed."""
+"""SemanticMatcher — the parts that genuinely need an embedding model.
+
+The behaviours this matcher introduced to the *seam* — the retype short-circuit,
+the default-threshold warning, and the batch scoring path — are pinned in
+`test_matcher.py` against a matcher with a `score()` and no model, because they
+are properties of the seam and this file only runs where `fastembed` is
+installed, which CI is not. What is left here is what a fake cannot claim: that
+an embedding really does rank a paraphrase above a character ratio.
+"""
 
 from __future__ import annotations
 
@@ -65,18 +73,19 @@ def test_score_returns_one_when_normalized_forms_match():
 
 @requires_semantic
 def test_score_matcher_warns_on_default_seal_threshold(store, seal_key):
-  import warnings
-  from nestor import memory
-  from nestor.semantic_matcher import SemanticMatcher
+    """The same guard `test_matcher.py` pins at the seam, once over a real model."""
+    import warnings
 
-  m = SemanticMatcher()
-  memory.add_pair("Good evening.", "Buenos noches.", "en", "es",
-                  status="sealed", verifier="rita", store=store, matcher=m)
-  memory._warned_score_threshold = False
-  with warnings.catch_warnings(record=True) as caught:
-      warnings.simplefilter("always", RuntimeWarning)
-      memory.best_sealed("Good evening", "en", "es", store=store, matcher=m)
-  assert any("SEAL_THRESHOLD" in str(w.message) for w in caught)
+    from nestor import memory
+
+    m = SemanticMatcher()
+    memory.add_pair("Good evening.", "Buenos noches.", "en", "es",
+                    status="sealed", verifier="rita", store=store, matcher=m)
+    memory._warned_score_threshold = False
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        memory.best_sealed("Good evening", "en", "es", store=store, matcher=m)
+    assert any("SEAL_THRESHOLD" in str(w.message) for w in caught)
 
 
 @requires_semantic
