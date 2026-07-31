@@ -1,9 +1,28 @@
-"""Nestor's ledger — the translation memory. Tier 1 of the cascade.
+"""Nestor's ledger — the verified-match memory. Tier 1 of the cascade.
 
 Verified pairs live in whatever store is injected. A pair is "sealed"
-(human-verified or curated-corpus) or "draft" (machine, awaiting seal).
-Tier-1 serving uses sealed pairs only; drafts may be offered as context to
-the engine but never served as verified.
+(human-verified or curated-corpus), "draft" (machine, awaiting seal) or
+"rejected" (a human said no). Tier-1 serving uses sealed pairs only; drafts may
+be offered as context to the engine but never served as verified.
+
+Three things this module owns that its name does not suggest, all load-bearing:
+
+* **"Sealed" is not a column, it is a predicate.** :func:`is_verified_seal` —
+  status *and* a signature that verifies — is the single definition every serve
+  path goes through, so a row that merely says ``sealed`` cannot be served by
+  filtering on the column one file over. :func:`without_forged_seals` is its
+  weaker sibling for paths entitled to draw on drafts.
+* **A reviewer's "no" lives here too.** :func:`reject_pair` retires a mapping;
+  :func:`reject_match` suppresses one answer for one query and leaves the seal
+  standing, which is what a false seal actually needs. Enforcement is inside
+  :func:`lookup`, the one function every serve path calls.
+* **Contradiction is refused, not merged.** :class:`ConflictingSealError` and
+  :class:`RejectedPairError` stop one human silently overwriting another's
+  recorded decision; both take an explicit override, and both are ledgered.
+
+The name is historical — this predates the recipes, and the memory holds
+translations, entity aliases and numeric baselines alike (see
+:mod:`nestor.matcher`).
 
 Storage inversion
 -----------------

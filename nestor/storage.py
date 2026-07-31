@@ -19,6 +19,31 @@ Two ways to supply a store:
     An explicit argument always wins over the global.
 
 The reference implementation is :mod:`nestor.sqlite_store`.
+
+Beyond the core Protocol there are three **optional capabilities**, each
+all-or-nothing and each reported by a predicate, so a store predating one keeps
+working and the surfaces that need it say so rather than showing an empty list:
+
+===================  ==========================  ==============================
+Capability           Predicate                   Without it
+===================  ==========================  ==============================
+Rejection            :func:`supports_rejection`  ``reject_*`` raises rather than
+                                                 dropping a human's "no"
+Curation             :func:`supports_curation`   no ``Curator``, no export or
+                                                 import
+Review queue         :func:`supports_queue`      the queue cannot be listed or
+                                                 cleared
+===================  ==========================  ==============================
+
+Partial implementation counts as none. Writing rejections nobody can read back,
+or offering an unseal the store cannot perform, is worse than not having the
+feature at all.
+
+One requirement of the *core* Protocol is easy to miss and is not optional:
+:meth:`Storage.memory_insert` must refuse a duplicate ``(source_norm,
+source_lang, target_lang)``. Nestor's conflict guards read-then-write, so that
+uniqueness is what makes "one row per source" hold when two reviewers seal the
+same phrase at the same moment.
 """
 from __future__ import annotations
 
