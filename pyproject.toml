@@ -22,6 +22,15 @@ cloud = [
     "anthropic>=0.60",
 ]
 
+[tool.pytest.ini_options]
+# `bench` is not an installed package (only `nestor*` is, below), so it imports
+# only when the repo root is on sys.path. `python -m pytest` puts it there and
+# the bare `pytest` console script does not — so the same tree gave 344 tests
+# one way and 339 plus a silent skip the other, and the five that vanished were
+# the bench-coverage guards whose whole reason to live in this suite is that
+# they must not be skippable. Pin the path so the invocation stops mattering.
+pythonpath = ["."]
+
 [tool.setuptools.packages.find]
 include = ["nestor*"]
 
