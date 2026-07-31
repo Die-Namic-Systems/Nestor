@@ -17,6 +17,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 import uuid
+import warnings
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -78,6 +79,13 @@ CREATE INDEX IF NOT EXISTS idx_tm_langs ON tm_pairs(source_lang, target_lang, st
 CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
     ON tm_rejections(query_norm, source_lang, target_lang);
 """
+
+
+# Kept out of _SCHEMA and created separately: a database written before this
+# existed may already hold duplicates, and a CREATE that raises inside the
+# idempotent schema script would brick every later memory_init() on it.
+_UNIQUE_KEY = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_tm_pairs_key "
+               "ON tm_pairs(source_norm, source_lang, target_lang)")
 
 
 def _now() -> str:
@@ -143,11 +151,41 @@ class SqliteStore:
     def init_db(self) -> None:
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_unique_key(conn)
 
     def memory_init(self) -> None:
         # tm_pairs is created by the same schema script; keep it idempotent.
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_unique_key(conn)
+
+    def _ensure_unique_key(self, conn: sqlite3.Connection) -> None:
+        """One row per (normalized source, domain) — enforced by the database.
+
+        Nestor's guards read a pair, decide, then write it, and nothing made that
+        sequence atomic: two threads sealing the same phrase at once each found
+        nothing and each inserted, leaving two sealed rows for one source with no
+        ConflictingSealError and no way to say which one serves. The UI is a
+        threaded server, so this is reachable by two reviewers pressing Seal at
+        the same moment. A unique index turns the invariant from a convention
+        every caller must honor into something the store cannot violate;
+        ``memory.add_pair`` catches the collision and re-reads.
+
+        A pre-existing database may already contain duplicates, in which case the
+        index cannot be created. That degrades to the old behavior and says so,
+        rather than failing every subsequent call.
+        """
+        try:
+            conn.execute(_UNIQUE_KEY)
+        except sqlite3.IntegrityError:
+            dupes = conn.execute(
+                "SELECT COUNT(*) FROM (SELECT source_norm, source_lang, target_lang "
+                "FROM tm_pairs GROUP BY 1,2,3 HAVING COUNT(*) > 1)").fetchone()[0]
+            warnings.warn(
+                f"{self.db_path}: {dupes} normalized source(s) have more than one "
+                f"row, so the uniqueness index could not be created and concurrent "
+                f"seals can still race. Curator.list() shows the duplicates; "
+                f"resolve them and re-open the store.", RuntimeWarning, stacklevel=3)
 
     # --- documents -------------------------------------------------------
 

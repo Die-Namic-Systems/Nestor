@@ -45,6 +45,8 @@ rather than a softer one:
 | sealed, signature does not verify | imported as a **draft**, into the review queue, counted and warned |
 | draft | imported as a draft |
 | same source, different target | **conflict** — listed, never resolved silently (`--override-conflicts` is the deliberate way) |
+| a pair **rejected here** | listed and skipped; `--override-conflicts` cannot reach it, because a rejection is not a competing answer |
+| sealed and verified, over a local draft | the draft is upgraded — the bundle carries a verification this instance lacks |
 
 Dry run by default, in the library and the CLI both.
 
@@ -55,8 +57,9 @@ nestor serve --db data/nestor.db         # MCP over stdio, stdlib only
 ```
 
 `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
-`nestor_provenance`, `nestor_ledger_verify`, `nestor_propose`. Every answer
-carries the **state**, not just a string: `verified`, the verifier's name, the
+`nestor_provenance`, `nestor_ledger_verify`, `nestor_propose` — and
+`--read-only` withholds even the proposal, for an agent that should read and
+write nothing. Every answer carries the **state**, not just a string: `verified`, the verifier's name, the
 confidence, the candidates and what they scored. An agent holding that can cite
 a human, quote a pair id an auditor can look up, or decline.
 
@@ -195,6 +198,9 @@ The failure modes, and the direction each fails in:
 | Engine down / no credentials | falls back to the offline engine; a segment goes `pending`, not wrong |
 | FRANK mirror down | best-effort, local ledger is the source of truth (`NESTOR_FRANK_STRICT` to change that) |
 | A model tries to seal | refused, with the reason (Q4) |
+| Two reviewers seal the same phrase at once | one wins, the other gets `ConflictingSealError`; the store enforces one row per source |
+| The ledger cannot be written or its chain is broken | the decision is refused **before** the store is touched — no sealed row without a trail |
+| A FRANK mirror accepts and then stops answering | the forward times out, the subprocess is dropped, the local entry stands |
 
 The one that fails *soft* and shouldn't: inside a long-lived process (the UI, the
 MCP server) the chain is verified on first append and trusted thereafter

@@ -190,7 +190,8 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
 
 
 def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
-                  verifier: str = "", override_conflicts: bool = False) -> dict:
+                  verifier: str = "", override_conflicts: bool = False,
+                  override_rejections: bool = False) -> dict:
     """Bring a bundle into this instance. Reports first, writes only if told to.
 
     ``dry_run=True`` is the default deliberately: an import decides what this
@@ -205,6 +206,7 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
          "drafts": n,        # already drafts in the bundle
          "existing": n,      # same source, same target — nothing to do
          "conflicts": [...], # same source, DIFFERENT target — skipped, listed
+         "rejected_here": [...],  # a human here rejected this pair — skipped, listed
          "rejections": n, "dry_run": bool, "digest": "..."}
 
     Conflicts are never resolved silently. A bundle asserting a different target
@@ -212,6 +214,12 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
     through a file, which is exactly the case ``ConflictingSealError`` exists to
     stop; they are listed for a person, and ``override_conflicts=True`` is the
     deliberate way to take the incoming answer.
+
+    A pair **rejected here** is stronger than a disagreement and gets its own
+    flag. ``override_conflicts`` deliberately cannot reach it — mirroring
+    ``add_pair``, where ``override_conflict`` and ``override_rejection`` are two
+    switches precisely because "their answer wins" and "revive the mapping a
+    human called wrong" are not the same decision.
     """
     store = get_store(store)
     ok, detail = verify_bundle(bundle)
@@ -221,8 +229,8 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
 
     signing_on = signing.signing_enabled()
     report: dict[str, Any] = {"sealed": 0, "demoted": 0, "drafts": 0, "existing": 0,
-                              "conflicts": [], "rejections": 0, "dry_run": dry_run,
-                              "digest": bundle.get("digest", ""),
+                              "conflicts": [], "rejected_here": [], "rejections": 0,
+                              "dry_run": dry_run, "digest": bundle.get("digest", ""),
                               "signing_enabled": signing_on}
 
     for raw in bundle["pairs"]:
@@ -230,21 +238,52 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
         existing = store.memory_find(row["source_norm"], row["source_lang"],
                                      row["target_lang"])
         if existing:
-            if existing["target_text"] == row["target_text"]:
-                report["existing"] += 1
-                continue
-            report["conflicts"].append({
-                "source_text": row["source_text"],
-                "source_lang": row["source_lang"], "target_lang": row["target_lang"],
-                "here": {"target_text": existing["target_text"],
-                         "status": existing["status"],
-                         "verifier": existing.get("verifier", "")},
-                "incoming": {"target_text": row["target_text"],
-                             "status": row["status"],
-                             "verifier": row.get("verifier", "")},
-            })
-            if not override_conflicts:
-                continue
+            if existing["status"] == "rejected":
+                # A pair a human here rejected is not a disagreement for the
+                # import to settle. `override_conflicts` must not reach it: that
+                # flag means "their answer wins where we disagree", and a
+                # rejection is not a competing answer, it is a decision that
+                # this mapping is wrong. Overwriting it would resurrect exactly
+                # what rejection exists to retire — the same leak `add_pair`
+                # raises RejectedPairError for, arriving through a file instead.
+                # The deliberate way back is Curator.restore, or this second,
+                # separate flag, mirroring add_pair's two.
+                report["rejected_here"].append({
+                    "source_text": row["source_text"],
+                    "source_lang": row["source_lang"], "target_lang": row["target_lang"],
+                    "rejected_by": existing.get("verifier", ""),
+                    "incoming": {"target_text": row["target_text"],
+                                 "status": row["status"],
+                                 "verifier": row.get("verifier", "")},
+                })
+                if not override_rejections:
+                    continue
+            elif existing["target_text"] == row["target_text"]:
+                # Same answer on both sides — but not necessarily the same
+                # standing. A sealed, signature-verified row arriving over a
+                # local *draft* is a verification this instance does not have,
+                # and reporting it as "already present" threw away the one thing
+                # the bundle was carrying. Upgrade instead; anything else here
+                # genuinely is a no-op.
+                if not (existing["status"] != "sealed" and row["status"] == "sealed"
+                        and signing.seal_is_valid(row["source_norm"], row["target_text"],
+                                                  row.get("verifier", ""),
+                                                  row.get("seal_sig", ""))):
+                    report["existing"] += 1
+                    continue
+            else:
+                report["conflicts"].append({
+                    "source_text": row["source_text"],
+                    "source_lang": row["source_lang"], "target_lang": row["target_lang"],
+                    "here": {"target_text": existing["target_text"],
+                             "status": existing["status"],
+                             "verifier": existing.get("verifier", "")},
+                    "incoming": {"target_text": row["target_text"],
+                                 "status": row["status"],
+                                 "verifier": row.get("verifier", "")},
+                })
+                if not override_conflicts:
+                    continue
 
         claims_sealed = row["status"] == "sealed"
         # The load-bearing line: a seal is honored only if it verifies HERE.
@@ -300,6 +339,12 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
             "rejections": report["rejections"],
             "source_created_at": bundle.get("created_at", ""),
         })
+        if report["rejected_here"] and not override_rejections:
+            warnings.warn(
+                f"{len(report['rejected_here'])} pair(s) in this bundle were "
+                f"rejected on this instance and were NOT imported. Restore them "
+                f"deliberately (Curator.restore) if that rejection no longer "
+                f"stands.", RuntimeWarning, stacklevel=2)
         if report["demoted"]:
             warnings.warn(
                 f"{report['demoted']} pair(s) claimed 'sealed' but their signatures "

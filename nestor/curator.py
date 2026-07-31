@@ -170,6 +170,7 @@ class Curator:
         pair = self.store.memory_get(pair_id)
         if not pair:
             return None
+        memory._ledger_preflight()   # refuse before the write, not after it
         self.store.memory_unseal(pair_id, verifier, reason)
         memory._log_rejection({
             "kind": "unseal", "pair_id": pair_id, "verifier": verifier,
@@ -194,6 +195,7 @@ class Curator:
         pair = self.store.memory_get(pair_id)
         if not pair:
             return None
+        memory._ledger_preflight()
         self.store.memory_unseal(pair_id, verifier, f"restored: {reason}")
         memory._log_rejection({
             "kind": "restore", "pair_id": pair_id, "verifier": verifier,

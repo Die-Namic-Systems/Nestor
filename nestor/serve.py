@@ -54,6 +54,8 @@ SERVER_VERSION = "0.1.0"
 # which is what the spec prescribes for an unknown version.
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 
+MAX_MESSAGE = 1 << 20       # 1 MiB — a tool call is never larger than this
+
 # What a model may never do here, kept as data so the refusal is greppable and
 # so `describe()` can state it to whoever is wiring the server up.
 WITHHELD = ("seal", "unseal", "reject", "override a conflicting seal",
@@ -289,6 +291,14 @@ class Server:
         for line in stdin:
             line = line.strip()
             if not line:
+                continue
+            if len(line) > MAX_MESSAGE:
+                # The browser surface caps its bodies; this one is spoken to by
+                # a model, which is the caller most likely to send something
+                # enormous by accident.
+                _write(stdout, _error(None, -32600,
+                                      f"message too large ({len(line)} bytes; "
+                                      f"limit {MAX_MESSAGE})"))
                 continue
             try:
                 request = json.loads(line)

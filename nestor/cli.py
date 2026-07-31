@@ -88,11 +88,18 @@ def cmd_check(args) -> int:
                           abs_tol=args.abs_tol, pct_tol=args.pct_tol)
     if result["baseline"] is None:
         human = f"! no sealed baseline for {args.label!r} — nothing to check against"
+    elif result["observed"] is None:
+        # A figure the matcher could not read is not a variation of zero; it is
+        # not a figure. Saying so beats crashing on the format string, and beats
+        # printing a number nobody typed.
+        human = (f"✗ flagged   no number could be read from {args.observed!r} — "
+                 f"the baseline stands at {result['baseline']:,}")
     else:
         mark = "✓ within tolerance" if result["within_tolerance"] else "✗ flagged"
+        pct = ("" if result["variation_pct"] is None
+               else f" ({result['variation_pct'] * 100:.2f}%)")
         human = (f"{mark}   baseline {result['baseline']:,}  observed "
-                 f"{result['observed']:,}  variation {result['variation']:,} "
-                 f"({result['variation_pct'] * 100:.2f}%)")
+                 f"{result['observed']:,}  variation {result['variation']:,}{pct}")
         if result["ambiguous"]:
             human += f"\n  ! {result['baseline_count']} baselines stand for this label"
     _emit(result, args.json, human)
@@ -144,7 +151,8 @@ def cmd_import(args) -> int:
         return EXIT_USAGE
     report = portable.import_bundle(bundle, store=store, dry_run=not args.apply,
                                     verifier=args.verifier,
-                                    override_conflicts=args.override_conflicts)
+                                    override_conflicts=args.override_conflicts,
+                                    override_rejections=args.override_rejections)
     if args.json:
         _emit(report, True)
     else:
@@ -156,9 +164,15 @@ def cmd_import(args) -> int:
             print(f"  conflict  {c['source_text']!r}: here {c['here']['target_text']!r} "
                   f"({c['here']['verifier'] or '—'}) vs incoming "
                   f"{c['incoming']['target_text']!r} ({c['incoming']['verifier'] or '—'})")
+        for r in report["rejected_here"]:
+            print(f"  REJECTED here by {r['rejected_by'] or 'a reviewer'}: "
+                  f"{r['source_text']!r} — not imported "
+                  f"(--override-rejections to revive it deliberately)")
         if report["dry_run"]:
             print("\nnothing was written — re-run with --apply to commit.", file=sys.stderr)
-    return EXIT_ANSWER_IS_NO if report["conflicts"] and not args.override_conflicts else EXIT_OK
+    unsettled = ((report["conflicts"] and not args.override_conflicts)
+                 or (report["rejected_here"] and not args.override_rejections))
+    return EXIT_ANSWER_IS_NO if unsettled else EXIT_OK
 
 
 # --------------------------------------------------------------------------
@@ -271,6 +285,9 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--verifier", default="", help="who is performing the import")
     imp.add_argument("--override-conflicts", action="store_true",
                      help="take the incoming answer where this instance disagrees")
+    imp.add_argument("--override-rejections", action="store_true",
+                     help="revive pairs a human here rejected (separate on purpose: "
+                          "--override-conflicts cannot reach them)")
     imp.set_defaults(func=cmd_import)
 
     led = sub.add_parser("ledger", help="verify or read the audit chain")

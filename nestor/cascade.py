@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import pathlib
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -28,6 +29,25 @@ from .engine import get_engine
 from .ledger import LedgerError, verify as _ledger_verify
 from .segment import _split_segments
 from .storage import Storage, get_store
+
+try:                                    # POSIX only; the threading lock stands alone without it
+    import fcntl
+except ImportError:                     # pragma: no cover — Windows
+    fcntl = None                        # type: ignore[assignment]
+
+
+def _lock_file(handle) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+
+
+def _unlock_file(handle) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+# One writer at a time, within this process. See ledger_append.
+_append_lock = threading.Lock()
 
 _DEFAULT_LEDGER = "data/ledger.jsonl"
 _LEDGER_OVERRIDE: Optional[pathlib.Path] = None
@@ -62,7 +82,16 @@ class Passage:
         return {"sealed": "✓", "draft": "~", "pending": "!"}[self.state]
 
 
-def _ledger_append(entry: dict) -> None:
+def ledger_preflight() -> None:
+    """Raise :class:`LedgerError` if the next append would be refused. Writes nothing.
+
+    The refusals below have to be available *before* a caller mutates the store,
+    or fail-closed becomes fail-late: a seal written to the database and then
+    refused by the ledger leaves a verified answer with no trail, which is the
+    one state this package exists to prevent. So a decision that must be audited
+    calls this first, and only writes if the trail will take it. See
+    ``memory.add_pair`` and the ``reject_*`` entry points.
+    """
     ledger = _ledger_path()
     # Fail closed: a ledger that exists but is not a regular file (e.g.
     # /dev/null) would silently swallow the audit trail. Refuse it (Nestor#2).
@@ -84,19 +113,53 @@ def _ledger_append(entry: dict) -> None:
         if not ok:
             raise LedgerError(f"ledger chain is broken — refusing to append: {detail}")
         _verified_ledgers.add(key)
+
+
+def ledger_append(entry: dict) -> None:
+    """Append one entry to the hash-chained ledger. The only way to write to it.
+
+    Every entry's ``prev`` is the hash of the line before it, so reading the tail
+    and writing the next line have to be one indivisible step. They were not, and
+    the consequence was not a lost entry but a **broken chain**: eight threads
+    appending concurrently wrote all 160 lines and left a trail that
+    :func:`~nestor.ledger.verify` rejects — an audit trail that indicts itself,
+    on a system whose whole claim is the trail. :mod:`nestor.ui` serves from a
+    thread pool, so two reviewers sealing at the same moment reach this.
+
+    Two locks, because there are two kinds of concurrent writer. A process-wide
+    lock covers threads. An advisory file lock covers *processes* — a UI and a
+    `nestor import` against the same ledger are not exotic — and is best-effort:
+    where ``fcntl`` is absent the threading lock still holds, and the file lock
+    is a lock, not a guarantee about other software.
+
+    The FRANK mirror is deliberately forwarded **after** the lock is released:
+    it speaks to a subprocess over stdio, and holding the ledger's write lock
+    across somebody else's I/O would make a slow governance mirror into a stalled
+    review queue.
+    """
+    ledger_preflight()
+    ledger = _ledger_path()
     ledger.parent.mkdir(parents=True, exist_ok=True)
-    prev = "genesis"
-    if ledger.exists():
-        with open(ledger, "rb") as f:
-            last = None
-            for last in f:
-                pass
-        if last:
-            prev = hashlib.sha256(last.strip()).hexdigest()
-    entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": prev, **entry}
-    line = json.dumps(entry, ensure_ascii=False)
-    with open(ledger, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
+    entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": "genesis", **entry}
+    with _append_lock:
+        # "a+" creates the file if absent and keeps the read and the write on one
+        # handle, so the tail we hash is the tail we chain onto.
+        with open(ledger, "a+", encoding="utf-8") as f:
+            _lock_file(f)
+            try:
+                f.seek(0)
+                last = ""
+                for raw in f:
+                    if raw.strip():
+                        last = raw.strip()
+                if last:
+                    entry["prev"] = hashlib.sha256(last.encode("utf-8")).hexdigest()
+                line = json.dumps(entry, ensure_ascii=False)
+                f.write(line + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+            finally:
+                _unlock_file(f)
     # Mirror into FRANK (willow-mcp's shared governance ledger) when a forwarder
     # is installed — see nestor.frank. The local chain above is written first and
     # stays the source of truth: a governance mirror that is down, denied, or
@@ -107,6 +170,10 @@ def _ledger_append(entry: dict) -> None:
     except Exception:
         if frank.strict():
             raise
+
+
+# Kept because six modules import it and did so before it had a public name.
+_ledger_append = ledger_append
 
 
 def translate_segment(text: str, source_lang: str, target_lang: str,

@@ -265,11 +265,88 @@ instead, because a 10k-pair curated import is one act by one non-human verifier
 and burying every human decision under ten thousand lines would be its own kind
 of unauditable.
 
+**A follow-up found the same fix had inverted the priorities.** Routing the entry
+through `_log_seal_event` — which swallows ledger failures so a bulk import
+cannot half-write — meant a seal onto a *broken chain* was accepted, served, and
+recorded nowhere, while `reject_pair` and `unseal` on the same chain raised and
+refused. Granting trust failed open; withdrawing it failed closed. Exactly
+backwards, and invisible because both paths "worked".
+
+`cascade.ledger_preflight()` now applies the append's refusals *before* the store
+is touched, so a decision that cannot be audited is refused rather than made, and
+the post-write append warns instead of passing silently. A draft still lands on a
+broken chain, which is the right line: a draft is not a verification.
+
 Worth naming the pattern, because it is the second instance: **a guarantee
 enforced by convention at call sites is not enforced.** The first was
 `is_verified_seal` (§1.2's regression — a bare `status == "sealed"` filter one
 file over). Both were fixed the same way: move the rule into the single function
 that cannot be bypassed.
+
+### 1.7 An import could revive a pair a human had rejected — **shipped**
+
+*Was: `portable.import_bundle(override_conflicts=True)` wrote through
+`store.memory_seal` directly, so `RejectedPairError` — which `add_pair` raises
+for exactly this — was structurally unreachable. A pair rejected as fraudulent
+came back sealed and serving, and the report said "sealed: 1".*
+
+Found by an adversarial read of the docs against the code, and it is §5.2's bug
+wearing a different coat: a guarantee enforced at one call site, and a second
+path into the store that never passes it. The first time it was
+`graduate_segment`; this time it was a file.
+
+The fix is a second switch, not a stronger one. `override_conflicts` means
+"their answer wins where we disagree", and a rejection is **not** a competing
+answer — it is a decision that the mapping is wrong. So rejected rows get their
+own bucket in the report, their own warning, their own CLI line, and their own
+`override_rejections` flag, mirroring the two `add_pair` has had all along. The
+UI deliberately has no checkbox for it: reviving a rejection through a file
+import should cost a considered command, and `Curator.restore` is the documented
+way back.
+
+### 1.8 Two threads could seal the same phrase, and both won — **shipped**
+
+*Was: `add_pair` read, decided, then wrote, with nothing making that atomic and
+no key constraint behind it. Two concurrent seals of the same new source each
+found nothing and each inserted — two sealed rows for one normalized source, no
+`ConflictingSealError`, and no answer to which one serves.*
+
+Reachable the moment the UI existed: it serves from a thread pool, so two
+reviewers pressing **Seal** on the same phrase is all it takes. The guard was
+written when every caller was a REPL.
+
+Fixed in two places, because a check and an invariant are different things. The
+reference store now carries a unique index on `(source_norm, source_lang,
+target_lang)` — the invariant the curator, the exporter and every serve path
+already assumed, now enforced by something no caller can talk past. And
+`add_pair` catches the collision, re-reads, and takes the existing-row path, so
+the loser gets the `ConflictingSealError` it should have had. A pre-existing
+database holding duplicates cannot take the index; that degrades with a warning
+naming the count rather than failing every later call.
+
+**The ledger had the same disease, and worse consequences.** `_ledger_append`
+read the tail and wrote the next line unsynchronized: eight threads appending
+concurrently wrote all 160 entries and left a chain `verify()` rejects. Not a
+lost entry — a trail that indicts itself, on the one file whose integrity is the
+product. It is now `ledger_append` (public, since six modules import it), holding
+a process lock and an advisory file lock, with the FRANK forward moved outside
+both so a slow mirror cannot stall a review queue.
+
+### 1.9 The numeric matcher takes the first number it finds — **open**
+
+`NumericMatcher.parse` strips `$ , %` and then *searches* for a number, so
+`"1,00o,000"` — one typo — parses as **100**, and `"12/31/2024"` parses as 12.
+Its docstring says "extract a number … or None", so this is the documented
+behavior, not a bug against its own contract.
+
+Whether it is the right contract for a reconciler is the open question. The
+failure direction is currently safe: a typo produces a wildly wrong figure, which
+gets *flagged*, and a human looks. But the reverse exists — a stray leading token
+in an otherwise correct figure is silently dropped — and "the number I compared
+was not the number you typed" is a bad sentence to have to say in an audit.
+Options: require the whole cleaned string to parse (breaks `"$1,000,000 USD"`),
+or report the parsed figure back in the result so a caller can see what was
+actually compared. The second is cheap and non-breaking; do that first.
 
 ---
 

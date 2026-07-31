@@ -1,6 +1,6 @@
 # Nestor
 
-**Meaning infrastructure. *In medio, fides.***
+**Meaning infrastructure. *In medio, fides* — in the middle, trust.**
 
 [![Tests](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml/badge.svg)](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
@@ -15,9 +15,15 @@ Nestor serves is in exactly one of three states, and the state is never a guess:
 
 | | State | What it means |
 |---|-------|---------------|
-| ✓ | **sealed** | A human verified this. Served verbatim, instantly, forever. |
+| ✓ | **sealed** | A human verified this, and the seal still verifies. Served verbatim, instantly, forever. |
 | ~ | **draft** | A machine produced it. Queued for review, never served as verified. |
 | ! | **pending** | Nothing to offer. Said plainly rather than improvised. |
+
+Read the first row precisely: *and the seal still verifies*. A row that merely
+**says** `sealed` in the database is not served — a seal is bound to a key the
+store does not hold, and one that does not verify is surfaced to a curator
+instead of answering anyone. That distinction is the product; see
+[seal signatures](#seal-signatures) and [the curator](#the-curator--seeing-what-was-verified).
 
 A human seals an answer once — and can **reject** one just as durably, so a wrong
 match is never served again. Both decisions are signed and both are audited.
@@ -87,8 +93,7 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
-Save this as `demo.py` and run it — the whole loop, in the translation recipe,
-in eleven lines:
+Save this as `demo.py` and run it — the whole loop, in the translation recipe:
 
 ```python
 from nestor import cascade, memory, storage
@@ -172,7 +177,7 @@ pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
 
 ```
 nestor/
-├── __init__.py       public surface — translate_text, graduate_segment, reject_segment
+├── __init__.py       public surface — the cascade, the recipes, the curator, the matchers
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
@@ -196,10 +201,16 @@ nestor/
 └── segment.py        sentence/segment splitting
 
 bench/                measuring where the seal threshold stops holding — see bench/README.md
-├── bench_accuracy.py false-seal rate vs recall, swept across thresholds
-├── corpora.py        seeded corpora at both ends of the diversity spectrum
-├── harness.py        timing, environment capture, JSON result recording
-└── results/          committed measurements — parameters, git rev, raw numbers
+├── bench_accuracy.py   false-seal rate vs recall, swept across thresholds
+├── bench_margin.py     does the gap to the runner-up separate a true match? (mostly: no)
+├── bench_surfaces.py   which surface variations survive normalization
+├── bench_surfaces_human.py   the same probes, authored by a human rather than generated
+├── bench_surfaces_llm.py     and by a model, scored against both
+├── corpora.py          seeded corpora at both ends of the diversity spectrum
+├── corpus_terpsi.py    a real-prose corpus, with its span/split checks
+├── token_matchers.py   token-weighted matchers tried against the identifier collisions
+├── harness.py          timing, environment capture, JSON result recording
+└── results/            committed measurements — parameters, git rev, raw numbers
 
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
@@ -259,8 +270,8 @@ For each text segment, Nestor tries three tiers in order:
 
 | Tier | Name | What it is | Result state |
 |------|------|-----------|--------------|
-| 1 | **Nestor's ledger** | A sealed translation-memory hit (fuzzy match ≥ `SEAL_THRESHOLD`) | `sealed` — served verbatim |
-| 2 | **Nova's draft** | A glossary-constrained LLM (or offline TM-composite) draft | `draft` — queued for review |
+| 1 | **Nestor's ledger** | A sealed translation-memory hit (fuzzy match ≥ `SEAL_THRESHOLD`, default `0.92` — [why that number is a dial, not a default](#accuracy-and-how-to-measure-yours)) | `sealed` — served verbatim |
+| 2 | **The draft** (`Nova` in the code, from the host it was extracted from) | A glossary-constrained LLM (or offline TM-composite) draft | `draft` — queued for review |
 | 0 | *(no candidate)* | The engine declined / returned nothing | `pending` |
 
 A tier-2 draft is written into the host's `documents`/`segments` review queue.
@@ -531,9 +542,11 @@ Outside the tolerance band. The variation is reported, not smoothed.
 proven — the same trust model as calling `memory.add_pair(verifier="rita")`
 yourself. So it binds to loopback and refuses a public bind unless you pass
 `--allow-remote`, mutating requests are refused unless they carry the page's own
-header (so another browser tab cannot POST a seal into it), and the page is
-served with `Content-Security-Policy: default-src 'none'` — an audit surface
-should not be able to ship the memory it is displaying anywhere. Seal
+header (so another browser tab cannot POST a seal into it), and the page is served with a
+Content-Security-Policy of `default-src 'none'` plus `connect-src 'self'` (the
+inline stylesheet and script are allowed, nothing external is, and `fetch` can
+only reach this server) — an audit surface should not be able to ship the memory
+it is displaying anywhere. Seal
 *signatures* (`NESTOR_SEAL_KEY`) remain the thing that makes a seal unforgeable;
 nothing here weakens them, and the header badge tells you when they are off.
 
@@ -591,7 +604,9 @@ import applies the serve path's rule rather than a softer one:
 | sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you |
 | sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, and never served |
 | draft | imported as a draft |
-| same source, a *different* target | **conflict**: listed for a human, never resolved silently |
+| same source, a *different* target | **conflict**: listed for a human, never resolved silently (`--override-conflicts`) |
+| a pair **rejected here** | listed and skipped — `--override-conflicts` deliberately cannot reach it, because a rejection is not a competing answer (`--override-rejections`, or `Curator.restore`, is the way back) |
+| sealed and verified, over a local **draft** of the same text | the draft is upgraded — same answer, but one side has a verification the other lacks |
 
 ```
 would import: 16 sealed, 1 demoted to draft (signature does not verify here),
@@ -609,6 +624,10 @@ itself is what gets appended locally.
 `--format csv` is offered and is deliberately lossy: it drops signatures, so a
 CSV round-trip cannot carry a verifiable seal. Use it to read a memory, not to
 move one.
+
+This is a transfer, not a sync: there is no continuous replication and no
+three-way merge, and a pair's id is per-instance. [QUESTIONS.md
+§8](QUESTIONS.md) says what that would take.
 
 ## Serving a model — and the one thing it cannot do
 
@@ -642,6 +661,9 @@ exactly as much as the difficulty of getting a machine's output marked as
 checked, so `tests/test_serve.py` pins it as a property: after a model has called
 every tool this server has, the sealed memory is unchanged.
 
+`--read-only` withholds even the proposal, for an agent that should be able to
+*read* the verified memory and put nothing into it.
+
 What comes back is the **state**, not just a string — so an agent can cite a
 human, or decline:
 
@@ -669,6 +691,14 @@ existing chain is verified before it is *first* extended in a process, so a
 broken chain is refused rather than silently extended — see `IDEAS.md` §5.3 for
 the once-per-process limit and what it does and does not cost you.
 
+**A decision that cannot be recorded is not made.** Those refusals run *before*
+the store is written (`cascade.ledger_preflight`), so a seal, a rejection or an
+unseal onto an unwritable or broken chain is refused outright rather than
+committed and then regretted. A draft still lands — a draft is not a
+verification. Appends are serialized across threads and processes, because a
+concurrent writer used to produce a chain that verified as broken while every
+entry was present.
+
 Be precise about what that limit is: the tamper is still **caught**. `verify()`
 fails before and after, and the chain stays broken, so tamper-evidence — the
 load-bearing property — holds completely. What you lose is the early refusal.
@@ -676,6 +706,14 @@ Inside one long-lived process, after the first append, a new entry is chained
 onto a tampered history without a refusal.
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
+
+**Nothing is ever deleted, and that is a design decision with a cost.** Rejecting
+and unsealing preserve the trail; there is no `memory_delete`, because hard
+deletion punches a hole in a hash chain by construction. An erasure path has to
+be designed *against* the ledger rather than bolted on, so until someone does
+that work: do not put personal data in the source text. [QUESTIONS.md
+§10](QUESTIONS.md) states the same thing where a compliance reader will look for
+it.
 
 ```python
 from nestor.ledger import verify
@@ -762,14 +800,14 @@ Document / segment operations:
 - `create_document(title, source_lang, target_lang) -> dict`
 - `get_document(document_id) -> dict | None`
 - `update_document_status(document_id, status)`
-- `create_segment(document_id, position, source_text, candidate, jeles_score) -> dict`
+- `create_segment(document_id, position, source_text, candidate, jeles_score) -> dict` — `jeles_score` is the draft engine's own rough confidence, stored as given (the name is inherited from the host Nestor was extracted from; nothing reads it back).
 - `get_segment(segment_id) -> dict | None`
 
 Translation-memory operations:
 
 - `memory_init()` — ensure the TM table exists.
 - `memory_find(source_norm, source_lang, target_lang) -> dict | None` — exact normalized-key lookup, for upsert.
-- `memory_insert(pair)`
+- `memory_insert(pair)` — MUST refuse a second row with the same `(source_norm, source_lang, target_lang)`. Nestor's conflict guards read-then-write, so this is what makes "one row per source" hold when two reviewers seal the same phrase at once; the reference store enforces it with a unique index.
 - `memory_seal(pair_id, target_text, verifier, weight, seal_sig)`
 - `memory_candidates(source_lang, target_lang) -> list[dict]` — all pairs for a domain; Nestor does the scoring.
 - `memory_stats() -> dict`
