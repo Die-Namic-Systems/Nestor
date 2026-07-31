@@ -1346,11 +1346,19 @@ Matchers that implement ``scores_against`` (notably :class:`~nestor.semantic_mat
 embed uncached query and candidate surfaces in one ``fastembed`` call per scan.
 :func:`~nestor.memory.lookup` and :func:`~nestor.memory.best_sealed` share
 ``_raw_score_sims`` so both paths batch the same way; rows with no
-``source_text`` still score through norms only.
+``source_text`` still score through norms only. Persisted vectors per row are §6.4.
 
-**Still open:** a sealed-row embedding table persisted with the store and
-invalidated on write — the next step when the same corpus is probed many times
-without restarting the process, or when embed cost dominates even with batching.
+### 6.4 Persisted row embeddings (`tm_embeddings`) — **shipped**
+
+*Follow-up to §6.2, 2026-07-31.*
+
+:mod:`nestor.sqlite_store.SqliteStore` stores one vector per ``(pair_id,
+model_name)`` with a ``source_sha`` so a changed surface is not served from a
+stale embedding. :meth:`~nestor.semantic_matcher.SemanticMatcher.scores_against_for_rows`
+hydrates the in-process LRU from the store before batching and writes back after
+embed. :func:`~nestor.memory.add_pair` drops stored embeddings when the raw
+``source_text`` for an existing normalized key changes. Other ``Storage``
+implementations are unaffected (duck-typed via :func:`~nestor.embedding_store.supports_embedding_store`).
 
 ### 6.3 Bench token matchers: `score` + harness `match_similarity` — **shipped**
 

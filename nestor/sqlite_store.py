@@ -78,6 +78,14 @@ CREATE INDEX IF NOT EXISTS idx_tm_langs ON tm_pairs(source_lang, target_lang, st
 -- triple. tm_pairs.source_norm is indexed via idx_tm_pairs_key (see below).
 CREATE INDEX IF NOT EXISTS idx_tm_rejections_query
     ON tm_rejections(query_norm, source_lang, target_lang);
+
+CREATE TABLE IF NOT EXISTS tm_embeddings (
+    pair_id     TEXT NOT NULL,
+    model_name  TEXT NOT NULL,
+    source_sha  TEXT NOT NULL,
+    embedding   BLOB NOT NULL,
+    PRIMARY KEY (pair_id, model_name)
+);
 """
 
 
@@ -318,6 +326,36 @@ class SqliteStore:
                 "SELECT * FROM tm_pairs WHERE source_lang=? AND target_lang=?",
                 (source_lang, target_lang),
             )]
+
+    # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
+
+    def embedding_load(self, pair_id: str,
+                       model_name: str) -> Optional[tuple[str, tuple[float, ...]]]:
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT source_sha, embedding FROM tm_embeddings "
+                "WHERE pair_id=? AND model_name=?",
+                (pair_id, model_name),
+            ).fetchone()
+        if not row:
+            return None
+        from .embedding_store import blob_to_vec
+        return row[0], blob_to_vec(row[1])
+
+    def embedding_save(self, pair_id: str, model_name: str, source_sha: str,
+                       vec: tuple[float, ...]) -> None:
+        from .embedding_store import vec_to_blob
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO tm_embeddings(pair_id, model_name, source_sha, embedding) "
+                "VALUES (?,?,?,?) ON CONFLICT(pair_id, model_name) DO UPDATE SET "
+                "source_sha=excluded.source_sha, embedding=excluded.embedding",
+                (pair_id, model_name, source_sha, vec_to_blob(vec)),
+            )
+
+    def embedding_drop(self, pair_id: str) -> None:
+        with self._db() as conn:
+            conn.execute("DELETE FROM tm_embeddings WHERE pair_id=?", (pair_id,))
 
     # --- rejection -------------------------------------------------------
 

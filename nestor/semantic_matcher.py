@@ -16,6 +16,7 @@ import threading
 from collections import OrderedDict
 from typing import Optional
 
+from .embedding_store import source_text_sha, supports_embedding_store
 from .matcher import Matcher, StringMatcher
 
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
@@ -122,31 +123,75 @@ class SemanticMatcher:
 
     def scores_against(self, query_text: str, stored_texts: list[str]) -> list[float]:
         """Score one query against many stored surfaces (batched embed when needed)."""
+        with self._lock:
+            return self._scores_against_unlocked(query_text, stored_texts)
+
+    def scores_against_for_rows(self, query_text: str, rows: list[dict],
+                                store=None) -> list[float]:
+        """Like :meth:`scores_against`, with optional store-backed embedding cache."""
+        texts = [r.get("source_text") or "" for r in rows]
+        with self._lock:
+            self._hydrate_embeddings_from_store(rows, store)
+            scores = self._scores_against_unlocked(query_text, texts)
+            self._persist_embeddings_to_store(rows, texts, store)
+        return scores
+
+    def _hydrate_embeddings_from_store(self, rows: list[dict], store) -> None:
+        if not store or not supports_embedding_store(store):
+            return
+        for row in rows:
+            text = (row.get("source_text") or "").strip()
+            if not text:
+                continue
+            hit = store.embedding_load(row["id"], self.model_name)
+            if hit is None:
+                continue
+            sha, vec = hit
+            if sha != source_text_sha(text):
+                store.embedding_drop(row["id"])
+                continue
+            self._remember(text, vec)
+
+    def _persist_embeddings_to_store(self, rows: list[dict],
+                                     texts: list[str], store) -> None:
+        if not store or not supports_embedding_store(store):
+            return
+        for row, text in zip(rows, texts):
+            raw = (text or "").strip()
+            if not raw:
+                continue
+            vec = self._cache.get(raw)
+            if vec is None:
+                continue
+            store.embedding_save(row["id"], self.model_name,
+                                 source_text_sha(raw), vec)
+
+    def _scores_against_unlocked(self, query_text: str,
+                                 stored_texts: list[str]) -> list[float]:
         q = "" if query_text is None else str(query_text)
         q_norm = self.normalize(q)
         out = [0.0] * len(stored_texts)
         pending: list[tuple[int, str]] = []
-        with self._lock:
-            for i, raw in enumerate(stored_texts):
-                b = "" if raw is None else str(raw)
-                if not q.strip() or not b.strip():
-                    continue
-                if self.normalize(b) == q_norm or q == b:
-                    out[i] = 1.0
-                    continue
-                pending.append((i, b))
-            if not pending:
-                return out
-            need: list[str] = []
-            seen: set[str] = set()
-            for text in (q, *(b for _, b in pending)):
-                if text not in self._cache and text not in seen:
-                    need.append(text)
-                    seen.add(text)
-            if need:
-                model = self._load_model()
-                for text, vec in zip(need, model.embed(need)):
-                    self._remember(text, tuple(float(x) for x in vec))
-            for i, b in pending:
-                out[i] = _cosine(self._embed_unlocked(q), self._embed_unlocked(b))
+        for i, raw in enumerate(stored_texts):
+            b = "" if raw is None else str(raw)
+            if not q.strip() or not b.strip():
+                continue
+            if self.normalize(b) == q_norm or q == b:
+                out[i] = 1.0
+                continue
+            pending.append((i, b))
+        if not pending:
+            return out
+        need: list[str] = []
+        seen: set[str] = set()
+        for text in (q, *(b for _, b in pending)):
+            if text not in self._cache and text not in seen:
+                need.append(text)
+                seen.add(text)
+        if need:
+            model = self._load_model()
+            for text, vec in zip(need, model.embed(need)):
+                self._remember(text, tuple(float(x) for x in vec))
+        for i, b in pending:
+            out[i] = _cosine(self._embed_unlocked(q), self._embed_unlocked(b))
         return out

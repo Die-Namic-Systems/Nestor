@@ -46,6 +46,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from . import signing
+from .embedding_store import supports_embedding_store
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import Storage, get_store, supports_rejection
 
@@ -100,7 +101,7 @@ def get_matcher(m: Optional[Matcher] = None) -> Matcher:
 
 
 def _raw_score_sims(matcher: Matcher, query_text: str,
-                    rows: list[dict]) -> tuple[bool, dict[str, float]]:
+                    rows: list[dict], store: Optional[Storage] = None) -> tuple[bool, dict[str, float]]:
     """Map row id → raw similarity, batching ``scores_against`` when offered.
 
     Rows with no ``source_text`` are omitted from the map; they must be scored
@@ -117,9 +118,18 @@ def _raw_score_sims(matcher: Matcher, query_text: str,
     batched = [r for r in rows if (r.get("source_text") or "").strip()]
     if not batched:
         return raw_score, sims
-    scores = batch(query_text, [r["source_text"] for r in batched])
+    batch_rows = getattr(matcher, "scores_against_for_rows", None)
+    if callable(batch_rows) and store is not None and supports_embedding_store(store):
+        scores = batch_rows(query_text, batched, store)
+    else:
+        scores = batch(query_text, [r["source_text"] for r in batched])
     sims = dict(zip((r["id"] for r in batched), scores))
     return raw_score, sims
+
+
+def _drop_stored_embeddings(store: Storage, pair_id: str) -> None:
+    if supports_embedding_store(store):
+        store.embedding_drop(pair_id)
 
 
 def _similarity_for_row(matcher: Matcher, query_text: str, query_norm: str,
@@ -271,6 +281,8 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     seal_sig = signing.sign_seal(norm, target_text, verifier) if status == "sealed" else ""
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
+        if (existing.get("source_text") or "") != source_text:
+            _drop_stored_embeddings(store, existing["id"])
         # A rejected pair must not be resurrected by a routine re-seal. Without
         # this, a curator rejects a bad mapping and the next graduate_segment
         # over the same source text silently seals it again — the exact leak
@@ -459,7 +471,7 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
         eligible.append(row)
 
     scored: list[dict] = []
-    raw_score, sims = _raw_score_sims(matcher, source_text, eligible)
+    raw_score, sims = _raw_score_sims(matcher, source_text, eligible, store)
     for row in eligible:
         sim = _similarity_for_row(matcher, source_text, norm, row,
                                   raw_score=raw_score, sims=sims)
@@ -573,7 +585,7 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
             continue
         candidates.append(row)
 
-    raw_score, sims = _raw_score_sims(matcher, source_text, candidates)
+    raw_score, sims = _raw_score_sims(matcher, source_text, candidates, store)
     for row in candidates:
         # Beat the bar, and then beat the incumbent.
         need = max(seal, ctx, best_sim) - _ROUNDING_SLACK

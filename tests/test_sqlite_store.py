@@ -63,3 +63,19 @@ def test_a_duplicate_norm_database_still_indexes_lookups(tmp_path):
             "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tm_pairs'")}
     assert "idx_tm_pairs_find" in names
     assert "idx_tm_pairs_key" not in names
+
+
+def test_tm_embeddings_roundtrip(tmp_path):
+    from nestor.embedding_store import source_text_sha
+
+    store = SqliteStore(str(tmp_path / "emb.db"))
+    store.memory_init()
+    vec = (0.1, 0.2, 0.3, 0.4)
+    sha = source_text_sha("hello world")
+    store.embedding_save("pair-1", "test-model", sha, vec)
+    loaded = store.embedding_load("pair-1", "test-model")
+    assert loaded is not None
+    assert loaded[0] == sha
+    assert loaded[1] == pytest.approx(vec)
+    store.embedding_drop("pair-1")
+    assert store.embedding_load("pair-1", "test-model") is None
