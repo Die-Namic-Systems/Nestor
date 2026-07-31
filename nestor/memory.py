@@ -46,7 +46,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from . import signing
-from .matcher import Matcher, StringMatcher
+from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import Storage, get_store, supports_rejection
 
 EXACT = 1.0
@@ -376,10 +376,13 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
     """Ranked matches: [{pair, similarity}], best first. Sealed and draft both returned.
 
     Scoring is delegated to the injected ``matcher`` (default StringMatcher, so
-    translation behavior is unchanged). ``context_threshold`` overrides the
-    module-level :data:`CONTEXT_THRESHOLD` floor below which candidates are
-    dropped — pass ``0.0`` to keep every candidate (used by the numeric
-    reconciler so a far-off figure is still returned for variation reporting).
+    translation behavior is unchanged). When the matcher implements
+    ``score(raw_a, raw_b)``, each candidate is scored from the query text and
+    the row's ``source_text``; otherwise ``similarity`` on normalized keys.
+    ``context_threshold`` overrides the module-level :data:`CONTEXT_THRESHOLD`
+    floor below which candidates are dropped — pass ``0.0`` to keep every
+    candidate (used by the numeric reconciler so a far-off figure is still
+    returned for variation reporting).
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -399,7 +402,8 @@ def lookup(source_text: str, source_lang: str, target_lang: str,
             continue
         if row["id"] in bad_pairs or row["target_text"] in bad_targets:
             continue
-        sim = matcher.similarity(norm, row["source_norm"])
+        sim = match_similarity(matcher, source_text, norm,
+                              row.get("source_text", ""), row["source_norm"])
         if sim >= ctx:
             scored.append({"pair": row, "similarity": round(sim, 3)})
     scored.sort(key=lambda m: (-m["similarity"], m["pair"]["status"] != "sealed"))
@@ -494,7 +498,8 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
     norm = matcher.normalize(source_text)
     bad_pairs, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
     bound = getattr(matcher, "similarity_bound", None)
-    if not callable(bound):
+    if not callable(bound) or uses_raw_score(matcher):
+        # Bounds are defined on normalized keys; invalid when score() sees raw text.
         bound = None
 
     best: Optional[dict] = None
@@ -510,7 +515,8 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         need = max(seal, ctx, best_sim) - _ROUNDING_SLACK
         if bound is not None and bound(norm, row["source_norm"], need) < need:
             continue
-        raw = matcher.similarity(norm, row["source_norm"])
+        raw = match_similarity(matcher, source_text, norm,
+                               row.get("source_text", ""), row["source_norm"])
         if raw < ctx:                      # lookup's context floor, unrounded
             continue
         sim = round(raw, 3)                # what lookup reports, and judges on

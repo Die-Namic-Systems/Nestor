@@ -179,11 +179,11 @@ def run_arm(corpus_name: str, budget: str, k: int, rows: int, n_probes: int,
 
     rows_all = store.memory_candidates("en", "es")
     recall_scores = [
-        (*best_match_fast(matcher.normalize(p), rows_all, matcher, FLOOR), expect)
+        (*best_match_fast(p, rows_all, matcher, FLOOR), expect)
         for p, expect in recall_probes
     ]
     absent_scores = [
-        best_match_fast(matcher.normalize(p), rows_all, matcher, FLOOR)
+        best_match_fast(p, rows_all, matcher, FLOOR)
         for p in absent
     ]
 

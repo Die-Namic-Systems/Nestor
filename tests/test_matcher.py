@@ -1,6 +1,8 @@
 import pytest
 
-from nestor.matcher import Matcher, NumericMatcher, StringMatcher
+from nestor import memory
+from nestor.matcher import Matcher, NumericMatcher, StringMatcher, match_similarity
+from nestor.sqlite_store import SqliteStore
 
 
 # --- StringMatcher: must reproduce the historical translation behavior -------
@@ -23,6 +25,59 @@ def test_string_similarity_equal_is_one_else_difflib():
 def test_string_matcher_satisfies_protocol():
     assert isinstance(StringMatcher(), Matcher)
     assert isinstance(NumericMatcher(), Matcher)
+
+
+# --- score(raw) seam (IDEAS §3.1) -------------------------------------------
+
+def test_match_similarity_prefers_score_over_norms():
+    class _Split:
+        def normalize(self, value):
+            return "key"
+
+        def similarity(self, a_norm, b_norm):
+            return 0.0
+
+        def score(self, raw_a, raw_b):
+            return 0.88
+
+    m = _Split()
+    assert match_similarity(m, "query", "key", "stored", "key") == 0.88
+
+
+def test_match_similarity_blank_stored_text_falls_back_to_norms():
+    class _ScoreOnly:
+        def normalize(self, value):
+            return "k"
+
+        def similarity(self, a_norm, b_norm):
+            return 0.42
+
+        def score(self, raw_a, raw_b):
+            return 0.99
+
+    m = _ScoreOnly()
+    assert match_similarity(m, "q", "k", "   ", "k") == 0.42
+    assert match_similarity(m, "q", "k", "", "k") == 0.42
+
+
+def test_lookup_uses_score_when_present():
+    store = SqliteStore(":memory:")
+
+    class _FixedScore:
+        def normalize(self, value):
+            return "key"
+
+        def similarity(self, a_norm, b_norm):
+            return 0.1
+
+        def score(self, raw_a, raw_b):
+            return 0.95
+
+    memory.add_pair("stored surface", "answer", "en", "es", status="sealed",
+                    verifier="rita", store=store, matcher=StringMatcher())
+    hits = memory.lookup("query surface", "en", "es", store=store,
+                         matcher=_FixedScore())
+    assert hits[0]["similarity"] == 0.95
 
 
 # --- NumericMatcher: parsing -------------------------------------------------

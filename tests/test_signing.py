@@ -6,6 +6,8 @@ served only if its signature — an HMAC over (source_norm, target_text, verifie
 keyed by a secret the store does not hold — is valid. A forger without the key
 cannot produce one, so the poisoned row is refused.
 """
+
+import os
 from nestor import memory
 from nestor.matcher import StringMatcher
 from nestor.sqlite_store import SqliteStore
@@ -22,8 +24,8 @@ def _forged_sealed_row(source, target, verifier, sig):
     )
 
 
-def test_forged_seal_is_rejected_when_signing_enabled(monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "operator-secret-held-outside-the-store")
+def test_forged_seal_is_rejected_when_signing_enabled():
+    os.environ['NESTOR_SEAL_KEY'] = 'operator-secret-held-outside-the-store'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
 
@@ -40,16 +42,16 @@ def test_forged_seal_is_rejected_when_signing_enabled(monkeypatch):
                               store=store) is None  # NOT served
 
 
-def test_unsigned_seal_is_rejected_when_signing_enabled(monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+def test_unsigned_seal_is_rejected_when_signing_enabled():
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     store.memory_insert(_forged_sealed_row("x", "y", "sean", ""))  # empty signature
     assert memory.best_sealed("x", "en", "es", store=store) is None
 
 
-def test_backward_compatible_without_key(monkeypatch):
-    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
+def test_backward_compatible_without_key():
+    os.environ.pop("NESTOR_SEAL_KEY", None)
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     memory.add_pair("hello", "world", "en", "es",

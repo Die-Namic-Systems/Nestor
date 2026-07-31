@@ -4,6 +4,8 @@
 - the signature check bypassed by reconcile.py / engine.py (B5)
 - silent fail-open + strict mode (B14a)
 """
+
+import os
 import pytest
 
 from nestor import engine, memory, signing
@@ -22,10 +24,10 @@ def _forged(source, target, verifier, sig, *, src_lang="en", tgt_lang="es",
         created_at="2026-07-24T00:00:00+00:00", seal_sig=sig)
 
 
-def test_delimiter_collision_is_no_longer_a_valid_seal(monkeypatch):
+def test_delimiter_collision_is_no_longer_a_valid_seal():
     # B4: the old "\x1f".join form signed the same bytes for these two field
     # sets; a structured (JSON) encoding must not.
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     legit_sig = signing.sign_seal("s", "ok\x1fadmin", "alice")
     # An attacker copies legit_sig onto a row with shifted field boundaries.
     assert signing.seal_is_valid("s", "ok", "admin\x1falice", legit_sig) is False
@@ -33,9 +35,9 @@ def test_delimiter_collision_is_no_longer_a_valid_seal(monkeypatch):
     assert signing.seal_is_valid("s", "ok\x1fadmin", "alice", legit_sig) is True
 
 
-def test_reconciler_does_not_trust_a_forged_seal(monkeypatch):
+def test_reconciler_does_not_trust_a_forged_seal():
     # B5: Reconciler.check used a bare status=="sealed" filter.
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     # A forged numeric baseline sealed row (label="revenue", domain="value").
@@ -48,8 +50,8 @@ def test_reconciler_does_not_trust_a_forged_seal(monkeypatch):
     assert result["flagged"] is False
 
 
-def test_engine_context_excludes_a_forged_seal(monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+def test_engine_context_excludes_a_forged_seal():
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     store.memory_insert(_forged("hello world", "HOLA MUNDO (evil)", "sean", "bad"))
@@ -63,16 +65,16 @@ def test_engine_context_excludes_a_forged_seal(monkeypatch):
     assert [m["pair"]["target_text"] for m in ctx2] == ["hola mundo"]
 
 
-def test_strict_mode_refuses_to_serve_unverifiable_seals(monkeypatch):
-    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
-    monkeypatch.setenv("NESTOR_REQUIRE_SEAL_KEY", "1")
+def test_strict_mode_refuses_to_serve_unverifiable_seals():
+    os.environ.pop("NESTOR_SEAL_KEY", None)
+    os.environ['NESTOR_REQUIRE_SEAL_KEY'] = '1'
     with pytest.raises(signing.SigningRequiredError):
         signing.seal_is_valid("s", "t", "v", "")
 
 
-def test_unsigned_warns_once(monkeypatch):
-    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
-    monkeypatch.delenv("NESTOR_REQUIRE_SEAL_KEY", raising=False)
+def test_unsigned_warns_once():
+    os.environ.pop("NESTOR_SEAL_KEY", None)
+    os.environ.pop("NESTOR_REQUIRE_SEAL_KEY", None)
     signing._warned_unsigned = False
     with pytest.warns(RuntimeWarning):
         assert signing.seal_is_valid("s", "t", "v", "anything") is True

@@ -142,6 +142,17 @@ def set_ledger_path(path) -> None:
     """Override the hash-chained ledger location (wins over ``NESTOR_LEDGER``)."""
     global _LEDGER_OVERRIDE
     _LEDGER_OVERRIDE = pathlib.Path(path)
+    reset_ledger_session()
+
+
+def reset_ledger_session() -> None:
+    """Drop in-process verify/checkpoint state without changing the path.
+
+    Changing the ledger file or simulating a fresh process (tests, tooling) must
+    not inherit another chain's ``_verified_ledgers`` / ``_checkpoints`` cache.
+    """
+    _verified_ledgers.clear()
+    _checkpoints.clear()
 
 
 def _ledger_path() -> pathlib.Path:

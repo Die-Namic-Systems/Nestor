@@ -15,7 +15,11 @@ overwrite was neither raised nor recorded.
 """
 from __future__ import annotations
 
+import os
+
 import json
+
+import warnings
 
 import pytest
 
@@ -25,8 +29,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def store(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def store(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     s = SqliteStore(":memory:")
     s.init_db()
@@ -152,20 +156,24 @@ def test_curator_surfaces_conflicts_and_hides_self_corrections(store):
 
 # --- audit must never break a write ---------------------------------------
 
-def test_an_unwritable_ledger_does_not_lose_the_seal(store, tmp_path, monkeypatch):
+def test_an_unwritable_ledger_does_not_lose_the_seal(store, seal_key):
     """The pair is already committed by the time the entry is written, so
     raising here would leave the caller with a completed write and an
     exception. Bulk seeding paths must not abort on an unwritable trail."""
+    from nestor import cascade
+
+    ledger = cascade._ledger_path()
     memory.add_pair("iota", "one", "d", "d", status="sealed", verifier="rita",
                     store=store)
 
-    def boom(entry):
-        raise OSError("ledger unavailable")
+    ledger.chmod(0o444)
 
-    monkeypatch.setattr(memory, "_log_rejection", boom)
-    pair = memory.add_pair("iota", "two", "d", "d", status="sealed",
-                           verifier="sam", store=store, override_conflict=True)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        pair = memory.add_pair("iota", "two", "d", "d", status="sealed",
+                               verifier="sam", store=store, override_conflict=True)
     assert pair["target_text"] == "two", "the seal must still have landed"
+    assert any("ledger entry was not" in str(w.message) for w in caught)
 
 
 # --- the ledger reader -----------------------------------------------------

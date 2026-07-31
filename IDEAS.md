@@ -12,6 +12,13 @@ Each entry carries a status, because the difference matters:
 | **hypothesis** | Plausible, untested — do not cite as fact |
 | **open** | A question, not yet a proposal |
 
+**Agent log (§6).** Follow-ups proposed during implementation sessions (IDE
+agents included) go in §6 with the same status vocabulary. When something
+ships, mark it **shipped** there (and fold the substance into the numbered
+section it belongs to if it isn't already). Agents: when you suggest a follow-up
+to the operator, add it to §6 in the same change or immediately after — do not
+leave it only in chat.
+
 ---
 
 ## 1. Correctness — the seal that shouldn't have served
@@ -503,23 +510,30 @@ unmeasured, and now worth measuring rather than hypothesising about.
 
 ## 3. The Matcher seam
 
-### 3.1 The seam is lossy by construction — **verified**
+### 3.1 The seam is lossy by construction — **shipped**
 
-`normalize(value) -> str` is the *only* channel between a raw input and
-`similarity(a_norm, b_norm)`. Scoring never sees the originals. I lost an
-acronym match (`AWS` → `Amazon Web Services`) purely because my normalizer
-sorted its tokens, and the information needed to recover it no longer existed by
-scoring time.
+`normalize(value) -> str` is the dedup key in `memory_find` and what gets
+persisted as ``source_norm``. Scoring used to go only through
+``similarity(a_norm, b_norm)`` on those keys, so anything that did not survive
+normalization was gone by scoring time (the acronym case below).
 
-Worse, that same string is simultaneously the store's exact-match dedup key in
-`memory_find`. Scoring wants rich structure; deduplication wants aggressive
-collapse. **These two jobs pull in opposite directions, and one string serves
-both.**
+**Optional ``score(raw_a, raw_b)``** — when a matcher implements it,
+``memory.lookup``, ``memory.best_sealed``, and ``nestor.calibrate`` compare the
+query's raw text to each row's ``source_text`` via ``score``. ``similarity`` on
+norms remains for matchers that do not offer ``score``. ``similarity_bound``
+prefiltering is disabled when ``score`` is present (bounds are on norms only).
 
-Proposal: an optional second method — `score(raw_a, raw_b)` — that the memory
-prefers when present, leaving `normalize` free to be a pure dedup key. This is
-the change that unblocks embedding/semantic matchers, which currently cannot be
-expressed without smuggling a vector through a SQL key.
+The original failure mode: I lost an acronym match (`AWS` → `Amazon Web
+Services`) purely because my normalizer sorted its tokens, and the information
+needed to recover it no longer existed by scoring time. Worse, that same string
+is simultaneously the store's exact-match dedup key in `memory_find`. Scoring
+wants rich structure; deduplication wants aggressive collapse. **These two jobs
+pull in opposite directions, and one string served both** — until ``score``
+split them.
+
+This is the change that unblocks embedding/semantic matchers without smuggling a
+vector through a SQL key: ``normalize`` stays the dedup key; ``score`` (or a
+matcher that implements it with embeddings) sees the originals.
 
 ### 3.2 Recipes the seam already supports — **verified**
 
@@ -541,12 +555,17 @@ selected from a UI or an MCP call, because a name off a wire cannot conjure one;
 it has to be injected in code (`memory.set_matcher`). The rest is positioning
 (§4.1).
 
-### 3.3 Semantic matcher — **open**
+### 3.3 Semantic matcher — **shipped (optional extra)**
 
-Blocked on §3.1. Would fix the acronym/synonym class of misses outright. Cost:
-the first real dependency in a currently zero-dependency package — which is a
-genuine selling point to the regulated buyer, so this should probably live as an
-optional extra, never core.
+``pip install nestor[semantic]`` pulls in `fastembed` only — core stays
+zero-dependency. :class:`~nestor.semantic_matcher.SemanticMatcher` keeps
+:class:`~nestor.matcher.StringMatcher` normalization for dedup and implements
+``score(raw_a, raw_b)`` with cosine similarity on a small bi-encoder (default
+``BAAI/bge-small-en-v1.5``). Wired as ``matcher="semantic"`` on
+``nestor match``, the UI Ask → Match view, and ``nestor_match`` over MCP.
+
+Serving thresholds calibrated for character ``StringMatcher`` do not transfer;
+re-run ``nestor calibrate`` on the corpus you intend to serve.
 
 ### 3.4 Model-authored surfaces — **measured; four stages, and the matcher
 mattered more than the surfaces**
@@ -1297,3 +1316,41 @@ Still open, and the same follow-on Nestor#2 named: the asymmetric upgrade. A
 shared secret proves possession of a key, not the presence of a person, and the
 process necessarily holds the keys it verifies against. Ed25519 or a Biscuit
 capability goes through the same `signing.sign_seal(..., key=)` seam.
+
+---
+
+## 6. Agent log
+
+Implementation-session follow-ups. Same status words as the table at the top;
+nothing here is a commitment until someone picks it up.
+
+### 6.1 Semantic smoke test behind NESTOR_SEMANTIC_TEST — **shipped**
+
+*Proposed 2026-07-31 after §3.3 shipped; implemented same session.*
+
+Integration test, off by default: set environment variable
+NESTOR_SEMANTIC_TEST=1 (and ``pip install nestor[semantic]``) to download the
+default `fastembed` model and assert `SemanticMatcher.score("AWS", "Amazon Web
+Services")` beats `StringMatcher` on the same pair (IDEAS §3.1's motivating
+case, ~0.273 on character ratio). See ``tests/test_semantic_integration.py`` and
+``nestor.semantic_matcher.integration_tests_enabled``.
+
+### 6.2 Batch-embed in `lookup` / `best_sealed` — **open**
+
+*Proposed 2026-07-31 after §3.3 shipped.*
+
+`SemanticMatcher` embeds one string per `score()` call. A large memory scanned
+linearly will re-embed the same `source_text` on every probe. Cache per matcher
+instance helps within a process; batching (embed all candidate surfaces once per
+query, or maintain a sealed-row embedding table invalidated on write) is the
+next step if semantic matching is used on big corpora. Related: §2.1 scan cost,
+but embeddings dominate once the matcher is not difflib.
+
+### 6.3 Bench token matchers: `score` + harness `match_similarity` — **shipped**
+
+*Proposed and implemented 2026-07-31.*
+
+`TokenJaccard` / `TokenOverlap` implement `score(raw_a, raw_b)`; `bench_accuracy.best_match`
+takes raw probe text and calls `nestor.matcher.match_similarity` so stage-4
+surfaces-human runs use the same path as production `lookup`, not difflib over
+sorted norms.

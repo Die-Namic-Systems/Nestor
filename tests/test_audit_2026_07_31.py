@@ -17,6 +17,8 @@ store without passing it.
 """
 from __future__ import annotations
 
+import os
+
 import json
 import pathlib
 import subprocess
@@ -31,8 +33,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def signed(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "shared-key")
+def signed(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'shared-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     return tmp_path
 

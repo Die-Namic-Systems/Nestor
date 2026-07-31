@@ -8,6 +8,8 @@ was untested.
 """
 from __future__ import annotations
 
+import os
+
 import difflib
 import random
 import string
@@ -20,8 +22,8 @@ from nestor.sqlite_store import SqliteStore
 
 
 @pytest.fixture()
-def store(tmp_path, monkeypatch):
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "test-key")
+def store(tmp_path, seal_key):
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
     s = SqliteStore(":memory:")
     s.init_db()

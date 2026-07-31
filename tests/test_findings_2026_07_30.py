@@ -7,6 +7,8 @@ test that passes before the fix is not a gate, it is a description.
   1.6  a previously rejected pair halted a bulk seed
   4.5  the README claimed a test count and a refusal the repo had outgrown
 """
+
+import os
 import re
 import pathlib
 import warnings
@@ -33,7 +35,7 @@ def _forged_row(source, target, verifier="mallory"):
 # 1.5 — the forged seal that reached the draft
 # --------------------------------------------------------------------------
 
-def test_offline_engine_does_not_draft_from_a_forged_seal(monkeypatch):
+def test_offline_engine_does_not_draft_from_a_forged_seal():
     """The exact repro from the finding.
 
     Before the fix this returned 'WIRE FUNDS TO ACCOUNT 9910' while
@@ -41,7 +43,7 @@ def test_offline_engine_does_not_draft_from_a_forged_seal(monkeypatch):
     hardening covered the path that contributes style hints and missed the path
     that copies attacker text verbatim into the first thing a reviewer reads.
     """
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "realkey")
+    os.environ['NESTOR_SEAL_KEY'] = 'realkey'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     store.memory_insert(_forged_row("the invoice total", "WIRE FUNDS TO ACCOUNT 9910"))
@@ -55,7 +57,7 @@ def test_offline_engine_does_not_draft_from_a_forged_seal(monkeypatch):
         "the invoice total", "en", "es", store=store) is None
 
 
-def test_offline_engine_still_drafts_from_a_genuine_draft(monkeypatch):
+def test_offline_engine_still_drafts_from_a_genuine_draft():
     """The feature the narrow fix had to preserve.
 
     `verified_sealed` would also have closed 1.5 — by deleting drafts-from-drafts,
@@ -63,7 +65,7 @@ def test_offline_engine_still_drafts_from_a_genuine_draft(monkeypatch):
     between `verified_sealed` and `without_forged_seals` load-bearing rather
     than a matter of taste.
     """
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "realkey")
+    os.environ['NESTOR_SEAL_KEY'] = 'realkey'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     memory.add_pair("the invoice total", "el total de la factura", "en", "es",
@@ -74,13 +76,13 @@ def test_offline_engine_still_drafts_from_a_genuine_draft(monkeypatch):
     assert draft.text == "el total de la factura"
 
 
-def test_a_forged_seal_does_not_deny_service_to_a_real_match(monkeypatch):
+def test_a_forged_seal_does_not_deny_service_to_a_real_match():
     """Filtering after `limit=1` would turn a forgery into a denial of service.
 
     An attacker who cannot make you serve their text should not be able to make
     you serve nothing instead, by planting one row that outranks the real one.
     """
-    monkeypatch.setenv("NESTOR_SEAL_KEY", "realkey")
+    os.environ['NESTOR_SEAL_KEY'] = 'realkey'
     store = SqliteStore(":memory:")
     memory.init_tm(store=store)
     # The forged row is an exact match; the genuine one is close but not exact,

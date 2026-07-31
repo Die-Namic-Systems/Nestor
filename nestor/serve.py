@@ -136,7 +136,8 @@ class Server:
                 "description":
                     "The bare mechanic over any domain: normalize a value, score it against the "
                     "sealed pairs, and report whether it would be served as verified. Use for a "
-                    "custom domain built on the string or numeric matcher.",
+                    "custom domain built on the string, numeric, or semantic matcher "
+                    "(semantic needs nestor[semantic]).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"text": {"type": "string"}, **domain,

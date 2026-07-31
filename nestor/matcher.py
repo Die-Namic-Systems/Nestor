@@ -8,6 +8,10 @@ ledger.* Only two operations are domain-specific:
   * **normalize(value) -> str** — collapse an input into a canonical key.
   * **similarity(a_norm, b_norm) -> float** — how alike two canonical keys
     are, in ``[0.0, 1.0]`` (``1.0`` == a verified match).
+  * **score(raw_a, raw_b) -> float** *(optional)* — compare original inputs.
+    When present, :mod:`nestor.memory` prefers this over ``similarity`` on the
+    stored norms so ``normalize`` can stay aggressive for dedup without smuggling
+    scoring structure through ``source_norm`` (IDEAS §3.1).
 
 Everything else — sealing, thresholds, the ledger, storage inversion — is
 identical whether Nestor is matching TRANSLATIONS, ENTITIES, or NUMBERS. This
@@ -64,6 +68,36 @@ class Matcher(Protocol):
     # (:class:`NumericMatcher` is arithmetic on two floats) gains nothing, and
     # requiring it would break every custom matcher already injected against
     # this Protocol. A matcher without it is scanned exactly as before.
+    #
+    # Optional raw scoring, also deliberately NOT part of this Protocol:
+    #
+    #     score(raw_a, raw_b) -> float
+    #
+    # ``memory.lookup`` and ``memory.best_sealed`` call this when implemented,
+    # passing the query text and each row's ``source_text``. ``similarity`` remains
+    # required for paths that only have norms (e.g. calibration on stored keys
+    # when no ``score`` is offered). A matcher whose ``score`` disagrees with
+    # ``similarity`` on the same pair must not offer ``similarity_bound`` — the
+    # bound is defined on normalized keys only.
+
+
+def uses_raw_score(matcher) -> bool:
+    """True when ``matcher`` exposes a callable ``score`` method."""
+    return callable(getattr(matcher, "score", None))
+
+
+def match_similarity(matcher: Matcher, query_text: str, query_norm: str,
+                     stored_text: str, stored_norm: str) -> float:
+    """How alike a query is to one stored row.
+
+    Uses ``matcher.score(query_text, stored_text)`` when available and
+    ``stored_text`` is non-empty after strip; otherwise ``similarity(query_norm,
+    stored_norm)``.
+    """
+    stored = (stored_text or "").strip()
+    if uses_raw_score(matcher) and stored:
+        return matcher.score(query_text, stored)  # type: ignore[attr-defined]
+    return matcher.similarity(query_norm, stored_norm)
 
 
 # --------------------------------------------------------------------------
