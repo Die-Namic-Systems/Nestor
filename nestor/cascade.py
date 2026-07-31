@@ -36,9 +36,9 @@ except ImportError:                     # pragma: no cover — Windows
     fcntl = None                        # type: ignore[assignment]
 
 
-def _lock_file(handle) -> None:
+def _lock_file(handle, shared: bool = False) -> None:
     if fcntl is not None:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        fcntl.flock(handle.fileno(), fcntl.LOCK_SH if shared else fcntl.LOCK_EX)
 
 
 def _unlock_file(handle) -> None:
@@ -82,17 +82,8 @@ class Passage:
         return {"sealed": "✓", "draft": "~", "pending": "!"}[self.state]
 
 
-def ledger_preflight() -> None:
-    """Raise :class:`LedgerError` if the next append would be refused. Writes nothing.
-
-    The refusals below have to be available *before* a caller mutates the store,
-    or fail-closed becomes fail-late: a seal written to the database and then
-    refused by the ledger leaves a verified answer with no trail, which is the
-    one state this package exists to prevent. So a decision that must be audited
-    calls this first, and only writes if the trail will take it. See
-    ``memory.add_pair`` and the ``reject_*`` entry points.
-    """
-    ledger = _ledger_path()
+def _refuse_unusable_path(ledger: pathlib.Path) -> None:
+    """The checks that need no read: the trail must not be redirectable."""
     # Fail closed: a ledger that exists but is not a regular file (e.g.
     # /dev/null) would silently swallow the audit trail. Refuse it (Nestor#2).
     if ledger.exists() and not ledger.is_file():
@@ -104,15 +95,50 @@ def ledger_preflight() -> None:
     if ledger.is_symlink():
         raise LedgerError(f"ledger path is a symlink — refusing to chain onto a "
                           f"redirected audit trail: {ledger}")
-    # Verify the existing chain once per process before extending it: chaining a
-    # new entry onto a tampered history would launder the tamper. A broken chain
-    # is a refusal, not a warning (Nestor#2 — verify() now has a caller).
+
+
+def _verify_chain_once(ledger: pathlib.Path) -> None:
+    """Walk the chain the first time this process touches it, and remember.
+
+    **The caller must hold the file lock.** This reads the whole file, and a
+    reader without the lock can catch another process mid-append and see a
+    half-written final line — which walks as a broken chain and refuses a
+    perfectly good seal. That is not hypothetical: it turned a green branch red
+    the first time two processes appended at once in CI, and it failed exactly
+    once per process, because the result is cached below.
+    """
     key = str(ledger)
     if key not in _verified_ledgers and ledger.exists():
         ok, detail = _ledger_verify(key)
         if not ok:
             raise LedgerError(f"ledger chain is broken — refusing to append: {detail}")
         _verified_ledgers.add(key)
+
+
+def ledger_preflight() -> None:
+    """Raise :class:`LedgerError` if the next append would be refused. Writes nothing.
+
+    The refusals have to be available *before* a caller mutates the store, or
+    fail-closed becomes fail-late: a seal written to the database and then
+    refused by the ledger leaves a verified answer with no trail, which is the
+    one state this package exists to prevent. So a decision that must be audited
+    calls this first, and only writes if the trail will take it. See
+    ``memory.add_pair`` and the ``reject_*`` entry points.
+
+    The chain walk takes a **shared** lock — several processes may verify at
+    once, none may do it while a writer holds the exclusive lock.
+    """
+    ledger = _ledger_path()
+    _refuse_unusable_path(ledger)
+    if str(ledger) in _verified_ledgers or not ledger.exists():
+        return
+    with _append_lock:
+        with open(ledger, "r", encoding="utf-8") as f:
+            _lock_file(f, shared=True)
+            try:
+                _verify_chain_once(ledger)
+            finally:
+                _unlock_file(f)
 
 
 def ledger_append(entry: dict) -> None:
@@ -137,8 +163,8 @@ def ledger_append(entry: dict) -> None:
     across somebody else's I/O would make a slow governance mirror into a stalled
     review queue.
     """
-    ledger_preflight()
     ledger = _ledger_path()
+    _refuse_unusable_path(ledger)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": "genesis", **entry}
     with _append_lock:
@@ -147,6 +173,9 @@ def ledger_append(entry: dict) -> None:
         with open(ledger, "a+", encoding="utf-8") as f:
             _lock_file(f)
             try:
+                # Inside the lock, for the same reason the tail read is: a chain
+                # walk racing another process's write reads a torn line.
+                _verify_chain_once(ledger)
                 f.seek(0)
                 last = ""
                 for raw in f:
