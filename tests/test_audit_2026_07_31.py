@@ -230,10 +230,15 @@ def test_a_second_process_appending_at_the_same_time_keeps_it_intact(signed):
             "cascade.set_ledger_path(sys.argv[1]);"
             "[cascade.ledger_append({'kind': 'passage', 'p': sys.argv[2], 'i': i})"
             " for i in range(25)]")
-    procs = [subprocess.Popen([sys.executable, "-c", code, str(ledger), str(n)])
+    procs = [subprocess.Popen([sys.executable, "-c", code, str(ledger), str(n)],
+                              stderr=subprocess.PIPE, text=True)
              for n in range(3)]
     for p in procs:
-        assert p.wait(timeout=60) == 0
+        # stderr is captured and reported: the first version of this test
+        # asserted `wait() == 0` and, when CI failed it, said "assert 1 == 0"
+        # and nothing else. A gate that cannot say why it failed costs an hour.
+        _, err = p.communicate(timeout=60)
+        assert p.returncode == 0, f"a writer process died:\n{err}"
 
     assert len(ledger.read_text().splitlines()) == 75
     ok, detail = verify(str(ledger))
@@ -317,3 +322,47 @@ def test_a_wedged_frank_mirror_cannot_hang_a_seal(signed):
     assert ok, detail
     assert len(cascade._ledger_path().read_text().splitlines()) == 1, \
         "the local entry is written regardless — it is the source of truth"
+
+
+def test_an_append_waits_for_a_torn_line_instead_of_reading_it(signed):
+    """The one that turned master red, pinned deterministically.
+
+    The chain walk used to run *outside* the file lock, so the first append in a
+    process could read the file while another process was mid-write, see a line
+    without its newline, and refuse a perfectly good seal. It failed exactly
+    once per process — the walk is cached — which is why one of three writers
+    died and two sailed through.
+
+    Here a helper holds the lock with a torn line on disk, then restores the
+    file before releasing. An appender that respects the lock sees only the
+    consistent state; one that does not sees `{"kind": "part` and raises.
+    """
+    ledger = signed / "ledger.jsonl"
+    cascade.ledger_append({"kind": "passage", "i": 0})
+    cascade._verified_ledgers.clear()          # force this process to walk it
+
+    holder = (
+        "import fcntl, os, sys, time\n"
+        "path = sys.argv[1]\n"
+        "size = os.path.getsize(path)\n"
+        "f = open(path, 'a+', encoding='utf-8')\n"
+        "fcntl.flock(f.fileno(), fcntl.LOCK_EX)\n"
+        "f.write('{\"kind\": \"part')\n"    # a line with no newline yet
+        "f.flush()\n"
+        "print('held', flush=True)\n"
+        "time.sleep(2)\n"
+        "f.truncate(size)\n"                    # the write completes or unwinds
+        "f.flush()\n"
+        "fcntl.flock(f.fileno(), fcntl.LOCK_UN)\n"
+    )
+    proc = subprocess.Popen([sys.executable, "-c", holder, str(ledger)],
+                            stdout=subprocess.PIPE, text=True)
+    try:
+        assert proc.stdout.readline().strip() == "held", "helper never took the lock"
+        cascade.ledger_append({"kind": "passage", "i": 1})   # blocks, then succeeds
+    finally:
+        proc.wait(timeout=30)
+
+    ok, detail = verify(str(ledger))
+    assert ok, detail
+    assert len(ledger.read_text().splitlines()) == 2
