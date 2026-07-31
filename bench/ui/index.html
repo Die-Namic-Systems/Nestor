@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nestor bench</title>
+  <!-- Inline, so the page fetches nothing at all: a dashboard over local
+       measurements has no business making a request off its own origin. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='14'%3E%E2%9C%93%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Nestor bench</h1>
+      <p class="tagline">Where the seal threshold stops holding — numbers from <code>bench/results/</code></p>
+    </div>
+    <div class="controls" id="global-controls"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" class="tab active" data-bench="accuracy" role="tab" aria-selected="true">Accuracy</button>
+    <button type="button" class="tab" data-bench="margin" role="tab" aria-selected="false">Margin</button>
+  </nav>
+
+  <main id="app">
+    <p class="loading">Loading results…</p>
+  </main>
+
+  <footer class="foot">
+    <span id="run-meta"></span>
+    <span>Run benches with <code>python bench/bench_accuracy.py</code> — refresh this page to pick up new JSON.</span>
+  </footer>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

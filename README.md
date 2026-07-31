@@ -937,15 +937,21 @@ Results land in `bench/results/*.json` with parameters, environment and git
 revision attached. [`bench/README.md`](bench/README.md) documents the method,
 including the properties a corpus must preserve to produce a meaningful number.
 
+The trade is a shape, so there is a chart of it — read-only, stdlib, no build:
+
+```bash
+python bench/serve_ui.py --open       # http://127.0.0.1:8770/ui/
+```
+
 Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 - **Lookup is linear in corpus size**, and ~97% of the time is Python-side
   scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
-  not high-volume serving.
-- **Nothing consumes rejections as signal.** Repeated rejections against one
-  query are strong evidence the threshold is wrong for that domain, and a pair
-  rejected against many queries is probably junk. Both are recorded, neither is
-  read (§1.3).
+  not high-volume serving. `best_sealed` prunes losslessly on difflib's own
+  bounds (§2.1), which makes the *absent* case — nothing verified matches —
+  roughly an order of magnitude cheaper, but the scan is still a scan.
+- **The threshold wants calibrating per corpus, not trusting.** No single cutoff
+  is both safe and useful across corpora (§1.3).
 
 ---
 
