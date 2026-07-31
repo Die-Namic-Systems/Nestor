@@ -411,7 +411,7 @@ nobody could see:
 | View | What it is |
 |------|-----------|
 | **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; the segment leaves the queue and the decision is signed and ledgered. |
-| **Memory** | The curator's view over any domain in the store: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, export. Every row shows `servable` beside `status`. |
+| **Memory** | The curator's view over any domain in the store: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, seal one by hand into any domain (or a new one), export and import. Every row shows `servable` beside `status`. |
 | **Ask** | The mechanic, in whichever recipe you pick — translate, resolve an entity, reconcile a figure, or run the bare seam. Each answer comes with the ranked candidates that produced it and what they scored. |
 | **Ledger** | `verify()`'s verdict and the chain itself, so the audit trail can be read where the decisions are made. |
 

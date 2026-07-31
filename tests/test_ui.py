@@ -513,3 +513,17 @@ def test_a_real_request_over_loopback(filled):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_sealing_by_hand_can_open_a_brand_new_domain(filled):
+    """The hand-seal form is domain-generic: the API takes any pair of tags,
+    and a graph that does not exist yet is created by sealing into it."""
+    status, _ = post(filled, "/api/seal", source="SKU-4471-B", target="Widget, 4-inch",
+                     source_lang="sku", target_lang="product", verifier="ops")
+    assert status == 200
+    domains = {(d["source_lang"], d["target_lang"]): d["count"]
+               for d in get(filled, "/api/domains")[1]["domains"]}
+    assert domains[("sku", "product")] == 1
+    assert memory.best_sealed("sku-4471-b", "sku", "product", store=filled.store)
+    # And it stays out of the translation memory it has nothing to do with.
+    assert memory.best_sealed("SKU-4471-B", "en", "es", store=filled.store) is None

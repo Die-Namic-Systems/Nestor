@@ -362,9 +362,7 @@ function viewMemory() {
         ...S.domains.map((d, i) => h("option", {
           value: String(i),
           selected: f.source_lang === d.source_lang && f.target_lang === d.target_lang,
-        }, (d.source_lang === d.target_lang ? d.source_lang
-                                            : d.source_lang + " → " + d.target_lang) +
-           "  (" + d.count + ")"))),
+        }, domainLabel(d)))),
       h("label", { class: "row small", style: "gap:6px" },
         h("input", { type: "checkbox", id: "f-unverifiable", checked: f.unverifiable === "1" }),
         "unverifiable only"),
@@ -472,46 +470,104 @@ async function restore(p) {
   render();
 }
 
-function sealForm() {
-  // Follows the domain being browsed, so sealing by hand while filtered to an
-  // entity graph does not silently file the pair under the translation tags.
+function domainLabel(d) {
+  return (d.source_lang === d.target_lang ? d.source_lang
+                                          : d.source_lang + " → " + d.target_lang)
+       + (d.count ? "  (" + d.count + ")" : "");
+}
+
+function sealDomains() {
+  // Every domain the store actually holds, plus this session's default if it is
+  // not among them — so a first seal into an empty instance still has somewhere
+  // to go, and every later one can pick any graph rather than the language pair
+  // the process happened to start with.
+  const list = S.domains.map((d) => ({ ...d }));
+  const d = S.state.domain;
+  if (!list.some((x) => x.source_lang === d.source_lang && x.target_lang === d.target_lang)) {
+    list.unshift({ source_lang: d.source_lang, target_lang: d.target_lang, count: 0 });
+  }
+  return list;
+}
+
+function sealSelection(list) {
+  // An explicit pick wins; otherwise follow the domain being browsed, so sealing
+  // while filtered to an entity graph does not file the pair under en→es.
+  if (S.sealDomain === "new") return "new";
+  if (S.sealDomain !== undefined && S.sealDomain !== "" && list[Number(S.sealDomain)]) {
+    return Number(S.sealDomain);
+  }
   const f = S.filters;
-  const d = f.source_lang || f.target_lang
-    ? { source_lang: f.source_lang, target_lang: f.target_lang }
-    : S.state.domain;
+  const match = (a) => list.findIndex(
+    (d) => d.source_lang === a.source_lang && d.target_lang === a.target_lang);
+  if (f.source_lang || f.target_lang) {
+    const i = match(f);
+    if (i >= 0) return i;
+  }
+  const i = match(S.state.domain);
+  return i >= 0 ? i : 0;
+}
+
+function sealForm() {
+  const list = sealDomains();
+  const picked = sealSelection(list);
+  const custom = picked === "new";
   const card = h("div", { class: "card" },
     h("h2", { text: "Seal a pair by hand" }),
-    h("input", { id: "seal-source", placeholder: "source text", style: "width:100%;margin-bottom:6px" }),
-    h("input", { id: "seal-target", placeholder: "verified target text", style: "width:100%;margin-bottom:6px" }),
+    // Wording stays domain-neutral: this card seals a phrase, an alias or any
+    // other pair, and calling the halves "source text" and "translation" was the
+    // form telling the user it only did one recipe.
+    h("input", { id: "seal-source", placeholder: "source — the phrase, alias or value asked",
+                 style: "width:100%;margin-bottom:6px" }),
+    h("input", { id: "seal-target", placeholder: "verified target — the answer you stand behind",
+                 style: "width:100%;margin-bottom:6px" }),
     h("div", { class: "row" },
-      h("input", { id: "seal-sl", value: d.source_lang, size: 4, title: "source domain tag" }),
-      h("span", { class: "muted", text: "→" }),
-      h("input", { id: "seal-tl", value: d.target_lang, size: 4, title: "target domain tag" }),
+      h("select", { id: "seal-domain", title: "which graph this pair belongs to",
+                    onchange: (e) => { S.sealDomain = e.target.value; render(); } },
+        ...list.map((d, i) => h("option", { value: String(i), selected: picked === i },
+                                domainLabel(d))),
+        h("option", { value: "new", selected: custom }, "new domain…")),
+      custom ? h("input", { id: "seal-sl", placeholder: "source tag", size: 8,
+                            title: "source domain tag" }) : null,
+      custom ? h("span", { class: "muted", text: "→" }) : null,
+      custom ? h("input", { id: "seal-tl", placeholder: "target tag", size: 8,
+                            title: "target domain tag" }) : null,
       h("span", { class: "spacer" }),
-      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal }, "Seal")));
+      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal }, "Seal")),
+    h("p", { class: "small muted", style: "margin:10px 0 0" },
+      "Tags are generic: languages for a translation, the entity type for a graph, " +
+      "label → domain for a figure. Scored with the string matcher — to seal a " +
+      "numeric baseline, use ",
+      h("b", { text: "Ask → Numeric" }), ", which keeps a label to one baseline."));
   return card;
+}
+
+function sealTags() {
+  const list = sealDomains();
+  const picked = sealSelection(list);
+  if (picked === "new") {
+    return { source_lang: $("seal-sl").value.trim(), target_lang: $("seal-tl").value.trim() };
+  }
+  const d = list[picked];
+  return { source_lang: d.source_lang, target_lang: d.target_lang };
 }
 
 async function submitSeal() {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const tags = sealTags();
+  if (!tags.source_lang || !tags.target_lang) {
+    return toast("A new domain needs both tags — they are what keeps one graph out " +
+                 "of another.", "err");
+  }
   const body = {
     source: $("seal-source").value, target: $("seal-target").value,
-    source_lang: $("seal-sl").value, target_lang: $("seal-tl").value,
-    verifier: verifier(),
+    ...tags, verifier: verifier(),
   };
-  try {
-    await api("/api/seal", body);
-    toast("Sealed.", "ok");
-    await refresh();
-  } catch (e) {
-    if (e.data && (e.data.code === "conflicting_seal" || e.data.code === "rejected_pair")) {
-      if (confirm(e.message + "\n\nOverride and seal anyway? This is recorded as a deliberate overrule.")) {
-        await act("/api/seal", { ...body, override: true }, "Sealed with an explicit override.");
-      }
-      return;
-    }
-    toast(e.message, "err");
-  }
+  await sealWithOverride("/api/seal", body, "Sealed into " + domainLabel(tags) + ".");
+  // The new domain exists now, so select it instead of leaving the form on
+  // "new domain…" with the tag boxes empty — the next seal would be refused.
+  const i = sealDomains().findIndex((d) => d.source_lang === tags.source_lang
+                                        && d.target_lang === tags.target_lang);
+  if (i >= 0 && S.sealDomain === "new") { S.sealDomain = String(i); render(); }
 }
 
 function portableCard() {

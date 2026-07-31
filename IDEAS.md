@@ -589,6 +589,11 @@ happened. A corrected seal is ledgered with `edited: true` and the digest of the
 draft that was *not* sealed, so "a human accepted the machine's answer" and "a
 human wrote the answer" stay distinguishable.
 
+Sealing by hand picks its domain from the ones the store actually holds (or
+opens a new one), rather than the language pair the process started with — the
+last place in the UI that still assumed translation, and the reason to keep
+asking "which surface here is quietly single-recipe?"
+
 Still missing: no pagination in Memory beyond the first 50 rows, and no view over
 `Curator.replaced_seals` — the highest-signal thing the curator surface reports,
 and the one the ledger holds alone.
