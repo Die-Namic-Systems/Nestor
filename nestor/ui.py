@@ -912,10 +912,13 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
-    # Long-lived review server: re-walk the chain periodically on seal/reject,
-    # not only on the first append of the shift (IDEAS §5.3). Batch CLI jobs keep
-    # the default once-per-process cache unless the operator sets the env var.
-    if "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" not in os.environ:
+    if "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" in os.environ:
+        try:
+            cascade.ledger_verify_interval_sec()
+        except ValueError as exc:
+            print(f"refusing to start: {exc}", file=sys.stderr)
+            return 2
+    else:
         cascade.set_ledger_verify_interval(_UI_DEFAULT_LEDGER_VERIFY_SEC)
     # Resolve identity before anything is opened or bound. A keyring that is
     # configured and unusable is a refusal either way, and the difference
@@ -967,6 +970,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("\nstopped")
     finally:
         httpd.server_close()
+        store.close()
     return 0
 
 

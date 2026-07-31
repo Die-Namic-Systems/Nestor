@@ -127,6 +127,8 @@ class SqliteStore:
         # File-backed: one persistent connection per thread so nestor.ui's pool
         # does not open/close SQLite on every API call.
         self._thread_local = threading.local()
+        self._thread_conns: list[sqlite3.Connection] = []
+        self._conns_lock = threading.Lock()
         self._lock = threading.RLock()
         if db_path == ":memory:":
             self._shared = self._connect()
@@ -149,10 +151,45 @@ class SqliteStore:
         if conn is None:
             conn = self._connect()
             self._thread_local.conn = conn
+            with self._conns_lock:
+                self._thread_conns.append(conn)
         return conn
+
+    def close(self) -> None:
+        """Checkpoint WAL into the main file and release connections (IDEAS §2.4).
+
+        While the process holds file-backed connections open, committed rows may
+        live only in ``nestor.db-wal``; a plain copy of ``nestor.db`` is then
+        incomplete. Clean shutdown (``nestor.ui`` calls this in ``finally``)
+        runs ``PRAGMA wal_checkpoint(TRUNCATE)``. A running server still needs
+        :func:`~nestor.curator.Curator.export` or ``VACUUM INTO``, not ``cp``.
+        """
+        if self.db_path == ":memory:":
+            with self._lock:
+                if self._shared is not None:
+                    self._shared.close()
+                    self._shared = None
+            return
+        with self._conns_lock:
+            conns = list(self._thread_conns)
+            self._thread_conns.clear()
+        if conns:
+            try:
+                conns[0].execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            finally:
+                for conn in conns:
+                    conn.close()
+        else:
+            conn = self._connect()
+            try:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            finally:
+                conn.close()
+        self._thread_local.conn = None
 
     @contextmanager
     def _db(self):
+        """Yield a connection; one level of use only — do not nest."""
         if self._shared is not None:
             with self._lock:
                 try:

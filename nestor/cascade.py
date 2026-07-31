@@ -190,11 +190,16 @@ def ledger_verify_interval_sec() -> float:
     """
     if _VERIFY_INTERVAL_OVERRIDE is not None:
         return _VERIFY_INTERVAL_OVERRIDE
-    raw = os.environ.get("NESTOR_LEDGER_VERIFY_INTERVAL_SEC", "0").strip()
-    try:
-        return float(raw)
-    except ValueError:
+    raw = os.environ.get("NESTOR_LEDGER_VERIFY_INTERVAL_SEC")
+    if raw is None or not raw.strip():
         return 0.0
+    try:
+        return float(raw.strip())
+    except ValueError as exc:
+        raise ValueError(
+            f"NESTOR_LEDGER_VERIFY_INTERVAL_SEC={raw!r} is not a number of "
+            f"seconds — use a plain float (e.g. 300), not a duration suffix."
+        ) from exc
 
 
 def set_ledger_verify_interval(seconds: Optional[float]) -> None:

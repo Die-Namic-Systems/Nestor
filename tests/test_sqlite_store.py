@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import threading
 import warnings
 
@@ -47,6 +48,22 @@ def test_file_backed_connection_is_reused_within_a_thread(tmp_path):
         id_first = id(first)
     with store._db() as second:
         assert id(second) == id_first
+
+
+def test_close_checkpoints_wal_so_the_main_file_is_self_contained(tmp_path):
+    """A plain cp of nestor.db while WAL is open is incomplete; close() fixes it."""
+    db = tmp_path / "wal.db"
+    store = SqliteStore(str(db))
+    store.memory_init()
+    memory.add_pair("hello", "hola", "en", "es", status="sealed",
+                    verifier="rita", store=store)
+    live_copy = tmp_path / "live-snapshot.db"
+    shutil.copy(db, live_copy)
+    assert memory.stats(store=SqliteStore(str(live_copy)))["sealed"] == 0
+    store.close()
+    closed_copy = tmp_path / "closed-snapshot.db"
+    shutil.copy(db, closed_copy)
+    assert memory.stats(store=SqliteStore(str(closed_copy)))["sealed"] == 1
 
 
 def test_memory_init_indexes_source_norm_for_memory_find(tmp_path):

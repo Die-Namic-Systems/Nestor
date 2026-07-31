@@ -93,6 +93,12 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
+File-backed `SqliteStore` uses **WAL** mode. While a process holds the database
+open, recent commits may live in `nestor.db-wal`, so a plain `cp` of
+`nestor.db` is **not** a backup of a running server — use
+`nestor export`, SQLite `VACUUM INTO`, or stop `nestor.ui` (which checkpoints on
+exit). A hard kill or rsync of a live box has the same limit.
+
 The whole argument in one run, against a scratch store it deletes afterwards:
 
 ```bash
