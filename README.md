@@ -162,7 +162,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py        timing, environment capture, JSON result recording
 └── results/          committed measurements — parameters, git rev, raw numbers
 
-tests/                no network, no fixtures on disk
+tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
@@ -715,6 +715,8 @@ clear `RuntimeError` — it never silently falls back to a hidden database.
 <details>
 <summary><strong>The <code>Storage</code> Protocol</strong></summary>
 
+**Core** — every store must implement these.
+
 Document / segment operations:
 
 - `init_db()` — ensure document/segment schema exists.
@@ -732,6 +734,21 @@ Translation-memory operations:
 - `memory_seal(pair_id, target_text, verifier, weight, seal_sig)`
 - `memory_candidates(source_lang, target_lang) -> list[dict]` — all pairs for a domain; Nestor does the scoring.
 - `memory_stats() -> dict`
+
+**Optional capabilities** — all-or-nothing, each reported by a `supports_*`
+predicate. A store predating one keeps working, and the surfaces that need it say
+so rather than showing an empty list, because "nothing here" and "this store
+cannot tell you" are different facts.
+
+| Capability | Operations | Reported by | Without it |
+|---|---|---|---|
+| Rejection | `memory_reject_pair`, `memory_add_rejection`, `memory_rejections` | `supports_rejection` | `reject_*` raises rather than dropping a human's "no" |
+| Curation | `memory_list`, `memory_get`, `memory_unseal`, `memory_rejections_for_pair` | `supports_curation` | `Curator` raises `CurationUnsupportedError`; no export/import |
+| Review queue | `list_documents`, `list_segments`, `update_segment_status` | `supports_queue` | the queue cannot be listed or cleared; everything else works |
+
+Partial implementation counts as none. Writing rejections nobody can read back,
+or offering an unseal the store cannot perform, is worse than not having the
+feature.
 
 </details>
 
@@ -801,7 +818,7 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # no network
+pytest -q                          # no outbound network
 ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/

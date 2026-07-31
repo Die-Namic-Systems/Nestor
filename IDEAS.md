@@ -358,6 +358,13 @@ and **was wrong** — stubbing `memory_init` out made things marginally *slower*
 i.e. it is noise at this scale. Recorded here so nobody re-derives the same dead
 end. The connection churn may still matter under concurrency; unmeasured.
 
+**There is now a threaded consumer.** `nestor.ui` serves from a thread pool, and
+that turned the shared `":memory:"` connection into an error — SQLite objects
+belong to the thread that made them — so it is guarded by a lock, while
+file-backed stores keep opening per operation and are thread-safe by that
+accident. Whether the churn costs anything under real concurrent review is still
+unmeasured, and now worth measuring rather than hypothesising about.
+
 ---
 
 ## 3. The Matcher seam
@@ -391,8 +398,14 @@ Written from outside the package, with **zero changes to `nestor/`**:
   `EntityResolver` **unchanged**, just with a token matcher. `'TOTAL DUE'` →
   `amount_due` at 1.0; `'Name of Customer'` correctly queued for review at 0.667.
 
-The README advertises three recipes. The seam supports a category. That gap is a
-positioning problem more than an engineering one (§4.1).
+The README advertised three recipes; the seam supports a category. The UI's Ask
+view narrowed that gap by exposing the seam itself as a fourth choice — any two
+domain tags, either shipped matcher, showing the normalized key and every
+candidate's score — so a custom recipe is drivable without writing a surface for
+it. What is still true is that a matcher written outside the package cannot be
+selected from a UI or an MCP call, because a name off a wire cannot conjure one;
+it has to be injected in code (`memory.set_matcher`). The rest is positioning
+(§4.1).
 
 ### 3.3 Semantic matcher — **open**
 
@@ -407,10 +420,16 @@ optional extra, never core.
 
 ### 4.1 Lead with the mechanic, not translation — **open**
 
-The README opens with translation and reaches the general mechanic four sections
-down. Everything I found suggests the general mechanic *is* the product and
-translation is the origin story. Restructure so the first screen is
-seal → serve → audit, with translation as one recipe among several.
+The README opens on the three states, then a translation demo, and reaches the
+general mechanic in the next section. Everything I found suggests the general
+mechanic *is* the product and translation is the origin story. Restructure so the
+first screen is seal → serve → audit, with translation as one recipe among
+several.
+
+The surfaces got there first (§5.4): the UI's Ask view is a recipe picker, the
+CLI has `resolve` and `check` beside `ask`, and the MCP server offers all four.
+The prose is now the part still leading with translation — including the quick
+start, which is the first thing anyone runs.
 
 ### 4.2 The category is AI verification, not translation memory — **open**
 
@@ -435,7 +454,12 @@ Then tamper with the ledger and watch the chain refuse. That is the entire
 product in one loop, and it lands on an engineer and a compliance officer for
 different reasons.
 
-Blocked on §5.1 — there is currently nothing to run.
+No longer blocked on §5.1 — `nestor ui`, `nestor ask` and `nestor serve` all
+exist, and two screens carry the loop with no explaining: a near-match returning
+`~ draft` because it is under the cutoff, and a forged row scoring **1.000**
+returning `! pending`. What is missing is the *artifact* — a scripted sixty
+seconds, recorded, that ends on tampering with the ledger and watching the chain
+refuse.
 
 ### 4.4 The bench is a marketing asset — **open**
 

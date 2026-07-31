@@ -9,17 +9,20 @@ surfaces. Neither is a place a person can sit down at.
 This is that place. One local page, four views, each one a surface the package
 already has and nobody could see:
 
-* **Queue** — the segments the cascade left for review. Seal or reject each one;
-  both decisions are signed and ledgered, and the segment leaves the queue.
-* **Memory** — the curator's view: browse, filter, inspect provenance and every
-  rejection recorded against a pair, unseal, reject, restore, export. Every row
-  reports ``servable`` beside ``status``, so a seal that would *not* be served
-  is visible rather than inferred.
-* **Ask** — run the cascade over a phrase and see which of the three states came
-  back, with the ranked matches that produced it. The state is the point: ✓
-  sealed, ~ draft, ! pending.
-* **Ledger** — the chain's verify result and the entries themselves, so the
-  audit trail can be read where the decisions are made.
+* **Queue** — the segments the cascade left for review. Seal one as drafted,
+  correct it and seal that, or reject it; every decision is signed and ledgered,
+  and the segment leaves the queue.
+* **Memory** — the curator's view over any domain in the store: browse, filter,
+  inspect provenance and every rejection recorded against a pair, unseal, reject,
+  restore, seal one by hand, export a bundle and import one. Every row reports
+  ``servable`` beside ``status``, so a seal that would *not* be served is visible
+  rather than inferred.
+* **Ask** — the mechanic in whichever recipe you pick: translate (the cascade),
+  resolve an entity, reconcile a figure, or run the bare seam over any domain.
+  The state is the point: ✓ sealed, ~ draft, ! pending — with the ranked
+  candidates that produced it and what each one scored.
+* **Ledger** — the chain's verify result, its head, and the entries themselves,
+  so the audit trail can be read where the decisions are made.
 
 Deliberate properties, in the same spirit as the rest of the package:
 
@@ -39,8 +42,14 @@ Deliberate properties, in the same spirit as the rest of the package:
 
 Run it::
 
-    python -m nestor.ui --db data/nestor.db          # http://127.0.0.1:8765
-    nestor-ui --db data/nestor.db --open             # same, via the console script
+    nestor ui --db data/nestor.db                    # http://127.0.0.1:8765
+    python -m nestor.ui --db data/nestor.db          # same, without the console script
+    nestor-ui --db data/nestor.db --open             # and its own entry point
+
+The questions it answers are defined once in :mod:`nestor.answer`, shared with
+the terminal (:mod:`nestor.cli`) and the model-facing server
+(:mod:`nestor.serve`) — a system that tells a model "verified" while showing a
+curator "draft" has already lost the argument.
 """
 from __future__ import annotations
 

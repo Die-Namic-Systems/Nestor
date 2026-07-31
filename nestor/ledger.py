@@ -5,6 +5,12 @@ previous line. But a tamper-evident log nobody verifies is just a log — Nestor
 shipped the chain and no verifier. This is the verifier: walk the chain and
 confirm every link. Run it on read/boot; a broken chain is a refusal, not a
 warning.
+
+One limit, stated up front because it is easy to assume away: the walk vouches
+for every line *except the last*, which nothing follows. :func:`head` returns the
+tip and :func:`verify` takes an ``expected_head`` for a caller who kept it
+somewhere the ledger's writer cannot reach — which is the only thing that can
+close it, here or anywhere.
 """
 from __future__ import annotations
 
