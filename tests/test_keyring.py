@@ -317,3 +317,55 @@ def test_the_suite_does_not_inherit_the_developers_environment(monkeypatch):
     # A test that wants one still sets it, and it takes effect normally.
     monkeypatch.setenv("NESTOR_SEAL_KEY", "k")
     assert signing.signing_enabled()
+
+
+# --- a configured-but-unusable keyring refuses cleanly, and early ------------
+#
+# Reported on first launch: NESTOR_KEYRING was exported, the file had never been
+# created (the `keys add` that would have made it was the command that hit
+# `command not found`), and `nestor ui` died with a raw traceback — after
+# printing its banner and binding the port, so it read as "started, then
+# exploded". The short-lived CLI commands refused cleanly for the same
+# misconfiguration, which is the inconsistency that made it a bug rather than
+# an unfriendly message.
+
+def test_a_missing_keyring_file_says_which_variable_sent_you_there(monkeypatch, tmp_path):
+    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+    with pytest.raises(keyring.KeyringError) as caught:
+        keyring.get_keyring()
+    message = str(caught.value)
+    assert "never-made.json" in message
+    assert "NESTOR_KEYRING" in message, "say which variable is sending them there"
+    assert "unset NESTOR_KEYRING" in message, "and how to get out of it"
+
+
+def test_a_configured_keyring_is_never_silently_ignored(monkeypatch, tmp_path):
+    """The refusal itself is right: identity that is switched on and unreadable
+    must not degrade to off, or the operator believes seals name a person when
+    they do not."""
+    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+    with pytest.raises(keyring.KeyringError):
+        keyring.enabled()
+
+
+def test_preflight_refuses_before_a_surface_binds_anything(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("NESTOR_KEYRING", str(tmp_path / "never-made.json"))
+    from nestor import serve as serve_mod
+    from nestor import ui as ui_mod
+
+    for surface in (ui_mod, serve_mod):
+        assert surface.main(["--db", str(tmp_path / "n.db")]) == 2
+        out = capsys.readouterr()
+        assert "refusing to start" in out.err
+        assert "Nestor UI" not in out.out, "no banner: it must refuse before it binds"
+        assert not (tmp_path / "n.db").exists(), "and before it opens the store"
+
+
+def test_preflight_is_quiet_when_there_is_nothing_wrong(monkeypatch, tmp_path):
+    assert keyring.preflight() is None            # no keyring configured at all
+
+    ring = keyring.Keyring(path=str(tmp_path / "k.json"))
+    ring.add("rita")
+    ring.save()
+    monkeypatch.setenv("NESTOR_KEYRING", ring.path)
+    assert keyring.preflight().names() == ["rita"]
