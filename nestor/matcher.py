@@ -136,6 +136,18 @@ _NAN_SENTINEL = "\x00nestor:nan"
 _NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 
 
+def _no_parse(text: str) -> dict:
+    """The :meth:`NumericMatcher.parse_detail` shape for "no number in there".
+
+    ``partial`` is False: nothing was compared, so nothing was silently dropped
+    from a comparison. The caller learns this from ``value is None``, which is
+    the louder signal — a non-parseable figure normalizes to a sentinel that
+    never matches anything.
+    """
+    return {"text": text, "value": None, "matched": "", "residue": text,
+            "partial": False}
+
+
 class NumericMatcher:
     """Numeric matcher: parse a number, score by tolerance.
 
@@ -177,24 +189,64 @@ class NumericMatcher:
         """Extract a number from ``value`` (stripping ``$ , %``/whitespace), or
         ``None`` if none is found. Public so consumers like the Reconciler can
         recover the parsed figure without reaching into internals."""
+        return self.parse_detail(value)["value"]
+
+    def parse_detail(self, value) -> dict:
+        """:meth:`parse`, plus what it had to ignore to get there.
+
+        Returns ``{"text", "value", "matched", "residue", "partial"}``:
+
+        * ``text`` — ``value`` as given, stringified.
+        * ``value`` — the parsed figure, or ``None``.
+        * ``matched`` — the substring of the cleaned input that became ``value``.
+        * ``residue`` — the cleaned input with ``matched`` removed.
+        * ``partial`` — **there are digits in the residue.**
+
+        That last flag is the whole point of this method. :meth:`parse`
+        *searches* for a number rather than requiring the input to be one, so
+        ``"1,00o,000"`` — one typo — is the figure **100**, and ``"12/31/2024"``
+        is **12**. Both are the documented contract and the failure direction is
+        safe (a wildly wrong figure gets flagged and a human looks), but "the
+        number I compared was not the number you typed" is a bad sentence to have
+        to say in an audit, and until now nothing said it at all.
+
+        Requiring the whole cleaned string to parse would have been the other
+        fix, and it is wrong: it breaks ``"$1,000,000 USD"``, which is a
+        perfectly ordinary way to write a figure. So the signal is not "was
+        anything left over" but "was a *digit* left over" — ``"USD"`` is
+        decoration, ``"o000"`` and ``"/31/2024"`` are the rest of a number that
+        did not make it into the comparison. That distinguishes the two example
+        failures from the legitimate case exactly, with no false alarm on
+        currency or unit suffixes.
+
+        Reporting it beats refusing it: a reconciler that rejected every
+        partially-parsed figure would refuse real inputs, and the caller who can
+        actually tell a typo from a unit suffix is the human this package exists
+        to put in the loop.
+        """
+        text = "" if value is None else str(value)
         if isinstance(value, bool):
             # bool is a subclass of int; treat True/False as non-numeric so a
             # stray flag can never masquerade as the figure 1 or 0.
-            return None
+            return _no_parse(text)
         if isinstance(value, (int, float)):
-            return float(value)
-        s = str(value).strip()
+            return {"text": text, "value": float(value), "matched": text,
+                    "residue": "", "partial": False}
+        s = text.strip()
         if not s:
-            return None
+            return _no_parse(text)
         # Strip currency/percent/grouping decoration, then extract a number.
         cleaned = s.replace("$", "").replace(",", "").replace("%", "").replace(" ", "")
         m = _NUM_RE.search(cleaned)
         if not m:
-            return None
+            return _no_parse(text)
         try:
-            return float(m.group())
+            num = float(m.group())
         except ValueError:
-            return None
+            return _no_parse(text)
+        residue = cleaned[:m.start()] + cleaned[m.end():]
+        return {"text": text, "value": num, "matched": m.group(),
+                "residue": residue, "partial": any(c.isdigit() for c in residue)}
 
     def normalize(self, value) -> str:
         num = self.parse(value)

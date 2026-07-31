@@ -86,3 +86,29 @@ def test_numeric_abs_tol_governs_when_larger():
 def test_numeric_zero_baseline_exact():
     m = NumericMatcher(abs_tol=0.0, pct_tol=0.05)
     assert m.similarity(m.normalize(0), m.normalize(0)) == 1.0
+
+
+# --- NumericMatcher: what the parse had to ignore (IDEAS 1.9) ----------------
+
+def test_parse_detail_reports_a_dropped_digit():
+    m = NumericMatcher()
+    d = m.parse_detail("1,00o,000")
+    assert d["value"] == 100.0 and d["matched"] == "100"
+    assert d["residue"] == "o000" and d["partial"] is True
+
+    d = m.parse_detail("12/31/2024")
+    assert d["value"] == 12.0 and d["partial"] is True
+
+
+def test_parse_detail_does_not_flag_currency_or_units():
+    m = NumericMatcher()
+    for text in ("$1,000,000 USD", "42%", "  -7 ", "1.2e3", "12.5 kg"):
+        assert m.parse_detail(text)["partial"] is False, text
+
+
+def test_parse_detail_agrees_with_parse_and_covers_the_no_number_case():
+    m = NumericMatcher()
+    for value in ("$1,250.50", 1000, 3.14, True, "", None, "not a number", "1,00o,000"):
+        assert m.parse_detail(value)["value"] == m.parse(value)
+    d = m.parse_detail("not a number")
+    assert d["value"] is None and d["partial"] is False, "nothing compared, nothing dropped"
