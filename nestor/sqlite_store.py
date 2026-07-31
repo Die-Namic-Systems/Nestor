@@ -204,6 +204,34 @@ class SqliteStore:
                     self._shared.close()
                     self._shared = None
             return
+        self._wal_checkpoint_truncate(idle)
+
+    def checkpoint_wal(self) -> None:
+        """Flush WAL into the main file without closing the store (IDEAS §6.7)."""
+        if self.db_path == ":memory:":
+            return
+        with self._pool_lock:
+            if self._closed:
+                raise StoreClosedError(f"{self.db_path}: this store has been closed")
+            idle = list(self._pool)
+            self._pool.clear()
+        self._wal_checkpoint_truncate(idle)
+
+    def backup_into(self, dest: str) -> None:
+        """Write a consistent copy of the database to ``dest`` (``VACUUM INTO``)."""
+        if self.db_path == ":memory:":
+            raise ValueError("cannot backup an in-memory database to a file")
+        self.checkpoint_wal()
+        with self._lock:
+            if self._closed:
+                raise StoreClosedError(f"{self.db_path}: this store has been closed")
+            conn = self._connect()
+            try:
+                conn.execute("VACUUM INTO ?", (dest,))
+            finally:
+                self._release(conn)
+
+    def _wal_checkpoint_truncate(self, idle: list[sqlite3.Connection]) -> None:
         conn = idle.pop() if idle else self._connect()
         try:
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")

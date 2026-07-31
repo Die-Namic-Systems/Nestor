@@ -309,3 +309,30 @@ def test_cli_main_ui_help_in_a_subprocess():
     done = _run_cli_subprocess(["ui", "--help"])
     assert done.returncode == 0
     assert "--port" in done.stdout
+
+
+def test_ui_refuses_malformed_ledger_verify_interval_in_subprocess(tmp_path):
+    port = _free_loopback_port()
+    env = _cli_subprocess_env()
+    env["NESTOR_LEDGER_VERIFY_INTERVAL_SEC"] = "5m"
+    done = subprocess.run(
+        [sys.executable, "-u", "-m", "nestor.ui",
+         "--db", str(tmp_path / "n.db"), "--port", str(port)],
+        cwd=REPO,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert done.returncode == 2
+    assert "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" in done.stderr
+    assert "refusing to start" in done.stderr
+    assert not (tmp_path / "n.db").exists()
+
+
+def test_db_checkpoint_cli_writes_copy_and_keeps_store_usable(db, tmp_path):
+    out = tmp_path / "copy.db"
+    assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
+    assert out.is_file()
+    assert run(db, "db", "checkpoint") == cli.EXIT_OK
+    assert run(db, "ask", "good evening") == cli.EXIT_OK

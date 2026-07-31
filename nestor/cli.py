@@ -11,6 +11,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor resolve AMZN --domain company  # the entity graph
     nestor check ceiling '$1,030,000' --domain contract
     nestor export --out memory.json       # a portable, re-importable bundle
+    nestor db checkpoint                  # flush WAL into the main file (§6.7)
+    nestor db checkpoint --out copy.db    # consistent backup while the store is open
     nestor import memory.json             # DRY RUN by default; --apply commits
     nestor ledger verify                  # exit 1 on a broken chain, for CI
     nestor stats
@@ -125,6 +127,23 @@ def cmd_match(args) -> int:
 # --------------------------------------------------------------------------
 # moving the memory
 # --------------------------------------------------------------------------
+
+def cmd_db(args) -> int:
+    store = _store(args)
+    if not isinstance(store, SqliteStore):
+        print("db commands require the SQLite store", file=sys.stderr)
+        return EXIT_USAGE
+    if args.db_command == "checkpoint":
+        if args.out:
+            pathlib.Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            store.backup_into(args.out)
+            print(f"wrote {args.out}", file=sys.stderr)
+        else:
+            store.checkpoint_wal()
+            print(f"checkpointed {args.db}", file=sys.stderr)
+        return EXIT_OK
+    return EXIT_USAGE
+
 
 def cmd_export(args) -> int:
     bundle = portable.export_bundle(_store(args), source_lang=args.source_lang or "",
@@ -401,6 +420,12 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--target-lang", "--to", dest="target_lang", default="")
     exp.add_argument("--no-ledger", action="store_true", help="omit the source chain")
     exp.set_defaults(func=cmd_export)
+
+    dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
+    dbp.add_argument("db_command", choices=("checkpoint",))
+    dbp.add_argument("--out", default="",
+                     help="write a consistent copy here (VACUUM INTO) instead of in-place checkpoint")
+    dbp.set_defaults(func=cmd_db)
 
     imp = sub.add_parser("import", help="read a bundle (dry run unless --apply)")
     imp.add_argument("file")

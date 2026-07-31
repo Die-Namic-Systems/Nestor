@@ -57,9 +57,8 @@ file no longer a secret and change the deployment story considerably.
   process memory, so it does not survive a restart. The version that does is a
   sidecar the ledger's writer cannot reach — which is `nestor.frank`'s argument
   again in miniature. §5.5.
-* **Hot backup while WAL is open.** TTL'd full walks and `SqliteStore.close()`
-  on UI exit helped; a plain `cp` of `nestor.db` during a shift is still
-  incomplete. §6.7; [`docs/code-review-lessons.md`](docs/code-review-lessons.md).
+* **Hot backup while WAL is open.** ``nestor db checkpoint`` and ``--out`` shipped
+  (§6.7); see ``docs/local-fleet.md`` for fleet-side paths.
 * **Seal staleness and quorum.** A seal is true forever and one person's seal is
   enough. Neither is obviously right for a regulated buyer, and neither has been
   argued through. §1.4.

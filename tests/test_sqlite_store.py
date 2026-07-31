@@ -147,6 +147,20 @@ def test_close_checkpoints_wal_so_the_main_file_is_self_contained(tmp_path):
     assert memory.stats(store=SqliteStore(str(closed_copy)))["sealed"] == 1
 
 
+def test_checkpoint_wal_flushes_without_closing(tmp_path):
+    db = tmp_path / "wal.db"
+    store = SqliteStore(str(db))
+    store.memory_init()
+    memory.add_pair("hello", "hola", "en", "es", status="sealed",
+                    verifier="rita", store=store)
+    store.checkpoint_wal()
+    snapshot = tmp_path / "after-checkpoint.db"
+    shutil.copy(db, snapshot)
+    assert memory.stats(store=SqliteStore(str(snapshot)))["sealed"] == 1
+    memory.add_pair("bye", "adios", "en", "es", store=store)
+    assert memory.stats(store=store)["total"] == 2
+
+
 def test_close_after_worker_threads_checkpoints_from_main(tmp_path):
     """UI shutdown runs close() on the main thread after pool workers sealed."""
     db = tmp_path / "pool.db"

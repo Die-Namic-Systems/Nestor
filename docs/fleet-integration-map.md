@@ -6,6 +6,9 @@ supporting docs). This is a wiring guide, not a commitment to integrate.*
 
 Use with [`IDEAS.md`](../IDEAS.md) open items and [`TODO.md`](../TODO.md).
 
+**Local wiring:** [`local-fleet.md`](local-fleet.md) — checkout script, `TERPSI_ROOT`,
+`promote_check`, ledger head / `db checkpoint`.
+
 ---
 
 ## §1.4 Seal staleness and quorum — **open**
@@ -17,7 +20,7 @@ Use with [`IDEAS.md`](../IDEAS.md) open items and [`TODO.md`](../TODO.md).
 | **`safe-app-store` … `jarvis`** (`weakestProvenance`, provenance ladder) | Weakest-link provenance on recalled facts | UI pattern for “how much to trust this row” beside `servable` |
 | **`docs/the-nestor-lineage.md`** | Names calibration + reconciliation + TM as one mechanic | Positioning ammo for regulated buyers (quorum = future policy) |
 
-**Near win:** §6.10 is mostly UI product — `created_at` already appears on Memory rows (`ui_page.py`); add **relative age** or “sealed N days ago” and link to §1.4 without implementing decay.
+**Near win:** §6.10 relative age is shipped on Memory chips; §1.4 decay/quorum policy is still open.
 
 ---
 
@@ -89,15 +92,14 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 
 ---
 
-## §6.7 Hot checkpoint / backup while open — **open**
+## §6.7 Hot checkpoint / backup while open — **shipped**
 
 | Fleet piece | Plug |
 |-------------|------|
-| **`nestor export`** / **`Curator.export`** | Correct backup semantics today |
+| **`nestor db checkpoint`** | In-place WAL flush; ``--out`` for ``VACUUM INTO`` |
+| **`nestor export`** / **`Curator.export`** | Portable bundle backup |
 | **`SqliteStore.close()`** | Checkpoint on UI shutdown |
-| **`safe-app-store` docs** (visidata, sqlit) | Operator tooling to **inspect** live SQLite — companion to “don’t plain `cp`” |
-
-**Action:** Thin CLI `nestor db checkpoint [--out path]` wrapping `wal_checkpoint` or `VACUUM INTO` — no fleet dependency.
+| **`docs/local-fleet.md`** | Operator runbook with fleet paths |
 
 ---
 
@@ -107,26 +109,15 @@ Nestor-only (see §2.4).
 
 ---
 
-## §6.9 Subprocess test: UI refuses bad ledger interval — **open**
+## §6.9 Subprocess test: UI refuses bad ledger interval — **shipped**
 
-| Fleet piece | Plug |
-|-------------|------|
-| **`tests/test_cli.py`** `_run_cli_subprocess(["ui", "--help"])` | Pattern exists |
-| **`tests/test_keyring.py`** `surface.main(...) == 2` on bad keyring | **Copy this** for `NESTOR_LEDGER_VERIFY_INTERVAL_SEC=5m` → exit 2 |
+`tests/test_cli.py` — child ``nestor.ui`` with malformed ``NESTOR_LEDGER_VERIFY_INTERVAL_SEC``.
 
 ---
 
-## §6.10 Seal age in provenance — **open**
+## §6.10 Seal age in provenance — **shipped**
 
-| Fleet piece | Plug |
-|-------------|------|
-| **Memory UI** | Already shows `created_at` chips |
-| **`source-trail`** (SAFE app) | Cite/log/verify sources — adjacent for *query* provenance, not seal rows |
-| **§1.4** | Policy (decay/quorum) still open; display is not |
-
-**Action:** Relative age + optional sort by `created_at`; defer decay to §1.4.
-
----
+Relative age on Memory pair chips; full timestamp in ``title``. Policy (decay/quorum) still §1.4.
 
 ## `terpsi-music` — remote branches (2026-07-31)
 
@@ -214,7 +205,7 @@ merged CI branches, or upstream forks — not IDEAS expanders.*
 
 Stay **nestor-local** unless you import design from the rows above:
 
-§6.7 hot checkpoint CLI · §6.8 skip `memory_init` · §6.9 UI subprocess bad-env test · §6.10 relative seal age · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
+§6.8 skip `memory_init` · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
 
 ---
 
@@ -232,5 +223,5 @@ Stay **nestor-local** unless you import design from the rows above:
 ## Suggested priority (integration effort vs value)
 
 1. **Docs-only:** §4.2 / §4.4 from lineage + bench results; §5.5 frank + `ledger head` runbook.
-2. **Small code:** §6.9 subprocess test; §6.10 relative age in UI; §6.7 `db checkpoint` CLI.
+2. **Small code:** §6.8 `memory_init` skip; optional Memory sort by `created_at`.
 3. **Large / design:** §5.8 Ed25519 (borrow willow-mcp envelope shape); §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy.
