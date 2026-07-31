@@ -493,21 +493,45 @@ unique index §1.8 added for concurrent seals, which also satisfies the measured
 unique index cannot be created, ``idx_tm_pairs_find`` on the same columns is
 installed so lookups stay indexed while the operator resolves the dupes.
 
-### 2.4 Connection-per-operation — **open**
+### 2.4 Connection-per-operation — **shipped (file-backed reuse)**
 
-`SqliteStore._db()` opens and closes a fresh connection for every call on
+`SqliteStore._db()` used to open and close a fresh connection for every call on
 file-backed databases, and `add_pair` additionally calls `memory_init()`, which
 replays the whole schema script each time. I hypothesised this dominated ingest
 and **was wrong** — stubbing `memory_init` out made things marginally *slower*,
 i.e. it is noise at this scale. Recorded here so nobody re-derives the same dead
-end. The connection churn may still matter under concurrency; unmeasured.
+end.
 
-**There is now a threaded consumer.** `nestor.ui` serves from a thread pool, and
-that turned the shared `":memory:"` connection into an error — SQLite objects
-belong to the thread that made them — so it is guarded by a lock, while
-file-backed stores keep opening per operation and are thread-safe by that
-accident. Whether the churn costs anything under real concurrent review is still
-unmeasured, and now worth measuring rather than hypothesising about.
+**There is now a threaded consumer.** `nestor.ui` serves from a thread pool; the
+in-memory store keeps one shared connection behind an ``RLock``. File-backed
+stores keep a **bounded pool of idle connections** (``_POOL_MAX``, 8) under
+``PRAGMA journal_mode=WAL``, so concurrent reviewers reuse connections instead of
+paying connect/teardown on every API call. Measured, 3000 single-row reads:
+
+| | time |
+|---|---|
+| a fresh connection per operation | 0.857s |
+| a persistent connection per thread | 0.042s |
+| a bounded idle pool | 0.045s |
+
+The pool exists rather than a connection per thread because of how the threads
+arrive. `ThreadingHTTPServer` under HTTP/1.1 keep-alive makes one thread per TCP
+connection — a reload, a reconnect, a monitoring probe — and a connection bound
+to a thread outlives it: `sqlite3.Connection` sits in reference cycles, so it is
+freed by the *cyclic* collector rather than promptly, and nothing about running
+out of file descriptors makes Python collect. Under ``ulimit -n 256`` the
+per-thread version failed after **340 requests** with ``unable to open database
+file`` where connection-per-operation ran 2000 clean; that also refuses seals,
+because the ledger needs to open a file too. The pool keeps essentially all the
+speed and caps descriptors at the pool size: anything borrowed beyond it is
+closed on return, not accumulated.
+
+``close()`` checkpoints the WAL into the main file and retires the store; using
+one afterwards raises ``StoreClosedError`` rather than quietly reopening, which
+for ``:memory:`` used to mean answering "0 sealed" from a fresh empty database.
+
+Still open: skipping redundant ``memory_init`` schema replay per connection
+(measured as noise for ingest; may matter only at huge table counts).
 
 ---
 
@@ -1104,7 +1128,12 @@ sealed row with no trail.
 What it does not cover, and the docstring says so: an edit to a line older than
 the checkpoint. That still needs the full walk. The checkpoint is the cheap
 guard on the part of the chain being written right now, not a replacement for
-`verify()` — a periodic or TTL'd full re-verification is still open.
+``verify()`` — a periodic or TTL'd full re-verification is now available via
+``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` and :func:`~nestor.cascade.ledger_verify_interval_sec`.
+``0`` keeps the original once-per-process cache (batch jobs). Positive values
+re-walk on append/preflight after that many seconds; negative values walk every
+time. ``nestor.ui`` defaults to five minutes when the env var is unset, because
+it is the long-lived process this gap was written for.
 
 One subtlety worth recording, because it was a flake before it was a fix: the
 preflight holds no lock (it cannot — its job is to answer before the caller
@@ -1192,9 +1221,8 @@ opens a new one), rather than the language pair the process started with — the
 last place in the UI that still assumed translation, and the reason to keep
 asking "which surface here is quietly single-recipe?"
 
-Still missing: no pagination in Memory beyond the first 50 rows, and no view over
-`Curator.replaced_seals` — the highest-signal thing the curator surface reports,
-and the one the ledger holds alone.
+Memory paginates (``/api/pairs`` with ``offset`` / ``limit+1``; UI pager) and the
+Signals tab surfaces ``Curator.replaced_seals`` via ``/api/replaced-seals``.
 
 ### 5.5 The newest ledger entry is vouched for by nothing — **shipped (mitigated)**
 
@@ -1390,3 +1418,22 @@ cleared each time: 20 UPSERTs on the cold serve, **0** on every serve after.
 takes raw probe text and calls `nestor.matcher.match_similarity` so stage-4
 surfaces-human runs use the same path as production `lookup`, not difflib over
 sorted norms.
+
+### 6.6 TTL'd ledger re-verification on append — **shipped**
+
+*Follow-up to IDEAS §5.3, 2026-07-31.*
+
+:func:`~nestor.cascade.ledger_verify_interval_sec` / ``NESTOR_LEDGER_VERIFY_INTERVAL_SEC``
+control how often the full chain walk runs on seal/reject preflight and append.
+``nestor.ui`` sets a five-minute default when the env var is absent.
+
+### 6.5 File-backed SQLite: a bounded WAL connection pool — **shipped**
+
+*Follow-up to IDEAS §2.4, 2026-07-31.*
+
+:mod:`nestor.sqlite_store.SqliteStore` reuses WAL connections from a capped idle
+pool on disk paths (``:memory:`` unchanged). Numbers, and why a pool rather than
+one connection per thread, are in §2.4. ``tests/test_sqlite_store.py`` covers
+concurrent ``add_pair``, the descriptor ceiling under 360 request threads, the
+``close()`` checkpoint from a thread that did not do the writing, and the refusal
+to answer from a closed store.

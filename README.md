@@ -93,6 +93,12 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
+File-backed `SqliteStore` uses **WAL** mode. While a process holds the database
+open, recent commits may live in `nestor.db-wal`, so a plain `cp` of
+`nestor.db` is **not** a backup of a running server — use
+`nestor export`, SQLite `VACUUM INTO`, or stop `nestor.ui` (which checkpoints on
+exit). A hard kill or rsync of a live box has the same limit.
+
 The whole argument in one run, against a scratch store it deletes afterwards:
 
 ```bash
@@ -764,8 +770,11 @@ entry was present.
 Be precise about what that limit is: the tamper is still **caught**. `verify()`
 fails before and after, and the chain stays broken, so tamper-evidence — the
 load-bearing property — holds completely. What you lose is the early refusal.
-Inside one long-lived process, after the first append, a new entry is chained
-onto a tampered history without a refusal.
+Inside one long-lived process, after the first append, a new entry can chain onto
+a tampered history without a refusal unless you set a re-verify interval.
+``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` (or ``cascade.set_ledger_verify_interval``)
+controls how often the full walk runs on seal/reject: ``0`` is once per process
+(default for batch/CLI); ``nestor.ui`` defaults to 300 seconds when unset.
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
 
