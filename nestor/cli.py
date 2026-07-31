@@ -129,6 +129,16 @@ def cmd_match(args) -> int:
 # moving the memory
 # --------------------------------------------------------------------------
 
+def _ledger_sidecar_path(db_out: pathlib.Path) -> pathlib.Path:
+    """Ledger copy beside a db backup — append, do not replace the last extension."""
+    return db_out.with_name(db_out.name + ".ledger.jsonl")
+
+
+def _replace_file(src: pathlib.Path, dest: pathlib.Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(src, dest)
+
+
 def cmd_db(args) -> int:
     store = _store(args)
     if not isinstance(store, SqliteStore):
@@ -137,22 +147,33 @@ def cmd_db(args) -> int:
     if args.db_command == "checkpoint":
         if args.out:
             out = pathlib.Path(args.out)
-            ledger_out = out.with_suffix(".ledger.jsonl")
+            ledger_out = _ledger_sidecar_path(out)
             targets = [out] if args.no_ledger else [out, ledger_out]
             for path in targets:
                 if path.exists() and not args.force:
                     print(f"refusing to overwrite {path} (pass --force)", file=sys.stderr)
                     return EXIT_USAGE
             out.parent.mkdir(parents=True, exist_ok=True)
-            if args.force:
-                for path in targets:
-                    path.unlink(missing_ok=True)
-            store.backup_into(str(out))
+            tmp_db = out.with_name(out.name + ".partial")
+            tmp_db.unlink(missing_ok=True)
+            try:
+                store.backup_into(str(tmp_db))
+                _replace_file(tmp_db, out)
+            except Exception:
+                tmp_db.unlink(missing_ok=True)
+                raise
             parts = [str(out)]
             if not args.no_ledger:
                 ledger_src = cascade._ledger_path()
                 if ledger_src.is_file():
-                    shutil.copy2(ledger_src, ledger_out)
+                    tmp_led = ledger_out.with_name(ledger_out.name + ".partial")
+                    tmp_led.unlink(missing_ok=True)
+                    try:
+                        shutil.copy2(ledger_src, tmp_led)
+                        _replace_file(tmp_led, ledger_out)
+                    except Exception:
+                        tmp_led.unlink(missing_ok=True)
+                        raise
                     parts.append(str(ledger_out))
                 else:
                     print(f"note: no ledger file at {ledger_src} to copy alongside the db",
@@ -445,7 +466,7 @@ def build_parser() -> argparse.ArgumentParser:
     dbp.add_argument("db_command", choices=("checkpoint",))
     dbp.add_argument("--out", default="",
                      help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
-                          "ledger to <stem>.ledger.jsonl unless --no-ledger (restore both together)")
+                          "ledger to <basename>.ledger.jsonl beside it unless --no-ledger")
     dbp.add_argument("--no-ledger", action="store_true",
                      help="with --out, copy only the database (seals without audit chain)")
     dbp.add_argument("--force", action="store_true",

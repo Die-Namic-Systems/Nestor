@@ -5,16 +5,18 @@ set -euo pipefail
 GITHUB="${GITHUB:-$HOME/github}"
 BRANCH=local/fleet-integration
 
-# remote_branch per repo; remove or edit after the branch merges on GitHub.
-declare -A REMOTES=(
-  [terpsi-music]=claude/coat-hat-check-p6obau
-  [safe-app-store-public]=claude/repo-test-run-a8lt94
-  [safe-app-store]=claude/repo-test-run-a8lt94
-)
+remote_for() {
+  case "$1" in
+    terpsi-music) echo "claude/coat-hat-check-p6obau" ;;
+    safe-app-store-public|safe-app-store) echo "claude/repo-test-run-a8lt94" ;;
+    *) echo "" ;;
+  esac
+}
 
 checkout() {
   local repo="$1"
-  local remote_branch="${REMOTES[$repo]:-}"
+  local remote_branch
+  remote_branch="$(remote_for "$repo")"
   local dir="$GITHUB/$repo"
   if [[ -z "$remote_branch" ]]; then
     return 0

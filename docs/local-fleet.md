@@ -102,7 +102,7 @@ pytest tests/test_almanac_seam_nestor.py -q
 nestor ledger head
 nestor ledger verify --expect-head "$(cat /path/to/pinned-head.txt)"
 nestor db checkpoint              # §6.7 — WAL flush without stopping the UI
-nestor db checkpoint --out /backup/nestor-$(date +%F).db   # also writes …ledger.jsonl
+nestor db checkpoint --out /backup/nestor-$(date +%F).db   # also …$(date +%F).db.ledger.jsonl
 nestor export --out /backup/memory.json
 ```
 

@@ -334,11 +334,21 @@ def test_db_checkpoint_cli_writes_copy_and_keeps_store_usable(db, tmp_path):
     out = tmp_path / "copy.db"
     assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_OK
     assert out.is_file()
-    ledger_copy = out.with_suffix(".ledger.jsonl")
+    ledger_copy = out.with_name(out.name + ".ledger.jsonl")
     assert ledger_copy.is_file()
     assert ledger_copy.read_text() == pathlib.Path(db["ledger"]).read_text()
     assert run(db, "db", "checkpoint") == cli.EXIT_OK
     assert run(db, "ask", "good evening") == cli.EXIT_OK
+
+
+def test_db_checkpoint_ledger_sidecar_appends_to_basename(db, tmp_path):
+    """Dots in the db filename must not collapse the ledger sidecar name."""
+    out_a = tmp_path / "nightly" / "2026.07.30"
+    out_b = tmp_path / "nightly" / "2026.07.31"
+    assert run(db, "db", "checkpoint", "--out", str(out_a)) == cli.EXIT_OK
+    assert (tmp_path / "nightly" / "2026.07.30.ledger.jsonl").is_file()
+    assert run(db, "db", "checkpoint", "--out", str(out_b)) == cli.EXIT_OK
+    assert (tmp_path / "nightly" / "2026.07.31.ledger.jsonl").is_file()
 
 
 def test_db_checkpoint_refuses_existing_out_without_force(db, tmp_path, capsys):

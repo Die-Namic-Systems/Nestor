@@ -1451,7 +1451,7 @@ to answer from a closed store.
 
 ``nestor db checkpoint`` flushes WAL in place; ``--out`` writes a consistent copy
 via ``VACUUM INTO`` and, by default, copies the hash-chained ledger to
-``<stem>.ledger.jsonl`` beside it (``--no-ledger`` opts out). Operator notes in
+``<basename>.ledger.jsonl`` beside it (``--no-ledger`` opts out). Operator notes in
 ``docs/local-fleet.md``.
 
 ### 6.8 Skip redundant ``memory_init`` schema replay — **open**
