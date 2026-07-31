@@ -93,6 +93,20 @@ pytest -q                                  # count deliberately not quoted
 Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
 Nestor needs, so the whole cascade runs end-to-end with no host application.
 
+The whole argument in one run, against a scratch store it deletes afterwards:
+
+```bash
+python demo/sixty_seconds.py            # --fast to skip the pauses
+```
+
+An answer nobody has verified; one human verifying it once; the same question
+retyped and served with a receipt; a rewrite that is *not* served; the failure
+mode where "thirty days" matches "sixty days" and what to do about it; a seal
+forged straight into the database and refused; then one field edited in one past
+ledger entry, and the chain refusing both to verify and to accept the next
+decision. Every beat asserts its own claim — the script exits non-zero rather
+than narrate something that did not happen, and a test runs it.
+
 Save this as `demo.py` and run it — the whole loop, in the translation recipe:
 
 ```python
@@ -214,6 +228,7 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── harness.py          timing, environment capture, JSON result recording
 └── results/            committed measurements — parameters, git rev, raw numbers
 
+demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 QUESTIONS.md          the questions this gets asked, answered or admitted
