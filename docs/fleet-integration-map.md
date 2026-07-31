@@ -173,6 +173,51 @@ Not a bench tweak — a **FERPA/COPPA youth-program stack** landed on the branch
 
 ---
 
+## Fleet remote branches ↔ open IDEAS (2026-07-31)
+
+*After `git fetch --prune` across `~/github/`. Full machine list:
+`/tmp/fleet-remote-branches.json` (regenerate with the fleet scan script when stale).
+**nestor** and **kartikeya** had no non-default remotes. Most leftovers are Dependabot,
+merged CI branches, or upstream forks — not IDEAS expanders.*
+
+### Strong fit — expands open IDEAS or host patterns
+
+| Repo / remote branch | Open IDEAS | How it applies |
+|----------------------|------------|----------------|
+| **terpsi-music** `origin/claude/coat-hat-check-p6obau` (+61 vs `main`, no PR) | §1.4, §4.2, §4.4, §5.2, §5.5 (policy), §6.10 | Nestor **host** app: draft→sealed cascade, sensitivity ladder, append/lanes vs `memory_delete`; one Python read predicate + RLS (see terpsi section above). |
+| **safe-app-store** / **public** `origin/claude/repo-test-run-a8lt94` (+3) | §4.2, §5.7, §5.8 | Branch-only `docs/design/app-forge.md`: D1 generalizes **`nestor/serve.py`** (MCP ask/propose, no seal); D4 rebuild `sap-gate` on **`nestor/signing` + keyring**. Design log, not nestor code. |
+| **safe-app-store** `origin/feat/nest-seed-ai` (+3, diverged) | §1.1, §3.3 (analogy) | **nest-seed** embedding **margin** tier (`NEST_EMBED_MARGIN`) — different comparator than scalar TM margin; fleet counterexample only. |
+| **willow-compose** `origin/claude/ledger-edges-propose-i5i6tr` (+2) | §5.5, fringe §1.4 | Sealed atoms+edges round; propose vs operator seal — governance graph parallel to FRANK, not Nestor `memory_*` chain. |
+| **oakenscrolls-office** on **`master`** (stale remotes safe to prune) | §3.2, §4.4 | `almanac_seam` + tests: cite-and-grade → `resolver.seal()` as Nestor pairs; lineage cite-and-grade bench story. |
+
+### On SAFE default branch (no remote branch required)
+
+| Piece | Open IDEAS |
+|-------|------------|
+| **`stores/promote_check.py`**, **`docs/the-nestor-lineage.md`**, marching-arts Nestor cascade docs | §4.2, §5.2, promotion narrative |
+| **`store_refit_plan.md`** — Nestor/Jeles passed gates #88, **no minted record yet** | §4.2 — run `promote_check.py --record` when ready |
+| **`willow-mcp` `egress_authorization.py`** on default | §5.8 Ed25519 envelope shape to borrow |
+
+### Weak / indirect (hygiene unless you rescue the work)
+
+| Repo / branch | Verdict |
+|---------------|---------|
+| **redential-cli** `docs/principle-2-amendment` (+2, diverged) | §4.2 *category* language only (vault anchor governance); no seal API. |
+| **safe-app-store** `claude/task-1qugto`, `claude/willow-pg-lib-a5` | D8 vault / source-trail — adjacent §6.10; heavily behind default. |
+| **willow-mcp** `claude/willow-mcp-pr-211-afy9xt` (+1) | Hook allow-side tests — meta-parallel to §6.9; merge or delete for willow-mcp, not nestor. |
+| **corpus-lens** `claude/redential-cli-clone-f8hlu9` (stale) | Fail-closed egress — same *shape* as verify-before-act (§5.8). |
+| **Dependabot** pillow/rapidfuzz on SAFE | No IDEAS link. |
+| **Jeles** CI remotes (0 ahead) | Prune candidates; no nestor IDEAS. |
+| **hermes-agent**, **mcp-memory-service**, draft **DispatchesFromReality** | Not nestor queue. |
+
+### Open IDEAS with no meaningful remote expander
+
+Stay **nestor-local** unless you import design from the rows above:
+
+§6.7 hot checkpoint CLI · §6.8 skip `memory_init` · §6.9 UI subprocess bad-env test · §6.10 relative seal age · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
+
+---
+
 ## Cross-cutting fleet hooks (not a single IDEAS §)
 
 | Piece | Nestor touchpoint |
