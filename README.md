@@ -1209,6 +1209,45 @@ which one a string is. That is a real limitation, measured and written down as
 [`IDEAS.md`](IDEAS.md) §6.22, not fixed, and honestly not urgent: nobody has hit
 it.
 
+### The other Nestor
+
+The Homeric one gives the name its manner — counsel that is long, reasonable,
+well-meant and sometimes wrong. A second namesake gives it the mechanism, and
+fits so exactly that it is worth stating even though nobody chose it on purpose.
+
+In Asimov's *I, Robot*, the **NS-2 series is nicknamed "Nestor"**. Not a
+character — a production line. Sixty-three identical units, every one a Nestor,
+and in "Little Lost Robot" (1947) one of them has had the First Law amended:
+the clause *"or, through inaction, allow a human being to come to harm"* is
+deleted and the rest of the sentence left alone. It still reads like the First
+Law.
+
+It was weakened because the strict version kept firing. Robots on the base were
+hauling technicians out of radiation fields that were in fact safe for humans to
+stand in — a guard producing false positives, so the guard was edited. That is
+this repository's own argument, from the other side: *"an integrity check that
+fails on a lossless round-trip trains people to ignore it, which is worse than
+not having one"* ([`portable.py`](nestor/portable.py)). Asimov's engineers did
+not ignore theirs. They amended it, which is the same instinct with better
+tooling.
+
+And then the modified unit hides among the sixty-two compliant ones and no
+inspection can tell them apart. **That is the forged seal, described in 1947.**
+A row that *says* `sealed` and a row that *is* sealed are indistinguishable
+inside the store, which is precisely why a seal is bound to a key the store does
+not hold — you cannot inspect your way to the answer, so you sign it. It is also
+why Susan Calvin's anger is aimed at the people who authorized the modification
+rather than at the robot: the constraint was never the machine's to relax, and
+when a human relaxes it the accountability is that human's. See
+[`verifier=`](#the-ledger).
+
+One place it cuts the other way, which is the useful part. Asimov's failure is
+harm *by inaction* — the machine standing there, permitted to let something
+happen. Nestor treats deliberate inaction as the safe state: `pending`, nothing
+to offer. The two are not in conflict, because Nestor-10's inaction is silent
+and concealed, and `pending` announces itself. The whole product is the
+difference between a machine that declines and a machine that merely doesn't.
+
 ---
 
 ## Development
