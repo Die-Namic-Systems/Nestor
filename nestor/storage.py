@@ -20,20 +20,26 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are three **optional capabilities**, each
+Beyond the core Protocol there are six **optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
 working and the surfaces that need it say so rather than showing an empty list:
 
-===================  ==========================  ==============================
-Capability           Predicate                   Without it
-===================  ==========================  ==============================
-Rejection            :func:`supports_rejection`  ``reject_*`` raises rather than
-                                                 dropping a human's "no"
-Curation             :func:`supports_curation`   no ``Curator``, no export or
-                                                 import
-Review queue         :func:`supports_queue`      the queue cannot be listed or
-                                                 cleared
-===================  ==========================  ==============================
+==================  =====================================  =====================================
+Capability          Predicate                              Without it
+==================  =====================================  =====================================
+Rejection           :func:`supports_rejection`             ``reject_*`` raises rather than
+                                                           dropping a human's "no"
+Curation            :func:`supports_curation`              no ``Curator``, no export or
+                                                           import
+Review queue        :func:`supports_queue`                 the queue cannot be listed or
+                                                           cleared
+Rejection listing   :func:`supports_rejection_listing`     export says which rejections a
+                                                           bundle ships without
+Lineage             :func:`supports_lineage`               ``supersede_pair`` / ``revise_draft``
+                                                           raise rather than overwriting
+Atomic supersede    :func:`supports_atomic_supersede`      ``revise_draft`` refuses rather
+                                                           than racing
+==================  =====================================  =====================================
 
 Partial implementation counts as none. Writing rejections nobody can read back,
 or offering an unseal the store cannot perform, is worse than not having the

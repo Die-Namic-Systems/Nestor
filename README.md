@@ -398,6 +398,16 @@ Pairs are `sealed` (human-verified / curated) or `draft` (machine, awaiting
 seal). Only sealed pairs are served as tier 1; drafts may feed the engine as
 style/terminology context but are never served as verified.
 
+**Changing an answer keeps the answer it replaces.** `supersede_pair(...)`
+retires the live sealed pair behind its successor — verifier required, because
+replacing a sealed decision is itself a decision — and `revise_draft(...)` does
+the same for a machine's own draft, deliberately taking **no** verifier: the
+successor is a draft too, and sealing it stays a separate human act. Both keep
+the old row with the reason it was replaced, and `memory_lineage` walks the
+chain back, newest first. Both need the lineage capability
+(`storage.supports_lineage`) and raise without it rather than falling back to
+the destructive overwrite they exist to replace.
+
 ### Entity resolution — `nestor.entity`
 
 ```python
@@ -1035,6 +1045,9 @@ cannot tell you" are different facts.
 | Rejection | `memory_reject_pair`, `memory_add_rejection`, `memory_rejections` | `supports_rejection` | `reject_*` raises rather than dropping a human's "no" |
 | Curation | `memory_list`, `memory_get`, `memory_unseal`, `memory_rejections_for_pair` | `supports_curation` | `Curator` raises `CurationUnsupportedError`; no export/import |
 | Review queue | `list_documents`, `list_segments`, `update_segment_status` | `supports_queue` | the queue cannot be listed or cleared; everything else works |
+| Rejection listing | `memory_list_rejections` | `supports_rejection_listing` | rejections still record and read by key; export says a bundle ships without the ones naming no pair, rather than shipping quietly short |
+| Lineage | `memory_mark_superseded`, `memory_lineage` | `supports_lineage` | `supersede_pair` / `revise_draft` raise rather than destructively overwriting a prior decision |
+| Atomic supersede | `memory_mark_superseded_if` | `supports_atomic_supersede` | `revise_draft` refuses rather than racing — a race here could retire a human's seal under an unverified draft |
 
 Partial implementation counts as none. Writing rejections nobody can read back,
 or offering an unseal the store cannot perform, is worse than not having the
@@ -1260,6 +1273,15 @@ ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/
 ```
+
+**Returning to an existing clone:** the install persists, the activation does
+not — run `source .venv/bin/activate` in each new shell before any of the
+above. The failure mode is quiet if you forget: the package imports from the
+repo root without any install, so scripts and snippets keep working while
+`nestor` and `pytest` are missing or stale. If commands are half-working,
+check `which python` before debugging anything else. (Sessions on Claude Code
+on the web skip all this — a `SessionStart` hook in `.claude/` builds `.venv`
+and puts it on `PATH` before the session starts.)
 
 CI runs lint and the test matrix (Python 3.10 and 3.12) on every pull request,
 plus a daily scheduled run to catch drift. Ideas, open questions and measured

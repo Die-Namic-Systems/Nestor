@@ -9,6 +9,39 @@ them until after making the mistakes two of them describe.
 
 ---
 
+## Environment — before anything else
+
+A cold clone is a trap shaped exactly like a working setup. The package
+imports from the repo root with **no install at all** — `python demo.py` and
+every README snippet run fine — while `nestor`, `python -m pytest` and the
+lint gates do not exist. So the first failing command arrives *after* several
+succeeding ones, and the wrong conclusion (something just broke) is easier to
+reach than the right one (nothing was ever installed). A session stumbled on
+exactly this the day this file was written.
+
+- **Claude Code on the web:** the SessionStart hook
+  (`.claude/hooks/session-start.sh`) has already built `.venv`, installed
+  `.[dev,keys]` into it, and put `.venv/bin` first on your `PATH` before
+  your first prompt. Trust it after one check: `python -m pytest --version`.
+  If that fails, run the hook yourself — do **not** `pip install` into
+  system python; this container carries a broken Debian `cryptography` on
+  its path that satisfies the requirement without importing.
+- **Anywhere else:** the repo convention is a venv at `.venv`. Activation is
+  per **shell**, not per machine — a venv that exists is not a venv that is
+  active:
+
+  ```bash
+  source .venv/bin/activate 2>/dev/null \
+    || { python -m venv .venv && source .venv/bin/activate \
+         && pip install -e ".[dev,keys]"; }
+  ```
+
+- `[dev]` carries pytest, ruff and bandit; `[keys]` carries cryptography so
+  the asymmetric suite runs instead of skipping. Do **not** add `[semantic]`
+  unless the task needs it — see "Before you finish".
+
+---
+
 ## The one rule that is not a guideline
 
 **You may propose. You may not confirm.**
