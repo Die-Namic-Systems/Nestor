@@ -10,7 +10,7 @@ from nestor import cascade, ledger
 def test_verify_intact_then_detects_tamper(tmp_path):
     lp = tmp_path / "ledger.jsonl"
     cascade.set_ledger_path(lp)
-    for k in ("a", "b", "c"):
+    for k in ("seal", "passage", "restore"):
         cascade._ledger_append({"kind": k})
 
     ok, detail = ledger.verify(str(lp))
@@ -29,13 +29,13 @@ def test_verify_intact_then_detects_tamper(tmp_path):
 def test_ledger_refuses_non_file():
     cascade.set_ledger_path("/dev/null")
     with pytest.raises(ledger.LedgerError):
-        cascade._ledger_append({"kind": "vanishes"})
+        cascade._ledger_append({"kind": "seal"})
 
 
 def test_append_refuses_to_extend_a_tampered_chain(tmp_path):
     lp = tmp_path / "ledger.jsonl"
     cascade.set_ledger_path(lp)
-    for k in ("a", "b", "c"):
+    for k in ("seal", "passage", "restore"):
         cascade._ledger_append({"kind": k})
 
     lines = lp.read_text().splitlines()
@@ -45,7 +45,7 @@ def test_append_refuses_to_extend_a_tampered_chain(tmp_path):
 
     cascade.reset_ledger_session()
     with pytest.raises(ledger.LedgerError):
-        cascade._ledger_append({"kind": "d"})
+        cascade._ledger_append({"kind": "passage"})
 
 
 @pytest.fixture
@@ -53,7 +53,11 @@ def live_ledger(tmp_path):
     """A ledger this process has already verified and appended to."""
     lp = tmp_path / "ledger.jsonl"
     cascade.set_ledger_path(lp)
-    for k in ("a", "b", "c"):
+    # First kind chosen same-length as its tamper replacement below
+    # (restore -> passage, 7 bytes each): the tail checkpoint stores a byte
+    # offset, so an edit that changed line length would trip the offset
+    # guard instead of the chain walk this test exists to prove.
+    for k in ("restore", "passage", "seal"):
         cascade._ledger_append({"kind": k})
     assert ledger.verify(str(lp))[0]
     return lp
@@ -69,19 +73,19 @@ def test_a_mid_run_edit_of_the_newest_entry_is_refused(live_ledger):
     assert ok, "the whole point: the walk cannot see this"
 
     with pytest.raises(ledger.LedgerError, match="tampered tail"):
-        cascade._ledger_append({"kind": "d"})
+        cascade._ledger_append({"kind": "passage"})
 
 
 def test_truncating_the_trail_mid_run_is_refused(live_ledger):
     live_ledger.write_text(live_ledger.read_text().splitlines()[0] + "\n")
     with pytest.raises(ledger.LedgerError, match="truncated"):
-        cascade._ledger_append({"kind": "d"})
+        cascade._ledger_append({"kind": "passage"})
 
 
 def test_deleting_the_ledger_mid_run_is_refused(live_ledger):
     live_ledger.unlink()
     with pytest.raises(ledger.LedgerError, match="is gone"):
-        cascade._ledger_append({"kind": "d"})
+        cascade._ledger_append({"kind": "passage"})
 
 
 def test_the_refusal_lands_before_the_store_write(live_ledger, store, seal_key):
@@ -102,18 +106,18 @@ def test_another_writer_appending_is_not_tampering(live_ledger):
     import hashlib
 
     last = live_ledger.read_text().splitlines()[-1]
-    line = json.dumps({"kind": "from-another-process", "prev":
+    line = json.dumps({"kind": "passage", "prev":
                        hashlib.sha256(last.encode()).hexdigest()}, ensure_ascii=False)
     with live_ledger.open("a") as fh:
         fh.write(line + "\n")
 
-    cascade._ledger_append({"kind": "d"})
+    cascade._ledger_append({"kind": "passage"})
     assert ledger.verify(str(live_ledger))[0]
 
     with live_ledger.open("a") as fh:
-        fh.write(json.dumps({"kind": "orphan", "prev": "genesis"}) + "\n")
+        fh.write(json.dumps({"kind": "proposal", "prev": "genesis"}) + "\n")
     with pytest.raises(ledger.LedgerError, match="does not chain"):
-        cascade._ledger_append({"kind": "e"})
+        cascade._ledger_append({"kind": "restore"})
 
 
 def test_the_checkpoint_does_not_refuse_concurrent_writers(live_ledger):
@@ -154,7 +158,7 @@ def test_re_asserting_the_same_ledger_path_keeps_the_tail_guard(live_ledger):
     live_ledger.write_text("\n".join(lines) + "\n")
 
     with pytest.raises(ledger.LedgerError, match="tampered tail"):
-        cascade._ledger_append({"kind": "d"})
+        cascade._ledger_append({"kind": "passage"})
 
 
 def test_pointing_at_another_ledger_does_drop_it(live_ledger, tmp_path):
@@ -162,18 +166,18 @@ def test_pointing_at_another_ledger_does_drop_it(live_ledger, tmp_path):
     or the first append would check one file's tail against another's."""
     other = tmp_path / "other.jsonl"
     cascade.set_ledger_path(other)
-    cascade._ledger_append({"kind": "first"})
+    cascade._ledger_append({"kind": "seal"})
     assert ledger.verify(str(other))[0]
     assert len(other.read_text().splitlines()) == 1
 
 
 def test_the_checkpoint_does_not_replace_the_walk(live_ledger):
     lines = live_ledger.read_text().splitlines()
-    assert '"kind": "a"' in lines[0]
-    lines[0] = lines[0].replace('"kind": "a"', '"kind": "z"')
+    assert '"kind": "restore"' in lines[0]
+    lines[0] = lines[0].replace('"kind": "restore"', '"kind": "passage"')
     live_ledger.write_text("\n".join(lines) + "\n")
 
-    cascade._ledger_append({"kind": "d"})
+    cascade._ledger_append({"kind": "passage"})
     ok, detail = ledger.verify(str(live_ledger))
     assert not ok and "broken chain" in detail
 
@@ -185,4 +189,4 @@ def test_ledger_refuses_a_symlink(tmp_path):
     link.symlink_to(real)
     cascade.set_ledger_path(link)
     with pytest.raises(ledger.LedgerError):
-        cascade._ledger_append({"kind": "redirected"})
+        cascade._ledger_append({"kind": "seal"})
