@@ -1486,7 +1486,7 @@ Needs a per-connection "schema ready" flag before changing behaviour.
 Memory list chips show **relative age**; full ISO timestamp on hover (``title``).
 Decay/quorum policy remains §1.4.
 
-### 6.11 Decision memory — lineage joined to rejection — **open**
+### 6.11 Decision memory — lineage joined to rejection — **partly** (steps 1–2 shipped)
 
 *Proposed 2026-08-05, carried over from the SAFE store; design doc in this
 repo:* [`docs/decision-memory.md`](docs/decision-memory.md).
@@ -1502,6 +1502,18 @@ rejections (never vs. not-yet), signed `decision_edges`, and a
 traversal. Build-order steps 1–2 stand alone as a fix to the destructive
 overwrite. Gate: bench whether the matcher recognizes a re-worded decision
 before any CI gate trusts `constraints_on`.
+
+*Steps 1–2 shipped 2026-08-05* after the design was proven standalone in the
+SAFE store's playground (`apps/aristarchus`, 33 tests) and its N1 matcher
+bench ran (string/token/word-vector matchers falsified; fastembed viable at
+0.90–0.95, `wrong_key` 0 throughout — advisory yes, fail-closed no):
+`tm_pairs.reason` + `tm_rejections.reopen_when` (N4/N5),
+`supports_lineage` + `tm_pairs.superseded_by` + the partial unique index +
+`memory.supersede_pair` (N2/N3), ledgered as `supersede`, with pre-lineage
+databases migrating in `memory_init` and superseded rows excluded from
+bundles. Still open: N6–N9 (edges, DecisionMemory recipe, the gate) and
+carrying `reopen_when` in bundles (needs a BUNDLE_VERSION bump — it is not
+in REJECTION_FIELDS, so it does not travel yet).
 
 ### 6.12 The detection kit as gates, not advice — **open**
 

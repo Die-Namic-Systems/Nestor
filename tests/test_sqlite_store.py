@@ -200,12 +200,17 @@ def test_memory_init_indexes_source_norm_for_memory_find(tmp_path):
     with store._db() as conn:
         names = {r[0] for r in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tm_pairs'")}
-        assert "idx_tm_pairs_key" in names
+        # Renamed when the index went partial (lineage N3): uniqueness over
+        # live rows only, so superseded history can share the key.
+        assert "idx_tm_pairs_key_live" in names
 
         norm = memory._norm("hello")
+        # Mirrors memory_find's actual query: the live predicate is what
+        # lets SQLite use the partial index at all.
         plan = conn.execute(
             "EXPLAIN QUERY PLAN SELECT * FROM tm_pairs "
-            "WHERE source_norm=? AND source_lang=? AND target_lang=?",
+            "WHERE source_norm=? AND source_lang=? AND target_lang=? "
+            "AND superseded_by=''",
             (norm, "en", "es"),
         ).fetchall()
     plan_text = " ".join(str(cell) for row in plan for cell in row).lower()
@@ -222,7 +227,9 @@ def test_a_duplicate_norm_database_still_indexes_lookups(tmp_path):
     with store._db() as conn:
         conn.executescript(sm._SCHEMA)
         conn.executemany(
-            "INSERT INTO tm_pairs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO tm_pairs (id, source_text, source_norm, source_lang, "
+            "target_text, target_lang, status, verifier, weight, origin, "
+            "created_at, seal_sig) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             [_pair_row("a", "shared source", norm, "one"),
              _pair_row("b", "shared source", norm, "two")],
         )
