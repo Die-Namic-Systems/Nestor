@@ -1527,3 +1527,112 @@ witness; #4/#5 (multiple hypotheses, don't trust it because it's yours) are
 `nestor decision check` + verifier-differs-from-author; #7 (every link holds)
 is the hash chain; #9 (falsifiability) is `reopen_when`. Unmapped: #2, #3,
 #6, #8, and the fallacy catalog.
+
+### 6.13 Ground rule 2b made executable — **shipped**
+
+*Found and closed 2026-08-05, looking for where the product's voice policy
+actually lived.*
+
+`nestor/engine.py` stated the output-voice rule twice — as prose in the module
+docstring, and as a retyped literal inside `ClaudeEngine._system` — and
+executed it in neither. `tests/test_docs.py` had already named that failure
+mode for the README (*"a claim nobody executes is a claim nobody maintains"*);
+it applied here to a rule governing what a model is told about whose voice to
+use. Two copies and no check is not redundancy, it is a pending disagreement.
+
+The larger half was structural. The rule lived on one class while the **tier**
+is what it governs, and the engine slot is pluggable by design — `get_engine`
+dispatches and `OfflineEngine` is documented as the eventual local-model slot.
+The next engine to address a model would have composed its own prompt with
+nothing it was obliged to include: §1.6–§1.8's shape exactly, a guarantee held
+by convention at one call site, pre-figured rather than already bitten.
+
+Shipped: `engine.VOICE_RULE` as the single definition; `engine.system_prompt`
+promoted to module level as the one prompt builder, with the rule unconditional
+inside it and no parameter that could disable it; `Draft` documented as
+carrying no field an engine could claim verification with, which is why 2b's
+second half was never at risk. `tests/test_engine.py` pins all of it, mirroring
+rather than importing the constant per `test_ledger_kinds.py`'s rule, and each
+gate was proven against its counter-case (reword the rule, drop it from the
+builder, add a `voice=` parameter, retype it elsewhere, grow a `verified` field
+on `Draft`, and a new engine calling `messages.create(system=...)` with its own
+string — the last caught by an **AST** gate over `nestor/*.py`, after a first
+attempt that grepped the source flagged the phrase `system=` inside a docstring
+about the rule).
+
+Still open, and deliberately not invented here: **the ground rules themselves
+live offstage.** "Ground rule 2b" is cited by number in this repo and the
+numbered set is nowhere in it — `grep -rn "ground rule"` returns exactly the
+one docstring. 2b's *text* is now defined in `VOICE_RULE`, which is the half
+Nestor is entitled to own; whether the fleet's rules should be carried here
+(the way `docs/decision-memory.md` was carried home from the SAFE store) is the
+operator's call, not a code change. Until then a reader meets a rule cited by a
+number that resolves to nothing.
+
+### 6.14 Dogfood: this session's decisions fed through Nestor — **measured**
+
+*Run 2026-08-05, feeding the §6.13 session's own decisions into the store.*
+
+Eight decisions from the ground-rule-2b session went in as **drafts** with
+`reason` (N4), and four rejected alternatives as `tm_rejections` with `reason`
+and `reopen_when` (N5) — three of the four are *not-yets*, carrying the
+condition that reopens them. Nothing was sealed: the machine may propose and
+may not confirm, so `nestor stats` reads `8 pair(s): 0 sealed, 8 draft` and the
+seal queue is the operator's. Two things fell out of it.
+
+**N1 reproduced in-repo, on real decision rows.** `docs/decision-memory.md`
+gates N9 on "does the matcher recognize a re-worded decision"; §6.11 records
+that bench running in the SAFE store's playground. It now has an in-repo
+number. Exact wording scores **1.0000**. Re-worded, against `StringMatcher`:
+
+| probe | right row | rank-1 row | served |
+|---|---|---|---|
+| exact | 1.0000 | itself | ✓ |
+| "who owns ground rule 2b, the class or the tier?" | 0.8380 | itself | ✗ |
+| "can callers turn off the voice rule?" | 0.3440 | *a different decision*, 0.4740 | ✗ |
+| "why was the model id left alone?" | 0.3110 | *a different decision*, 0.3330 | ✗ |
+
+None of the three re-wordings clears 0.92, and **two of three rank a different
+decision first** — the `wrong_key` case §6.11 measured at 0 for fastembed. The
+system still fails safe (below threshold, nothing is served), and that is
+exactly the danger the design doc names: `constraints_on` returns silence, and
+silence reads as "no constraint" rather than "I could not find it." The gate
+holds — N9 must not be trusted on the string matcher.
+
+**A review surface that misstates its own reason.** `nestor match` prints
+`"{len(matches)} candidate(s) below {threshold}"` whenever `served` is false
+(`cli.py:123`). Both halves can be wrong at once. `answer.match` fills
+`matches` from `lookup(..., context_threshold=0.0)` — *unfiltered*, so they are
+not "candidates below" anything — while `served` comes from `best_sealed`,
+which filters by **status**. Feeding an exact query that scored **1.0000**
+against a draft row printed `8 candidate(s) below 0.92`: the count is
+unrelated to the threshold, and the one row that mattered was above it. The
+true answer was "found it, it is not sealed." This is §1.9's shape in a
+message rather than a query — the code answering a narrower question than the
+one it was asked, and reporting the narrow answer as the whole one.
+
+**A rejection with no `pair_id` does not travel.** Found by exporting the feed
+above and reading the counts: `8 pairs, 0 rejections`, from a store holding
+four signed, ledgered rejections. `reject_match` documents two ways to name
+what is being refused — `pair_id` (the false-seal case) **or** `target_text`
+(*"a raw engine draft with no pair yet"*) — and both are first-class, both
+signed, both ledgered. But `portable.export_bundle` reaches rejections only by
+walking `memory_rejections_for_pair(p["id"])` over the exported pairs, so the
+`target_text`-only half is silently dropped. Proven directly: adding one
+rejection that names a `pair_id` to the same store took the bundle from 0
+rejections to 1 — that one, and still none of the other four.
+
+This is §1.6–§1.8's shape once more, in the transfer path: a guarantee held at
+one call site and a second kind of row that never reaches it. It lands hardest
+exactly where §6.11 claims the most: *"Nestor's rejection table is already a
+rejected-alternatives record… the half the git flow throws away is already
+sitting in the schema, durable and signed."* It is — until you move it. A
+rejected **alternative** usually never became a pair, which is precisely the
+pair-less form, so decision memory's rejected-alternatives record is the part
+of it that does not survive `export → import`.
+
+Not fixed here. The fix is a domain-scoped rejection walk rather than a
+pair-keyed one, and it changes what a bundle contains — so it wants the same
+`BUNDLE_VERSION` decision already pending for carrying `reopen_when` (§6.11),
+plus import-side semantics for a rejection that names no pair. Both belong in
+one reviewed change, and both are the operator's call.
