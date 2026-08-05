@@ -2280,3 +2280,72 @@ sketch is otherwise unchanged except in one place — the argument against a
 right argument is `system_prompt`'s own, about `VOICE_RULE`: **the only reason
 to make it optional would be to turn it off.** The register is not a parameter
 because it is load-bearing, not because it is dangerous.
+
+### 6.24 `persona.py` — installed, and the two gates that bit me — **shipped**
+
+*Built 2026-08-05 after §6.23, on the order §6.23 argued for: get the sentences
+right in place first, then extract the module from strings that already work.
+The alternative — invent a schema and fill it — is how the glossary happened.*
+
+**What it is.** A closed vocabulary of six speech acts, one rendering each, a
+`get_persona`/`set_persona` seam matching `set_store` and `set_matcher`, and
+`answer._why_not_served` split into `_classify` (returns an act plus its facts)
+and a renderer. The strings moved out of `answer.py` unchanged.
+
+**The split is the part that pays.** §6.23 recorded the cost of a classifier
+that returns prose: every assertion about *which* refusal happened was a
+substring match on the sentence. Four negative assertions in
+`test_findings_2026_08_05.py` were one rewording away from passing vacuously,
+and one positive assertion pinned a sentence that was *wrong*. `_classify` now
+returns `("nothing_in_domain", {...})`, and `test_every_act_classify_returns_
+is_a_pinned_one` reads those literals **statically** — a branch reachable only
+under a store state no test builds would otherwise ship an unpinned act.
+
+**Two gates in the repo caught the author of the module within minutes,
+which is the only reason to write this entry.**
+
+* **`test_engine.py::test_the_rule_is_written_once`** (the §6.13 gate) failed
+  on `persona.py`'s own docstring. Explaining that this module is *not* ground
+  rule 2b, I retyped ground rule 2b — making its distinctive phrase appear
+  twice in the package, which is the exact defect §6.13 existed to remove. The
+  docstring now points at `engine.VOICE_RULE` and says why it does not quote
+  it.
+* **`test_docs.py`** failed because the project layout is a promise about
+  what is in the package, and a new module had not been added to it.
+
+Neither was clever. Both fired on a change made by someone who had read them
+that morning, which is the argument for gates over guidance in one line.
+
+**A third gate turned out stronger than designed.** Adding an act to
+`SPEECH_ACTS` without a rendering does not fail a test — it fails **import**,
+because `NESTOR` is constructed at module scope and `Persona.__post_init__`
+refuses an incomplete persona. The all-or-nothing rule enforces itself before
+any test runs. That was not foreseen and it is the right behaviour.
+
+**Where the negation check lives, and why it is not at construction.**
+`NEGATIONS` is checked on the *output* of a rendering, in `say`, not on the
+persona when it is installed. A rendering is a callable, so a sentence that
+negates at one count and not at another is exactly the failure worth catching,
+and a construction-time check cannot see it. Cost: one substring scan per
+refusal, on a path that has just scanned the whole domain.
+
+**Mutation-proved, because a gate that cannot fail is a description:**
+
+```
+engine.py imports persona            -> test_engine_does_not_import_persona FAILS
+_classify interpolates an f-string   -> test_classify_composes_no_prose     FAILS
+an act added to SPEECH_ACTS          -> the package does not import
+```
+
+**Deliberately not done.** The exception messages (`ConflictingSealError`,
+`RejectedPairError`) and `cascade.py`'s state glyphs are also Nestor speaking
+as itself, and they stayed where they are. Sweeping them in would mean routing
+exception text through a global seam — a persona that can reword an error is a
+persona that can reword a stack trace's meaning — and it is a much larger
+change than the one that was asked for. `SPEECH_ACTS` is the refusal surface,
+and the frozenset is pinned so growing it is a decision rather than a drift.
+
+**Still open.** i18n of Nestor's own speech is a genuinely good idea and a
+different module: it puts a translation system in the position of translating
+its own refusals, unverified, which wants its own entry rather than smuggling
+into this one.

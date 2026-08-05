@@ -216,6 +216,7 @@ nestor/
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
+├── persona.py        how Nestor speaks when Nestor is the speaker (never the translation)
 ├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
