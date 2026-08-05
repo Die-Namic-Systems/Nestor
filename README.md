@@ -40,7 +40,8 @@ hash-chained ledger, so the trail is tamper-evident.
 [Export & import](#export-and-import--taking-the-memory-elsewhere) ·
 [Serving a model](#serving-a-model--and-the-one-thing-it-cannot-do) ·
 [The ledger](#the-ledger) · [Injected storage](#injected-storage) ·
-[Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
+[Accuracy](#accuracy-and-how-to-measure-yours) · [The name](#the-name) ·
+[Development](#development)
 
 Frequently asked, honestly answered — including the "not yet"s:
 [**QUESTIONS.md**](QUESTIONS.md).
@@ -1143,6 +1144,70 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
   roughly an order of magnitude cheaper, but the scan is still a scan.
 - **The threshold wants calibrating per corpus, not trusting.** No single cutoff
   is both safe and useful across corpora (§1.3).
+
+---
+
+## The name
+
+English **nest** descends from Proto-Indo-European \*ni-sd-ós — \*ni "down" plus
+the zero grade of \*sed- "to sit". The nest is, literally, *the place where it
+sits down*.
+
+So here is the word, in the languages that inherited it. Which is also a
+translation memory, so it is presented as one:
+
+| target | rendering | state | note |
+|--------|-----------|-------|------|
+| Latin | *nīdus* | ~ draft | the Romance ancestor |
+| Spanish | *nido* | ~ draft | |
+| Italian | *nido* | ~ draft | |
+| French | *nid* | ~ draft | |
+| Portuguese | *ninho* | ~ draft | |
+| Catalan | *niu* | ~ draft | |
+| German | *Nest* | ~ draft | |
+| Dutch | *nest* | ~ draft | |
+| Sanskrit | नीड (*nīḍá*) | ~ draft | |
+| Welsh | *nyth* | ~ draft | |
+| Irish | *nead* | ~ draft | |
+| Russian | гнездо (*gnezdó*) | ~ draft | inherited, with an irregular *g-* nobody has fully explained |
+| Polish | *gniazdo* | ~ draft | same irregularity |
+| Armenian | նիստ (*nist*) | ~ draft | **means "seat, session" — not "nest"**; and its derivation is contested |
+| Romanian | *cuib* | ~ draft | **not a cognate**: Vulgar Latin \*clubium ← Greek κλυβίον |
+| Greek | φωλιά (*foliá*) | ~ draft | **not a cognate either** — the Hellenic branch kept no reflex of \*nisdós |
+
+**Every row is a draft, and that is not decoration.** Nobody in this repository
+reads Romanian, Welsh or Armenian. The table was produced by a machine, at one
+apparent confidence, for sixteen languages — and three of the last four rows are
+the ones where that confidence was wrong or overstated. Checking is what
+separated them; the last four rows are the return on it. In Nestor's terms these
+are exactly what tier 2 emits: plausible, sourced, unsigned, and queued. They
+become `sealed` when somebody who actually speaks the language says so, and not
+before. That is the whole product, applied to its own README.
+
+### The name is not the word
+
+Nestor of Pylos — the Homeric counsellor who has outlived three generations and
+gives long, reasonable, sometimes wrong advice — takes his name from a different
+root. Νέστωρ is conventionally derived from \*nes- "to return safely home", the
+root behind νόστος (*nóstos*) and, at one remove, *nostalgia*.
+
+Two roots, one spelling. \*ni-sd-ós gives *nest*: **settle down**. \*nes- gives
+*Nestor*: **come home safely**. They converge on the theme and are not the same
+word, and the name does not translate at all — it transliterates:
+
+| | |
+|---|---|
+| Russian | Нестор |
+| Spanish | Néstor |
+| Italian | Nestore |
+| French / German | Nestor |
+
+Which is where the joke stops being a joke. `StringMatcher.normalize` case-folds,
+so `Nestor` and `nestor` are the same key, and the store holds one live row per
+key — it cannot carry both the name and the noun, and there is no field that says
+which one a string is. That is a real limitation, measured and written down as
+[`IDEAS.md`](IDEAS.md) §6.22, not fixed, and honestly not urgent: nobody has hit
+it.
 
 ---
 

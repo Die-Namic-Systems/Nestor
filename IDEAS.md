@@ -2156,10 +2156,22 @@ and not written down did not happen.
 languages nobody in the session reads, asserted in one breath at one
 confidence, none signed. Five (`nid`, `nido`, `ninho`, `Nest`, `nīḍa`) are
 cognate descent from PIE \*ni-sd-ós; one (`cuib`) is not — it reaches the same
-metaphor from Latin *cubium* by a different road — and stating them together
-flattened exactly the difference a `reason` field exists to keep. If they are
-ever entered they are `draft`, with the shaky ones marked and `revise_draft`
-waiting for the moment somebody who actually speaks Romanian looks at *cuib*.
+metaphor by a different road — and stating them together flattened exactly the
+difference a `reason` field exists to keep. If they are ever entered they are
+`draft`, with the shaky ones marked and `revise_draft` waiting for the moment
+somebody who actually speaks Romanian looks at *cuib*.
+
+> **Corrected in place, same day**, while printing the table into the README —
+> which is what checking is for. This paragraph first said *cuib* came "from
+> Latin *cubium*". Wiktionary gives Vulgar Latin \*clubium ← Ancient Greek
+> κλυβίον, with \*cubium as a variant; the *cubāre* "lie down" association I had
+> in mind is not the given derivation. Two more of the same kind turned up in
+> the same pass: Armenian *nist* means **"seat, session"**, not "nest", and its
+> derivation is contested (from \*nisdós *or* deverbal from նստիմ); and Greek
+> kept **no** reflex of \*nisdós at all — φωλιά is unrelated. Three errors in
+> sixteen rows, all in the rows I had already flagged as the uncertain ones,
+> and none of them visible without looking them up. The README table is
+> published with every row marked `draft` for exactly this reason.
 The etymology is not translation and no engine here would produce it;
 `system_prompt` says *translate*, so asking it for a reconstruction returns a
 bad translation of a question. That half is research and belongs here, in the
