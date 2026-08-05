@@ -315,6 +315,40 @@ false confidence), the cwd-relative ledger side effect (§1), and the
 rejection snippet's undefined `hit` (§5). All three require *running* the
 docs adversarially rather than checking that the happy path works.
 
+## Second round — the re-entry gap, found by a session falling into it
+
+After the first round merged, a fresh session stumbled on something the audit
+above never tested: it audited the **first-time** path (clone → venv →
+install) and never the **re-entry** path — a session landing in a clone where
+`.venv` already exists and nothing says to use it. Reproduced cold, the state
+is a patchwork, which is worse than a clean failure: the package imports from
+the repo root with *no install at all*, so `python demo/sixty_seconds.py` and
+every README snippet succeed — while `nestor` is not found and
+`python -m pytest` has no pytest. The first failing command arrives after
+several succeeding ones, which invites "something broke" over the correct
+"nothing was ever installed". Neither the README (first-time voice) nor
+CLAUDE.md (assumed a working environment) addressed it.
+
+Fixed three ways, each verified by execution: a `SessionStart` hook
+(`.claude/hooks/session-start.sh`) that builds `.venv` and prepends it to the
+session `PATH` on Claude Code on the web; an **Environment — before anything
+else** section in CLAUDE.md; and a re-entry note in the README's Development
+section. The hook deliberately refuses system python: this container carries
+a Debian-packaged `cryptography 41.0.7` on `sys.path` that satisfies pip's
+`>=41` without being importable (`No module named '_cffi_backend'`), so a
+system-level install passes `pip` and fails the asymmetric suite nine tests
+deep — found because the first hook draft did exactly that. The venv is the
+only layout that cannot be half-satisfied by system site-packages.
+
+The same sweep caught documentation drift from the fleet's own last two days
+of work: the Storage capability table (README and `nestor/storage.py`'s
+docstring both) listed three optional capabilities while the code has six —
+`rejection listing`, `lineage`, and `atomic supersede` were undocumented —
+and the revision verbs `supersede_pair` / `revise_draft`, present in
+CLAUDE.md's verb table, appeared nowhere in the README. Both fixed; the
+capability-table drift is worth a thought about a `test_docs.py` gate, since
+the layout gate already proves that pattern works.
+
 ## The shape of the whole
 
 Standing Nestor up from its documentation **works** — rare, and worth saying
