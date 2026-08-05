@@ -376,19 +376,33 @@ class TestTruncationIsNeverSilent:
             bundle = portable.export_bundle(store, rejection_limit=3)
         assert bundle["counts"]["rejections"] == 3
 
-    def test_hitting_the_pair_cap_warns(self, store):
+    def test_hitting_the_pair_cap_warns_and_keeps_every_reachable_rejection(self, store):
         for i in range(4):
-            _decision(store, f"question {i}", "a")
+            pair = _decision(store, f"question {i}", "a")
+            _reject(store, f"question {i}", "no", pair_id=pair["id"])
         with pytest.warns(RuntimeWarning, match="pair limit"):
-            portable.export_bundle(store, limit=2)
+            bundle = portable.export_bundle(store, limit=2)
+        assert bundle["counts"]["pairs"] == 2
+        # Every rejection whose pair IS in the bundle must be in it too. The
+        # first version asserted only that a warning fired, and a build that
+        # shipped zero rejections passed it.
+        assert bundle["counts"]["rejections"] == 2
+        assert bundle["partial_rejections"] is True
 
     def test_rejections_are_not_capped_by_the_pair_count(self, store):
-        """The shape that hid it: few pairs, many rejections, one shared limit."""
+        """The shape that hid it: few pairs, many rejections, one shared limit.
+
+        The first version of this test never passed a `limit` at all, so it ran
+        on the 1,000,000 default and passed against the very build whose shared
+        cap it claimed to gate. The regression lived exactly in the gap it left.
+        """
         _decision(store, "q", "a")
         for i in range(8):
             _reject(store, "q", f"alternative {i}")
-        bundle = portable.export_bundle(store)
-        assert bundle["counts"]["rejections"] == 8
+        bundle = portable.export_bundle(store, limit=1)
+        assert bundle["counts"]["pairs"] == 1
+        assert bundle["counts"]["rejections"] == 8, (
+            "a cap on PAIRS decided how many REJECTIONS travelled")
 
 
 class TestImportReadsTheBundlesOwnVersion:
@@ -417,11 +431,20 @@ class TestImportReadsTheBundlesOwnVersion:
         assert landed[0]["reopen_when"] == "", (
             "a version-1 bundle injected a version-2 field past its own digest")
 
-    def test_a_version_field_must_be_an_integer(self):
-        for bogus in (True, 1.0, "1", None):
+    def test_a_version_field_must_be_a_whole_number(self):
+        """`True` is not a version even though `bool` is an `int`. An integral
+        float IS one: `_canonical` in the same module exists because a bundle
+        through a browser comes back with 1.0 where 1 went in, and refusing 2.0
+        while accepting `weight: 2.0` would apply that rule in one place and
+        contradict it in another."""
+        for bogus in (True, False, "1", None, 2.5, [2]):
             ok, _ = portable.verify_bundle({"nestor_bundle": bogus, "pairs": [],
                                             "rejections": []})
             assert not ok, f"{bogus!r} was accepted as a bundle version"
+        for good in (1, 2, 2.0):
+            ok, detail = portable.verify_bundle({"nestor_bundle": good, "pairs": [],
+                                                 "rejections": []})
+            assert ok, f"{good!r} was refused as a bundle version: {detail}"
 
 
 class TestTheReasonIsClassifiedOverEveryRowNotAPage:
@@ -458,7 +481,7 @@ class TestTheReasonIsClassifiedOverEveryRowNotAPage:
         for i in range(12):
             _decision(store, f"question {i:02d}", "a")
         result = answer.match(store, "question 00", "decision", "decision")
-        assert len(result["matches"]) <= 8
+        assert len(result["matches"]) == 8   # not <=: [] would pass that
 
 
 class TestBothWaysOfRefusingAreReported:
@@ -475,3 +498,147 @@ class TestBothWaysOfRefusingAreReported:
             f"a pair somebody explicitly rejected was reported as never having "
             f"existed: {result['reason']!r}")
         assert "reject_pair" in result["reason"]
+
+
+# ----------------------------------------------------- the second audit ------
+#
+# A second adversarial audit of the round-two fix found five more, including a
+# second critical regression IN THE FIX: `rejection_limit` defaulted back to
+# `limit`, and combined with the exported-pairs filter — pairs read newest-first,
+# rejections oldest-first — the two windows were disjoint under any cap, so NO
+# pair-bound rejection travelled at all. Three successive fixes, each a filter
+# interacting with the last. The answer was to stop filtering: two walks, each
+# bounded by construction. These tests are the shape of that argument.
+
+class TestACapOnPairsNeverDecidesWhichRejectionsTravel:
+
+    def test_a_pair_cap_does_not_empty_the_rejections(self, store):
+        """The regression, exactly: master and the first fix both carried N."""
+        for i in range(10):
+            pair = _decision(store, f"question {i:02d}", "a")
+            _reject(store, f"question {i:02d}", "no", pair_id=pair["id"])
+        for cap in (10, 5, 3):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                bundle = portable.export_bundle(store, limit=cap)
+            assert bundle["counts"]["rejections"] == bundle["counts"]["pairs"] == cap, (
+                f"limit={cap} exported {bundle['counts']['rejections']} rejection(s) "
+                f"for {bundle['counts']['pairs']} pair(s)")
+
+    def test_rejection_limit_is_independent_of_limit(self, store):
+        _decision(store, "q", "a")
+        for i in range(5):
+            _reject(store, "q", f"free alternative {i}")
+        bundle = portable.export_bundle(store, limit=1)      # tight pair cap
+        assert bundle["counts"]["rejections"] == 5           # untouched by it
+
+    def test_an_exactly_full_export_does_not_cry_wolf(self, store):
+        """`len(rows) >= limit` cannot tell 'full' from 'truncated'."""
+        for i in range(3):
+            _decision(store, f"question {i}", "a")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")                   # any warning fails
+            bundle = portable.export_bundle(store, limit=3)
+        assert bundle["counts"]["pairs"] == 3
+        assert bundle["partial_rejections"] is False
+
+    def test_a_genuinely_truncated_export_still_warns(self, store):
+        for i in range(4):
+            _decision(store, f"question {i}", "a")
+        with pytest.warns(RuntimeWarning, match="pair limit"):
+            bundle = portable.export_bundle(store, limit=3)
+        assert bundle["partial_rejections"] is True
+
+    def test_superseded_rows_do_not_trigger_a_false_truncation_warning(self, store, seal_key):
+        """The pair check ran before the superseded filter, so a bundle carrying
+        every live row still warned."""
+        memory.add_pair("q", "v1", "decision", "decision", status="sealed",
+                        verifier="rita", store=store)
+        memory.supersede_pair("q", "v2", "decision", "decision", verifier="rita",
+                              reason="replaced", store=store)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            portable.export_bundle(store, limit=2)
+
+
+class TestTheInvariantHoldsOnTheReadSideToo:
+    """Export-side enforcement is half an invariant. A hand-edited bundle, a
+    third-party one, or one written by an earlier build can still name a pair it
+    does not carry — and honouring it is the documented harm."""
+
+    def test_a_dangling_rejection_is_refused_on_import(self, store, seal_key):
+        _decision(store, "live question", "live answer", status="sealed")
+        bundle = portable.export_bundle(store)
+        bundle["rejections"] = [{
+            "id": "r-x", "query_norm": "live question", "source_lang": "decision",
+            "target_lang": "decision", "pair_id": "an-id-not-in-this-bundle",
+            "target_text": "", "verifier": "x", "reason": "forged",
+            "created_at": "2026-01-01T00:00:00+00:00", "reject_sig": "",
+            "reopen_when": ""}]
+        bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                           version=bundle["nestor_bundle"])
+        assert portable.verify_bundle(bundle)[0], "the digest is not a signature"
+
+        report = portable.import_bundle(bundle, store=store, dry_run=False,
+                                        verifier="rita")
+        assert report["dangling_rejections"] == ["an-id-not-in-this-bundle"]
+        assert report["rejections"] == 0
+
+    def test_a_rejection_survives_a_full_round_trip(self, store, tmp_path):
+        """Import maps an incoming pair onto the DESTINATION's id; a rejection
+        names the SOURCE's. Without remapping it lands inert and the
+        destination's own next export drops it — the signed 'no' surviving one
+        hop and dying on the second."""
+        from nestor.sqlite_store import SqliteStore
+        pair = _decision(store, "q", "a")
+        _reject(store, "q", "no", pair_id=pair["id"])
+        bundle = portable.export_bundle(store)
+
+        other = SqliteStore(str(tmp_path / "other.db"))
+        other.init_db()
+        other.memory_init()
+        memory.add_pair("q", "a", "decision", "decision", store=other)   # same key
+        dest_id = other.memory_list(limit=5)[0]["id"]
+        assert dest_id != pair["id"]
+
+        portable.import_bundle(bundle, store=other, dry_run=False, verifier="rita")
+        landed = other.memory_list_rejections(limit=5)
+        assert len(landed) == 1
+        assert landed[0]["pair_id"] == dest_id, "the rejection points at a stranger"
+        assert portable.export_bundle(other)["counts"]["rejections"] == 1, (
+            "hop two dropped it")
+
+
+class TestTheRejectedPairReasonIsScoredNotKeyed:
+
+    def test_a_fuzzy_query_against_a_rejected_pair_says_so(self, store, seal_key):
+        """One character off, and the sentence the fix removed came back."""
+        pair = _decision(store, "a bad mapping", "a wrong answer", status="sealed")
+        memory.reject_pair(pair["id"], verifier="rita", reason="wrong", store=store)
+        result = answer.match(store, "a bad mappingg", "decision", "decision")
+        assert not result["served"]
+        assert "rejected outright" in result["reason"], result["reason"]
+        assert "nothing in this domain" not in result["reason"]
+
+    def test_the_numeric_sentinel_does_not_name_an_unrelated_pair(self, store):
+        """NumericMatcher collapses every unparseable input to one sentinel, so
+        an exact-key hit could name a pair the query never matched — under a
+        message asserting 'this exact source'.
+
+        The pair must be STORED with the numeric matcher, or its `source_norm`
+        is the plain string and the sentinel never collides. The first version
+        of this test used the default matcher and passed for that reason —
+        against the build that had the defect.
+        """
+        from nestor.matcher import NumericMatcher
+        pair = memory.add_pair("revenue for the quarter", "100", "n", "n",
+                               store=store, matcher=NumericMatcher())
+        stored = store.memory_list(source_lang="n", limit=5)[0]["source_norm"]
+        assert "nestor:nan" in stored, "the sentinel collision is not set up"
+        memory.reject_pair(pair["id"], verifier="rita", reason="x", store=store)
+
+        result = answer.match(store, "a completely different label", "n", "n",
+                              matcher="numeric")
+        assert "rejected outright" not in result["reason"], (
+            f"a rejected pair the query never matched was named, because both "
+            f"normalize to the NaN sentinel: {result['reason']!r}")

@@ -1751,3 +1751,74 @@ the author of a fix is worst placed to judge. One of round two's own tests
 initially passed against the broken code because it did not reproduce the
 condition it named; that is the same failure again, one level up, and it is the
 argument for the audit rather than against it.
+
+### 6.17 The second audit, a second regression, and the shape that caused both — **shipped**
+
+*Audited 2026-08-05 by a second independent agent. Verdict on §6.16's fix:
+**not safe to merge**. Five more defects, one of them critical and, again, a
+regression the fix itself introduced. All fixed; 12 regressions added, all
+observed failing against the previous commit.*
+
+**The regression.** §6.16 gave rejections their own `rejection_limit` and then
+**defaulted it to `limit`** — the shared cap the same docstring calls the bug.
+Layered on §6.16's `exported_ids` filter it produced the worst outcome of the
+three rounds: pairs are read newest-first, rejections oldest-first, so under any
+cap the two windows are disjoint and **no pair-bound rejection travelled at
+all**. Measured against both earlier revisions on one store:
+
+| revision | `limit=5` | rejections carried |
+|---|---|---|
+| `origin/master` | 5 pairs | 5 |
+| first fix | 5 pairs | 5 |
+| second fix | 5 pairs | **0** |
+
+**The shape, which is the entry's real content.** Three successive fixes, each
+one a *filter interacting with the filter before it*:
+
+1. a pair-keyed walk — complete for pair-bound rows, blind to pair-less ones;
+2. a domain walk — complete for both, and blind to the scope the first had for
+   free, so it carried rejections against superseded pairs;
+3. a domain walk **plus** an `exported_ids` filter — correct until a cap made
+   the two windows disjoint.
+
+Each fix added a condition to a mechanism that was answering two questions at
+once. The answer was to stop adding conditions: **two walks, each bounded by
+construction**. The pair-keyed walk cannot return a rejection whose pair is
+absent — it iterates the exported pairs. The domain walk is asked only for the
+pair-less rows, where nothing can dangle. Union them. The invariant "a bundle
+never references a row it does not carry" now holds because of what is read,
+not because of what is filtered out afterwards — and `exported_ids` deleted
+itself, which is how you know.
+
+The other four:
+
+* **The invariant was export-only.** Import re-ids a pair onto the
+  destination's id while the rejection keeps the source's, so a legitimately
+  carried "no" landed inert and the destination's own next export dropped it —
+  surviving one hop, dying on the second. Now remapped through an `id_map`
+  built *before* the branches, because four of them `continue` and the no-op
+  branch (same answer both sides, nothing written) is both the easiest to
+  forget and the commonest in a real re-import. And the read side now refuses a
+  dangling `pair_id` outright, reporting it: a bundle from the previous build
+  could still do the documented harm, and taking the file's word is the mistake
+  `seal_sig` exists to refuse.
+* **`reject_pair` was fixed for the exact key only.** One character off
+  (`"a bad mappingg"` scores 0.963) and the sentence the fix removed came
+  straight back. The reported case was fixed; the class was not. Now scored
+  rather than key-matched — which also fixes the numeric matcher naming an
+  unrelated pair, since every unparseable input normalizes to one NaN sentinel.
+* **`>=` could not tell "exactly full" from "truncated"**, so complete exports
+  warned. Ask for one more than the cap.
+* **`partial_rejections` was read by nobody** and was not set in the case its
+  own comment argued for. Now set on every short path and surfaced in
+  `verify_bundle`'s detail and the import report.
+
+**What three rounds of this are evidence for.** Every regression was introduced
+by the fix for the previous one, in the same function, by the same move: adding
+a condition instead of removing an interaction. The tests did not catch them
+because each round tested the defect it had just understood — and, twice, a
+round-N test *passed against the broken code* because it did not reproduce the
+condition it named (a forged row that scored 1.0 and so never left the display
+page; a numeric pair stored with the default matcher, so the sentinel never
+collided). Both are now measured and asserted. An author cannot audit their own
+scope; that is not a discipline failure, it is what scope means.

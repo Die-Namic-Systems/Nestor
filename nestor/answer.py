@@ -76,7 +76,8 @@ _MATCH_DISPLAY = 8
 _ALL_CANDIDATES = 1_000_000
 
 
-def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: str,
+def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
+                    source_lang: str, target_lang: str,
                     candidates: list[dict], threshold: float) -> str:
     """Why this query would not be served — the actual reason, not a guess at it.
 
@@ -125,8 +126,15 @@ def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: st
         return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
                 f"best candidate is {kinds}. Nobody has verified this yet")
     if candidates:
+        # `len(candidates)` is now the whole eligible domain, not a page, so
+        # quoting it raw reads as "closest of 20000 candidate(s)". Report the
+        # shape the reader can act on: the closest score, and how many cleared
+        # the context floor at all.
+        shown = min(len(candidates), _MATCH_DISPLAY)
+        more = f" ({len(candidates)} scored, showing {shown})" \
+            if len(candidates) > _MATCH_DISPLAY else ""
         return (f"closest of {len(candidates)} candidate(s) is "
-                f"{candidates[0]['similarity']}, below {threshold}")
+                f"{candidates[0]['similarity']}, below {threshold}{more}")
     # An empty candidate list can mean "absent" or "refused", and reporting a
     # refusal as an absence hides the very record that decided the question.
     # There are two ways to refuse and they live in different places:
@@ -134,11 +142,26 @@ def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: st
     # memory.py's eligibility filter), while `reject_match` writes tm_rejections
     # (read by rejected_ids). Consulting only the second reported half the
     # rejection surface as "nothing matched at all".
-    exact = store.memory_find(norm, source_lang, target_lang)
-    if exact and exact.get("status") == "rejected":
-        return ("the pair for this exact source was rejected outright "
-                "(memory.reject_pair) — its mapping is wrong in its own right, so it "
-                "is never served or offered again")
+    # SCORED, not key-matched. The first version of this looked up the exact
+    # normalized key, which fixed the case that was reported and not the class:
+    # one character off ("a bad mappingg" scores 0.963 against "a bad mapping")
+    # and the old wrong sentence came straight back. Worse, under the numeric
+    # matcher every unparseable input normalizes to one NaN sentinel, so an
+    # exact-key hit could name a rejected pair the query had nothing to do with
+    # — while asserting "this exact source". Scoring answers the question that
+    # was actually asked.
+    rejected_rows = [r for r in store.memory_candidates(source_lang, target_lang)
+                     if r["status"] == "rejected"]
+    if rejected_rows:
+        raw_score, sims = memory._raw_score_sims(matcher, text, rejected_rows)
+        near = [r for r in rejected_rows
+                if round(memory._similarity_for_row(matcher, text, norm, r,
+                                                    raw_score=raw_score, sims=sims),
+                         3) >= threshold]
+        if near:
+            return (f"{len(near)} pair(s) matching this query were rejected outright "
+                    f"(memory.reject_pair) — the mapping is wrong in its own right, so "
+                    f"it is never served or offered again")
     bad_pairs, bad_targets = memory.rejected_ids(norm, source_lang, target_lang, store)
     if bad_pairs or bad_targets:
         return (f"nothing left to match — {len(bad_pairs) + len(bad_targets)} candidate(s) "
@@ -229,7 +252,8 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
         "matcher": matcher,
         "matches": candidates[:_MATCH_DISPLAY],
         "reason": "" if hit else _why_not_served(
-            store, norm, source_lang, target_lang, candidates, memory.SEAL_THRESHOLD),
+            store, m, text, norm, source_lang, target_lang, candidates,
+            memory.SEAL_THRESHOLD),
     }
 
 
