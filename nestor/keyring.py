@@ -82,9 +82,36 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _ed25519_generate() -> tuple[bytes, bytes]:
+    """(private, public) raw bytes — behind the ``[keys]`` extra, loudly."""
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PrivateKey)
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+    except ImportError as exc:
+        raise KeyringError(
+            "ed25519 keys need the [keys] extra: pip install 'nestor[keys]'. "
+            "HMAC keys remain the dependency-free default.") from exc
+    priv = Ed25519PrivateKey.generate()
+    private = priv.private_bytes(Encoding.Raw, PrivateFormat.Raw,
+                                 NoEncryption())
+    public = priv.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return private, public
+
+
 @dataclass
 class VerifierKey:
-    """One verifier, one key, and what has happened to it."""
+    """One verifier, one key, and what has happened to it.
+
+    ``kind`` is the key type (Nestor#17): ``"hmac"`` (symmetric — ``key`` is
+    the shared secret, signing and verifying alike) or ``"ed25519"``
+    (asymmetric — ``key`` is the PUBLIC half, and ``private`` holds the
+    private half only on the instance where signing happens). An ed25519
+    entry without ``private`` can verify that verifier's seals but can never
+    produce one — which is the property a symmetric key cannot have, and the
+    entire reason the type exists.
+    """
 
     name: str
     key: bytes
@@ -92,6 +119,8 @@ class VerifierKey:
     compromised: bool = False
     reason: str = ""
     created_at: str = field(default_factory=_now)
+    kind: str = "hmac"
+    private: bytes = field(default=b"", repr=False)
 
     @property
     def revoked(self) -> bool:
@@ -112,9 +141,13 @@ class VerifierKey:
         return not self.compromised
 
     def to_json(self) -> dict:
-        return {"name": self.name, "key": self.key.hex(),
-                "revoked_at": self.revoked_at, "compromised": self.compromised,
-                "reason": self.reason, "created_at": self.created_at}
+        out = {"name": self.name, "key": self.key.hex(),
+               "revoked_at": self.revoked_at, "compromised": self.compromised,
+               "reason": self.reason, "created_at": self.created_at,
+               "kind": self.kind}
+        if self.private:
+            out["private"] = self.private.hex()
+        return out
 
     @classmethod
     def from_json(cls, raw: dict) -> "VerifierKey":
@@ -130,11 +163,24 @@ class VerifierKey:
                 f"`nestor keys add {name}`.") from exc
         if not key:
             raise KeyringError(f"the key for {name!r} is empty")
+        kind = str(raw.get("kind", "hmac")).strip() or "hmac"
+        if kind not in ("hmac", "ed25519"):
+            raise KeyringError(f"the key for {name!r} has unknown kind {kind!r} "
+                               f"(one of: hmac, ed25519)")
+        try:
+            private = bytes.fromhex(str(raw.get("private", "")))
+        except ValueError as exc:
+            raise KeyringError(f"the private key for {name!r} is not hex") from exc
+        if kind == "ed25519" and len(key) != 32:
+            raise KeyringError(
+                f"the ed25519 public key for {name!r} must be 32 bytes, "
+                f"got {len(key)}")
         return cls(name=name, key=key,
                    revoked_at=str(raw.get("revoked_at", "")),
                    compromised=bool(raw.get("compromised", False)),
                    reason=str(raw.get("reason", "")),
-                   created_at=str(raw.get("created_at", "")) or _now())
+                   created_at=str(raw.get("created_at", "")) or _now(),
+                   kind=kind, private=private)
 
 
 class Keyring:
@@ -172,13 +218,30 @@ class Keyring:
     def entries(self) -> list[VerifierKey]:
         return [self._by_name[n] for n in self.names()]
 
-    def signing_key(self, name: str) -> bytes:
-        """The key ``name`` signs with, or a refusal saying why they cannot.
+    def signing_entry(self, name: str) -> "VerifierKey":
+        """The entry ``name`` signs under, or a refusal saying why they cannot.
 
         Raises rather than returning ``None``: this is called on the path to
         writing a seal, and every reason it could fail is a reason not to
-        write one.
+        write one. For an ed25519 entry the caller signs with ``.private`` —
+        and an entry holding only the public half refuses here, because a
+        keyring that can verify a peer must not be able to sign as them
+        (Nestor#17's acceptance property, enforced at the source).
         """
+        entry = self._require_signable(name)
+        if entry.kind == "ed25519" and not entry.private:
+            raise KeyringError(
+                f"{name!r}'s entry holds only the ed25519 PUBLIC key — this "
+                f"instance can verify their seals but can never produce one. "
+                f"Signing happens where the private key lives (Nestor#17).")
+        return entry
+
+    def signing_key(self, name: str) -> bytes:
+        """The raw key ``name`` signs with (hmac) — see :meth:`signing_entry`."""
+        entry = self.signing_entry(name)
+        return entry.private if entry.kind == "ed25519" else entry.key
+
+    def _require_signable(self, name: str) -> "VerifierKey":
         entry = self._by_name.get(name)
         if entry is None:
             raise UnknownVerifierError(
@@ -194,7 +257,16 @@ class Keyring:
                 f"{' (reported compromised)' if entry.compromised else ''}"
                 f"{': ' + entry.reason if entry.reason else ''}. It cannot make new "
                 f"seals. Issue a new key with `nestor keys add {name} --rotate`.")
-        return entry.key
+        return entry
+
+    def verifying_entry(self, name: str) -> Optional["VerifierKey"]:
+        """The entry a seal by ``name`` must verify under, or ``None`` for
+        "it cannot be trusted at all" — same trust rules as
+        :meth:`verifying_key`, with the key type attached."""
+        entry = self._by_name.get(name)
+        if entry is None or not entry.trusted:
+            return None
+        return entry
 
     def verifying_key(self, name: str) -> Optional[bytes]:
         """The key a seal by ``name`` must verify under, or ``None`` for "it
@@ -222,8 +294,14 @@ class Keyring:
     # -- writing ----------------------------------------------------------
 
     def add(self, name: str, key: Optional[bytes] = None,
-            rotate: bool = False) -> VerifierKey:
+            rotate: bool = False, kind: str = "hmac") -> VerifierKey:
         """Register ``name`` with ``key`` (a fresh random one by default).
+
+        ``kind="ed25519"`` with no ``key`` generates a keypair here (needs the
+        ``[keys]`` extra); with ``key`` it registers a peer's PUBLIC key, so
+        this instance can verify that peer's seals without ever being able to
+        produce one — verification capability without forgery capability,
+        which is what sharing an HMAC could never give (Nestor#17).
 
         Replacing an existing entry needs ``rotate=True``. Overwriting a key by
         accident silently invalidates every seal that verifier ever made, which
@@ -237,7 +315,19 @@ class Keyring:
                 f"{name!r} already has a key. Replacing it stops every seal they "
                 f"have already made from verifying — pass rotate=True (or "
                 f"`--rotate`) if that is what you mean.")
-        entry = VerifierKey(name=name, key=key or secrets.token_bytes(32))
+        if kind == "hmac":
+            entry = VerifierKey(name=name, key=key or secrets.token_bytes(32))
+        elif kind == "ed25519":
+            if key is not None:
+                # Registering a PEER's public key — the distribution case:
+                # this instance can now verify their seals and nothing more.
+                entry = VerifierKey(name=name, key=key, kind="ed25519")
+            else:
+                private, public = _ed25519_generate()
+                entry = VerifierKey(name=name, key=public, kind="ed25519",
+                                    private=private)
+        else:
+            raise KeyringError(f"unknown key kind {kind!r} (one of: hmac, ed25519)")
         self._by_name[name] = entry
         return entry
 
@@ -301,11 +391,6 @@ def load(path: str) -> Keyring:
     p = pathlib.Path(path)
     if not p.exists():
         raise KeyringError(f"no keyring at {p}. Create one with `nestor keys add NAME`.")
-    mode = os.stat(p).st_mode
-    if mode & (stat.S_IRWXG | stat.S_IRWXO):
-        raise KeyringError(
-            f"{p} is readable by other users (mode {oct(mode & 0o777)}). It holds "
-            f"every seal key in this deployment — `chmod 600 {p}` and try again.")
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
     except Exception as exc:                              # noqa: BLE001
@@ -318,6 +403,21 @@ def load(path: str) -> Keyring:
     except ValueError as exc:
         raise KeyringError(f"{p}: legacy_key is not hex") from exc
     verifiers = [VerifierKey.from_json(v) for v in raw.get("verifiers", [])]
+    # The permission refusal follows the key MATERIAL, not the filename
+    # (Nestor#17): a file holding any secret — an hmac key, an ed25519
+    # private half, a legacy key — is refused when other users can read it,
+    # exactly as before. A public-only keyring holds nothing forgeable and is
+    # deliberately distributable: commit it, mirror it, hand it to the other
+    # side of an import.
+    holds_secrets = bool(legacy_key) or any(
+        v.kind != "ed25519" or v.private for v in verifiers)
+    mode = os.stat(p).st_mode
+    if holds_secrets and mode & (stat.S_IRWXG | stat.S_IRWXO):
+        raise KeyringError(
+            f"{p} is readable by other users (mode {oct(mode & 0o777)}). It holds "
+            f"secret key material — `chmod 600 {p}` and try again. (A keyring "
+            f"holding only ed25519 public keys is distributable and loads "
+            f"regardless of mode.)")
     return Keyring(verifiers, legacy_key=legacy_key, path=str(p))
 
 

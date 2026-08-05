@@ -63,6 +63,45 @@ class SigningRequiredError(RuntimeError):
 _warned_unsigned = False
 
 
+def _load_ed25519():
+    """The [keys] extra, or a loud refusal. Never a silent degrade: a seal
+    that silently fell back to unsigned would be the Nestor#2 forgery with a
+    dependency error as its accomplice."""
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PrivateKey, Ed25519PublicKey)
+        return Ed25519PrivateKey, Ed25519PublicKey, InvalidSignature
+    except ImportError as exc:
+        raise SigningRequiredError(
+            "this keyring holds ed25519 keys, which need the [keys] extra: "
+            "pip install 'nestor[keys]'. HMAC keyrings remain the "
+            "dependency-free default.") from exc
+
+
+def _sign_with(entry_kind: str, secret: bytes, message: bytes) -> str:
+    if entry_kind == "ed25519":
+        Ed25519PrivateKey, _, _ = _load_ed25519()
+        return Ed25519PrivateKey.from_private_bytes(secret).sign(message).hex()
+    return hmac.new(secret, message, hashlib.sha256).hexdigest()
+
+
+def _verifies_with(entry_kind: str, key_bytes: bytes, message: bytes,
+                   sig: str) -> bool:
+    if not sig:
+        return False
+    if entry_kind == "ed25519":
+        _, Ed25519PublicKey, InvalidSignature = _load_ed25519()
+        try:
+            Ed25519PublicKey.from_public_bytes(key_bytes).verify(
+                bytes.fromhex(sig), message)
+            return True
+        except (InvalidSignature, ValueError):
+            return False
+    return hmac.compare_digest(
+        hmac.new(key_bytes, message, hashlib.sha256).hexdigest(), sig)
+
+
 def _key(key: Optional[bytes] = None) -> Optional[bytes]:
     if key is not None:
         return key
@@ -70,22 +109,29 @@ def _key(key: Optional[bytes] = None) -> Optional[bytes]:
     return env.encode() if env else None
 
 
-def _signing_key(verifier: str, key: Optional[bytes] = None) -> Optional[bytes]:
-    """The key ``verifier`` signs with. Raises if a keyring refuses them.
+def _signing_ref(verifier: str,
+                 key: Optional[bytes] = None) -> Optional[tuple[str, bytes]]:
+    """``(kind, secret)`` ``verifier`` signs with. Raises if a keyring refuses
+    them — including an ed25519 entry holding only the public half, because
+    an instance that can verify a peer must not be able to sign as them.
 
     The refusal is the feature: with per-verifier keys, an unregistered or
     revoked name has no key, and the alternative to raising is putting a name on
     a verification that nothing backs.
     """
     if key is not None:
-        return key
+        return ("hmac", key)
     ring = keyring_mod.get_keyring()
     if ring is not None:
-        return ring.signing_key(verifier)
-    return _key(None)
+        entry = ring.signing_entry(verifier)
+        secret = entry.private if entry.kind == "ed25519" else entry.key
+        return (entry.kind, secret)
+    shared = _key(None)
+    return ("hmac", shared) if shared else None
 
 
-def _verifying_keys(verifier: str, key: Optional[bytes] = None) -> list[bytes]:
+def _verifying_refs(verifier: str,
+                    key: Optional[bytes] = None) -> list[tuple[str, bytes]]:
     """Every key a seal by ``verifier`` may legitimately have been signed with.
 
     Usually one. Two only during migration: a keyring with a ``legacy_key`` also
@@ -95,18 +141,18 @@ def _verifying_keys(verifier: str, key: Optional[bytes] = None) -> list[bytes]:
     are.
     """
     if key is not None:
-        return [key]
+        return [("hmac", key)]
     ring = keyring_mod.get_keyring()
     if ring is not None:
-        keys = []
-        own = ring.verifying_key(verifier)
+        refs = []
+        own = ring.verifying_entry(verifier)
         if own is not None:
-            keys.append(own)
+            refs.append((own.kind, own.key))
         if ring.legacy_key:
-            keys.append(ring.legacy_key)
-        return keys
+            refs.append(("hmac", ring.legacy_key))
+        return refs
     shared = _key(None)
-    return [shared] if shared else []
+    return [("hmac", shared)] if shared else []
 
 
 def seal_attribution(source_norm: str, target_text: str, verifier: str,
@@ -131,15 +177,29 @@ def seal_attribution(source_norm: str, target_text: str, verifier: str,
         return "none"
     message = _message(source_norm, target_text, verifier)
 
-    def signed_with(k: Optional[bytes]) -> bool:
-        return bool(k) and hmac.compare_digest(
-            hmac.new(k, message, hashlib.sha256).hexdigest(), seal_sig)
-
-    if signed_with(ring.verifying_key(verifier)):
+    own = ring.verifying_entry(verifier)
+    if own is not None and _verifies_with(own.kind, own.key, message, seal_sig):
         return "verifier"
-    if signed_with(ring.legacy_key):
+    if ring.legacy_key and _verifies_with("hmac", ring.legacy_key, message,
+                                          seal_sig):
         return "legacy"
     return "none"
+
+
+def verifier_key_type(verifier: str) -> str:
+    """The key type behind a verifier's name — for surfaces (Nestor#17).
+
+    ``"hmac"`` / ``"ed25519"`` (their keyring entry), ``"shared"`` (no
+    keyring, deployment-wide NESTOR_SEAL_KEY), ``"unsigned"`` (signing off),
+    ``"unknown"`` (keyring installed, name not in it). "Signed by rita's
+    HMAC" and "signed by rita's key" are different claims, and a curator
+    migrating between them needs to see which one each seal makes.
+    """
+    ring = keyring_mod.get_keyring()
+    if ring is None:
+        return "shared" if _key(None) else "unsigned"
+    entry = ring.get(verifier)
+    return entry.kind if entry is not None else "unknown"
 
 
 def _strict() -> bool:
@@ -269,8 +329,9 @@ def _rejection_message(query_norm: str, pair_id: str, target_text: str,
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def _rejection_key(verifier: str, key: Optional[bytes] = None) -> Optional[bytes]:
-    """The key a rejection by ``verifier`` is signed with — and never a refusal.
+def _rejection_sign_ref(verifier: str, key: Optional[bytes] = None
+                        ) -> Optional[tuple[str, bytes]]:
+    """``(kind, secret)`` a rejection by ``verifier`` is signed with — and never a refusal.
 
     Deliberately not :func:`_signing_key`. A seal by an unregistered verifier
     must fail loudly; a *rejection* by one must not, because refusing to record
@@ -279,22 +340,31 @@ def _rejection_key(verifier: str, key: Optional[bytes] = None) -> Optional[bytes
     verifier's rejection is recorded, honored, and reported as unsigned.
     """
     if key is not None:
-        return key
+        return ("hmac", key)
     ring = keyring_mod.get_keyring()
     if ring is not None:
-        own = ring.verifying_key(verifier)
-        return own if own is not None else ring.legacy_key
-    return _key(None)
+        own = ring.verifying_entry(verifier)
+        if own is not None:
+            if own.kind == "ed25519":
+                # Only the private half can sign; without it the rejection is
+                # recorded UNSIGNED rather than refused — refusing to record
+                # a "no" is the one direction rejection must not fail in.
+                return ("ed25519", own.private) if own.private else None
+            return ("hmac", own.key)
+        return ("hmac", ring.legacy_key) if ring.legacy_key else None
+    shared = _key(None)
+    return ("hmac", shared) if shared else None
 
 
 def sign_rejection(query_norm: str, pair_id: str, target_text: str,
                    verifier: str, key: Optional[bytes] = None) -> str:
     """HMAC-SHA256 over a rejection's bound fields. ``""`` when signing is off."""
-    k = _rejection_key(verifier, key)
-    if not k:
+    ref = _rejection_sign_ref(verifier, key)
+    if ref is None or not ref[1]:
         return ""
-    return hmac.new(k, _rejection_message(query_norm, pair_id, target_text, verifier),
-                    hashlib.sha256).hexdigest()
+    return _sign_with(ref[0], ref[1],
+                      _rejection_message(query_norm, pair_id, target_text,
+                                         verifier))
 
 
 def rejection_is_valid(query_norm: str, pair_id: str, target_text: str,
@@ -306,15 +376,15 @@ def rejection_is_valid(query_norm: str, pair_id: str, target_text: str,
     a rejection whether or not it verifies. See ``memory.rejected_ids`` for why
     suppression fails safe in a way that serving does not.
     """
-    k = _rejection_key(verifier, key)
-    if k is None:
+    refs = _verifying_refs(verifier, key) if key is None else [("hmac", key)]
+    if not refs:
         # Nothing to check against: with signing off every rejection is as good
         # as any other, and saying "invalid" would be a report about the
         # deployment dressed up as a report about the reviewer.
         return not keyring_mod.enabled()
-    expected = hmac.new(k, _rejection_message(query_norm, pair_id, target_text, verifier),
-                        hashlib.sha256).hexdigest()
-    return bool(reject_sig) and hmac.compare_digest(expected, reject_sig)
+    message = _rejection_message(query_norm, pair_id, target_text, verifier)
+    return bool(reject_sig) and any(
+        _verifies_with(kind, k, message, reject_sig) for kind, k in refs)
 
 
 def sign_seal(source_norm: str, target_text: str, verifier: str,
@@ -328,11 +398,11 @@ def sign_seal(source_norm: str, target_text: str, verifier: str,
     here through ``memory.add_pair``, before the store write, so a refusal
     leaves nothing behind.
     """
-    k = _signing_key(verifier, key)
-    if not k:
+    ref = _signing_ref(verifier, key)
+    if ref is None:
         return ""
-    return hmac.new(k, _message(source_norm, target_text, verifier),
-                    hashlib.sha256).hexdigest()
+    kind, secret = ref
+    return _sign_with(kind, secret, _message(source_norm, target_text, verifier))
 
 
 def seal_is_valid(source_norm: str, target_text: str, verifier: str,
@@ -354,8 +424,8 @@ def seal_is_valid(source_norm: str, target_text: str, verifier: str,
       HMAC carries no timestamp and its seals cannot be told apart from the
       thief's. See :meth:`nestor.keyring.Keyring.revoke`.
     """
-    keys = _verifying_keys(verifier, key)
-    if not keys and not keyring_mod.enabled():
+    refs = _verifying_refs(verifier, key)
+    if not refs and not keyring_mod.enabled():
         if _strict():
             raise SigningRequiredError(
                 "NESTOR_REQUIRE_SEAL_KEY is set but no NESTOR_SEAL_KEY is "
@@ -372,5 +442,4 @@ def seal_is_valid(source_norm: str, target_text: str, verifier: str,
     if not seal_sig:
         return False
     message = _message(source_norm, target_text, verifier)
-    return any(hmac.compare_digest(
-        hmac.new(k, message, hashlib.sha256).hexdigest(), seal_sig) for k in keys)
+    return any(_verifies_with(kind, k, message, seal_sig) for kind, k in refs)

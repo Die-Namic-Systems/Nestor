@@ -95,6 +95,10 @@ class Curator:
                 pair.get("source_norm", ""), pair.get("target_text", ""),
                 pair.get("verifier", ""), pair.get("seal_sig", ""))
             out["key_status"] = ring.status(pair.get("verifier", ""))
+            # "Signed by rita's HMAC" and "signed by rita's key" are different
+            # claims (Nestor#17); during a migration a curator needs to see
+            # which one each seal makes.
+            out["key_type"] = signing.verifier_key_type(pair.get("verifier", ""))
         return out
 
     def list(self, status: str = "", verifier: str = "", contains: str = "",
