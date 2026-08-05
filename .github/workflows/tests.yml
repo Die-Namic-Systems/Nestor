@@ -60,7 +60,12 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install package
-        run: pip install -e . pytest coverage
+        # The [keys] extra rides along so tests/test_asymmetric_seals.py RUNS
+        # here rather than import-skipping: a skipped acceptance property
+        # reads as covered when it covered nothing (the bureau-differential
+        # lesson, applied to crypto). The no-extra refusal path is tested by
+        # simulated ImportError, so nothing is lost by installing it.
+        run: pip install -e '.[keys]' pytest coverage
 
       # The command the README tells a human to type. It used to be
       # `python -m pytest tests/ -q`, which put the repo root on sys.path where
