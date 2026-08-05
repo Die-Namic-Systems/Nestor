@@ -2082,3 +2082,85 @@ now appeared in the export walk, the rejection filter, and the row retirement �
 three different mechanisms, one habit. The counter-move that has worked each
 time is not a better condition but moving the precondition into the operation:
 two walks each bounded by construction; a WHERE clause instead of a read.
+
+### 6.22 A name is not a word: the proper-noun case has no field — **measured**, design **open**
+
+*Raised 2026-08-05 out of a conversation about the repo's own name, after the
+operator observed that the translations produced by hand in that conversation
+were exactly the thing the store exists to hold. They were. The attempt to say
+where they would go is what turned up this.*
+
+Two source strings, translated into Russian:
+
+```
+Nestor  -> Нестор            a name. transliterated, not translated.
+nestor  -> мудрый советник   the common noun. a real translation.
+```
+
+Both are correct. `StringMatcher.normalize` case-folds, so both key to
+`nestor`, and the partial unique index permits **one live row per
+`(source_norm, source_lang, target_lang)`**. The store cannot hold both.
+
+**Measured, on a file-backed store:**
+
+* Two *different* verifiers → `ConflictingSealError`. The guard fires, and it
+  is right about its own premise and wrong about the situation: it reports two
+  humans disagreeing about one source, when what happened is two humans
+  agreeing about two different sources. There is no outcome available that
+  keeps both.
+* One verifier (the self-correction path, and the ordinary case for a single
+  operator) → **no error, one row, mixed**: `source_text='Nestor'`,
+  `target_text='мудрый советник'`, `status='sealed'`, and `verified_sealed`
+  passes it. First writer wins `source_text`, last writer wins `target_text`.
+  The surviving row asserts a pair nobody entered. This is the documented
+  same-actor upgrade behaving as documented — it is not a hole, and the
+  reason it reads like one is that the key says these are the same source.
+
+Case folding is a deliberate and correct choice; "Hello"/"hello" sharing a row
+is the whole point of normalization. The cost lands entirely on the class of
+strings where case *is* the meaning, and there is no field that says so.
+
+**The one mechanism that could express it is outside everything.**
+`glossary.locks_in_text` → `system_prompt(locks=...)` already emits *"Locked
+terminology — always render these terms exactly as given"*, and an identity
+lock (`{"Nestor": "Nestor"}`) is precisely carry-through. But the glossary is
+`data/glossary.json`, and `grep` for it in `portable.py`, `cascade.py` and
+`sqlite_store.py` returns **0, 0, 0**: not bundled, not ledgered, not sealable,
+not superseded, no verifier, no signature. The one place Nestor can say *do not
+translate this* is the one place with none of Nestor's guarantees. A bundle
+that carries every pair and rejection carries no locks, so the receiving host
+composes prompts the sending host would not have.
+
+**What is not being proposed.** Not a `kind` column, and not on the strength of
+one example — that is the shape §6.17 keeps punishing, a field added to carry a
+distinction the mechanism does not otherwise make. Three questions come first,
+and the third may dissolve the other two:
+
+1. Is the distinction *proper noun* or is it *this string is carried, not
+   rendered*? The second is broader (product names, identifiers, code) and does
+   not need a linguistics answer.
+2. Should the glossary move into the store — where it would inherit sealing,
+   supersession and the bundle — or is it correctly a policy file that happens
+   to be under-guarded?
+3. Does a carried string want a *pair* at all? `Nestor -> Нестор` is a fact
+   about a script, not about a language pair, and the table is a language-pair
+   table.
+
+**Also true, and the reason this is in §6 rather than fixed:** nobody has hit
+it. It has no reporter, no failing host, and one contrived reproduction. It is
+recorded because it was found while looking for somewhere to put a dozen
+unsigned translations, and per §6's own rule a follow-up raised in conversation
+and not written down did not happen.
+
+**And the translations themselves.** A dozen renderings of *nest* into
+languages nobody in the session reads, asserted in one breath at one
+confidence, none signed. Five (`nid`, `nido`, `ninho`, `Nest`, `nīḍa`) are
+cognate descent from PIE \*ni-sd-ós; one (`cuib`) is not — it reaches the same
+metaphor from Latin *cubium* by a different road — and stating them together
+flattened exactly the difference a `reason` field exists to keep. If they are
+ever entered they are `draft`, with the shaky ones marked and `revise_draft`
+waiting for the moment somebody who actually speaks Romanian looks at *cuib*.
+The etymology is not translation and no engine here would produce it;
+`system_prompt` says *translate*, so asking it for a reconstruction returns a
+bad translation of a question. That half is research and belongs here, in the
+list, which is where it now is.
