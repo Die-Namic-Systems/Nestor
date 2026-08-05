@@ -1610,3 +1610,29 @@ unrelated to the threshold, and the one row that mattered was above it. The
 true answer was "found it, it is not sealed." This is §1.9's shape in a
 message rather than a query — the code answering a narrower question than the
 one it was asked, and reporting the narrow answer as the whole one.
+
+**A rejection with no `pair_id` does not travel.** Found by exporting the feed
+above and reading the counts: `8 pairs, 0 rejections`, from a store holding
+four signed, ledgered rejections. `reject_match` documents two ways to name
+what is being refused — `pair_id` (the false-seal case) **or** `target_text`
+(*"a raw engine draft with no pair yet"*) — and both are first-class, both
+signed, both ledgered. But `portable.export_bundle` reaches rejections only by
+walking `memory_rejections_for_pair(p["id"])` over the exported pairs, so the
+`target_text`-only half is silently dropped. Proven directly: adding one
+rejection that names a `pair_id` to the same store took the bundle from 0
+rejections to 1 — that one, and still none of the other four.
+
+This is §1.6–§1.8's shape once more, in the transfer path: a guarantee held at
+one call site and a second kind of row that never reaches it. It lands hardest
+exactly where §6.11 claims the most: *"Nestor's rejection table is already a
+rejected-alternatives record… the half the git flow throws away is already
+sitting in the schema, durable and signed."* It is — until you move it. A
+rejected **alternative** usually never became a pair, which is precisely the
+pair-less form, so decision memory's rejected-alternatives record is the part
+of it that does not survive `export → import`.
+
+Not fixed here. The fix is a domain-scoped rejection walk rather than a
+pair-keyed one, and it changes what a bundle contains — so it wants the same
+`BUNDLE_VERSION` decision already pending for carrying `reopen_when` (§6.11),
+plus import-side semantics for a rejection that names no pair. Both belong in
+one reviewed change, and both are the operator's call.
