@@ -15,6 +15,7 @@ nestor = "nestor.cli:main"
 nestor-ui = "nestor.ui:main"
 
 [project.optional-dependencies]
+keys = ["cryptography>=41"]
 dev = [
     "pytest>=8.0",
 ]

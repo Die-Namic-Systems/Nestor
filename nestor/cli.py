@@ -334,7 +334,9 @@ def cmd_keys(args) -> int:
                       "your existing seals were signed with.", file=sys.stderr)
                 return EXIT_USAGE
             ring.legacy_key = shared.encode()
-        entry = ring.add(args.name, rotate=args.rotate)
+        peer_key = bytes.fromhex(args.public) if args.public else None
+        entry = ring.add(args.name, key=peer_key, rotate=args.rotate,
+                         kind=args.key_type)
         ring.save(path)
         _emit({"keyring": path, "name": entry.name, "key": entry.key.hex(),
                "rotated": args.rotate},
@@ -526,6 +528,13 @@ def build_parser() -> argparse.ArgumentParser:
                       help="keyring file (default: NESTOR_KEYRING)")
     keys.add_argument("--rotate", action="store_true",
                       help="replace an existing key — every seal it made stops verifying")
+    keys.add_argument("--type", default="hmac", choices=("hmac", "ed25519"),
+                      dest="key_type",
+                      help="ed25519 generates a keypair here (needs the [keys] "
+                           "extra); the public half is shareable")
+    keys.add_argument("--public", default="",
+                      help="with --type ed25519: register a PEER's public key "
+                           "(hex) — verify their seals, never sign as them")
     keys.add_argument("--reason", default="", help="recorded with a revocation")
     keys.add_argument("--compromised", action="store_true",
                       help="the key was TAKEN, not merely retired: everything it "
