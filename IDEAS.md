@@ -1822,3 +1822,67 @@ condition it named (a forged row that scored 1.0 and so never left the display
 page; a numeric pair stored with the default matcher, so the sentinel never
 collided). Both are now measured and asserted. An author cannot audit their own
 scope; that is not a discipline failure, it is what scope means.
+
+### 6.18 What Nestor says about the §6.15–§6.17 rounds — **measured**
+
+*Run 2026-08-05, feeding the three fix rounds back through the store. The
+output is mostly a refusal, and the refusal is the finding.*
+
+The rounds have the one thing §6.14's feed did not: **lineage**. One question —
+*how does `export_bundle` collect rejections?* — answered four times, each
+answer superseding the last. That is exactly what N2/N3 shipped `supersede_pair`
+for, and it has never run on real data. It could not run on this either.
+
+**An agent cannot record a changed mind by any path.**
+
+| path | result |
+|---|---|
+| `supersede_pair` | `ValueError` — requires a verifier, and *"replacing a sealed decision is itself a decision"* |
+| `supersede_pair` with a verifier | `ValueError` — the predecessor is a draft; supersede replaces a **sealed** decision |
+| `add_pair` over the draft | **silent no-op** |
+| the ledger | **zero entries** for any of it |
+
+The third row is the one worth staring at. `add_pair` writes only when
+`status == "sealed"`, so a draft proposed over an existing draft with a
+*different* target falls through every branch and returns the stored row:
+
+```
+returned id is the same row : True
+stored target              : 'FIRST answer'
+what the 2nd call returned : 'FIRST answer'      # the caller passed 'SECOND answer'
+ledger entries             : 0
+```
+
+No write, no ledger line, no warning, no exception — and the **return value is
+the previous proposal**. A caller that does `p = add_pair(...)` and reads
+`p["target_text"]` is handed an answer it did not propose, with nothing to
+distinguish that from success. Four successive answers leave one row, and it is
+the **first**, not the latest.
+
+So for a machine, which may propose and may not confirm, the commitment column
+can only ever hold its first guess. §6.11 named the asymmetry *"Nestor records
+why you said no and not why you said yes"* and N4 added `reason` to close it —
+but a draft's `reason` is written once and frozen by the same no-op, so N4's
+why-yes is mutable only by sealing.
+
+**The one channel that does work is the rejection table**, which is the result
+worth keeping. Recording the three superseded approaches as refused
+alternatives gives 3 rejections, each with its reason, each ledgered
+(`reject_match` ×3), and — since §6.15 — each travelling in the bundle. §6.11
+observed that *"Nestor keeps the rejections… and models no lineage."* For an
+unratified agent that is not half the picture, it is the **whole** one: the
+rejection table is the only revision log available to it, and the reasons for
+three abandoned designs live there or nowhere.
+
+Two smaller things from the same run: the current commitment plus three refused
+predecessors export cleanly (`1 pair, 3 rejections, partial=False`), which is
+the §6.15–§6.17 work doing its job on real data; and asking the same question in
+different words — *"how should export gather the no's?"* — scores **0.438**,
+nowhere near 0.92. §6.14's N1 result again, unchanged.
+
+**Not fixed here.** What `add_pair` should do with a draft over a draft —
+overwrite, raise a conflict, or route to a draft-aware supersede — is a design
+decision about who may revise what, and it belongs to the operator. Worth
+noting that the silent-no-op *return value* is separable from that question and
+is wrong under every answer to it: whatever revision should mean, handing a
+caller back a proposal it did not make, with no signal, is not it.
