@@ -1571,7 +1571,8 @@ number that resolves to nothing.
 
 ### 6.14 Dogfood: this session's decisions fed through Nestor — **measured**
 
-*Run 2026-08-05, feeding the §6.13 session's own decisions into the store.*
+*Run 2026-08-05, feeding the §6.13 session's own decisions into the store. The
+two defects it found are fixed in §6.15; the N1 measurement stands.*
 
 Eight decisions from the ground-rule-2b session went in as **drafts** with
 `reason` (N4), and four rejected alternatives as `tm_rejections` with `reason`
@@ -1631,8 +1632,453 @@ rejected **alternative** usually never became a pair, which is precisely the
 pair-less form, so decision memory's rejected-alternatives record is the part
 of it that does not survive `export → import`.
 
-Not fixed here. The fix is a domain-scoped rejection walk rather than a
-pair-keyed one, and it changes what a bundle contains — so it wants the same
-`BUNDLE_VERSION` decision already pending for carrying `reopen_when` (§6.11),
-plus import-side semantics for a rejection that names no pair. Both belong in
-one reviewed change, and both are the operator's call.
+### 6.15 Both §6.14 findings fixed — **shipped**
+
+*Fixed 2026-08-05, same day. Regressions in `tests/test_findings_2026_08_05.py`;
+15 of its 19 tests were observed failing against the unfixed revision, and the
+four that passed are labelled as no-regression guards rather than offered as
+gates.*
+
+**The bundle.** `export_bundle` now collects rejections by **domain**, not by
+walking the exported pairs — the walk could only ever reach rows with a
+`pair_id`, and the rows it needed to reach are the ones that have none.
+`SqliteStore.memory_list_rejections` is the new read, ordered `created_at, id`
+so two exports of one store still agree and the digest stays an integrity
+check.
+
+Three decisions inside it are worth recording, because each had a wrong answer
+that looked reasonable:
+
+* **The new op is not in `_REJECTION_OPS`.** That tuple is all-or-nothing, so a
+  fourth entry would report every host store implementing the existing three as
+  having *no* rejection capability — turning a bug about short bundles into
+  `reject_match` raising on stores that work today. Widening a capability must
+  not be able to switch one off. It gets its own predicate,
+  `supports_rejection_listing`, following `supports_lineage`'s precedent.
+* **`BUNDLE_VERSION` is 2, and 1 is still readable.** `reopen_when` joins
+  `REJECTION_FIELDS`, which changes the payload the digest is taken over — so
+  `digest()` takes the version and hashes a version-1 bundle with version-1
+  fields. Without that, upgrading this build would report a mismatch on bundles
+  nobody had touched: the exact failure `_canonical` already exists to prevent,
+  and the one that trains people to ignore the check.
+* **A store that cannot list by domain still exports, loudly.** It falls back to
+  the pair-keyed walk and warns that pair-less rejections are missing. A short
+  bundle that looks complete is the defect; the missing method is not.
+
+**The diagnostic.** `answer.match` gains a `reason`, computed in the library
+rather than assembled in the CLI format string, naming which gate the query
+actually failed: not sealed, suppressed by a rejection, rejected outright,
+below threshold, nothing in the domain, or a seal whose signature does not
+verify. It checks signatures **first**, where `best_sealed` checks them last —
+that function defers the HMAC because it is expensive and a row that cannot win
+need not be verified, while a reader should hear about a forged seal before a
+note about drafts. The two agree on whether to serve; only the order of
+explanation differs, and an earlier draft of this entry claimed they matched. The exact
+query that scored 1.0000 against a draft now reads *"matched at 1.0, at or
+above 0.92 — but nothing sealed: the best candidate is draft. Nobody has
+verified this yet."* A served answer carries `reason == ""`, so the field can
+never contradict the verdict.
+
+One thing this does **not** fix: the empty-candidate case can mean "absent" or
+"suppressed", and `lookup` drops rejected rows before scoring, so the reason
+consults `rejected_ids` to tell them apart. That is a second read on a path
+that already did one. It is correct and cheap at review-surface scale, and it
+would want revisiting if `match` ever moved onto a hot path.
+
+### 6.16 The audit of §6.15, and what a first fix misses — **shipped**
+
+*Audited 2026-08-05 by an independent agent, adversarially, told not to trust
+the commit message. Verdict on the first fix: **not safe to merge**. Five
+defects, one of them a regression the fix itself introduced. All fixed;
+regressions in `tests/test_findings_2026_08_05.py` under "the audit's finds",
+8 of 10 observed failing against the first fix.*
+
+**The regression, and it is the one worth remembering.** Replacing the
+pair-keyed rejection walk with a domain walk removed a scope nobody had written
+down. The old walk was bounded by the exported pairs, which *exclude superseded
+rows* — so a rejection naming a superseded pair had never travelled. Under a
+bare domain walk it travels carrying a `pair_id` the bundle deliberately does
+not contain, and `rejected_ids` matches on `pair_id`. On a destination that
+still holds that id live, importing the bundle **suppresses a sealed,
+signature-verified answer while the successor pair that should replace it is
+refused as a conflict**. The destination loses an answer and gains nothing.
+
+That is the shape to carry forward: *a filter can be load-bearing without being
+stated*. The pair-keyed walk was written to find rejections, and it was also —
+silently, as a side effect of what it iterated — enforcing "a bundle never
+references a row it does not carry." Replacing the mechanism kept the stated
+purpose and dropped the unstated invariant. The fix now states it: a rejection
+travels only if it names no pair, or names one in this bundle.
+
+The other four:
+
+* **One `limit` fed two reads.** `export_bundle(limit=)` capped pairs *and*
+  rejections — different row types, read in opposite orders (`memory_list` is
+  newest-first, the rejection walk oldest-first), so a shared cap truncated the
+  two lists from opposite ends. Silently: `counts` reported the short number
+  and the digest certified it. Now a separate `rejection_limit`, and hitting
+  either cap warns.
+* **The importer read the wrong field set.** `digest()` selected fields by
+  version; `import_bundle` used version 2's unconditionally. So `reopen_when`
+  could be added to a version-1 bundle *after* export, verify cleanly (v1
+  hashing does not cover the key), and land in the destination store. The
+  digest is explicitly not a signature, so this is hygiene rather than an auth
+  break — but a check covering less than the importer consumes is the wrong way
+  round.
+* **The reason was classified from the display page.** `_why_not_served` read
+  the top-8 shown to the reader, so a forged seal ranked ninth was invisible to
+  the branch written to name forged seals — which then reported "nobody has
+  verified this yet" while a row claiming to be sealed sat above the bar. The
+  §6.14 defect, one layer down, in its own fix.
+* **Half the rejection surface was reported as "nothing".** The empty-candidate
+  guard consulted `rejected_ids` only, which reads `tm_rejections`.
+  `reject_pair` writes `tm_pairs.status='rejected'` instead, so a pair somebody
+  had explicitly refused came back as *"nothing in this domain matched at all"*.
+
+Also corrected: three prose claims this file and the code made that were not
+true — that the rejection ordering made the digest stable (it never did;
+`digest` sorts by id itself), that the reason checks gates in `best_sealed`'s
+order (it checks signatures first, deliberately), and that all branches had
+been driven (one was unreachable, and is now gone).
+
+**What the audit is evidence for.** Every miss sat immediately outside what the
+first fix had just understood: it tested the defect it had in hand, on
+single-row stores, and the superseded pair, the second row type, the tenth
+candidate and the other way of saying no were each one step past that. Round
+one's tests were not weak on their own terms — 15 of 19 genuinely failed
+against the unfixed code. They were weak in scope, and scope is exactly what
+the author of a fix is worst placed to judge. One of round two's own tests
+initially passed against the broken code because it did not reproduce the
+condition it named; that is the same failure again, one level up, and it is the
+argument for the audit rather than against it.
+
+### 6.17 The second audit, a second regression, and the shape that caused both — **shipped**
+
+*Audited 2026-08-05 by a second independent agent. Verdict on §6.16's fix:
+**not safe to merge**. Five more defects, one of them critical and, again, a
+regression the fix itself introduced. All fixed; 12 regressions added, all
+observed failing against the previous commit.*
+
+**The regression.** §6.16 gave rejections their own `rejection_limit` and then
+**defaulted it to `limit`** — the shared cap the same docstring calls the bug.
+Layered on §6.16's `exported_ids` filter it produced the worst outcome of the
+three rounds: pairs are read newest-first, rejections oldest-first, so under any
+cap the two windows are disjoint and **no pair-bound rejection travelled at
+all**. Measured against both earlier revisions on one store:
+
+| revision | `limit=5` | rejections carried |
+|---|---|---|
+| `origin/master` | 5 pairs | 5 |
+| first fix | 5 pairs | 5 |
+| second fix | 5 pairs | **0** |
+
+**The shape, which is the entry's real content.** Three successive fixes, each
+one a *filter interacting with the filter before it*:
+
+1. a pair-keyed walk — complete for pair-bound rows, blind to pair-less ones;
+2. a domain walk — complete for both, and blind to the scope the first had for
+   free, so it carried rejections against superseded pairs;
+3. a domain walk **plus** an `exported_ids` filter — correct until a cap made
+   the two windows disjoint.
+
+Each fix added a condition to a mechanism that was answering two questions at
+once. The answer was to stop adding conditions: **two walks, each bounded by
+construction**. The pair-keyed walk cannot return a rejection whose pair is
+absent — it iterates the exported pairs. The domain walk is asked only for the
+pair-less rows, where nothing can dangle. Union them. The invariant "a bundle
+never references a row it does not carry" now holds because of what is read,
+not because of what is filtered out afterwards — and `exported_ids` deleted
+itself, which is how you know.
+
+The other four:
+
+* **The invariant was export-only.** Import re-ids a pair onto the
+  destination's id while the rejection keeps the source's, so a legitimately
+  carried "no" landed inert and the destination's own next export dropped it —
+  surviving one hop, dying on the second. Now remapped through an `id_map`
+  built *before* the branches, because four of them `continue` and the no-op
+  branch (same answer both sides, nothing written) is both the easiest to
+  forget and the commonest in a real re-import. And the read side now refuses a
+  dangling `pair_id` outright, reporting it: a bundle from the previous build
+  could still do the documented harm, and taking the file's word is the mistake
+  `seal_sig` exists to refuse.
+* **`reject_pair` was fixed for the exact key only.** One character off
+  (`"a bad mappingg"` scores 0.963) and the sentence the fix removed came
+  straight back. The reported case was fixed; the class was not. Now scored
+  rather than key-matched — which also fixes the numeric matcher naming an
+  unrelated pair, since every unparseable input normalizes to one NaN sentinel.
+* **`>=` could not tell "exactly full" from "truncated"**, so complete exports
+  warned. Ask for one more than the cap.
+* **`partial_rejections` was read by nobody** and was not set in the case its
+  own comment argued for. Now set on every short path and surfaced in
+  `verify_bundle`'s detail and the import report.
+
+**What three rounds of this are evidence for.** Every regression was introduced
+by the fix for the previous one, in the same function, by the same move: adding
+a condition instead of removing an interaction. The tests did not catch them
+because each round tested the defect it had just understood — and, twice, a
+round-N test *passed against the broken code* because it did not reproduce the
+condition it named (a forged row that scored 1.0 and so never left the display
+page; a numeric pair stored with the default matcher, so the sentinel never
+collided). Both are now measured and asserted. An author cannot audit their own
+scope; that is not a discipline failure, it is what scope means.
+
+### 6.18 What Nestor says about the §6.15–§6.17 rounds — **measured**
+
+*Run 2026-08-05, feeding the three fix rounds back through the store. The
+output is mostly a refusal, and the refusal is the finding.*
+
+The rounds have the one thing §6.14's feed did not: **lineage**. One question —
+*how does `export_bundle` collect rejections?* — answered four times, each
+answer superseding the last. That is exactly what N2/N3 shipped `supersede_pair`
+for, and it has never run on real data. It could not run on this either.
+
+**An agent cannot record a changed mind by any path.**
+
+| path | result |
+|---|---|
+| `supersede_pair` | `ValueError` — requires a verifier, and *"replacing a sealed decision is itself a decision"* |
+| `supersede_pair` with a verifier | `ValueError` — the predecessor is a draft; supersede replaces a **sealed** decision |
+| `add_pair` over the draft | **silent no-op** |
+| the ledger | **zero entries** for any of it |
+
+The third row is the one worth staring at. `add_pair` writes only when
+`status == "sealed"`, so a draft proposed over an existing draft with a
+*different* target falls through every branch and returns the stored row:
+
+```
+returned id is the same row : True
+stored target              : 'FIRST answer'
+what the 2nd call returned : 'FIRST answer'      # the caller passed 'SECOND answer'
+ledger entries             : 0
+```
+
+No write, no ledger line, no warning, no exception — and the **return value is
+the previous proposal**. A caller that does `p = add_pair(...)` and reads
+`p["target_text"]` is handed an answer it did not propose, with nothing to
+distinguish that from success. Four successive answers leave one row, and it is
+the **first**, not the latest.
+
+So for a machine, which may propose and may not confirm, the commitment column
+can only ever hold its first guess. §6.11 named the asymmetry *"Nestor records
+why you said no and not why you said yes"* and N4 added `reason` to close it —
+but a draft's `reason` is written once and frozen by the same no-op, so N4's
+why-yes is mutable only by sealing.
+
+**The one channel that does work is the rejection table**, which is the result
+worth keeping. Recording the three superseded approaches as refused
+alternatives gives 3 rejections, each with its reason, each ledgered
+(`reject_match` ×3), and — since §6.15 — each travelling in the bundle. §6.11
+observed that *"Nestor keeps the rejections… and models no lineage."* For an
+unratified agent that is not half the picture, it is the **whole** one: the
+rejection table is the only revision log available to it, and the reasons for
+three abandoned designs live there or nowhere.
+
+Two smaller things from the same run: the current commitment plus three refused
+predecessors export cleanly (`1 pair, 3 rejections, partial=False`), which is
+the §6.15–§6.17 work doing its job on real data; and asking the same question in
+different words — *"how should export gather the no's?"* — scores **0.438**,
+nowhere near 0.92. §6.14's N1 result again, unchanged.
+
+**Not fixed here.** What `add_pair` should do with a draft over a draft —
+overwrite, raise a conflict, or route to a draft-aware supersede — is a design
+decision about who may revise what, and it belongs to the operator. Worth
+noting that the silent-no-op *return value* is separable from that question and
+is wrong under every answer to it: whatever revision should mean, handing a
+caller back a proposal it did not make, with no signal, is not it.
+
+### 6.19 The loop, run twice — **partly** (one verb still missing)
+
+*Two passes of §6.18's feed, fixing between them.*
+
+**Pass one → the refusal.** §6.18 found that `add_pair` over an existing draft
+with a different target wrote nothing, ledgered nothing, warned about nothing,
+and returned **the stored proposal to a caller that had proposed something
+else**. That is now `ConflictingDraftError`, on the same terms
+`ConflictingSealError` refuses one rung up: a second answer for the same source
+is a disagreement to surface, not to resolve silently. Re-proposing an
+*identical* target stays idempotent, and sealing over a draft — a human
+checking a machine's guess, which is the product — is untouched.
+
+Two hazards make the old silence indefensible rather than untidy. Overwriting
+would let a machine swap the row under a reviewer mid-review, so they seal
+something they never read. No-op'ing lets a caller believe a proposal landed.
+Refusing does neither and costs one explicit decision at the call site.
+
+**The first attempt at that fix was the bug again.** It offered
+`override_draft=True` — and because every branch below the guard is a seal, the
+flag fell through and returned the stored row. An escape hatch that cannot be
+honoured, inside the fix for a silent lie, being a silent lie. It was removed
+rather than repaired, which turned out to be the right instinct for a reason
+worth writing down:
+
+**No `memory` function revised a draft.** `supersede_pair` covers
+sealed→sealed, `add_pair` covers draft→sealed, and draft→draft had nothing —
+which is why the no-op was never an oversight in `add_pair`: the operation
+simply did not exist to be called.
+
+> **Corrected in §6.20.** This entry originally said the *Protocol* had never
+> been given the verb, and cited `memory_seal` hardcoding `status='sealed'` as
+> proof. That was wrong. `supersede_pair` revises a row using
+> `memory_mark_superseded` (the lineage capability) + `memory_insert` (a
+> required core op) — so the store could always do it and `memory` was
+> withholding it. An earlier wording of this correction said both were in the
+> lineage capability, which is also wrong; `_LINEAGE_OPS` is
+> `("memory_mark_superseded", "memory_lineage")`. A correction whose subject is
+> a careless read of one op should not repeat the genre.
+> The claim was made from reading one write op and not the function that
+> already did the work; it survived into a commit message and an IDEAS entry
+> before anyone tried to implement around it.
+
+**So the refusal makes the failure visible without making the operation
+possible.** An agent's revised proposal still cannot enter the store: it now
+gets an exception instead of a false success, which is strictly better and
+still not enough. Adding the verb is a Protocol change — a new optional
+capability with its own predicate, on `supports_lineage`'s precedent — and it
+belongs to the operator. Three regressions in the export path this session
+argue against another unprompted redesign in the same file.
+
+**Pass two → the miscount.** With the refusal in place, running the loop again
+surfaced a smaller one of the same family: `rejected_ids` returns rejected pair
+ids *and* rejected target texts, and the reason reported their sum as
+*"3 candidate(s) are suppressed"* against a store holding **one** pair. It was
+counting records and calling them candidates — a number attached to a noun it
+does not count, which is the defect §6.14 opened with. Now: *"3 recorded
+rejection(s) for this query suppress every candidate…"*
+
+**What the loop is worth.** Both passes found defects the audits did not, and
+neither is subtle in hindsight — they are the kind that only surface when the
+system is asked to hold a real history rather than a constructed one. Feeding a
+session's own record back through the thing it was built with is cheap, and it
+has now found four defects across §6.14, §6.18 and here.
+
+### 6.20 `revise_draft` — the third verb — **shipped**
+
+*Added 2026-08-05 at the operator's instruction, after §6.19 stopped at the
+refusal.*
+
+```
+supersede_pair   sealed → sealed    verifier required, successor sealed
+add_pair         draft  → sealed    verifier required, successor sealed
+revise_draft     draft  → draft     NO verifier,       successor draft
+```
+
+The three rounds of §6.15–§6.17 are now recordable, which is the test that
+matters: one live row holding the answer that survived, three superseded rows
+behind it, each carrying the reason it was abandoned, and `memory_lineage`
+walking the chain. The ledger shows `supersede` ×3 and **no `seal`** — nothing
+was verified, and an entry saying otherwise would claim a human had acted.
+
+**No verifier, and that is the whole difference.** `supersede_pair` demands one
+because *"replacing a sealed decision is itself a decision"* — a human's
+recorded judgment is being retired and somebody must own that. A draft is
+nobody's judgment. Requiring a verifier here would be the machine signing for a
+decision it may not make; the successor is therefore a draft too, unsealed and
+unsigned, and sealing stays a separate human act. So the covenant holds at
+strictly more points than before: an agent can now record *that it changed its
+mind and why*, and still cannot record *that anything is true*.
+
+**It needed nothing new in `Storage`**, which is the part worth remembering.
+§6.19 asserted the Protocol lacked the verb and named `memory_seal` hardcoding
+`status='sealed'` as the evidence. The evidence was real and the conclusion was
+wrong: `supersede_pair` had been revising rows all along via
+`memory_mark_superseded` + `memory_insert`. The claim came from reading one
+write operation instead of the function that already did the work, and it
+reached a commit message and an IDEAS entry before an attempt to build around
+it exposed it. §6.19 now carries the correction inline rather than being
+quietly edited — a wrong claim that was acted on is part of the record.
+
+Two things deliberately kept from `supersede_pair` rather than re-derived: the
+mark → insert → re-point order with rollback, because the partial unique index
+correctly refuses two live rows for one key and a failed insert must leave the
+store as it was found; and dropping the superseded row's cached embedding,
+since a row that will never be scored again is dead weight. Superseded drafts
+are excluded from bundles on the same rule as superseded seals — history, not
+stock.
+
+**What it does not do.** It does not decide when an agent *should* revise
+rather than reject. `revise_draft` says "this replaces that, here is why";
+`reject_match` says "a human refused this". They are different claims and the
+second is not the machine's to make — §6.18 found the rejection table doing
+duty as an agent's revision log precisely because no third verb existed. That
+workaround should now retire, and any code that adopted it wants revisiting.
+
+### 6.21 The third audit: two criticals in the verb, and the first fix for one of them was wrong too — **shipped**
+
+*Audited 2026-08-05, third independent pass. Verdict on §6.20: **not safe to
+merge**. Twelve findings; the two criticals were reproducible in seconds with
+ordinary threads and no fault injection.*
+
+**A machine could retire a human's seal.** `revise_draft` checked
+`status == 'draft'` against a `memory_find` read, then issued an unconditional
+`UPDATE … WHERE id=?`. A human sealing the row in between had their seal pushed
+into history and replaced by an unsigned draft — **282 of 300 threaded
+trials**. The partial unique index catches racing INSERTs; nothing caught this,
+because an UPDATE touches no index constraint. It was also a route around
+`ConflictingSealError`, with no verifier and no `seal_replaced` entry.
+
+That is the worst defect this branch has produced. The system's entire claim is
+that a served answer carries a human's verification; this destroyed one, at
+machine frequency, and reported success.
+
+**The first fix for it was also wrong**, which is worth recording as plainly as
+the defect. Adding compare-and-set to the retirement (`memory_mark_superseded_if`,
+`UPDATE … WHERE id=? AND status=? AND superseded_by=?`) stopped `revise_draft`
+retiring an *already-sealed* row — and the measurement came back **256 of 300**,
+barely moved. The other interleaving was untouched: a seal landing on a row
+just retired, because `memory_seal` was itself an unconditional
+`UPDATE … WHERE id=?`. The verification applied to a row no serve path would
+ever read. Both halves needed the precondition in the WHERE clause; fixing one
+and measuring is what caught it, and the lesson is that a race fix is not done
+when it is written, it is done when the number moves.
+
+| | before | after |
+|---|---|---|
+| seals lost to history (300 trials) | 282 | **0** |
+| revisions whose lineage was destroyed (200 trials) | 184 | **0** |
+
+The second critical: two concurrent revisions, where the loser's rollback fired
+unconditionally and could overwrite the *winner's* successor pointer with its
+own abandoned marker — leaving the surviving revision with no history, which is
+the one thing the verb exists to provide. The rollback now runs only if it
+still owns the marker, and its own failure is suppressed so it cannot mask the
+real cause.
+
+A store that cannot retire a row conditionally is **refused**, not degraded
+(`supports_atomic_supersede`, its own predicate on
+`supports_rejection_listing`'s precedent). "Probably not concurrent" is not a
+basis on which to risk a human's verification.
+
+The other four that shipped: `revise_draft` consulted `reject_pair` but never
+`reject_match`, so an agent could install a target a human had signed a "no"
+against — after which `lookup` suppresses it and the store stops answering at
+all. The `nestor ui` match panel never rendered `reason`, so the fix for *"a
+review surface that misstates its own reason"* landed in the CLI and the API
+and missed the surface humans actually review on — and its empty-list message
+still asserted *"No candidate scored high enough"* when the true cause was
+often that every candidate was rejected. The rejection count reproduced its own
+bug one line lower (`rejected_ids` returns two **sets**, so one record naming
+both a pair and a target counted twice and two records naming one target
+counted once). And a rejection naming a superseded pair stopped travelling —
+rare before, routine the moment `revise_draft` made superseding an agent's
+normal move; it now travels with `pair_id` blanked, so the target-text
+suppression survives and nothing dangles.
+
+**Deliberately not fixed, both pre-existing on `master` and both in
+`supersede_pair`'s shared machinery:**
+
+* **The crash window.** Between marking the old row and inserting the successor
+  the answer is invisible with no successor, and a process death there is
+  unrecoverable by any in-tree tool. Identical in `supersede_pair` since
+  `7b56adb`. It wants a transaction primitive the Protocol does not have, or a
+  `nestor repair` for `superseded_by LIKE 'pending:%'`.
+* **`memory_lineage` has no cycle guard** (`while True:` with no `visited` set),
+  so a forged `superseded_by` cycle hangs it. Not reachable through the public
+  API today.
+
+**The pattern, three audits in.** Every critical has been the same shape: a
+condition checked in Python guarding a write that cannot re-assert it. It has
+now appeared in the export walk, the rejection filter, and the row retirement —
+three different mechanisms, one habit. The counter-move that has worked each
+time is not a better condition but moving the precondition into the operation:
+two walks each bounded by construction; a WHERE clause instead of a read.
