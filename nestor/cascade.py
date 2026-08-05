@@ -317,6 +317,26 @@ def ledger_preflight() -> None:
                 _unlock_file(f)
 
 
+#: Every ``kind`` the ledger's writers may record — the closed set for
+#: WRITERS only (Nestor#32). ``kind`` is the one field in a row that says why
+#: a boundary was crossed: it is what ``entries(kind=...)`` filters on and
+#: what ``curator.py`` dispatches on, so code depends on spellings that,
+#: before this set, nothing guaranteed — a typo'd kind was not an error but a
+#: new event type, silently absent from every review surface. Writers are
+#: closed; READERS stay permissive on purpose: an audit trail must never
+#: refuse to show what it already recorded, so ``verify()`` and ``entries()``
+#: accept historical kinds that predate (or postdate) this set. Adding a
+#: kind is deliberate: add it here AND to the pinning test
+#: (tests/test_ledger_kinds.py), in the same change as its first writer.
+LEDGER_KINDS = frozenset({
+    "baseline_replaced", "baseline_seal", "bundle_import", "corpus_seed",
+    "entity_resolve", "entity_seal", "passage", "proposal", "reconcile",
+    "reject_match", "reject_pair", "reject_segment", "restore", "seal",
+    "seal_override", "seal_replaced", "seed_conflict", "seed_rejected",
+    "segment_sealed", "supersede", "unseal",
+})
+
+
 def ledger_append(entry: dict) -> None:
     """Append one entry to the hash-chained ledger. The only way to write to it.
 
@@ -345,6 +365,14 @@ def ledger_append(entry: dict) -> None:
     across somebody else's I/O would make a slow governance mirror into a stalled
     review queue.
     """
+    kind = entry.get("kind")
+    if kind not in LEDGER_KINDS:
+        raise ValueError(
+            f"unknown ledger kind {kind!r} — the kind field records why a "
+            f"boundary was crossed, and an unpinned kind is not an event "
+            f"type, it is a typo that silently drops rows out of review "
+            f"surfaces. Add it to cascade.LEDGER_KINDS and the pinning test "
+            f"in the same change as its first writer (Nestor#32).")
     ledger = _ledger_path()
     _refuse_unusable_path(ledger)
     # Ask before opening: "a+" below re-creates a deleted ledger, and a
