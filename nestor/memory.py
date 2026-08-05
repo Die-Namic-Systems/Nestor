@@ -225,15 +225,12 @@ class ConflictingDraftError(RuntimeError):
     believe a proposal landed when it did not. Refusing does neither, and it
     costs the caller one explicit decision.
 
-    **There is deliberately no override.** No ``Storage`` operation revises a
-    draft in place — ``memory_seal`` hardcodes ``status='sealed'`` — so the
-    no-op was never an oversight in ``add_pair``; the Protocol was simply never
-    given the verb. A first attempt at this error offered
-    ``override_draft=True``, and because every branch below it is a seal, the
-    flag fell through and returned the stored row: the same silent lie, rebuilt
-    inside its own fix. An escape hatch that cannot be honoured is worse than
-    none. Adding the missing verb is a Protocol change and the operator's call
-    (IDEAS §6.19).
+    **There is deliberately no override flag.** A first attempt offered
+    ``override_draft=True``, and because every branch below it is a seal the
+    flag fell through and returned the stored row — the same silent lie,
+    rebuilt inside its own fix. The replacement is a named operation rather
+    than a flag: :func:`revise_draft`, which keeps the old proposal as history
+    with the reason it was abandoned. A flag would have discarded it.
 
     An identical target is not a conflict — re-proposing the same answer is
     idempotent, which is what a retrying host does.
@@ -369,10 +366,9 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                 f"{existing['target_text']!r} for this source; {target_text!r} is "
                 f"a different proposal. add_pair writes only when sealing, so "
                 f"this would have returned the stored draft as if it were yours. "
-                f"There is no override: no Storage operation revises a draft in "
-                f"place (memory_seal hardcodes status='sealed'), so a flag here "
-                f"could only pretend. Seal it if a human has checked it, or "
-                f"reject_match the proposal you do not want."
+                f"Call revise_draft() to replace it — the old proposal is kept "
+                f"as history with its reason, which is the point. Or seal it if "
+                f"a human has checked it, or reject_match the one you do not want."
             )
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
@@ -604,6 +600,99 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
             "target_sha": _sha(target_text), "source_sha": _sha(norm),
             "reason": reason,
             "same_verifier": old.get("verifier", "") == verifier,
+        })
+    return new_pair
+
+
+def revise_draft(source_text: str, target_text: str, source_lang: str,
+                 target_lang: str, reason: str = "", weight: float = 1.0,
+                 origin: str = "", store: Optional[Storage] = None,
+                 matcher: Optional[Matcher] = None,
+                 audit: bool = True) -> dict:
+    """Replace a live **draft** with a revised one, keeping the old as history.
+
+    The missing third verb. :func:`supersede_pair` covers sealed→sealed and
+    :func:`add_pair` covers draft→sealed; draft→draft had nothing, so an agent
+    — which may propose and may not confirm — could not record a changed mind
+    at all. It got :class:`ConflictingDraftError` and no way past it
+    (IDEAS §6.18, §6.19).
+
+    No ``verifier``, and that is the whole difference from ``supersede_pair``.
+    That function demands one because *"replacing a sealed decision is itself a
+    decision"* — a human's recorded judgment is being retired and somebody must
+    own that. A draft is nobody's judgment. Requiring a verifier here would be
+    the machine signing for a decision it is not allowed to make, which is the
+    covenant inverted; the successor is therefore a **draft** too, unsealed and
+    unsigned, and sealing it stays a separate human act through ``add_pair``.
+
+    History is kept for the same reason it is kept for seals: the abandoned
+    proposal carries the ``reason`` it was abandoned *for*, and that reasoning
+    is the only thing distinguishing "we tried this and it was wrong" from "we
+    never thought of it". ``memory_lineage`` walks the chain. Nothing new is
+    needed in ``Storage`` to do it — ``memory_mark_superseded`` and
+    ``memory_insert`` already exist for ``supersede_pair``, so this is a verb
+    ``memory`` was withholding, not one the Protocol lacked. An earlier note in
+    §6.19 said otherwise and was wrong.
+
+    Requires the lineage capability, and refuses rather than overwriting
+    without it — the same rule ``supersede_pair`` follows, for the same reason:
+    losing what was proposed before is the failure this exists to prevent.
+    """
+    store = get_store(store)
+    _require_lineage(store)
+    matcher = get_matcher(matcher)
+    store.memory_init()
+    if audit:
+        _ledger_preflight()   # a revision discards a proposal; refuse before writing
+    norm = matcher.normalize(source_text)
+    old = store.memory_find(norm, source_lang, target_lang)
+    if old is None:
+        raise ValueError(f"nothing to revise for {source_text!r} "
+                         f"({source_lang}->{target_lang}) — use add_pair")
+    if old["status"] == "rejected":
+        raise RejectedPairError(
+            f"pair {old['id']} was rejected; a rejection is not a competing "
+            f"proposal to revise. Restore it first (Curator.restore).")
+    if old["status"] == "sealed":
+        raise ValueError(
+            f"pair {old['id']} is sealed — a human checked it, so replacing it "
+            f"is supersede_pair's job and needs a verifier. revise_draft only "
+            f"touches proposals nobody has ratified.")
+    if old["target_text"] == target_text:
+        raise ValueError(f"revised target equals the live draft {target_text!r} "
+                         f"— nothing to revise (add_pair is the idempotent path)")
+
+    new_pair = dict(id=str(uuid.uuid4()), source_text=source_text,
+                    source_norm=norm, source_lang=source_lang,
+                    target_text=target_text, target_lang=target_lang,
+                    status="draft", verifier="", weight=weight,
+                    origin=origin, reason=reason, created_at=_now(),
+                    seal_sig="")
+    # Mark, insert, then point the marker at the real successor — the same
+    # order and the same rollback as supersede_pair, because the partial unique
+    # index correctly refuses two live rows for one key and a failed insert
+    # must leave the store exactly as it was found.
+    store.memory_mark_superseded(old["id"], "pending:" + new_pair["id"])
+    try:
+        store.memory_insert(new_pair)
+    except Exception:
+        store.memory_mark_superseded(old["id"], "")
+        raise
+    store.memory_mark_superseded(old["id"], new_pair["id"])
+    _drop_stored_embeddings(store, old["id"])
+    if audit:
+        # `supersede`, not `seal`: nothing was verified here. No seal entry is
+        # written at all, because a draft revision grants no trust — and a
+        # ledger that logged one would say a human had acted.
+        _log_seal_event({
+            "kind": "supersede", "old_pair_id": old["id"],
+            "new_pair_id": new_pair["id"],
+            "source_lang": source_lang, "target_lang": target_lang,
+            "replaced_verifier": old.get("verifier", ""), "verifier": "",
+            "replaced_status": "draft",
+            "replaced_target_sha": _sha(old["target_text"]),
+            "target_sha": _sha(target_text), "source_sha": _sha(norm),
+            "reason": reason, "same_verifier": True,
         })
     return new_pair
 

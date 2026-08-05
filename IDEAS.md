@@ -1912,12 +1912,19 @@ honoured, inside the fix for a silent lie, being a silent lie. It was removed
 rather than repaired, which turned out to be the right instinct for a reason
 worth writing down:
 
-**There is no `Storage` operation that revises a draft.** `memory_seal`
-hardcodes `status='sealed'`; nothing else writes a target. So the no-op was
-never an oversight in `add_pair` — the Protocol was simply never given the
-verb. That is the actual gap, and it explains the shape of everything above it:
-`supersede_pair` covers sealed→sealed, `add_pair` covers draft→sealed, and
-draft→draft has no operation at all.
+**No `memory` function revised a draft.** `supersede_pair` covers
+sealed→sealed, `add_pair` covers draft→sealed, and draft→draft had nothing —
+which is why the no-op was never an oversight in `add_pair`: the operation
+simply did not exist to be called.
+
+> **Corrected in §6.20.** This entry originally said the *Protocol* had never
+> been given the verb, and cited `memory_seal` hardcoding `status='sealed'` as
+> proof. That was wrong. `supersede_pair` revises a row using
+> `memory_mark_superseded` + `memory_insert`, both already in the lineage
+> capability — so the store could always do it and `memory` was withholding it.
+> The claim was made from reading one write op and not the function that
+> already did the work; it survived into a commit message and an IDEAS entry
+> before anyone tried to implement around it.
 
 **So the refusal makes the failure visible without making the operation
 possible.** An agent's revised proposal still cannot enter the store: it now
@@ -1940,3 +1947,54 @@ neither is subtle in hindsight — they are the kind that only surface when the
 system is asked to hold a real history rather than a constructed one. Feeding a
 session's own record back through the thing it was built with is cheap, and it
 has now found four defects across §6.14, §6.18 and here.
+
+### 6.20 `revise_draft` — the third verb — **shipped**
+
+*Added 2026-08-05 at the operator's instruction, after §6.19 stopped at the
+refusal.*
+
+```
+supersede_pair   sealed → sealed    verifier required, successor sealed
+add_pair         draft  → sealed    verifier required, successor sealed
+revise_draft     draft  → draft     NO verifier,       successor draft
+```
+
+The three rounds of §6.15–§6.17 are now recordable, which is the test that
+matters: one live row holding the answer that survived, three superseded rows
+behind it, each carrying the reason it was abandoned, and `memory_lineage`
+walking the chain. The ledger shows `supersede` ×3 and **no `seal`** — nothing
+was verified, and an entry saying otherwise would claim a human had acted.
+
+**No verifier, and that is the whole difference.** `supersede_pair` demands one
+because *"replacing a sealed decision is itself a decision"* — a human's
+recorded judgment is being retired and somebody must own that. A draft is
+nobody's judgment. Requiring a verifier here would be the machine signing for a
+decision it may not make; the successor is therefore a draft too, unsealed and
+unsigned, and sealing stays a separate human act. So the covenant holds at
+strictly more points than before: an agent can now record *that it changed its
+mind and why*, and still cannot record *that anything is true*.
+
+**It needed nothing new in `Storage`**, which is the part worth remembering.
+§6.19 asserted the Protocol lacked the verb and named `memory_seal` hardcoding
+`status='sealed'` as the evidence. The evidence was real and the conclusion was
+wrong: `supersede_pair` had been revising rows all along via
+`memory_mark_superseded` + `memory_insert`. The claim came from reading one
+write operation instead of the function that already did the work, and it
+reached a commit message and an IDEAS entry before an attempt to build around
+it exposed it. §6.19 now carries the correction inline rather than being
+quietly edited — a wrong claim that was acted on is part of the record.
+
+Two things deliberately kept from `supersede_pair` rather than re-derived: the
+mark → insert → re-point order with rollback, because the partial unique index
+correctly refuses two live rows for one key and a failed insert must leave the
+store as it was found; and dropping the superseded row's cached embedding,
+since a row that will never be scored again is dead weight. Superseded drafts
+are excluded from bundles on the same rule as superseded seals — history, not
+stock.
+
+**What it does not do.** It does not decide when an agent *should* revise
+rather than reject. `revise_draft` says "this replaces that, here is why";
+`reject_match` says "a human refused this". They are different claims and the
+second is not the machine's to make — §6.18 found the rejection table doing
+duty as an agent's revision log precisely because no third verb existed. That
+workaround should now retire, and any code that adopted it wants revisiting.

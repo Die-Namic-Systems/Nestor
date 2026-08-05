@@ -703,3 +703,92 @@ class TestTheSuppressedCountCountsRejectionsNotCandidates:
         assert not result["served"]
         assert "recorded rejection(s)" in result["reason"]
         assert "candidate(s) are suppressed" not in result["reason"], result["reason"]
+
+
+# --------------------------------------------- the missing third verb --------
+#
+# §6.18/§6.19: supersede_pair covers sealed→sealed, add_pair covers
+# draft→sealed, and draft→draft had nothing — so an agent could not record a
+# changed mind. `revise_draft` is that verb. It needed no new Storage
+# operation: memory_mark_superseded and memory_insert already existed for
+# supersede_pair, so §6.19's claim that "the Protocol was never given the verb"
+# was wrong. `memory` was withholding it.
+
+class TestRevisingADraftKeepsWhatItReplaced:
+
+    def test_the_live_row_is_the_revision_and_the_old_one_is_history(self, store):
+        memory.add_pair("Q", "first attempt", "d", "d", status="draft",
+                        reason="the original", store=store)
+        new = memory.revise_draft("Q", "second attempt", "d", "d",
+                                  reason="the first was wrong because X", store=store)
+        live = [p for p in store.memory_list(source_lang="d", limit=10)
+                if not p["superseded_by"]]
+        assert len(live) == 1
+        assert live[0]["target_text"] == "second attempt" == new["target_text"]
+        chain = store.memory_lineage(new["id"])
+        assert [c["target_text"] for c in chain] == ["first attempt"]
+        assert chain[0]["reason"] == "the original", (
+            "the abandoned proposal lost the reason it was abandoned for, which "
+            "is the only thing distinguishing 'we tried this' from 'we never "
+            "thought of it'")
+
+    def test_a_chain_of_revisions_walks_back_newest_first(self, store):
+        memory.add_pair("Q", "v1", "d", "d", status="draft", reason="r1", store=store)
+        for target, reason in (("v2", "r2"), ("v3", "r3"), ("v4", "r4")):
+            new = memory.revise_draft("Q", target, "d", "d", reason=reason, store=store)
+        assert [c["target_text"] for c in store.memory_lineage(new["id"])] == \
+               ["v3", "v2", "v1"]
+
+    def test_the_successor_is_a_draft_and_grants_no_trust(self, store, seal_key):
+        """The covenant: the machine may propose and may not confirm. A revision
+        must not be able to launder a proposal into a verification."""
+        memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
+        new = memory.revise_draft("Q", "second", "d", "d", store=store)
+        assert new["status"] == "draft"
+        assert new["verifier"] == ""
+        assert new["seal_sig"] == ""
+        assert not memory.is_verified_seal(new)
+
+    def test_it_ledgers_a_supersede_and_never_a_seal(self, store):
+        """A seal entry would say a human had acted. Nobody did."""
+        from tests.conftest import read_ledger
+        memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
+        memory.revise_draft("Q", "second", "d", "d", reason="why", store=store)
+        kinds = [e["kind"] for e in read_ledger()]
+        assert "supersede" in kinds
+        assert "seal" not in kinds, f"a draft revision claimed a seal: {kinds}"
+        entry = [e for e in read_ledger() if e["kind"] == "supersede"][0]
+        assert entry["verifier"] == ""
+        assert entry["replaced_status"] == "draft"
+
+    def test_superseded_drafts_do_not_travel_in_a_bundle(self, store):
+        """Same rule as superseded seals: history, not stock."""
+        memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
+        memory.revise_draft("Q", "second", "d", "d", store=store)
+        bundle = portable.export_bundle(store)
+        assert bundle["counts"]["pairs"] == 1
+        assert bundle["pairs"][0]["target_text"] == "second"
+
+    def test_a_sealed_row_is_sent_to_supersede_pair(self, store, seal_key):
+        memory.add_pair("Q", "checked", "d", "d", status="sealed",
+                        verifier="rita", store=store)
+        with pytest.raises(ValueError, match="supersede_pair"):
+            memory.revise_draft("Q", "something else", "d", "d", store=store)
+
+    def test_a_rejected_row_is_refused(self, store, seal_key):
+        pair = memory.add_pair("Q", "bad", "d", "d", status="sealed",
+                               verifier="rita", store=store)
+        memory.reject_pair(pair["id"], verifier="rita", reason="wrong", store=store)
+        with pytest.raises(memory.RejectedPairError):
+            memory.revise_draft("Q", "something else", "d", "d", store=store)
+
+    def test_revising_to_the_same_target_is_refused(self, store):
+        memory.add_pair("Q", "same", "d", "d", status="draft", store=store)
+        with pytest.raises(ValueError, match="nothing to revise"):
+            memory.revise_draft("Q", "same", "d", "d", store=store)
+
+    def test_the_conflict_error_points_at_the_verb(self, store):
+        """The refusal added in §6.19 was a dead end until this existed."""
+        memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
+        with pytest.raises(memory.ConflictingDraftError, match="revise_draft"):
+            memory.add_pair("Q", "second", "d", "d", status="draft", store=store)
