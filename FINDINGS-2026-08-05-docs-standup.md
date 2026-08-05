@@ -247,6 +247,74 @@ practice.
   load-bearing. `--json` mode plus a documented "warnings go to stderr,
   exactly once" contract would let a model keep both.
 
+## Addendum — the same exercise, run by two other models
+
+The same prompt (minus the small-model framing) was given to two other
+agents; their reports landed as `claude/documentation-gaps-gtjpbx`
+(`DOCUMENTATION_GAPS.md`) and `claude/documentation-gaps-zn6quz`
+(`docs/documentation-gaps.md`). Every disputed claim below was re-verified by
+execution before being called true or false. The comparison is itself data:
+this document *predicted* failure modes; the branches *exhibit* them.
+
+### `gtjpbx` — do not merge without correction
+
+Its single **HIGH**-priority finding — "the Python code example in README …
+is incorrect and will fail immediately", claiming a `TypeError`, that
+`translate_segment` returns a dict, and that `.mark`/`.state`/`.target` do
+not exist — is **false**. The snippet runs verbatim, exits 0, and reproduces
+the README's output character-for-character (re-verified today);
+`translate_segment(text, source_lang, target_lang, engine=None, …) ->
+Passage`, and `Passage` has exactly those attributes. The document shows no
+program output anywhere — the failure was inferred from reading, not
+observed, then ranked above every real finding. Two more of its gaps claim
+the README lacks things it prominently contains: the keyring section
+("Who verified it — per-verifier keys", with the exact `nestor keys add` /
+`NESTOR_KEYRING` commands the report says exist "only in QUESTIONS.md §6"),
+and the `mcpServers` JSON block (README line ~709). Its real contributions —
+no seal-key generation guidance, sparse subcommand `--help` — are also in
+`zn6quz`, with evidence.
+
+This is §"where a small model fails" enacted: an API failure invented from
+signature-reading rather than execution, format (a severity table) lending
+authority to the one claim that was never tested, and "missing from docs"
+asserted without grepping the docs.
+
+### `zn6quz` — three real gaps this document missed
+
+The report is empirical, shows its run, and separates "worked as documented"
+from "gap". Confirmed here by execution, all new relative to the sections
+above:
+
+- **`ruff` and `bandit` are not in the `[dev]` extra** — the Development
+  section's commands fail after the documented install (`dev = ["pytest"]`
+  only). Verified: neither is present in this venv.
+- **`--db` must precede the subcommand** — `nestor ask "…" --db mydb.db` is
+  an argparse error; only `nestor --db mydb.db ask "…"` works. The README
+  never shows `--db` at all, so the first attempt a reader makes is the
+  failing form.
+- **`nestor calibrate` recommends a threshold nothing documented can
+  apply.** No env var, no CLI flag, no README mention of the module global
+  or the per-call `seal_threshold=` kwarg. The calibration loop is
+  documented end-to-end except its last step. (Compounds §7 above: the
+  recommendation is both too confident on a small corpus *and* has no
+  documented way to be applied on any corpus.)
+
+Two of its claims did not survive verification: `bench/README.md` *does*
+state the ~10-minute runtime and `--resume` (its §10 says the runtime is
+addressed nowhere), and the `[cloud]`/`ANTHROPIC_API_KEY` silent fallback
+its §8 reports is documented, though tersely, in "Other injected seams"
+("without credentials or the `anthropic` package, Nestor uses the …
+offline engine") — the fair residue is that the note sits far from the
+`--engine` flag it governs.
+
+### What no other report found
+
+The three highest-consequence items in this document appear in neither
+branch: the unsigned-bundle import row (§3, trust laundering with doc-backed
+false confidence), the cwd-relative ledger side effect (§1), and the
+rejection snippet's undefined `hit` (§5). All three require *running* the
+docs adversarially rather than checking that the happy path works.
+
 ## The shape of the whole
 
 Standing Nestor up from its documentation **works** — rare, and worth saying
