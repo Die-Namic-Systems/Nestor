@@ -1568,3 +1568,45 @@ Nestor is entitled to own; whether the fleet's rules should be carried here
 (the way `docs/decision-memory.md` was carried home from the SAFE store) is the
 operator's call, not a code change. Until then a reader meets a rule cited by a
 number that resolves to nothing.
+
+### 6.14 Dogfood: this session's decisions fed through Nestor — **measured**
+
+*Run 2026-08-05, feeding the §6.13 session's own decisions into the store.*
+
+Eight decisions from the ground-rule-2b session went in as **drafts** with
+`reason` (N4), and four rejected alternatives as `tm_rejections` with `reason`
+and `reopen_when` (N5) — three of the four are *not-yets*, carrying the
+condition that reopens them. Nothing was sealed: the machine may propose and
+may not confirm, so `nestor stats` reads `8 pair(s): 0 sealed, 8 draft` and the
+seal queue is the operator's. Two things fell out of it.
+
+**N1 reproduced in-repo, on real decision rows.** `docs/decision-memory.md`
+gates N9 on "does the matcher recognize a re-worded decision"; §6.11 records
+that bench running in the SAFE store's playground. It now has an in-repo
+number. Exact wording scores **1.0000**. Re-worded, against `StringMatcher`:
+
+| probe | right row | rank-1 row | served |
+|---|---|---|---|
+| exact | 1.0000 | itself | ✓ |
+| "who owns ground rule 2b, the class or the tier?" | 0.8380 | itself | ✗ |
+| "can callers turn off the voice rule?" | 0.3440 | *a different decision*, 0.4740 | ✗ |
+| "why was the model id left alone?" | 0.3110 | *a different decision*, 0.3330 | ✗ |
+
+None of the three re-wordings clears 0.92, and **two of three rank a different
+decision first** — the `wrong_key` case §6.11 measured at 0 for fastembed. The
+system still fails safe (below threshold, nothing is served), and that is
+exactly the danger the design doc names: `constraints_on` returns silence, and
+silence reads as "no constraint" rather than "I could not find it." The gate
+holds — N9 must not be trusted on the string matcher.
+
+**A review surface that misstates its own reason.** `nestor match` prints
+`"{len(matches)} candidate(s) below {threshold}"` whenever `served` is false
+(`cli.py:123`). Both halves can be wrong at once. `answer.match` fills
+`matches` from `lookup(..., context_threshold=0.0)` — *unfiltered*, so they are
+not "candidates below" anything — while `served` comes from `best_sealed`,
+which filters by **status**. Feeding an exact query that scored **1.0000**
+against a draft row printed `8 candidate(s) below 0.92`: the count is
+unrelated to the threshold, and the one row that mattered was above it. The
+true answer was "found it, it is not sealed." This is §1.9's shape in a
+message rather than a query — the code answering a narrower question than the
+one it was asked, and reporting the narrow answer as the whole one.
