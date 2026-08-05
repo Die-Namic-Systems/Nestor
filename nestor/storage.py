@@ -215,6 +215,32 @@ class Storage(Protocol):
         ``reject_sig``. Returns ``[]`` when there are none.
         """
 
+    # --- rejection listing (OPTIONAL, separate from the three above) ------
+    #
+    # The two reads above answer "what was refused for THIS query" and (under
+    # curation) "what was refused against THIS pair". Neither can enumerate a
+    # domain, and a rejection is allowed to name no pair at all —
+    # :meth:`memory_add_rejection` documents ``pair_id`` as ``""`` when the
+    # refused candidate never became one. So the pair-keyed walk cannot see
+    # those rows, and :func:`nestor.portable.export_bundle` used it: a signed,
+    # ledgered "no" against a raw candidate did not survive export → import.
+    #
+    # Deliberately NOT added to :data:`_REJECTION_OPS`. That tuple is
+    # all-or-nothing, so a fourth entry would report every host store
+    # implementing the existing three as having *no* rejection capability at
+    # all — turning a bug about incomplete bundles into `reject_match` raising
+    # on stores that work today. A separate predicate breaks nothing, and
+    # follows the precedent set by :func:`supports_lineage`.
+
+    def memory_list_rejections(self, source_lang: str = "", target_lang: str = "",
+                               limit: int = 100_000) -> list[dict]:
+        """Every rejection in a domain, whether or not it names a pair.
+
+        Empty-string filters mean "no filter on this field". Rows carry the same
+        fields as :meth:`memory_rejections`, plus ``reopen_when``. Ordered
+        oldest-first so an export is stable across runs.
+        """
+
     # --- curation (OPTIONAL capability) -----------------------------------
     #
     # Sealing was write-only: a pair could be verified but never browsed,
@@ -313,6 +339,25 @@ def supports_rejection(store: "Storage") -> bool:
     as no support.
     """
     return all(callable(getattr(store, op, None)) for op in _REJECTION_OPS)
+
+
+_REJECTION_LISTING_OPS = ("memory_list_rejections",)
+
+
+def supports_rejection_listing(store: "Storage") -> bool:
+    """Whether ``store`` can enumerate rejections by domain rather than by key.
+
+    Its own predicate rather than a fourth entry in :data:`_REJECTION_OPS`,
+    because that tuple is all-or-nothing: adding to it would report every store
+    implementing the existing three as having no rejection capability, and
+    ``reject_match`` would start raising on stores that work today. Widening a
+    capability must not be able to switch one off.
+
+    A store without it can still record and read rejections; what it cannot do
+    is hand :func:`nestor.portable.export_bundle` the ones that name no pair.
+    Export says so out loud rather than shipping a quietly short bundle.
+    """
+    return all(callable(getattr(store, op, None)) for op in _REJECTION_LISTING_OPS)
 
 
 _CURATION_OPS = ("memory_list", "memory_get", "memory_unseal",

@@ -631,6 +631,26 @@ class SqliteStore:
                 (query_norm, source_lang, target_lang),
             )]
 
+    def memory_list_rejections(self, source_lang: str = "", target_lang: str = "",
+                               limit: int = 100_000) -> list[dict]:
+        # No join to tm_pairs: the rows this exists to reach are exactly the
+        # ones with no pair to join to (pair_id = ''), which is why the
+        # pair-keyed walk in portable.export_bundle could not see them.
+        # Ordered by created_at then id so two exports of the same store
+        # produce the same bundle, and therefore the same digest.
+        where, params = [], []
+        for col, val in (("source_lang", source_lang), ("target_lang", target_lang)):
+            if val:
+                where.append(f"{col}=?")
+                params.append(val)
+        sql = "SELECT * FROM tm_rejections"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at, id LIMIT ?"
+        params.append(limit)
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
+
     # --- curation --------------------------------------------------------
 
     def memory_list(self, source_lang: str = "", target_lang: str = "",

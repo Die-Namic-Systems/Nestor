@@ -1571,7 +1571,8 @@ number that resolves to nothing.
 
 ### 6.14 Dogfood: this session's decisions fed through Nestor — **measured**
 
-*Run 2026-08-05, feeding the §6.13 session's own decisions into the store.*
+*Run 2026-08-05, feeding the §6.13 session's own decisions into the store. The
+two defects it found are fixed in §6.15; the N1 measurement stands.*
 
 Eight decisions from the ground-rule-2b session went in as **drafts** with
 `reason` (N4), and four rejected alternatives as `tm_rejections` with `reason`
@@ -1631,8 +1632,51 @@ rejected **alternative** usually never became a pair, which is precisely the
 pair-less form, so decision memory's rejected-alternatives record is the part
 of it that does not survive `export → import`.
 
-Not fixed here. The fix is a domain-scoped rejection walk rather than a
-pair-keyed one, and it changes what a bundle contains — so it wants the same
-`BUNDLE_VERSION` decision already pending for carrying `reopen_when` (§6.11),
-plus import-side semantics for a rejection that names no pair. Both belong in
-one reviewed change, and both are the operator's call.
+### 6.15 Both §6.14 findings fixed — **shipped**
+
+*Fixed 2026-08-05, same day. Regressions in `tests/test_findings_2026_08_05.py`;
+15 of its 19 tests were observed failing against the unfixed revision, and the
+four that passed are labelled as no-regression guards rather than offered as
+gates.*
+
+**The bundle.** `export_bundle` now collects rejections by **domain**, not by
+walking the exported pairs — the walk could only ever reach rows with a
+`pair_id`, and the rows it needed to reach are the ones that have none.
+`SqliteStore.memory_list_rejections` is the new read, ordered `created_at, id`
+so two exports of one store still agree and the digest stays an integrity
+check.
+
+Three decisions inside it are worth recording, because each had a wrong answer
+that looked reasonable:
+
+* **The new op is not in `_REJECTION_OPS`.** That tuple is all-or-nothing, so a
+  fourth entry would report every host store implementing the existing three as
+  having *no* rejection capability — turning a bug about short bundles into
+  `reject_match` raising on stores that work today. Widening a capability must
+  not be able to switch one off. It gets its own predicate,
+  `supports_rejection_listing`, following `supports_lineage`'s precedent.
+* **`BUNDLE_VERSION` is 2, and 1 is still readable.** `reopen_when` joins
+  `REJECTION_FIELDS`, which changes the payload the digest is taken over — so
+  `digest()` takes the version and hashes a version-1 bundle with version-1
+  fields. Without that, upgrading this build would report a mismatch on bundles
+  nobody had touched: the exact failure `_canonical` already exists to prevent,
+  and the one that trains people to ignore the check.
+* **A store that cannot list by domain still exports, loudly.** It falls back to
+  the pair-keyed walk and warns that pair-less rejections are missing. A short
+  bundle that looks complete is the defect; the missing method is not.
+
+**The diagnostic.** `answer.match` gains a `reason`, computed in the library
+rather than assembled in the CLI format string, and ordered the way
+`best_sealed` orders its own checks so it names the first gate the query
+actually failed: not sealed, suppressed by a rejection, below threshold,
+nothing in the domain, or a seal whose signature does not verify. The exact
+query that scored 1.0000 against a draft now reads *"matched at 1.0, at or
+above 0.92 — but nothing sealed: the best candidate is draft. Nobody has
+verified this yet."* All five branches were driven and observed; a served
+answer carries `reason == ""`, so the field can never contradict the verdict.
+
+One thing this does **not** fix: the empty-candidate case can mean "absent" or
+"suppressed", and `lookup` drops rejected rows before scoring, so the reason
+consults `rejected_ids` to tell them apart. That is a second read on a path
+that already did one. It is correct and cheap at review-surface scale, and it
+would want revisiting if `match` ever moved onto a hot path.

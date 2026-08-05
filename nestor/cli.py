@@ -120,8 +120,8 @@ def cmd_match(args) -> int:
     _emit(result, args.json,
           (f"✓ would be served  {result['target']}   (by {result['verifier']}, "
            f"similarity {result['confidence']})" if result["served"]
-           else f"! would not be served — normalized to {result['normalized']!r}, "
-                f"{len(result['matches'])} candidate(s) below {result['threshold']}"))
+           else f"! would not be served — {result['reason']}\n"
+                f"  normalized to {result['normalized']!r}"))
     return EXIT_OK if result["served"] else EXIT_ANSWER_IS_NO
 
 

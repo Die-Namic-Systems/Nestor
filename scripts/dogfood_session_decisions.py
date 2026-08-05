@@ -215,9 +215,13 @@ def main() -> int:
         print(f"\nexport: {bundle['counts']['pairs']} pair(s), "
               f"{bundle['counts']['rejections']} rejection(s) — from a store holding "
               f"{len(REJECTIONS)}")
+        # Was 0 of 4 when this script was written: export walked the exported
+        # pairs, and a rejection naming no pair_id has no pair to be walked
+        # from (IDEAS §6.14). Fixed in §6.15 by collecting rejections by domain.
         if bundle["counts"]["rejections"] < len(REJECTIONS):
-            print("  ! a rejection naming no pair_id does not travel (IDEAS §6.14). If this "
-                  "\n    now carries all of them, the fix landed — update §6.14 and this line.")
+            print(f"  ! only {bundle['counts']['rejections']} of {len(REJECTIONS)} "
+                  f"rejections travelled — the §6.15 fix has regressed, or this store "
+                  f"cannot list rejections by domain")
 
         if args.keep:
             print(f"\nstore and ledger left in {root}")

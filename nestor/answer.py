@@ -66,6 +66,58 @@ def _candidate(m: dict) -> dict:
             "verifier": pair.get("verifier", "")}
 
 
+def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: str,
+                    candidates: list[dict], threshold: float) -> str:
+    """Why this query would not be served — the actual reason, not a guess at it.
+
+    ``best_sealed`` can decline a row for five different reasons: it is not
+    sealed, it is rejected for this query, it is under the context floor, it is
+    under the seal threshold, or its signature does not verify. The surface
+    reported one of them unconditionally — *"N candidate(s) below THRESHOLD"* —
+    and could be wrong twice in the same sentence: ``matches`` is filled from
+    ``lookup(context_threshold=0.0)``, which is unfiltered and therefore not
+    "below" anything, while ``served`` comes from ``best_sealed``, which filters
+    by **status**. An exact query scoring 1.0000 against a draft row printed
+    ``8 candidate(s) below 0.92``: the count was unrelated to the threshold and
+    the one row that mattered was above it. The true answer was "found it, it is
+    not sealed."
+
+    Nothing was bypassed and no rule was missed — the code answered a narrower
+    question than the one it was asked, and reported the narrow answer as the
+    whole one. That is IDEAS §1.9's shape, in a message rather than a query, and
+    a review surface that misstates its own reason is worse than a silent one:
+    it sends the reader to fix the wrong thing.
+
+    Ordered as ``best_sealed`` orders its own checks, so the reason names the
+    first gate the query actually failed.
+    """
+    above = [c for c in candidates if c["similarity"] >= threshold]
+    if above:
+        unverifiable = [c for c in above if c["status"] == "sealed" and not c["servable"]]
+        if unverifiable:
+            return (f"{len(unverifiable)} match(es) at or above {threshold} say sealed but "
+                    f"their signature does not verify — a forged seal, or one made with a "
+                    f"different key")
+        unsealed = [c for c in above if c["status"] != "sealed"]
+        if unsealed:
+            best = max(c["similarity"] for c in unsealed)
+            kinds = ", ".join(sorted({c["status"] for c in unsealed}))
+            return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
+                    f"best candidate is {kinds}. Nobody has verified this yet")
+        return f"no sealed, verifiable match at or above {threshold}"
+    if candidates:
+        return (f"closest of {len(candidates)} candidate(s) is "
+                f"{candidates[0]['similarity']}, below {threshold}")
+    # `lookup` drops rejected rows before scoring, so an empty candidate list can
+    # mean "suppressed", not "absent". Saying "nothing matched" about a query
+    # somebody explicitly answered no to would hide the very record that decided it.
+    bad_pairs, bad_targets = memory.rejected_ids(norm, source_lang, target_lang, store)
+    if bad_pairs or bad_targets:
+        return (f"nothing left to match — {len(bad_pairs) + len(bad_targets)} candidate(s) "
+                f"are suppressed by a recorded rejection for this query")
+    return "nothing in this domain matched at all"
+
+
 def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "es",
         engine_name: str = "offline") -> dict:
     """Run the cascade over one phrase: sealed, draft, or pending.
@@ -131,8 +183,12 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
     m = build_matcher(matcher, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
     hit = memory.best_sealed(text, source_lang, target_lang, store=store, matcher=m,
                              context_threshold=0.0)
+    norm = m.normalize(text)
+    candidates = [_candidate(mm) for mm in
+                  memory.lookup(text, source_lang, target_lang, limit=8, store=store,
+                                matcher=m, context_threshold=0.0)]
     return {
-        "normalized": m.normalize(text),
+        "normalized": norm,
         "served": bool(hit),
         "verified": bool(hit),
         "target": hit["pair"]["target_text"] if hit else "",
@@ -140,9 +196,9 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
         "confidence": hit["similarity"] if hit else 0.0,
         "threshold": memory.SEAL_THRESHOLD,
         "matcher": matcher,
-        "matches": [_candidate(mm) for mm in
-                    memory.lookup(text, source_lang, target_lang, limit=8, store=store,
-                                  matcher=m, context_threshold=0.0)],
+        "matches": candidates,
+        "reason": "" if hit else _why_not_served(
+            store, norm, source_lang, target_lang, candidates, memory.SEAL_THRESHOLD),
     }
 
 

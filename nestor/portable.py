@@ -44,15 +44,32 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from . import cascade, ledger as ledger_mod, memory, signing
-from .storage import Storage, get_store, supports_curation, supports_rejection
+from .storage import (Storage, get_store, supports_curation, supports_rejection,
+                      supports_rejection_listing)
 
-BUNDLE_VERSION = 1
+#: Version 2 carries ``reopen_when`` on rejections. Bumped rather than added
+#: silently because the field changes the payload the digest is taken over, and
+#: a bundle whose integrity check depends on which build wrote it is not an
+#: integrity check.
+BUNDLE_VERSION = 2
+
+#: Both are readable. Writing is always the current version; a version-1 bundle
+#: keeps verifying against the fields it was hashed with, so upgrading this
+#: build does not invalidate bundles already in circulation.
+SUPPORTED_BUNDLE_VERSIONS = (1, 2)
 
 PAIR_FIELDS = ("id", "source_text", "source_norm", "source_lang", "target_text",
                "target_lang", "status", "verifier", "weight", "origin",
                "created_at", "seal_sig")
-REJECTION_FIELDS = ("id", "query_norm", "source_lang", "target_lang", "pair_id",
-                    "target_text", "verifier", "reason", "created_at", "reject_sig")
+
+_REJECTION_FIELDS_V1 = ("id", "query_norm", "source_lang", "target_lang", "pair_id",
+                        "target_text", "verifier", "reason", "created_at", "reject_sig")
+#: ``reopen_when`` is N5's never-vs-not-yet, and without it a deferral crossed
+#: an instance boundary as a permanent refusal — the one distinction the column
+#: exists to preserve, lost by the transfer that was supposed to preserve it.
+REJECTION_FIELDS = _REJECTION_FIELDS_V1 + ("reopen_when",)
+
+_REJECTION_FIELDS_BY_VERSION = {1: _REJECTION_FIELDS_V1, 2: REJECTION_FIELDS}
 
 
 class BundleError(ValueError):
@@ -86,8 +103,16 @@ def _canonical(value: Any) -> str:
     return str(value)
 
 
-def digest(pairs: list[dict], rejections: list[dict]) -> str:
-    """A stable sha256 over the bundle's payload.
+def digest(pairs: list[dict], rejections: list[dict],
+           version: int = BUNDLE_VERSION) -> str:
+    """A stable sha256 over the bundle's payload, as ``version`` defines it.
+
+    ``version`` selects the rejection field set, and it is not decoration: a
+    version-1 bundle was hashed over rejections with no ``reopen_when``, so
+    recomputing it with version 2's fields adds an empty column the original
+    digest never saw and reports a mismatch on a file nobody touched. That is
+    the same failure ``_canonical`` exists to prevent — an integrity check that
+    fails on an untouched payload trains people to ignore it.
 
     Canonical: rows sorted by id, keys sorted, values reduced to one textual
     form (see :func:`_canonical`). Two exports of the same memory produce the
@@ -105,7 +130,7 @@ def digest(pairs: list[dict], rejections: list[dict]) -> str:
 
     payload = json.dumps(
         {"pairs": rows(pairs, PAIR_FIELDS),
-         "rejections": rows(rejections, REJECTION_FIELDS)},
+         "rejections": rows(rejections, _REJECTION_FIELDS_BY_VERSION[version])},
         sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -138,14 +163,35 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     pairs = [_row(p, PAIR_FIELDS) for p in store.memory_list(
         source_lang=source_lang, target_lang=target_lang, limit=limit)
         if not p.get("superseded_by")]
+    # Rejections are collected by DOMAIN, not by walking the exported pairs.
+    # The pair-keyed walk this replaces could only reach rejections that name a
+    # pair_id, and `reject_match` documents pair_id as "" for a refused
+    # candidate that never became a pair — the common shape for a rejected
+    # *alternative*. Those rows are recorded, signed and ledgered, and they did
+    # not travel: a signed human "no" vanished at the instance boundary, which
+    # is precisely what a bundle exists to carry.
     rejections: list[dict] = []
     if supports_rejection(store):
-        seen = set()
-        for p in pairs:
-            for r in store.memory_rejections_for_pair(p["id"]):
-                if r.get("id") not in seen:
-                    seen.add(r.get("id"))
-                    rejections.append(_row(r, REJECTION_FIELDS))
+        if supports_rejection_listing(store):
+            rejections = [_row(r, REJECTION_FIELDS) for r in
+                          store.memory_list_rejections(source_lang=source_lang,
+                                                       target_lang=target_lang,
+                                                       limit=limit)]
+        else:
+            # A store that cannot enumerate by domain can still be exported,
+            # but only the pair-bound half is reachable. Say so: a short bundle
+            # that looks complete is the defect, not the missing method.
+            seen = set()
+            for p in pairs:
+                for r in store.memory_rejections_for_pair(p["id"]):
+                    if r.get("id") not in seen:
+                        seen.add(r.get("id"))
+                        rejections.append(_row(r, REJECTION_FIELDS))
+            warnings.warn(
+                f"{type(store).__name__} cannot list rejections by domain (see "
+                f"storage.supports_rejection_listing), so this bundle carries only "
+                f"rejections that name a pair_id. Any rejection recorded against a "
+                f"raw candidate is NOT in it.", RuntimeWarning, stacklevel=2)
     bundle = {
         "nestor_bundle": BUNDLE_VERSION,
         "created_at": _now(),
@@ -175,9 +221,10 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
     if not isinstance(bundle, dict):
         return False, "not a JSON object"
     version = bundle.get("nestor_bundle")
-    if version != BUNDLE_VERSION:
-        return False, (f"unsupported bundle version {version!r} "
-                       f"(this build reads version {BUNDLE_VERSION})")
+    if version not in SUPPORTED_BUNDLE_VERSIONS:
+        return False, (f"unsupported bundle version {version!r} (this build reads "
+                       f"{', '.join(str(v) for v in SUPPORTED_BUNDLE_VERSIONS)} "
+                       f"and writes {BUNDLE_VERSION})")
     pairs, rejections = bundle.get("pairs"), bundle.get("rejections", [])
     if not isinstance(pairs, list) or not isinstance(rejections, list):
         return False, "'pairs' and 'rejections' must be lists"
@@ -187,7 +234,7 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
         if missing:
             return False, f"pair {row.get('id', '?')} is missing {', '.join(missing)}"
     want = bundle.get("digest")
-    got = digest(pairs, rejections)
+    got = digest(pairs, rejections, version=version)
     if want and want != got:
         return False, (f"digest mismatch: the payload is not the one exported "
                        f"(expected {want[:16]}…, computed {got[:16]}…)")
