@@ -10,7 +10,6 @@ written before lineage existed must come up to date without losing a row.
 from __future__ import annotations
 
 import sqlite3
-import warnings
 
 import pytest
 
@@ -141,8 +140,8 @@ class TestSupersede:
         with pytest.raises(ValueError, match="nothing to supersede"):
             memory.supersede_pair("hello", "hola", "en", "es",
                                   verifier="loki", store=store)
-        draft = memory.add_pair("draft source", "draft target", "en", "es",
-                                store=store)
+        memory.add_pair("draft source", "draft target", "en", "es",
+                        store=store)
         with pytest.raises(ValueError, match="draft"):
             memory.supersede_pair("draft source", "other", "en", "es",
                                   verifier="loki", store=store)
