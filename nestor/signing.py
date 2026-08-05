@@ -8,9 +8,10 @@ store (``NESTOR_SEAL_KEY`` or injected). A store-writer without the key cannot
 produce a signature ``best_sealed`` will accept — so a forged sealed row is not
 served.
 
-Stdlib only, so the dependency-light core is preserved. This is the symmetric
-(HMAC) form; the asymmetric upgrade — an Ed25519 signature the verifier checks
-with a public key, or a Biscuit capability — is the follow-on (see Nestor#2).
+Stdlib only, so the dependency-light core is preserved. The default is the
+symmetric (HMAC) form; the asymmetric upgrade — an Ed25519 signature checked
+with a public key the signer alone could have produced — lives behind the
+``[keys]`` extra, as ``kind == "ed25519"`` keyring entries (see Nestor#2).
 
 Opt-in and backward-compatible: with no key configured, signing is OFF and every
 seal is accepted, exactly as before.

@@ -142,6 +142,11 @@ print(p.mark, p.state, repr(p.target), p.confidence, p.meta["verifier"])
 One human verification, and the answer is free, instant and attributed from then
 on — with both steps recorded in a tamper-evident ledger.
 
+That ledger is a file, even when the store is not: the run above appends to
+`./data/ledger.jsonl`, created relative to wherever you ran it. An in-memory
+store dies with the process; the audit trail deliberately never does. Configure
+the path with `NESTOR_LEDGER` — see [The ledger](#the-ledger).
+
 Now the same loop with no translation in it. Save this as `entities.py`: an
 alias graph, where "source → target" means *surface form → the entity it
 denotes*, and the only thing that changed is which recipe is imported.
@@ -187,9 +192,14 @@ the same three states, the review queue and the ledger in a browser — see
 **Installation extras**
 
 ```bash
-pip install -e ".[dev]"      # + pytest
+pip install -e ".[dev]"      # + pytest, ruff, bandit — everything Development runs
 pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
+pip install -e ".[semantic]" # + fastembed, to enable SemanticMatcher
+pip install -e ".[keys]"     # + cryptography, for ed25519 per-verifier keys
 ```
+
+(The `-e ".[…]"` form is the one that works here — Nestor is installed from
+this clone, not from an index.)
 
 ---
 
@@ -201,7 +211,7 @@ nestor/
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
-├── semantic_matcher.py  optional SemanticMatcher (nestor[semantic] / fastembed)
+├── semantic_matcher.py  optional SemanticMatcher (the [semantic] extra / fastembed)
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
@@ -234,13 +244,19 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── corpus_terpsi.py    a real-prose corpus, with its span/split checks
 ├── token_matchers.py   token-weighted matchers tried against the identifier collisions
 ├── harness.py          timing, environment capture, JSON result recording
+├── serve_ui.py         the threshold trade-off as a chart — read-only, stdlib (serves bench/ui/)
 └── results/            committed measurements — parameters, git rev, raw numbers
 
 demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
+scripts/              dogfood and fleet-checkout utilities
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
+TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
+FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
 docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
+docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
+docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 
@@ -275,14 +291,14 @@ Two core matchers ship with zero dependencies; a third is optional:
   `tol = max(abs_tol, pct_tol·max(|a|,|b|))`, and decays exponentially
   `exp(-(|a-b|-tol)/tol)` outside it — continuous at the edge, monotonically
   toward `0` for a wildly different figure.
-- **`SemanticMatcher`** *(optional)* — `pip install nestor[semantic]` adds
+- **`SemanticMatcher`** *(optional)* — `pip install -e ".[semantic]"` adds
   `fastembed` only. Lexical dedup via `StringMatcher`; `score(raw_a, raw_b)`
   compares embeddings (default model `BAAI/bge-small-en-v1.5`). Use
   `matcher=semantic` on `nestor match`, the UI Match view, or MCP
   `nestor_match`. Re-calibrate thresholds — they are not comparable to
   character-ratio scores.
 
-Set `NESTOR_SEMANTIC_TEST=1` and install `nestor[semantic]` to run the optional
+Set `NESTOR_SEMANTIC_TEST=1` and install the `[semantic]` extra to run the optional
 integration test that checks the §3.1 acronym case (`AWS` vs `Amazon Web Services`).
 
 #### The embedding cache is signed, for the same reason a seal is
@@ -349,6 +365,32 @@ serves future tier-1 hits.
 A reviewer's **no** is recorded too — `reject_segment(...)` — so a wrong
 candidate is never offered for that input again. See
 [Rejection](#rejection--the-reviewers-no).
+
+The loop end to end, in code — draft, queue, seal, serve:
+
+```python
+from nestor import cascade, memory, storage
+from nestor.sqlite_store import SqliteStore
+
+store = SqliteStore(":memory:")
+storage.set_store(store)
+memory.add_pair("Please sign the form.", "Firme el formulario.", "en", "es",
+                status="sealed", verifier="rita")
+
+# Tier 2: nothing sealed is close enough, so the engine drafts and queues.
+doc, passages = cascade.translate_text("Please sign the attached form.",
+                                       target_lang="es", source_lang="en")
+passages[0].state                     # 'draft' — queued, not served as verified
+
+# Tier 3: a human works the queue. Accept or refuse; either way it sticks.
+for seg in store.list_segments(doc["id"]):        # the optional queue capability
+    cascade.graduate_segment(seg["id"], verifier="rita")
+    # or: cascade.reject_segment(seg["id"], verifier="rita", reason="…")
+
+# From now on, the same request is a tier-1 hit with rita's name on it.
+memory.best_sealed("Please sign the attached form.", "en", "es")
+# {'pair': {...'verifier': 'rita'...}, 'similarity': 1.0}
+```
 
 Pairs are `sealed` (human-verified / curated) or `draft` (machine, awaiting
 seal). Only sealed pairs are served as tier 1; drafts may feed the engine as
@@ -422,7 +464,9 @@ There are two different refusals, and the distinction matters:
 memory.reject_pair(pair_id, verifier="rita", reason="wrong time of day")
 
 # 2. This pair is the wrong answer FOR THIS QUERY — it stays valid for its own
-#    source text. This is what a false seal actually is.
+#    source text. This is what a false seal actually is. A hit from lookup()
+#    or best_sealed() is {"pair": {...the stored row...}, "similarity": float}.
+hit = memory.best_sealed("the penalty under section 900026", "en", "es")
 memory.reject_match("the penalty under section 900026", "en", "es",
                     pair_id=hit["pair"]["id"], verifier="rita",
                     reason="different section")
@@ -632,6 +676,23 @@ call a paid API.
 
 ## The CLI
 
+The CLI is its own process, so it does not see a store your Python snippet set
+with `set_store(":memory:")` — it reads `--db` (default `./data/nestor.db`) and
+`--ledger` (default `NESTOR_LEDGER` or `./data/ledger.jsonl`). Both are global
+flags, so they go **before** the subcommand: `nestor --db mydb.db ask "…"`, not
+`nestor ask "…" --db mydb.db`. The examples below assume something has been
+sealed into that file-backed store; to make the first one answer, seed it once:
+
+```bash
+python - <<'EOF'
+from nestor import memory, storage
+from nestor.sqlite_store import SqliteStore
+storage.set_store(SqliteStore("data/nestor.db"))
+memory.add_pair("Good evening.", "Buenas noches.", "en", "es",
+                status="sealed", verifier="rita")
+EOF
+```
+
 ```bash
 nestor ask "Good evening."               # ✓ sealed  Buenas noches.  (verified by rita)
 nestor resolve AMZN --domain company     # the entity graph
@@ -673,6 +734,7 @@ import applies the serve path's rule rather than a softer one:
 |---|---|
 | sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you |
 | sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, and never served |
+| sealed, and **this instance has no key configured** | imported sealed on stored status alone — the serve path would trust the same row for the same reason, so import does not pretend to a stricter rule than serving has. `NESTOR_REQUIRE_SEAL_KEY=1` refuses the import outright |
 | draft | imported as a draft |
 | same source, a *different* target | **conflict**: listed for a human, never resolved silently (`--override-conflicts`) |
 | a pair **rejected here** | listed and skipped — `--override-conflicts` deliberately cannot reach it, because a rejection is not a competing answer (`--override-rejections`, or `Curator.restore`, is the way back) |
@@ -816,6 +878,14 @@ so a row edited to `status='sealed'` directly in the database will not verify an
 will not be served. Without the variable Nestor warns and trusts stored status —
 set `NESTOR_REQUIRE_SEAL_KEY=1` to fail closed instead.
 
+The key is an arbitrary string used as an HMAC secret — there is no required
+format, so generate one with entropy rather than inventing one:
+
+```bash
+export NESTOR_SEAL_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+# keep it out of source control; every seal made under it verifies only where it is set
+```
+
 ### Who verified it — per-verifier keys
 
 One `NESTOR_SEAL_KEY` proves *the key was present*. It does not prove **who**:
@@ -868,9 +938,20 @@ attributable to a person, which is what they always were. Leave it out and they
 land in `unverifiable()` for re-verification instead.
 
 What this is not: a shared secret proves possession of a key, not the presence
-of a person, and the process necessarily holds the keys it verifies against. The
-asymmetric upgrade — a signature checked with a public key the verifier could
-not have produced — is the follow-on, through the same
+of a person, and with HMAC entries the process necessarily holds the keys it
+verifies against. The asymmetric upgrade exists, behind the `[keys]` extra
+(`pip install -e ".[keys]"`):
+
+```bash
+nestor keys add rita --type ed25519 --keyring keys.json   # generates a keypair here
+nestor keys add peer --type ed25519 --public <hex> --keyring keys.json
+```
+
+An ed25519 entry signs with a private key and verifies with the public half —
+so a keyring holding only a peer's **public** key can verify their seals while
+being structurally unable to sign as them, which is what makes an imported
+bundle's seals checkable without sharing a secret. HMAC entries and the
+single-`NESTOR_SEAL_KEY` deployment are unchanged, through the same
 `signing.sign_seal(..., key=)` seam.
 
 ### FRANK — mirroring into shared provenance
@@ -962,8 +1043,10 @@ feature.
 ### Other injected seams
 
 - **Draft engine** — `nestor.engine.get_engine("auto"|"claude"|"offline")`. The
-  Anthropic SDK import is lazy: without credentials or the `anthropic` package,
-  Nestor uses the deterministic offline TM-composite engine.
+  Anthropic SDK import is lazy: without credentials (`ANTHROPIC_API_KEY`) or the
+  `anthropic` package, `auto` falls back to the deterministic offline
+  TM-composite engine — silently, so if you expected a Claude draft and got an
+  offline one, the unset variable is the first thing to check.
 - **Bilingual corpus loader** — `memory.set_bilingual_loader(fn)`, or pass
   `loader=` to `seed_from_corpus`. Default returns `[]`.
 
@@ -1005,6 +1088,11 @@ rate against recall at each cutoff:
 python bench/bench_accuracy.py --probes 400
 ```
 
+The full sweep takes on the order of ten minutes; it checkpoints after every
+row and `--resume` continues an interrupted run, so a timeout costs nothing —
+[`bench/README.md`](bench/README.md) explains, including why a result with
+`"complete": false` is a prefix, not an answer.
+
 Results land in `bench/results/*.json` with parameters, environment and git
 revision attached. [`bench/README.md`](bench/README.md) documents the method,
 including the properties a corpus must preserve to produce a meaningful number.
@@ -1021,7 +1109,7 @@ the only question that needs no probe set:
 
 ```bash
 nestor calibrate --from en --to es --target 0.01
-nestor calibrate --from en --to es --matcher semantic --target 0.01  # needs nestor[semantic]
+nestor calibrate --from en --to es --matcher semantic --target 0.01  # needs the [semantic] extra
 ```
 
 Pass ``--matcher`` when you serve with ``semantic`` or token bench matchers —
@@ -1035,6 +1123,16 @@ target, and says so plainly when no cutoff reaches it (that is a corpus problem,
 not a dial problem). It changes nothing: moving the threshold is a decision
 about how much unverified content you will serve, and it belongs to a person. It
 is also a *lower* bound — real queries include text the memory has never seen.
+
+Two consequences of that, stated rather than implied. **A small memory
+recommends low, and means nothing by it** — fewer pairs means fewer collisions,
+so an early, near-empty memory clears any target at the lowest cutoff swept.
+Treat a recommendation from a few dozen pairs as noise and calibrate again once
+the memory has grown. And **applying the result is deliberately manual**: pass
+`seal_threshold=` per call to `best_sealed`, or rebind
+`nestor.memory.SEAL_THRESHOLD` at process start. There is no env var, because
+moving the dial is a decision someone should be able to find in code review,
+not a deployment setting that drifts.
 
 Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
 
