@@ -2082,3 +2082,270 @@ now appeared in the export walk, the rejection filter, and the row retirement �
 three different mechanisms, one habit. The counter-move that has worked each
 time is not a better condition but moving the precondition into the operation:
 two walks each bounded by construction; a WHERE clause instead of a read.
+
+### 6.22 A name is not a word: the proper-noun case has no field — **measured**, design **open**
+
+*Raised 2026-08-05 out of a conversation about the repo's own name, after the
+operator observed that the translations produced by hand in that conversation
+were exactly the thing the store exists to hold. They were. The attempt to say
+where they would go is what turned up this.*
+
+Two source strings, translated into Russian:
+
+```
+Nestor  -> Нестор            a name. transliterated, not translated.
+nestor  -> мудрый советник   the common noun. a real translation.
+```
+
+Both are correct. `StringMatcher.normalize` case-folds, so both key to
+`nestor`, and the partial unique index permits **one live row per
+`(source_norm, source_lang, target_lang)`**. The store cannot hold both.
+
+**Measured, on a file-backed store:**
+
+* Two *different* verifiers → `ConflictingSealError`. The guard fires, and it
+  is right about its own premise and wrong about the situation: it reports two
+  humans disagreeing about one source, when what happened is two humans
+  agreeing about two different sources. There is no outcome available that
+  keeps both.
+* One verifier (the self-correction path, and the ordinary case for a single
+  operator) → **no error, one row, mixed**: `source_text='Nestor'`,
+  `target_text='мудрый советник'`, `status='sealed'`, and `verified_sealed`
+  passes it. First writer wins `source_text`, last writer wins `target_text`.
+  The surviving row asserts a pair nobody entered. This is the documented
+  same-actor upgrade behaving as documented — it is not a hole, and the
+  reason it reads like one is that the key says these are the same source.
+
+Case folding is a deliberate and correct choice; "Hello"/"hello" sharing a row
+is the whole point of normalization. The cost lands entirely on the class of
+strings where case *is* the meaning, and there is no field that says so.
+
+**The one mechanism that could express it is outside everything.**
+`glossary.locks_in_text` → `system_prompt(locks=...)` already emits *"Locked
+terminology — always render these terms exactly as given"*, and an identity
+lock (`{"Nestor": "Nestor"}`) is precisely carry-through. But the glossary is
+`data/glossary.json`, and `grep` for it in `portable.py`, `cascade.py` and
+`sqlite_store.py` returns **0, 0, 0**: not bundled, not ledgered, not sealable,
+not superseded, no verifier, no signature. The one place Nestor can say *do not
+translate this* is the one place with none of Nestor's guarantees. A bundle
+that carries every pair and rejection carries no locks, so the receiving host
+composes prompts the sending host would not have.
+
+**What is not being proposed.** Not a `kind` column, and not on the strength of
+one example — that is the shape §6.17 keeps punishing, a field added to carry a
+distinction the mechanism does not otherwise make. Three questions come first,
+and the third may dissolve the other two:
+
+1. Is the distinction *proper noun* or is it *this string is carried, not
+   rendered*? The second is broader (product names, identifiers, code) and does
+   not need a linguistics answer.
+2. Should the glossary move into the store — where it would inherit sealing,
+   supersession and the bundle — or is it correctly a policy file that happens
+   to be under-guarded?
+3. Does a carried string want a *pair* at all? `Nestor -> Нестор` is a fact
+   about a script, not about a language pair, and the table is a language-pair
+   table.
+
+**Also true, and the reason this is in §6 rather than fixed:** nobody has hit
+it. It has no reporter, no failing host, and one contrived reproduction. It is
+recorded because it was found while looking for somewhere to put a dozen
+unsigned translations, and per §6's own rule a follow-up raised in conversation
+and not written down did not happen.
+
+**And the translations themselves.** A dozen renderings of *nest* into
+languages nobody in the session reads, asserted in one breath at one
+confidence, none signed. Five (`nid`, `nido`, `ninho`, `Nest`, `nīḍa`) are
+cognate descent from PIE \*ni-sd-ós; one (`cuib`) is not — it reaches the same
+metaphor by a different road — and stating them together flattened exactly the
+difference a `reason` field exists to keep. If they are ever entered they are
+`draft`, with the shaky ones marked and `revise_draft` waiting for the moment
+somebody who actually speaks Romanian looks at *cuib*.
+
+> **Corrected in place, same day**, while printing the table into the README —
+> which is what checking is for. This paragraph first said *cuib* came "from
+> Latin *cubium*". Wiktionary gives Vulgar Latin \*clubium ← Ancient Greek
+> κλυβίον, with \*cubium as a variant; the *cubāre* "lie down" association I had
+> in mind is not the given derivation. Two more of the same kind turned up in
+> the same pass: Armenian *nist* means **"seat, session"**, not "nest", and its
+> derivation is contested (from \*nisdós *or* deverbal from նստիմ); and Greek
+> kept **no** reflex of \*nisdós at all — φωλιά is unrelated. Three errors in
+> sixteen rows, all in the rows I had already flagged as the uncertain ones,
+> and none of them visible without looking them up. The README table is
+> published with every row marked `draft` for exactly this reason.
+The etymology is not translation and no engine here would produce it;
+`system_prompt` says *translate*, so asking it for a reconstruction returns a
+bad translation of a question. That half is research and belongs here, in the
+list, which is where it now is.
+
+### 6.23 The refusal voice: three sentences rewritten, one bug, two rules — **shipped**
+
+*Prompted by an operator's observation, from months of doing this: the persona
+is load-bearing, and it is usually better slightly humorous and
+self-deprecating. Recorded because the reasoning changed a design and the
+design was wrong before it.*
+
+**The argument is already in the tree.** `portable._canonical` carries it:
+*"an integrity check that fails on a lossless round-trip trains people to
+ignore it, which is worse than not having one."* Same mechanism, different
+surface — a refusal that reads as officious trains people to route around it.
+And it matters more here than most places, because **by volume Nestor's output
+is refusal**: the sealed hit is instant and silent, and everything a curator
+actually reads is a machine saying *below the bar*, *nobody has verified this*,
+*nothing matched*.
+
+**Where the voice actually was.** `_why_not_served` was written in an
+unmistakable register — dry, precise, unapologetic, wry about its own
+failures — **in the comments**. `# a number attached to a noun it does not
+count`. `# The previous fix for this sentence reproduced its own bug one line
+lower.` That last is the best sentence in the file and no user will ever read
+it. The six strings a human *does* read were flat. The voice was aimed
+entirely at reviewers and absent from users. Same in the README, where
+*"Nothing to offer. Said plainly rather than improvised"* is in the docs and
+not in the product.
+
+**A partition, not a tone.** Which acts may be wry follows from the covenant
+rather than from taste:
+
+```
+machine is the subject   below_threshold, nothing_sealed, nothing_in_domain   may be wry
+human is the subject     forged_seal, rejected_outright, suppressed           plain, always
+```
+
+The machine may be laughed at because the machine is the junior party — it may
+propose and may not confirm. When two people assert different things, when a
+curator's "no" is being honoured, when a signature does not verify: nothing is
+funny. The rule predicted that exactly three of six would change, and it also
+predicted **which tests would break** — only the machine-subject assertions.
+Both held.
+
+There is a duller reason it held, worth more than the rule: the three
+human-subject strings are the three that already got the most engineering
+attention (the rejection branches carry paragraphs about counting records
+versus rows). Nobody agonizes over how to say *I didn't find anything*, so the
+flatness pooled exactly where the rule points.
+
+**The bug, found by rendering the sentence rather than reading it.**
+
+```
+- closest of 20000 candidate(s) is 0.71, below 0.92 (20000 scored, showing 8)
++ closest of 20000 candidate(s) is 0.71, below 0.92 (showing 8) — the bar
++ exists because a near miss served as verified is worse than no answer
+```
+
+`20000` twice: the display-slice clause re-reported a number already the second
+word of the sentence. Cosmetic, pre-existing, invisible until someone tried to
+say it out loud.
+
+**Two rules the writing produced, neither of which was in the design:**
+
+* **Range safety.** The first draft read *"close enough to be tempting, which
+  is why it is not served"* — a good sentence, and **false at 0.11**. A flat
+  string is true across its whole format domain; a pointed one need not be, and
+  the register makes that easy to introduce. The fix is to make the clause
+  about the *bar* rather than about *this row*, and it is genuinely
+  property-testable: render at both ends, assert nothing reads as a lie.
+  `TestRangeSafety` does that, and forbids the four words that were the
+  temptation.
+* **The direction of the self-deprecation.** The empty-domain rewrite works
+  because it *takes the blame*: `"...which usually means en→es is empty rather
+  than that the question was strange"`. Flat "nothing matched at all" quietly
+  leaves the reader wondering whether their input was odd. The real principle
+  under "at the machine's expense" is not *make jokes about yourself* — it is
+  **absorb the awkwardness of an empty result instead of leaving it where the
+  user will pick it up.** That generalizes well past humour.
+
+**A silent degradation, avoided narrowly.** Four assertions in
+`test_findings_2026_08_05.py` read `"nothing in this domain" not in reason`, to
+prove a rejection is not reported as an absence. Reword that branch and all
+four keep passing **while checking nothing** — no branch emits the phrase, so
+its absence is free. The phrase was therefore kept and the branch extended
+around it, and `TestTheAssertedPhrasesAreRealSince` now pins it: a negative
+assertion is only worth anything while something can still produce what it
+denies. This is the one finding here that is not about prose.
+
+**And one wrong sentence pinned by a passing test.** The nothing-sealed branch
+said *"the best candidate is {kinds}"*; `kinds` is the set of statuses across
+**every** row above the bar, not the best one's. A test asserted the phrase
+verbatim and passed — because it agreed with the sentence, not because the
+sentence was right. §6.14's finding again, in a test rather than a claim.
+
+**What this says about `persona.py`, which was not built.** The tests pin prose
+because the classifier has no stable identifier — the branch returns a
+sentence, so a sentence is the only thing to assert on. That is the concrete,
+measured cost of the missing module, and it is *one assertion*, not a crisis.
+The order that follows: get the sentences right in place, extract the module
+from strings that already work, and do not invent a schema and fill it. The
+sketch is otherwise unchanged except in one place — the argument against a
+`warmth=` knob. It was *"tone trades against clarity"*, which is wrong. The
+right argument is `system_prompt`'s own, about `VOICE_RULE`: **the only reason
+to make it optional would be to turn it off.** The register is not a parameter
+because it is load-bearing, not because it is dangerous.
+
+### 6.24 `persona.py` — installed, and the two gates that bit me — **shipped**
+
+*Built 2026-08-05 after §6.23, on the order §6.23 argued for: get the sentences
+right in place first, then extract the module from strings that already work.
+The alternative — invent a schema and fill it — is how the glossary happened.*
+
+**What it is.** A closed vocabulary of six speech acts, one rendering each, a
+`get_persona`/`set_persona` seam matching `set_store` and `set_matcher`, and
+`answer._why_not_served` split into `_classify` (returns an act plus its facts)
+and a renderer. The strings moved out of `answer.py` unchanged.
+
+**The split is the part that pays.** §6.23 recorded the cost of a classifier
+that returns prose: every assertion about *which* refusal happened was a
+substring match on the sentence. Four negative assertions in
+`test_findings_2026_08_05.py` were one rewording away from passing vacuously,
+and one positive assertion pinned a sentence that was *wrong*. `_classify` now
+returns `("nothing_in_domain", {...})`, and `test_every_act_classify_returns_
+is_a_pinned_one` reads those literals **statically** — a branch reachable only
+under a store state no test builds would otherwise ship an unpinned act.
+
+**Two gates in the repo caught the author of the module within minutes,
+which is the only reason to write this entry.**
+
+* **`test_engine.py::test_the_rule_is_written_once`** (the §6.13 gate) failed
+  on `persona.py`'s own docstring. Explaining that this module is *not* ground
+  rule 2b, I retyped ground rule 2b — making its distinctive phrase appear
+  twice in the package, which is the exact defect §6.13 existed to remove. The
+  docstring now points at `engine.VOICE_RULE` and says why it does not quote
+  it.
+* **`test_docs.py`** failed because the project layout is a promise about
+  what is in the package, and a new module had not been added to it.
+
+Neither was clever. Both fired on a change made by someone who had read them
+that morning, which is the argument for gates over guidance in one line.
+
+**A third gate turned out stronger than designed.** Adding an act to
+`SPEECH_ACTS` without a rendering does not fail a test — it fails **import**,
+because `NESTOR` is constructed at module scope and `Persona.__post_init__`
+refuses an incomplete persona. The all-or-nothing rule enforces itself before
+any test runs. That was not foreseen and it is the right behaviour.
+
+**Where the negation check lives, and why it is not at construction.**
+`NEGATIONS` is checked on the *output* of a rendering, in `say`, not on the
+persona when it is installed. A rendering is a callable, so a sentence that
+negates at one count and not at another is exactly the failure worth catching,
+and a construction-time check cannot see it. Cost: one substring scan per
+refusal, on a path that has just scanned the whole domain.
+
+**Mutation-proved, because a gate that cannot fail is a description:**
+
+```
+engine.py imports persona            -> test_engine_does_not_import_persona FAILS
+_classify interpolates an f-string   -> test_classify_composes_no_prose     FAILS
+an act added to SPEECH_ACTS          -> the package does not import
+```
+
+**Deliberately not done.** The exception messages (`ConflictingSealError`,
+`RejectedPairError`) and `cascade.py`'s state glyphs are also Nestor speaking
+as itself, and they stayed where they are. Sweeping them in would mean routing
+exception text through a global seam — a persona that can reword an error is a
+persona that can reword a stack trace's meaning — and it is a much larger
+change than the one that was asked for. `SPEECH_ACTS` is the refusal surface,
+and the frozenset is pinned so growing it is a decision rather than a drift.
+
+**Still open.** i18n of Nestor's own speech is a genuinely good idea and a
+different module: it puts a translation system in the position of translating
+its own refusals, unverified, which wants its own entry rather than smuggling
+into this one.

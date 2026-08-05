@@ -22,6 +22,7 @@ from . import cascade, memory
 from .engine import get_engine
 from .entity import EntityResolver
 from .matcher import Matcher, NumericMatcher, StringMatcher
+from .persona import Persona, get_persona
 from .reconcile import Reconciler
 from .storage import Storage
 
@@ -76,10 +77,16 @@ _MATCH_DISPLAY = 8
 _ALL_CANDIDATES = 1_000_000
 
 
-def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
-                    source_lang: str, target_lang: str,
-                    candidates: list[dict], threshold: float) -> str:
+def _classify(store: Storage, matcher: Matcher, text: str, norm: str,
+              source_lang: str, target_lang: str,
+              candidates: list[dict], threshold: float) -> tuple[str, dict]:
     """Why this query would not be served — the actual reason, not a guess at it.
+
+    Returns a :data:`nestor.persona.SPEECH_ACTS` member and the facts that act
+    interpolates. **The act, not the sentence**: this used to return prose, so
+    every test about *which* refusal happened was a substring match, and a
+    reworded branch either broke tests that were about classification or left
+    negative assertions passing vacuously. :func:`_why_not_served` renders.
 
     ``best_sealed`` can decline a row for five different reasons: it is not
     sealed, it is rejected for this query, it is under the context floor, it is
@@ -118,23 +125,22 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
     if above:
         unverifiable = [c for c in above if c["status"] == "sealed" and not c["servable"]]
         if unverifiable:
-            return (f"{len(unverifiable)} match(es) at or above {threshold} say sealed but "
-                    f"their signature does not verify — a forged seal, or one made with a "
-                    f"different key")
-        best = max(c["similarity"] for c in above)
-        kinds = ", ".join(sorted({c["status"] for c in above}))
-        return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
-                f"best candidate is {kinds}. Nobody has verified this yet")
+            return "forged_seal", {"count": len(unverifiable), "threshold": threshold}
+        return "nothing_sealed", {
+            "best": max(c["similarity"] for c in above),
+            "threshold": threshold,
+            "kinds": ", ".join(sorted({c["status"] for c in above})),
+        }
     if candidates:
-        # `len(candidates)` is now the whole eligible domain, not a page, so
-        # quoting it raw reads as "closest of 20000 candidate(s)". Report the
-        # shape the reader can act on: the closest score, and how many cleared
-        # the context floor at all.
-        shown = min(len(candidates), _MATCH_DISPLAY)
-        more = f" ({len(candidates)} scored, showing {shown})" \
-            if len(candidates) > _MATCH_DISPLAY else ""
-        return (f"closest of {len(candidates)} candidate(s) is "
-                f"{candidates[0]['similarity']}, below {threshold}{more}")
+        # `len(candidates)` is the whole eligible domain, not a page. Report the
+        # shape the reader can act on: the closest score, how many were scored,
+        # and — separately — how many of them they are being shown.
+        return "below_threshold", {
+            "count": len(candidates),
+            "best": candidates[0]["similarity"],
+            "threshold": threshold,
+            "shown": min(len(candidates), _MATCH_DISPLAY),
+        }
     # An empty candidate list can mean "absent" or "refused", and reporting a
     # refusal as an absence hides the very record that decided the question.
     # There are two ways to refuse and they live in different places:
@@ -159,9 +165,7 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
                                                     raw_score=raw_score, sims=sims),
                          3) >= threshold]
         if near:
-            return (f"{len(near)} pair(s) matching this query were rejected outright "
-                    f"(memory.reject_pair) — the mapping is wrong in its own right, so "
-                    f"it is never served or offered again")
+            return "rejected_outright", {"count": len(near)}
     bad_pairs, bad_targets = memory.rejected_ids(norm, source_lang, target_lang, store)
     if bad_pairs or bad_targets:
         # Count the RECORDS, and say so. `rejected_ids` returns rejected pair
@@ -175,10 +179,30 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
         # a target_text counted as 2, and two records naming the same target
         # collapsed to 1 — wrong in both directions. The previous fix for this
         # sentence reproduced its own bug one line lower.
-        n = len(store.memory_rejections(norm, source_lang, target_lang))
-        return (f"nothing left to match — {n} recorded rejection(s) for this query "
-                f"suppress every candidate that would otherwise have been scored")
-    return "nothing in this domain matched at all"
+        return "suppressed", {
+            "count": len(store.memory_rejections(norm, source_lang, target_lang)),
+        }
+    return "nothing_in_domain", {"source_lang": source_lang,
+                                 "target_lang": target_lang}
+
+
+def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
+                    source_lang: str, target_lang: str,
+                    candidates: list[dict], threshold: float,
+                    persona: "Optional[Persona]" = None) -> str:
+    """The sentence for :func:`_classify`'s verdict, in the installed persona.
+
+    Two functions rather than one because a classifier that returns prose can
+    only be tested through prose. Every assertion about *which* refusal this is
+    used to be a substring match on the sentence — so rewording a branch either
+    broke tests that were about classification, or, worse, left four negative
+    assertions in ``tests/test_findings_2026_08_05.py`` passing while checking
+    nothing, because no branch could produce the phrase whose absence they
+    asserted. The act is the fact; the sentence is a rendering of it.
+    """
+    act, facts = _classify(store, matcher, text, norm, source_lang, target_lang,
+                           candidates, threshold)
+    return get_persona(persona).say(act, **facts)
 
 
 def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "es",
