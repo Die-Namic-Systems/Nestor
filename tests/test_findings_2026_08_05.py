@@ -250,7 +250,12 @@ class TestCTheReasonIsTheRealReason:
         # Not `"sealed" in reason` — that is a substring of "unsealed" and
         # "nothing sealed" and would pass for almost any wrong message.
         assert "nothing sealed" in result["reason"]
-        assert "the best candidate is draft" in result["reason"]
+        # Reworded 2026-08-05 with the branch itself. This assertion used to
+        # read "the best candidate is draft", pinning a phrase that was wrong:
+        # the value it names is the set of statuses across EVERY row above the
+        # bar, not the best one's. The test passed because it agreed with the
+        # sentence, not because the sentence was right.
+        assert "above the bar there is only draft" in result["reason"]
         assert "1.0" in result["reason"], "the score it did match should be quoted"
 
     def test_a_genuine_near_miss_says_below_threshold_with_the_real_score(self, store):

@@ -2176,3 +2176,107 @@ The etymology is not translation and no engine here would produce it;
 `system_prompt` says *translate*, so asking it for a reconstruction returns a
 bad translation of a question. That half is research and belongs here, in the
 list, which is where it now is.
+
+### 6.23 The refusal voice: three sentences rewritten, one bug, two rules — **shipped**
+
+*Prompted by an operator's observation, from months of doing this: the persona
+is load-bearing, and it is usually better slightly humorous and
+self-deprecating. Recorded because the reasoning changed a design and the
+design was wrong before it.*
+
+**The argument is already in the tree.** `portable._canonical` carries it:
+*"an integrity check that fails on a lossless round-trip trains people to
+ignore it, which is worse than not having one."* Same mechanism, different
+surface — a refusal that reads as officious trains people to route around it.
+And it matters more here than most places, because **by volume Nestor's output
+is refusal**: the sealed hit is instant and silent, and everything a curator
+actually reads is a machine saying *below the bar*, *nobody has verified this*,
+*nothing matched*.
+
+**Where the voice actually was.** `_why_not_served` was written in an
+unmistakable register — dry, precise, unapologetic, wry about its own
+failures — **in the comments**. `# a number attached to a noun it does not
+count`. `# The previous fix for this sentence reproduced its own bug one line
+lower.` That last is the best sentence in the file and no user will ever read
+it. The six strings a human *does* read were flat. The voice was aimed
+entirely at reviewers and absent from users. Same in the README, where
+*"Nothing to offer. Said plainly rather than improvised"* is in the docs and
+not in the product.
+
+**A partition, not a tone.** Which acts may be wry follows from the covenant
+rather than from taste:
+
+```
+machine is the subject   below_threshold, nothing_sealed, nothing_in_domain   may be wry
+human is the subject     forged_seal, rejected_outright, suppressed           plain, always
+```
+
+The machine may be laughed at because the machine is the junior party — it may
+propose and may not confirm. When two people assert different things, when a
+curator's "no" is being honoured, when a signature does not verify: nothing is
+funny. The rule predicted that exactly three of six would change, and it also
+predicted **which tests would break** — only the machine-subject assertions.
+Both held.
+
+There is a duller reason it held, worth more than the rule: the three
+human-subject strings are the three that already got the most engineering
+attention (the rejection branches carry paragraphs about counting records
+versus rows). Nobody agonizes over how to say *I didn't find anything*, so the
+flatness pooled exactly where the rule points.
+
+**The bug, found by rendering the sentence rather than reading it.**
+
+```
+- closest of 20000 candidate(s) is 0.71, below 0.92 (20000 scored, showing 8)
++ closest of 20000 candidate(s) is 0.71, below 0.92 (showing 8) — the bar
++ exists because a near miss served as verified is worse than no answer
+```
+
+`20000` twice: the display-slice clause re-reported a number already the second
+word of the sentence. Cosmetic, pre-existing, invisible until someone tried to
+say it out loud.
+
+**Two rules the writing produced, neither of which was in the design:**
+
+* **Range safety.** The first draft read *"close enough to be tempting, which
+  is why it is not served"* — a good sentence, and **false at 0.11**. A flat
+  string is true across its whole format domain; a pointed one need not be, and
+  the register makes that easy to introduce. The fix is to make the clause
+  about the *bar* rather than about *this row*, and it is genuinely
+  property-testable: render at both ends, assert nothing reads as a lie.
+  `TestRangeSafety` does that, and forbids the four words that were the
+  temptation.
+* **The direction of the self-deprecation.** The empty-domain rewrite works
+  because it *takes the blame*: `"...which usually means en→es is empty rather
+  than that the question was strange"`. Flat "nothing matched at all" quietly
+  leaves the reader wondering whether their input was odd. The real principle
+  under "at the machine's expense" is not *make jokes about yourself* — it is
+  **absorb the awkwardness of an empty result instead of leaving it where the
+  user will pick it up.** That generalizes well past humour.
+
+**A silent degradation, avoided narrowly.** Four assertions in
+`test_findings_2026_08_05.py` read `"nothing in this domain" not in reason`, to
+prove a rejection is not reported as an absence. Reword that branch and all
+four keep passing **while checking nothing** — no branch emits the phrase, so
+its absence is free. The phrase was therefore kept and the branch extended
+around it, and `TestTheAssertedPhrasesAreRealSince` now pins it: a negative
+assertion is only worth anything while something can still produce what it
+denies. This is the one finding here that is not about prose.
+
+**And one wrong sentence pinned by a passing test.** The nothing-sealed branch
+said *"the best candidate is {kinds}"*; `kinds` is the set of statuses across
+**every** row above the bar, not the best one's. A test asserted the phrase
+verbatim and passed — because it agreed with the sentence, not because the
+sentence was right. §6.14's finding again, in a test rather than a claim.
+
+**What this says about `persona.py`, which was not built.** The tests pin prose
+because the classifier has no stable identifier — the branch returns a
+sentence, so a sentence is the only thing to assert on. That is the concrete,
+measured cost of the missing module, and it is *one assertion*, not a crisis.
+The order that follows: get the sentences right in place, extract the module
+from strings that already work, and do not invent a schema and fill it. The
+sketch is otherwise unchanged except in one place — the argument against a
+`warmth=` knob. It was *"tone trades against clarity"*, which is wrong. The
+right argument is `system_prompt`'s own, about `VOICE_RULE`: **the only reason
+to make it optional would be to turn it off.** The register is not a parameter
+because it is load-bearing, not because it is dangerous.

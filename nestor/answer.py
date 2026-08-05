@@ -123,18 +123,34 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
                     f"different key")
         best = max(c["similarity"] for c in above)
         kinds = ", ".join(sorted({c["status"] for c in above}))
-        return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
-                f"best candidate is {kinds}. Nobody has verified this yet")
+        # The closing clause names which of the two refusals this is. Without it
+        # a reader who has just seen the below-threshold sentence assumes the
+        # score is the problem and goes looking for a lower bar, when the score
+        # is fine and the missing thing is a signature. It says nothing about
+        # WHO wrote the candidates, deliberately: `kinds` can be 'draft' or
+        # 'rejected' or both, and a sentence true of one is a lie about the
+        # other. See tests/test_refusal_voice.py::TestRangeSafety.
+        return (f"matched at {best}, at or above {threshold} — but nothing sealed; "
+                f"above the bar there is only {kinds}. Close is not the problem "
+                f"here, unverified is")
     if candidates:
         # `len(candidates)` is now the whole eligible domain, not a page, so
         # quoting it raw reads as "closest of 20000 candidate(s)". Report the
         # shape the reader can act on: the closest score, and how many cleared
         # the context floor at all.
         shown = min(len(candidates), _MATCH_DISPLAY)
-        more = f" ({len(candidates)} scored, showing {shown})" \
-            if len(candidates) > _MATCH_DISPLAY else ""
+        # `(showing N)`, not `(N scored, showing M)`: the count is already the
+        # second word of this sentence, and repeating it read as two different
+        # numbers that happened to agree.
+        more = f" (showing {shown})" if len(candidates) > _MATCH_DISPLAY else ""
+        # The clause is about the BAR, not about this row. "a near miss" would
+        # be false of a 0.0 candidate if it described the candidate; describing
+        # why the threshold exists is true at every score. That distinction is
+        # the whole of tests/test_refusal_voice.py::TestRangeSafety.
         return (f"closest of {len(candidates)} candidate(s) is "
-                f"{candidates[0]['similarity']}, below {threshold}{more}")
+                f"{candidates[0]['similarity']}, below {threshold}{more} — the bar "
+                f"exists because a near miss served as verified is worse than no "
+                f"answer")
     # An empty candidate list can mean "absent" or "refused", and reporting a
     # refusal as an absence hides the very record that decided the question.
     # There are two ways to refuse and they live in different places:
@@ -178,7 +194,17 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
         n = len(store.memory_rejections(norm, source_lang, target_lang))
         return (f"nothing left to match — {n} recorded rejection(s) for this query "
                 f"suppress every candidate that would otherwise have been scored")
-    return "nothing in this domain matched at all"
+    # The opening phrase is load-bearing beyond this sentence: four negative
+    # assertions in tests/test_findings_2026_08_05.py are pinned to it, and
+    # rewording it would leave all four passing while checking nothing. Pinned
+    # in tests/test_refusal_voice.py.
+    #
+    # The second half takes the blame. "nothing matched at all", alone, leaves
+    # the reader to wonder whether the question was the problem; it usually is
+    # not, and an empty store is the far likelier cause.
+    return (f"nothing in this domain matched at all — no candidate scored, which "
+            f"usually means {source_lang}→{target_lang} is empty rather than that "
+            f"the question was strange")
 
 
 def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "es",
