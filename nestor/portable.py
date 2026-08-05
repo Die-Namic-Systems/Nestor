@@ -130,8 +130,14 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
         raise BundleError(
             f"{type(store).__name__} cannot list its pairs (see "
             f"storage.supports_curation), so there is nothing to export from it.")
+    # Superseded rows are history, not stock: they share their key with the
+    # live successor, so importing them would insert straight into a conflict
+    # (or resurrect a replaced decision on a store without lineage). The
+    # chain of what-replaced-what travels in the ledger (include_ledger),
+    # which is where replacement history has always lived.
     pairs = [_row(p, PAIR_FIELDS) for p in store.memory_list(
-        source_lang=source_lang, target_lang=target_lang, limit=limit)]
+        source_lang=source_lang, target_lang=target_lang, limit=limit)
+        if not p.get("superseded_by")]
     rejections: list[dict] = []
     if supports_rejection(store):
         seen = set()

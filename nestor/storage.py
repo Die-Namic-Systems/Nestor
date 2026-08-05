@@ -41,9 +41,10 @@ feature at all.
 
 One requirement of the *core* Protocol is easy to miss and is not optional:
 :meth:`Storage.memory_insert` must refuse a duplicate ``(source_norm,
-source_lang, target_lang)``. Nestor's conflict guards read-then-write, so that
-uniqueness is what makes "one row per source" hold when two reviewers seal the
-same phrase at the same moment.
+source_lang, target_lang)`` **among live rows** (rows a lineage-capable store
+has marked superseded are history, not competitors for the key). Nestor's
+conflict guards read-then-write, so that uniqueness is what makes "one row per
+source" hold when two reviewers seal the same phrase at the same moment.
 """
 from __future__ import annotations
 
@@ -341,6 +342,23 @@ def supports_queue(store: "Storage") -> bool:
     stops trusting the queue.
     """
     return all(callable(getattr(store, op, None)) for op in _QUEUE_OPS)
+
+
+_LINEAGE_OPS = ("memory_mark_superseded", "memory_lineage")
+
+
+def supports_lineage(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional lineage capability.
+
+    Both operations or none, same rule as the other three: a store that can
+    retire a row nobody can read back is an archive with no door, and one
+    that can list lineage it cannot write is a door with no archive. Without
+    this capability :func:`nestor.memory.supersede_pair` raises rather than
+    falling back to the destructive overwrite it exists to replace —
+    destroying a prior human decision quietly must not be a fallback
+    (the ``reject_*`` precedent, one capability over).
+    """
+    return all(callable(getattr(store, op, None)) for op in _LINEAGE_OPS)
 
 
 _store: "Optional[Storage]" = None

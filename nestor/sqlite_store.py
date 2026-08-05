@@ -56,7 +56,14 @@ CREATE TABLE IF NOT EXISTS tm_pairs (
     weight      REAL NOT NULL DEFAULT 1.0,
     origin      TEXT NOT NULL DEFAULT '',
     created_at  TEXT NOT NULL,
-    seal_sig    TEXT NOT NULL DEFAULT ''
+    seal_sig    TEXT NOT NULL DEFAULT '',
+    -- Lineage (docs/decision-memory.md N3/N4). `reason` is the rationale for
+    -- the YES — tm_rejections always had one for the no; a future proposal
+    -- needs the one behind what was chosen. A superseded row keeps its text,
+    -- verifier, signature and reason, and points at the row that replaced it;
+    -- serve paths only ever see rows with superseded_by = ''.
+    reason        TEXT NOT NULL DEFAULT '',
+    superseded_by TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS tm_rejections (
@@ -69,7 +76,11 @@ CREATE TABLE IF NOT EXISTS tm_rejections (
     verifier    TEXT NOT NULL DEFAULT '',
     reason      TEXT NOT NULL DEFAULT '',
     created_at  TEXT NOT NULL,
-    reject_sig  TEXT NOT NULL DEFAULT ''
+    reject_sig  TEXT NOT NULL DEFAULT '',
+    -- N5: empty = never (the rejection is permanent, as before); non-empty =
+    -- NOT YET — the condition under which this no becomes an open question
+    -- again. A memory that cannot tell never from not-yet enforces stale law.
+    reopen_when TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_segments_document ON segments(document_id);
@@ -99,8 +110,16 @@ CREATE TABLE IF NOT EXISTS tm_embeddings (
 # Kept out of _SCHEMA and created separately: a database written before this
 # existed may already hold duplicates, and a CREATE that raises inside the
 # idempotent schema script would brick every later memory_init() on it.
-_UNIQUE_KEY = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_tm_pairs_key "
-               "ON tm_pairs(source_norm, source_lang, target_lang)")
+#
+# PARTIAL since lineage landed (docs/decision-memory.md N3): uniqueness holds
+# over LIVE rows only, so the concurrent-seal race guard is exactly as strong
+# as before — two racing seals both write live rows and still collide — while
+# superseded rows fall out of the index and accumulate as history. The old
+# full index (idx_tm_pairs_key) is dropped by _ensure_unique_key, or
+# supersede could never keep a predecessor at all.
+_UNIQUE_KEY = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_tm_pairs_key_live "
+               "ON tm_pairs(source_norm, source_lang, target_lang) "
+               "WHERE superseded_by = ''")
 # When the unique index cannot be built (duplicate norms already present),
 # lookups on every add_pair still need an index (IDEAS §2.3).
 _LOOKUP_KEY = ("CREATE INDEX IF NOT EXISTS idx_tm_pairs_find "
@@ -276,8 +295,31 @@ class SqliteStore:
         # tm_pairs is created by the same schema script; keep it idempotent.
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_lineage_schema(conn)
             self._ensure_unique_key(conn)
             self._ensure_embedding_schema(conn)
+
+    def _ensure_lineage_schema(self, conn: sqlite3.Connection) -> None:
+        """Bring a database written before lineage existed up to date.
+
+        Same precedent as ``_ensure_embedding_schema``: ``CREATE TABLE IF NOT
+        EXISTS`` is a no-op on an existing table, so an older ``tm_pairs``
+        keeps its pre-lineage shape and every ``SELECT superseded_by`` would
+        raise. Unlike the embeddings table this one is NOT a cache — dropping
+        it would destroy sealed human decisions — so these are additive
+        ALTERs with defaults, which cannot lose a row.
+        """
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(tm_pairs)")}
+        if cols and "reason" not in cols:
+            conn.execute("ALTER TABLE tm_pairs ADD COLUMN reason TEXT "
+                         "NOT NULL DEFAULT ''")
+        if cols and "superseded_by" not in cols:
+            conn.execute("ALTER TABLE tm_pairs ADD COLUMN superseded_by "
+                         "TEXT NOT NULL DEFAULT ''")
+        rcols = {r[1] for r in conn.execute("PRAGMA table_info(tm_rejections)")}
+        if rcols and "reopen_when" not in rcols:
+            conn.execute("ALTER TABLE tm_rejections ADD COLUMN reopen_when "
+                         "TEXT NOT NULL DEFAULT ''")
 
     def _ensure_unique_key(self, conn: sqlite3.Connection) -> None:
         """One row per (normalized source, domain) — enforced by the database.
@@ -295,12 +337,27 @@ class SqliteStore:
         index cannot be created. That degrades to the old behavior and says so,
         rather than failing every subsequent call.
         """
+        # The pre-lineage FULL unique index and the partial one cannot
+        # coexist: the full one refuses the very row supersede exists to
+        # keep (predecessor and successor share the key). Dropping an index
+        # loses no data, and the partial CREATE below restores the guard
+        # over live rows in the same transaction.
+        conn.execute("DROP INDEX IF EXISTS idx_tm_pairs_key")
+        # History rows only: memory_lineage walks superseded_by hop by hop,
+        # and without this each hop is a table scan. Lives here rather than
+        # in _SCHEMA because it references a column the lineage migration
+        # adds — inside the schema script it would brick memory_init on
+        # every pre-lineage database (the exact trap _UNIQUE_KEY's comment
+        # warns about).
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tm_pairs_superseded "
+                     "ON tm_pairs(superseded_by) WHERE superseded_by != ''")
         try:
             conn.execute(_UNIQUE_KEY)
         except sqlite3.IntegrityError:
             dupes = conn.execute(
                 "SELECT COUNT(*) FROM (SELECT source_norm, source_lang, target_lang "
-                "FROM tm_pairs GROUP BY 1,2,3 HAVING COUNT(*) > 1)").fetchone()[0]
+                "FROM tm_pairs WHERE superseded_by = '' "
+                "GROUP BY 1,2,3 HAVING COUNT(*) > 1)").fetchone()[0]
             warnings.warn(
                 f"{self.db_path}: {dupes} normalized source(s) have more than one "
                 f"row, so the uniqueness index could not be created and concurrent "
@@ -417,22 +474,40 @@ class SqliteStore:
 
     def memory_find(self, source_norm: str, source_lang: str,
                    target_lang: str) -> Optional[dict]:
+        # Live rows only: a superseded row is history, and history must not
+        # answer for the present — the successor is the one row this key has.
         with self._db() as conn:
             r = conn.execute(
                 "SELECT * FROM tm_pairs WHERE source_norm=? AND source_lang=? "
-                "AND target_lang=?",
+                "AND target_lang=? AND superseded_by=''",
                 (source_norm, source_lang, target_lang),
             ).fetchone()
             return dict(r) if r else None
 
     def memory_insert(self, pair: dict) -> None:
+        # Explicit column list: the table grew lineage columns, and a bare
+        # INSERT ... VALUES demands every column forever after.
         with self._db() as conn:
             conn.execute(
-                "INSERT INTO tm_pairs VALUES (:id,:source_text,:source_norm,"
-                ":source_lang,:target_text,:target_lang,:status,:verifier,"
-                ":weight,:origin,:created_at,:seal_sig)",
-                {"seal_sig": "", **pair},
+                "INSERT INTO tm_pairs (id, source_text, source_norm, "
+                "source_lang, target_text, target_lang, status, verifier, "
+                "weight, origin, created_at, seal_sig, reason, superseded_by) "
+                "VALUES (:id,:source_text,:source_norm,:source_lang,"
+                ":target_text,:target_lang,:status,:verifier,:weight,"
+                ":origin,:created_at,:seal_sig,:reason,:superseded_by)",
+                {"seal_sig": "", "reason": "", "superseded_by": "", **pair},
             )
+
+    def memory_set_reason(self, pair_id: str, reason: str) -> None:
+        """Record the rationale for an existing pair (N4's why-yes).
+
+        Separate from ``memory_seal`` because that signature is frozen into
+        every host's Storage implementation; ``add_pair`` calls this only
+        when a reason was actually given.
+        """
+        with self._db() as conn:
+            conn.execute("UPDATE tm_pairs SET reason=? WHERE id=?",
+                         (reason, pair_id))
 
     def memory_seal(self, pair_id: str, target_text: str, verifier: str,
                    weight: float, seal_sig: str = "") -> None:
@@ -445,11 +520,47 @@ class SqliteStore:
 
     def memory_candidates(self, source_lang: str,
                          target_lang: str) -> list[dict]:
+        # Live rows only — candidates feed the fuzzy scan behind every serve
+        # path, and a superseded seal must never outscore its successor.
         with self._db() as conn:
             return [dict(r) for r in conn.execute(
-                "SELECT * FROM tm_pairs WHERE source_lang=? AND target_lang=?",
+                "SELECT * FROM tm_pairs WHERE source_lang=? AND target_lang=? "
+                "AND superseded_by=''",
                 (source_lang, target_lang),
             )]
+
+    # --- lineage (optional; docs/decision-memory.md N2/N3) ----------------
+
+    def memory_mark_superseded(self, pair_id: str, successor_id: str) -> None:
+        """Point a row at its successor ('' restores it to the live set).
+
+        The write half of ``supports_lineage``. ``memory.supersede_pair`` owns
+        the ceremony (guards, signing, ledger); this just moves one row in or
+        out of the partial unique index.
+        """
+        with self._db() as conn:
+            conn.execute("UPDATE tm_pairs SET superseded_by=? WHERE id=?",
+                         (successor_id, pair_id))
+
+    def memory_lineage(self, pair_id: str) -> list[dict]:
+        """The chain of superseded predecessors of ``pair_id``, newest first,
+        each carrying the reason it held and the verifier who sealed it.
+
+        The read half of ``supports_lineage`` — a store that could retire
+        rows nobody can read back would be an archive with no door.
+        """
+        chain: list[dict] = []
+        current = pair_id
+        with self._db() as conn:
+            while True:
+                r = conn.execute(
+                    "SELECT * FROM tm_pairs WHERE superseded_by=?",
+                    (current,)).fetchone()
+                if r is None:
+                    return chain
+                row = dict(r)
+                chain.append(row)
+                current = row["id"]
 
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 
@@ -501,11 +612,14 @@ class SqliteStore:
     def memory_add_rejection(self, rejection: dict) -> None:
         with self._db() as conn:
             conn.execute(
-                "INSERT INTO tm_rejections VALUES (:id,:query_norm,:source_lang,"
-                ":target_lang,:pair_id,:target_text,:verifier,:reason,"
-                ":created_at,:reject_sig)",
+                "INSERT INTO tm_rejections (id, query_norm, source_lang, "
+                "target_lang, pair_id, target_text, verifier, reason, "
+                "created_at, reject_sig, reopen_when) VALUES "
+                "(:id,:query_norm,:source_lang,:target_lang,:pair_id,"
+                ":target_text,:verifier,:reason,:created_at,:reject_sig,"
+                ":reopen_when)",
                 {"pair_id": "", "target_text": "", "verifier": "", "reason": "",
-                 "reject_sig": "", **rejection},
+                 "reject_sig": "", "reopen_when": "", **rejection},
             )
 
     def memory_rejections(self, query_norm: str, source_lang: str,

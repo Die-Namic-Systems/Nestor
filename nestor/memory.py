@@ -48,7 +48,7 @@ from typing import Callable, Optional
 from . import signing
 from .embedding_store import supports_embedding_store
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
-from .storage import Storage, get_store, supports_rejection
+from .storage import Storage, get_store, supports_lineage, supports_rejection
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -238,7 +238,8 @@ def _same_verifier(a: str, b: str) -> bool:
 
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
              status: str = "draft", verifier: str = "", weight: float = 1.0,
-             origin: str = "", store: Optional[Storage] = None,
+             origin: str = "", reason: str = "",
+             store: Optional[Storage] = None,
              matcher: Optional[Matcher] = None,
              override_rejection: bool = False,
              override_conflict: bool = False,
@@ -249,6 +250,10 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     they are languages; for entity resolution or numeric reconciliation they
     carry the entity-type / label bucket. The ``matcher`` (default
     :class:`StringMatcher`) decides how ``source_text`` is normalized.
+
+    ``reason`` is the rationale FOR this pair (docs/decision-memory.md N4) —
+    ``tm_rejections`` always recorded why a reviewer said no; this is the
+    symmetric why-yes, and it survives supersession with the row it explains.
 
     Re-sealing an existing SEALED row with a different ``target_text`` raises
     :class:`ConflictingSealError` unless ``verifier`` matches the existing
@@ -321,6 +326,18 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             replaced_status = existing["status"]
             replaced_verifier = existing.get("verifier", "")
             store.memory_seal(existing["id"], target_text, verifier, weight, seal_sig)
+            # memory_seal predates N4 and its signature is frozen into every
+            # host's Storage implementation, so the reason rides a separate
+            # optional op. Losing it silently would recreate the asymmetry
+            # N4 closes, so a store without the op refuses a reason instead.
+            if reason:
+                setter = getattr(store, "memory_set_reason", None)
+                if not callable(setter):
+                    raise RuntimeError(
+                        f"{type(store).__name__} has no memory_set_reason; "
+                        f"refusing to drop the recorded reason for this seal "
+                        f"on the floor — omit reason= or extend the store.")
+                setter(existing["id"], reason)
             existing = store.memory_find(norm, source_lang, target_lang)
             # Overwriting a seal destroys a previous human decision, and the
             # memory keeps only one row per normalized source — so without this
@@ -353,7 +370,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
                 status=status, verifier=verifier, weight=weight, origin=origin,
-                created_at=_now(), seal_sig=seal_sig)
+                reason=reason, created_at=_now(), seal_sig=seal_sig)
     try:
         store.memory_insert(pair)
     except Exception:
@@ -433,6 +450,107 @@ def rejection_signature_report(query_norm: str, source_lang: str,
                 r.get("verifier", ""), r.get("reject_sig", "")),
         })
     return out
+
+
+def _require_lineage(store: Storage) -> None:
+    if not supports_lineage(store):
+        raise RuntimeError(
+            f"{type(store).__name__} does not implement Nestor's lineage "
+            f"capability. Implement memory_mark_superseded and memory_lineage "
+            f"(see nestor.storage.Storage) — refusing to fall back to the "
+            f"destructive overwrite supersede_pair exists to replace."
+        )
+
+
+def supersede_pair(source_text: str, target_text: str, source_lang: str,
+                   target_lang: str, verifier: str, reason: str = "",
+                   weight: float = 1.0, origin: str = "",
+                   store: Optional[Storage] = None,
+                   matcher: Optional[Matcher] = None,
+                   audit: bool = True) -> dict:
+    """Replace the live sealed pair for ``source_text`` WITHOUT destroying it.
+
+    The revision path ``add_pair`` never had (docs/decision-memory.md N3;
+    ``test_seal_replacement.py`` documents what the overwrite loses). The old
+    row keeps its text, verifier, signature and reason, gains
+    ``superseded_by`` pointing at its successor, and falls out of the live
+    unique index — so history accumulates while every serve path still sees
+    exactly one row per source. ``memory_lineage(new_id)`` walks the chain
+    back, newest first.
+
+    Requires the lineage capability (:func:`nestor.storage.supports_lineage`)
+    and raises without it rather than falling back to an overwrite. Requires
+    a ``verifier``: replacing a sealed decision is itself a decision.
+
+    A rejected pair is refused (a rejection is not a competing answer —
+    restore it first, the same rule import follows); a draft is refused (a
+    draft is upgraded by ``add_pair``, it holds no decision to keep).
+    """
+    store = get_store(store)
+    _require_lineage(store)
+    matcher = get_matcher(matcher)
+    store.memory_init()
+    if not verifier:
+        raise ValueError("supersede_pair requires a verifier — replacing a "
+                         "sealed decision is itself a decision")
+    if audit:
+        _ledger_preflight()   # a supersede is a seal; refuse before writing
+    norm = matcher.normalize(source_text)
+    old = store.memory_find(norm, source_lang, target_lang)
+    if old is None:
+        raise ValueError(f"nothing to supersede for {source_text!r} "
+                         f"({source_lang}->{target_lang}) — use add_pair")
+    if old["status"] == "rejected":
+        raise RejectedPairError(
+            f"pair {old['id']} was rejected; a rejection is not a competing "
+            f"answer to supersede. Restore it first (Curator.restore).")
+    if old["status"] != "sealed":
+        raise ValueError(f"pair {old['id']} is a draft — supersede replaces "
+                         f"a sealed decision; upgrade drafts via add_pair")
+    if old["target_text"] == target_text:
+        raise ValueError(f"successor target equals the live target "
+                         f"{target_text!r} — nothing to supersede")
+
+    seal_sig = signing.sign_seal(norm, target_text, verifier)
+    new_pair = dict(id=str(uuid.uuid4()), source_text=source_text,
+                    source_norm=norm, source_lang=source_lang,
+                    target_text=target_text, target_lang=target_lang,
+                    status="sealed", verifier=verifier, weight=weight,
+                    origin=origin, reason=reason, created_at=_now(),
+                    seal_sig=seal_sig)
+    # The old row must leave the live index before the successor can enter it
+    # (the partial unique index correctly refuses two live rows for one key).
+    # Mark first, insert second, then point the marker at the real successor;
+    # a failed insert restores the old row so a failed supersede leaves the
+    # store exactly as it found it.
+    store.memory_mark_superseded(old["id"], "pending:" + new_pair["id"])
+    try:
+        store.memory_insert(new_pair)
+    except Exception:
+        store.memory_mark_superseded(old["id"], "")
+        raise
+    store.memory_mark_superseded(old["id"], new_pair["id"])
+    # A superseded row is never scored again; its cached vector is dead weight
+    # (the reject_pair precedent — reject_match keeps vectors, this does not).
+    _drop_stored_embeddings(store, old["id"])
+    if audit:
+        _log_seal_event({
+            "kind": "seal", "pair_id": new_pair["id"], "verifier": verifier,
+            "source_lang": source_lang, "target_lang": target_lang,
+            "source_sha": _sha(norm), "origin": origin,
+            "upgraded_from": "supersede",
+        })
+        _log_seal_event({
+            "kind": "supersede", "old_pair_id": old["id"],
+            "new_pair_id": new_pair["id"],
+            "source_lang": source_lang, "target_lang": target_lang,
+            "replaced_verifier": old.get("verifier", ""), "verifier": verifier,
+            "replaced_target_sha": _sha(old["target_text"]),
+            "target_sha": _sha(target_text), "source_sha": _sha(norm),
+            "reason": reason,
+            "same_verifier": old.get("verifier", "") == verifier,
+        })
+    return new_pair
 
 
 def lookup(source_text: str, source_lang: str, target_lang: str,
@@ -682,7 +800,8 @@ def _require_rejection(store: Storage) -> None:
 
 def reject_match(source_text: str, source_lang: str, target_lang: str,
                  pair_id: str = "", target_text: str = "", verifier: str = "",
-                 reason: str = "", store: Optional[Storage] = None,
+                 reason: str = "", reopen_when: str = "",
+                 store: Optional[Storage] = None,
                  matcher: Optional[Matcher] = None) -> dict:
     """Record that a candidate is the WRONG answer for ``source_text``.
 
@@ -690,6 +809,12 @@ def reject_match(source_text: str, source_lang: str, target_lang: str,
     this query — the false-seal case) or by ``target_text`` (a raw engine draft
     with no pair yet), or both. The pair itself stays valid for its own source
     text; use :func:`reject_pair` when the mapping is wrong in its own right.
+
+    ``reopen_when`` distinguishes NEVER from NOT YET (docs/decision-memory.md
+    N5): empty keeps the rejection permanent, exactly as before; non-empty
+    names the condition under which this "no" becomes an open question again.
+    A reader that surfaces rejections should surface a non-empty
+    ``reopen_when`` as a condition to re-check, not a closed door.
 
     Raises ``RuntimeError`` if the store cannot persist rejections, rather than
     accepting a "no" it would drop on the floor.
@@ -706,13 +831,15 @@ def reject_match(source_text: str, source_lang: str, target_lang: str,
     rejection = dict(
         id=str(uuid.uuid4()), query_norm=norm, source_lang=source_lang,
         target_lang=target_lang, pair_id=pair_id, target_text=target_text,
-        verifier=verifier, reason=reason, created_at=_now(),
+        verifier=verifier, reason=reason, reopen_when=reopen_when,
+        created_at=_now(),
         reject_sig=signing.sign_rejection(norm, pair_id, target_text, verifier),
     )
     store.memory_add_rejection(rejection)
     _log_rejection({"kind": "reject_match", "query_norm": norm,
                     "source_lang": source_lang, "target_lang": target_lang,
                     "pair_id": pair_id, "verifier": verifier, "reason": reason,
+                    "reopen_when": reopen_when,
                     "rejection_id": rejection["id"]})
     return rejection
 
