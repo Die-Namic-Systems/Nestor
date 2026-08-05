@@ -66,6 +66,16 @@ def _candidate(m: dict) -> dict:
             "verifier": pair.get("verifier", "")}
 
 
+#: How many candidates `match` shows. A display page, deliberately not the set
+#: the reason is computed over — classifying from the page is what let a forged
+#: seal ranked ninth go unnamed.
+_MATCH_DISPLAY = 8
+
+#: "every eligible row". `lookup` slices after scoring, so this only has to
+#: exceed any plausible domain; it is not a scan bound.
+_ALL_CANDIDATES = 1_000_000
+
+
 def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: str,
                     candidates: list[dict], threshold: float) -> str:
     """Why this query would not be served — the actual reason, not a guess at it.
@@ -88,8 +98,20 @@ def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: st
     a review surface that misstates its own reason is worse than a silent one:
     it sends the reader to fix the wrong thing.
 
-    Ordered as ``best_sealed`` orders its own checks, so the reason names the
-    first gate the query actually failed.
+    ``candidates`` must therefore be **every** scored row, not a display page.
+    The first version of this function classified from the top-8 shown to the
+    reader, and a forged seal ranked ninth was invisible to it — so the branch
+    written to name forged seals reported "nobody has verified this yet" while a
+    row claiming to be sealed sat above the bar. That is the same defect one
+    layer down, and it is the reason the caller now takes its display slice
+    *after* this runs rather than before.
+
+    The order below is not ``best_sealed``'s. That checks signatures last,
+    because an HMAC is expensive and a row that cannot win need not be verified;
+    this checks them first, because a forged seal is the most alarming thing
+    that can be true of a query and it should not be buried under a note about
+    drafts. The two agree on *whether* to serve; only the order of explanation
+    differs.
     """
     above = [c for c in candidates if c["similarity"] >= threshold]
     if above:
@@ -98,19 +120,25 @@ def _why_not_served(store: Storage, norm: str, source_lang: str, target_lang: st
             return (f"{len(unverifiable)} match(es) at or above {threshold} say sealed but "
                     f"their signature does not verify — a forged seal, or one made with a "
                     f"different key")
-        unsealed = [c for c in above if c["status"] != "sealed"]
-        if unsealed:
-            best = max(c["similarity"] for c in unsealed)
-            kinds = ", ".join(sorted({c["status"] for c in unsealed}))
-            return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
-                    f"best candidate is {kinds}. Nobody has verified this yet")
-        return f"no sealed, verifiable match at or above {threshold}"
+        best = max(c["similarity"] for c in above)
+        kinds = ", ".join(sorted({c["status"] for c in above}))
+        return (f"matched at {best}, at or above {threshold} — but nothing sealed: the "
+                f"best candidate is {kinds}. Nobody has verified this yet")
     if candidates:
         return (f"closest of {len(candidates)} candidate(s) is "
                 f"{candidates[0]['similarity']}, below {threshold}")
-    # `lookup` drops rejected rows before scoring, so an empty candidate list can
-    # mean "suppressed", not "absent". Saying "nothing matched" about a query
-    # somebody explicitly answered no to would hide the very record that decided it.
+    # An empty candidate list can mean "absent" or "refused", and reporting a
+    # refusal as an absence hides the very record that decided the question.
+    # There are two ways to refuse and they live in different places:
+    # `reject_pair` sets tm_pairs.status='rejected' (dropped by lookup at
+    # memory.py's eligibility filter), while `reject_match` writes tm_rejections
+    # (read by rejected_ids). Consulting only the second reported half the
+    # rejection surface as "nothing matched at all".
+    exact = store.memory_find(norm, source_lang, target_lang)
+    if exact and exact.get("status") == "rejected":
+        return ("the pair for this exact source was rejected outright "
+                "(memory.reject_pair) — its mapping is wrong in its own right, so it "
+                "is never served or offered again")
     bad_pairs, bad_targets = memory.rejected_ids(norm, source_lang, target_lang, store)
     if bad_pairs or bad_targets:
         return (f"nothing left to match — {len(bad_pairs) + len(bad_targets)} candidate(s) "
@@ -184,9 +212,12 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
     hit = memory.best_sealed(text, source_lang, target_lang, store=store, matcher=m,
                              context_threshold=0.0)
     norm = m.normalize(text)
-    candidates = [_candidate(mm) for mm in
-                  memory.lookup(text, source_lang, target_lang, limit=8, store=store,
-                                matcher=m, context_threshold=0.0)]
+    # Every scored row, not a page of them: the reason is classified over the
+    # whole set (see _why_not_served), and `matches` is sliced for display
+    # afterwards. Still one lookup call, as before.
+    scored = memory.lookup(text, source_lang, target_lang, limit=_ALL_CANDIDATES,
+                           store=store, matcher=m, context_threshold=0.0)
+    candidates = [_candidate(mm) for mm in scored]
     return {
         "normalized": norm,
         "served": bool(hit),
@@ -196,7 +227,7 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
         "confidence": hit["similarity"] if hit else 0.0,
         "threshold": memory.SEAL_THRESHOLD,
         "matcher": matcher,
-        "matches": candidates,
+        "matches": candidates[:_MATCH_DISPLAY],
         "reason": "" if hit else _why_not_served(
             store, norm, source_lang, target_lang, candidates, memory.SEAL_THRESHOLD),
     }

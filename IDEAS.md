@@ -1666,17 +1666,88 @@ that looked reasonable:
   bundle that looks complete is the defect; the missing method is not.
 
 **The diagnostic.** `answer.match` gains a `reason`, computed in the library
-rather than assembled in the CLI format string, and ordered the way
-`best_sealed` orders its own checks so it names the first gate the query
-actually failed: not sealed, suppressed by a rejection, below threshold,
-nothing in the domain, or a seal whose signature does not verify. The exact
+rather than assembled in the CLI format string, naming which gate the query
+actually failed: not sealed, suppressed by a rejection, rejected outright,
+below threshold, nothing in the domain, or a seal whose signature does not
+verify. It checks signatures **first**, where `best_sealed` checks them last —
+that function defers the HMAC because it is expensive and a row that cannot win
+need not be verified, while a reader should hear about a forged seal before a
+note about drafts. The two agree on whether to serve; only the order of
+explanation differs, and an earlier draft of this entry claimed they matched. The exact
 query that scored 1.0000 against a draft now reads *"matched at 1.0, at or
 above 0.92 — but nothing sealed: the best candidate is draft. Nobody has
-verified this yet."* All five branches were driven and observed; a served
-answer carries `reason == ""`, so the field can never contradict the verdict.
+verified this yet."* A served answer carries `reason == ""`, so the field can
+never contradict the verdict.
 
 One thing this does **not** fix: the empty-candidate case can mean "absent" or
 "suppressed", and `lookup` drops rejected rows before scoring, so the reason
 consults `rejected_ids` to tell them apart. That is a second read on a path
 that already did one. It is correct and cheap at review-surface scale, and it
 would want revisiting if `match` ever moved onto a hot path.
+
+### 6.16 The audit of §6.15, and what a first fix misses — **shipped**
+
+*Audited 2026-08-05 by an independent agent, adversarially, told not to trust
+the commit message. Verdict on the first fix: **not safe to merge**. Five
+defects, one of them a regression the fix itself introduced. All fixed;
+regressions in `tests/test_findings_2026_08_05.py` under "the audit's finds",
+8 of 10 observed failing against the first fix.*
+
+**The regression, and it is the one worth remembering.** Replacing the
+pair-keyed rejection walk with a domain walk removed a scope nobody had written
+down. The old walk was bounded by the exported pairs, which *exclude superseded
+rows* — so a rejection naming a superseded pair had never travelled. Under a
+bare domain walk it travels carrying a `pair_id` the bundle deliberately does
+not contain, and `rejected_ids` matches on `pair_id`. On a destination that
+still holds that id live, importing the bundle **suppresses a sealed,
+signature-verified answer while the successor pair that should replace it is
+refused as a conflict**. The destination loses an answer and gains nothing.
+
+That is the shape to carry forward: *a filter can be load-bearing without being
+stated*. The pair-keyed walk was written to find rejections, and it was also —
+silently, as a side effect of what it iterated — enforcing "a bundle never
+references a row it does not carry." Replacing the mechanism kept the stated
+purpose and dropped the unstated invariant. The fix now states it: a rejection
+travels only if it names no pair, or names one in this bundle.
+
+The other four:
+
+* **One `limit` fed two reads.** `export_bundle(limit=)` capped pairs *and*
+  rejections — different row types, read in opposite orders (`memory_list` is
+  newest-first, the rejection walk oldest-first), so a shared cap truncated the
+  two lists from opposite ends. Silently: `counts` reported the short number
+  and the digest certified it. Now a separate `rejection_limit`, and hitting
+  either cap warns.
+* **The importer read the wrong field set.** `digest()` selected fields by
+  version; `import_bundle` used version 2's unconditionally. So `reopen_when`
+  could be added to a version-1 bundle *after* export, verify cleanly (v1
+  hashing does not cover the key), and land in the destination store. The
+  digest is explicitly not a signature, so this is hygiene rather than an auth
+  break — but a check covering less than the importer consumes is the wrong way
+  round.
+* **The reason was classified from the display page.** `_why_not_served` read
+  the top-8 shown to the reader, so a forged seal ranked ninth was invisible to
+  the branch written to name forged seals — which then reported "nobody has
+  verified this yet" while a row claiming to be sealed sat above the bar. The
+  §6.14 defect, one layer down, in its own fix.
+* **Half the rejection surface was reported as "nothing".** The empty-candidate
+  guard consulted `rejected_ids` only, which reads `tm_rejections`.
+  `reject_pair` writes `tm_pairs.status='rejected'` instead, so a pair somebody
+  had explicitly refused came back as *"nothing in this domain matched at all"*.
+
+Also corrected: three prose claims this file and the code made that were not
+true — that the rejection ordering made the digest stable (it never did;
+`digest` sorts by id itself), that the reason checks gates in `best_sealed`'s
+order (it checks signatures first, deliberately), and that all branches had
+been driven (one was unreachable, and is now gone).
+
+**What the audit is evidence for.** Every miss sat immediately outside what the
+first fix had just understood: it tested the defect it had in hand, on
+single-row stores, and the superseded pair, the second row type, the tenth
+candidate and the other way of saying no were each one step past that. Round
+one's tests were not weak on their own terms — 15 of 19 genuinely failed
+against the unfixed code. They were weak in scope, and scope is exactly what
+the author of a fix is worst placed to judge. One of round two's own tests
+initially passed against the broken code because it did not reproduce the
+condition it named; that is the same failure again, one level up, and it is the
+argument for the audit rather than against it.

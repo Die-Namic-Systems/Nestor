@@ -637,7 +637,9 @@ class SqliteStore:
         # ones with no pair to join to (pair_id = ''), which is why the
         # pair-keyed walk in portable.export_bundle could not see them.
         # Ordered by created_at then id so two exports of the same store
-        # produce the same bundle, and therefore the same digest.
+        # produce byte-identical files. This does NOT make the digest stable —
+        # `portable.digest` sorts rows by id itself, so list order never
+        # reached it. Worth having for diffable exports; not load-bearing.
         where, params = [], []
         for col, val in (("source_lang", source_lang), ("target_lang", target_lang)):
             if val:
@@ -647,7 +649,7 @@ class SqliteStore:
         if where:
             sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY created_at, id LIMIT ?"
-        params.append(limit)
+        params.append(max(0, int(limit)))   # clamped like memory_list's
         with self._db() as conn:
             return [dict(r) for r in conn.execute(sql, params)]
 

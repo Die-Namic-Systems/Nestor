@@ -141,13 +141,21 @@ def _row(raw: dict, fields: tuple) -> dict:
 
 def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                   target_lang: str = "", include_ledger: bool = True,
-                  limit: int = 1_000_000) -> dict:
+                  limit: int = 1_000_000,
+                  rejection_limit: Optional[int] = None) -> dict:
     """The whole memory (or one domain) as a JSON-ready, re-importable bundle.
 
     Signatures travel with the rows. They are HMACs, not secrets: without the
     key they cannot be recomputed, which is precisely why exporting them is safe
     and why they are worth carrying — they are what lets the destination decide
     whether a seal is real instead of taking the file's word.
+
+    ``limit`` caps pairs; ``rejection_limit`` caps rejections and defaults to
+    ``limit``. They are separate because they count different rows and are read
+    in opposite orders — ``memory_list`` returns newest-first, the rejection
+    walk oldest-first — so one shared cap silently truncated the two lists from
+    opposite ends. Hitting either cap warns rather than shipping a short bundle
+    whose ``counts`` and digest both certify it as whole.
     """
     store = get_store(store)
     store.memory_init()
@@ -160,9 +168,15 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     # (or resurrect a replaced decision on a store without lineage). The
     # chain of what-replaced-what travels in the ledger (include_ledger),
     # which is where replacement history has always lived.
-    pairs = [_row(p, PAIR_FIELDS) for p in store.memory_list(
-        source_lang=source_lang, target_lang=target_lang, limit=limit)
-        if not p.get("superseded_by")]
+    listed = store.memory_list(source_lang=source_lang, target_lang=target_lang,
+                               limit=limit)
+    if len(listed) >= limit:
+        warnings.warn(
+            f"export hit its pair limit ({limit}); this bundle is a prefix of the "
+            f"memory, not all of it. Raise `limit` to export the rest.",
+            RuntimeWarning, stacklevel=2)
+    pairs = [_row(p, PAIR_FIELDS) for p in listed if not p.get("superseded_by")]
+    exported_ids = {p["id"] for p in pairs}
     # Rejections are collected by DOMAIN, not by walking the exported pairs.
     # The pair-keyed walk this replaces could only reach rejections that name a
     # pair_id, and `reject_match` documents pair_id as "" for a refused
@@ -170,17 +184,40 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     # *alternative*. Those rows are recorded, signed and ledgered, and they did
     # not travel: a signed human "no" vanished at the instance boundary, which
     # is precisely what a bundle exists to carry.
+    #
+    # But the domain walk is WIDER than the walk it replaces, and the extra
+    # width is not free. The old walk was scoped by the exported pairs, which
+    # exclude superseded rows — so a rejection naming a superseded pair was
+    # never exported. Under a bare domain walk it travels with a `pair_id` this
+    # bundle deliberately does not contain, and `rejected_ids` matches on
+    # `pair_id`: on a destination that still holds that id live, importing the
+    # bundle suppresses a sealed, signature-verified answer while the successor
+    # pair that ought to replace it is refused as a conflict. The destination
+    # loses an answer and gains nothing.
+    #
+    # So a rejection travels only if it names no pair, or names one that is in
+    # this bundle. That restores the old selection exactly for pair-bound rows
+    # and adds the pair-less ones, which was the whole point. A bundle must not
+    # carry a reference to a row it does not carry.
     rejections: list[dict] = []
+    partial_rejections = False
     if supports_rejection(store):
         if supports_rejection_listing(store):
-            rejections = [_row(r, REJECTION_FIELDS) for r in
-                          store.memory_list_rejections(source_lang=source_lang,
-                                                       target_lang=target_lang,
-                                                       limit=limit)]
+            cap = limit if rejection_limit is None else rejection_limit
+            raw = store.memory_list_rejections(source_lang=source_lang,
+                                               target_lang=target_lang, limit=cap)
+            if len(raw) >= cap:
+                warnings.warn(
+                    f"export hit its rejection limit ({cap}); recorded 'no's are "
+                    f"missing from this bundle. Raise `rejection_limit`.",
+                    RuntimeWarning, stacklevel=2)
+            rejections = [_row(r, REJECTION_FIELDS) for r in raw
+                          if not r.get("pair_id") or r["pair_id"] in exported_ids]
         else:
             # A store that cannot enumerate by domain can still be exported,
             # but only the pair-bound half is reachable. Say so: a short bundle
             # that looks complete is the defect, not the missing method.
+            partial_rejections = True
             seen = set()
             for p in pairs:
                 for r in store.memory_rejections_for_pair(p["id"]):
@@ -197,6 +234,13 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
         "created_at": _now(),
         "domain": {"source_lang": source_lang or "*", "target_lang": target_lang or "*"},
         "signing": {"enabled": signing.signing_enabled(), "algorithm": "hmac-sha256"},
+        # In the bundle, not only in a warning. Python dedupes warnings by code
+        # location, so a long-lived exporter (nestor.ui serves bundles from a
+        # thread pool) warns on the first short export and stays silent for
+        # every one after — and an HTTP caller reading JSON never sees a
+        # warning at all. A bundle that is missing rows must say so in the
+        # bundle, which is the only thing the destination actually reads.
+        "partial_rejections": partial_rejections,
         "counts": {
             "pairs": len(pairs),
             "sealed": sum(1 for p in pairs if p["status"] == "sealed"),
@@ -221,7 +265,11 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
     if not isinstance(bundle, dict):
         return False, "not a JSON object"
     version = bundle.get("nestor_bundle")
-    if version not in SUPPORTED_BUNDLE_VERSIONS:
+    # `in` alone accepts True and 1.0 as version 1 (bool is an int, and
+    # hash(1.0) == hash(1)). A version field is an integer or it is not a
+    # version.
+    if not isinstance(version, int) or isinstance(version, bool) \
+            or version not in SUPPORTED_BUNDLE_VERSIONS:
         return False, (f"unsupported bundle version {version!r} (this build reads "
                        f"{', '.join(str(v) for v in SUPPORTED_BUNDLE_VERSIONS)} "
                        f"and writes {BUNDLE_VERSION})")
@@ -376,7 +424,17 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
         for raw in bundle.get("rejections", []):
             report["rejections"] += 1
             if not dry_run:
-                rejection = _row(raw, REJECTION_FIELDS)
+                # The bundle's OWN version, not this build's. A version-1
+                # bundle was hashed over version-1 fields, so reading it with
+                # version-2 fields lets a key the digest never covered —
+                # `reopen_when`, which decides never-vs-not-yet — be added to
+                # the file after export, verify cleanly, and land in the store.
+                # The digest is explicitly not a signature, so this is hygiene
+                # rather than an auth break; but a check that covers less than
+                # the importer consumes is the wrong way round, and version
+                # plumbing that stops short of the read is not plumbing.
+                rejection = _row(raw, _REJECTION_FIELDS_BY_VERSION[
+                    bundle.get("nestor_bundle", BUNDLE_VERSION)])
                 rejection["id"] = rejection.get("id") or str(uuid.uuid4())
                 try:
                     store.memory_add_rejection(rejection)
