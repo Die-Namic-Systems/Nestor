@@ -1527,3 +1527,44 @@ witness; #4/#5 (multiple hypotheses, don't trust it because it's yours) are
 `nestor decision check` + verifier-differs-from-author; #7 (every link holds)
 is the hash chain; #9 (falsifiability) is `reopen_when`. Unmapped: #2, #3,
 #6, #8, and the fallacy catalog.
+
+### 6.13 Ground rule 2b made executable — **shipped**
+
+*Found and closed 2026-08-05, looking for where the product's voice policy
+actually lived.*
+
+`nestor/engine.py` stated the output-voice rule twice — as prose in the module
+docstring, and as a retyped literal inside `ClaudeEngine._system` — and
+executed it in neither. `tests/test_docs.py` had already named that failure
+mode for the README (*"a claim nobody executes is a claim nobody maintains"*);
+it applied here to a rule governing what a model is told about whose voice to
+use. Two copies and no check is not redundancy, it is a pending disagreement.
+
+The larger half was structural. The rule lived on one class while the **tier**
+is what it governs, and the engine slot is pluggable by design — `get_engine`
+dispatches and `OfflineEngine` is documented as the eventual local-model slot.
+The next engine to address a model would have composed its own prompt with
+nothing it was obliged to include: §1.6–§1.8's shape exactly, a guarantee held
+by convention at one call site, pre-figured rather than already bitten.
+
+Shipped: `engine.VOICE_RULE` as the single definition; `engine.system_prompt`
+promoted to module level as the one prompt builder, with the rule unconditional
+inside it and no parameter that could disable it; `Draft` documented as
+carrying no field an engine could claim verification with, which is why 2b's
+second half was never at risk. `tests/test_engine.py` pins all of it, mirroring
+rather than importing the constant per `test_ledger_kinds.py`'s rule, and each
+gate was proven against its counter-case (reword the rule, drop it from the
+builder, add a `voice=` parameter, retype it elsewhere, grow a `verified` field
+on `Draft`, and a new engine calling `messages.create(system=...)` with its own
+string — the last caught by an **AST** gate over `nestor/*.py`, after a first
+attempt that grepped the source flagged the phrase `system=` inside a docstring
+about the rule).
+
+Still open, and deliberately not invented here: **the ground rules themselves
+live offstage.** "Ground rule 2b" is cited by number in this repo and the
+numbered set is nowhere in it — `grep -rn "ground rule"` returns exactly the
+one docstring. 2b's *text* is now defined in `VOICE_RULE`, which is the half
+Nestor is entitled to own; whether the fleet's rules should be carried here
+(the way `docs/decision-memory.md` was carried home from the SAFE store) is the
+operator's call, not a code change. Until then a reader meets a rule cited by a
+number that resolves to nothing.
