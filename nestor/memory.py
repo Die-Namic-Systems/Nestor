@@ -200,6 +200,46 @@ class RejectedPairError(RuntimeError):
     """
 
 
+class ConflictingDraftError(RuntimeError):
+    """Refusing to answer a proposal with somebody else's proposal.
+
+    ``add_pair`` writes only when sealing, so a *draft* offered for a source
+    that already holds a different draft fell through every branch and returned
+    the stored row — no write, no ledger line, no warning, and **the return
+    value was the previous proposal**. A caller doing ``p = add_pair(...)`` and
+    reading ``p["target_text"]`` was handed an answer it had not proposed, with
+    nothing to distinguish that from success. Found by feeding this repo's own
+    revision history back through it (IDEAS §6.18): four successive answers to
+    one question left one row, and it was the *first*.
+
+    Which behaviour is right — keep the old draft, take the new one, or route
+    to a draft-aware supersede — is a question about who may revise what, and
+    it is not settled here. What is settled is that all three are better than
+    telling the caller it succeeded. So this refuses, on the same terms
+    :class:`ConflictingSealError` refuses one rung up: a second answer for the
+    same source is a disagreement to surface, not to resolve silently.
+
+    Two hazards make the silent path indefensible rather than merely untidy.
+    Overwriting would let a machine swap the row under a reviewer who is
+    mid-review, so they seal something they never read; no-op'ing lets a caller
+    believe a proposal landed when it did not. Refusing does neither, and it
+    costs the caller one explicit decision.
+
+    **There is deliberately no override.** No ``Storage`` operation revises a
+    draft in place — ``memory_seal`` hardcodes ``status='sealed'`` — so the
+    no-op was never an oversight in ``add_pair``; the Protocol was simply never
+    given the verb. A first attempt at this error offered
+    ``override_draft=True``, and because every branch below it is a seal, the
+    flag fell through and returned the stored row: the same silent lie, rebuilt
+    inside its own fix. An escape hatch that cannot be honoured is worse than
+    none. Adding the missing verb is a Protocol change and the operator's call
+    (IDEAS §6.19).
+
+    An identical target is not a conflict — re-proposing the same answer is
+    idempotent, which is what a retrying host does.
+    """
+
+
 class ConflictingSealError(RuntimeError):
     """Refusing to overwrite a sealed pair with a different verifier's answer.
 
@@ -318,6 +358,21 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                 f"will not be sealed implicitly. Reject/restore the pair first, "
                 f"reseal as the SAME verifier if this is a self-correction, or "
                 f"pass override_conflict=True."
+            )
+        # A draft over a different draft. Below this point every branch is a
+        # seal, so without this the call silently returned the stored row — see
+        # ConflictingDraftError for why that is worse than either alternative.
+        if (status == "draft" and existing["status"] == "draft"
+                and existing["target_text"] != target_text):
+            raise ConflictingDraftError(
+                f"pair {existing['id']} already holds the draft "
+                f"{existing['target_text']!r} for this source; {target_text!r} is "
+                f"a different proposal. add_pair writes only when sealing, so "
+                f"this would have returned the stored draft as if it were yours. "
+                f"There is no override: no Storage operation revises a draft in "
+                f"place (memory_seal hardcodes status='sealed'), so a flag here "
+                f"could only pretend. Seal it if a human has checked it, or "
+                f"reject_match the proposal you do not want."
             )
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text

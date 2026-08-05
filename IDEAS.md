@@ -1886,3 +1886,57 @@ decision about who may revise what, and it belongs to the operator. Worth
 noting that the silent-no-op *return value* is separable from that question and
 is wrong under every answer to it: whatever revision should mean, handing a
 caller back a proposal it did not make, with no signal, is not it.
+
+### 6.19 The loop, run twice — **partly** (one verb still missing)
+
+*Two passes of §6.18's feed, fixing between them.*
+
+**Pass one → the refusal.** §6.18 found that `add_pair` over an existing draft
+with a different target wrote nothing, ledgered nothing, warned about nothing,
+and returned **the stored proposal to a caller that had proposed something
+else**. That is now `ConflictingDraftError`, on the same terms
+`ConflictingSealError` refuses one rung up: a second answer for the same source
+is a disagreement to surface, not to resolve silently. Re-proposing an
+*identical* target stays idempotent, and sealing over a draft — a human
+checking a machine's guess, which is the product — is untouched.
+
+Two hazards make the old silence indefensible rather than untidy. Overwriting
+would let a machine swap the row under a reviewer mid-review, so they seal
+something they never read. No-op'ing lets a caller believe a proposal landed.
+Refusing does neither and costs one explicit decision at the call site.
+
+**The first attempt at that fix was the bug again.** It offered
+`override_draft=True` — and because every branch below the guard is a seal, the
+flag fell through and returned the stored row. An escape hatch that cannot be
+honoured, inside the fix for a silent lie, being a silent lie. It was removed
+rather than repaired, which turned out to be the right instinct for a reason
+worth writing down:
+
+**There is no `Storage` operation that revises a draft.** `memory_seal`
+hardcodes `status='sealed'`; nothing else writes a target. So the no-op was
+never an oversight in `add_pair` — the Protocol was simply never given the
+verb. That is the actual gap, and it explains the shape of everything above it:
+`supersede_pair` covers sealed→sealed, `add_pair` covers draft→sealed, and
+draft→draft has no operation at all.
+
+**So the refusal makes the failure visible without making the operation
+possible.** An agent's revised proposal still cannot enter the store: it now
+gets an exception instead of a false success, which is strictly better and
+still not enough. Adding the verb is a Protocol change — a new optional
+capability with its own predicate, on `supports_lineage`'s precedent — and it
+belongs to the operator. Three regressions in the export path this session
+argue against another unprompted redesign in the same file.
+
+**Pass two → the miscount.** With the refusal in place, running the loop again
+surfaced a smaller one of the same family: `rejected_ids` returns rejected pair
+ids *and* rejected target texts, and the reason reported their sum as
+*"3 candidate(s) are suppressed"* against a store holding **one** pair. It was
+counting records and calling them candidates — a number attached to a noun it
+does not count, which is the defect §6.14 opened with. Now: *"3 recorded
+rejection(s) for this query suppress every candidate…"*
+
+**What the loop is worth.** Both passes found defects the audits did not, and
+neither is subtle in hindsight — they are the kind that only surface when the
+system is asked to hold a real history rather than a constructed one. Feeding a
+session's own record back through the thing it was built with is cheap, and it
+has now found four defects across §6.14, §6.18 and here.

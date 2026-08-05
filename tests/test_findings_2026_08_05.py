@@ -280,7 +280,7 @@ class TestCTheReasonIsTheRealReason:
                             reason="wrong register", store=store)
         result = answer.match(store, "suppressed question", "decision", "decision")
         assert not result["served"]
-        assert "rejection" in result["reason"]
+        assert "recorded rejection" in result["reason"]
         assert "nothing in this domain" not in result["reason"]
 
     def test_a_forged_seal_is_named_as_one(self, store, seal_key):
@@ -642,3 +642,64 @@ class TestTheRejectedPairReasonIsScoredNotKeyed:
         assert "rejected outright" not in result["reason"], (
             f"a rejected pair the query never matched was named, because both "
             f"normalize to the NaN sentinel: {result['reason']!r}")
+
+
+# ---------------------------------------------------- the Nestor loop --------
+#
+# Feeding the fix rounds back through the store (IDEAS §6.18) found that an
+# agent cannot record a changed mind at all: supersede needs a seal, and
+# add_pair over a draft was a silent no-op that returned the PREVIOUS proposal
+# as if it were yours. Running the loop a second time, after the refusal
+# landed, found the miscount below.
+
+class TestAProposalIsNeverAnsweredWithSomebodyElses:
+
+    def test_a_different_draft_for_the_same_source_is_refused(self, store):
+        _decision(store, "Q", "FIRST answer")
+        with pytest.raises(memory.ConflictingDraftError, match="already holds the draft"):
+            _decision(store, "Q", "SECOND answer")
+        assert store.memory_list(limit=5)[0]["target_text"] == "FIRST answer"
+
+    def test_re_proposing_the_same_answer_is_idempotent(self, store):
+        """A retrying host must not trip the guard."""
+        first = _decision(store, "Q", "same answer")
+        again = _decision(store, "Q", "same answer")
+        assert first["id"] == again["id"]
+
+    def test_the_returned_row_is_never_a_proposal_the_caller_did_not_make(self, store):
+        """The defect itself: `p = add_pair(...)` handed back a stranger's row.
+
+        Whatever draft revision should mean, returning success for a write that
+        did not happen is wrong under every answer to it.
+        """
+        _decision(store, "Q", "FIRST answer")
+        try:
+            out = _decision(store, "Q", "SECOND answer")
+        except memory.ConflictingDraftError:
+            return                                    # refused: nothing to lie about
+        assert out["target_text"] == "SECOND answer", (
+            f"add_pair returned {out['target_text']!r} to a caller that proposed "
+            f"'SECOND answer', with no exception and no warning")
+
+    def test_sealing_over_a_draft_is_untouched(self, store, seal_key):
+        """The upgrade path must not be caught by the new guard — a human
+        checking a machine's draft is the product."""
+        _decision(store, "Q", "a machine guess")
+        out = memory.add_pair("Q", "what the human decided", "decision", "decision",
+                              status="sealed", verifier="rita", store=store)
+        assert out["status"] == "sealed"
+        assert out["target_text"] == "what the human decided"
+
+
+class TestTheSuppressedCountCountsRejectionsNotCandidates:
+
+    def test_the_number_matches_the_noun(self, store):
+        """One pair, three rejections: the message said '3 candidate(s)'."""
+        _decision(store, "Q", "an answer")
+        for i in range(3):
+            _reject(store, "Q", f"refused alternative {i}")
+        _reject(store, "Q", "an answer")          # suppress the live one too
+        result = answer.match(store, "Q", "decision", "decision")
+        assert not result["served"]
+        assert "recorded rejection(s)" in result["reason"]
+        assert "candidate(s) are suppressed" not in result["reason"], result["reason"]

@@ -164,8 +164,15 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
                     f"it is never served or offered again")
     bad_pairs, bad_targets = memory.rejected_ids(norm, source_lang, target_lang, store)
     if bad_pairs or bad_targets:
-        return (f"nothing left to match — {len(bad_pairs) + len(bad_targets)} candidate(s) "
-                f"are suppressed by a recorded rejection for this query")
+        # Count the RECORDS, and say so. `rejected_ids` returns rejected pair
+        # ids and rejected target texts, which is how many "no"s were recorded
+        # — not how many rows they suppressed. A store holding one pair and
+        # three rejections reported "3 candidate(s) are suppressed", which is
+        # the same defect this function exists to fix: a number attached to a
+        # noun it does not count.
+        n = len(bad_pairs) + len(bad_targets)
+        return (f"nothing left to match — {n} recorded rejection(s) for this query "
+                f"suppress every candidate that would otherwise have been scored")
     return "nothing in this domain matched at all"
 
 
