@@ -392,6 +392,27 @@ def supports_queue(store: "Storage") -> bool:
 _LINEAGE_OPS = ("memory_mark_superseded", "memory_lineage")
 
 
+_ATOMIC_SUPERSEDE_OPS = ("memory_mark_superseded_if",)
+
+
+def supports_atomic_supersede(store: "Storage") -> bool:
+    """Whether ``store`` can retire a row conditionally, in one statement.
+
+    Its own predicate rather than a fourth entry in :data:`_LINEAGE_OPS`, on
+    :func:`supports_rejection_listing`'s precedent: that tuple is
+    all-or-nothing, so extending it would report every host store implementing
+    the existing pair as having *no* lineage capability at all.
+
+    Without it, ``memory.revise_draft`` refuses rather than racing. That is a
+    deliberate refusal, not a degrade: the operation it would otherwise perform
+    can retire a human's seal and install an unverified draft in its place, and
+    "probably not concurrent" is not a basis on which to risk that. Sealing and
+    superseding a *sealed* row are unaffected — they are human-driven and carry
+    a verifier; this verb is the one an agent drives at machine frequency.
+    """
+    return all(callable(getattr(store, op, None)) for op in _ATOMIC_SUPERSEDE_OPS)
+
+
 def supports_lineage(store: "Storage") -> bool:
     """Whether ``store`` implements the optional lineage capability.
 

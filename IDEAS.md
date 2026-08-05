@@ -1920,8 +1920,12 @@ simply did not exist to be called.
 > **Corrected in §6.20.** This entry originally said the *Protocol* had never
 > been given the verb, and cited `memory_seal` hardcoding `status='sealed'` as
 > proof. That was wrong. `supersede_pair` revises a row using
-> `memory_mark_superseded` + `memory_insert`, both already in the lineage
-> capability — so the store could always do it and `memory` was withholding it.
+> `memory_mark_superseded` (the lineage capability) + `memory_insert` (a
+> required core op) — so the store could always do it and `memory` was
+> withholding it. An earlier wording of this correction said both were in the
+> lineage capability, which is also wrong; `_LINEAGE_OPS` is
+> `("memory_mark_superseded", "memory_lineage")`. A correction whose subject is
+> a careless read of one op should not repeat the genre.
 > The claim was made from reading one write op and not the function that
 > already did the work; it survived into a commit message and an IDEAS entry
 > before anyone tried to implement around it.
@@ -1998,3 +2002,83 @@ rather than reject. `revise_draft` says "this replaces that, here is why";
 second is not the machine's to make — §6.18 found the rejection table doing
 duty as an agent's revision log precisely because no third verb existed. That
 workaround should now retire, and any code that adopted it wants revisiting.
+
+### 6.21 The third audit: two criticals in the verb, and the first fix for one of them was wrong too — **shipped**
+
+*Audited 2026-08-05, third independent pass. Verdict on §6.20: **not safe to
+merge**. Twelve findings; the two criticals were reproducible in seconds with
+ordinary threads and no fault injection.*
+
+**A machine could retire a human's seal.** `revise_draft` checked
+`status == 'draft'` against a `memory_find` read, then issued an unconditional
+`UPDATE … WHERE id=?`. A human sealing the row in between had their seal pushed
+into history and replaced by an unsigned draft — **282 of 300 threaded
+trials**. The partial unique index catches racing INSERTs; nothing caught this,
+because an UPDATE touches no index constraint. It was also a route around
+`ConflictingSealError`, with no verifier and no `seal_replaced` entry.
+
+That is the worst defect this branch has produced. The system's entire claim is
+that a served answer carries a human's verification; this destroyed one, at
+machine frequency, and reported success.
+
+**The first fix for it was also wrong**, which is worth recording as plainly as
+the defect. Adding compare-and-set to the retirement (`memory_mark_superseded_if`,
+`UPDATE … WHERE id=? AND status=? AND superseded_by=?`) stopped `revise_draft`
+retiring an *already-sealed* row — and the measurement came back **256 of 300**,
+barely moved. The other interleaving was untouched: a seal landing on a row
+just retired, because `memory_seal` was itself an unconditional
+`UPDATE … WHERE id=?`. The verification applied to a row no serve path would
+ever read. Both halves needed the precondition in the WHERE clause; fixing one
+and measuring is what caught it, and the lesson is that a race fix is not done
+when it is written, it is done when the number moves.
+
+| | before | after |
+|---|---|---|
+| seals lost to history (300 trials) | 282 | **0** |
+| revisions whose lineage was destroyed (200 trials) | 184 | **0** |
+
+The second critical: two concurrent revisions, where the loser's rollback fired
+unconditionally and could overwrite the *winner's* successor pointer with its
+own abandoned marker — leaving the surviving revision with no history, which is
+the one thing the verb exists to provide. The rollback now runs only if it
+still owns the marker, and its own failure is suppressed so it cannot mask the
+real cause.
+
+A store that cannot retire a row conditionally is **refused**, not degraded
+(`supports_atomic_supersede`, its own predicate on
+`supports_rejection_listing`'s precedent). "Probably not concurrent" is not a
+basis on which to risk a human's verification.
+
+The other four that shipped: `revise_draft` consulted `reject_pair` but never
+`reject_match`, so an agent could install a target a human had signed a "no"
+against — after which `lookup` suppresses it and the store stops answering at
+all. The `nestor ui` match panel never rendered `reason`, so the fix for *"a
+review surface that misstates its own reason"* landed in the CLI and the API
+and missed the surface humans actually review on — and its empty-list message
+still asserted *"No candidate scored high enough"* when the true cause was
+often that every candidate was rejected. The rejection count reproduced its own
+bug one line lower (`rejected_ids` returns two **sets**, so one record naming
+both a pair and a target counted twice and two records naming one target
+counted once). And a rejection naming a superseded pair stopped travelling —
+rare before, routine the moment `revise_draft` made superseding an agent's
+normal move; it now travels with `pair_id` blanked, so the target-text
+suppression survives and nothing dangles.
+
+**Deliberately not fixed, both pre-existing on `master` and both in
+`supersede_pair`'s shared machinery:**
+
+* **The crash window.** Between marking the old row and inserting the successor
+  the answer is invisible with no successor, and a process death there is
+  unrecoverable by any in-tree tool. Identical in `supersede_pair` since
+  `7b56adb`. It wants a transaction primitive the Protocol does not have, or a
+  `nestor repair` for `superseded_by LIKE 'pending:%'`.
+* **`memory_lineage` has no cycle guard** (`while True:` with no `visited` set),
+  so a forged `superseded_by` cycle hangs it. Not reachable through the public
+  API today.
+
+**The pattern, three audits in.** Every critical has been the same shape: a
+condition checked in Python guarding a write that cannot re-assert it. It has
+now appeared in the export walk, the rejection filter, and the row retirement —
+three different mechanisms, one habit. The counter-move that has worked each
+time is not a better condition but moving the precondition into the operation:
+two walks each bounded by construction; a WHERE clause instead of a read.

@@ -48,7 +48,8 @@ from typing import Callable, Optional
 from . import signing
 from .embedding_store import supports_embedding_store
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
-from .storage import Storage, get_store, supports_lineage, supports_rejection
+from .storage import (Storage, get_store, supports_atomic_supersede,
+                      supports_lineage, supports_rejection)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -640,6 +641,13 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
     """
     store = get_store(store)
     _require_lineage(store)
+    if not supports_atomic_supersede(store):
+        raise RuntimeError(
+            f"{type(store).__name__} cannot retire a row conditionally (see "
+            f"storage.supports_atomic_supersede), so this revision would have to "
+            f"check the row in Python and then overwrite it blind. That race "
+            f"retires a human's seal and installs an unverified draft in its "
+            f"place, so it is refused rather than degraded.")
     matcher = get_matcher(matcher)
     store.memory_init()
     if audit:
@@ -661,6 +669,18 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
     if old["target_text"] == target_text:
         raise ValueError(f"revised target equals the live draft {target_text!r} "
                          f"— nothing to revise (add_pair is the idempotent path)")
+    # A human may already have refused this exact answer for this query. The
+    # status check above only catches reject_pair; reject_match lives in
+    # tm_rejections, and without this an agent could install a target somebody
+    # signed a "no" against — after which `lookup` suppresses the new live row
+    # and the good draft is in history, so the store stops answering at all.
+    if supports_rejection(store):
+        _, bad_targets = rejected_ids(norm, source_lang, target_lang, store)
+        if target_text in bad_targets:
+            raise RejectedPairError(
+                f"{target_text!r} was recorded as the wrong answer for this query "
+                f"by a reviewer; revising a draft to it would install something a "
+                f"human refused. Restore the rejection first if it no longer stands.")
 
     new_pair = dict(id=str(uuid.uuid4()), source_text=source_text,
                     source_norm=norm, source_lang=source_lang,
@@ -668,17 +688,34 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
                     status="draft", verifier="", weight=weight,
                     origin=origin, reason=reason, created_at=_now(),
                     seal_sig="")
-    # Mark, insert, then point the marker at the real successor — the same
-    # order and the same rollback as supersede_pair, because the partial unique
-    # index correctly refuses two live rows for one key and a failed insert
-    # must leave the store exactly as it was found.
-    store.memory_mark_superseded(old["id"], "pending:" + new_pair["id"])
+    pending = "pending:" + new_pair["id"]
+    # COMPARE-AND-SET, not mark-and-hope. Every guard above ran against a read
+    # from before this line, and the write that acts on them used to be an
+    # unconditional UPDATE — so a human sealing the draft in between had their
+    # seal retired by this call and replaced with an unsigned draft, 282 times
+    # in 300 threaded trials. The precondition travels with the write now: if
+    # the row is no longer the draft we read, nothing moves and we say so.
+    if not store.memory_mark_superseded_if(old["id"], pending, "draft", ""):
+        raise ConflictingDraftError(
+            f"pair {old['id']} changed under this revision — it is no longer the "
+            f"unsealed draft that was read (most likely a human sealed it, or "
+            f"another revision won the race). Nothing was written. Re-read and "
+            f"decide again.")
     try:
         store.memory_insert(new_pair)
     except Exception:
-        store.memory_mark_superseded(old["id"], "")
+        # Roll back ONLY if we still own the marker. The unconditional restore
+        # this replaces could overwrite the winner's successor pointer with our
+        # own abandoned one — 184 of 200 concurrent trials ended with the
+        # surviving revision's history pointing at a row that was never
+        # inserted, which is the lineage this verb exists to keep. It could
+        # also raise on its own and mask the real failure, so it is suppressed.
+        try:
+            store.memory_mark_superseded_if(old["id"], "", "draft", pending)
+        except Exception:                        # noqa: BLE001 — never mask the cause
+            pass
         raise
-    store.memory_mark_superseded(old["id"], new_pair["id"])
+    store.memory_mark_superseded_if(old["id"], new_pair["id"], "draft", pending)
     _drop_stored_embeddings(store, old["id"])
     if audit:
         # `supersede`, not `seal`: nothing was verified here. No seal entry is
@@ -692,7 +729,12 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
             "replaced_status": "draft",
             "replaced_target_sha": _sha(old["target_text"]),
             "target_sha": _sha(target_text), "source_sha": _sha(norm),
-            "reason": reason, "same_verifier": True,
+            "reason": reason,
+            # Computed, not asserted. memory_unseal clears seal_sig and KEEPS
+            # verifier, so a revised once-sealed row can have a non-empty
+            # predecessor verifier while this caller has none — and the trail
+            # is append-only and FRANK-mirrored, so a false field in it stays.
+            "same_verifier": old.get("verifier", "") == "",
         })
     return new_pair
 

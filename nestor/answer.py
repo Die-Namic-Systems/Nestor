@@ -170,7 +170,12 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
         # three rejections reported "3 candidate(s) are suppressed", which is
         # the same defect this function exists to fix: a number attached to a
         # noun it does not count.
-        n = len(bad_pairs) + len(bad_targets)
+        # The RECORDS, read from the table. `rejected_ids` returns two SETS
+        # built from the same rows, so one rejection naming both a pair_id and
+        # a target_text counted as 2, and two records naming the same target
+        # collapsed to 1 — wrong in both directions. The previous fix for this
+        # sentence reproduced its own bug one line lower.
+        n = len(store.memory_rejections(norm, source_lang, target_lang))
         return (f"nothing left to match — {n} recorded rejection(s) for this query "
                 f"suppress every candidate that would otherwise have been scored")
     return "nothing in this domain matched at all"

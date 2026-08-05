@@ -154,6 +154,14 @@ class StoreClosedError(RuntimeError):
 _POOL_MAX = 8
 
 
+class RowRetiredError(RuntimeError):
+    """A write targeted a row that had been superseded before it landed.
+
+    Raised rather than returning quietly, because the alternative is a caller
+    that believes it sealed something. See ``memory_seal``.
+    """
+
+
 class SqliteStore:
     """A minimal SQLite-backed store. Satisfies ``nestor.storage.Storage``."""
 
@@ -511,12 +519,23 @@ class SqliteStore:
 
     def memory_seal(self, pair_id: str, target_text: str, verifier: str,
                    weight: float, seal_sig: str = "") -> None:
+        # `superseded_by=''` is load-bearing, not tidiness. Without it a seal
+        # could land on a row that had just been retired into history — the
+        # human's verification applied to a row no serve path will ever read,
+        # while an unsigned draft stood as the live answer. Observed 256 times
+        # in 300 threaded trials of revise_draft racing a seal. A retired row
+        # is not a thing that can be verified.
         with self._db() as conn:
-            conn.execute(
+            cur = conn.execute(
                 "UPDATE tm_pairs SET target_text=?, status='sealed', "
-                "verifier=?, weight=?, seal_sig=? WHERE id=?",
+                "verifier=?, weight=?, seal_sig=? WHERE id=? AND superseded_by=''",
                 (target_text, verifier, weight, seal_sig, pair_id),
             )
+            if cur.rowcount != 1:
+                raise RowRetiredError(
+                    f"pair {pair_id} was retired into history before this seal "
+                    f"could be applied; nothing was sealed. Re-read the live row "
+                    f"for this source and decide again.")
 
     def memory_candidates(self, source_lang: str,
                          target_lang: str) -> list[dict]:
@@ -541,6 +560,28 @@ class SqliteStore:
         with self._db() as conn:
             conn.execute("UPDATE tm_pairs SET superseded_by=? WHERE id=?",
                          (successor_id, pair_id))
+
+    def memory_mark_superseded_if(self, pair_id: str, successor_id: str,
+                                  expected_status: str,
+                                  expected_superseded_by: str = "") -> bool:
+        """Compare-and-set version: move the row only if it still looks as read.
+
+        Returns True when the row moved, False when it did not match — the
+        caller re-reads and decides. The plain :meth:`memory_mark_superseded`
+        cannot express this, and the gap was not academic: ``revise_draft``
+        checked ``status == 'draft'`` in Python and then issued an
+        unconditional UPDATE, so a human sealing the row in between had their
+        seal pushed into history and replaced by an unsigned draft — 282 times
+        in 300 threaded trials. A guard whose write cannot re-assert it is not
+        a guard. The partial unique index catches racing INSERTs; nothing
+        caught this UPDATE, because an UPDATE touches no index constraint.
+        """
+        with self._db() as conn:
+            cur = conn.execute(
+                "UPDATE tm_pairs SET superseded_by=? "
+                "WHERE id=? AND status=? AND superseded_by=?",
+                (successor_id, pair_id, expected_status, expected_superseded_by))
+            return cur.rowcount == 1
 
     def memory_lineage(self, pair_id: str) -> list[dict]:
         """The chain of superseded predecessors of ``pair_id``, newest first,

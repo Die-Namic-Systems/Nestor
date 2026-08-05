@@ -383,11 +383,15 @@ class TestTruncationIsNeverSilent:
         with pytest.warns(RuntimeWarning, match="pair limit"):
             bundle = portable.export_bundle(store, limit=2)
         assert bundle["counts"]["pairs"] == 2
-        # Every rejection whose pair IS in the bundle must be in it too. The
-        # first version asserted only that a warning fired, and a build that
-        # shipped zero rejections passed it.
-        assert bundle["counts"]["rejections"] == 2
-        assert bundle["partial_rejections"] is True
+        # Every "no" travels — the two whose pairs are carried keep their
+        # pair_id, and the two whose pairs fell outside the cap travel with the
+        # pointer blanked rather than being dropped (a signed human refusal is
+        # not the pair cap's business). The first version asserted only that a
+        # warning fired, and a build shipping zero rejections passed it.
+        assert bundle["counts"]["rejections"] == 4
+        assert {r["pair_id"] != "" for r in bundle["rejections"]} == {True, False}
+        assert bundle["partial_pairs"] is True
+        assert bundle["partial_rejections"] is False   # no rejection was lost
 
     def test_rejections_are_not_capped_by_the_pair_count(self, store):
         """The shape that hid it: few pairs, many rejections, one shared limit.
@@ -521,9 +525,16 @@ class TestACapOnPairsNeverDecidesWhichRejectionsTravel:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 bundle = portable.export_bundle(store, limit=cap)
-            assert bundle["counts"]["rejections"] == bundle["counts"]["pairs"] == cap, (
-                f"limit={cap} exported {bundle['counts']['rejections']} rejection(s) "
-                f"for {bundle['counts']['pairs']} pair(s)")
+            assert bundle["counts"]["pairs"] == cap
+            # Never zero, and never governed by the pair cap: the regression
+            # exported 0. Rejections whose pair was cut travel with a blanked
+            # pointer, so the count is the whole domain's, not the window's.
+            assert bundle["counts"]["rejections"] == 10, (
+                f"limit={cap} exported {bundle['counts']['rejections']} of 10 "
+                f"recorded rejections")
+            assert not [r for r in bundle["rejections"]
+                        if r["pair_id"] and r["pair_id"] not in
+                        {p["id"] for p in bundle["pairs"]}]
 
     def test_rejection_limit_is_independent_of_limit(self, store):
         _decision(store, "q", "a")
@@ -540,6 +551,7 @@ class TestACapOnPairsNeverDecidesWhichRejectionsTravel:
             warnings.simplefilter("error")                   # any warning fails
             bundle = portable.export_bundle(store, limit=3)
         assert bundle["counts"]["pairs"] == 3
+        assert bundle["partial_pairs"] is False
         assert bundle["partial_rejections"] is False
 
     def test_a_genuinely_truncated_export_still_warns(self, store):
@@ -547,7 +559,10 @@ class TestACapOnPairsNeverDecidesWhichRejectionsTravel:
             _decision(store, f"question {i}", "a")
         with pytest.warns(RuntimeWarning, match="pair limit"):
             bundle = portable.export_bundle(store, limit=3)
-        assert bundle["partial_rejections"] is True
+        # partial_PAIRS. The two were one flag, so a bundle missing pairs and
+        # no rejections announced "missing rejections".
+        assert bundle["partial_pairs"] is True
+        assert bundle["partial_rejections"] is False
 
     def test_superseded_rows_do_not_trigger_a_false_truncation_warning(self, store, seal_key):
         """The pair check ran before the superseded filter, so a bundle carrying
@@ -792,3 +807,158 @@ class TestRevisingADraftKeepsWhatItReplaced:
         memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
         with pytest.raises(memory.ConflictingDraftError, match="revise_draft"):
             memory.add_pair("Q", "second", "d", "d", status="draft", store=store)
+
+
+# ------------------------------------------------- the third audit ----------
+#
+# A third audit found two CRITICAL races in `revise_draft`, both reproducible
+# with ordinary threads and no fault injection: an unverified caller could
+# retire a human's seal (282/300 trials), and two concurrent revisions
+# destroyed the winner's lineage (184/200). Both were the branch's recurring
+# shape — a Python-side condition guarding a store-side write that could not
+# re-assert it. The fix is compare-and-set: the precondition travels with the
+# write, and a store that cannot express that is refused rather than raced.
+
+class TestARevisionCannotRetireASeal:
+
+    def test_a_row_sealed_after_the_read_is_not_retired(self, store, seal_key):
+        """The TOCTOU, made deterministic: seal lands between find and mark."""
+        memory.add_pair("Q", "hola", "decision", "decision", status="draft", store=store)
+        row = store.memory_list(source_lang="decision", limit=5)[0]
+        memory.add_pair("Q", "hola", "decision", "decision", status="sealed",
+                        verifier="rita", store=store)          # the human, first
+        with pytest.raises(ValueError, match="supersede_pair"):
+            memory.revise_draft("Q", "hallo", "decision", "decision", store=store)
+        after = store.memory_get(row["id"])
+        assert after["status"] == "sealed"
+        assert after["superseded_by"] == "", "a human's seal was pushed into history"
+
+    def test_the_mark_itself_refuses_a_row_that_changed(self, store, seal_key):
+        """Straight at the store op: the guard must live in the WHERE clause,
+        because that is the only place a concurrent writer cannot step past."""
+        memory.add_pair("Q", "hola", "decision", "decision", status="draft", store=store)
+        row = store.memory_list(source_lang="decision", limit=5)[0]
+        assert store.memory_mark_superseded_if(row["id"], "x", "sealed", "") is False
+        assert store.memory_get(row["id"])["superseded_by"] == ""
+        assert store.memory_mark_superseded_if(row["id"], "x", "draft", "") is True
+        assert store.memory_get(row["id"])["superseded_by"] == "x"
+
+    def test_a_seal_cannot_land_on_a_row_already_retired(self, store, seal_key):
+        """The other interleaving, and the one the first fix missed: the CAS
+        stopped us retiring a sealed row, and nothing stopped a seal landing on
+        a row we had just retired — the verification applied to history."""
+        from nestor.sqlite_store import RowRetiredError
+        memory.add_pair("Q", "hola", "decision", "decision", status="draft", store=store)
+        row = store.memory_list(source_lang="decision", limit=5)[0]
+        store.memory_mark_superseded_if(row["id"], "gone", "draft", "")
+        with pytest.raises(RowRetiredError):
+            store.memory_seal(row["id"], "hola", "rita", 1.0, "sig")
+        assert store.memory_get(row["id"])["status"] == "draft"
+
+    def test_it_refuses_a_store_that_cannot_do_it_atomically(self, store):
+        """Refused, not degraded: the operation it would otherwise perform can
+        destroy a human's verification."""
+        class _NoCas:
+            def __init__(self, inner): self._inner = inner
+            def __getattr__(self, name):
+                if name == "memory_mark_superseded_if":
+                    raise AttributeError(name)
+                return getattr(self._inner, name)
+        memory.add_pair("Q", "first", "decision", "decision", status="draft", store=store)
+        blind = _NoCas(store)
+        assert not storage.supports_atomic_supersede(blind)
+        with pytest.raises(RuntimeError, match="conditionally"):
+            memory.revise_draft("Q", "second", "decision", "decision", store=blind)
+        assert store.memory_list(source_lang="decision", limit=5)[0]["superseded_by"] == ""
+
+
+class TestConcurrentRevisionsKeepTheWinnersLineage:
+
+    def test_two_revisions_leave_one_live_row_and_an_intact_chain(self, store):
+        import threading
+        memory.add_pair("Q", "v0", "decision", "decision", status="draft", store=store)
+        errs = []
+
+        def rev(t):
+            try:
+                memory.revise_draft("Q", t, "decision", "decision", store=store)
+            except Exception as e:               # noqa: BLE001 — one is expected to lose
+                errs.append(type(e).__name__)
+
+        threads = [threading.Thread(target=rev, args=(t,)) for t in ("A", "B")]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        rows = store.memory_list(source_lang="decision", limit=10)
+        live = [r for r in rows if not r["superseded_by"]]
+        assert len(live) == 1, "the partial unique index should permit exactly one"
+        assert not [r for r in rows if r["superseded_by"].startswith("pending:")], (
+            "an abandoned revision left the predecessor pointing at a row that "
+            "was never inserted — the lineage this verb exists to keep")
+        assert store.memory_lineage(live[0]["id"]), "the winner lost its history"
+
+    def test_a_failed_insert_does_not_vandalise_a_finished_revision(self, store):
+        """The loser's rollback used to fire unconditionally and could overwrite
+        the winner's successor pointer with its own abandoned marker."""
+        memory.add_pair("Q", "v0", "decision", "decision", status="draft", store=store)
+        first = memory.revise_draft("Q", "v1", "decision", "decision", store=store)
+        old_id = store.memory_lineage(first["id"])[0]["id"]
+        # Someone else's stale rollback attempt must be a no-op now.
+        assert store.memory_mark_superseded_if(old_id, "", "draft",
+                                               "pending:whatever") is False
+        assert store.memory_get(old_id)["superseded_by"] == first["id"]
+
+
+class TestARevisionCannotInstallARefusedAnswer:
+
+    def test_a_target_a_human_rejected_is_refused(self, store, seal_key):
+        """reject_pair was checked; reject_match was not — so an agent could
+        install a target somebody signed a 'no' against, after which lookup
+        suppresses it and the store stops answering at all."""
+        memory.add_pair("Q", "good draft", "decision", "decision",
+                        status="draft", store=store)
+        memory.reject_match("Q", "decision", "decision", target_text="refused answer",
+                            verifier="rita", reason="wrong", store=store)
+        with pytest.raises(memory.RejectedPairError, match="refused"):
+            memory.revise_draft("Q", "refused answer", "decision", "decision", store=store)
+        assert store.memory_list(source_lang="decision",
+                                 limit=5)[0]["target_text"] == "good draft"
+
+
+class TestTheLedgerDoesNotAssertWhatItDidNotCheck:
+
+    def test_same_verifier_is_computed_not_hardcoded(self, store, seal_key):
+        """memory_unseal clears seal_sig and KEEPS verifier, so a revised
+        once-sealed row has a predecessor verifier while this caller has none."""
+        from tests.conftest import read_ledger
+        pair = memory.add_pair("Q", "v0", "decision", "decision", status="sealed",
+                               verifier="bob", store=store)
+        from nestor.curator import Curator
+        Curator(store).unseal(pair["id"], verifier="bob", reason="reconsidering")
+        memory.revise_draft("Q", "v1", "decision", "decision", store=store)
+        entry = [e for e in read_ledger() if e["kind"] == "supersede"][-1]
+        assert entry["replaced_verifier"] == "bob"
+        assert entry["verifier"] == ""
+        assert entry["same_verifier"] is False, (
+            "the trail asserted the same verifier acted on both sides when "
+            "nobody verified this one at all")
+
+
+class TestARejectionOutlivesThePairItNamed:
+
+    def test_a_no_whose_pair_was_revised_still_travels(self, store):
+        """revise_draft made superseding routine, so a rejection naming a
+        superseded pair went from rare to ordinary — and it was dropped."""
+        pair = _decision(store, "Q", "first draft")
+        _reject(store, "Q", "first draft", pair_id=pair["id"], reason="a human said no")
+        memory.revise_draft("Q", "second draft", "decision", "decision", store=store)
+
+        bundle = portable.export_bundle(store)
+        assert bundle["counts"]["rejections"] == 1, "the signed 'no' was dropped"
+        carried = bundle["rejections"][0]
+        assert carried["pair_id"] == "", "it must not dangle"
+        assert carried["target_text"] == "first draft", (
+            "blanking the pointer must keep the target-text suppression, which "
+            "is the half that still binds on the destination")

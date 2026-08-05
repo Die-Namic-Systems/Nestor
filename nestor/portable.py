@@ -188,6 +188,7 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     pairs_truncated = len(listed) > limit
     listed = listed[:limit]
     pairs = [_row(p, PAIR_FIELDS) for p in listed if not p.get("superseded_by")]
+    live_ids = {p["id"] for p in pairs}
 
     # TWO WALKS, each bounded by construction — not one walk with a filter.
     #
@@ -213,7 +214,11 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     # references a row it does not carry" then holds by construction rather
     # than by a filter that a later cap can undercut.
     rejections: list[dict] = []
-    partial_rejections = pairs_truncated
+    # Two different absences, two different flags. One shared flag reported
+    # "SHORT: the exporter flagged missing rejections" on a bundle that was
+    # missing PAIRS and no rejections at all — the field added so a short
+    # bundle would say so, misstating which rows were short.
+    partial_rejections = False
     if supports_rejection(store):
         cap = _REJECTION_LIMIT if rejection_limit is None else rejection_limit
         by_id: dict[str, dict] = {}
@@ -234,8 +239,19 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                     f"missing from this bundle. Raise `rejection_limit`.",
                     RuntimeWarning, stacklevel=2)
             for r in raw[:cap]:
-                if not r.get("pair_id") and r.get("id") not in by_id:
+                if r.get("id") in by_id:
+                    continue
+                pid = r.get("pair_id") or ""
+                if not pid:
                     by_id[r["id"]] = r
+                elif pid not in live_ids:
+                    # Names a pair this bundle does not carry — superseded, or
+                    # cut by `limit`. Dropping it lost a signed human "no"
+                    # outright, and `revise_draft` made superseding routine, so
+                    # this went from rare to ordinary. Carry it with the pointer
+                    # BLANKED: the target-text suppression survives the trip and
+                    # nothing dangles, which is the invariant either way.
+                    by_id[r["id"]] = {**r, "pair_id": ""}
         else:
             # Without a domain read the pair-less half is unreachable. The
             # pair-bound half above is still complete; say what is missing.
@@ -263,6 +279,7 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
         # every one after — and an HTTP caller reading JSON never sees a
         # warning at all. A bundle that is missing rows must say so in the
         # bundle, which is the only thing the destination actually reads.
+        "partial_pairs": pairs_truncated,
         "partial_rejections": partial_rejections,
         "counts": {
             "pairs": len(pairs),
@@ -315,8 +332,11 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
     if want and want != got:
         return False, (f"digest mismatch: the payload is not the one exported "
                        f"(expected {want[:16]}…, computed {got[:16]}…)")
-    short = " — SHORT: the exporter flagged missing rejections" \
-        if bundle.get("partial_rejections") else ""
+    missing = [w for w, f in (("pairs", "partial_pairs"),
+                              ("rejections", "partial_rejections"))
+               if bundle.get(f)]
+    short = f" — SHORT: the exporter flagged missing {' and '.join(missing)}" \
+        if missing else ""
     return True, (f"{len(pairs)} pair(s), {len(rejections)} rejection(s), "
                   f"digest {got[:16]}…{short}")
 
@@ -363,7 +383,8 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
     report: dict[str, Any] = {"sealed": 0, "demoted": 0, "drafts": 0, "existing": 0,
                               "conflicts": [], "rejected_here": [], "rejections": 0,
                               "dangling_rejections": [],
-                              "partial_source": bool(bundle.get("partial_rejections")),
+                              "partial_source": bool(bundle.get("partial_rejections")
+                                                     or bundle.get("partial_pairs")),
                               "dry_run": dry_run, "digest": bundle.get("digest", ""),
                               "signing_enabled": signing_on}
     #: source pair id -> the id it is stored under HERE. See the rejection loop.

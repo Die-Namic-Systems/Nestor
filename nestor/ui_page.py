@@ -1072,17 +1072,30 @@ function matchResult(r) {
       r.confidence ? h("span", { class: "chip mono", text: "confidence " + r.confidence }) : null),
     r.served ? h("p", { style: "font-size:17px;margin:10px 0 2px", text: r.target }) : null,
     r.served && r.verifier ? h("p", { class: "small muted", style: "margin-top:0",
-                                      text: "verified by " + r.verifier }) : null);
+                                      text: "verified by " + r.verifier }) : null,
+    // WHY it would not be served. answer.match computes this, the CLI prints
+    // it, and this panel — the surface a human actually reviews on — rendered
+    // only "would not be served" and left the reader to guess between "nothing
+    // matched", "nothing is sealed" and "a signature does not verify". A
+    // review surface that withholds its own reason is the defect this field
+    // was added to close; it was closed everywhere except here.
+    !r.served && r.reason ? h("p", { class: "small", style: "margin:8px 0 2px",
+                                     text: r.reason }) : null);
   card.append(candidates(r.matches, r.threshold, "source", "target",
-    (m) => rejectMatch(r.query, m)));
+    (m) => rejectMatch(r.query, m), r.reason));
   return card;
 }
 
 /* --- shared: candidates, sealing, rejecting ------------------------------- */
-function candidates(rows, threshold, leftLabel, rightLabel, onReject) {
+function candidates(rows, threshold, leftLabel, rightLabel, onReject, reason) {
+  // The empty case used to assert "No candidate scored high enough" — which is
+  // false whenever the list is empty because every candidate was REJECTED, or
+  // because the domain holds nothing at all. Say only what is true, and let
+  // the reason above carry the explanation.
   const box = h("div", {}, h("p", { class: "small muted", style: "margin:14px 0 4px",
     text: rows.length ? "Ranked candidates. A sealed one serves only at or above " + threshold + "."
-                      : "No candidate scored high enough to be worth showing." }));
+                      : (reason ? "No candidates to show — see above."
+                                : "No candidates to show.") }));
   if (!rows.length) return box;
   const table = h("table", {}, h("tr", {}, h("th", { text: "" }), h("th", { text: "similarity" }),
     h("th", { text: leftLabel + " → " + rightLabel }), h("th", { text: "" })));
