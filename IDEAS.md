@@ -1485,3 +1485,33 @@ Needs a per-connection "schema ready" flag before changing behaviour.
 
 Memory list chips show **relative age**; full ISO timestamp on hover (``title``).
 Decay/quorum policy remains §1.4.
+
+### 6.11 Decision memory — lineage joined to rejection — **open**
+
+*Proposed 2026-08-05, carried over from the SAFE store; design doc in this
+repo:* [`docs/decision-memory.md`](docs/decision-memory.md).
+
+Nestor holds two of a decision record's four verbs (made, rejected) and lacks
+two (modified, affects-future): re-sealing destroys the prior decision
+(`test_seal_replacement.py` says so), and no edge relates any pair to any
+other. The doc proposes a fourth optional storage capability
+(`supports_lineage`), `superseded_by` + a partial unique index that keeps the
+concurrent-seal race guard for live rows, `reason` on pairs, `reopen_when` on
+rejections (never vs. not-yet), signed `decision_edges`, and a
+`DecisionMemory` recipe mirroring `entity.py` with `constraints_on()` as the
+traversal. Build-order steps 1–2 stand alone as a fix to the destructive
+overwrite. Gate: bench whether the matcher recognizes a re-worded decision
+before any CI gate trusts `constraints_on`.
+
+### 6.12 The detection kit as gates, not advice — **open**
+
+*Proposed 2026-08-05, same session as §6.11.*
+
+Sagan's Baloney Detection Kit (*The Demon-Haunted World*, ch. 12) shipped as a
+book chapter while the injection side shipped as infrastructure. How much of
+the kit's nine tools can become **exit codes** the way `nestor ledger verify`
+made "is the chain intact?" one: tool #1 (independent confirmation) is the
+witness; #4/#5 (multiple hypotheses, don't trust it because it's yours) are
+`nestor decision check` + verifier-differs-from-author; #7 (every link holds)
+is the hash chain; #9 (falsifiability) is `reopen_when`. Unmapped: #2, #3,
+#6, #8, and the fallacy catalog.
