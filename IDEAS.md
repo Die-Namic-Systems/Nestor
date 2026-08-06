@@ -2810,12 +2810,16 @@ a matcher.
 shipped; this is the half that did not, because it should not be stamped
 without being argued.*
 
-> Written on a branch off `master`, where §6.25–§6.30 did not exist, so this
-> entry carried a note warning that its number assumed PR #42 landed first. It
-> was folded into #42 instead and the numbering is contiguous, so the warning is
-> gone rather than left to puzzle somebody. The note is mentioned here only
-> because a caveat that silently disappears is indistinguishable from one that
-> was never checked.
+> **The numbering took three tries, which is worth one sentence.** This entry
+> was written on a branch off `master` where §6.25–§6.30 did not exist, and
+> carried a warning that its number assumed another PR landed first. It was
+> folded into #42; #42 was then split, merged, and reverted, and the docs half
+> landed separately as #43 — so §6.26 and §6.27 reached `master` while §6.25 and
+> §6.28 went back out with the revert. This is the reland, and §6.24 through
+> §6.31 are contiguous again. Recorded because a caveat that silently disappears
+> is indistinguishable from one that was never checked, and because "the numbers
+> are fine now" is exactly the kind of claim this file exists to make somebody
+> verify.
 
 Four things could carry a version. Measured, as of `c68b8be`:
 
