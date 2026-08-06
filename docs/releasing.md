@@ -160,6 +160,18 @@ reassigned or deleted-and-replaced.
   the classifiers assert four versions where two are covered by interpolation.
   Either widen the matrix or narrow the claim; doing neither is the only wrong
   answer, and this note exists so that choice is made rather than defaulted.
+
+  Run once by hand on 2026-08-06, one venv per interpreter, `.[keys] pytest
+  coverage` as CI installs: **3.10, 3.11, 3.12 and 3.13 all green**, 597 passed
+  / 7 skipped on each. That is a snapshot, not a gate — it will not notice the
+  day 3.11 breaks. It does mean the two interpolated claims were true once,
+  which is more than could be said for them before.
+
+  This gap was not hypothetical for long: the first draft of
+  `tests/test_version.py` imported `tomllib` (3.11+) and broke
+  `test-matrix (3.10)` — a release-readiness suite that would not run on the
+  oldest version being released for. The matrix caught it, which is the
+  argument for keeping a floor in it.
 - **No rehearsal target**, per Decision 1 above.
 - **`nestor.__version__` describes the installed distribution, not the file that
   is running.** Measured, and all three cases are documented at the definition:
