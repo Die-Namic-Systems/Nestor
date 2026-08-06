@@ -166,6 +166,27 @@ put the mutation in the commit message.
 
 ---
 
+## Decisions go in the store
+
+**Every PR that makes a decision worth keeping adds one file to
+`docs/dogfood/decisions/` and re-runs `python scripts/dogfood_store.py
+--rebuild`.** The committed store grows one merged PR at a time, and
+`--verify` is a gate: a PR that adds a decision and forgets to rebuild fails.
+
+One file per PR, never a shared bundle — separate files cannot collide, and the
+`.db` is *derived* rather than merged, so the artifact is always regenerable
+from text somebody reviewed.
+
+**The direction is remote to local, never local to remote.** The builder reads
+the decision files in this checkout and nothing else: not your `data/nestor.db`,
+not the process-wide store, not a configured path. That is a gate, not a promise
+— `test_dogfood_store.py` installs a poisoned ambient store and proves none of
+it arrives. The reason is the reason for all of this: a memory whose rows came
+from somewhere nobody can see is not an audit trail.
+
+Every row goes in as a **draft**. You may propose. The queue at `nestor.ui` is
+where that changes, and `--verify` fails on a sealed row however it got there.
+
 ## Findings go in the list
 
 `IDEAS.md` §6, per §6's own rule: a follow-up raised in conversation and not
