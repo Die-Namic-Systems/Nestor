@@ -39,8 +39,18 @@ what moved.
 - [`docs/releasing.md`](docs/releasing.md) — the runbook, including the two
   decisions that have to be made before a first release and the reason neither
   of them is mine.
+- `nestor.ledger.unreadable()` — the ledger lines that are not valid JSON, as
+  `{"line", "error"}`. `entries()` discarded them silently, so a four-line
+  ledger listed three records with nothing marking the gap; the export bundle's
+  `ledger` block, the UI's ledger tab and `nestor ledger entries` all inherited
+  that. All three now report the damage — the CLI on stderr, so a script parsing
+  stdout is unaffected. `IDEAS.md` §6.34.
 
 ### Changed
+
+- `nestor ledger verify` numbers lines from 1. It counted from 0 and reported
+  the third line of a damaged ledger as `line 2`, which sends the person acting
+  on the message to the wrong line.
 
 - Build requirement raised to `setuptools>=77` for PEP 639. The old
   `license = { text = "Apache-2.0" }` table still built but is deprecated, and a

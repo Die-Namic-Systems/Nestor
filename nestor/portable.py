@@ -296,6 +296,11 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
         bundle["ledger"] = {
             "note": "the source instance's chain, for audit; it is not merged on import",
             "entries": ledger_mod.entries(limit=100_000),
+            # The lines the chain holds that would not parse — carried because
+            # without them the bundle is a shorter chain than the one on disk
+            # with nothing marking where the difference is, and the reader of a
+            # bundle is the one party who cannot go and look at the file.
+            "unreadable": ledger_mod.unreadable(),
         }
     return bundle
 

@@ -3161,3 +3161,83 @@ worth having is that a human put each row in it.
 > with this session's repeated decision to keep findings out of the commits that
 > found them. It scored 0.042, and the right row sat at rank 2 beneath a
 > nonsense score.
+
+### 6.34 A ledger line that cannot exist was ignored by every reader — **shipped**
+
+*Found 2026-08-06 while asking what this codebase does when it meets a state it
+believes impossible. Only writers of JSON append to the ledger, so a line that
+will not parse cannot happen: a torn write, a truncated copy, an editor, a
+merge. It happens anyway.*
+
+**Measured, on a four-entry chain with the third line truncated:**
+
+| | |
+|---|---:|
+| non-blank lines on disk | 4 |
+| `ledger.entries()` returned | 3 |
+| said so | nothing |
+
+`entries()` walked past the line and returned one fewer record. Everything built
+on it inherited that silently:
+
+* `nestor ledger entries` printed three rows of a four-line file;
+* the UI's ledger tab showed three, and its **kind** filter was built from the
+  three — a torn line has no kind, so it cannot even be filtered *for*;
+* `portable.export_bundle(include_ledger=True)` shipped three under the note
+  *"the source instance's chain, for audit"*, to the one party who cannot go and
+  look at the file.
+
+`verify()` did catch it, and `entries()`' own `# noqa` said so — *"skip, verify()
+reports it."* That is true and it is not a mechanism: nothing makes a caller run
+`verify()` before believing the list, and `verify()` stops at the **first**
+break, so it is a verdict and never an inventory. It is TODO.md's closing
+variant exactly — *a guarantee that only holds where somebody thought to look* —
+and the same shape as `best_sealed` filtering `lookup()`'s top five: nothing was
+bypassed, no rule was missed, the code just answered a narrower question than
+the one it was asked.
+
+**The fix is the two-walk move, not a condition.** `entries()` collects what
+parses; a new `ledger.unreadable()` collects what does not. Each is bounded by
+construction and neither filters the other's output, so together with an
+unfiltered, untruncated `entries()` they account for every non-blank line —
+which is a property the single filtering walk could not have had, because a
+discard leaves no residue to count. `unreadable()` deliberately takes **no**
+`limit`: the file is already fully in memory when it returns, so truncating a
+damage report would buy nothing and cost the only reason to read it. The three
+surfaces above now carry it — the CLI on **stderr**, so a script parsing stdout
+is unaffected.
+
+**And an off-by-one in the message an operator acts on.** `verify()` numbered
+from 0 and reported the third line of the file as `line 2`. The only thing
+anybody does with "line 7" is open the file at line 7. Both walks now number
+from 1. Nothing pinned the old numbering — no test, no doc, no caller parsing
+the string — which is why it survived.
+
+**The write path was already right, and I published the opposite to myself
+first.** A probe said a fresh process would happily append onto a torn chain. It
+would not: `_verify_chain_once` refuses, and my probe had cleared
+`cascade._checkpoints` while leaving `_verified_ledgers` populated, so the
+process under test had already cached a verdict from the appends the probe
+itself had just made. Re-run in a real subprocess it refuses on a torn tail
+*and* a torn middle. The defect was only ever on the read side; one more minute
+of assuming would have put a false claim about the appender in this file.
+
+**Tests — `tests/test_ledger_unreadable.py`, 15 of them.** Against the revision
+before the fix: **13 fail, 2 pass.** The two that pass before and after are the
+guards — the CLI stays silent about an intact ledger, and the module leaks
+nothing into `os.environ`. Three tests that read like guards (intact ledger,
+missing ledger, blank lines) are **not** guards; they call the new function and
+fail on `AttributeError`, and filing them as guards would have been the
+flattering half of the truth. Two mutations, run:
+
+| mutation | result |
+|---|---|
+| `unreadable()` numbers from 0 again | 7 red |
+| `unreadable()` returns only the first damaged line | exactly 1 red — the test that names that |
+
+**What this does not close, and it is the same shape one layer up.** A third
+party using the library can still call `entries()` and never call
+`unreadable()`. Every surface *in this package* now carries it, and nothing
+makes the next one. The construction that would close it is a gate over the
+package's own call sites rather than a better docstring — §6.12's argument, and
+it is **open**.
