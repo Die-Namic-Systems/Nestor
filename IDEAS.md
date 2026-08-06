@@ -3804,3 +3804,81 @@ publication decision that belongs to its owner, not to the process that read it.
 The rows exist locally and can be shown on request. **Open:** where the corpus
 lives, what its visibility field looks like, and whether the extractor becomes
 committed tooling or stays scaffolding.
+
+### 6.42 Willow extracted: the first bilingual rows, a constitution that is 56% human, and a generic extractor that buried its own best content — **measured**, extractor design **open**
+
+*Run 2026-08-06 against `rudi193-cmd/Willow` (created 2026-01-10, second on the
+chronology), rung 2 of the per-repo stack, branched from the SAFE rung. Public
+repository, so unlike §6.41 this entry may quote it.*
+
+**Yield, after the rewrite described below.** Named shapes only:
+
+| shape | drafts |
+|---|---|
+| bilingual, tables (`In computer terms` → `In human terms`) | 16 |
+| bilingual, prose (same two labels, under a heading) | 12 |
+| governance patterns (name → `Canonical phrasing`) | 6 |
+| constitutional decisions (`Decision` → `Class`) | 73 → 72 rows |
+| definitional tables (first column named as a term) | 28 |
+| **total** | **134 draft, 0 sealed** |
+
+467 further table rows under 82 headers are **not** extracted, and the run
+prints them by header. A corpus that drops 78% of the candidate rows and says
+so is worth more than one that quietly takes them.
+
+**The first genuinely bilingual content in the corpus.** `In computer terms` /
+`In human terms` is one referent stated in two registers — *"an office's
+envelope enumerates lanes, actions, and duration"* against *"the teacher does
+not read the diary. The boss does not own the evenings."* Structurally that is
+exactly a translation pair, and it is the first material in this exercise that
+uses Nestor as built rather than as a decision store.
+
+**Nestor's own question, asked of a constitution.** The 72 decision rows carry
+an authority class each. Counted:
+
+```
+15  Operator Key            15  Auto-Applied            11  Auto-Applied + Ledger
+ 8  Quorum + Ledger          5  Quorum                   4  Operator Key + Quorum
+ 4  Quorum + Operator Key    2  Forbidden absolutely     …
+require a human key or quorum: 40/72 (56%)
+```
+
+A machine may act alone on 44% of the acts its own constitution enumerates.
+That number is the whole product stated as a measurement, and it came out of a
+markdown table nobody wrote for this purpose.
+
+**The mistake worth more than the yield.** The first extractor took *every*
+two-column table: 568 rows. Measured afterwards, 7% came from a header naming a
+term — and the other 93% were status, finding and priority tables. It filed
+`CONSTITUTION.md`'s decision rows under the same domain tag as a `P1` row from a
+sandbox findings list. **A generic extractor is not merely noisy; it buries its
+best rows among its worst**, because nothing downstream can tell them apart
+afterwards. The rewrite names each shape and declines the rest.
+
+**And the collision count moved with the extractor, not the corpus.** The
+generic run raised 63 `ConflictingDraftError`s. Sampled with the held row's
+origin beside the new one, they were `P0`, `P1`, `Doctor`, `Store` — generic
+first cells colliding across unrelated tables. The named run raises **zero**.
+So: *a collision is evidence about the corpus only after the key is scoped
+correctly; before that it is evidence about the parser.* §6.41 reported eight
+collisions on SAFE and caught one parser fault among them. That ratio was luck
+of a small definitional repository, not a property of the method.
+
+**Two things the store cannot see, written down rather than fixed:**
+
+1. **Drift on the target side is invisible.** `Operator Key + Quorum` (4 rows)
+   and `Quorum + Operator Key` (4 rows) are the same authority class written two
+   ways. No collision fires, because collisions key on the *source*. A pair
+   store notices two answers to one question and cannot notice one answer spelled
+   two ways — which in a controlled vocabulary is the more common drift, and here
+   it is 8 of 72 rows.
+2. **Exact duplicates dedupe in silence, again.** 73 successful adds, 72 rows.
+   Same asymmetry as §6.41, now confirmed on a second corpus rather than
+   inferred from one.
+
+**The lineage holds and sharpens.** SAFE stated the propose/ratify split as a
+constitutional principle on 2026-01-04. Willow enumerates it into 72 specific
+acts six days later. Nestor implements it as a store seven months after that,
+and this entry measures the enumeration with the implementation. Three rungs,
+one idea, and the corpus is the thing that lets you see it is one idea. That is
+the argument for continuing up the stack.
