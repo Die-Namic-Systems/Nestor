@@ -32,7 +32,9 @@ From then on a sealed answer is free, instant, and carries the provenance of
 whoever verified it. Every seal, rejection, serve and check is appended to a
 hash-chained ledger, so the trail is tamper-evident.
 
-**Contents** — [The mechanic](#the-mechanic) · [Quick start](#quick-start) ·
+**Contents** — [The mechanic](#the-mechanic) ·
+[The category](#the-category--verification-not-translation-memory) ·
+[Quick start](#quick-start) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
 [The curator](#the-curator--seeing-what-was-verified) ·
@@ -79,6 +81,45 @@ without modifying it.
 
 Nestor has **no upward dependency on any host** — persistence, the matcher, the
 draft engine and the governance forwarder are all injected.
+
+---
+
+## The category — verification, not translation memory
+
+Translation memory is where Nestor was extracted from. It is not what Nestor is
+for, and reading it as a TM gets the economics backwards.
+
+A translation memory is a cache: it exists to avoid paying for the same work
+twice, and its value is the work it skips. Nestor's three states are not a cache
+tier. They are an answer to a different question, and it is a question being put
+to anyone shipping model output into a regulated process:
+
+> **Which model outputs did a human actually check?**
+
+Tier 2 is a machine draft, explicitly queued and never served as verified. Tier
+3 is a person checking it, under their own key. Tier 1 is that decision served
+back, verbatim, with the name of who made it — and the whole sequence appended
+to a hash-chained ledger, so the answer is a structural fact rather than a
+recollection. "A human checked this" is either in the chain or it is not.
+
+**Each verification is permanent capital.** This is the part worth leading with,
+because the curve runs the wrong way round compared to inference: cost per
+answer *falls* as the proportion of verified answers rises, and it never
+un-falls, because a seal does not expire and costs nothing to serve again.
+Spending review time buys down a recurring cost rather than renting a result.
+Verified once, served forever.
+
+**Where that wins:** high-value, low-volume decisions where somebody is already
+reading the output — contract clauses, clinical notes, regulatory filings,
+anything with a named reviewer and a retention requirement. The review was
+happening anyway; Nestor is the difference between it happening and it being
+provable.
+
+**Where it loses, stated plainly:** high-volume serving. Lookup is linear in
+corpus size and about 97% of that time is Python-side scoring, so this is not a
+chat backend and pitching it as one loses on the numbers — see
+[Accuracy](#accuracy-and-how-to-measure-yours) and `IDEAS.md` §2. The design
+target is decisions worth a person's attention, not throughput.
 
 ---
 
@@ -1158,6 +1199,38 @@ Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
   roughly an order of magnitude cheaper, but the scan is still a scan.
 - **The threshold wants calibrating per corpus, not trusting.** No single cutoff
   is both safe and useful across corpora (§1.3).
+
+### Why the numbers are published
+
+Everything above admits a failure rate, in public, in the README. That is
+deliberate, and it is the point of the section rather than a caveat attached to
+it.
+
+*"We are accurate"* is a claim anyone evaluating a system for a regulated
+process already knows is unfalsifiable. It names no rate, no corpus and no
+cutoff, so it cannot be wrong, which is exactly why it cannot be relied on
+either. The replacement is not a better adjective:
+
+> Here is the measured false-verification rate. Here is the dial that sets it.
+> Here is the harness — run it against your own corpus and get your own number.
+
+Each of those three is a file in this repository. The harness is `bench/`; the
+dial is `SEAL_THRESHOLD` and `nestor calibrate`; the numbers are committed under
+[`bench/results/`](bench/results/) as JSON carrying the parameters, the
+environment and the git revision of the run that produced them, so a result can
+be cited and re-derived rather than quoted. `"complete": false` marks a prefix
+rather than an answer, which is a distinction a marketing number would not
+bother to keep.
+
+The argument runs the same way as the rest of the system. A seal is worth
+something because a forged one is refused and the chain says so; a measurement
+is worth something because the method is published and the run can be repeated.
+Neither is a promise about how good this is. Both are structures that make the
+claim checkable by somebody who does not trust us — which is the only kind of
+claim worth making to a buyer whose job is not trusting vendors.
+
+For the sixty-second version of the whole argument, including the failure mode
+where "thirty days" matches "sixty days", run `python demo/sixty_seconds.py`.
 
 ---
 

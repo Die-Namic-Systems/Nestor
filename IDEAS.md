@@ -989,7 +989,7 @@ without asserting it.
 Still open, and deliberately separate: §4.2's positioning line, and §4.3's
 recorded demo.
 
-### 4.2 The category is AI verification, not translation memory — **open**
+### 4.2 The category is AI verification, not translation memory — **shipped**
 
 Tier 2 is an AI draft explicitly queued for review; tier 3 is a human sealing it;
 tier 1 is that seal served forever — all in a tamper-evident chain. That is a
@@ -1003,6 +1003,20 @@ with. Candidate line: *"Verified once. Served forever."*
 Where it wins: high-value, low-volume decisions — contracts, clinical notes,
 regulatory filings. Where it loses: high-volume chat, per §2 numbers. Don't
 pitch into the second; the demo would lose.
+
+**Shipped 2026-08-06** as a README section, *The category — verification, not
+translation memory*, placed directly after *The mechanic* and linked from
+Contents. It carries the TM-is-a-cache contrast, the permanent-capital curve,
+"Verified once, served forever", and both halves of the wins/loses pair with the
+losing half pointing at the §2 numbers rather than glossing them.
+
+**One clause from this entry was deliberately not shipped:** *"which nobody has
+solved."* It is a claim about every other system in the category, it was not
+checked, and there is no way to check it — which makes it precisely the kind of
+sentence this repo spent 2026-08-05 learning not to publish. The README makes
+the checkable claim instead: that this is a question regulated buyers are being
+asked. What Nestor answers is a fact about Nestor; what everyone else has failed
+to answer is not.
 
 ### 4.3 The 60-second demo — **shipped, except the recording**
 
@@ -1033,12 +1047,30 @@ things that exist to answer it.
 Every beat asserts what it narrates and the script exits non-zero if a claim
 does not hold, so it cannot rot into a lie between recordings. A test runs it.
 
-### 4.4 The bench is a marketing asset — **open**
+### 4.4 The bench is a marketing asset — **shipped**
 
 "We are accurate" is a claim a compliance buyer knows is a lie. "Here is our
 measured false-verification rate, here is the dial that sets it, here is the
 harness — run it yourself" is stronger *because* it admits a failure rate.
 Publishing `bench/results/` is a differentiator, not an exposure.
+
+**Shipped 2026-08-06** as *Why the numbers are published*, a subsection closing
+*Accuracy, and how to measure yours* — which is where the argument belongs,
+because by that point the reader has just been shown a table where the default
+threshold false-seals 16.4% of the time. The section says that was on purpose.
+
+Each of the three things the pitch names is a path in the repository, and the
+section says which: the harness is `bench/`, the dial is `SEAL_THRESHOLD` plus
+`nestor calibrate`, the numbers are the committed `bench/results/*.json` with
+parameters, environment and git revision attached. It also keeps
+`"complete": false` in view — a prefix is not an answer, and a marketing number
+would not bother to preserve the distinction.
+
+**No landing page, and no new bench code**, which is what the fleet map's
+"one landing page **or** README section" left open. The README section was the
+cheaper half and it is the one a buyer already reading the repo will reach. The
+recording in §4.3 is still the missing asset, and it is still nobody's code
+change.
 
 ---
 
