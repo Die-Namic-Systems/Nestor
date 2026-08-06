@@ -2189,14 +2189,30 @@ strings where case *is* the meaning, and there is no field that says so.
 
 **The one mechanism that could express it is outside everything.**
 `glossary.locks_in_text` → `system_prompt(locks=...)` already emits *"Locked
-terminology — always render these terms exactly as given"*, and an identity
-lock (`{"Nestor": "Nestor"}`) is precisely carry-through. But the glossary is
+terminology — always render these terms exactly as given"*, and ~~an identity
+lock (`{"Nestor": "Nestor"}`) is precisely carry-through~~. But the glossary is
 `data/glossary.json`, and `grep` for it in `portable.py`, `cascade.py` and
 `sqlite_store.py` returns **0, 0, 0**: not bundled, not ledgered, not sealable,
 not superseded, no verifier, no signature. The one place Nestor can say *do not
 translate this* is the one place with none of Nestor's guarantees. A bundle
 that carries every pair and rejection carries no locks, so the receiving host
 composes prompts the sending host would not have.
+
+> **Corrected in place, 2026-08-06**, while answering the three questions below
+> in [`docs/carried-strings.md`](docs/carried-strings.md). The identity-lock
+> escape hatch does not work. `locks_in_text` matches case-insensitively
+> (`glossary.py:36` lowercases both sides), so `{"Nestor": "Nestor"}` fires on
+> *"he was the nestor of the committee"* as readily as on the name — measured,
+> all three of `Nestor` / `nestor` / `NESTOR` return the lock. It would put
+> *always render exactly as given* into the prompt for the one row in the pair
+> that is a real translation.
+>
+> So the glossary is not the mechanism that could express the distinction and
+> merely lacks guarantees. It is a **second** mechanism with the same blindness:
+> the store case-folds in `normalize` deliberately, the glossary case-folds in
+> `locks_in_text` incidentally. The diagnosis "there is no field that says so"
+> stands; the named way out does not. There is no way to say this today, in any
+> component, with any combination of existing parts.
 
 **What is not being proposed.** Not a `kind` column, and not on the strength of
 one example — that is the shape §6.17 keeps punishing, a field added to carry a
@@ -2212,6 +2228,33 @@ and the third may dissolve the other two:
 3. Does a carried string want a *pair* at all? `Nestor -> Нестор` is a fact
    about a script, not about a language pair, and the table is a language-pair
    table.
+
+**Answered 2026-08-06** — [`docs/carried-strings.md`](docs/carried-strings.md),
+and question 3 does dissolve the other two:
+
+1. **Carried, not proper.** "Proper noun" is a property of a word; carriage is a
+   property of an intention, and *Nestor* is a name in one segment and a common
+   noun in the next — which is this entry. The broader framing also needs no
+   linguistics and covers SKUs, identifiers, paths and citations, none of which
+   a grammarian would call proper nouns and all of which have the requirement.
+2. **Neither, as posed** — the glossary is not currently a policy file, because
+   a policy file has a location and `data/glossary.json` is relative to the
+   process working directory (§6.27). The real complaint in this entry is the
+   *bundle*, not the seal, and bundling locks fixes it without sealing them:
+   nobody verifies that a string is carried, so there is nothing for a
+   `verifier` column to have been right about.
+3. **No pair.** `Nestor -> Нестор` is transliteration — a real transform with a
+   real target, which belongs in a pair table like any other. The carried case
+   is `Nestor -> Nestor`, and that is not a pair but **membership in a set**:
+   one column, no target (it can only equal the source), no language direction
+   (a string carried `en->ru` is carried on the way back). The two rows stop
+   competing because only one of them is a translation, and no field has to say
+   which — the set says which, consulted before normalization rather than
+   inside it.
+
+The one hard constraint that falls out: whatever holds carried strings must not
+be keyed on a case-folded normal form, which is what rules out putting them in
+`tm_pairs` and reproducing this collision one layer down.
 
 **Also true, and the reason this is in §6 rather than fixed:** nobody has hit
 it. It has no reporter, no failing host, and one contrived reproduction. It is
@@ -2458,3 +2501,42 @@ naming the second verifier, leaving the row and the serving path untouched. It
 is listed separately from §1.4 because it stands on its own — it is worth doing
 whether or not N-of-M is ever wanted, and it is the prerequisite that makes
 "does anyone countersign?" a measurement rather than a guess.
+
+### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
+
+*Found 2026-08-06 while answering §6.22's second question; see
+[`docs/carried-strings.md`](docs/carried-strings.md) §Q2.*
+
+```python
+_PATH = pathlib.Path("data/glossary.json")     # nestor/glossary.py:7
+```
+
+Relative, and resolved against the process working directory on every call —
+`load()`, `save()`, `add_term()` and `locks_in_text()` all go through it. So the
+glossary a deployment has is a function of where it was launched from. A
+`systemd` unit with a different `WorkingDirectory` than the developer shell that
+wrote the locks reads an empty glossary and says nothing.
+
+Measured, one process:
+
+```
+glossary path is relative to CWD: data/glossary.json -> True
+same process, different cwd, load() returns: {}
+```
+
+It wrote a glossary, read it back, changed directory, and the same call returned
+`{}`. No error, no warning — term locks simply stop being applied, and the only
+visible symptom is that tier-2 drafts quietly stop respecting terminology
+somebody entered on purpose.
+
+§6.22 calls the glossary *"correctly a policy file that happens to be
+under-guarded"*. That is one step short: it is unsigned, unledgered, unbundled
+**and** unlocatable, and the last of those is the only one with a live blast
+radius today. The others are gaps in guarantees Nestor could offer; this one
+silently drops a promise it already makes.
+
+Unlike the rest of §6.22 this does not wait on a design question and does not
+need a reporter — it needs an absolute path, resolved once, from an explicit
+setting rather than from `os.getcwd()` at call time. It is listed separately for
+that reason: everything else in §6.22 is deliberately parked, and this should
+not be parked with it.
