@@ -134,6 +134,29 @@ def test_seal_serves_afterwards_and_lands_in_the_ledger(filled, tmp_path):
     assert "seal" in kinds, "a seal made in the UI is audited like any other"
 
 
+def test_seal_draft_seals_existing_row(filled):
+    draft = memory.add_pair(
+        "Phase 1 gate · G3 — test",
+        "A) do thing\n---seal---\nA|DECISION G3: do thing\n---end---",
+        "fleet-gap",
+        "fleet-gap",
+        status="draft",
+        store=filled.store,
+    )
+    status, out = post(
+        filled,
+        "/api/seal-draft",
+        pair_id=draft["id"],
+        target="DECISION G3: do thing",
+        verifier="rita",
+    )
+    assert status == 200
+    row = filled.store.memory_get(draft["id"])
+    assert row["status"] == "sealed"
+    assert row["target_text"] == "DECISION G3: do thing"
+    assert out["pair"]["id"] == draft["id"]
+
+
 def test_a_conflicting_seal_is_a_409_and_takes_a_deliberate_override(filled):
     status, out = post(filled, "/api/seal", source="the annual invoice",
                        target="otra cosa", verifier="sam")

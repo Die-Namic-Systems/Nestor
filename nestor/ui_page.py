@@ -22,18 +22,27 @@ PAGE = r"""<!doctype html>
   --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1a17; --muted: #6b6862;
   --line: #e4e0d9; --accent: #3b5f4a; --sealed: #2f6f4e; --draft: #9a6b16;
   --pending: #6b6862; --rejected: #a33a2f; --shadow: 0 1px 2px rgba(0,0,0,.05);
+  --glow: #9a7830; --band: #ebe6dc; --warm: #5a5040;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14150f; --panel: #1c1e17; --ink: #ece9e1; --muted: #9c988e;
     --line: #2e3128; --accent: #8fbc9b; --sealed: #7fc39a; --draft: #d7a94f;
     --pending: #9c988e; --rejected: #e08376; --shadow: none;
+    --glow: #c9a050; --band: #1a1510; --warm: #e8dcc8;
   }
 }
 * { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+body.shell-memory {
+  display: flex; flex-direction: column; overflow: hidden;
+}
+body.shell-memory main#view {
+  flex: 1; min-height: 0; max-width: none; margin: 0; padding: 0; overflow: hidden;
 }
 code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
 header {
@@ -65,7 +74,34 @@ nav button {
   background: none; padding: 8px 16px; color: var(--muted); margin-bottom: -1px;
 }
 nav button.on { color: var(--ink); background: var(--bg); border-color: var(--line); font-weight: 600; }
+nav button.on { position: relative; border-color: transparent; }
+nav button.on::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px;
+  height: 2px; background: var(--accent);
+}
 main { padding: 22px; max-width: 1180px; margin: 0 auto; }
+.mem-shell { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.mem-filters {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 12px 22px; border-bottom: 1px solid var(--line);
+  background: var(--panel); flex-shrink: 0;
+}
+.mem-grid {
+  flex: 1; display: grid; grid-template-columns: 1fr min(440px, 42vw);
+  min-height: 0; align-items: stretch;
+}
+@media (max-width: 900px) { .mem-grid { grid-template-columns: 1fr; } }
+.mem-list { overflow-y: auto; padding: 8px 14px 20px; border-right: 1px solid var(--line); min-height: 0; }
+.mem-side { overflow-y: auto; padding: 16px 18px; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.mem-oracle {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; color: var(--muted); padding: 28px; min-height: 200px;
+}
+.mem-oracle .glyph { font-size: 42px; opacity: .35; margin-bottom: 12px; }
+.pair.on {
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  border-radius: 8px; padding-left: 8px; margin-left: -8px; margin-right: -8px;
+}
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
 .badge {
   font-size: 12px; padding: 3px 9px; border-radius: 999px;
@@ -93,6 +129,14 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
 .pair .texts { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .pair .src { font-weight: 600; }
 .pair .arrow { color: var(--muted); }
+.gap-context { margin-top: 8px; cursor: default; }
+.gap-context summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.gap-context .context-body a { word-break: break-all; }
+.context-panel { white-space: pre-wrap; margin: 10px 0; padding: 10px; border: 1px solid var(--line);
+  border-radius: 6px; background: color-mix(in srgb, var(--bg) 60%, var(--panel)); }
+.commitment-opt { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.commitment-opt input { margin-top: 4px; }
+.commitment-seal-preview { margin-left: 22px; font-size: 12px; color: var(--muted); }
 .seg { border-top: 1px solid var(--line); padding: 12px 2px; }
 .seg:first-of-type { border-top: none; }
 .chip {
@@ -120,6 +164,268 @@ dialog {
   color: var(--ink); padding: 18px; min-width: min(420px, 92vw);
 }
 dialog::backdrop { background: rgba(0,0,0,.35); }
+
+/* Fleet gate review — editorial desk, not a CRUD table */
+body.fleet-review {
+  --display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+}
+body.fleet-review {
+  background:
+    radial-gradient(ellipse 120% 80% at 10% -20%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 100%, color-mix(in srgb, var(--glow) 10%, transparent), transparent 50%),
+    var(--bg);
+}
+body.fleet-review header {
+  background: color-mix(in srgb, var(--panel) 92%, var(--bg));
+  border-bottom-color: color-mix(in srgb, var(--glow) 35%, var(--line));
+}
+body.fleet-review .brand b {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--accent) 85%, var(--ink));
+}
+body.fleet-review .brand b::before {
+  content: "◆";
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 0.65em;
+  vertical-align: 0.15em;
+  color: var(--glow);
+  opacity: 0.9;
+}
+body.fleet-review nav { background: transparent; border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent); }
+body.fleet-review nav button.on { background: transparent; color: var(--glow); }
+body.fleet-review nav button.on::after { background: var(--glow); height: 3px; }
+.brief-band {
+  flex-shrink: 0;
+  padding: 10px 22px 12px;
+  background: linear-gradient(90deg, var(--band), transparent 70%);
+  border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px;
+}
+.brief-band .eyebrow {
+  font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--warm) 70%, var(--muted));
+}
+.brief-band .brief-title {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: normal;
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+.gate-progress { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.gate-progress .track {
+  width: 100px; height: 6px; border-radius: 99px;
+  background: var(--line); overflow: hidden;
+}
+.gate-progress .track i {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--sealed), var(--accent));
+  transition: width 0.4s ease;
+}
+body.fleet-review .mem-filters {
+  background: color-mix(in srgb, var(--bg) 70%, var(--panel));
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+body.fleet-review .mem-list {
+  padding: 16px 18px 28px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.decision-card {
+  font-family: var(--display);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px 14px 20px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 12px color-mix(in srgb, #000 8%, transparent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+}
+.decision-card::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--line);
+}
+.decision-card.is-draft::before { background: linear-gradient(180deg, var(--draft), color-mix(in srgb, var(--draft) 40%, var(--line))); }
+.decision-card.is-sealed::before { background: linear-gradient(180deg, var(--sealed), var(--accent)); }
+.decision-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+.decision-card.on {
+  border-color: color-mix(in srgb, var(--glow) 55%, var(--accent));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow) 30%, transparent),
+              0 12px 32px color-mix(in srgb, #000 18%, transparent);
+}
+.decision-card-gutter {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.gap-code {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--glow);
+}
+.status-ribbon {
+  font: 10px/1 ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.is-sealed .status-ribbon { color: var(--sealed); border-color: color-mix(in srgb, var(--sealed) 45%, var(--line)); }
+.is-draft .status-ribbon {
+  color: var(--draft);
+  border-color: color-mix(in srgb, var(--draft) 50%, var(--line));
+  animation: pulse-draft 2.5s ease-in-out infinite;
+}
+@keyframes pulse-draft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.decision-headline { margin: 0 0 8px; font-size: 1.12rem; font-weight: normal; line-height: 1.35; }
+.decision-teaser { margin: 0; font-size: 0.92rem; color: var(--muted); line-height: 1.5; font-style: italic; }
+.decision-cta {
+  margin: 12px 0 0;
+  font: 12px/1 ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--draft);
+}
+.decision-byline { margin: 10px 0 0; font-size: 12px; color: var(--sealed); }
+body.fleet-review .mem-side { padding: 20px 22px 28px; }
+.stage-card {
+  font-family: var(--display);
+  background: color-mix(in srgb, var(--panel) 95%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--glow) 25%, var(--line));
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 4px 20px color-mix(in srgb, #000 10%, transparent);
+}
+.stage-card .stage-eyebrow {
+  font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--warm) 80%, var(--muted));
+  margin-bottom: 6px;
+}
+.stage-card .stage-headline { margin: 0 0 12px; font-size: 1.35rem; font-weight: normal; line-height: 1.3; }
+.stage-card .stage-lede { margin: 0 0 16px; font-style: italic; color: var(--muted); line-height: 1.55; }
+.stage-card .stage-question {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--glow);
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+  border-radius: 0 8px 8px 0;
+  line-height: 1.5;
+}
+.choice-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin: 10px 0; padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.choice-card:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.choice-card.is-selected {
+  border-color: var(--glow);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow) 40%, transparent);
+  background: color-mix(in srgb, var(--glow) 8%, var(--panel));
+}
+.choice-card input { margin-top: 5px; accent-color: var(--glow); }
+.choice-letter {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: var(--glow);
+  min-width: 1.5em;
+}
+.sealed-verdict {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--sealed) 50%, var(--line));
+  background: color-mix(in srgb, var(--sealed) 8%, var(--panel));
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.sealed-verdict b { color: var(--sealed); font-weight: 600; }
+body.fleet-review .mem-oracle {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+body.fleet-review .mem-oracle .glyph {
+  font-size: 56px;
+  opacity: 0.25;
+  animation: drift 6s ease-in-out infinite;
+}
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(8deg); }
+}
+body.fleet-review button.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--glow) 90%, #fff), var(--glow));
+  border-color: var(--glow);
+  color: #1a1208;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+}
+.provenance-fold { margin-top: 18px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; }
+.provenance-fold summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+body.fleet-review.gate-closed .brief-band {
+  background: linear-gradient(105deg, var(--band), color-mix(in srgb, var(--sealed) 12%, var(--band)) 45%, transparent 85%);
+}
+.fleet-echo {
+  margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--sealed) 35%, var(--line));
+  background: color-mix(in srgb, var(--sealed) 6%, var(--panel));
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px; line-height: 1.45;
+}
+.fleet-echo b { color: var(--sealed); font-weight: 600; }
+.fleet-echo .mono { font-size: 11px; color: var(--muted); }
+.echo-pill {
+  font: 10px/1 ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 99px; margin-left: 8px;
+  border: 1px solid color-mix(in srgb, var(--sealed) 40%, var(--line));
+  color: var(--sealed);
+}
+.echo-pill.wait { color: var(--draft); border-color: color-mix(in srgb, var(--draft) 45%, var(--line)); }
+.mem-list-title {
+  font: 11px/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); padding: 4px 6px 10px;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+body.fleet-review .decision-card { animation: card-in 0.4s ease backwards; }
+body.fleet-review .mem-list .decision-card:nth-child(2) { animation-delay: 0.04s; }
+body.fleet-review .mem-list .decision-card:nth-child(3) { animation-delay: 0.08s; }
+body.fleet-review .mem-list .decision-card:nth-child(4) { animation-delay: 0.12s; }
+body.fleet-review .mem-list .decision-card:nth-child(5) { animation-delay: 0.16s; }
+body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s; }
 </style>
 </head>
 <body>
@@ -175,6 +481,8 @@ const RECIPES = [
 const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
             ledger: null, result: null, domains: [], signals: null,
             offset: 0, more: false, session: null, typedVerifier: "",
+            commitmentPickByPair: {},
+            gateEcho: null,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" } };
@@ -438,41 +746,55 @@ function viewMemory() {
     return;
   }
   const f = S.filters;
-  const filters = h("div", { class: "card" },
-    h("div", { class: "row" },
-      h("input", { id: "f-contains", placeholder: "contains…", value: f.contains,
-                   onkeydown: (e) => { if (e.key === "Enter") applyFilters(); } }),
-      h("select", { id: "f-status" },
-        ...[["", "any status"], ["sealed", "sealed"], ["draft", "draft"], ["rejected", "rejected"]]
-          .map(([v, t]) => h("option", { value: v, selected: f.status === v }, t))),
-      h("input", { id: "f-verifier", placeholder: "verifier", value: f.verifier, size: 12 }),
-      // Domains are the store's generic tag pairs — languages for translation,
-      // an entity type for a graph, label/domain for a numeric bucket. One store
-      // holds several disjoint graphs, so browsing has to be able to say which.
-      h("select", { id: "f-domain", title: "domain (source → target tags)" },
-        h("option", { value: "", selected: !f.source_lang && !f.target_lang }, "every domain"),
-        // The value is the index into S.domains, not the tags joined by a
-        // separator: a domain tag is arbitrary text and may contain anything.
-        ...S.domains.map((d, i) => h("option", {
-          value: String(i),
-          selected: f.source_lang === d.source_lang && f.target_lang === d.target_lang,
-        }, domainLabel(d)))),
-      h("label", { class: "row small", style: "gap:6px" },
-        h("input", { type: "checkbox", id: "f-unverifiable", checked: f.unverifiable === "1" }),
-        "unverifiable only"),
-      h("button", { class: "primary small", onclick: applyFilters }, "Apply"),
-      h("span", { class: "spacer" }),
-      h("a", { href: "/api/export", download: "nestor-export.json" },
-        h("button", { class: "small" }, "Export JSON"))));
-  view.append(filters);
+  const filterRow = h("div", { class: "row" },
+    h("input", { id: "f-contains", placeholder: "contains…", value: f.contains,
+                 onkeydown: (e) => { if (e.key === "Enter") applyFilters(); } }),
+    h("select", { id: "f-status" },
+      ...[["", "any status"], ["sealed", "sealed"], ["draft", "draft"], ["rejected", "rejected"]]
+        .map(([v, t]) => h("option", { value: v, selected: f.status === v }, t))),
+    h("input", { id: "f-verifier", placeholder: "verifier", value: f.verifier, size: 12 }),
+    h("select", { id: "f-domain", title: "domain (source → target tags)" },
+      h("option", { value: "", selected: !f.source_lang && !f.target_lang }, "every domain"),
+      ...S.domains.map((d, i) => h("option", {
+        value: String(i),
+        selected: f.source_lang === d.source_lang && f.target_lang === d.target_lang,
+      }, domainLabel(d)))),
+    h("label", { class: "row small", style: "gap:6px" },
+      h("input", { type: "checkbox", id: "f-unverifiable", checked: f.unverifiable === "1" }),
+      "unverifiable only"),
+    h("button", { class: "primary small", onclick: applyFilters }, "Apply"),
+    h("span", { class: "spacer" }),
+    h("a", { href: "/api/export", download: "nestor-export.json" },
+      h("button", { class: "small" }, "Export JSON")));
 
-  const list = h("div", { class: "card" });
+  const list = h("div", { class: "mem-list" });
+  if (fleetGapReviewMode()) {
+    list.append(h("div", { class: "mem-list-title", text: "Decisions you sealed" }));
+  }
   if (!S.pairs.length) list.append(h("p", { class: "empty", text: "No pairs match." }));
   for (const p of S.pairs) list.append(pairRow(p));
   if (S.pairs.length || S.offset) list.append(pager());
 
-  view.append(h("div", { class: "grid" }, list,
-                h("div", {}, detailPanel(), sealForm(), portableCard())));
+  const sideKids = [];
+  if (S.detail) {
+    sideKids.push(detailPanel());
+    if (!fleetGapReviewMode()) {
+      sideKids.push(sealForm(), portableCard());
+    }
+  } else {
+    sideKids.push(h("div", { class: "mem-oracle" },
+      h("div", { class: "glyph", text: fleetGapReviewMode() ? "☽" : "◇" }),
+      h("p", { text: fleetGapReviewMode()
+        ? "Choose a card. The fleet waits on your witness — not another dashboard row."
+        : "Select a pair to inspect it." })));
+  }
+
+  const shellKids = [];
+  if (fleetGapReviewMode()) shellKids.push(briefBand());
+  shellKids.push(
+    h("div", { class: "mem-filters" }, filterRow),
+    h("div", { class: "mem-grid" }, list, h("div", { class: "mem-side" }, ...sideKids)));
+  view.append(h("div", { class: "mem-shell" }, ...shellKids));
 }
 
 // The list stopped at 50 rows with nothing to say it had. A curator whose
@@ -518,19 +840,269 @@ function keyChip(p) {
   return null;
 }
 
+function stripCommitmentMachine(text) {
+  const i = (text || "").indexOf("---seal---");
+  return i >= 0 ? text.slice(0, i).trim() : (text || "");
+}
+
+function parseCommitmentChoices(text) {
+  const raw = text || "";
+  const display = stripCommitmentMachine(raw);
+  const choices = [];
+  const sealMap = {};
+  if (raw.includes("---seal---")) {
+    for (const line of raw.split("\n")) {
+      const m = line.match(/^([A-D])\|(.+)$/);
+      if (m) sealMap[m[1]] = m[2];
+    }
+  }
+  for (const line of display.split("\n")) {
+    const m = line.match(/^([A-D])\u0029\s+(.+)$/);
+    if (m) {
+      choices.push({
+        id: m[1],
+        label: m[2],
+        sealText: sealMap[m[1]] || ("DECISION: " + m[2]),
+      });
+    }
+  }
+  return { display, choices };
+}
+
+function commitmentSummary(text) {
+  const { display, choices } = parseCommitmentChoices(text);
+  if (choices.length) return choices.map((c) => c.id + ") " + c.label).join(" · ");
+  return display.replace(/\n/g, " · ");
+}
+
+function fleetGapReviewMode() {
+  return S.filters.source_lang === "fleet-gap" && S.filters.target_lang === "fleet-gap";
+}
+
+function parseGapTitle(src) {
+  const s = src || "";
+  const m = s.match(/^Phase 1 gate · (G\d+(?:\s+\w+)?)\s*—\s*(.+)$/i);
+  if (m) return { code: m[1].trim(), title: m[2].trim() };
+  const g = s.match(/\b(G\d+)\b/);
+  return { code: g ? g[1] : "—", title: s || "Decision" };
+}
+
+function parseGapReason(text) {
+  const raw = text || "";
+  const section = (name) => {
+    const lines = raw.split("\n");
+    let out = [];
+    let inSec = false;
+    for (const line of lines) {
+      if (line.startsWith("## ")) {
+        if (inSec) break;
+        inSec = line.toLowerCase().includes(name.toLowerCase());
+        continue;
+      }
+      if (inSec) out.push(line);
+    }
+    return out.join("\n").trim();
+  };
+  return {
+    plain: section("plain terms") || section("what happened"),
+    question: section("asking you") || section("the question"),
+    loki: section("exact wording"),
+  };
+}
+
+function fleetGapProgressPct() {
+  const c = (S.state && S.state.summary) || {};
+  const sealed = c.sealed ?? 0;
+  const draft = c.draft ?? 0;
+  const total = sealed + draft + (c.rejected || 0);
+  if (!total) return 0;
+  return Math.round((sealed / total) * 100);
+}
+
+function briefBand() {
+  const pct = fleetGapProgressPct();
+  const c = (S.state && S.state.summary) || {};
+  const sealed = c.sealed ?? 0;
+  const draft = c.draft ?? 0;
+  const closed = draft === 0 && sealed > 0;
+  const echoes = (S.gateEcho && S.gateEcho.entries) || [];
+  const hanumanDone = echoes.filter((e) => e.dispatch_id && e.status === "complete").length;
+  const hanumanTotal = echoes.filter((e) => e.dispatch_id).length;
+  let title = closed
+    ? "Witness complete — the fleet heard you"
+    : "Phase 1 — your witness, not a ticket queue";
+  if (closed && hanumanTotal && hanumanDone === hanumanTotal) {
+    title = "Hanuman returned — " + hanumanDone + " builder closeout" + (hanumanDone === 1 ? "" : "s");
+  }
+  return h("div", { class: "brief-band" },
+    h("span", { class: "eyebrow", text: closed ? "Gate sealed" : "Fleet gate" }),
+    h("p", { class: "brief-title", text: title }),
+    h("div", { class: "gate-progress" },
+      h("span", { class: "track", title: sealed + " sealed, " + draft + " awaiting" },
+        h("i", { style: "width:" + pct + "%" })),
+      h("span", { text: sealed + " sealed · " + draft + " open" })));
+}
+
+function gateEchoForPair(p) {
+  const g = parseGapTitle(p.source_text).code.split(/\s/)[0];
+  const entries = (S.gateEcho && S.gateEcho.entries) || [];
+  return entries.find((e) => e.gate === g) || null;
+}
+
+function fleetEchoBlock(echo) {
+  if (!echo) return null;
+  if (echo.note && !echo.dispatch_id) {
+    return h("div", { class: "fleet-echo" },
+      h("b", { text: "Still on you — " }),
+      echo.note);
+  }
+  if (!echo.dispatch_id) return null;
+  const done = echo.status === "complete";
+  return h("div", { class: "fleet-echo" },
+    h("div", {},
+      h("b", { text: done ? "Hanuman · complete " : "Hanuman · " }),
+      h("span", { class: "mono", text: echo.dispatch_id }),
+      h("span", { class: "echo-pill" + (done ? "" : " wait"), text: done ? "returned" : "pending" })),
+  done && echo.narrative ? h("p", { style: "margin:8px 0 0", text: echo.narrative }) : null,
+  done && echo.written_at ? h("p", { class: "mono", style: "margin:6px 0 0", text: echo.written_at }) : null);
+}
+
+// Willow fleet-gap imports stash the Loki narrative in `reason` with file:// refs.
+function renderContextBody(text) {
+  const kids = [];
+  for (const line of (text || "").split("\n")) {
+    const t = line.trim();
+    if (t.startsWith("file://")) {
+      const label = t.slice(7);
+      kids.push(h("div", {}, h("a", { href: t, target: "_blank", rel: "noopener noreferrer",
+        class: "mono small" }, label)));
+    } else {
+      kids.push(h("div", { text: line }));
+    }
+  }
+  return h("div", { class: "context-body" }, ...kids);
+}
+
+function contextDetails(reason, origin, { open } = {}) {
+  if (!reason && !(origin || "").startsWith("willow:gap")) return null;
+  return h("details", {
+    class: "gap-context small",
+    open: !!open,
+    onclick: (e) => e.stopPropagation(),
+  },
+    h("summary", { text: "Background reading" }),
+    renderContextBody(reason || "(Re-import with scripts/import_willow_gaps.py for plain-language context.)"));
+}
+
+function fleetGapCard(p) {
+  const { code, title } = parseGapTitle(p.source_text);
+  const { plain } = parseGapReason(p.reason);
+  let teaser = (plain || "").split("\n").filter(Boolean)[0] || "";
+  if (teaser.length > 200) teaser = teaser.slice(0, 197) + "…";
+  const st = p.status === "sealed" ? "is-sealed" : (p.status === "draft" ? "is-draft" : "");
+  const on = S.detail && S.detail.id === p.id;
+  const codeShort = code.split(/\s/)[0];
+  const kids = [
+    h("div", { class: "decision-card-gutter" },
+      h("span", { class: "gap-code", text: codeShort }),
+      h("span", { class: "status-ribbon", text: p.status })),
+    h("h3", { class: "decision-headline", text: title }),
+  ];
+  if (teaser) kids.push(h("p", { class: "decision-teaser", text: teaser }));
+  if (p.status === "draft") kids.push(h("p", { class: "decision-cta", text: "Pick a path and seal →" }));
+  else if (p.status === "sealed" && p.verifier) {
+    kids.push(h("p", { class: "decision-byline", text: "Witnessed by " + p.verifier }));
+  }
+  const echo = gateEchoForPair(p);
+  if (echo && echo.status === "complete") {
+    kids.push(h("span", { class: "echo-pill", style: "margin-top:10px;display:inline-block", text: "hanuman ✓" }));
+  }
+  return h("article", {
+    class: "decision-card " + st + (on ? " on" : ""),
+    onclick: () => openPair(p.id),
+  }, ...kids);
+}
+
 function pairRow(p) {
-  return h("div", { class: "pair", onclick: () => openPair(p.id) },
+  if (fleetGapReviewMode()) return fleetGapCard(p);
+  const compact = false;
+  const row = h("div", {
+    class: "pair" + (S.detail && S.detail.id === p.id ? " on" : ""),
+    onclick: () => openPair(p.id),
+  },
     h("div", { class: "texts" },
       mark(p.status),
       h("span", { class: "src", text: p.source_text }),
       h("span", { class: "arrow", text: "→" }),
-      h("span", { text: p.target_text })),
+      h("span", { text: commitmentSummary(p.target_text) })),
     h("div", { class: "row small muted", style: "margin-top:4px" },
       h("span", { class: "chip", text: p.status }),
       servableChip(p),
       p.verifier ? h("span", { class: "chip", text: "by " + p.verifier }) : h("span", { class: "chip", text: "no verifier" }),
       keyChip(p),
       h("span", { class: "chip", text: (p.source_lang || "?") + "→" + (p.target_lang || "?") })));
+  if (!compact) {
+    const ctx = contextDetails(p.reason, p.origin);
+    if (ctx) row.append(ctx);
+    const commit = commitmentPanel(p, { inline: true });
+    if (commit) row.append(commit);
+  }
+  return row;
+}
+
+function commitmentPanel(p, { inline } = {}) {
+  if (p.status !== "draft") return null;
+  const { display, choices } = parseCommitmentChoices(p.target_text);
+  if (!choices.length) return null;
+  const pickKey = "commit-" + p.id;
+  if (S.commitmentPickByPair[p.id] === undefined) {
+    S.commitmentPickByPair[p.id] = choices[0].id;
+  }
+  const pick = S.commitmentPickByPair[p.id];
+  const fleet = fleetGapReviewMode() && !inline;
+  const opts = choices.map((c) => {
+    const lblClass = fleet ? "choice-card" + (pick === c.id ? " is-selected" : "") : "commitment-opt small";
+    return h("label", { class: lblClass,
+      onclick: fleet ? (e) => { e.stopPropagation(); S.commitmentPickByPair[p.id] = c.id; render(); } : undefined },
+      h("input", { type: "radio", name: pickKey, checked: pick === c.id,
+        onchange: () => { S.commitmentPickByPair[p.id] = c.id; if (!inline) render(); } }),
+      h("div", {},
+        fleet
+          ? h("div", {}, h("span", { class: "choice-letter", text: c.id }), " ", c.label)
+          : h("div", {}, h("b", { text: c.id + ") " }), c.label),
+        h("div", { class: "commitment-seal-preview mono", text: "If you seal: " + c.sealText })));
+  });
+  const body = h("div", {},
+    fleet ? null : h("p", { class: "small muted", style: "margin:0 0 10px", text: display.split("\n")[0] }),
+    ...opts,
+    h("button", { class: "primary" + (fleet ? "" : " small"), style: fleet ? "margin-top:16px" : "margin-top:10px",
+      disabled: S.state && S.state.read_only,
+      onclick: (e) => { e.stopPropagation(); sealCommitment(p, p.id); } },
+      fleet ? "Seal this witness" : "Seal this commitment"));
+  if (inline) {
+    return h("details", {
+      class: "gap-context",
+      open: true,
+      onclick: (e) => e.stopPropagation(),
+    }, h("summary", { text: "Three paths" }), body);
+  }
+  return h("div", { class: fleet ? "stage-choices" : "context-panel" },
+    fleet ? null : h("h3", { style: "margin:0 0 6px;font-size:14px", text: "Your call" }),
+    fleet ? h("p", { class: "stage-eyebrow", style: "margin:0 0 8px", text: "Three paths" }) : null,
+    body);
+}
+
+async function sealCommitment(p, pairId) {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const { choices } = parseCommitmentChoices(p.target_text);
+  const letter = S.commitmentPickByPair[pairId || p.id] || choices[0]?.id;
+  const pick = choices.find((c) => c.id === letter) || choices[0];
+  if (!pick) return toast("No commitment options on this pair.", "err");
+  const out = await sealWithOverride("/api/seal-draft",
+    { pair_id: p.id, target: pick.sealText, verifier: verifier() },
+    "Commitment sealed. If this is a fleet gap, willow should run apply_sealed_fleet_gaps.py.");
+  if (out && out.pair) S.detail = out.pair;
+  render();
 }
 
 async function openPair(id) {
@@ -538,14 +1110,68 @@ async function openPair(id) {
   catch (e) { toast(e.message, "err"); }
 }
 
+function fleetDetailStage(p) {
+  const { code, title } = parseGapTitle(p.source_text);
+  const { plain, question } = parseGapReason(p.reason);
+  const ro = S.state.read_only;
+  const stage = h("div", { class: "stage-card" },
+    h("div", { class: "stage-eyebrow", text: "Phase 1 gate · " + code.split(/\s/)[0] }),
+    h("h2", { class: "stage-headline", text: title }));
+  if (plain) stage.append(h("p", { class: "stage-lede", text: plain.split("\n").slice(0, 2).join(" ") }));
+  if (question) stage.append(h("div", { class: "stage-question", text: question }));
+  const commit = commitmentPanel(p);
+  if (commit) stage.append(commit);
+  else if (p.status === "sealed") {
+    stage.append(h("div", { class: "sealed-verdict" },
+      h("b", { text: "Your witness stands. " }),
+      p.target_text));
+  }
+  const echo = gateEchoForPair(p);
+  const echoEl = fleetEchoBlock(echo);
+  if (echoEl) stage.append(echoEl);
+  const prov = h("details", { class: "provenance-fold" },
+    h("summary", { text: "Background & provenance" }),
+    renderContextBody(p.reason),
+    h("div", { class: "row", style: "margin-top:12px;flex-wrap:wrap" },
+      h("span", { class: "chip", text: p.status }),
+      servableChip(p),
+      p.status === "sealed"
+        ? h("span", { class: "chip", text: p.signature_valid ? "signature valid" : "signature invalid" })
+        : null,
+      h("span", { class: "chip", text: "by " + (p.verifier || "—") }),
+      h("span", { class: "chip mono", text: (p.origin || "").slice(0, 24) }),
+      h("span", { class: "chip mono", text: p.id.slice(0, 8) })),
+    h("div", { class: "row", style: "margin-top:12px" },
+      h("button", { class: "small", disabled: ro || p.status !== "sealed",
+        onclick: () => unseal(p) }, "Unseal"),
+      h("button", { class: "small danger", disabled: ro || p.status === "rejected",
+        onclick: () => rejectPair(p) }, "Reject"),
+      h("button", { class: "small", disabled: ro || p.status !== "rejected",
+        onclick: () => restore(p) }, "Restore")));
+  stage.append(prov);
+  return stage;
+}
+
 function detailPanel() {
-  const card = h("div", { class: "card" }, h("h2", { text: "Provenance" }));
   const p = S.detail;
-  if (!p) { card.append(h("p", { class: "empty", text: "Select a pair to inspect it." })); return card; }
+  if (!p) return h("div", { class: "card" });
+  if (fleetGapReviewMode()) {
+    return fleetDetailStage(p);
+  }
+  const card = h("div", { class: "card" });
+  card.append(h("h2", { text: "Provenance" }));
   const ro = S.state.read_only;
   card.append(
     h("div", { class: "row" }, mark(p.status), h("b", { text: p.source_text })),
-    h("div", { style: "margin:2px 0 10px" }, h("span", { class: "muted", text: "→ " }), p.target_text),
+    h("div", { style: "margin:2px 0 10px" },
+      h("span", { class: "muted", text: "→ " }),
+      p.status === "draft" && parseCommitmentChoices(p.target_text).choices.length
+        ? commitmentSummary(p.target_text)
+        : p.target_text),
+    commitmentPanel(p),
+    (p.reason || (p.origin || "").startsWith("willow:gap"))
+      ? h("div", { class: "context-panel small" }, renderContextBody(p.reason))
+      : null,
     h("div", {},
       h("span", { class: "chip", text: p.status }),
       servableChip(p),
@@ -1398,6 +2024,11 @@ function applyFilters() {
 
 function render() {
   tabs(); badges(); whoBox();
+  document.body.classList.toggle("shell-memory", S.tab === "memory");
+  document.body.classList.toggle("fleet-review", S.tab === "memory" && fleetGapReviewMode());
+  const c = (S.state && S.state.summary) || {};
+  document.body.classList.toggle("gate-closed",
+    S.tab === "memory" && fleetGapReviewMode() && (c.draft ?? 0) === 0 && (c.sealed ?? 0) > 0);
   const view = $("view");
   view.replaceChildren();
   if (S.tab === "queue") viewQueue();
@@ -1411,6 +2042,16 @@ async function refresh() {
   try {
     S.state = await api("/api/state?session="
                         + encodeURIComponent(S.session ? S.session.token : ""));
+    // Fleet-gap review opens on Memory, not Queue (segments are empty for SOIL imports).
+    if (!S._tabBootstrapped) {
+      S._tabBootstrapped = true;
+      const d = S.state.domain || {};
+      if (d.source_lang === "fleet-gap" && d.target_lang === "fleet-gap") {
+        S.tab = "memory";
+        S.filters.source_lang = "fleet-gap";
+        S.filters.target_lang = "fleet-gap";
+      }
+    }
     // The server is the authority on whether a token is still good; a stale one
     // in localStorage must not leave the header claiming somebody is signed in.
     if (S.state.identity && S.state.identity.required && !S.state.identity.signed_in) {
@@ -1423,9 +2064,18 @@ async function refresh() {
       const q = new URLSearchParams(S.filters);
       q.set("offset", String(S.offset));
       q.set("limit", String(PAGE + 1));   // the extra row answers "is there more"
+      if (fleetGapReviewMode()) {
+        try { S.gateEcho = await api("/api/gate-echo"); }
+        catch (_e) { S.gateEcho = null; }
+      }
       const rows = (await api("/api/pairs?" + q.toString())).pairs;
       S.more = rows.length > PAGE;
       S.pairs = rows.slice(0, PAGE);
+      if (S.tab === "memory" && S.pairs.length && !S.detail) {
+        try {
+          S.detail = (await api("/api/pair?id=" + encodeURIComponent(S.pairs[0].id))).pair;
+        } catch (_e) { /* non-fatal */ }
+      }
     }
     if (S.tab === "signals" && S.state.capabilities.curation) {
       const q = new URLSearchParams({ source_lang: S.filters.source_lang,

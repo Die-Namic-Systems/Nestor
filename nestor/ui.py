@@ -64,6 +64,7 @@ import argparse
 import ipaddress
 import json
 import os
+import pathlib
 import secrets
 import sys
 import threading
@@ -172,6 +173,7 @@ class App:
     read_only: bool = False
     verifier_hint: str = ""
     db_path: str = ""
+    gate_rollup_path: str = ""
     sessions: Sessions = field(default_factory=Sessions)
 
     def curator(self, source_lang: str = "", target_lang: str = "") -> Curator:
@@ -264,6 +266,44 @@ def _require_queue(app: App) -> None:
 # --------------------------------------------------------------------------
 # Read endpoints
 # --------------------------------------------------------------------------
+
+def _willow_home() -> pathlib.Path:
+    return pathlib.Path(os.environ.get("WILLOW_HOME", "~/github/.willow")).expanduser()
+
+
+def _gate_echo(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Nestor seals → charter rollup → Hanuman dispatch handoffs (local files only)."""
+    path = (app.gate_rollup_path or "").strip()
+    if not path or not os.path.isfile(path):
+        return {"rollup": path, "entries": []}
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    entries: list[dict[str, Any]] = []
+    wh = _willow_home()
+    for seal in data.get("seals") or []:
+        gate = seal.get("gate") or ""
+        dispatch_id = (seal.get("hanuman_dispatch") or "").strip().upper() or None
+        entry: dict[str, Any] = {
+            "gate": gate,
+            "note": seal.get("note"),
+            "dispatch_id": dispatch_id,
+            "status": None,
+            "narrative": "",
+            "written_at": "",
+        }
+        if dispatch_id:
+            handoff = wh / "dispatch" / dispatch_id / "handoff.json"
+            if handoff.is_file():
+                with open(handoff, encoding="utf-8") as hf:
+                    h = json.load(hf)
+                entry["status"] = "complete"
+                entry["narrative"] = h.get("narrative") or ""
+                entry["written_at"] = h.get("written_at") or ""
+            else:
+                entry["status"] = "awaiting"
+        entries.append(entry)
+    return {"rollup": path, "entries": entries}
+
 
 def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """What the whole page needs to know before it renders anything."""
@@ -568,6 +608,46 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
     return {"pair": app.curator().get(pair["id"]) or pair}
 
 
+def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Seal an existing draft pair — typical for fleet-gap commitment picks."""
+    pair_id = _pair_id(payload)
+    row = app.store.memory_get(pair_id)
+    if row is None:
+        raise ApiError(404, "no such pair", code="not_found")
+    if row.get("status") != "draft":
+        raise ApiError(400, "only draft pairs can be sealed in place", code="bad_request")
+    target = _str(payload, "target") or (row.get("target_text") or "")
+    if not target.strip():
+        raise ApiError(400, "a seal needs a target commitment", code="bad_request")
+    who = _verifier(app, payload)
+    override = bool(payload.get("override"))
+    pair = memory.add_pair(
+        row["source_text"],
+        target,
+        row.get("source_lang", app.source_lang),
+        row.get("target_lang", app.target_lang),
+        status="sealed",
+        verifier=who,
+        origin=row.get("origin") or "ui:seal-draft",
+        reason=_str(payload, "reason"),
+        store=app.store,
+        override_conflict=override,
+        override_rejection=override,
+    )
+    if override:
+        cascade._ledger_append(
+            {
+                "kind": "seal_override",
+                "pair_id": pair["id"],
+                "verifier": who,
+                "source_lang": row.get("source_lang", ""),
+                "target_lang": row.get("target_lang", ""),
+                "origin": "ui:seal-draft",
+            }
+        )
+    return {"pair": app.curator().get(pair["id"]) or pair}
+
+
 def _unseal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     out = app.curator().unseal(_pair_id(payload), verifier=_verifier(app, payload),
                                reason=_str(payload, "reason"))
@@ -687,6 +767,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
     ("GET", "/api/bundle"): _bundle,
+    ("GET", "/api/gate-echo"): _gate_echo,
     ("POST", "/api/session"): _session_open,
     ("POST", "/api/session/end"): _session_end,
     ("POST", "/api/import"): _import,
@@ -697,6 +778,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("POST", "/api/reconcile/check"): _reconcile_check,
     ("POST", "/api/reconcile/seal"): _reconcile_seal,
     ("POST", "/api/seal"): _seal,
+    ("POST", "/api/seal-draft"): _seal_draft,
     ("POST", "/api/unseal"): _unseal,
     ("POST", "/api/restore"): _restore,
     ("POST", "/api/reject-pair"): _reject_pair,
@@ -903,6 +985,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="permit a non-loopback bind (this UI has no authentication)")
     p.add_argument("--open", action="store_true", dest="open_browser",
                    help="open the page in a browser once the server is up")
+    p.add_argument("--gate-rollup", default="",
+                   help="charter JSON listing Nestor seals → Hanuman dispatches "
+                        "(default: NESTOR_GATE_ROLLUP or willow governance rollup if present)")
     return p
 
 
@@ -943,9 +1028,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     store.memory_init()
     storage.set_store(store)
 
+    gate_rollup = (args.gate_rollup or os.environ.get("NESTOR_GATE_ROLLUP", "")).strip()
+    if not gate_rollup:
+        candidate = pathlib.Path(
+            "~/github/willow/governance/decisions/nestor-phase1-gate-seals-2026-08-06.json"
+        ).expanduser()
+        if candidate.is_file():
+            gate_rollup = str(candidate)
+
     app = App(store=store, source_lang=args.source_lang, target_lang=args.target_lang,
               engine_name=args.engine, read_only=args.read_only,
               verifier_hint=args.verifier, db_path=args.db,
+              gate_rollup_path=gate_rollup,
               sessions=Sessions(hours=args.session_hours))
 
     httpd = serve(app, args.host, args.port)
