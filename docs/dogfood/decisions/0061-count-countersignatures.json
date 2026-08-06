@@ -1,0 +1,48 @@
+{
+  "pr": 61,
+  "branch": "claude/count-countersignatures",
+  "date": "2026-08-06",
+  "note": "Step 2 of docs/seal-staleness-and-quorum.md, which the memo ends with 'Nobody has run it.' The tool is written and gated; the answer is still unknown, because no deployment chain exists here to run it against. PROVISIONAL NUMBER — no PR open yet.",
+  "decisions": [
+    {
+      "question": "Why is the countersignature count a script rather than a grep?",
+      "commitment": "Because a seal is idempotent and a countersignature is not, so entries and actors differ by every repeat.",
+      "why": "Measured on a chain memory.add_pair wrote: one reviewer countersigning one pair three times produced 4 countersign entries and 1 seal entry. `grep -c countersign` would report 4; step 2 asks for distinct (pair_id, verifier), which is 1. The asymmetry is deliberate — a seal is a state and re-asserting it changes nothing, while a countersignature is an event with its own timestamp and signature — so a UI retry or flaky client inflates the raw number without anybody countersigning anything. The memo raises this before anybody runs it; this reproduces it rather than citing it."
+    },
+    {
+      "question": "Both numbers are printed. Why not just the correct one?",
+      "commitment": "The gap between them is the evidence that the naive answer would have been wrong.",
+      "why": "Printing only the distinct count silently resolves the question in the tool's favour, and a reader has no way to see that a grep would have said something else. The difference is labelled as repeat attestations."
+    },
+    {
+      "question": "A chain with zero countersignatures — is that data about quorum?",
+      "commitment": "Only if the chain had at least two named actors. Otherwise it is not a measurement at all.",
+      "why": "add_pair logs a countersignature only when `first and verifier and first != verifier` — both sides must name themselves. So a single-reviewer chain cannot produce one however its reviewers feel about N-of-M, and its zero says nothing. This is not in the memo, and it is the sharper of the two traps: had step 2 been run against a single-reviewer deployment and reported 'no demand', it would have closed IDEAS 1.4 on a number that could only ever have been zero. The discriminator is a fact the chain already carries — count the distinct people who ever decided anything in it — so the tool tells the two zeroes apart without being told which it is looking at."
+    },
+    {
+      "question": "How are actors counted across ledger kinds?",
+      "commitment": "Every entry that names a non-empty verifier, whatever its kind, plus the `countersigned` field.",
+      "why": "A per-kind allow-list would be a second copy of cascade.LEDGER_KINDS to keep in step, and a kind missing from it would under-count the exact population that decides whether a zero means anything. Reading `countersigned` matters separately: it names the first sealer, so a chain written with audit=False on the seal path — where no seal entry exists — still identifies both parties. A blank or missing verifier is nobody; counting it would manufacture a second reviewer out of an anonymous write, which is the wrong polarity add_pair itself avoids."
+    },
+    {
+      "question": "What does it do with a chain that does not verify?",
+      "commitment": "Refuses. No count, exit 1, and it names the chain as the problem.",
+      "why": "A tally over an entry somebody may have edited is worse than no tally, because it reads as a measurement. The three no-answer states are kept apart in the same way scripts/feed_all.py keeps them apart: could not look, chain does not verify, no second reviewer."
+    },
+    {
+      "question": "Was step 2 actually answered?",
+      "commitment": "No. The tool has been run against fixture chains covering all four verdicts, and against no deployment.",
+      "why": "There is no deployment chain in this checkout — data/ledger.jsonl does not exist and the dogfood store is drafts. So IDEAS 1.4 is exactly as open as it was this morning, and the memo's 'Nobody has run it' stays in place with a correction beside it rather than being quietly replaced. Claiming the question was settled because a tool exists would be the failure this repo keeps deleting: a claim someone would act on, written from having built the thing rather than from having used it."
+    },
+    {
+      "question": "Is 'two verifiers' the same independence jeles means?",
+      "commitment": "No, and it is weaker. This counts names, not people.",
+      "why": "jeles/_independence.py reaches the same bar of 2 from different evidence and says what it is not: two distinct domains can still be one actor who bought both, so its rule is 'a cheap heuristic, deliberately weaker' than its constitution's Independent Witness. That caveat lands harder here — jeles at least has registrable_domain() to collapse two pages on one site into one source, and there is no such function for humans. Two names in the verifier column can be one person with two keys, and nothing in this package can tell."
+    },
+    {
+      "question": "How was each gate shown to be a gate?",
+      "commitment": "Seven mutations of the script, each run against the suite. All seven went red.",
+      "why": "Counting raw entries as acts; verdict always MEASURED; actors ignoring `countersigned`; blank verifiers counting as actors; read() returning [] instead of None when the file is absent; read() skipping unparseable lines instead of refusing; and counting over a broken chain. A test that passes when the thing it names is broken is a description."
+    }
+  ]
+}
