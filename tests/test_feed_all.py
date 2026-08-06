@@ -24,6 +24,7 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 TOP = REPO / "scripts" / "feed_all.py"
+sys.path.insert(0, str(REPO / "scripts"))
 
 
 def run(*args):
@@ -43,14 +44,14 @@ def readable_but_empty(tmp_path):
 def test_no_checkouts_is_skipped_not_empty():
     done = run()
     assert done.returncode == 0
-    assert "2 skipped" in done.stdout
+    assert "4 skipped" in done.stdout
     assert "0 empty" in done.stdout, "supplying nothing is not the same as an empty corpus"
 
 
 def test_a_readable_empty_corpus_is_empty_not_unreadable(readable_but_empty):
     done = run("--willow-2", str(readable_but_empty), "--jeles", str(readable_but_empty))
     assert done.returncode == 0, "a true empty is not a failure"
-    assert "2 empty" in done.stdout
+    assert "2 empty" in done.stdout and "2 skipped" in done.stdout
     assert "0 unreadable" in done.stdout
 
 
@@ -104,3 +105,26 @@ def test_it_runs_feeders_as_subprocesses():
     assert "subprocess.run" in body
     for forbidden in ("importlib", "from feed_", "import feed_"):
         assert forbidden not in body, f"the top must not {forbidden}"
+
+
+def test_every_registered_feeder_exists():
+    """A feed named in the top and missing from disk would report unreadable —
+    which would read as a corpus problem rather than a wiring one."""
+    import feed_all                      # noqa: E402
+    for _, script, _ in feed_all.FEEDS:
+        assert (REPO / "scripts" / script).exists(), f"{script} is registered but absent"
+
+
+def test_all_four_feeds_are_registered():
+    import feed_all                      # noqa: E402
+    assert len(feed_all.FEEDS) == 4
+    flags = {f for f, _, _ in feed_all.FEEDS}
+    assert flags == {"willow_2", "jeles", "willow_2_migrations", "willow_19"}
+
+
+def test_the_archived_and_migration_feeders_refuse_a_missing_corpus(tmp_path):
+    """Both late feeders must distinguish absent from empty, like the first two."""
+    for flag in ("--willow-2-migrations", "--willow-19"):
+        done = run(flag, str(tmp_path / "nope"))
+        assert done.returncode == 1, f"{flag} must refuse a path it cannot read"
+        assert "1 unreadable" in done.stdout and "0 empty" in done.stdout

@@ -47,6 +47,10 @@ FEEDS = (
      "willow-2.0 constitution — clause → forbidden act"),
     ("jeles", "feed_jeles_sources.py",
      "jeles registry — source → subjects claimed"),
+    ("willow_2_migrations", "feed_willow_migrations.py",
+     "willow-2.0 migrations — change → stated intent"),
+    ("willow_19", "feed_willow19_plans.py",
+     "willow-1.9 plans — plan → what it committed to (archived)"),
 )
 
 FED, EMPTY, UNREADABLE, SKIPPED = "fed", "empty", "unreadable", "skipped"
@@ -54,7 +58,8 @@ FED, EMPTY, UNREADABLE, SKIPPED = "fed", "empty", "unreadable", "skipped"
 #: What each feeder prints when it read a corpus that declares nothing. Mirrored
 #: rather than imported — these are the words a reader sees, and importing a
 #: constant would make the pin true by construction.
-_EMPTY_MARKERS = ("declares 0 institutions", "holds 0 const_*.py")
+_EMPTY_MARKERS = ("declares 0 institutions", "holds 0 const_*.py",
+                  "holds 0 .sql files", "hold 0 .md files")
 
 
 def run_one(script: str, repo: str) -> tuple[str, str, int]:
