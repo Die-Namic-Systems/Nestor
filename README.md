@@ -972,6 +972,14 @@ export NESTOR_KEYRING=keys.json
 nestor ui --db data/nestor.db                # "acting as" becomes a sign-in
 ```
 
+For **fleet-gap** review (willow SOIL imports), the UI can echo Hanuman dispatch
+handoffs from a charter rollup JSON plus files under your willow home:
+
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `NESTOR_GATE_ROLLUP` | path to fleet-gap seals JSON (willow `governance/decisions/*` schema) | unset — override with `nestor ui --gate-rollup` |
+| `WILLOW_HOME` | willow fleet root (`dispatch/<id>/handoff.json` for gate echo) | `~/github/.willow` |
+
 With a keyring in force:
 
 * a seal is signed with the named verifier's key, and a name the keyring does
