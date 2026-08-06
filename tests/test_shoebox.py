@@ -3,13 +3,16 @@
 `demo/shoebox.py` makes two kinds of claim and this runs both. The ordinary ones
 — her correction is what serves, the store still holds what she replaced — fail
 if somebody breaks lineage. The other two are claims that a **gap is still
-open**: the replaced-seals view is blind to `supersede`, and no human-facing
-surface reads `reopen_when`. Those fail when somebody closes the gap, which is
+open**: the replaced-seals view is blind to `supersede`, no human-facing surface
+reads `reopen_when`, `entity.seal` overwrites where `reconcile` keeps, a short
+term lock fires inside a longer word, and the entity recipe has no verb for an
+unverified alias. Those fail when somebody closes the gap, which is
 the good outcome and still has to stop the build, because a demo narrating a
 gap that no longer exists is the same defect as one narrating a fix that never
 landed.
 
-`IDEAS.md` §6.35 holds the argument. Run as a subprocess: the script installs a
+`IDEAS.md` §6.35, §6.37, §6.38 and §6.39 hold the arguments — one per gap, and
+the fixture is what makes their measurements executable rather than quoted. Run as a subprocess: the script installs a
 process-wide store, ledger path and seal key, and is meant to be run that way.
 """
 import pathlib
@@ -31,7 +34,7 @@ def test_every_claim_still_holds():
     assert "DEMO CLAIM FAILED" not in done.stdout
     assert "GAP CLOSED" not in done.stdout, (
         "a gap this fixture reports has been closed — update demo/shoebox.py "
-        "and IDEAS.md §6.35 in the same change:\n" + done.stdout)
+        "and the IDEAS entry it names, in the same change:\n" + done.stdout)
 
 
 def test_it_walks_the_beats_it_promises():
@@ -41,6 +44,11 @@ def test_it_walks_the_beats_it_promises():
                  "She was wrong about something that mattered",
                  "where can she see that she changed her mind",
                  "a deferral, which is not the same as a no",
+                 "The people in them are an entity graph",
+                 "Two men called Pepe",
+                 "The same collision, in the recipe notebook",
+                 "The words the family keeps",
+                 "Somebody living",
                  "What the fixture is for"):
         assert beat in out, f"missing beat: {beat}"
 
