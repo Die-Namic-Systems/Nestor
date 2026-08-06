@@ -1531,13 +1531,52 @@ the state :func:`~nestor.memory.add_pair` refuses to create at seal time. So a
 stale sidecar blocks the run, and ``--force`` removes it along with the database
 it described.
 
-### 6.8 Skip redundant ``memory_init`` schema replay — **open**
+### 6.8 Skip redundant ``memory_init`` schema replay — **shipped**
 
 *Follow-up to IDEAS §2.4.*
 
 Each ``add_pair`` still runs the idempotent schema script on that thread's
-connection. Measured once as noise for ingest; may matter at very large corpora.
-Needs a per-connection "schema ready" flag before changing behaviour.
+connection. ~~Measured once as noise for ingest; may matter at very large
+corpora.~~ Needs a per-connection "schema ready" flag before changing
+behaviour.
+
+> **Corrected in place, 2026-08-06.** "Noise" does not survive being measured
+> a second time. On a bare file-backed ingest loop — `add_pair` only, no draft
+> engine in the path — replaying the schema cost **0.556 → 0.395 ms/op, −28.9%**
+> (best of 3, N=4000, before/after on this machine). A monkeypatched
+> upper bound taken before any code was written said 28–36% across four runs at
+> N=2000 and N=6000, so the shipped fix captures very nearly all of the
+> available win.
+>
+> Both readings are probably true of what they measured. The original note says
+> *noise for ingest*, and in an ingest where a model authors each draft the
+> store is not the constraint — a schema replay disappears behind a network
+> round trip. The claim that did not hold is the unqualified one. What it costs
+> is a third of the store's own time, and `nestor.memory` calls `memory_init()`
+> at the top of a dozen public functions, so it is not only `add_pair` paying.
+
+**The flag lives on the connection, and that is the whole design.** §6.8 asked
+for a per-connection flag and the interesting part turned out to be *where a
+per-connection flag can live*. `sqlite3.Connection` supports neither attribute
+assignment nor weak references, which leaves a store-held set keyed either by
+the connection — pinning it open, defeating `_POOL_MAX` (§6.5) — or by
+`id(conn)`, which CPython reuses after a free. A recycled id marks a **fresh**
+connection as already-initialized and hands a caller a schema-less database:
+a condition that outlives the thing it describes, which is the shape
+`CLAUDE.md` and §8–§9 of the review lessons keep naming. Subclassing
+`sqlite3.Connection` makes the flag die exactly when its connection dies, so
+there is no interval in which it can be wrong.
+
+`init_db` deliberately does **not** set it. It applies a strict subset — no
+`_ensure_lineage_schema` — so a connection it touched still owes the ALTERs
+that bring a pre-lineage database up to date. Marking ready there is the
+cheapest wrong version of this fix, and `test_init_db_does_not_excuse_memory_init`
+is a **guard** against it: it passes before the change as well as after,
+because before it there was no flag to set wrongly.
+
+Three tests, one of them a gate: `test_memory_init_does_not_replay_the_schema_on_a_warm_connection`
+fails against the unfixed revision and passes after. The other two pass on both
+sides and are named as guards above.
 
 ### 6.9 Subprocess test: UI refuses bad ledger interval env — **shipped**
 
@@ -2507,6 +2546,32 @@ and the frozenset is pinned so growing it is a decision rather than a drift.
 different module: it puts a translation system in the position of translating
 its own refusals, unverified, which wants its own entry rather than smuggling
 into this one.
+
+### 6.25 `init_db` on a pre-lineage database raises — **open**
+
+*Found 2026-08-06 while building §6.8, in a test that had to be rewritten to
+stop riding on it.*
+
+`init_db()` calls `_ensure_unique_key`, which creates
+`idx_tm_pairs_superseded ... WHERE superseded_by != ''`. It does **not** call
+`_ensure_lineage_schema`, which is what adds `superseded_by`. On a database
+written before lineage existed, `init_db()` therefore raises
+`OperationalError: no such column: superseded_by`.
+
+Reproduced on `c68b8be` and on the §6.8 branch, identically — this predates
+§6.8 and is not caused by it. `memory_init()` is unaffected: it runs the
+lineage migration first, which is why `test_supersede.py`'s migration test has
+never seen this.
+
+It is only reachable on the `init_db`-before-`memory_init` ordering against a
+legacy file, which the two callers in `test_findings_2026_08_05.py` do — but on
+a fresh database, where `_SCHEMA` creates the modern `tm_pairs` and the column
+is present. So it has no reporter and no failing host, same as §6.22.
+
+The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
+`init_db` — and it is deliberately **not** in the §6.8 commit. A latent
+correctness bug folded quietly into a performance change is how a reviewer ends
+up unable to tell which half a regression came from.
 
 ### 6.26 A countersignature is discarded without a word — **measured**, fix **open**
 

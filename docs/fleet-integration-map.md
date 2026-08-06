@@ -24,9 +24,11 @@ Use with [`IDEAS.md`](../IDEAS.md) open items and [`TODO.md`](../TODO.md).
 
 ---
 
-## §2.4 Skip redundant `memory_init` — **open**
+## §2.4 Skip redundant `memory_init` — **shipped** (as §6.8)
 
 No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§6.5) is already in nestor. A per-connection `schema_ready` flag is the only sensible plug — do not import from willow.
+
+Shipped 2026-08-06. The flag is an attribute on a `sqlite3.Connection` subclass, because the base class takes neither attributes nor weak references and an `id(conn)`-keyed set outlives the connection it names. `IDEAS.md` §6.8.
 
 ---
 
@@ -107,9 +109,11 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 
 ---
 
-## §6.8 `memory_init` replay — **open**
+## §6.8 `memory_init` replay — **shipped**
 
-Nestor-only (see §2.4).
+Nestor-only (see §2.4). A per-connection flag on a `sqlite3.Connection`
+subclass; measured 0.556 → 0.395 ms/op on a bare `add_pair` loop. No fleet
+piece was involved, as §2.4 predicted.
 
 ---
 
@@ -209,7 +213,7 @@ merged CI branches, or upstream forks — not IDEAS expanders.*
 
 Stay **nestor-local** unless you import design from the rows above:
 
-§6.8 skip `memory_init` · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
+~~§6.8 skip `memory_init`~~ (shipped 2026-08-06, nestor-local as predicted) · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
 
 ---
 
@@ -227,5 +231,5 @@ Stay **nestor-local** unless you import design from the rows above:
 ## Suggested priority (integration effort vs value)
 
 1. **Docs-only:** ~~§4.2~~ (shipped) / §4.4 landing page + chart still open; §5.5 frank + `ledger head` runbook.
-2. **Small code:** §6.8 `memory_init` skip; optional Memory sort by `created_at`.
+2. **Small code:** ~~§6.8 `memory_init` skip~~ (shipped); optional Memory sort by `created_at`; §6.25 `init_db` lineage ordering (one line, found while doing §6.8).
 3. **Large / design:** §5.8 Ed25519 (borrow willow-mcp envelope shape); §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy.
