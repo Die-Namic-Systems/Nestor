@@ -3715,3 +3715,92 @@ sanctioned listing tool and present only in a search response. A memory whose
 rows came from somewhere nobody can see is the thing this project exists to
 refuse. **Open:** which of these tools the corpus build is allowed to use, and
 whether each row records the call that produced it.
+
+### 6.41 The oldest repository, extracted: 229 drafts, eight self-contradictions, and three things Nestor has no field for — **measured**, corpus design **open**
+
+*Run 2026-08-06 against `rudi193-cmd/SAFE` (created 2026-01-05, the first
+repository on the operator's list), the opening move of a corpus built from a
+corpus. Extractor lives outside this repository; the store it wrote is in
+gitignored `data/`. What follows is what the run measured, and what it could not
+hold.*
+
+**Method, so the numbers mean something.** The repeating structures were
+*counted* before anything was parsed — 21 four-field entries, 10 `Constraint`
+labels, 5 identified stops, 265 table rows — and three extractors were written
+to those shapes rather than to prose. Nothing was inferred: a row exists only
+where a heading or a table cell put it. Every row landed as a **draft** via
+`add_pair(..., status="draft")`. The ledger has one entry after the run, which
+is the covenant working — a proposal is not a decision and appends nothing.
+
+| extractor | drafts |
+|---|---|
+| identified constraints (`Constraint` → `Response`/`Rules`) | 5 |
+| schema'd entries (`Domain`/`Voice`/`Function`/`Direction`) | 21 |
+| two-column definition tables | 203 |
+| **total** | **229 draft, 0 sealed** |
+
+**The finding worth the exercise: the store refused eight rows, and it was
+right.** `ConflictingDraftError` (§6.19's message) fired eight times — one key,
+two different answers. Five of them are the same rule restated in two places in
+one security document, each time with a qualifier present in one version and
+absent in the other. Read as prose the pairs look like tidying; read as rules
+they are different rules, and the terse form is the permissive one. Nobody asked
+Nestor to look for that. It fell out of refusing to let a second proposal
+overwrite a first, which is the behaviour §6.19 and §6.20 argued about for two
+sessions.
+
+**And one of the eight is mine, not the corpus's.** Two different tables in one
+file share a row label, and the extractor treated them as one key. Recorded here
+because the run's headline number is only worth what its error rate is, and a
+collision report that quietly included a parser fault would be the same
+"absence reported as success" this codebase refuses elsewhere.
+
+**One exact duplicate deduped in silence.** 204 successful `add_pair` calls
+produced 203 rows: an identical restatement returns the stored row rather than
+raising. That is correct — it is not a conflict — but the asymmetry is worth
+naming. **Near**-restatement is loud and **exact** restatement is invisible, so
+the corpus's cheapest form of drift is the one the store says nothing about.
+
+**Three things it could not hold, written down rather than forced:**
+
+1. **No field says a row may not leave.** The source is a private repository,
+   and five of its files name the owner's children and carry birth details. A
+   pair has `status`, `origin` and `reason`; it has nothing that says *this row
+   is not publishable*. Eighteen of the hundred and five repositories on the
+   list are private. A corpus spanning them needs a visibility classification
+   that survives `export_bundle`, and today the only thing keeping the sensitive
+   rows local is that a human chose the output path. That is a convention, not a
+   mechanism — the exact shape CLAUDE.md warns about.
+2. **The entity graph is the right recipe and has no verb.** The source is dense
+   with aliases: one system carries at least four names across its documents,
+   and resolving them is precisely what `EntityResolver` is for. It offers
+   `seal`, `add_alias` (which calls `seal`) and `resolve`. §6.39 recorded that
+   there is no way to *propose*; this is the first corpus to walk into it, on
+   the first repository, and the workaround is the same one §6.39 had to use —
+   go around the recipe and call `add_pair` directly, which means the alias
+   never enters the graph the resolver reads.
+3. **Nothing records which call produced a row.** `origin` carries the source
+   file and anchor, which is good provenance for the *text*. It says nothing
+   about the extraction: which extractor, which revision of it, which run. Two
+   rows disagreeing is only diagnosable if you can tell a corpus contradiction
+   from a parser change, and the eight collisions above are exactly that
+   question. §6.40 left this open as *whether each row records the call that
+   produced it*; one repository in, it is no longer hypothetical.
+
+**A fourth thing, which is not a gap but a reason to keep going.** The oldest
+repository states this project's central rule seven months before this project
+existed — the propose/ratify split, as a constitutional document, including the
+clause that silence is not approval. The chronology assembled in §6.40 is
+therefore not a list, it is a lineage, and "a corpus from a corpus" has a
+subject: watching one idea get restated across a hundred and five repositories
+and seven months, with a store that objects when two statements of it disagree.
+That is the same mechanic as the eight collisions, run at the scale of the
+whole list.
+
+**Held back deliberately.** No extracted row, and no quotation from the source,
+is committed here. The repository is private and the content includes personal
+data about minors; putting any of it into this public repository is a
+publication decision that belongs to its owner, not to the process that read it.
+The rows exist locally and can be shown on request. **Open:** where the corpus
+lives, what its visibility field looks like, and whether the extractor becomes
+committed tooling or stays scaffolding.
