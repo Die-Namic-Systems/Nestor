@@ -984,10 +984,13 @@ def _log_seal_event(entry: dict) -> None:
     try:
         _log_rejection(entry)
     except Exception as exc:              # noqa: BLE001 — never fail a seal on audit
+        # Name the entry kind — hard-coding "seal" lied when any other kind
+        # (or, before §6.26's split, a countersign) took this path.
+        kind = str(entry.get("kind") or "entry")
         warnings.warn(
-            f"a seal was written but its ledger entry was not: {type(exc).__name__}: "
-            f"{exc}. The store and the trail now disagree; run "
-            f"nestor.ledger.verify() and reconcile before trusting this row.",
+            f"a {kind} was written but its ledger entry was not: "
+            f"{type(exc).__name__}: {exc}. The store and the trail now disagree; "
+            f"run nestor.ledger.verify() and reconcile before trusting this row.",
             RuntimeWarning, stacklevel=2)
 
 
@@ -1009,6 +1012,8 @@ def _log_countersign(entry: dict) -> None:
     Found in review of the PR that added the countersignature: the swallowed
     path also warned *"a seal was written but its ledger entry was not"* on a
     call where no seal was written, so the one signal a curator got was false.
+    Countersignatures no longer use that helper; its warning now names
+    ``entry["kind"]`` so a future passenger cannot repeat the lie.
     """
     from .cascade import _ledger_append
     _ledger_append(entry)

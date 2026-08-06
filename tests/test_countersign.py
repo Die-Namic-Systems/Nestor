@@ -234,3 +234,25 @@ def test_a_failed_append_leaves_the_row_exactly_as_it_was(store, led, seal_key,
                         verifier="sam", store=store)
 
     assert dict(store.memory_find("hello", "en", "es")) == before
+
+
+def test_a_failed_seal_append_warns_naming_the_kind(store, led, seal_key,
+                                                     monkeypatch):
+    """Follow-up to #46's second pass: do not hard-code "seal" in the warn.
+
+    `_log_seal_event` still swallows (the row is already committed). The message
+    must name ``entry["kind"]``, or a passenger kind lies to the curator the
+    way countersign did before it got its own helper.
+    """
+    monkeypatch.setattr(cascade, "_ledger_append",
+                        lambda _e: (_ for _ in ()).throw(OSError("gone")))
+    with pytest.warns(RuntimeWarning, match=r"a seal was written but its ledger"):
+        memory.add_pair("hello", "hola", "en", "es", status="sealed",
+                        verifier="rita", store=store)
+    # And a non-seal kind through the same helper must not say "seal".
+    with pytest.warns(RuntimeWarning,
+                      match=r"a seal_replaced was written but its ledger"):
+        memory._log_seal_event({
+            "kind": "seal_replaced", "pair_id": "x",
+            "verifier": "rita", "replaced_verifier": "sam",
+        })
