@@ -250,6 +250,10 @@ bench/                measuring where the seal threshold stops holding — see b
 └── results/            committed measurements — parameters, git rev, raw numbers
 
 demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
+
+recipes/              the seam's "yours" row, built against the shipped package
+├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
+└── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
 scripts/              dogfood and fleet-checkout utilities
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open

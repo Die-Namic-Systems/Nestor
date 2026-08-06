@@ -1,0 +1,103 @@
+name: Publish
+
+# Nothing here can publish today, and that is deliberate. Three independent
+# things must be true first, and no two of them are in one person's hands by
+# accident:
+#
+#   1. a `v*` tag must exist — there are none, and `git tag -l` is empty;
+#   2. the `pypi` environment must be created in repo settings (add a required
+#      reviewer there and a human approves every upload);
+#   3. Trusted Publishing must be configured on PyPI for this repo AND this
+#      workflow filename — see docs/releasing.md.
+#
+# Until all three hold, a tag push builds, checks and stops. That is the
+# intended resting state, not an unfinished one.
+
+on:
+  push:
+    tags: ["v*"]
+  # A dry run anybody can trigger: builds and checks, never uploads.
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the release toolchain
+        run: pip install -e ".[publish]"
+
+      # The gate that matters. A tag saying v0.2.0 over a pyproject saying
+      # 0.1.0 would upload a file whose name disagrees with the thing that was
+      # tagged, and PyPI keeps it forever — a version number is the one claim
+      # in a release nobody can correct afterwards.
+      - name: Refuse a tag that disagrees with the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(python -c 'import tomllib,pathlib;print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          echo "tag=$tag  pyproject=$pkg"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag v$tag does not match pyproject version $pkg"
+            exit 1
+          fi
+
+      - name: Build
+        run: python -m build
+
+      - name: Check the metadata PyPI will render
+        run: python -m twine check --strict dist/*
+
+      # Proof the artifact imports as itself, from the wheel rather than the
+      # source tree it was built in — `nestor` runs fine from a clone with no
+      # install at all, so importing in the repo proves nothing about the wheel.
+      - name: Install the wheel somewhere else and ask it its version
+        run: |
+          python -m venv /tmp/verify
+          /tmp/verify/bin/pip install --quiet dist/*.whl
+          cd /tmp
+          /tmp/verify/bin/python -c "import nestor; print(nestor.__version__)"
+          /tmp/verify/bin/nestor --help > /dev/null
+          echo "console script resolves"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    # Tag pushes only. A workflow_dispatch run stops after `build`, which is
+    # what makes the dry run safe to hand to anyone.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/nestor
+    permissions:
+      # Trusted Publishing (OIDC). No API token is stored in this repository,
+      # so there is no long-lived credential to leak or rotate.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

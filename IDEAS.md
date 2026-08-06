@@ -1464,13 +1464,52 @@ the state :func:`~nestor.memory.add_pair` refuses to create at seal time. So a
 stale sidecar blocks the run, and ``--force`` removes it along with the database
 it described.
 
-### 6.8 Skip redundant ``memory_init`` schema replay — **open**
+### 6.8 Skip redundant ``memory_init`` schema replay — **shipped**
 
 *Follow-up to IDEAS §2.4.*
 
 Each ``add_pair`` still runs the idempotent schema script on that thread's
-connection. Measured once as noise for ingest; may matter at very large corpora.
-Needs a per-connection "schema ready" flag before changing behaviour.
+connection. ~~Measured once as noise for ingest; may matter at very large
+corpora.~~ Needs a per-connection "schema ready" flag before changing
+behaviour.
+
+> **Corrected in place, 2026-08-06.** "Noise" does not survive being measured
+> a second time. On a bare file-backed ingest loop — `add_pair` only, no draft
+> engine in the path — replaying the schema cost **0.556 → 0.395 ms/op, −28.9%**
+> (best of 3, N=4000, before/after on this machine). A monkeypatched
+> upper bound taken before any code was written said 28–36% across four runs at
+> N=2000 and N=6000, so the shipped fix captures very nearly all of the
+> available win.
+>
+> Both readings are probably true of what they measured. The original note says
+> *noise for ingest*, and in an ingest where a model authors each draft the
+> store is not the constraint — a schema replay disappears behind a network
+> round trip. The claim that did not hold is the unqualified one. What it costs
+> is a third of the store's own time, and `nestor.memory` calls `memory_init()`
+> at the top of a dozen public functions, so it is not only `add_pair` paying.
+
+**The flag lives on the connection, and that is the whole design.** §6.8 asked
+for a per-connection flag and the interesting part turned out to be *where a
+per-connection flag can live*. `sqlite3.Connection` supports neither attribute
+assignment nor weak references, which leaves a store-held set keyed either by
+the connection — pinning it open, defeating `_POOL_MAX` (§6.5) — or by
+`id(conn)`, which CPython reuses after a free. A recycled id marks a **fresh**
+connection as already-initialized and hands a caller a schema-less database:
+a condition that outlives the thing it describes, which is the shape
+`CLAUDE.md` and §8–§9 of the review lessons keep naming. Subclassing
+`sqlite3.Connection` makes the flag die exactly when its connection dies, so
+there is no interval in which it can be wrong.
+
+`init_db` deliberately does **not** set it. It applies a strict subset — no
+`_ensure_lineage_schema` — so a connection it touched still owes the ALTERs
+that bring a pre-lineage database up to date. Marking ready there is the
+cheapest wrong version of this fix, and `test_init_db_does_not_excuse_memory_init`
+is a **guard** against it: it passes before the change as well as after,
+because before it there was no flag to set wrongly.
+
+Three tests, one of them a gate: `test_memory_init_does_not_replay_the_schema_on_a_warm_connection`
+fails against the unfixed revision and passes after. The other two pass on both
+sides and are named as guards above.
 
 ### 6.9 Subprocess test: UI refuses bad ledger interval env — **shipped**
 
@@ -2349,3 +2388,240 @@ and the frozenset is pinned so growing it is a decision rather than a drift.
 different module: it puts a translation system in the position of translating
 its own refusals, unverified, which wants its own entry rather than smuggling
 into this one.
+
+
+### 6.25 `init_db` on a pre-lineage database raises — **open**
+
+*Found 2026-08-06 while building §6.8, in a test that had to be rewritten to
+stop riding on it.*
+
+`init_db()` calls `_ensure_unique_key`, which creates
+`idx_tm_pairs_superseded ... WHERE superseded_by != ''`. It does **not** call
+`_ensure_lineage_schema`, which is what adds `superseded_by`. On a database
+written before lineage existed, `init_db()` therefore raises
+`OperationalError: no such column: superseded_by`.
+
+Reproduced on `c68b8be` and on the §6.8 branch, identically — this predates
+§6.8 and is not caused by it. `memory_init()` is unaffected: it runs the
+lineage migration first, which is why `test_supersede.py`'s migration test has
+never seen this.
+
+It is only reachable on the `init_db`-before-`memory_init` ordering against a
+legacy file, which the two callers in `test_findings_2026_08_05.py` do — but on
+a fresh database, where `_SCHEMA` creates the modern `tm_pairs` and the column
+is present. So it has no reporter and no failing host, same as §6.22.
+
+The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
+`init_db` — and it is deliberately **not** in the §6.8 commit. A latent
+correctness bug folded quietly into a performance change is how a reviewer ends
+up unable to tell which half a regression came from.
+
+
+### 6.28 Concurrent writers: the known limit, quantified — **measured**, fix **open**
+
+*Measured 2026-08-06 while walking `docs/code-review-lessons.md` §11 over the
+§6.8 change — the checklist row "concurrent / pooled threads?".*
+
+`TODO.md` §2 says a store that takes concurrent writers is missing and that the
+reference `SqliteStore` is not it. That is qualitative. The number:
+
+12 threads on one file-backed store, each calling `memory_init()` then
+`add_pair()` then `memory_find()`, released from a barrier together, 300 trials
+= 3600 concurrent init-and-write sequences per run. Failures are
+`OperationalError: database is locked`.
+
+| revision | run 1 | run 2 | run 3 |
+|----------|------:|------:|------:|
+| `c68b8be` (before §6.8) | 12 | 9 | 3 |
+| after §6.8 | 4 | 5 | 9 |
+
+**Roughly 0.1–0.3%, and §6.8 neither causes nor fixes it.** The ranges overlap
+completely. The first pair of runs read 12 against 4 and looked like the fix had
+reduced contention — a plausible story, since shorter write transactions ought
+to conflict less — and repeating it dissolved that. It is recorded here because
+the wrong version of this entry is the one I nearly wrote from a single pair.
+
+Nothing to fix in §6.8. What this quantifies is the limit `TODO.md` already
+names: a caller doing concurrent writes to `SqliteStore` gets a hard failure a
+fraction of a percent of the time, with no retry and no queue. `nestor.ui` is a
+threaded server, so the reachable form of this is two reviewers acting at the
+same moment.
+
+**Not added as a test.** It takes minutes, and a gate that fires on 0.1% of runs
+is a flaky build rather than a guarantee. The number belongs in the record; the
+fix belongs in whatever replaces the reference store.
+
+A method note, since the count is the point: the first attempt at this
+comparison used `git stash push` on an already-committed file, which stashes
+nothing and silently ran the *same* revision twice. The paired runs above use
+`git checkout c68b8be -- nestor/sqlite_store.py`, verified each time by grepping
+for `_Conn` in the file before running.
+
+### 6.29 Two of the three refusals are exported; the third is not — **measured**, fix **open**
+
+*Found 2026-08-06 by building a recipe against the package rather than reading
+it — §6.30.*
+
+`nestor/__init__.py` exports `ConflictingSealError` and `RejectedPairError`.
+It does not export `ConflictingDraftError`.
+
+```
+ConflictingSealError     in nestor.__all__: True    attr: True
+RejectedPairError        in nestor.__all__: True    attr: True
+ConflictingDraftError    in nestor.__all__: False   attr: False
+```
+
+So the one refusal that exists to direct a caller to the third verb is the one
+refusal a caller cannot catch from the public surface. A recipe hits it, reaches
+for `nestor.ConflictingDraftError`, gets `AttributeError`, and has to import
+from `nestor.memory` — while the other two sit where they were looked for.
+
+Not a functional defect: the exception is raised, it is catchable from the
+module, and nothing silently succeeds. It is an inconsistency in what the
+package presents as its vocabulary, and §6.20 is where it entered — the verb
+shipped, the error's export did not follow it.
+
+One line. Left unfixed here for the same reason §6.25 was: it belongs in a
+commit that is about the public surface, not folded into a recipe.
+
+### 6.30 A recipe for patches — built, measured, and it does not serve — **measured**
+
+*Built 2026-08-06 against the shipped package, `recipes/patch_review.py`.
+Nothing in `nestor/` was modified, which was the point.*
+
+The README's Matcher-seam table has a row reading *yours / yours / whatever you
+can normalize and score*, with a date matcher and a CSV-header mapper cited as
+evidence. This is a third: **source = a defect described in prose, target = the
+fix, sealed = a human checked that this fix is the fix.**
+
+**`DefectMatcher` weights identifiers above prose.** Defect descriptions carry
+two token populations — prose (*"returns"*, *"silently"*) that is near-identical
+across every bug report ever written, and identifiers (`memory_init`,
+`ConflictingSealError`, `sqlite_store.py:374`) that are almost the whole signal.
+`StringMatcher` is character difflib and cannot tell them apart. Identifiers are
+detected syntactically — snake_case, an internal case change, a dotted or
+colonned path — with no vocabulary list to maintain or mis-weight.
+
+**Measured**, 13 real defect→fix pairs from this repository's own history, each
+probed with a sentence somebody might type a month later:
+
+| matcher | correct defect at rank 1 |
+|---|---:|
+| `StringMatcher` (shipped default) | 4/13 |
+| `TokenJaccard` (bench, unweighted) | 6/13 |
+| `DefectMatcher` (`IDENT_WEIGHT=3.0`) | **7/13** |
+
+`IDENT_WEIGHT` was fixed at 3.0 **before** anything ran, and the curve is
+reported rather than tuned to: 1.0 → 6/13, 2.0 → 6/13, 3.0 → 7/13, 5.0 → 7/13,
+8.0 → 7/13. It saturates at the a-priori choice, so the constant stands and
+raising it buys nothing.
+
+**The headline is the disappointing half.** 7 of 13 is better than both
+baselines and is not good. And the threshold sweep says the recipe cannot serve
+at all:
+
+| cutoff | serves the right one | serves a **wrong** one |
+|---|---:|---:|
+| 0.04 | 7/13 | 6/13 |
+| 0.10 | 4/13 | 2/13 |
+| 0.15 | 3/13 | 1/13 |
+| 0.92 (shipped) | 0/13 | 0/13 |
+
+No cutoff is good at both jobs — the same shape the README's Accuracy section
+already reports for translation, and the same *class* of finding as §3.4 stage
+3, where `StringMatcher` returned 0.000 recall at every shipped threshold on a
+real human corpus. Token weighting improves **ranking** and does not make
+**serving** safe. So this recipe is a review queue, not a tier-1 server, and
+saying otherwise would be the thing §4.4 exists to refuse.
+
+**The package caught me mid-measurement**, which is worth recording as evidence
+the warning works: `best_sealed` with a custom matcher emits a `RuntimeWarning`
+saying `SEAL_THRESHOLD=0.92` was measured for `StringMatcher` and telling the
+caller to run `nestor calibrate --matcher`. It fired unprompted, in the right
+direction, on exactly the mistake a recipe author is most likely to make.
+
+**Rival patches: the refusal is right.** A defect can have two plausible fixes,
+and the store permits one live row per normalized source. Building this is what
+made the refusal make sense. §6.19's two hazards apply word for word — a machine
+swapping the row under a reviewer mid-review so they seal something they never
+read, or a caller believing a proposal landed when it did not. So rivals get two
+named exits and no third: `revise()`, where the abandoned proposal is kept with
+the reason it was abandoned *for*, and splitting the defect, because a
+description broad enough to admit two correct patches is usually describing two
+problems. That last is §6.22 in another domain — the key says these are the same
+source when they are not.
+
+What is genuinely lost is two *live* proposals awaiting one decision, which is
+the gap `docs/detection-kit-as-gates.md` names at the kit's tool #4: Nestor
+holds alternatives as lineage, never as concurrent competitors. If you want a
+bake-off between two patches, Nestor is where the outcome is recorded, not where
+the bake-off happens.
+
+**What it cannot do, and does not pretend to.** Decide whether a patch is
+correct. There is no execution in Nestor and the recipe adds none. A seal here
+means *a person checked this* and never *the tests passed* — the same limit
+§6.12 forced into precise words for the detection kit's tool #3.
+
+Corpus caveat, stated because 13 is a small number: this is far too few rows to
+set a deployment's dial from, and the probes were written by the same person who
+wrote the defect descriptions — §3.4 stage 2 is the entry about why that flatters
+a matcher.
+
+### 6.31 Nothing that persists carries a version — **measured**, fix **open**
+
+*Raised 2026-08-06 while wiring the package for PyPI. The packaging half
+shipped; this is the half that did not, because it should not be stamped
+without being argued.*
+
+> Written on a branch off `master`, where §6.25–§6.30 did not exist, so this
+> entry carried a note warning that its number assumed PR #42 landed first. It
+> was folded into #42 instead and the numbering is contiguous, so the warning is
+> gone rather than left to puzzle somebody. The note is mentioned here only
+> because a caveat that silently disappears is indistinguishable from one that
+> was never checked.
+
+Four things could carry a version. Measured, as of `c68b8be`:
+
+| | version? |
+|---|---|
+| the **package** | `0.1.0` in `pyproject.toml` since `7fb841e`, never moved; no `__version__`, no tags, no changelog |
+| the **bundle** (`portable.py`) | **yes** — `BUNDLE_VERSION = 2`, `SUPPORTED_BUNDLE_VERSIONS = (1, 2)`, a per-version field map, and an explicit refusal naming what it reads and writes |
+| the **store schema** | **no** — no `PRAGMA user_version`, no meta table |
+| the **ledger format** | **no** — entries carry `kind`, `at`, `prev`, `hash` and a payload, and nothing saying which format wrote them |
+
+The package half is now done: `__version__` from installed metadata, a
+changelog, a release runbook, and a publish workflow that cannot fire. The
+interesting part is the asymmetry the table shows.
+
+**The thing that crosses a trust boundary is versioned carefully. The things
+that persist locally are not versioned at all.** A bundle leaves one deployment
+and lands in another, so it got a version, a supported-range check, per-version
+field sets, and a guard subtle enough to know that `True` is not version 1 and
+that `2.0` is version 2 because a browser round-trip turns `1` into `1.0`. The
+store and the chain never leave, so nobody had to think about it — and they are
+the two things that outlive every process that touches them.
+
+**The store.** Migrations detect state by probing with `PRAGMA table_info` and
+reacting to which columns are absent. That works, and it is why `init_db` on a
+pre-lineage database raises `OperationalError: no such column: superseded_by` —
+it builds an index over a column that another method adds, and with no version
+to consult there is nothing but call order enforcing the dependency. (Filed
+separately as §6.25 on the PR #42 branch.) A `user_version` would make the
+migration a decision about a number rather than an inference from a shape.
+
+**The ledger is the one that gets harder the longer it waits**, and it is why
+this entry proposes nothing. The chain is append-only and hash-linked, so
+historical entries cannot be re-hashed under new rules without breaking the
+chain they exist to protect. Which means the format is *already frozen* — not by
+a decision, but by the first entry anybody wrote. Adding a version field now
+versions everything after it and leaves everything before it as the implicit
+version 0, and whether that is acceptable is exactly the kind of question
+`docs/seal-staleness-and-quorum.md` had to ask about `weight`: what does a
+reader do with a record whose format predates the field that would have told
+them its format?
+
+**Not proposed here:** a `user_version` stamp, a ledger `v` field, or any
+migration. Both touch persistence and the audit path, which per `CLAUDE.md`
+wants an adversarial read, and the ledger question wants deciding before
+anything is stamped rather than after. What is proposed is that the decision
+stop being deferred by not being written down.
