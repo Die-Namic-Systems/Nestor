@@ -154,6 +154,45 @@ class StoreClosedError(RuntimeError):
 _POOL_MAX = 8
 
 
+class _Conn(sqlite3.Connection):
+    """A connection that remembers whether ``memory_init`` has run on it.
+
+    IDEAS §6.8. ``memory_init`` is called at the top of a dozen public
+    functions in ``nestor.memory``, and each call replayed the whole
+    idempotent schema script plus three migration probes. That is correct and
+    it is not free.
+
+    The flag lives on the connection object rather than in a set the store
+    keeps, because the store's set would outlive the connections in it.
+    ``sqlite3.Connection`` supports neither attribute assignment nor weak
+    references, so the only two ways to key such a set are the connection
+    itself — which pins it open and defeats ``_POOL_MAX`` — or ``id(conn)``,
+    which CPython reuses after a free. A recycled id would mark a *fresh*
+    connection as already-initialized and hand a caller a schema-less
+    database. Subclassing is what makes the flag die exactly when the thing
+    it describes dies.
+
+    ``init_db`` deliberately does not set it: ``init_db`` applies a strict
+    subset of ``memory_init`` (no lineage migration), so a connection it
+    touched still owes the rest.
+
+    **No class-level default, and the read goes through ``__dict__``.** The
+    first version of this carried ``schema_ready = False`` on the class and
+    tested it with ``getattr``. An adversarial review reproduced the
+    consequence in three lines: set ``_Conn.schema_ready = True`` and every
+    *brand-new* connection reports ready, so ``memory_init`` on an empty
+    database returns having created **zero tables**.
+
+    That is the ``id(conn)`` defect wearing a different hat — a value that
+    outlives and misdescribes the connection it claims to be about. Deleting
+    the default alone would only remove the invitation, since a class
+    attribute still shadows a missing instance one. Reading
+    ``conn.__dict__`` removes the *interaction*: the class is not on the
+    lookup path at all, so nothing but this connection can answer for this
+    connection.
+    """
+
+
 class RowRetiredError(RuntimeError):
     """A write targeted a row that had been superseded before it landed.
 
@@ -185,7 +224,8 @@ class SqliteStore:
         # check_same_thread is relaxed because no connection is ever used by two
         # threads at once: the shared one is serialized by self._lock, and a
         # pooled one is out of the pool for as long as a caller holds it.
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn = sqlite3.connect(self.db_path, check_same_thread=False,
+                               factory=_Conn)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         if self.db_path != ":memory:":
@@ -301,11 +341,19 @@ class SqliteStore:
 
     def memory_init(self) -> None:
         # tm_pairs is created by the same schema script; keep it idempotent.
+        # Idempotent is not the same as free — see _Conn. The work is skipped
+        # only for a connection that has already done it, so a caller can
+        # never reach a query through a schema it did not pay for.
         with self._db() as conn:
+            # __dict__, not getattr: a class attribute must not be able to
+            # answer for an instance. See _Conn.
+            if conn.__dict__.get("schema_ready", False):
+                return
             conn.executescript(_SCHEMA)
             self._ensure_lineage_schema(conn)
             self._ensure_unique_key(conn)
             self._ensure_embedding_schema(conn)
+            conn.schema_ready = True
 
     def _ensure_lineage_schema(self, conn: sqlite3.Connection) -> None:
         """Bring a database written before lineage existed up to date.

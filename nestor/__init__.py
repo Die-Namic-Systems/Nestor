@@ -28,6 +28,49 @@ instances without laundering trust.
 """
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version as _dist_version
+
+#: The installed distribution's version, or ``"0+unknown"``.
+#:
+#: Read from installed metadata rather than written here, because
+#: ``pyproject.toml`` already declares it and a second copy in this file would
+#: be the defect ``test_engine.py::test_the_rule_is_written_once`` exists to
+#: catch: two literals, no check, and a pending disagreement between them.
+#:
+#: ``"0+unknown"`` is a legal PEP 440 local version: it parses, it sorts below
+#: every real release, and it cannot be mistaken for one — so a host that logs
+#: it gets a string saying *nobody installed this* rather than a plausible lie.
+#:
+#: **What this reports is the distribution, not this file.** Measured, because
+#: the obvious reading is wrong twice over:
+#:
+#: * A clone with **no install and no ``nestor.egg-info/``** reports
+#:   ``0+unknown``. That is the state ``CLAUDE.md`` opens by warning about.
+#: * A clone that has *ever* been installed into keeps ``nestor.egg-info/`` in
+#:   the repo root, and ``importlib.metadata`` finds that as a distribution —
+#:   so the same tree reports the declared version with nothing installed in
+#:   the venv.
+#: * A source tree on ``PYTHONPATH`` **in front of** an installed nestor runs
+#:   this file and reports the *installed* version, because metadata is
+#:   resolved by name across ``sys.path`` and does not care which copy of the
+#:   module won the import. Shadow an installed release with a working tree and
+#:   ``__version__`` names the release while the tree's code runs.
+#:
+#: No version literal appears in this comment, and that is not fussiness:
+#: ``tests/test_version.py::test_the_version_is_written_once`` fired on an
+#: earlier draft of this paragraph, which used the current version as an
+#: example. A number in prose goes stale on the first bump exactly like a
+#: number in code.
+#:
+#: The last one is a property of ``importlib.metadata``, not something worth
+#: defeating here — the alternative is a literal in this file, which is the
+#: defect the paragraph above refuses. It is written down so nobody debugs it
+#: twice.
+try:
+    __version__ = _dist_version("nestor")
+except PackageNotFoundError:  # running from a source tree, uninstalled
+    __version__ = "0+unknown"
+
 from . import (
     answer,
     cascade,
@@ -86,6 +129,7 @@ __all__ = [
     "RejectedPairError",
     "Storage",
     "StringMatcher",
+    "__version__",
     "answer",
     "cascade",
     "curator",

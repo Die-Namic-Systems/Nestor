@@ -1,14 +1,53 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+# >=77 for PEP 639 (`license` as an SPDX expression + `license-files`). The old
+# `license = { text = ... }` table still builds but is deprecated, and a
+# packaging change is the one time it is cheap to stop carrying it.
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "nestor"
 version = "0.1.0"
 description = "Has a human checked this? A seal/serve/audit mechanic over a verified-match memory — translation, entity resolution and numeric reconciliation recipes, a hash-chained ledger, injected storage, and browser, terminal and MCP surfaces."
-license = { text = "Apache-2.0" }
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 dependencies = []
+keywords = [
+    "audit", "provenance", "human-in-the-loop", "verification",
+    "translation-memory", "entity-resolution", "reconciliation",
+    "hash-chain", "ai-governance",
+]
+# No `License ::` classifier: with a PEP 639 license expression above, setuptools
+# rejects one rather than reconciling two sources for the same fact.
+#
+# The Python rows match `requires-python`. Two of the four are covered by
+# interpolation rather than by a run: tests.yml deliberately tests floor and
+# current (3.10 and 3.12), so 3.11 and 3.13 are asserted here and exercised
+# nowhere. That is a defensible matrix and an undefensible silence, so it is
+# written down in docs/releasing.md rather than left for a bug report.
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Legal Industry",
+    "Intended Audience :: Healthcare Industry",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+[project.urls]
+Homepage = "https://github.com/rudi193-cmd/Nestor"
+Repository = "https://github.com/rudi193-cmd/Nestor"
+Changelog = "https://github.com/rudi193-cmd/Nestor/blob/master/CHANGELOG.md"
+Issues = "https://github.com/rudi193-cmd/Nestor/issues"
+"Release runbook" = "https://github.com/rudi193-cmd/Nestor/blob/master/docs/releasing.md"
 
 [project.scripts]
 nestor = "nestor.cli:main"
@@ -28,6 +67,13 @@ cloud = [
 ]
 semantic = [
     "fastembed>=0.4",
+]
+# Kept out of [dev] on purpose: CI's dev install would carry a build backend and
+# an upload client it never uses, and a release toolchain is not a test
+# dependency. `pip install -e ".[publish]"` is step 1 of docs/releasing.md.
+publish = [
+    "build>=1.2",
+    "twine>=5.1",
 ]
 
 [tool.pytest.ini_options]
