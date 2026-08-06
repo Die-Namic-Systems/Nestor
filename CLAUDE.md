@@ -72,6 +72,13 @@ The verbs available to you:
 If you want something sealed, put it in the queue and say so. `nestor.ui` is a
 sign-in.
 
+The rule has a history, and it is not this package's. It was stated,
+implemented and probed as §0.2 of `willow-2.0`'s constitution before `nestor/`
+existed — [`docs/covenant-lineage.md`](docs/covenant-lineage.md) traces it back
+to a 2026-05-18 migration. Worth reading once: the earliest version of the idea
+is a backfill that set `confidence = 1.0` on seventy thousand unchecked rows,
+which is the clearest argument for the rule anybody has written.
+
 ### Not a signature is not the same as not a decision
 
 The sentence above is about **evidence**, and it keeps being read as though it
