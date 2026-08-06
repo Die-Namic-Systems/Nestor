@@ -25,3 +25,5 @@ Codex / other CLIs: point their hook command at the same `hooks/nestor-hook` lin
 `NESTOR_PROJECT_ROOT` (or `CLAUDE_PROJECT_DIR` / `CURSOR_PROJECT_DIR`) must be the repo root when the hook runs.
 
 Household-bound Nestor state uses **`~/.homestead`** (`HOMESTEAD_HOME`), not `.nestor` — see [`docs/homestead-paths.md`](../docs/homestead-paths.md).
+
+Cold-start for agents: [`AGENTS.md`](../AGENTS.md) (git sync + `scripts/ci-lint.sh`).

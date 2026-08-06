@@ -11,6 +11,9 @@ them until after making the mistakes two of them describe.
 
 ## Environment — before anything else
 
+**Agents:** [`AGENTS.md`](AGENTS.md) — git sync + `scripts/ci-lint.sh` on every session
+(cloud containers must `git pull` the PR branch or they redo lint failures).
+
 **Agent hooks (all CLIs):** shared policy in `hooks/` — see
 [`hooks/README.md`](hooks/README.md). Cursor uses `.cursor/hooks.json`; Claude
 Code uses `.claude/settings.json`. Both call `hooks/nestor-hook` with the same

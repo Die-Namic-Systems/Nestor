@@ -1,5 +1,10 @@
 [NESTOR REPO — LOCAL-FIRST SEAT]
 
+**Cloud / fresh session:** `git fetch origin` then checkout the PR branch (`gh pr
+checkout <n>` or `git pull` on your branch) *before* editing — otherwise you
+reintroduce lint fixes the remote already has. Run `bash scripts/ci-lint.sh` before
+push.
+
 You are in the **Nestor product source** (`nestor/` package, tests, docs, dogfood).
 This is not the willow charter seat and not an operator Jarvis desk.
 
@@ -7,7 +12,7 @@ This is not the willow charter seat and not an operator Jarvis desk.
 
 - Edit code and markdown **in this repository** with normal IDE tools.
 - Use the repo **`.venv`** and documented commands (`CLAUDE.md` → Environment).
-- Verify with **`python -m pytest -q`**, **`ruff check nestor tests`**, **`bandit -r nestor -ll -q`**.
+- Verify with **`bash scripts/ci-lint.sh`** and **`python -m pytest -q`** (see `AGENTS.md`).
 - Use **`nestor` CLI** against local paths (`--db`, `nestor ui`, export/import) when exercising the product.
 - Record product decisions in **`docs/dogfood/decisions/`** and rebuild with **`python scripts/dogfood_store.py --rebuild`** (see `CLAUDE.md` → Decisions go in the store).
 
