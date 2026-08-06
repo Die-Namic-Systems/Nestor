@@ -3762,3 +3762,75 @@ the whole defect, so the test writes itself.
 **Not affected:** this consolidation's own correctness. The seven files' origins
 were checked by querying `tm_pairs` directly rather than by believing `--verify`,
 which is how the gap was noticed at all.
+
+---
+
+### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **open**
+
+*Found 2026-08-06 by running jeles' own escalation against this package
+(`scripts/audit_against_jeles.py`). jeles closed this hole after demonstrating it
+had one; the demonstration is what made it worth aiming here.*
+
+`conflict_scan.py` carries a comment recording a hand-built proposal that claimed
+`verification_kind="human"` and **was given it**. The fix was an allow-list
+(`_ALLOWED_ARGS`) plus a pin, and jeles was explicit about the shape of the
+refusal: an argument outside the list "produces an error receipt naming what was
+refused. It is **not silently dropped**, and it does not stop the rest of the
+list."
+
+Aimed here, the escalation fails — which is the part that matters:
+
+```
+nestor_propose {source_text, candidate, status: "sealed",
+                verifier: "a-machine", verification_kind: "human"}
+  -> {"state": "draft", "verified": false,
+      "note": "queued for human review — a proposal is never served as verified"}
+```
+
+`answer.propose` has no `status` parameter to pass, and `serve.call` forwards
+named arguments rather than splatting the dict, so there is nothing to smuggle
+through. That is one step *earlier* than jeles' vet, and stronger: no verb, no
+argument, nothing to allow-list.
+
+**The gap is the reply.** Three forbidden arguments were discarded and the
+response says so nowhere. A model that sent `status: "sealed"` gets an
+unqualified success and a general sentence about human review. It has no way to
+learn that what it asked for is refused, so it will ask again.
+
+This is the same asymmetry §6.26 closed for countersignatures — *"a reviewer who
+countersigns believes they did something, and nothing anywhere records that they
+did"* — and the same one `ConflictingDraftError` exists for. It is also the
+persona rule applied to a machine reader: **a refusal has to read as one, and if
+you did not do something the sentence saying so must contain the not.** The note
+is true and general; it is not a refusal of what was asked.
+
+**Fix, not taken here:** name the discarded keys in the reply, the way the
+keyring already names an unknown verifier (`'(empty)' is not in the keyring`).
+Left open because the reply shape is a wire contract with any MCP host, which is
+a wider blast radius than the audit branch that found it.
+
+**What the rest of the audit found** — 2 satisfied, 3 differently, 0 failing:
+
+| | |
+|---|---|
+| JELES-RUNG | **satisfied** — closed one step earlier than jeles' vet |
+| JELES-RECEIPT | **differently** — above |
+| JELES-WITNESS | **differently** — key custody, and it is off by default |
+| JELES-INDEPENDENCE | **differently** — one *signed* attestation against jeles' two unsigned |
+| JELES-DEFAULT | **satisfied** — `add_pair` defaults to `draft`; `put_nugget` defaults to `human` |
+
+The defaults falling opposite ways is the one worth keeping. A caller here who
+says nothing **proposes**; a caller there who says nothing **asserts a human
+checked it**. jeles guards that at its gateway and this package does not need to.
+Recorded because an audit that reports only where the audited party is weaker is
+not an audit, it is a posture.
+
+**And the witness verdict was FAILS on the first run, wrongly.** The probe sealed
+with an empty verifier under a single `NESTOR_SEAL_KEY`, saw it verify, and
+reported that an anonymous seal is served. Under a keyring the same call is
+refused *before the store is touched*, with the empty string rendered `'(empty)'`
+— somebody had already thought about that exact case. What the probe had measured
+was the weakest of two configurations, picked by accident because it was the one
+the script set at import. Second false FAIL in one day from a probe that did not
+reproduce the condition it named; both are now pinned by tests that run both
+configurations.
