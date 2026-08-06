@@ -1,25 +1,152 @@
 {
   "counts": {
-    "pairs": 13,
+    "pairs": 22,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T11:37:06.078659+00:00",
-  "digest": "39b3d3cb66867f60a418a8ecd856a80e49c56f3a4dbc04dffaa26a2d3ff04ae7",
+  "created_at": "2026-08-06T13:09:37.047535+00:00",
+  "digest": "4cbcfc62b5a4c74206f5f07aa0ac5153fda05fa44fb4d9ce05195cb1bd4577bb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
   },
   "ledger": {
     "entries": [],
-    "note": "the source instance's chain, for audit; it is not merged on import"
+    "note": "the source instance's chain, for audit; it is not merged on import",
+    "unreadable": []
   },
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T11:37:06.070361+00:00",
-      "id": "5657a8dc-3e08-4484-ab20-290741ca3dd1",
+      "created_at": "2026-08-06T13:09:37.046255+00:00",
+      "id": "ea9c9d51-0a43-40d1-a154-a2035de9a88e",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "my glossary fix and upstreams landed independently which survives",
+      "source_text": "My glossary fix and upstream's landed independently. Which survives?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Upstream's, entirely. Mine was dropped on rebase along with its tests and its `nestor stats` line.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.045827+00:00",
+      "id": "7d4db784-bda0-440e-a169-797d02c41a94",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do you record a person nobody has verified yet",
+      "source_text": "How do you record a person nobody has verified yet?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not through the entity recipe — it has only seal. Around it, via memory.add_pair(status='draft'). Left open — IDEAS §6.39, and the one row here I would take a patch for.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.045427+00:00",
+      "id": "3cfe8ade-54d4-4608-9fe3-c774146d77cf",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is a glossary term lock matched on word boundaries",
+      "source_text": "Is a glossary term lock matched on word boundaries?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — `t.lower() in lower` is a raw substring, so {'Tito': 'Tito'} fires inside 'apetito'. Left open — IDEAS §6.38.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.045001+00:00",
+      "id": "a17ea0a5-860d-4442-91cc-b797ac628565",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "two dead men share a nickname what happens when the second is sealed",
+      "source_text": "Two dead men share a nickname. What happens when the second is sealed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The first is destroyed. EntityResolver.seal inherits add_pair's overwrite; the sibling recipe retires and keeps. Left open — IDEAS §6.37.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.044385+00:00",
+      "id": "8acdce3c-af81-4502-9c39-f94058e74eea",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where should the code box governing this session live so the rule survives the container",
+      "source_text": "Where should the code box governing this session live, so the rule survives the container?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "In the repository. First as scripts/dogfood_codebox.py with a committed store; migrated on rebase to this file, built by scripts/dogfood_store.py --rebuild.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.043897+00:00",
+      "id": "e7f71393-55bc-4904-ac68-1418f13a02f3",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does nestor keys add hand a verifier the key they need",
+      "source_text": "Does `nestor keys add` hand a verifier the key they need?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not for ed25519. It prints the public half and calls it the only copy. Left open — IDEAS §6.36.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.043384+00:00",
+      "id": "f8842c4a-4026-4911-8bb3-3338f30d5c24",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where can a verifier see what she changed a seal from",
+      "source_text": "Where can a verifier see what she changed a seal FROM?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nowhere on a shipped surface. Left open rather than fixed — IDEAS §6.35.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.042956+00:00",
+      "id": "2618bbb8-10b3-44d8-b9d2-c927d6f3fed7",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what do the review surfaces show one verifier revising her own work over months rather than two people disagreeing",
+      "source_text": "What do the review surfaces show one verifier revising her own work over months, rather than two people disagreeing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "demo/shoebox.py and tests/test_shoebox.py — a solo-verifier fixture whose gap assertions fail when a gap is CLOSED rather than when it opens. It fixes nothing on purpose.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.042432+00:00",
+      "id": "fe3203fb-dc2a-4b14-966c-8fb0b7f4e31f",
+      "origin": "pr:49",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a ledger line that will not parse is a state that cannot happen what does the code do when it happens",
+      "source_text": "A ledger line that will not parse is a state that cannot happen. What does the code do when it happens?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It ignored it. entries() walked past and returned a shorter chain in silence. Fixed with a second walk — ledger.unreadable() — rather than a condition inside the first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T13:09:37.041970+00:00",
+      "id": "96cadc93-33f5-49d4-8763-bbc5291d1c41",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -32,8 +159,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.069520+00:00",
-      "id": "5e7abf62-2dc2-4323-971b-4b1b1e98e47c",
+      "created_at": "2026-08-06T13:09:37.041565+00:00",
+      "id": "295ab30d-5688-409a-8628-43c008eb785a",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -46,8 +173,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.068744+00:00",
-      "id": "5233473c-c13f-44e0-9159-321888b3f8fa",
+      "created_at": "2026-08-06T13:09:37.041110+00:00",
+      "id": "9ff3abc4-e785-4e2d-858a-22bb4bc480dc",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -60,8 +187,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.067970+00:00",
-      "id": "1bf48ab8-dcc2-4539-845a-4f7a558152d9",
+      "created_at": "2026-08-06T13:09:37.040581+00:00",
+      "id": "64ed1598-35e6-4933-ad08-12466ae490ac",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -74,8 +201,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.065764+00:00",
-      "id": "3ced850c-1512-43cc-891a-50ba4bb6d0ca",
+      "created_at": "2026-08-06T13:09:37.039922+00:00",
+      "id": "28fc37d6-d1bd-4a95-988c-6dcc67fdf3e7",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -88,8 +215,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.065072+00:00",
-      "id": "bf9cae2f-8d1a-45bb-9819-0f480e40d40a",
+      "created_at": "2026-08-06T13:09:37.039561+00:00",
+      "id": "8096f6f7-7dc6-4455-8c21-ca6963dcb5e1",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -102,8 +229,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.062014+00:00",
-      "id": "65bedf73-7ea6-499e-876c-c48504d3a47e",
+      "created_at": "2026-08-06T13:09:37.039103+00:00",
+      "id": "2ab229bc-fbfd-4953-80e4-30fbdce9c017",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -116,8 +243,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.060052+00:00",
-      "id": "53d6d626-6a2d-4485-abc6-21970a561cf4",
+      "created_at": "2026-08-06T13:09:37.038735+00:00",
+      "id": "c595f7eb-93a9-46e6-b77f-1a6f1bbf372e",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -130,8 +257,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.058065+00:00",
-      "id": "ba677b8f-6a8b-4e6f-ae8c-c61205e0c1ee",
+      "created_at": "2026-08-06T13:09:37.038342+00:00",
+      "id": "5fadc7b2-aa27-40c5-9d64-f2cbfff3a2c0",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -144,8 +271,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.056504+00:00",
-      "id": "af545728-e283-4093-ad10-275e45b6841c",
+      "created_at": "2026-08-06T13:09:37.037935+00:00",
+      "id": "91b687a6-ecd0-4807-8df6-70c2dc8bba55",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -158,8 +285,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.054175+00:00",
-      "id": "7f16069d-00b6-4546-a94e-80624a967789",
+      "created_at": "2026-08-06T13:09:37.037410+00:00",
+      "id": "6c869f41-3f65-4f3f-beaf-ee4496cadd0b",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -172,8 +299,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.052911+00:00",
-      "id": "3ac828d4-fb05-4ce3-ac53-9aab48de6244",
+      "created_at": "2026-08-06T13:09:37.036864+00:00",
+      "id": "512eec69-e726-4eec-ac35-a9562fd75608",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -186,8 +313,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T11:37:06.047142+00:00",
-      "id": "d9d6aebb-be9e-44ef-9d51-9f58844fe974",
+      "created_at": "2026-08-06T13:09:37.036163+00:00",
+      "id": "5db46d78-e4be-4313-be6d-29cbcdec1213",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
