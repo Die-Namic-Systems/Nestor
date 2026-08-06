@@ -1582,7 +1582,7 @@ bundles. Still open: N6–N9 (edges, DecisionMemory recipe, the gate) and
 carrying `reopen_when` in bundles (needs a BUNDLE_VERSION bump — it is not
 in REJECTION_FIELDS, so it does not travel yet).
 
-### 6.12 The detection kit as gates, not advice — **open**
+### 6.12 The detection kit as gates, not advice — **measured**, build **open**
 
 *Proposed 2026-08-05, same session as §6.11.*
 
@@ -1592,8 +1592,56 @@ the kit's nine tools can become **exit codes** the way `nestor ledger verify`
 made "is the chain intact?" one: tool #1 (independent confirmation) is the
 witness; #4/#5 (multiple hypotheses, don't trust it because it's yours) are
 `nestor decision check` + verifier-differs-from-author; #7 (every link holds)
-is the hash chain; #9 (falsifiability) is `reopen_when`. Unmapped: #2, #3,
-#6, #8, and the fallacy catalog.
+is the hash chain; #9 (falsifiability) is `reopen_when`. ~~Unmapped: #2, #3,
+#6, #8, and the fallacy catalog.~~
+
+> **Worked through 2026-08-06** —
+> [`docs/detection-kit-as-gates.md`](docs/detection-kit-as-gates.md). Four of
+> the nine are already exit codes, two are blocked on data Nestor discards, and
+> three cannot be gated at all. Three claims in the paragraph above are
+> corrected in place by that memo:
+>
+> * **#6 is not unmapped.** `cmd_calibrate` already returns
+>   `EXIT_ANSWER_IS_NO` when no cutoff on your corpus meets the target rate —
+>   quantification failing a build rather than advising one. Seven commands
+>   return that code, not one.
+> * **#3 is not unmapped.** Per-verifier keys plus `NESTOR_REQUIRE_SEAL_KEY=1`
+>   are the mapping, with a limit that has to be said out loud: Nestor gates
+>   whether an authority is *named and bound to a key*, never whether it is
+>   *knowledgeable*. Treating the first as evidence of the second is the fallacy
+>   the tool names.
+> * **`nestor decision check` does not exist.** The subcommand list is `ask,
+>   resolve, check, match, export, db, import, ledger, calibrate, keys,
+>   rejections, stats, ui, serve`. §6.11 records decision memory as **partly**
+>   shipped and the CLI surface is one of the parts that was not, so #4's
+>   mapping was written against a planned command.
+>
+> And #5's mapping — verifier-differs-from-author — is right and not
+> implementable: **there is no author field.** Measured, a draft entered with no
+> verifier and then sealed by `rita` is accepted, with nothing recording whether
+> rita also proposed it.
+>
+> **#8 is the useful row.** Occam's razor is permanently ungateable: there is no
+> mechanical test for *simpler*, and a check claiming to enforce parsimony would
+> be a number standing in for a judgement — the exact substitution the kit is
+> written to catch. A gate for #8 would be baloney about baloney detection, and
+> the right output is that sentence rather than a metric nobody can defend. #2
+> is worse than unmapped: `ConflictingSealError` makes recorded disagreement
+> impossible by design, so debate happens where the system cannot see it.
+>
+> **The pattern worth naming:** #1 and #5 are blocked the same way, and it is
+> the same way §1.4 and §6.26 are blocked. Nestor records *decisions*
+> thoroughly and *the process that produced them* not at all. That is a coherent
+> choice — it is why the ledger is small enough to verify — and it puts a whole
+> class of detection-kit gates out of reach until some of that process is
+> written down.
+>
+> One new gate is proposed and not built: **a test that cannot fail is a
+> description**, mechanized — run a change's new tests against `HEAD~1` and fail
+> if none of them fail. It needs no new data and gates the claim this repo makes
+> about its own work most often. Not built because the exemption rule (pure
+> guards, docs changes, behaviour-neutral refactors) wants designing before the
+> gate does.
 
 ### 6.13 Ground rule 2b made executable — **shipped**
 
