@@ -219,3 +219,138 @@ def candidates(question: str, limit: int = 5, *, store=None) -> list[dict]:
     view, not the serving view."""
     return memory.lookup(question, DOMAIN, DOMAIN, limit=limit, store=store,
                          matcher=MATCHER, context_threshold=0.0)
+
+
+# --------------------------------------------------------------------------
+# The return leg, and why it cannot carry what it is carrying
+# --------------------------------------------------------------------------
+
+#: Everything ``jeles.corpus.put_nugget`` will accept. Mirrored rather than
+#: introspected: importing jeles to build this list would make the pin true by
+#: construction, and this module must work with jeles absent.
+NUGGET_FIELDS = ("question", "answer", "sources", "verified_by", "tags",
+                 "nugget_id", "verified_at", "verification_kind", "written_by")
+
+#: What a Nestor seal knows that a nugget has nowhere to put. Not a complaint —
+#: a list, so :func:`unexportable` can report it and a fix can be scoped.
+SEAL_EVIDENCE = ("seal_sig", "ledger_hash", "ledger_position", "key_id",
+                 "superseded_by")
+
+
+def unexportable(pair: dict) -> dict:
+    """The parts of a sealed row that cannot cross into a nugget.
+
+    ``put_nugget`` rejects unknown keyword arguments outright — measured,
+    ``TypeError: got an unexpected keyword argument 'seal_sig'`` — and the
+    stored record has eleven fields, none of which is for evidence. The two
+    free-form slots are ``sources`` and ``tags``; a signature is neither a
+    citation nor a label, and smuggling it into one would make this package's
+    own provenance display lie about what a source is.
+
+    So the evidence is dropped at the border, and this function is the honest
+    account of what was dropped rather than a workaround for it.
+    """
+    return {k: pair.get(k) for k in SEAL_EVIDENCE if pair.get(k)}
+
+
+def export_sealed(store=None, limit: int = 1000) -> tuple[list[dict], list[dict]]:
+    """``(nuggets, dropped)`` — sealed rows shaped for jeles, and the cost.
+
+    **Every nugget goes out as ``verification_kind="asserted"``**, which is the
+    weakest rung jeles has, and that is not a mistake to be fixed by passing a
+    stronger one.
+
+    A row here was sealed by a named human under a key this store does not hold,
+    and appended to a hash chain. None of that can travel: see
+    :func:`unexportable`. What arrives at jeles is a question, an answer, and a
+    name — which is exactly what jeles calls an *assertion*, and exactly what
+    its own ``corpus_server`` pins tool-call writes to, for the same reason:
+    nobody at the receiving end checked it.
+
+    So the round trip is lossy in **both** directions, and both losses are
+    correct. Inbound, this store refuses to inherit a claim it cannot verify.
+    Outbound, it cannot hand over the evidence that would let jeles do better
+    than trust it. The asymmetry is not in the trust models — the two are nearly
+    identical — it is that one of them has a field for a signature.
+
+    ``written_by="nestor"`` is the fact beside the claim, in jeles' own idiom.
+    """
+    store = memory.get_store(store) if hasattr(memory, "get_store") else store
+    from nestor.storage import get_store
+    store = get_store(store)
+    store.memory_init()
+
+    nuggets: list[dict] = []
+    dropped: list[dict] = []
+    for row in store.memory_candidates(DOMAIN, DOMAIN):
+        if row.get("status") != "sealed":
+            continue
+        if not memory.is_verified_seal(row):
+            # A row that says sealed and does not verify is not exported at
+            # all. Sending it would be laundering in the other direction.
+            continue
+        lost = unexportable(row)
+        nuggets.append({
+            "question": row["source_text"],
+            "answer": row["target_text"],
+            "sources": [s for s in [row.get("origin")] if s],
+            "verified_by": row.get("verifier") or "",
+            "verified_at": (row.get("created_at") or "")[:10],
+            "tags": ["nestor"],
+            # The honest rung. See this function's docstring.
+            "verification_kind": "asserted",
+            "written_by": "nestor",
+        })
+        if lost:
+            dropped.append({"question": row["source_text"], "lost": lost})
+        if len(nuggets) >= limit:
+            break
+    return nuggets, dropped
+
+
+#: What happens when an exported nugget is actually written into jeles.
+#: **Measured, both routes**, because "it degrades to asserted" turned out not to
+#: be the end of the story:
+#:
+#: * **without** ``nugget_id`` — ``action: "created"``. A second record for the
+#:   same question. jeles then serves the original, because ``human`` outranks
+#:   ``asserted``, so the round trip's contribution is invisible and the corpus
+#:   is one row bigger.
+#: * **with** the original ``nugget_id`` — ``{"error": "kind_downgrade_refused"}``,
+#:   and the message is better than most: *"A lower rung cannot overwrite a
+#:   higher one — write it as a new nugget and let a person supersede the
+#:   existing one."*
+#:
+#: Both are correct behaviour by jeles. Together they mean the loop **cannot be
+#: closed from this side**: this package's strongest output is that package's
+#: weakest input, so the return leg either duplicates or is refused.
+LANDING = {"no_id": "created — a duplicate the corpus will not serve",
+           "with_id": "kind_downgrade_refused — asserted cannot overwrite human"}
+
+#: The one-field fix, which belongs to jeles and is therefore **proposed, not
+#: made**. If a nugget could carry the seal signature, this package could export
+#: at ``"human"`` *and back it*, and jeles could verify rather than trust — which
+#: is the only version of this integration where the round trip adds something
+#: instead of costing something.
+PROPOSAL = ("jeles nuggets have no field for evidence. A `seal_sig` (or a "
+            "general `evidence` mapping) would let a verification cross a "
+            "repository boundary intact. Proposed for jeles, not implemented "
+            "here: it is their schema, and a machine may propose.")
+
+
+def round_trip_report(inbound: dict, nuggets: list[dict],
+                      dropped: list[dict]) -> str:
+    """One paragraph a person can read, stating every loss plainly."""
+    lost_keys = sorted({k for d in dropped for k in d["lost"]})
+    return (
+        f"in:  {inbound['demoted']} nugget(s) demoted to draft, "
+        f"{inbound['sealed']} sealed — verified_by is an unsigned claim here.\n"
+        f"out: {len(nuggets)} sealed row(s) exported as 'asserted', the weakest "
+        f"rung jeles has.\n"
+        f"     dropped at the border: {', '.join(lost_keys) or 'nothing'} — "
+        f"a nugget has no field for evidence.\n"
+        f"land: without an id -> {LANDING['no_id']}\n"
+        f"      with one      -> {LANDING['with_id']}\n"
+        f"Every one of those is correct behaviour on both sides, and together "
+        f"they mean the loop does not close. {PROPOSAL}"
+    )
