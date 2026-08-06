@@ -137,6 +137,40 @@ reassigned or deleted-and-replaced.
 
 ---
 
+## A release that touches the schema requires a restart
+
+**If a release changes `_SCHEMA` or any `_ensure_*` migration in
+`sqlite_store.py`, the release notes must say that long-lived processes have to
+be restarted.** This is not a nicety. Since IDEAS §6.8, `memory_init` skips its
+work on a connection that has already done it, so a process holding warm pooled
+connections will not run a migration it did not have when those connections were
+opened.
+
+Reproduced, on the §6.8 code:
+
+```
+warm memory_init      -> new migration ran: False
+after checkpoint_wal  -> new migration ran: True
+```
+
+The second line is the shape of the hazard rather than a workaround: the pool
+happens to clear on `checkpoint_wal`, so whether a migration lands depends on
+whether something unrelated flushed the WAL first. That is not a rule anybody
+should have to reason about at upgrade time.
+
+Before §6.8 this self-healed, because every `memory_init` replayed the idempotent
+DDL. The performance win and this hazard are the same change, and the honest
+statement of the trade is: **Nestor's store upgrades on process start, not on
+package upgrade.**
+
+This is the weakest of the three available fixes, chosen deliberately. The strong
+one is a schema generation in the database that invalidates the flag when it
+moves — which is §6.31, which argues that stamping a version into persistence is
+a decision to be argued rather than slipped into another change. Shipping half of
+it inside a performance reland is the shape this repository keeps punishing. The
+documentation is what is owed until that argument happens; if the next migration
+is security-relevant, the argument happens first.
+
 ## What is deliberately not automated
 
 - **No version bumping from tags** (`setuptools-scm` and friends). It makes the

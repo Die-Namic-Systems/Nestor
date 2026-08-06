@@ -1567,6 +1567,30 @@ a condition that outlives the thing it describes, which is the shape
 `sqlite3.Connection` makes the flag die exactly when its connection dies, so
 there is no interval in which it can be wrong.
 
+> **Not quite, and an adversarial review of PR #45 found where.** The first
+> version put `schema_ready = False` on the class and read it with `getattr`.
+> Setting `_Conn.schema_ready = True` then made every *brand-new* connection
+> claim to be initialized: reproduced, `memory_init` on an empty database
+> returned having created **zero tables**. That is the same defect one level up
+> — a value that outlives and misdescribes the connection it speaks for — and it
+> was reachable by anyone "optimising" the class, not by an attacker.
+>
+> Deleting the class default is the obvious fix and is not sufficient: a class
+> attribute still shadows a missing instance one, so `getattr` would keep
+> finding it. The default is gone **and** the read goes through
+> `conn.__dict__`, which takes the class off the lookup path entirely — nothing
+> but a connection can answer for that connection. Removing the interaction
+> rather than adding a condition, which is what the paragraph above should have
+> done the first time.
+>
+> Two gates, both failing against the reviewed revision:
+> `test_a_class_attribute_cannot_answer_for_a_connection` (behavioural) and
+> `test_conn_declares_no_schema_ready_default` (shape). The second passed at
+> first for the wrong reason — the behavioural test's cleanup did an
+> unconditional `del`, removing the very class default the shape guard exists to
+> detect. Fixed to restore exactly what it found, which is not the same as
+> deleting.
+
 `init_db` deliberately does **not** set it. It applies a strict subset — no
 `_ensure_lineage_schema` — so a connection it touched still owes the ALTERs
 that bring a pre-lineage database up to date. Marking ready there is the
@@ -2866,3 +2890,31 @@ migration. Both touch persistence and the audit path, which per `CLAUDE.md`
 wants an adversarial read, and the ledger question wants deciding before
 anything is stamped rather than after. What is proposed is that the decision
 stop being deferred by not being written down.
+
+> **The two halves have come apart, 2026-08-06.** An adversarial review of the
+> PR #45 reland found the store half has a defect motivating it *now*, which the
+> ledger half does not. They should stop being one entry.
+>
+> **The store half is no longer speculative.** §6.8 made `memory_init` skip its
+> work on a connection that has already done it, so a process holding warm
+> pooled connections does not run a migration it did not have when those
+> connections were opened. Reproduced: after a warm `memory_init`, a newly
+> introduced `_ensure_*` does not run; after `checkpoint_wal` clears the pool,
+> it does. Whether a migration lands therefore depends on whether something
+> unrelated flushed the WAL first, which is not a rule anyone should have to
+> reason about at upgrade time. Before §6.8 this self-healed, because every call
+> replayed the idempotent DDL — the performance win and this hazard are the same
+> change. A `user_version` that invalidates the flag when it moves is the fix,
+> and it touches no hash chain, so the argument it needs is small.
+>
+> `docs/releasing.md` now carries the interim rule: **a release that changes
+> `_SCHEMA` or an `_ensure_*` must say that long-lived processes need
+> restarting.** Documentation is the weakest of the three available fixes and is
+> named as such there; it is what is owed until the `user_version` argument
+> happens, and if the next migration is security-relevant the argument happens
+> first.
+>
+> **The ledger half is unchanged and still wants arguing.** A hash chain cannot
+> be re-hashed under new rules, so the format is already frozen by its first
+> entry, and adding a version now leaves everything before it as an implicit
+> version 0. Nothing found in review moves that question either way.

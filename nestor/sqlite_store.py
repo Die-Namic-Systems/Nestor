@@ -175,9 +175,22 @@ class _Conn(sqlite3.Connection):
     ``init_db`` deliberately does not set it: ``init_db`` applies a strict
     subset of ``memory_init`` (no lineage migration), so a connection it
     touched still owes the rest.
-    """
 
-    schema_ready = False
+    **No class-level default, and the read goes through ``__dict__``.** The
+    first version of this carried ``schema_ready = False`` on the class and
+    tested it with ``getattr``. An adversarial review reproduced the
+    consequence in three lines: set ``_Conn.schema_ready = True`` and every
+    *brand-new* connection reports ready, so ``memory_init`` on an empty
+    database returns having created **zero tables**.
+
+    That is the ``id(conn)`` defect wearing a different hat — a value that
+    outlives and misdescribes the connection it claims to be about. Deleting
+    the default alone would only remove the invitation, since a class
+    attribute still shadows a missing instance one. Reading
+    ``conn.__dict__`` removes the *interaction*: the class is not on the
+    lookup path at all, so nothing but this connection can answer for this
+    connection.
+    """
 
 
 class RowRetiredError(RuntimeError):
@@ -332,7 +345,9 @@ class SqliteStore:
         # only for a connection that has already done it, so a caller can
         # never reach a query through a schema it did not pay for.
         with self._db() as conn:
-            if getattr(conn, "schema_ready", False):
+            # __dict__, not getattr: a class attribute must not be able to
+            # answer for an instance. See _Conn.
+            if conn.__dict__.get("schema_ready", False):
                 return
             conn.executescript(_SCHEMA)
             self._ensure_lineage_schema(conn)

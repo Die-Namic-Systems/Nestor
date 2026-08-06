@@ -371,3 +371,48 @@ def test_init_db_does_not_excuse_memory_init(tmp_path):
     assert any("CREATE" in s.upper() for s in seen), (
         "memory_init did no schema work after init_db, so init_db claimed a "
         "completeness it does not deliver")
+
+
+def test_a_class_attribute_cannot_answer_for_a_connection(tmp_path):
+    """The reviewer's reproduction of PR #45, as a gate.
+
+    `_Conn` carried `schema_ready = False` and `memory_init` read it with
+    `getattr`. Setting `_Conn.schema_ready = True` therefore made every fresh
+    connection claim to be initialized, and `memory_init` on an empty database
+    returned having created nothing — the `id(conn)` defect in a different hat.
+
+    Deleting the class default alone would not close this: a class attribute
+    still shadows a missing instance one, so `getattr` would keep finding it.
+    The read goes through `conn.__dict__`, which takes the class off the lookup
+    path entirely.
+    """
+    # Restore exactly what was there, which is not the same as deleting. The
+    # first draft of this test did `del` unconditionally and so *removed* the
+    # class default it was written to detect — leaving the shape guard below
+    # passing against the unfixed revision, for a reason that had nothing to do
+    # with the code under test.
+    missing = object()
+    original = sqlite_store._Conn.__dict__.get("schema_ready", missing)
+    try:
+        sqlite_store._Conn.schema_ready = True
+        store = SqliteStore(str(tmp_path / "poisoned.db"))
+        store.memory_init()
+        with store._db() as conn:
+            tables = {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+    finally:
+        if original is missing:
+            del sqlite_store._Conn.schema_ready
+        else:
+            sqlite_store._Conn.schema_ready = original
+
+    assert "tm_pairs" in tables, (
+        "a class attribute answered for a connection, and memory_init returned "
+        "on an empty database having created nothing")
+
+
+def test_conn_declares_no_schema_ready_default():
+    """A guard on the shape rather than the behaviour, because the default is
+    an invitation even where it is no longer load-bearing: the next person to
+    read this class should not find a flag that looks like it can be flipped."""
+    assert "schema_ready" not in sqlite_store._Conn.__dict__
