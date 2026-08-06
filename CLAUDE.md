@@ -11,6 +11,11 @@ them until after making the mistakes two of them describe.
 
 ## Environment — before anything else
 
+**Agent hooks (all CLIs):** shared policy in `hooks/` — see
+[`hooks/README.md`](hooks/README.md). Cursor uses `.cursor/hooks.json`; Claude
+Code uses `.claude/settings.json`. Both call `hooks/nestor-hook` with the same
+`session_start` and `before_mcp` modules.
+
 A cold clone is a trap shaped exactly like a working setup. The package
 imports from the repo root with **no install at all** — `python demo.py` and
 every README snippet run fine — while `nestor`, `python -m pytest` and the

@@ -14,7 +14,8 @@ dist/
 # Host-specific willow-mcp wiring — materialized by `willow-mcp project sync
 # nestor` from the fleet registry, not source.
 .mcp.json
-.cursor/
+.cursor/*
+!.cursor/hooks.json
 .willow/
 .claude/settings.local.json
 
