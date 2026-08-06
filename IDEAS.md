@@ -3393,3 +3393,114 @@ print the private key at all?** Printing a signing key to a terminal puts it in
 scrollback and history; not printing it means the message must say where to find
 it instead. That is a deployment decision of the same family as TODO §1's key
 distribution, and it should be made with that rather than in passing. **Open.**
+
+### 6.37 The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name — **measured**, fix **open**
+
+*Found 2026-08-06 by extending §6.35's fixture past translation. Nestor has three
+recipes and the shoebox exercises all three: the letters are Spanish, the people
+in them are an entity graph, the recipe notebook is figures. The people are where
+it broke.*
+
+**The case.** In Spanish families given names repeat. Consuelo's father was José
+— *Pepe*. Her brother was also José — also *Pepe*. Two men, one nickname, thirty
+years apart, both in the same shoebox. Nieves seals the second:
+
+```
+people.seal("Pepe", "Jose Aguirre Toll (1938-2011)", verifier="nieves")
+    -> succeeded. No exception, no warning.
+
+live rows for 'Pepe'                :  1  -> Jose Aguirre Toll (1938-2011)
+memory_lineage(that row)            :  []
+replaced_seals(conflicts_only=True) :  0     (the UI default)
+```
+
+Her great-grandfather is gone from the store. Not superseded — **overwritten**,
+by `add_pair`'s destructive path.
+
+**The guard that should have fired cannot.** `EntityResolver.seal`'s own
+docstring says *"two aliases resolving to different canonicals is the entity
+graph's version of a conflicting seal — `AWS` meaning one company to one analyst
+and another to the next is precisely the disagreement worth stopping."*
+`ConflictingSealError` is raised by `add_pair` **unless the verifier matches**,
+because a same-actor re-seal is a correction. For one person holding one archive
+that exemption is always in force, so the protection the recipe advertises can
+never stop anything. Same shape as §6.35: a mechanism built around two people,
+meeting one.
+
+**And the semantics are wrong for the domain, which is the deeper half.** In
+translation a same-actor re-seal usually *is* a correction — §6.35's `me hago
+cargo` is exactly that. In an entity graph it usually is **not**: a second
+canonical for one alias normally means two entities, not a fix. Translation's
+rule was inherited without asking whether it fits.
+
+**What makes it a defect rather than a design: the sibling recipe already
+solved it.** Same situation, one verifier, second value for the same key —
+measured in both:
+
+| recipe | the old value | the chain |
+|---|---|---|
+| `reconcile.seal_baseline` | **survives** — `memory_unseal`'d to draft, still in the store | `baseline_replaced` names `200` in plain text |
+| `entity.seal` | **gone** — no live row, empty lineage | `seal_replaced` carries only `4f25dd8e…` |
+
+`reconcile._guard_existing_baselines` was written on purpose, and says why: *"a
+second baseline does not replace the first, it joins it, and `check()` would
+then have two figures to pass against."* Read `alias` for `label` and that
+sentence is about the entity graph too.
+
+One qualifier, because it is not unrecoverable: `entity_seal` writes the
+canonical **verbatim** to the chain, so `Jose Aguirre (1901-1974)` is still in
+`ledger.jsonl`. Recoverable from the chain, absent from the store, invisible on
+the default curator view. Better than `seal_replaced`'s digest, worse than
+`reconcile`.
+
+**There is no vocabulary for ambiguity, and structurally there cannot be.**
+`check()` returns `ambiguous: bool` and `baseline_count: int`, and its docstring
+argues which baseline to prefer when they collide and why "newest" beats
+"closest". `resolve()` returns `canonical / confidence / sealed / provenance`
+and nothing else. It cannot grow the field without a store change: one live row
+per normalized source means a second canonical replaces rather than joins.
+
+The obvious workaround was measured and does not work. Disambiguated surfaces
+coexist happily —
+
+```
+Pepe (el padre de Consuelo)    -> Jose Aguirre (1901-1974)
+Pepe (el hermano de Consuelo)  -> Jose Aguirre Toll (1938-2011)
+```
+
+— and `resolve("Pepe")` still returns one man, `sealed=True`, `confidence=1.000`,
+with nothing indicating the other exists. This is §6.22 — *a name is not a word:
+the proper-noun case has no field* — reached from the other end, and it is the
+same entry's open design question.
+
+**A scope boundary the archive case walks into, stated because it is not a
+bug.** `resolve("Pepe vino a comer")` returns nothing, not even a suggestion:
+the resolver matches a whole surface against sealed aliases and does not find
+names inside prose. `surface -> canonical` is what it says it does. But it means
+she has to already know "Pepe" is a name before she can ask about him, which is
+precisely what she does not know while reading a letter in a language she reads
+badly. Whether that gap belongs to `nestor.segment`, to a recipe, or to nobody
+is undecided.
+
+**A probe that came back negative, recorded because otherwise this list reads as
+if every look finds something.** Her name is a cookery term — `a punto de nieve`
+is sealed in `es/en` and `Nieves` in `person`, the same word in two domains at
+once, which is the normal condition of a personal archive and never of a company
+deployment. I expected no way to ask *"what have I decided about this word,
+anywhere"*. There is one: `Curator.list(contains=...)` crosses domains, and
+`GET /api/pairs?contains=` exposes it. Both return both rows. **Nothing to fix.**
+
+**Not fixed, and the reason is specific this time.** Porting
+`_guard_existing_baselines` across would take an afternoon and would decide, in
+passing, that an alias may hold exactly one canonical and old ones get retired.
+That is a product decision — *a second canonical replaces the first* and *a
+second canonical joins it* are different tools — and §6.22 has it open already.
+The fixture is the thing to keep: it is the case that makes the question
+concrete, and it took a fictional woman with two dead relatives called José to
+produce it. **Open.**
+
+**Retrieval, third data point.** `dogfood_codebox.py --look` on this finding
+returned the wrong row at 0.042, and ranked §6.35 — this finding's structural
+sibling, the entry that would have told me exactly where to look — **third, at
+0.031**. The box has now failed to connect a new finding to its own sibling
+three times running. §3.3's argument, again, from inside the tool.
