@@ -122,7 +122,10 @@ def test_the_builder_reads_the_repository_and_not_a_configured_path(monkeypatch)
 
 # --- the rule stays visible ------------------------------------------------
 
-@pytest.mark.parametrize("doc", ["CLAUDE.md", ".github/pull_request_template.md"])
+@pytest.mark.parametrize(
+    "doc",
+    ["docs/agent-guide.md", ".github/pull_request_template.md"],
+)
 def test_the_standing_rule_is_written_where_somebody_will_meet_it(doc):
     """A rule only an agent's memory carries is a rule that lasts one session."""
     text = (ROOT / doc).read_text(encoding="utf-8")
