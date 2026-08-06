@@ -3951,3 +3951,76 @@ unpublishable. Rung 3 (`Aionic-Claude-Skills`, 2026-02-11) is private, as is
 rung 1. Every private rung so far has been kept local by choosing an output path
 under gitignored `data/`, which remains a convention where this repository
 demands a mechanism.
+
+### 6.44 Aionic extracted: a linter that passes none of its own subjects, and the discovery that silence from the store means nothing — **measured**, extractor coverage **open**
+
+*Run 2026-08-06 against `rudi193-cmd/Aionic-Claude-Skills` (created 2026-02-11,
+third on the chronology), rung 3 of the stack. Private repository, so as with
+§6.41 this entry records structure and counts and quotes no content.*
+
+| shape | drafts |
+|---|---|
+| skill contract (name → what it is for) | 20 |
+| trigger (skill → when it fires) | 15 |
+| framework (`MANIFEST.json` id → version @ path) | 4 |
+| definitional tables | 27 |
+| **total** | **66 draft, 0 sealed** |
+
+81 further table rows under 14 headers declined and printed. Two headers were
+moved *into* the definition shape mid-run after the first pass declined them —
+both name a term column outright — which moved the toolchain digest `d758565` →
+`fbee500`, exactly as §6.43 intends: the rows now say which extractor produced
+them, and it is not the earlier one.
+
+**The repository carries two incompatible skill formats.** Of 26 `SKILL.md`
+files: 19 use front-matter `name:`/`description:`, 1 uses `Skill-Name:` with the
+summary in its first paragraph, and **6 carry neither** and yield no contract
+row at all. Which format a row came from is recorded in its `reason`, because
+that difference turned out to be the most interesting fact in the corpus.
+
+**The repository's own linter passes none of them.** `scripts/aionic-verify.py`
+requires six literal strings — `Skill-Name:`, `Version:`, `Architect:`, and
+three numbered headings. Run over all 26 subjects:
+
+```
+0 pass, 26 fail
+```
+
+Including all four frameworks the manifest names. It is not a broken linter; it
+is a correct linter for a format the repository stopped using, and nothing runs
+it in CI, so it has never reported anything to anyone. `test_docs.py`'s
+docstring names this exact failure — *a claim nobody executes is a claim nobody
+maintains* — and this is the same shape one layer out: a **check** nobody
+executes.
+
+**Three more, each verified by running rather than reading:**
+
+| | |
+|---|---|
+| `MANIFEST.json` → `momentum-engine` v1.1.0 | path is `…/SKILL.md`; the file is `SKILLS.md`. Off by one character, and nothing validates manifest paths |
+| `core/base17-compact/SKILL.md` | empty — zero lines |
+| `core/dual-commit/SKILL.md` | 7 lines, opening inside a stray ```` ```markdown ```` fence |
+
+**The finding that generalises, and it is the complement of §6.42.** Two skills
+exist in both `core/` and `skills/`: `ternary-context` is byte-identical in both,
+`base17-compact` is empty in one and 105 lines in the other. **The store raised
+no collision for either**, and could not have — both live among the 6 files with
+no contract row, so nothing about them ever reached it.
+
+§6.42 established that a collision is evidence about the parser before it is
+evidence about the corpus. This rung adds the other half: **a non-collision is
+evidence about nothing at all.** Silence from the store can mean the corpus
+agrees with itself, or it can mean the rows never arrived — and the store cannot
+tell you which, because the extractor decides what it is allowed to notice. Any
+future claim of the form "the corpus is consistent about X" has to be paired
+with the coverage number for X, or it is unfalsifiable. That is now the largest
+open question in this exercise and it did not exist two rungs ago.
+
+**The lineage, third beat, and it is not a flattering one.** SAFE states the
+propose/ratify split as a constitutional document (2026-01-04). Willow
+enumerates it into 72 specific acts (2026-01-10). Aionic tries to make it an
+executable skill a month later — and `dual-commit` is seven lines long, wrapped
+in a broken fence, failing the repository's own verifier, one of four things
+that verifier fails. The idea did not decay; the **carrier** did, each time it
+moved from a document to a mechanism. That is worth having found, and it is the
+first thing in this corpus that the chronology alone would never have shown.

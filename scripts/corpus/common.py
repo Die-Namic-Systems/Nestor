@@ -45,6 +45,27 @@ def sections(text: str, depth: str = "{2,4}") -> Iterator[tuple[str, str]]:
         yield block.splitlines()[0].strip(), block
 
 
+def frontmatter(text: str) -> dict[str, str]:
+    """Scalar keys of a leading ``---`` block. ``{}`` when there is none.
+
+    Deliberately not a YAML parser: nested and list values are skipped rather
+    than half-read, so a caller can trust that a key present here had a scalar
+    on one line. The corpus is full of documents whose front matter is
+    hand-written and only mostly valid.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    out: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        m = re.match(r"^([A-Za-z][\w-]*):\s*(\S.*)$", line)
+        if m:
+            out[m.group(1).lower()] = m.group(2).strip().strip("\"'")
+    return out
+
+
 def cells(line: str) -> list[str]:
     return [c.strip().strip("*").strip() for c in line.strip().strip("|").split("|")]
 
