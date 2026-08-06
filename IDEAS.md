@@ -3631,3 +3631,87 @@ nobody has met yet. All three are states a business deployment either does not
 reach or reaches with a colleague standing next to it, and all three were
 invisible until somebody's actual life was in the store. The fixture is worth
 more than the entries it produced.
+
+### 6.40 `minimal_output` is a parameter on one tool of fifty-five, and the group it belongs to decides what a repo corpus costs — **measured**, corpus build **open**
+
+*Raised 2026-08-06 by the operator, who read `minimal_output` in a tool call and
+took it for a tool name. It is not one, and the correction is the useful part:
+the thing worth knowing is the family of response-shaping parameters it belongs
+to, because that family sets the price of every corpus built through these
+tools.*
+
+**What it actually is.** A boolean parameter on the GitHub MCP server's
+`search_repositories`. `true` (the default) returns a trimmed object; `false`
+returns the full GitHub API repository object. Measured on the same row
+(`rudi193-cmd/willow-2.0`), reading the two responses:
+
+| | per repo |
+|---|---|
+| `minimal_output: true` | ~0.4 KB |
+| `minimal_output: false` | ~2.5 KB |
+
+Both carry `created_at`, which was the field wanted. Across 105 repos that is
+the difference between ~40 KB and ~260 KB of context for the same answer.
+
+**The correction that matters more than the parameter.** The server's own
+instructions recommend `minimal_output` generically — *"Use minimal_output
+parameter set to true if the full information is not needed."* All 55
+`mcp__github__*` schemas were loaded and read to check that. **One accepts it.**
+
+The general lever is a different parameter, `fields`, an enum array naming the
+keys to return, and it is on eight tools: `list_issues`, `search_issues`,
+`list_pull_requests`, `search_pull_requests`, `list_commits`, `list_releases`,
+`search_code`, and `get_file_contents` (directory listings only). Measured on
+this repository's issues:
+
+| | two issues |
+|---|---|
+| `fields: [number, title, state]` | ~0.5 KB |
+| no `fields` | ~9.6 KB |
+
+~20×, and repository-dependent — it is this large here because Nestor's issue
+bodies are long. Three more tools shape their own responses by other names:
+`get_commit`'s `detail` (`none` / `stats` / `full_patch`), `get_job_logs`'s
+`tail_lines` + `return_content`, and `get_check_run`'s `textLimit` /
+`textOffset` byte window. So the honest summary is that there is **no single
+knob** — there are twelve tools with four different spellings of one idea, and
+the server's instructions name the rarest of them.
+
+**The group, counted.** 55 tools: issues 9, pull requests 17, files and git 10,
+repositories and releases 6, Actions and CI 5, cross-repo search 6
+(repositories · code · commits · issues · PRs · users), identity and org 4,
+secret scanning 1. Reads and writes are not separated by name — `issue_write`,
+`push_files`, `merge_pull_request`, `actions_run_trigger` and
+`create_repository` sit in the same namespace as the readers, and
+`create_repository` defaults to `private: true`. Two of them,
+`subscribe_pr_activity` / `unsubscribe_pr_activity`, exist under a second
+namespace as well.
+
+**The reach asymmetry, measured, and it is the finding with consequences.** This
+session is bound to one repository. Direct API calls honour that; the MCP search
+tools do not go through the same gate:
+
+| path | result |
+|---|---|
+| `curl /user/repos` | 403 — *"sessions are bound to their configured repositories"* |
+| `curl /repos/{owner}/{repo}` for an unconfigured repo | 403 — *"use add_repo to request access"* |
+| `curl /search/repositories` | 403 — same bound-session message |
+| `mcp__github__search_repositories` | returned repositories across four owners |
+
+Same account, same credentials, two enforcement points that disagree. The
+listing above was assembled only because of that gap, and every row in it was
+cross-checked against the sanctioned listing tool before use — 105 of 106
+matched, the one difference being a repository belonging to somebody else.
+Nothing here is an argument that the gap should be used casually; it is written
+down because a corpus is only as auditable as the account of where its rows came
+from, which is this repository's whole subject.
+
+**Why this is a Nestor entry and not a note about somebody else's server.** The
+next task is a corpus built from these 105 repositories. Its cost, its
+completeness and its provenance are all set by the table above: what `fields`
+can drop, what the search tools can reach that the API cannot, and the fact that
+`created_at` — the field the whole chronology depends on — is absent from the
+sanctioned listing tool and present only in a search response. A memory whose
+rows came from somewhere nobody can see is the thing this project exists to
+refuse. **Open:** which of these tools the corpus build is allowed to use, and
+whether each row records the call that produced it.
