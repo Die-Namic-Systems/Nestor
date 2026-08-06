@@ -278,6 +278,17 @@ def cmd_ledger(args) -> int:
             rest = " ".join(f"{k}={v}" for k, v in e.items()
                             if k not in ("ts", "kind", "prev") and v not in ("", None))
             print(f"{e.get('ts', '')[:19].replace('T', ' ')}  {e.get('kind', '?'):<18} {rest}")
+    # What the listing above could not include. Printed on stderr so it reaches
+    # a person without changing what a script parses on stdout, and printed
+    # whether or not --kind narrowed the listing: a line that will not parse has
+    # no kind to be filtered by, so it is missing from every view of this file.
+    torn = ledger_mod.unreadable()
+    if torn:
+        shown = ", ".join(str(t["line"]) for t in torn[:10])
+        more = "" if len(torn) <= 10 else f", +{len(torn) - 10} more"
+        print(f"  {len(torn)} line(s) in {cascade._ledger_path()} are not valid JSON, so "
+              f"they are not listed above (line {shown}{more}). 'nestor ledger verify' "
+              f"refuses on the first of them.", file=sys.stderr)
     return EXIT_OK
 
 

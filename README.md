@@ -290,7 +290,9 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── serve_ui.py         the threshold trade-off as a chart — read-only, stdlib (serves bench/ui/)
 └── results/            committed measurements — parameters, git rev, raw numbers
 
-demo/sixty_seconds.py the whole loop, scripted and self-asserting — see Quick start
+demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
+├── sixty_seconds.py    the whole loop in eight beats — see Quick start
+└── shoebox.py          one verifier, her own archive, and the two records nothing shows her (IDEAS §6.35)
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers

@@ -390,6 +390,11 @@ def _ledger_view(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     ``entries`` deliberately does not verify and ``verify`` deliberately does not
     read entries back — an investigator needs both answers at once, so this is
     the one place they are joined.
+
+    ``unreadable`` is the third: ``verify`` names the *first* line that will not
+    parse and then stops, and ``entries`` returns the rest of the file without
+    it. Neither says how many are missing from the table, which is the question
+    somebody looking at a short chain actually has.
     """
     ok, detail = ledger_mod.verify()
     kind = _str(query, "kind") or None
@@ -399,7 +404,8 @@ def _ledger_view(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     # entry, so a human who wants that guarantee has to pin this value somewhere
     # the ledger's writer cannot reach.
     return {"ok": ok, "detail": detail, "head": ledger_mod.head(),
-            "entries": list(reversed(rows)), "kinds": kinds}
+            "entries": list(reversed(rows)), "kinds": kinds,
+            "unreadable": ledger_mod.unreadable()}
 
 
 def _replaced_seals(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:

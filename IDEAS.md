@@ -3161,3 +3161,473 @@ worth having is that a human put each row in it.
 > with this session's repeated decision to keep findings out of the commits that
 > found them. It scored 0.042, and the right row sat at rank 2 beneath a
 > nonsense score.
+
+### 6.34 A ledger line that cannot exist was ignored by every reader — **shipped**
+
+*Found 2026-08-06 while asking what this codebase does when it meets a state it
+believes impossible. Only writers of JSON append to the ledger, so a line that
+will not parse cannot happen: a torn write, a truncated copy, an editor, a
+merge. It happens anyway.*
+
+**Measured, on a four-entry chain with the third line truncated:**
+
+| | |
+|---|---:|
+| non-blank lines on disk | 4 |
+| `ledger.entries()` returned | 3 |
+| said so | nothing |
+
+`entries()` walked past the line and returned one fewer record. Everything built
+on it inherited that silently:
+
+* `nestor ledger entries` printed three rows of a four-line file;
+* the UI's ledger tab showed three, and its **kind** filter was built from the
+  three — a torn line has no kind, so it cannot even be filtered *for*;
+* `portable.export_bundle(include_ledger=True)` shipped three under the note
+  *"the source instance's chain, for audit"*, to the one party who cannot go and
+  look at the file.
+
+`verify()` did catch it, and `entries()`' own `# noqa` said so — *"skip, verify()
+reports it."* That is true and it is not a mechanism: nothing makes a caller run
+`verify()` before believing the list, and `verify()` stops at the **first**
+break, so it is a verdict and never an inventory. It is TODO.md's closing
+variant exactly — *a guarantee that only holds where somebody thought to look* —
+and the same shape as `best_sealed` filtering `lookup()`'s top five: nothing was
+bypassed, no rule was missed, the code just answered a narrower question than
+the one it was asked.
+
+**The fix is the two-walk move, not a condition.** `entries()` collects what
+parses; a new `ledger.unreadable()` collects what does not. Each is bounded by
+construction and neither filters the other's output, so together with an
+unfiltered, untruncated `entries()` they account for every non-blank line —
+which is a property the single filtering walk could not have had, because a
+discard leaves no residue to count. `unreadable()` deliberately takes **no**
+`limit`: the file is already fully in memory when it returns, so truncating a
+damage report would buy nothing and cost the only reason to read it. The three
+surfaces above now carry it — the CLI on **stderr**, so a script parsing stdout
+is unaffected.
+
+**And an off-by-one in the message an operator acts on.** `verify()` numbered
+from 0 and reported the third line of the file as `line 2`. The only thing
+anybody does with "line 7" is open the file at line 7. Both walks now number
+from 1. Nothing pinned the old numbering — no test, no doc, no caller parsing
+the string — which is why it survived.
+
+**The write path was already right, and I published the opposite to myself
+first.** A probe said a fresh process would happily append onto a torn chain. It
+would not: `_verify_chain_once` refuses, and my probe had cleared
+`cascade._checkpoints` while leaving `_verified_ledgers` populated, so the
+process under test had already cached a verdict from the appends the probe
+itself had just made. Re-run in a real subprocess it refuses on a torn tail
+*and* a torn middle. The defect was only ever on the read side; one more minute
+of assuming would have put a false claim about the appender in this file.
+
+**Tests — `tests/test_ledger_unreadable.py`, 15 of them.** Against the revision
+before the fix: **13 fail, 2 pass.** The two that pass before and after are the
+guards — the CLI stays silent about an intact ledger, and the module leaks
+nothing into `os.environ`. Three tests that read like guards (intact ledger,
+missing ledger, blank lines) are **not** guards; they call the new function and
+fail on `AttributeError`, and filing them as guards would have been the
+flattering half of the truth. Two mutations, run:
+
+| mutation | result |
+|---|---|
+| `unreadable()` numbers from 0 again | 7 red |
+| `unreadable()` returns only the first damaged line | exactly 1 red — the test that names that |
+
+**What this does not close, and it is the same shape one layer up.** A third
+party using the library can still call `entries()` and never call
+`unreadable()`. Every surface *in this package* now carries it, and nothing
+makes the next one. The construction that would close it is a gate over the
+package's own call sites rather than a better docstring — §6.12's argument, and
+it is **open**.
+
+### 6.35 The solo verifier: two records kept carefully and shown to nobody — **measured**, fix **open**
+
+*Found 2026-08-06 by building a fixture for one person instead of a team. The
+operator's framing: the code side has had all the attention and the human side
+almost none, and one would complement the other. It did, in about fifteen
+minutes.*
+
+**The fixture.** `demo/shoebox.py` — Nieves Aguirre-Toll, translating her dead
+grandmother's letters from Spanish for a seven-year-old who has no Spanish. One
+verifier, her own archive, fourteen months. She is not keeping a memory for
+consistency across a team; she is keeping one for **consistency across time with
+herself**. Fiction, tagged `origin="fixture:consuelo-shoebox"` in every row and
+in the trail, on a temporary store.
+
+Nothing about the finding depends on the phrases chosen. It falls out of her
+*structure* — one verifier, revising over months — and reproduces under any
+archive, any language pair, any grandmother.
+
+**Two records this package keeps carefully and shows to nobody.**
+
+| record | kept where | read by |
+|---|---|---|
+| what a seal was revised *from* | `tm_pairs.superseded_by`, `memory_lineage()` | nothing in `nestor/` |
+| `reopen_when` — never vs not-yet | `tm_rejections`, bundle digest v2 | `portable.export_bundle` only |
+
+*The revision.* `Curator.replaced_seals` reads `kind="seal_replaced"`, which the
+**destructive** `add_pair` overwrite writes. `supersede_pair` — the safe verb
+that shipped as §6.11/§6.20's third verb — writes `kind="supersede"`. Measured
+on her store, where a seal was demonstrably replaced: `/api/replaced-seals`
+returns **0 rows at both settings**. `memory_lineage` has no caller anywhere in
+the package; the only production reference is `storage.py`'s capability-name
+list. `portable.py:190` then drops superseded rows from the bundle, so the
+history does not travel either.
+
+*The deferral.* `reject_match(reopen_when=...)` is stored, versioned into the
+digest (that is what `BUNDLE_VERSION = 2` is for) and exported. No human-facing
+surface reads it. Its own docstring says *"a reader that surfaces rejections
+should surface a non-empty `reopen_when` as a condition to re-check, not a
+closed door"* — a sentence describing a reader that does not exist.
+
+**Stated precisely, because neither is total invisibility.** Both events are in
+the raw ledger and she can scroll it. The chain carries her reason **in full**
+and the text she replaced as a **digest**. So she can learn *that* she changed
+her mind and *why*, and not *what she changed it from*, on any shipped surface.
+
+**Why a team never finds this.** `replaced_seals`' own docstring calls a
+different verifier's overwrite *"the highest-signal event this surface
+reports"* and files self-correction as *"routine and never refused"*. For a team
+that is defensible. For Nieves, self-correction is the **only** revision that
+can ever occur, so `conflicts_only=True` — the UI default — is empty by
+construction and stays empty for as long as she is the only person holding a
+key. The surfaces are not wrong about teams. They were never asked about her.
+
+It is the shape TODO.md's closing note already names, one layer out: not a guard
+that can be reached around, but **a record whose only reader was the use case
+somebody had in mind**. §6.34 was the same shape on the ledger's read side a few
+hours earlier — that one had `verify()` as a partial reader; these have none.
+
+**The gates.** `tests/test_shoebox.py` runs the fixture, and its two gap
+assertions fail when a gap is **closed** — the good outcome, and it still has to
+stop the build, because a demo narrating a gap that no longer exists is the same
+defect as one narrating a fix that never landed. Both proven to fire, by
+mutation:
+
+| mutation | result |
+|---|---|
+| `replaced_seals` also reads `kind="supersede"` | red — *"GAP CLOSED … blind to supersede"* |
+| the rejections view carries `reopen_when` | red — *"GAP CLOSED … no human-facing surface reads reopen_when"* |
+
+**Not fixed here, deliberately.** The obvious fix for the first is to make
+`replaced_seals` read both kinds, and that is the move CLAUDE.md warns about —
+another condition on a surface that already has one. The question underneath is
+whether "somebody overruled you" and "you changed your mind" are one view with a
+filter or two views, and that is a design decision about what a reviewer is
+looking for, not a spelling of a `kind`. Deciding it from inside the fix is how
+this repo has produced three criticals in a row before. **Open**, and the fixture
+now fails the build if either gap closes without this entry being updated.
+
+### 6.36 `nestor keys add` prints the wrong key and calls it the only copy — **measured**, fix **open**
+
+*Found 2026-08-06 by standing up a second instance (§6.35's fixture, box B) and
+enrolling a verifier on it. Not found by the test suite, which never reads the
+sentence.*
+
+`cmd_keys` emits one message for all three ways to add a verifier:
+
+```
+added nieves to keys.json
+  key  7b73c0cd0ddf020f…
+  This is the only time it is printed. nieves needs it to sign in
+  to the UI; the file itself is 0600 and holds the copy Nestor
+  verifies against.
+```
+
+Three claims. **All three hold for `hmac`**, the default: `entry.key` *is* the
+shared secret, it *is* only printed here, and it *is* what signs in. On both
+ed25519 paths they fail, and they fail differently.
+
+**`--type ed25519` (generate).** `Keyring.add` stores the public half as
+`entry.key` and the secret as `entry.private`; `signing_key()` returns
+`entry.private` for ed25519, and `Sessions.open` compares what is offered
+against that. So the CLI prints the half that does not sign in. Measured against
+box A's keyring:
+
+| key offered at `/api/session` | result |
+|---|---|
+| the one `nestor keys add` printed (public) | **403** — *"that is not nieves's key."* |
+| the one it never printed (private) | 200, session opened |
+
+The verifier is handed a key that is refused, told it is the only time they will
+see it, and never shown the one that works. It is in the 0600 file, which the
+message points at while describing something else.
+
+**`--type ed25519 --public HEX` (register a peer).** The key was typed on the
+command line by the operator, so *"the only time it is printed"* is false before
+the command runs — it is in their shell history. And the peer does not need it
+to sign in: they sign on their own instance with their own private half, which
+is the entire point of the peer case. Measured: a peer entry reports
+`can_sign=False`, exactly as designed. The sentence describes the opposite.
+
+**Also the machine-readable half.** `--json` emits `"key": entry.key.hex()`,
+which is the public half for ed25519. Consistent with the data model and still a
+trap: a script that pipes `.key` to a new verifier hands them something that
+cannot sign in.
+
+**Severity, stated precisely so nobody over- or under-reads it.** This is *not*
+a disclosure bug. A public key is not a secret and printing it costs nothing.
+The damage is an operator who cannot sign in and believes they have lost their
+only copy, and a sentence that teaches people to treat a public key as a
+credential — which is the habit the asymmetric work in TODO §1 exists to break.
+
+**Why it survived.** It is `docs/code-review-lessons.md`'s pointed-prose rule
+again: *a claim in a sentence must hold across every value that sentence can
+take.* The message was written when `hmac` was the only kind, and ed25519 was
+added underneath it (Nestor#17) without the sentence being re-read. Same error
+as the refusal that read *"close enough to be tempting"* — true at 0.71, false
+at 0.11.
+
+**And the fix is not the usual move.** CLAUDE.md says a failing guard wants the
+interaction removed rather than a condition added. That rule does not apply
+here: this is not one mechanism doing two things, it is **one sentence written
+for one case and applied to three**. Three cases that differ in what the key
+*is* want three messages, and collapsing them into flat prose that is true
+everywhere would drop the one thing an operator actually needs — where their
+signing key is.
+
+Which leaves the question this entry does not decide: **should the generate case
+print the private key at all?** Printing a signing key to a terminal puts it in
+scrollback and history; not printing it means the message must say where to find
+it instead. That is a deployment decision of the same family as TODO §1's key
+distribution, and it should be made with that rather than in passing. **Open.**
+
+### 6.37 The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name — **measured**, fix **open**
+
+*Found 2026-08-06 by extending §6.35's fixture past translation. Nestor has three
+recipes and the shoebox exercises all three: the letters are Spanish, the people
+in them are an entity graph, the recipe notebook is figures. The people are where
+it broke.*
+
+**The case.** In Spanish families given names repeat. Consuelo's father was José
+— *Pepe*. Her brother was also José — also *Pepe*. Two men, one nickname, thirty
+years apart, both in the same shoebox. Nieves seals the second:
+
+```
+people.seal("Pepe", "Jose Aguirre Toll (1938-2011)", verifier="nieves")
+    -> succeeded. No exception, no warning.
+
+live rows for 'Pepe'                :  1  -> Jose Aguirre Toll (1938-2011)
+memory_lineage(that row)            :  []
+replaced_seals(conflicts_only=True) :  0     (the UI default)
+```
+
+Her great-grandfather is gone from the store. Not superseded — **overwritten**,
+by `add_pair`'s destructive path.
+
+**The guard that should have fired cannot.** `EntityResolver.seal`'s own
+docstring says *"two aliases resolving to different canonicals is the entity
+graph's version of a conflicting seal — `AWS` meaning one company to one analyst
+and another to the next is precisely the disagreement worth stopping."*
+`ConflictingSealError` is raised by `add_pair` **unless the verifier matches**,
+because a same-actor re-seal is a correction. For one person holding one archive
+that exemption is always in force, so the protection the recipe advertises can
+never stop anything. Same shape as §6.35: a mechanism built around two people,
+meeting one.
+
+**And the semantics are wrong for the domain, which is the deeper half.** In
+translation a same-actor re-seal usually *is* a correction — §6.35's `me hago
+cargo` is exactly that. In an entity graph it usually is **not**: a second
+canonical for one alias normally means two entities, not a fix. Translation's
+rule was inherited without asking whether it fits.
+
+**What makes it a defect rather than a design: the sibling recipe already
+solved it.** Same situation, one verifier, second value for the same key —
+measured in both:
+
+| recipe | the old value | the chain |
+|---|---|---|
+| `reconcile.seal_baseline` | **survives** — `memory_unseal`'d to draft, still in the store | `baseline_replaced` names `200` in plain text |
+| `entity.seal` | **gone** — no live row, empty lineage | `seal_replaced` carries only `4f25dd8e…` |
+
+`reconcile._guard_existing_baselines` was written on purpose, and says why: *"a
+second baseline does not replace the first, it joins it, and `check()` would
+then have two figures to pass against."* Read `alias` for `label` and that
+sentence is about the entity graph too.
+
+One qualifier, because it is not unrecoverable: `entity_seal` writes the
+canonical **verbatim** to the chain, so `Jose Aguirre (1901-1974)` is still in
+`ledger.jsonl`. Recoverable from the chain, absent from the store, invisible on
+the default curator view. Better than `seal_replaced`'s digest, worse than
+`reconcile`.
+
+**There is no vocabulary for ambiguity, and structurally there cannot be.**
+`check()` returns `ambiguous: bool` and `baseline_count: int`, and its docstring
+argues which baseline to prefer when they collide and why "newest" beats
+"closest". `resolve()` returns `canonical / confidence / sealed / provenance`
+and nothing else. It cannot grow the field without a store change: one live row
+per normalized source means a second canonical replaces rather than joins.
+
+The obvious workaround was measured and does not work. Disambiguated surfaces
+coexist happily —
+
+```
+Pepe (el padre de Consuelo)    -> Jose Aguirre (1901-1974)
+Pepe (el hermano de Consuelo)  -> Jose Aguirre Toll (1938-2011)
+```
+
+— and `resolve("Pepe")` still returns one man, `sealed=True`, `confidence=1.000`,
+with nothing indicating the other exists. This is §6.22 — *a name is not a word:
+the proper-noun case has no field* — reached from the other end, and it is the
+same entry's open design question.
+
+**A scope boundary the archive case walks into, stated because it is not a
+bug.** `resolve("Pepe vino a comer")` returns nothing, not even a suggestion:
+the resolver matches a whole surface against sealed aliases and does not find
+names inside prose. `surface -> canonical` is what it says it does. But it means
+she has to already know "Pepe" is a name before she can ask about him, which is
+precisely what she does not know while reading a letter in a language she reads
+badly. Whether that gap belongs to `nestor.segment`, to a recipe, or to nobody
+is undecided.
+
+**A probe that came back negative, recorded because otherwise this list reads as
+if every look finds something.** Her name is a cookery term — `a punto de nieve`
+is sealed in `es/en` and `Nieves` in `person`, the same word in two domains at
+once, which is the normal condition of a personal archive and never of a company
+deployment. I expected no way to ask *"what have I decided about this word,
+anywhere"*. There is one: `Curator.list(contains=...)` crosses domains, and
+`GET /api/pairs?contains=` exposes it. Both return both rows. **Nothing to fix.**
+
+**Not fixed, and the reason is specific this time.** Porting
+`_guard_existing_baselines` across would take an afternoon and would decide, in
+passing, that an alias may hold exactly one canonical and old ones get retired.
+That is a product decision — *a second canonical replaces the first* and *a
+second canonical joins it* are different tools — and §6.22 has it open already.
+The fixture is the thing to keep: it is the case that makes the question
+concrete, and it took a fictional woman with two dead relatives called José to
+produce it. **Open.**
+
+**Retrieval, third data point.** `dogfood_codebox.py --look` on this finding
+returned the wrong row at 0.042, and ranked §6.35 — this finding's structural
+sibling, the entry that would have told me exactly where to look — **third, at
+0.031**. The box has now failed to connect a new finding to its own sibling
+three times running. §3.3's argument, again, from inside the tool.
+
+### 6.38 `locks_in_text` is a raw substring, so a short lock fires inside longer words — **measured**, fix **open**
+
+*Found 2026-08-06 giving §6.35's fixture a glossary. The second blindness on the
+line §6.22 already corrected itself about, and a different one.*
+
+```python
+lower = text.lower()
+return {t: tr for t, tr in terms_for(source_lang, target_lang).items()
+        if t.lower() in lower}                    # glossary.py, locks_in_text
+```
+
+`in` on a string is a substring test with no word boundary. Measured, with
+`{"Tito": "Tito"}` installed — her uncle's name, in a recipe notebook:
+
+```
+'Tito trajo el vino'                        -> {'Tito': 'Tito'}
+'se come con buen apetito'                  -> {'Tito': 'Tito'}
+'hay que comer con apetito, dice la abuela' -> {'Tito': 'Tito', 'abuela': 'abuela'}
+```
+
+The glossary is **tier 2's constraint**: `locks_in_text` feeds
+`engine.system_prompt(locks=...)`, which emits *"Locked terminology — always
+render these terms exactly as given."* So a sentence about appetite goes to the
+draft engine carrying an instruction about a man.
+
+**Distinct from the blindness already recorded, and worth keeping separate.**
+§6.22 corrected itself in place about *case*: both sides are lowercased, so
+`{"Nestor": "Nestor"}` fires on *"the nestor of the committee"*. Every example
+in that correction is a whole word, so the boundary problem is invisible in it.
+Case-blindness makes a lock fire on the wrong **sense** of the right word;
+boundary-blindness makes it fire on a word that was never there. Same line, two
+failures, and only one of them was known.
+
+**Why a family archive found it and a company deployment would not.** Business
+term bases lock long, distinctive strings — product names, legal phrases. A
+personal archive locks nicknames, and nicknames are short: `Tito`, `Chelo`,
+`Pepe`, `Nieves`. The shorter the lock the likelier it is a substring of
+something ordinary, and Spanish is rich in the endings that make it happen.
+
+**Not fixed, and the trade is real.** A word boundary kills `Tito` inside
+`apetito` and also kills `abuela` matching `abuelas`, which the substring gets
+for free — the glossary has no morphology and substring is standing in for it.
+So the choice is between a lock that over-fires and one that misses every
+inflection, and picking either from inside a bug fix decides what a term lock
+*is*. Deliberately left: no test pins the current behaviour, because a test
+asserting `Tito` matches `apetito` would fail on the fix, and
+`scripts/dogfood_session_decisions.py` already argues that findings which should
+move are printed rather than pinned. Nor does `locks_in_text`'s docstring name
+either blindness — it says only *"the subset of glossary terms that actually
+appear in this segment"*, which is what the function is for and not what it
+does. Annotating the defect where it lives would be worth a line and is not
+done here.
+
+**Related and not the same:** §6.22's real question is whether a glossary can
+express *do not translate this*, and the answer stayed no. This entry does not
+change that. It removes one more reason to reach for the glossary as the way out.
+
+### 6.39 The entity graph has only the verb a machine may not use — **measured**, fix **open**
+
+*Found 2026-08-06 by putting a living person into §6.35's fixture. The operator
+gave Nieves an aunt, the aunt met somebody, and the honest record of that is a
+row nobody has verified.*
+
+`EntityResolver` has three public methods:
+
+```
+seal          surface -> canonical, status="sealed", appends entity_seal
+add_alias     calls seal
+resolve       reads
+```
+
+There is no way to **propose**. To put an unverified alias into the entity graph
+you go around the recipe and call `memory.add_pair(..., status="draft")`
+yourself, which is what this fixture had to do — Nieves has not met Tony, her
+aunt described him on the telephone, and *"goes by Tony"* does not license
+writing down *Antonio*.
+
+**The reader is already there.** `resolve()` has a full branch for the state the
+writer cannot produce — measured on the row added by hand:
+
+```
+resolve("Tony") -> {"canonical": None, "sealed": False,
+                    "provenance": {"draft": True,
+                                   "suggestion": "Tony (b. 1972)", ...}}
+```
+
+`canonical=None` with a `suggestion` the caller *"may queue for a human seal"*,
+in the docstring's words. So the recipe describes a queue it has no verb to put
+anything into.
+
+**And it is the covenant's own shape.** The one verb the entity graph offers is
+the one a machine may not use. Ground rule: propose, do not confirm — and in this
+domain there is nothing to propose *with*. §6.19 and §6.20 gave the translation
+domain its second and third verbs (`revise_draft`, `supersede_pair`) after
+argument; the entity graph never got its first.
+
+**Checked before claiming there is no design question under it**, because that
+claim was made in conversation first and this repo has a rule about the
+difference. Both edge cases are already decided by `add_pair`, so `propose`
+inherits rather than invents:
+
+| | |
+|---|---|
+| a draft landing on an already-**sealed** name | returns the existing sealed row, untouched — no overwrite |
+| a second, **different** draft for one surface | raises `ConflictingDraftError` (§6.19's message) |
+| either, on the chain | nothing appended — a proposal is not a decision |
+
+That last row is also the one thing `propose` must **not** copy from `seal`: no
+`entity_seal` entry. `seal` appends because a seal is a decision. The published
+dogfood stores already establish the rule — a store of pure drafts has an empty
+chain by construction.
+
+**So the shape is:** `propose(surface, canonical, reason="", origin="")` =
+`seal()` minus the seal, minus the verifier, minus the append. Unlike §6.35,
+§6.37 and §6.38 this one is not parked on a design question — it is parked
+because it was found at the end of an afternoon and nothing here ships
+unreviewed. It is the smallest open entry on this list and the only one I would
+take a patch for.
+
+**A note on how it was found, because it is the fixture's third hit and the
+pattern is now legible.** §6.35 came from one verifier revising her own work.
+§6.37 came from two dead men sharing a nickname. This came from one living man
+nobody has met yet. All three are states a business deployment either does not
+reach or reaches with a colleague standing next to it, and all three were
+invisible until somebody's actual life was in the store. The fixture is worth
+more than the entries it produced.

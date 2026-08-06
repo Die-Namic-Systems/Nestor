@@ -79,7 +79,11 @@ def verify(path: Optional[str] = None,
         return True, "no ledger yet"
     prev = "genesis"
     count = 0
-    for i, raw in enumerate(p.read_text(encoding="utf-8").splitlines()):
+    # Numbered from 1, because the only thing anyone does with "line 7" is open
+    # the file at line 7. This counted from 0 and reported the third line of a
+    # damaged ledger as "line 2" — an audit message that sends the person acting
+    # on it to the wrong line is worse than one that says nothing.
+    for i, raw in enumerate(p.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.strip()
         if not line:
             continue
@@ -111,6 +115,11 @@ def entries(kind: Optional[str] = None, path: Optional[str] = None,
     Deliberately does NOT verify the chain: a caller investigating a broken
     ledger still needs to see what is in it. Call :func:`verify` for that, and
     treat the two answers together.
+
+    This walk returns the lines that **parse**. The ones that do not are
+    :func:`unreadable`'s: they are not returned here, and before that function
+    existed nothing counted them — :func:`verify` names the first and stops,
+    which is a verdict and never an inventory.
     """
     p = _path(path)
     if not p.exists():
@@ -122,8 +131,52 @@ def entries(kind: Optional[str] = None, path: Optional[str] = None,
             continue
         try:
             rec = json.loads(line)
-        except Exception:                      # noqa: BLE001 — skip, verify() reports it
+        except Exception:                      # noqa: BLE001 — the other walk's, see unreadable()
             continue
         if kind is None or rec.get("kind") == kind:
             out.append(rec)
     return out[-limit:]
+
+
+def unreadable(path: Optional[str] = None) -> list[dict]:
+    """The lines this ledger holds that are not valid JSON — ``{"line", "error"}``.
+
+    Only writers of JSON append here, so a line that will not parse is a thing
+    that cannot happen: a torn write, a truncated copy, an editor, a merge. It
+    happens anyway, and until this existed **every reader that shows you the
+    chain ignored it**. :func:`entries` walked past such a line and returned one
+    fewer record without a word, so a four-line ledger showed three entries and
+    nothing marked the gap — in ``nestor ledger entries``, in the UI's ledger
+    tab, and in the ``ledger`` block of an export bundle, which is read by
+    exactly the party who cannot go and look at the file. :func:`verify` did
+    refuse, and so does the append path; neither is a caller of :func:`entries`,
+    and neither says how many lines are missing from what you are looking at.
+
+    So this is the other walk, and that is the shape of the fix: one pass
+    collects what parses and one collects what does not, each bounded by
+    construction, rather than one pass filtering and discarding. Together with
+    an unfiltered, untruncated :func:`entries` they account for every non-blank
+    line in the file — ``kind`` and ``limit`` narrow that side, never this one.
+
+    ``line`` numbers from 1 and matches :func:`verify`'s, so a line named here
+    can be opened with ``sed -n '<line>p'``. There is no ``limit``: the file is
+    already fully in memory by the time this returns, so truncating the damage
+    report would buy nothing and cost the only reason to read it.
+
+    Returns ``[]`` for a ledger that does not exist, like :func:`entries` — an
+    absent trail is not a damaged one, and :func:`verify` is where that
+    distinction is already drawn.
+    """
+    p = _path(path)
+    if not p.exists():
+        return []
+    out: list[dict] = []
+    for i, raw in enumerate(p.read_text(encoding="utf-8").splitlines(), start=1):
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            json.loads(line)
+        except Exception as e:                 # noqa: BLE001 — this walk collects them
+            out.append({"line": i, "error": str(e)})
+    return out

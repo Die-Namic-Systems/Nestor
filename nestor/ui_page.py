@@ -1818,7 +1818,7 @@ async function rejectMatch(query, m) {
 
 /* ---------- Ledger -------------------------------------------------------- */
 function viewLedger() {
-  const l = S.ledger || { entries: [], kinds: [], ok: true, detail: "" };
+  const l = S.ledger || { entries: [], kinds: [], ok: true, detail: "", unreadable: [] };
   $("view").append(h("div", { class: "card" },
     h("div", { class: "row" },
       h("span", { class: "badge " + (l.ok ? "good" : "bad"), text: l.ok ? "chain intact" : "chain broken" }),
@@ -1834,6 +1834,19 @@ function viewLedger() {
       "(CI, a monitor) and check against it: ",
       h("code", { class: "mono", text: "nestor ledger verify --expect-head " + (l.head || "").slice(0, 16) + "…" })),
     h("p", { class: "small mono muted", style: "margin:4px 0 0", text: "head " + (l.head || "") })));
+
+  // A line that will not parse has no kind and no timestamp, so it cannot
+  // appear in the table below and cannot be filtered for. Say how many and
+  // where, or the table is a shorter chain than the file with nothing marking
+  // the difference.
+  const torn = l.unreadable || [];
+  if (torn.length) {
+    $("view").append(h("div", { class: "card" },
+      h("p", { class: "small", style: "margin:0",
+        text: torn.length + " line(s) on disk are not valid JSON, so they are not in "
+          + "the table below: line " + torn.slice(0, 10).map((u) => u.line).join(", ")
+          + (torn.length > 10 ? ", +" + (torn.length - 10) + " more" : "") + "." })));
+  }
 
   const card = h("div", { class: "card" });
   if (!l.entries.length) card.append(h("p", { class: "empty", text: "Nothing recorded yet." }));
