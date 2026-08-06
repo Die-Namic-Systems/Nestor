@@ -3882,3 +3882,57 @@ rung and got another should not have to re-read the record to find out."* Plus
 "not silently dropped". §6.44 found the same gap here from the opposite
 direction one round earlier. Two independent routes to one finding, and jeles
 got there first — which is the strongest argument yet for fixing it.
+
+---
+
+### 6.46 The empty-run discipline was in four scripts and not in the fifth's absent branch — **measured**, fix **shipped**
+
+*Found 2026-08-06 by pointing the box at itself: running every script that reads
+another repository against a corpus that is missing, and one that is present and
+bare.*
+
+Six scripts under `scripts/` read a checkout that is not this one, written at
+different times, sharing a discipline articulated *after* two of them existed:
+
+```
+could not look   the corpus is absent          -> exit 1, and say so
+a true empty     the corpus is there, and bare -> exit 0, and say so
+```
+
+The sweep found the discipline holds on exit codes everywhere. It does not hold
+on **words**, and the words are the whole point — an exit code of 1 does not tell
+a reader which of the two refusals they got.
+
+`feed_jeles_sources.py` refuses an absent `jeles/sources.py` with:
+
+```
+no jeles/sources.py under <path>
+```
+
+and nothing else. Twelve lines below, its *unparseable* branch says *"'I could
+not look' — refusing rather than reporting zero"* and explains that this is not
+the same as an empty registry. So the file whose docstring exists to distinguish
+`None` from `{}` had two refusals distinguishable only by exit code. Fixed.
+
+**And one message overstated in a partial case.** `feed_willow19_plans.py` looks
+for `docs/superpowers/plans` and `.../specs` and reported *"the plan directories
+exist and hold 0 .md files"* whenever **either** existed. A deployment whose
+`specs/` was missing or misspelled was told both were checked and both were
+empty. The empty case is the one nobody re-reads the path for, which is exactly
+where a plural that is sometimes singular does its damage — the same shape as
+CLAUDE.md's refusal-message lesson, where a sentence true at 0.71 was false at
+0.11. It now names the directories it found and names the ones it did not.
+
+**The gate is one file over all six**, not a paragraph in each:
+`tests/test_corpus_readers_fail_closed.py`. The failure being prevented is
+*drift* — one reader answering in another's vocabulary — and a seventh script
+would have no way to inherit the lesson otherwise. It caught the
+`feed_jeles_sources.py` defect on its first run.
+
+**A false finding on the way, the fourth of the day.** The sweep first reported
+that `feed_willow19_plans.py` called a readable-empty corpus unreadable. It does
+not. The fixture was a bare `docs/superpowers/` with no `plans/` or `specs/`
+inside it, which is an *absent* corpus, and "I could not look" was the correct
+answer being read as a defect. A bare directory is not an empty corpus, and that
+distinction is now a test of its own so the next reader of this file does not
+have to rediscover it.

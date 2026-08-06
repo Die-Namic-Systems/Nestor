@@ -110,6 +110,15 @@ def main() -> int:
     path = pathlib.Path(args.repo) / "jeles" / "sources.py"
     if not path.exists():
         print(f"{RED}no jeles/sources.py under {args.repo}{OFF}")
+        # The absent branch had the right exit code and the wrong words. Twelve
+        # lines below, the *unparseable* branch says "I could not look" and
+        # explains that it is not the same as an empty one — this one said
+        # nothing, so the two refusals this file exists to distinguish were
+        # themselves distinguishable only by exit code. Found by
+        # tests/test_corpus_readers_fail_closed.py on its first run, which is
+        # the drift that gate was written for.
+        print(f"   {DIM}'I could not look' — refusing rather than reporting "
+              f"zero institutions.{OFF}")
         return 1
     sources = extract(path)
     if sources is None:

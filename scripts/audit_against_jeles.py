@@ -168,9 +168,7 @@ def _store(work: pathlib.Path):
     from nestor import cascade, storage
     from nestor.sqlite_store import SqliteStore
     work.mkdir(parents=True, exist_ok=True)
-    from nestor import cascade as _c
-    _c.set_ledger_path(str(work / "ledger.jsonl"))
-    del cascade
+    cascade.set_ledger_path(str(work / "ledger.jsonl"))
     s = SqliteStore(str(work / "n.db"))
     s.init_db()
     s.memory_init()
