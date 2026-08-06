@@ -12,6 +12,13 @@ override wins, then ``NESTOR_GLOSSARY``, then the default relative to the
 current directory **captured once at import** rather than re-read per call. The
 last of those is still launch-dependent and is the compatible default; the
 first two are how a deployment stops guessing.
+
+Only the *default* is captured. ``NESTOR_GLOSSARY`` is read on every call, the
+same posture the ledger has, so a ``chdir`` cannot move the file but a
+mid-process environment change still can — raised in review of PR #47 and
+measured. :func:`set_glossary_path` is what pins it: it wins over the variable,
+so a deployment that wants the path fixed for the life of the process calls it
+once at startup rather than trusting the environment to stay still.
 """
 from __future__ import annotations
 
