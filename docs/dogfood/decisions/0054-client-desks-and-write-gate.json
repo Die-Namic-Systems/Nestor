@@ -1,8 +1,8 @@
 {
-  "pr": 53,
+  "pr": 54,
   "branch": "claude/client-intake",
   "date": "2026-08-06",
-  "note": "Scaffolding for a client fixture that stands up more than one Nestor deployment. Extracted persona-free from the two-desks fixture on claude/nestor-intake-repo-review-icanwi; that branch keeps its own walk-through and its findings. This file will grow when the client's fixture lands on the same PR.",
+  "note": "A client's two desks, the scaffolding extracted from them, the fixture they produced, and the PreToolUse write gate the seat was missing. Numbered 0054 for the PR it opened as \u2014 written first as 0053, which #53 took. That is twice in one session that a number claimed before the PR existed had to be corrected, which is why the rule is to number for the PR it actually lands as.",
   "decisions": [
     {
       "question": "Bring the two-desks work over by copying the fixture, or by extracting the scaffolding?",
