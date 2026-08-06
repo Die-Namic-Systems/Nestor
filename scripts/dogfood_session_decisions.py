@@ -25,10 +25,11 @@ argued.
 from __future__ import annotations
 
 import argparse
+import pathlib
+import tempfile
 
-import dogfood_common
-
-from nestor import memory, portable
+from nestor import cascade, memory, portable, storage
+from nestor.sqlite_store import SqliteStore
 
 DOMAIN = "decision"
 
@@ -156,24 +157,46 @@ PROBES = [
 
 
 def feed(store) -> None:
-    dogfood_common.feed_drafts(store, DECISIONS, DOMAIN,
-                               "session:getting-settled-9p41pb")
-    dogfood_common.feed_rejections(store, REJECTIONS, DOMAIN)
+    for question, commitment, reason in DECISIONS:
+        memory.add_pair(question, commitment, DOMAIN, DOMAIN, status="draft",
+                        reason=reason, origin="session:getting-settled-9p41pb",
+                        store=store)
+    for question, alternative, reason, reopen_when in REJECTIONS:
+        memory.reject_match(question, DOMAIN, DOMAIN, target_text=alternative,
+                            reason=reason, reopen_when=reopen_when, store=store)
 
 
 def main() -> int:
-    ap = dogfood_common.add_output_args(
-        argparse.ArgumentParser(description=__doc__.splitlines()[0]))
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--keep", metavar="DIR",
+                    help="write the store and ledger here instead of a temp dir")
     args = ap.parse_args()
 
-    with dogfood_common.opened(args.keep) as (root, store):
+    tmp = None
+    if args.keep:
+        root = pathlib.Path(args.keep)
+        root.mkdir(parents=True, exist_ok=True)
+    else:
+        tmp = tempfile.TemporaryDirectory()
+        root = pathlib.Path(tmp.name)
+
+    try:
+        cascade.set_ledger_path(root / "ledger.jsonl")
+        store = SqliteStore(str(root / "nestor.db"))
+        storage.set_store(store)
+        store.memory_init()
         feed(store)
 
-        # The covenant lives in dogfood_common so a second script cannot get a
-        # second copy of it — see that module's docstring.
-        stats = dogfood_common.assert_nothing_sealed(store)
+        stats = memory.stats(store=store)
         print(f"fed  {len(DECISIONS)} decisions, {len(REJECTIONS)} rejected alternatives")
         print(f"     {stats['total']} pair(s): {stats['sealed']} sealed, {stats['draft']} draft")
+
+        # The one assertion. Everything else here is a measurement; this is the
+        # covenant, and a run that seals has broken it.
+        assert stats["sealed"] == 0, (
+            f"{stats['sealed']} sealed row(s) — this script proposes and must never "
+            f"confirm. A seal belongs to a human at nestor.ui (ground rule: the machine "
+            f"may propose and may not confirm).")
 
         print(f"\nre-worded recall, threshold {memory.SEAL_THRESHOLD} "
               f"(IDEAS §6.14 — moves with the matcher, so it is printed, not pinned)")
@@ -203,6 +226,9 @@ def main() -> int:
         if args.keep:
             print(f"\nstore and ledger left in {root}")
         return 0
+    finally:
+        if tmp is not None:
+            tmp.cleanup()
 
 
 if __name__ == "__main__":
