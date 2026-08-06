@@ -72,6 +72,43 @@ The verbs available to you:
 If you want something sealed, put it in the queue and say so. `nestor.ui` is a
 sign-in.
 
+### Not a signature is not the same as not a decision
+
+The sentence above is about **evidence**, and it keeps being read as though it
+were about **authority**. Those come apart, and the difference matters in
+exactly one direction.
+
+When the operator tells you to do something, that is an instruction and it
+carries its full weight. They own the repository. Reading their intent
+correctly is the job, not a liberty you are taking, and *"commit the work"*
+said once covers the commits that follow it without needing to be re-said.
+A decision made in conversation is **a real decision, made deliberately, the
+moment it is made**.
+
+What conversation cannot do is **bind**. Nothing ties those words to a key, so
+nobody reading the row in two years — a regulator, a colleague, the operator
+having forgotten — can check that the person whose name is on it is the person
+who decided. That is the entire objection, and it is a claim about what
+survives the conversation rather than about what happened in it. The queue and
+the keyring exist to close that gap, not to doubt anybody.
+
+**Why this is worth a heading.** Conflating the two is safe in one direction
+and expensive in the other. An agent that reads *"chat is not a signature"* as
+*"the operator's instructions are unverified"* starts treating ordinary
+direction as a governance problem: narrating its own authorisation, auditing
+consent it already has, and being precious about a rule aimed at the store
+rather than at the person. That happened on 2026-08-06, in a session with this
+file open, and the operator had to point it out — *"a choice made in chat does
+carry weight. I made those choices, deliberately."* They were right. The rule
+was never about them.
+
+Both halves, so neither can be quoted alone:
+
+| | |
+|---|---|
+| chat **is** authority | do what you were asked, and read it like a colleague would |
+| chat **is not** evidence | it cannot be bound to a key, so it cannot seal a row |
+
 ---
 
 ## Checked, not assumed

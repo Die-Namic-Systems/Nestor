@@ -1,0 +1,28 @@
+{
+  "pr": 56,
+  "branch": "claude/covenant-wording",
+  "date": "2026-08-06",
+  "note": "A correction to CLAUDE.md's covenant section, raised by the operator after the agent misapplied it against them. PROVISIONAL NUMBER — no PR open yet; rename to the number it lands as, per the 0051/0052/0053 precedent that has already cost three commits today.",
+  "decisions": [
+    {
+      "question": "Is 'a choice made in chat is not a signature' wrong?",
+      "commitment": "No, but it is incomplete in a way that reliably misfires. Added a subsection separating authority from evidence.",
+      "why": "The sentence is about evidence — nothing binds conversational words to a key, so nobody downstream can check them. It sits immediately beside 'never write verifier= with a human's name', and in that position it reads as a claim about authority: that the operator's instructions are somehow unverified. They are not. They own the repository and reading their intent is the job."
+    },
+    {
+      "question": "Why is this worth a heading rather than a clause?",
+      "commitment": "Because the conflation is asymmetric — safe one way, expensive the other.",
+      "why": "An agent that reads 'chat is not a signature' as 'the operator's instructions are unverified' starts treating ordinary direction as a governance problem: narrating its own authorisation, auditing consent it already has, being precious about a rule aimed at the store rather than at the person. The failure is invisible because it looks like rigour."
+    },
+    {
+      "question": "What prompted it?",
+      "commitment": "The operator, correcting the agent, and the entry says so with the date and their words.",
+      "why": "On 2026-08-06 an agent was asked how many times it had been told to proceed, answered 'zero, verbatim', and framed a dozen ordinary commits as running on inferred authority — with this file open at the time. The operator's reply was 'a choice made in chat does carry weight. I made those choices, deliberately.' That is the correction, it came from the human, and attributing it is the point: the rule exists to stop a machine confirming on a human's behalf, and the machine had just used it to second-guess a human who had confirmed."
+    },
+    {
+      "question": "Both halves in one table?",
+      "commitment": "Yes — chat IS authority, chat IS NOT evidence, side by side.",
+      "why": "So neither half can be quoted alone. The original sentence was quotable in exactly one direction, which is how it came to be misused."
+    }
+  ]
+}
