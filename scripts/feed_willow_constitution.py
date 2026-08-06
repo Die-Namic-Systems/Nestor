@@ -119,10 +119,22 @@ def main() -> int:
     ap.add_argument("--keep", default="", help="leave the store behind here")
     args = ap.parse_args()
 
-    cases = sorted((pathlib.Path(args.repo) / "constitution" / "cases").glob("const_*.py"))
-    if not cases:
-        print(f"{RED}no constitution/cases/const_*.py under {args.repo}{OFF}")
+    # Absent and empty are different facts. An earlier version printed one
+    # message for both, which is the same conflation the jeles feeder had —
+    # found by running these against an empty repository.
+    cases_dir = pathlib.Path(args.repo) / "constitution" / "cases"
+    if not cases_dir.is_dir():
+        print(f"{RED}no constitution/cases/ under {args.repo}{OFF}")
+        print(f"   {DIM}'I could not look' — refusing rather than reporting "
+              f"zero cases.{OFF}")
         return 1
+    cases = sorted(cases_dir.glob("const_*.py"))
+    if not cases:
+        print(f"\n{BOLD}willow-2.0 constitution → nestor{OFF}")
+        print(f"   {AMBER}constitution/cases/ exists and holds 0 const_*.py "
+              f"files{OFF}")
+        print(f"   {DIM}A true empty, not a failure.{OFF}\n")
+        return 0
 
     work = pathlib.Path(args.keep) if args.keep else pathlib.Path(
         tempfile.mkdtemp(prefix="nestor-feed-"))

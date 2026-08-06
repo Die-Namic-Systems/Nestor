@@ -1,0 +1,28 @@
+{
+  "pr": 59,
+  "branch": "claude/feed-all",
+  "date": "2026-08-06",
+  "note": "A top over the repo feeders, and the defect that running them empty exposed. Stacked on claude/feed-jeles-sources. PROVISIONAL NUMBER — no PR open yet.",
+  "decisions": [
+    {
+      "question": "Running the feeders empty — what did it find?",
+      "commitment": "Both printed identical words for an unreadable corpus and an empty one. Fixed in both.",
+      "why": "`SOURCES = {\"x\": some_call()}` and `SOURCES = {}` both reported 'could not parse a SOURCES mapping'. The first means I could not look; the second means I looked and there is nothing. That is exactly the distinction this package exists to keep for answers — nothing matched versus nothing to match against — collapsed by a script inside the package. extract() now returns None for unreadable and {} for genuinely empty, and the constitution feeder separates an absent cases/ directory from an empty one. Found by running them against an empty repository, not by reading them."
+    },
+    {
+      "question": "What does the top add that the feeders do not have alone?",
+      "commitment": "Four states — fed, empty, unreadable, skipped — and a verdict that never collapses them.",
+      "why": "Each feeder reports its own case correctly. The distinction dies when several are summarised together: four feeds, one line, '0 rows', and nobody can tell whether the corpora were empty or the paths were wrong. Three empty runs now produce three visibly different verdicts and two different exit codes — skipped and empty exit 0, unreadable exits 1, because not knowing must not exit clean."
+    },
+    {
+      "question": "Import the feeders or run them as subprocesses?",
+      "commitment": "Subprocesses, and a test pins it.",
+      "why": "Each feeder installs a process-wide store, ledger path and matcher. Importing them into one interpreter would make the last one win, which is demo/desks.py's entire subject and a bug this session already shipped once in a fixture. Cheaper to spend a process than to re-learn it."
+    },
+    {
+      "question": "Is a true empty a failure?",
+      "commitment": "No — exit 0, but said unmistakably. Unreadable exits 1.",
+      "why": "An empty corpus is a real, readable state and the run worked. Exiting non-zero on it would train people to ignore the exit code. But an empty feed that exits 0 quietly is how a broken pipeline looks healthy, so the words on screen carry the distinction the exit code cannot: 'read and declares 0' versus 'could not read'."
+    }
+  ]
+}

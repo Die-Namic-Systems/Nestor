@@ -65,8 +65,17 @@ BOLD, DIM, GREEN, AMBER, RED, OFF = (
     "\033[1m", "\033[2m", "\033[32m", "\033[33m", "\033[31m", "\033[0m")
 
 
-def extract(path: pathlib.Path) -> dict:
-    """The ``SOURCES`` literal, by parsing. No import, no execution."""
+def extract(path: pathlib.Path) -> dict | None:
+    """The ``SOURCES`` literal, by parsing. No import, no execution.
+
+    ``None`` means *this could not be read* — no ``SOURCES`` binding, or one
+    whose value is not a literal. ``{}`` means *it was read and declares
+    nothing*. Those are different facts and an earlier version returned ``{}``
+    for both, so a registry the parser could not understand was reported in the
+    same words as an empty one. That is the conflation this package exists to
+    refuse, made by a script in this package, and it was found by running the
+    feeders against an empty repository rather than by reading them.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     for node in tree.body:
         target = None
@@ -80,9 +89,9 @@ def extract(path: pathlib.Path) -> dict:
             try:
                 got = ast.literal_eval(value)
             except (ValueError, SyntaxError, TypeError):
-                return {}
-            return got if isinstance(got, dict) else {}
-    return {}
+                return None
+            return got if isinstance(got, dict) else None
+    return None
 
 
 def claim(key: str, spec: dict) -> tuple[str, str]:
@@ -103,9 +112,17 @@ def main() -> int:
         print(f"{RED}no jeles/sources.py under {args.repo}{OFF}")
         return 1
     sources = extract(path)
-    if not sources:
-        print(f"{RED}could not parse a SOURCES mapping out of {path}{OFF}")
+    if sources is None:
+        print(f"{RED}could not read a SOURCES mapping out of {path}{OFF}")
+        print(f"   {DIM}Not the same as an empty one — this is 'I could not "
+              f"look', and it refuses rather than reporting zero.{OFF}")
         return 1
+    if not sources:
+        print(f"\n{BOLD}jeles sources → nestor{OFF}")
+        print(f"   {AMBER}the registry was read and declares 0 institutions{OFF}")
+        print(f"   {DIM}A true empty, not a failure. Said in different words "
+              f"from 'could not read' on purpose.{OFF}\n")
+        return 0
 
     work = pathlib.Path(args.keep) if args.keep else pathlib.Path(
         tempfile.mkdtemp(prefix="nestor-feed-jeles-"))
