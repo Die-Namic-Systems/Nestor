@@ -3561,3 +3561,73 @@ done here.
 **Related and not the same:** §6.22's real question is whether a glossary can
 express *do not translate this*, and the answer stayed no. This entry does not
 change that. It removes one more reason to reach for the glossary as the way out.
+
+### 6.39 The entity graph has only the verb a machine may not use — **measured**, fix **open**
+
+*Found 2026-08-06 by putting a living person into §6.35's fixture. The operator
+gave Nieves an aunt, the aunt met somebody, and the honest record of that is a
+row nobody has verified.*
+
+`EntityResolver` has three public methods:
+
+```
+seal          surface -> canonical, status="sealed", appends entity_seal
+add_alias     calls seal
+resolve       reads
+```
+
+There is no way to **propose**. To put an unverified alias into the entity graph
+you go around the recipe and call `memory.add_pair(..., status="draft")`
+yourself, which is what this fixture had to do — Nieves has not met Tony, her
+aunt described him on the telephone, and *"goes by Tony"* does not license
+writing down *Antonio*.
+
+**The reader is already there.** `resolve()` has a full branch for the state the
+writer cannot produce — measured on the row added by hand:
+
+```
+resolve("Tony") -> {"canonical": None, "sealed": False,
+                    "provenance": {"draft": True,
+                                   "suggestion": "Tony (b. 1972)", ...}}
+```
+
+`canonical=None` with a `suggestion` the caller *"may queue for a human seal"*,
+in the docstring's words. So the recipe describes a queue it has no verb to put
+anything into.
+
+**And it is the covenant's own shape.** The one verb the entity graph offers is
+the one a machine may not use. Ground rule: propose, do not confirm — and in this
+domain there is nothing to propose *with*. §6.19 and §6.20 gave the translation
+domain its second and third verbs (`revise_draft`, `supersede_pair`) after
+argument; the entity graph never got its first.
+
+**Checked before claiming there is no design question under it**, because that
+claim was made in conversation first and this repo has a rule about the
+difference. Both edge cases are already decided by `add_pair`, so `propose`
+inherits rather than invents:
+
+| | |
+|---|---|
+| a draft landing on an already-**sealed** name | returns the existing sealed row, untouched — no overwrite |
+| a second, **different** draft for one surface | raises `ConflictingDraftError` (§6.19's message) |
+| either, on the chain | nothing appended — a proposal is not a decision |
+
+That last row is also the one thing `propose` must **not** copy from `seal`: no
+`entity_seal` entry. `seal` appends because a seal is a decision. The published
+dogfood stores already establish the rule — a store of pure drafts has an empty
+chain by construction.
+
+**So the shape is:** `propose(surface, canonical, reason="", origin="")` =
+`seal()` minus the seal, minus the verifier, minus the append. Unlike §6.35,
+§6.37 and §6.38 this one is not parked on a design question — it is parked
+because it was found at the end of an afternoon and nothing here ships
+unreviewed. It is the smallest open entry on this list and the only one I would
+take a patch for.
+
+**A note on how it was found, because it is the fixture's third hit and the
+pattern is now legible.** §6.35 came from one verifier revising her own work.
+§6.37 came from two dead men sharing a nickname. This came from one living man
+nobody has met yet. All three are states a business deployment either does not
+reach or reaches with a colleague standing next to it, and all three were
+invisible until somebody's actual life was in the store. The fixture is worth
+more than the entries it produced.
