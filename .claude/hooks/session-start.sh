@@ -16,7 +16,15 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-cd "$CLAUDE_PROJECT_DIR"
+# Resolved once, and guarded. hooks/nestor-hook is CLI-agnostic — it falls back
+# NESTOR_PROJECT_ROOT -> CLAUDE_PROJECT_DIR -> CURSOR_PROJECT_DIR -> pwd — but it
+# does not export CLAUDE_PROJECT_DIR, and this script runs under `set -u`. So
+# every invocation that was not Claude Code aborted here, and at the two PATH
+# lines below, *silently*: the caller uses check=False, so the venv bootstrap did
+# nothing and the hook still exited 0. The failure mode was the exact trap this
+# script exists to prevent — a cold clone where pytest is missing.
+ROOT="${CLAUDE_PROJECT_DIR:-${NESTOR_PROJECT_ROOT:-$PWD}}"
+cd "$ROOT"
 
 if [ ! -x .venv/bin/python ]; then
   python -m venv .venv
@@ -30,6 +38,6 @@ fi
 # Put the venv on the session's PATH so bare `python`, `pytest`, `ruff`,
 # `bandit` and `nestor` are the installed ones in every later shell.
 {
-  echo "export VIRTUAL_ENV=\"$CLAUDE_PROJECT_DIR/.venv\""
-  echo "export PATH=\"$CLAUDE_PROJECT_DIR/.venv/bin:\$PATH\""
+  echo "export VIRTUAL_ENV=\"$ROOT/.venv\""
+  echo "export PATH=\"$ROOT/.venv/bin:\$PATH\""
 } >> "${CLAUDE_ENV_FILE:-/dev/null}"

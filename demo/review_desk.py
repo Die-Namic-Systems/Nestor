@@ -45,6 +45,7 @@ os.environ.setdefault("NESTOR_SEAL_KEY", "review-desk-fixture-key-not-a-secret")
 
 from demo import desks                                    # noqa: E402
 from demo.desks import AMBER, BOLD, DIM, GREEN, OFF, RED   # noqa: E402
+from hooks.review_receipt import record                   # noqa: E402
 from nestor import memory                                 # noqa: E402
 from recipes import patch_review                          # noqa: E402
 
@@ -90,6 +91,7 @@ def cmd_load(desk: desks.Desk, args) -> int:
             added += 1
         except Exception as exc:                      # already held, or rival
             print(f"   {DIM}skipped §{f['num']}: {type(exc).__name__}{OFF}")
+    record(REPO, f"load: {len(still_open)} open")
     print(f"\n   parsed {len(rows)} entrie(s) from IDEAS.md, "
           f"{len(still_open)} still open")
     print(f"   {AMBER}~{OFF} queued {added} draft(s) — none sealed, because "
@@ -112,6 +114,11 @@ def cmd_open(desk: desks.Desk, args) -> int:
 def cmd_bearing(desk: desks.Desk, args) -> int:
     """Which known defects bear on a risk described in plain words."""
     risk = " ".join(args.text)
+    # Recorded here, before the lookup and before any early return: the receipt
+    # attests that somebody asked, not that the answer was interesting. A
+    # consultation that comes back empty is still a consultation — and given how
+    # badly `bearing` scores on plain-English risks, empty is a common outcome.
+    record(REPO, risk)          # clears hooks/before_write for a while
     print(f"\n{DIM}risk {OFF}{risk}")
     hits = memory.lookup(risk, patch_review.DOMAIN, patch_review.DOMAIN,
                          limit=4, store=desk.store, matcher=patch_review.MATCHER,
