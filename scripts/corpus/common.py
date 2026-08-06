@@ -140,11 +140,19 @@ def rubric(root: pathlib.Path) -> list[tuple]:
 
 
 def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
-    """``symbol → its docstring``, and how many definitions there were in all.
+    """``path::symbol → its docstring``, and how many definitions there were.
 
     A docstring is a declaration, not an inference: the author wrote what the
     thing is for, beside the thing. The second return value is the denominator,
     because a docstring corpus without its coverage says nothing — see §6.45.
+
+    **The key is qualified by file, and that is not cosmetic.** Keyed on the bare
+    symbol, rung 6 raised 54 collisions, nearly all of them two unrelated
+    functions that happen to share a name — §6.42's lesson arriving in a second
+    domain: a collision is evidence about the key before it is evidence about
+    the corpus. Qualifying the key removes the false ones and leaves the real
+    question (two implementations of one interface that disagree) to be asked
+    deliberately rather than as a parser artefact.
     """
     rows: list[tuple] = []
     total = 0
@@ -155,10 +163,11 @@ def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
             tree = ast.parse(path.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError):
             continue
+        rel = path.relative_to(root)
         module_doc = ast.get_docstring(tree)
         total += 1
         if module_doc:
-            rows.append((path.stem, " ".join(module_doc.split())[:600],
+            rows.append((str(rel), " ".join(module_doc.split())[:600],
                          "module docstring", path, path.stem))
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -168,7 +177,7 @@ def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
             if not doc:
                 continue
             kind = "class" if isinstance(node, ast.ClassDef) else "function"
-            rows.append((node.name, " ".join(doc.split())[:600],
+            rows.append((f"{rel}::{node.name}", " ".join(doc.split())[:600],
                          f"{kind} docstring", path, node.name))
     return rows, total
 

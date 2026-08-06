@@ -4155,3 +4155,75 @@ specified: same rows, different tooling, and the rows say so.
 This is the first thing the corpus has found that no single repository contains.
 The convention is only visible across three of them, and the chronology is what
 made it visible in order.
+
+### 6.47 willow-1.9 extracted: 1,340 drafts, two coverage ratios that match across an 80× size gap, and a key that was wrong in a second domain — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-1.9` (created 2026-04-22), rung 6.
+Public and **archived**, which is the reason it is safe to read: an archived
+repository has a head that will not move under the `repo@commit` pin every row
+carries. `willow-mcp`, four days older, is held out of the sequence for exactly
+the inverse reason.*
+
+| shape | drafts |
+|---|---|
+| docstring (`path::symbol` → docstring) | 1,155 |
+| definitional tables | 145 |
+| goal (plan → what is to be built) | 16 |
+| rubric (check → verdict) | 15 |
+| when (power → trigger) | 12 |
+| success (plan → how you would know) | 3 |
+| finding | 0 |
+| **total** | **1,340 draft, 0 sealed** |
+
+Forty times the previous largest rung. 626 rows under 84 headers declined and
+printed.
+
+**The key was wrong again, in a domain where it looked obviously right.** Keyed
+on the bare symbol name, the run raised **54 docstring collisions**. Nearly all
+were two unrelated functions that happen to share a name across modules. Keyed
+on `path::symbol` the count is **0**, and the 54 rows that had been refused come
+back — yield rose 1,101 → 1,155 purely from fixing the key.
+
+This is §6.42 arriving in a second domain, and the recurrence is the point. In
+markdown the coarse key was a table's first cell; in Python it was a function
+name. Both looked like identifiers. Neither was one. **A collision is evidence
+about the key until the key is proven, and "it is obviously unique" is not a
+proof** — it was obvious in both cases and wrong in both.
+
+**Two coverage ratios, and they agree across an enormous size difference:**
+
+| rung | repository | docstring coverage |
+|---|---|---|
+| 5 | openclaw-sap-gate (41 definitions) | 15/41 — **37%** |
+| 6 | willow-1.9 (3,303 definitions) | 1,155/3,303 — **35%** |
+
+An eightyfold change in size and a two-point change in the ratio. One
+repository is a small library and the other is a fleet; the habit is the same.
+That is the second thing this corpus has found that no single repository
+contains, and unlike the shared `### P1:` convention it is a *quantity* rather
+than a form — the sort of claim that needs two measurements before it can be
+made at all, and a third before it should be trusted.
+
+Document coverage is a different story: **38 of 134** markdown files produced a
+row. The silent ones are largely `.claude/` agents, commands and skills, which
+declare their contract in prose rather than in any repeated schema. Per §6.46
+that is reported per-kind and not averaged, because 35% of code and 28% of
+documents are two facts, and their mean is none.
+
+**What the wrong key surfaced, kept deliberately rather than by accident.** With
+the key fixed the store no longer objects, so the question it stumbled onto is
+now asked directly. Of the symbols defined in more than one module:
+
+```
+38 symbols defined in >1 module
+  31  the docstrings differ   — parallel implementations, or unrelated namesakes
+   7  the docstrings match    — the same sentence maintained in two places
+```
+
+Those 7 are the interesting ones: identical text in two files, which is the
+cheapest kind of drift to create and the hardest to notice, because nothing
+disagrees yet. §6.42 recorded that exact duplicates dedupe in silence; here they
+do not even reach the store as duplicates, since the qualified key makes them
+two legitimately distinct rows. **Fixing the key traded a false signal for a
+blind spot**, and the honest response was not to revert it but to measure the
+blind spot on purpose and write the number down.
