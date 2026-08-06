@@ -1,0 +1,33 @@
+{
+  "pr": 60,
+  "branch": "claude/audit-against-constitution",
+  "date": "2026-08-06",
+  "note": "The reciprocal of the constitution feed: instead of bringing willow-2.0's clauses into this store, run this package against them. PROVISIONAL NUMBER — no PR open yet.",
+  "decisions": [
+    {
+      "question": "Does the package satisfy the constitution it was extracted from?",
+      "commitment": "2 satisfied, 2 differently, 1 not applicable, 0 failing — measured by live probes, not by reading.",
+      "why": "docs/covenant-lineage.md claims this package is willow-2.0's §0.2 with the surface area removed. That claim is worth nothing unless the extraction still holds. CONST-0-3 (egress) is satisfied by construction — no outbound call exists in nestor/, urllib.parse is string work, http.server is inbound, the only .connect( is sqlite3 on a file. CONST-0-5 (append-only) is satisfied with evidence: three sealed entries verify, editing one real field of entry 1 breaks the chain at line 2."
+    },
+    {
+      "question": "Why a fourth verdict — 'differently' — rather than pass or fail?",
+      "commitment": "Because two clauses hold by a mechanism that is not the clause's, and scoring that either way would be a lie.",
+      "why": "CONST-0-2 forbids promoting your own claim on your own say-so. willow makes it physical: 'ratified' needs an attestation the proposer cannot mint. Here add_pair(status='sealed', verifier='a-machine-with-the-key') is accepted and verifies — the separation is key custody plus the covenant, so the end holds only while the key is somebody else's. CONST-0-4 requires the human key for reserved decisions; here signing degrades to trusting the stored status when no key is present, and NESTOR_REQUIRE_SEAL_KEY=1 turns that into a refusal. Reserved-by-default-off is not what that clause says. Marking either 'satisfied' would launder a real difference; marking either 'FAILS' would be false. Whether 'differently' is good enough is a person's judgment, which is the whole subject of this package and not its to make."
+    },
+    {
+      "question": "CONST-0-3-II — satisfied or not applicable?",
+      "commitment": "Not applicable. There is no manifest, no capability grant, no tool dispatch.",
+      "why": "Passing a test you were never sitting is not a pass. The clause governs an agent invoking tools; this is a library a host calls. Recording it as satisfied would inflate the score by one for free."
+    },
+    {
+      "question": "The first run reported CONST-0-5 FAILING. Was it?",
+      "commitment": "No. The probe never tampered, and the false FAIL was against this package's headline claim.",
+      "why": "It replaced the target text `\"a0\"` in a ledger line. The chain does not store target text — it keeps a source_sha digest, exactly as memory._sha describes ('a digest still proves which text was replaced ... without putting it in the trail'). So the replace was a no-op, the file was unchanged, verify() correctly returned True, and the audit reported the tamper-evidence as broken. Caught by reading an actual ledger line instead of believing the verdict. The probe now asserts the line changed before concluding anything, and a test pins that assertion. This is CLAUDE.md's 'reproduce the condition you name' — and the third time today a probe of mine produced a false finding about code that was fine."
+    },
+    {
+      "question": "Where does the clause text come from?",
+      "commitment": "Parsed from the checkout by reusing feed_willow_constitution.extract. The audit carries no clause text of its own, and a test forbids it.",
+      "why": "A summary of somebody else's rule, written by the party being audited, is the least trustworthy sentence available. If the clause changes, this reads the change; it cannot quietly keep grading itself against an old one."
+    }
+  ]
+}

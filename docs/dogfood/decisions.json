@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 28,
+    "pairs": 60,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T13:43:15.486336+00:00",
-  "digest": "61005d864b90f24e72ebb476bd4b417cd6a521e202c404296bd3a69000559ea5",
+  "created_at": "2026-08-06T18:30:05.652465+00:00",
+  "digest": "8ea62145ebce6b06122e1b3054e3f9e66d9bac7de9f81fd89b804d31010ec20a",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,8 +19,456 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T13:43:15.484820+00:00",
-      "id": "0b6ed8c3-d79a-436c-bbbd-c4be1432c9c8",
+      "created_at": "2026-08-06T18:30:05.650073+00:00",
+      "id": "8621667b-3281-4e19-b659-1ddd4be8402c",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how was each gate shown to be a gate",
+      "source_text": "How was each gate shown to be a gate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Seven mutations of the script, each run against the suite. All seven went red.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.649425+00:00",
+      "id": "6aa92b77-17e1-465b-9a32-f403e2acfae1",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is two verifiers the same independence jeles means",
+      "source_text": "Is 'two verifiers' the same independence jeles means?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it is weaker. This counts names, not people.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.648820+00:00",
+      "id": "012ae1e6-a883-4f53-9729-7d1dee9647c1",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was step 2 actually answered",
+      "source_text": "Was step 2 actually answered?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The tool has been run against fixture chains covering all four verdicts, and against no deployment.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.648096+00:00",
+      "id": "caa46d95-5d30-49ee-9bda-b34ff57a32c6",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does it do with a chain that does not verify",
+      "source_text": "What does it do with a chain that does not verify?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Refuses. No count, exit 1, and it names the chain as the problem.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.647296+00:00",
+      "id": "9c18ef42-3f35-4e84-8126-d7237c9d4364",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how are actors counted across ledger kinds",
+      "source_text": "How are actors counted across ledger kinds?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Every entry that names a non-empty verifier, whatever its kind, plus the `countersigned` field.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.646683+00:00",
+      "id": "7196a2d1-9a6a-402b-8f35-b00bd96b325a",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a chain with zero countersignatures is that data about quorum",
+      "source_text": "A chain with zero countersignatures — is that data about quorum?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only if the chain had at least two named actors. Otherwise it is not a measurement at all.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.645892+00:00",
+      "id": "a7fe7709-86f5-4500-a08b-45fc5e7bf228",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "both numbers are printed why not just the correct one",
+      "source_text": "Both numbers are printed. Why not just the correct one?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The gap between them is the evidence that the naive answer would have been wrong.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.645221+00:00",
+      "id": "85ce9aa7-6d6f-4e7b-b7ac-c93d69ebbc59",
+      "origin": "pr:61",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why is the countersignature count a script rather than a grep",
+      "source_text": "Why is the countersignature count a script rather than a grep?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because a seal is idempotent and a countersignature is not, so entries and actors differ by every repeat.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.644529+00:00",
+      "id": "6ce1a3b1-9ab1-4273-9081-9edacb58e790",
+      "origin": "pr:60",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the clause text come from",
+      "source_text": "Where does the clause text come from?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Parsed from the checkout by reusing feed_willow_constitution.extract. The audit carries no clause text of its own, and a test forbids it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.643883+00:00",
+      "id": "d0973fc6-c0e2-4839-94a9-f199a255b6ff",
+      "origin": "pr:60",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the first run reported const05 failing was it",
+      "source_text": "The first run reported CONST-0-5 FAILING. Was it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The probe never tampered, and the false FAIL was against this package's headline claim.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.643324+00:00",
+      "id": "46c9d875-831f-4055-af50-1f7e0fd7f92d",
+      "origin": "pr:60",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "const03ii satisfied or not applicable",
+      "source_text": "CONST-0-3-II — satisfied or not applicable?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not applicable. There is no manifest, no capability grant, no tool dispatch.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.642795+00:00",
+      "id": "424a6f9b-d86f-4f67-9cd1-194abf68c17f",
+      "origin": "pr:60",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why a fourth verdict differently rather than pass or fail",
+      "source_text": "Why a fourth verdict — 'differently' — rather than pass or fail?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because two clauses hold by a mechanism that is not the clause's, and scoring that either way would be a lie.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.642182+00:00",
+      "id": "8de8074d-37aa-41d0-8c71-52710e2ef224",
+      "origin": "pr:60",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the package satisfy the constitution it was extracted from",
+      "source_text": "Does the package satisfy the constitution it was extracted from?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "2 satisfied, 2 differently, 1 not applicable, 0 failing — measured by live probes, not by reading.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.641447+00:00",
+      "id": "b8ce170f-8497-4d16-8320-da8df1c2d0b8",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "anything go wrong in this round",
+      "source_text": "Anything go wrong in this round?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two things, both mine, both caught before the push this time.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.640920+00:00",
+      "id": "39e7df6e-2a58-47a1-88df-7b73c6c06033",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "did the late feeders repeat the emptyversusunreadable mistake",
+      "source_text": "Did the late feeders repeat the empty-versus-unreadable mistake?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — both were written with the distinction and both are pinned by a test in the top.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.640414+00:00",
+      "id": "28f0b0b8-ec28-4086-8934-28cf166b50a5",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the migrations feed contradicted the jeles feed which is right",
+      "source_text": "The migrations feed contradicted the jeles feed. Which is right?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither is wrong. There are at least three copies of that source registry and they disagree by design and by drift. Recorded as a qualification of PR 58.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.639927+00:00",
+      "id": "c70ae0e8-db16-4db3-bc67-b2a7f2b8b3f3",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the remaining two feeds what are they",
+      "source_text": "The remaining two feeds — what are they?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "willow-2.0's 11 migrations (change -> stated intent) and willow-1.9's 35 plans (plan -> what it committed to).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.639428+00:00",
+      "id": "12cd28fb-108b-4b06-b677-1b4d7286f3dc",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is a true empty a failure",
+      "source_text": "Is a true empty a failure?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — exit 0, but said unmistakably. Unreadable exits 1.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.638889+00:00",
+      "id": "3c93bcb6-328c-463a-8b2f-18306361b280",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "import the feeders or run them as subprocesses",
+      "source_text": "Import the feeders or run them as subprocesses?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Subprocesses, and a test pins it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.638306+00:00",
+      "id": "322e2e58-fa40-4209-9d87-6712c1838fbf",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the top add that the feeders do not have alone",
+      "source_text": "What does the top add that the feeders do not have alone?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Four states — fed, empty, unreadable, skipped — and a verdict that never collapses them.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.637751+00:00",
+      "id": "bfa3e047-1edc-41bf-bcd8-981de5a3a144",
+      "origin": "pr:59",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "running the feeders empty what did it find",
+      "source_text": "Running the feeders empty — what did it find?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both printed identical words for an unreadable corpus and an empty one. Fixed in both.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.637191+00:00",
+      "id": "860df558-ca0d-428e-972a-ed33ad990eab",
+      "origin": "pr:58",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the sharedhost count a security finding",
+      "source_text": "Is the shared-host count a security finding?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. 2 shared hosts out of 84 is a tight allow-list, and the script now says so.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.636585+00:00",
+      "id": "43bf3aa0-2916-41b2-a9e4-8812aa015929",
+      "origin": "pr:58",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "43 of 71 subjects have exactly one source is that a finding",
+      "source_text": "43 of 71 subjects have exactly one source. Is that a finding?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It is a measurement about routing breadth, and the interesting inference from it is NOT measured. The script says which is which.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.636019+00:00",
+      "id": "3919b711-16b8-48b5-b1e2-612a6f6fba28",
+      "origin": "pr:58",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a custom matcher for source declarations",
+      "source_text": "A custom matcher for source declarations?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Default StringMatcher.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.635559+00:00",
+      "id": "8a4debef-d635-4ffe-8406-a02abca4da45",
+      "origin": "pr:58",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why this corpus rather than willow19s gaps which was the first pick",
+      "source_text": "Why this corpus rather than willow-1.9's gaps, which was the first pick?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "willow-1.9 has exactly one gap file. Not a corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.635051+00:00",
+      "id": "cbb753fc-aaf6-4880-9707-9671e3e6d754",
+      "origin": "pr:58",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which field of a source declaration is worth a seal",
+      "source_text": "Which field of a source declaration is worth a seal?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The subject list. Not key_required, not hosts.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.634518+00:00",
+      "id": "e26f5967-8153-4c8c-9b24-44275b1929ad",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the suite is clean but ruff check scripts is not fix it here",
+      "source_text": "The suite is clean but `ruff check scripts` is not. Fix it here?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The F841 in scripts/apply_sealed_fleet_gaps.py predates this branch and is out of scope.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.633902+00:00",
+      "id": "711c1601-593d-4ff5-aabf-0329728c4df9",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do any two clauses collide in this store",
+      "source_text": "Do any two clauses collide in this store?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Closest pair is 0.176 (CONST-0-3-II vs CONST-0-3), far below the 0.92 bar.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.633305+00:00",
+      "id": "4ee485aa-7709-439f-b0e4-9e8917a27ac7",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what did the first run find",
+      "source_text": "What did the first run find?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two defects, both in my extractor, neither in willow.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.632674+00:00",
+      "id": "5cf13786-443c-43cc-a789-b01fee890bef",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a fourth matcher for clause text",
+      "source_text": "A fourth matcher for clause text?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Reused patch_review.DefectMatcher.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.632022+00:00",
+      "id": "da094692-d11b-4191-8553-0a7f67ac0e02",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "read by importing or by parsing",
+      "source_text": "Read by importing or by parsing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Parsing. ast only, string literals only, no import and no exec.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.631496+00:00",
+      "id": "68b00ff0-8742-4f29-bb3e-573a4cffd6fb",
+      "origin": "pr:57",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the sourcetarget pair when you feed a repo a constitution",
+      "source_text": "What is the source->target pair when you feed a repo a constitution?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "clause -> forbidden act. The seal would answer: does the act this probe attacks match the rule the clause states?",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T18:30:05.630885+00:00",
+      "id": "f15754da-c25c-4d82-82f1-f46188c4ca54",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -33,8 +481,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.484415+00:00",
-      "id": "452b8509-e410-44c2-90fa-adb8640f63ab",
+      "created_at": "2026-08-06T18:30:05.630276+00:00",
+      "id": "03c3b8e9-7b3f-4d61-a28a-08ceb42e1185",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -47,8 +495,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483920+00:00",
-      "id": "7144802a-7f64-48dd-9795-a105626f3f53",
+      "created_at": "2026-08-06T18:30:05.629620+00:00",
+      "id": "85eda496-7422-4aeb-9ed6-554fc0958661",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -61,8 +509,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483488+00:00",
-      "id": "e896af9c-2359-4b00-8c48-ff0d4dbf288e",
+      "created_at": "2026-08-06T18:30:05.629101+00:00",
+      "id": "80a23dcb-6f5e-4dc5-91bf-996cc052ae27",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -75,8 +523,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483025+00:00",
-      "id": "526f58a5-b24e-44ed-b971-5e0f0b8a5aa8",
+      "created_at": "2026-08-06T18:30:05.628526+00:00",
+      "id": "c5a4b25c-103d-4eb4-a883-2bc0b98b2672",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -89,8 +537,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.482566+00:00",
-      "id": "23434771-21d9-4391-8ca8-29db085e6ed9",
+      "created_at": "2026-08-06T18:30:05.628044+00:00",
+      "id": "b1d8268e-92dd-4986-9abf-81a31d90fcd1",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -103,8 +551,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.482135+00:00",
-      "id": "4d33e898-976a-4c6b-a103-9beda012bc8d",
+      "created_at": "2026-08-06T18:30:05.627567+00:00",
+      "id": "2eb59296-7e95-4522-b952-d9a0253f8620",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -117,8 +565,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.481620+00:00",
-      "id": "e16de148-9e4d-4c8a-90d9-6f09a6ab05e6",
+      "created_at": "2026-08-06T18:30:05.627044+00:00",
+      "id": "0f94c495-8f3a-4f14-8fa9-8a9e9ea88fb0",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -131,8 +579,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.481167+00:00",
-      "id": "f310dce6-c787-4bd8-8aa7-e9dbdc081e52",
+      "created_at": "2026-08-06T18:30:05.626595+00:00",
+      "id": "9226a889-0d08-45a7-bcfa-bf7380265caa",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -145,8 +593,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.480790+00:00",
-      "id": "9d376ba1-de95-4ac4-b71d-3c90c41b17d9",
+      "created_at": "2026-08-06T18:30:05.626056+00:00",
+      "id": "89e16799-695a-4457-836a-9016dc0af8b7",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -159,8 +607,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.480426+00:00",
-      "id": "fed9488e-ce6c-40fc-a59f-150ae21f4c3f",
+      "created_at": "2026-08-06T18:30:05.625525+00:00",
+      "id": "19a4fb87-c8e2-436b-8513-ac4d56c47bf8",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -173,8 +621,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479949+00:00",
-      "id": "01cbb650-1a52-4a9c-b4bc-3a66676816dd",
+      "created_at": "2026-08-06T18:30:05.624958+00:00",
+      "id": "3a9f4873-4998-419c-9ae5-5c5af29eaa8f",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -187,8 +635,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479418+00:00",
-      "id": "c2f5a714-cf1b-4314-88aa-b0bad87bea94",
+      "created_at": "2026-08-06T18:30:05.624417+00:00",
+      "id": "5e2825f3-5f62-4c55-b3b9-bd474a1c7a10",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -201,8 +649,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479015+00:00",
-      "id": "2a0196ad-cbff-44eb-8acc-5d1ef4562733",
+      "created_at": "2026-08-06T18:30:05.623864+00:00",
+      "id": "6187752f-d353-4f98-b6c6-c8ccaca4e8eb",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -215,8 +663,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.478552+00:00",
-      "id": "261c4e30-59ef-4686-9d82-f707b084fd17",
+      "created_at": "2026-08-06T18:30:05.623238+00:00",
+      "id": "3be7ffe4-3f44-4760-b3da-de80c0ac48dd",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -229,8 +677,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.478147+00:00",
-      "id": "73c77df4-0a53-4781-adae-2df127fa14ef",
+      "created_at": "2026-08-06T18:30:05.622610+00:00",
+      "id": "5431eb8a-f376-475a-89be-317017e5507c",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -243,8 +691,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.477705+00:00",
-      "id": "61d90433-713d-44fa-9aef-2ad521ea2d18",
+      "created_at": "2026-08-06T18:30:05.621996+00:00",
+      "id": "f034a747-b580-44aa-9af0-4ad7505024c1",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -257,8 +705,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.477311+00:00",
-      "id": "d34bfd7a-33c5-462b-b3c9-af1abbc3de63",
+      "created_at": "2026-08-06T18:30:05.621310+00:00",
+      "id": "a19c60cd-4c59-4d92-9fba-6ce33fbe97e1",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -271,8 +719,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476899+00:00",
-      "id": "68619612-f227-4f3b-bc61-5984ce6247f9",
+      "created_at": "2026-08-06T18:30:05.620670+00:00",
+      "id": "9cb6f59d-33e3-4fab-859f-076a807d86f9",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -285,8 +733,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476445+00:00",
-      "id": "7e314227-d089-402f-abf5-a1ebffe56ff6",
+      "created_at": "2026-08-06T18:30:05.620033+00:00",
+      "id": "13d33e3e-9d46-4c09-ae92-33cf28e0d2ef",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -299,8 +747,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476064+00:00",
-      "id": "614102ef-1f08-4366-9241-c5ee1739efb1",
+      "created_at": "2026-08-06T18:30:05.619537+00:00",
+      "id": "a4ef7a9a-c11c-44b3-83fe-fd306f79770e",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -313,8 +761,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.475501+00:00",
-      "id": "1495a900-7d86-4781-94d4-313286a752b5",
+      "created_at": "2026-08-06T18:30:05.618912+00:00",
+      "id": "11318295-dca5-49ff-b102-673a810e7a87",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -327,8 +775,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.474958+00:00",
-      "id": "15cd775f-7a54-486d-b0b1-bb99c46cc1b6",
+      "created_at": "2026-08-06T18:30:05.618388+00:00",
+      "id": "ab2c24bc-c844-4a15-ae88-dd1e28d28faf",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -341,8 +789,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.474432+00:00",
-      "id": "75297444-dbe5-4a10-a771-c7248189652b",
+      "created_at": "2026-08-06T18:30:05.617869+00:00",
+      "id": "e5a46ff8-434e-4c9d-8d67-fa31a46b474a",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -355,8 +803,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.473993+00:00",
-      "id": "dd1c0500-c80f-475a-b02b-bb953ceaf89d",
+      "created_at": "2026-08-06T18:30:05.617217+00:00",
+      "id": "1fe7ca9e-dd29-4ba5-96a1-d1ea0790c2ec",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -369,8 +817,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.473505+00:00",
-      "id": "97168778-dc02-40d3-a23f-a2abe3ea72f2",
+      "created_at": "2026-08-06T18:30:05.616692+00:00",
+      "id": "0c303ea5-50b6-4fce-b8d1-bd1ab38576f8",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -383,8 +831,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.472980+00:00",
-      "id": "1e340b7e-72ff-4056-8a27-3485cae14ae0",
+      "created_at": "2026-08-06T18:30:05.616038+00:00",
+      "id": "9621718b-7c32-4b87-9f01-db377dab3ab0",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -397,8 +845,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.472204+00:00",
-      "id": "0d7559b7-40c5-4c9f-a226-cda5ff0d2b7f",
+      "created_at": "2026-08-06T18:30:05.615279+00:00",
+      "id": "e2dff236-7759-4d74-84de-113c87925141",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",

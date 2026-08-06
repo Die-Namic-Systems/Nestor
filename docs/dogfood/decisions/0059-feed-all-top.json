@@ -1,0 +1,48 @@
+{
+  "pr": 59,
+  "branch": "claude/feed-all",
+  "date": "2026-08-06",
+  "note": "A top over the repo feeders, and the defect that running them empty exposed. Stacked on claude/feed-jeles-sources. PROVISIONAL NUMBER \u2014 no PR open yet.",
+  "decisions": [
+    {
+      "question": "Running the feeders empty \u2014 what did it find?",
+      "commitment": "Both printed identical words for an unreadable corpus and an empty one. Fixed in both.",
+      "why": "`SOURCES = {\"x\": some_call()}` and `SOURCES = {}` both reported 'could not parse a SOURCES mapping'. The first means I could not look; the second means I looked and there is nothing. That is exactly the distinction this package exists to keep for answers \u2014 nothing matched versus nothing to match against \u2014 collapsed by a script inside the package. extract() now returns None for unreadable and {} for genuinely empty, and the constitution feeder separates an absent cases/ directory from an empty one. Found by running them against an empty repository, not by reading them."
+    },
+    {
+      "question": "What does the top add that the feeders do not have alone?",
+      "commitment": "Four states \u2014 fed, empty, unreadable, skipped \u2014 and a verdict that never collapses them.",
+      "why": "Each feeder reports its own case correctly. The distinction dies when several are summarised together: four feeds, one line, '0 rows', and nobody can tell whether the corpora were empty or the paths were wrong. Three empty runs now produce three visibly different verdicts and two different exit codes \u2014 skipped and empty exit 0, unreadable exits 1, because not knowing must not exit clean."
+    },
+    {
+      "question": "Import the feeders or run them as subprocesses?",
+      "commitment": "Subprocesses, and a test pins it.",
+      "why": "Each feeder installs a process-wide store, ledger path and matcher. Importing them into one interpreter would make the last one win, which is demo/desks.py's entire subject and a bug this session already shipped once in a fixture. Cheaper to spend a process than to re-learn it."
+    },
+    {
+      "question": "Is a true empty a failure?",
+      "commitment": "No \u2014 exit 0, but said unmistakably. Unreadable exits 1.",
+      "why": "An empty corpus is a real, readable state and the run worked. Exiting non-zero on it would train people to ignore the exit code. But an empty feed that exits 0 quietly is how a broken pipeline looks healthy, so the words on screen carry the distinction the exit code cannot: 'read and declares 0' versus 'could not read'."
+    },
+    {
+      "question": "The remaining two feeds \u2014 what are they?",
+      "commitment": "willow-2.0's 11 migrations (change -> stated intent) and willow-1.9's 35 plans (plan -> what it committed to).",
+      "why": "Both are artifact-and-its-stated-intent, where the seal is a person confirming it did what it said. Migrations: the comment is written before the change lands and never revisited, the DDL below is what ran, and nothing compares them because one side is prose. Plans: willow-1.9 is ARCHIVED, so 'did this happen?' is not answerable from the repository \u2014 it stopped. Only somebody who was there can answer, which is the narrowest and clearest case for a human signature in the whole box."
+    },
+    {
+      "question": "The migrations feed contradicted the jeles feed. Which is right?",
+      "commitment": "Neither is wrong. There are at least three copies of that source registry and they disagree by design and by drift. Recorded as a qualification of PR 58.",
+      "why": "willow-2.0's 20260526_jeles_fn_name.sql says 'After this migration, jeles_sources is the canonical source of truth. Python only holds the search_* functions.' The standalone jeles README's principle 6 says the opposite: 'The collections live here, not behind a service... never a prerequisite.' Both are deliberate decisions for different deployments \u2014 willow-2.0 has Postgres, standalone jeles has zero dependencies. The third copy is the problem the jeles README already documents: jeles-remote's vendored sources.py has drifted 833 lines, six fewer sources, and ZERO references to _egress, so the SSRF/key-leak fix is absent from it. PR 58 fed one of three registries and implicitly treated it as the registry. It is not, and this says so rather than leaving the earlier framing standing."
+    },
+    {
+      "question": "Did the late feeders repeat the empty-versus-unreadable mistake?",
+      "commitment": "No \u2014 both were written with the distinction and both are pinned by a test in the top.",
+      "why": "The lesson was one commit old. An absent migrations/ or docs/superpowers/ refuses with 'I could not look'; a directory holding zero matching files reports a true empty and exits 0. Registering them in feed_all also required extending _EMPTY_MARKERS, which is the kind of edit that silently degrades a new feed to 'fed' if forgotten \u2014 so the four-feed registration itself is asserted."
+    },
+    {
+      "question": "Anything go wrong in this round?",
+      "commitment": "Two things, both mine, both caught before the push this time.",
+      "why": "E702 semicolons in the two new feeders \u2014 I compressed store setup onto one line and ruff refused. And the top's new tests imported feed_all without the scripts directory on sys.path, so they failed with ModuleNotFound rather than on their assertions. Neither reached the remote, unlike the stale test in the previous commit, which reached it because gates and push were chained in one command. Gates run separately from the commit from here."
+    }
+  ]
+}
