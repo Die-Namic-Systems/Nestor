@@ -4287,3 +4287,69 @@ written, which no one of them contains.
 reaches `willow-2.0`, those 19 rows are a ready-made test of whether
 consolidation preserved what it absorbed, and it is the first time this corpus
 will be able to ask that question with both sides in hand.
+
+### 6.49 hermes-agent extracted as a delta: 2 commits of 4,766, and a headline number that was somebody else's — **measured**, per-file attribution **open**
+
+*Run 2026-08-06 against `rudi193-cmd/hermes-agent` (created 2026-04-18), rung 8,
+and the first **fork**. The operator's correction — that what was built on the
+forks matters — reversed the skip rule recorded a rung earlier. It does not
+change the objection to extracting a fork's tree; it identifies the unit.*
+
+**The unit is the delta.** A fork's tree is its upstream author's work: 2,034
+files here, ~4,700 commits, none of it this operator's. Extracting it would file
+somebody else's structure under this chronology. `scripts/corpus/extract_fork.py`
+instead selects commits by author, takes each subject and body as a pair, and
+runs the standard shapes over **only the files those commits touched** —
+`common` grew an `only=` filter threaded through every shape to make that
+possible.
+
+| shape | drafts |
+|---|---|
+| commit (subject → stated reason) | 2 |
+| docstring (touched files only) | 20 |
+| rubric | 15 |
+| finding | 1 |
+| **total** | **38 draft, 0 sealed** |
+
+```
+delta: 2 of 4766 commit(s), touching 3 file(s)
+commits with a stated reason: 2/2
+```
+
+**The delta count is itself the measurement.** 2 of 4,766 is 0.04% — this fork
+is very nearly a bookmark. Very nearly, and the remainder is a Kart task-queue
+tool and a security audit, which the tree extractor would have buried under two
+thousand upstream files. Both commits carry a real body; the ratio 2/2 is too
+small to mean anything yet but the *question* — how often does a change here
+state its reason — is now asked of every fork automatically.
+
+**The headline number was wrong and it was wrong flatteringly, which is the
+dangerous direction.** The run reports docstring coverage in touched files as
+**20/26 — 77%**, against the 35% established over rungs 5–7. A 77% would have
+been a striking result. Disaggregated by who created the file:
+
+| file | documented | created by |
+|---|---|---|
+| `tools/kart_task_tool.py` | 3/5 — 60% | the operator |
+| `tools/file_tools.py` | 17/21 — 81% | upstream |
+
+The 77% is upstream's habit, measured through this operator's diff and about to
+be attributed to them. The operator's own file is 3/5, and **n=5 neither
+confirms nor challenges the 35% ratio** — it is one file. The number is recorded
+here so that nobody, including a later session reading this file, mistakes the
+run's output for a finding.
+
+**The mechanism gap, stated plainly: `touched` is not `authored`.** The `only=`
+filter is correct for scoping *shapes* — those rows are about files the operator
+chose to work in either way. It is wrong for attributing *ratios*, because a
+modified file's docstrings were written by whoever created it. Every per-author
+statistic this extractor computes over a fork is contaminated in exactly this
+way, and the extractor does not currently know it. **Open:** attribute per file
+by `git log --diff-filter=A`, and report operator-created and operator-modified
+separately, so a fork can contribute to the ratio instead of poisoning it.
+
+This is the same defect as §6.42 and §6.47 in a third dress. Those were keys
+that looked unique and were not. This is a *population* that looked like the
+author's and was not. In all three the extractor produced a confident number
+about the wrong set of things, and in all three the only thing that caught it
+was asking what the denominator was made of.

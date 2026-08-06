@@ -30,8 +30,17 @@ from nestor import memory
 FIELD = r"\*\*{}:\*\*\s*(.+?)(?=\n\n|\n\*\*|\n#|\n---|\Z)"
 
 
-def docs(root: pathlib.Path) -> list[pathlib.Path]:
-    return sorted(p for p in root.rglob("*.md") if ".git" not in p.parts)
+def docs(root: pathlib.Path, only: set | None = None) -> list[pathlib.Path]:
+    """Markdown under ``root``, optionally narrowed to ``only``.
+
+    ``only`` exists for forks. A fork's tree is its upstream author's work, so
+    the standard shapes are run over just the files the operator's own commits
+    touched — see `docs/corpus-order.md`.
+    """
+    found = sorted(p for p in root.rglob("*.md") if ".git" not in p.parts)
+    if only is None:
+        return found
+    return [p for p in found if p.resolve() in only]
 
 
 def field(block: str, name: str) -> str:
@@ -76,9 +85,9 @@ def is_rule(line: str) -> bool:
     return set(line.replace("|", "")) <= set("-: ")
 
 
-def tables(root: pathlib.Path) -> Iterator[tuple[pathlib.Path, str, list[str], list[str]]]:
+def tables(root: pathlib.Path, only: set | None = None) -> Iterator[tuple[pathlib.Path, str, list[str], list[str]]]:
     """``(path, heading, header, row)`` for every data row of every table."""
-    for path in docs(root):
+    for path in docs(root, only):
         heading: str = ""
         header: list[str] = []
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -97,7 +106,7 @@ def tables(root: pathlib.Path) -> Iterator[tuple[pathlib.Path, str, list[str], l
             yield path, heading, header, row
 
 
-def findings(root: pathlib.Path) -> list[tuple]:
+def findings(root: pathlib.Path, only: set | None = None) -> list[tuple]:
     """``### P1: XX-YY-01 — title`` with a recommended fix.
 
     Shared rather than per-repository: this shape has now appeared in three
@@ -105,7 +114,7 @@ def findings(root: pathlib.Path) -> list[tuple]:
     a feature of any one repository.
     """
     rows = []
-    for path in docs(root):
+    for path in docs(root, only):
         for heading, block in sections(path.read_text(encoding="utf-8")):
             m = re.match(r"^(P\d):\s*([A-Z][A-Z0-9]*-[A-Z]+-\d+)\s*[—-]\s*(.+)$", heading)
             if not m:
@@ -121,7 +130,7 @@ def findings(root: pathlib.Path) -> list[tuple]:
     return rows
 
 
-def rubric(root: pathlib.Path) -> list[tuple]:
+def rubric(root: pathlib.Path, only: set | None = None) -> list[tuple]:
     """``# | Check | Status | Notes`` — a check and the verdict it got.
 
     Declined as noise through rungs 3 and 4, fifteen rows in each, and visible
@@ -131,7 +140,7 @@ def rubric(root: pathlib.Path) -> list[tuple]:
     what was measured at the time and their stores can be rebuilt from here.
     """
     rows = []
-    for path, heading, header, row in tables(root):
+    for path, heading, header, row in tables(root, only):
         if header[:2] != ["#", "check"] or len(row) < 3:
             continue
         notes = row[3] if len(row) > 3 else ""
@@ -139,7 +148,7 @@ def rubric(root: pathlib.Path) -> list[tuple]:
     return rows
 
 
-def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
+def docstrings(root: pathlib.Path, only: set | None = None) -> tuple[list[tuple], int]:
     """``path::symbol → its docstring``, and how many definitions there were.
 
     A docstring is a declaration, not an inference: the author wrote what the
@@ -158,6 +167,8 @@ def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
     total = 0
     for path in sorted(root.rglob("*.py")):
         if ".git" in path.parts:
+            continue
+        if only is not None and path.resolve() not in only:
             continue
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -187,10 +198,10 @@ DEFAULT_DEFN_KEYS = ("term", "concept", "field", "name", "command", "tool",
                      "pattern", "skill", "table", "column")
 
 
-def definitions(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> list[tuple]:
+def definitions(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None = None) -> list[tuple]:
     """Tables whose first column is named as a term."""
     rows = []
-    for path, heading, header, row in tables(root):
+    for path, heading, header, row in tables(root, only):
         if header[0] not in defn_keys:
             continue
         target = " · ".join(c for c in row[1:] if c)
@@ -200,10 +211,10 @@ def definitions(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> list[tuple]:
     return rows
 
 
-def unclaimed(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> collections.Counter:
+def unclaimed(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None = None) -> collections.Counter:
     """Table rows the standard shapes do not take, by header."""
     out: collections.Counter = collections.Counter()
-    for _path, _heading, header, row in tables(root):
+    for _path, _heading, header, row in tables(root, only):
         if header[0] in defn_keys or header[:2] == ["#", "check"]:
             continue
         if len(row[0]) < 2 or len(" · ".join(row[1:])) < 4:
@@ -212,7 +223,7 @@ def unclaimed(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> collections.Co
     return out
 
 
-def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS):
+def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None = None):
     """The four shapes every repository in this corpus has turned out to carry.
 
     Docstrings, the security rubric, identified findings, definitional tables.
@@ -224,14 +235,14 @@ def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS):
     Returns ``(plan, declined, symbols, defined)`` so a caller can prepend its
     own repository-specific shapes and still report both coverage denominators.
     """
-    symbols, defined = docstrings(root)
+    symbols, defined = docstrings(root, only)
     plan = [
         ("docstring", symbols, "symbol", "docstring"),
-        ("rubric", rubric(root), "check", "verdict"),
-        ("finding", findings(root), "finding", "fix"),
-        ("definition", definitions(root, defn_keys), "term", "term"),
+        ("rubric", rubric(root, only), "check", "verdict"),
+        ("finding", findings(root, only), "finding", "fix"),
+        ("definition", definitions(root, defn_keys, only), "term", "term"),
     ]
-    return plan, unclaimed(root, defn_keys), symbols, defined
+    return plan, unclaimed(root, defn_keys, only), symbols, defined
 
 
 def load(store, plan, origin, declined: collections.Counter | None = None,
