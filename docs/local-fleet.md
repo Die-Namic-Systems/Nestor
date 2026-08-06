@@ -119,8 +119,5 @@ a shared governance chain is up.
 
 ## What stays nestor-only
 
-§1.4 quorum policy and §5.8 Ed25519 implementation — no fleet branch implements
-these in this repo; track in [`IDEAS.md`](../IDEAS.md). §6.8 `memory_init` skip
-was on this list and shipped 2026-08-06, nestor-local exactly as the map
-predicted; §6.25 (`init_db` on a pre-lineage database) was found doing it and
-joins the list.
+§6.8 `memory_init` skip, §1.4 quorum policy, §5.8 Ed25519 implementation — no
+fleet branch implements these in this repo; track in [`IDEAS.md`](../IDEAS.md).

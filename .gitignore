@@ -33,11 +33,3 @@ dist/
 # bench must not dirty the tree — that blocked the first independent
 # reproduction of a result from a clean clone.
 bench/results/local/
-
-# Dogfood stores under docs/dogfood/ are the PUBLISHED record of a session's own
-# decisions, the same distinction bench/results/ already makes above: a store a
-# run happens to write is an artifact, a store committed here is evidence. The
-# blanket *.db rule is what these two lines exist to except, deliberately and
-# visibly, rather than reaching around it with `git add -f`.
-!docs/dogfood/**/*.db
-!docs/dogfood/**/ledger.jsonl
