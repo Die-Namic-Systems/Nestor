@@ -241,13 +241,48 @@ a person.
 That is also the honest marketing story (§4.2): not "we are accurate," but "here
 is your false-verification rate, measured on your corpus, and here is the dial."
 
-### 1.4 Seal staleness and quorum — **open**
+### 1.4 Seal staleness and quorum — **measured**, design **open**
 
 Every seal is equally authoritative forever, and one verifier is enough. Neither
 is obviously right for a regulated buyer. Worth considering: seal age surfaced
 in provenance; a `weight` that decays; N-of-M verification for high-stakes
-domains. The ledger already records who sealed what and when, so the data is
-there — nothing consumes it.
+domains. ~~The ledger already records who sealed what and when, so the data is
+there — nothing consumes it.~~
+
+> **Corrected in place, 2026-08-06**, by trying to argue the entry through:
+> [`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md). The
+> ledger records who sealed what and when for the **first** seal. It records
+> nothing about agreement. Two verifiers sealing one source with the same target
+> produces one row, one chain entry, and no trace of the second person —
+> measured, on a file-backed store with signing on. `memory.py:374` writes only
+> when the row is not already sealed *or* the target differs, so concurrence
+> satisfies neither arm and returns the stored row to the caller as if it were
+> theirs.
+>
+> So the premise "the data is there" is false for quorum specifically, and it is
+> the load-bearing premise: N-of-M cannot be computed from a history that was
+> never written, and no migration can backfill countersignatures that were
+> discarded. See §6.26.
+
+The memo's three conclusions, in brief:
+
+* **Decay must not live in `weight`.** The column is written by every seal path,
+  read by nothing in ranking, and absent from `signing._message` — so a decayed
+  weight is unsigned mutable state anyone with write access can reset while
+  every signature still verifies. Age should be derived from the ledger's
+  timestamp, which the chain covers, not stored beside the data it governs.
+* **Neither staleness nor quorum should change what is served silently.** A
+  decay multiplier turns "a human checked this" back into a confidence score —
+  the exact thing the README's first paragraph refuses — and withdraws a
+  verified answer on a date nobody chose, leaving the ledger with no decision to
+  point at. Staleness belongs in the curator queue, shaped like `reopen_when`.
+* **Sub-quorum is not a weaker seal; it is a draft.** That keeps the guard in
+  the one place a row becomes sealed rather than in every serving path, and
+  avoids inventing a "70% sealed".
+
+Still open, and named as open in the memo: how old is too old, whether any buyer
+actually asks for either, and the fact that a quorum of HMACs is a quorum only
+against outsiders until `TODO.md` §1 lands.
 
 ### 1.5 A numeric label could hold several baselines — **shipped**
 
@@ -2381,3 +2416,45 @@ and the frozenset is pinned so growing it is a decision rather than a drift.
 different module: it puts a translation system in the position of translating
 its own refusals, unverified, which wants its own entry rather than smuggling
 into this one.
+
+### 6.26 A countersignature is discarded without a word — **measured**, fix **open**
+
+*Found 2026-08-06 while arguing §1.4 through; see
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §1.*
+
+A second verifier sealing an already-sealed pair with the **same** target
+writes nothing, appends nothing, and raises nothing. `memory.add_pair` returns
+the stored row, so the caller has every reason to believe they sealed it.
+
+Measured, file-backed store, `NESTOR_SEAL_KEY` set:
+
+```
+after rita : verifier='rita' weight=1.0 sig=07e4bf0dd287...
+after sam  : verifier='rita' weight=1.0 sig=07e4bf0dd287...
+rows for this source: 1
+```
+
+and one ledger entry, `{'kind': 'seal', 'verifier': 'rita'}`.
+
+The branch is `memory.py:374` — a seal writes when the row is not already
+sealed **or** the target differs. Agreement satisfies neither arm.
+
+**This is the failure mode the file next to it already names.** Fifteen lines
+below, `ConflictingDraftError` exists precisely because a draft over a different
+draft *"silently returned the stored row"*, and its comment says that is worse
+than either alternative. The concurring-seal path does exactly that, and has no
+error, because before quorum was contemplated there was no reason to tell "you
+sealed it" apart from "somebody else did".
+
+Note what is **not** wrong here: nothing is overwritten, no rejection is
+bypassed, and the served answer is correct. Disagreement is still loud
+(`ConflictingSealError`). The defect is that Nestor is better instrumented for
+reviewers who fight than for reviewers who concur — a person did a thing, under
+their own key, and the tamper-evident record of who decided what does not
+contain it.
+
+**The fix is one ledger append**, not a schema change: a `countersign` entry
+naming the second verifier, leaving the row and the serving path untouched. It
+is listed separately from §1.4 because it stands on its own — it is worth doing
+whether or not N-of-M is ever wanted, and it is the prerequisite that makes
+"does anyone countersign?" a measurement rather than a guess.
