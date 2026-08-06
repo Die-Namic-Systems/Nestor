@@ -3834,3 +3834,51 @@ was the weakest of two configurations, picked by accident because it was the one
 the script set at import. Second false FAIL in one day from a probe that did not
 reproduce the condition it named; both are now pinned by tests that run both
 configurations.
+
+---
+
+### 6.45 Two repositories hit "a condition checked outside the write", separately, and both wrote down what it cost — **verified**, lesson **shipped**
+
+*Round 2 of the jeles/Nestor exchange, 2026-08-06. A reading, not a run —
+[`docs/two-stores.md`](docs/two-stores.md) cites a file and line for every claim.
+Nothing was imported, executed or written on jeles' side.*
+
+`jeles/corpus.py:168-174`, explaining why the overwrite guard is a callable run
+*inside* the write transaction rather than a check in the caller:
+
+> a check that reads the prior record, returns, and only then writes is a
+> read-modify-write with nothing holding the gap — **the same shape that lost 36
+> of 50 gap counts.**
+
+That is [`CLAUDE.md`](CLAUDE.md)'s recurring defect — *a condition checked in
+Python, guarding a write that cannot re-assert it* — arrived at independently,
+with a measured cost. Three criticals of that shape landed here in one session
+and the fix that worked every time was the same move in a different mechanism:
+the precondition in the `WHERE` clause; two walks each bounded by construction
+instead of one walk with a filter.
+
+Two codebases, no shared code, same failure, same correction, both recorded. The
+lesson was already written down in both places; what is new is that it was
+reached twice. That is the difference between a house style and a real property
+of this kind of system, and it is the sense of corroboration
+`scripts/count_countersignatures.py` was built to care about — two independent
+observations rather than one repeated.
+
+**The round expected something else and was wrong three times.** It set out to
+show that jeles' corpus vouches for itself: that `put_nugget` writes a
+human-verified nugget with no human, that the `verification_kind="human"` default
+is a hole, and that a lower rung can overwrite a higher one. `verified_by` is
+required and the write is refused without it (`corpus.py:416`); the default is
+documented as being for in-process callers and is pinned to `"asserted"` at the
+MCP boundary (`corpus.py:395-401`); and a lower rung is refused with the remedy
+in the message (`corpus.py:408`). The one claim that survived — no hash chain —
+is a tradeoff jeles never claimed otherwise about, so reporting it as a gap would
+be grading another package against this one's product pitch.
+
+**And jeles is ahead of this package in the one place §6.44 says it is behind.**
+`corpus.py:466`: *"The kind comes back in the receipt: a caller that asked for one
+rung and got another should not have to re-read the record to find out."* Plus
+`conflict_scan.py:386`, where a refused argument produces a receipt naming it,
+"not silently dropped". §6.44 found the same gap here from the opposite
+direction one round earlier. Two independent routes to one finding, and jeles
+got there first — which is the strongest argument yet for fixing it.

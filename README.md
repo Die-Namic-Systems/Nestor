@@ -312,6 +312,7 @@ docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
 docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
+docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 

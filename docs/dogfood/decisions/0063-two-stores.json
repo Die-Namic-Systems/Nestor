@@ -1,0 +1,37 @@
+{
+  "branch": "claude/audit-against-jeles",
+  "date": "2026-08-06",
+  "note": "Round 2 of the jeles/Nestor exchange, pointed back the other way. A reading with citations rather than a script, because the subject is somebody else's design. Nothing imported, executed, or written on jeles' side, and nothing filed there. No `pr` key by design — see IDEAS 6.43.",
+  "decisions": [
+    {
+      "question": "Why did Round 2 produce a document rather than a runnable script?",
+      "commitment": "Because the subject is another repository's design, and the only honest instrument for that is reading it with citations somebody can open.",
+      "why": "Round 1 could execute its probes: the thing under test was this package, so a claim could be measured. Round 2 points the other way. Running jeles to characterise it would mean importing a repo the feeders are forbidden from importing, and asserting things about it from a script would dress a reading up as a measurement. Every claim in docs/two-stores.md names a file and a line at jeles ed48de7 — the same revision covenant-lineage.md pins."
+    },
+    {
+      "question": "What did the round expect to find, and what did it find?",
+      "commitment": "It expected jeles' corpus to vouch for itself. Three of four claims were wrong.",
+      "why": "Expected: put_nugget writes a human-verified nugget with no human; the verification_kind='human' default is a hole; a lower rung can overwrite a higher one; the corpus is not tamper-evident. Actual: verified_by is required and the write is refused without it (corpus.py:416); the default is documented as being for in-process callers, validated against _KIND_RANK, and pinned to 'asserted' at the MCP boundary (corpus.py:395-401); a lower rung is refused with the remedy in the message (corpus.py:408). Only the fourth survived, and it is the least interesting: jeles never claimed to answer 'was this edited', so reporting the absence of a chain as a gap would be grading another package against this one's product pitch."
+    },
+    {
+      "question": "What is the finding worth keeping?",
+      "commitment": "Both repositories independently hit 'a condition checked outside the write' and both fixed it by moving the condition into the write.",
+      "why": "corpus.py:168-174 explains that the overwrite guard runs inside the write transaction because 'a check that reads the prior record, returns, and only then writes is a read-modify-write with nothing holding the gap — the same shape that lost 36 of 50 gap counts'. That is CLAUDE.md's recurring defect with a measured cost attached, reached independently. This repo's three criticals of that shape were fixed the same way: the precondition in the WHERE clause, two walks each bounded by construction. Same failure, same correction, no shared code. The lesson was already written down in both places; what is new is that it was reached twice, which is the difference between a house style and a property of this kind of system."
+    },
+    {
+      "question": "Where does jeles do better than this package?",
+      "commitment": "Receipts. It tells a caller what actually happened in two places where nestor_propose does not.",
+      "why": "corpus.py:466 returns the rung in the receipt because 'a caller that asked for one rung and got another should not have to re-read the record to find out'. conflict_scan.py:386 produces an error receipt naming a refused argument, 'not silently dropped'. IDEAS 6.44 found the same gap here one round earlier from the opposite direction — nestor_propose discards status, verifier and verification_kind and returns an unqualified success. Two independent routes to one finding, and jeles got there first. That is corroboration in the sense count_countersignatures.py cares about: two observations, not one repeated."
+    },
+    {
+      "question": "Should this package adopt jeles' verification ladder?",
+      "commitment": "No. The three states here are on a different axis and a ladder would give 'sealed' a silent second meaning.",
+      "why": "_KIND_RANK = {asserted: 1, machine: 2, human: 3} ranks how strong the evidence is, which fits a corpus fed by search results where machine corroboration is a genuine middle state. sealed/draft/pending describe whether a human has decided, not how strong the evidence is. seal-staleness-and-quorum.md §4 already argues the same point for quorum: sub-quorum is not a weaker seal, it is not a seal. Recording the refusal because the ladder is attractive and the reason not to take it is easy to forget."
+    },
+    {
+      "question": "Was anything filed on jeles' side?",
+      "commitment": "No. Nothing was filed, written, imported or executed there.",
+      "why": "The operator has not been asked yet, and a finding about somebody else's repository written by the party that benefits from it is a proposal, not a report. Three of this round's four opening claims were wrong, which is the argument for reading first and filing later rather than the reverse."
+    }
+  ]
+}
