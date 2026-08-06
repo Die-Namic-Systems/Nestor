@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The shoebox — one verifier, her own archive, and the two things nobody shows her.
+"""The shoebox — one verifier, her own archive, across all three recipes.
 
     python demo/shoebox.py                 # the walk-through
     python demo/shoebox.py --keep DIR      # leave the store and ledger behind
@@ -33,7 +33,11 @@ purpose. Those are rulings, and once she makes one she wants it to hold.
 
 What she finds, and why it took a person to find it
 ---------------------------------------------------
-Two records this package keeps carefully and shows to nobody:
+She exercises all three recipes — the letters are Spanish, the people in them
+are an entity graph, the recipe notebook is figures — and every one of them has
+something that only shows up when the archive is one person's.
+
+**Two records this package keeps carefully and shows to nobody** (§6.35):
 
 * **A revision.** ``supersede_pair`` retains the old row — text, verifier,
   signature, reason — and ``memory_lineage`` walks back to it. Nothing in
@@ -49,20 +53,39 @@ Two records this package keeps carefully and shows to nobody:
   *"a reader that surfaces rejections should surface a non-empty reopen_when as
   a condition to re-check"* — describing a reader that does not exist.
 
-Neither is invisible in the strict sense: both are in the raw ledger, and she
-can scroll it. The chain shows her reason in full and the text she replaced as a
-**digest**. So she can learn *that* she changed her mind and *why*, and not
-*what she changed it from*, on any shipped surface.
+**An alias overwritten** (§6.37). Consuelo's father and her brother were both
+called Pepe. Sealing the second destroys the first — no live row, empty
+lineage — because ``add_pair`` exempts a same-verifier re-seal as a correction,
+and for one person holding one archive that exemption is always in force. The
+numeric recipe, given the identical collision, *keeps* the value it replaced:
+``reconcile._guard_existing_baselines`` was written on purpose and says why.
+Same situation, two recipes, one of them thought about.
 
-For a team, both gaps are nearly harmless — a colleague's overrule is the
-high-signal event and that surface works, and a deferral is one row in an
-aggregate. For Nieves, self-correction is the *only* revision that can ever
-happen, so ``conflicts_only=True`` is empty by construction, forever. The
-surfaces are not wrong about teams. They were never asked about her.
+**A lock that fires inside a word** (§6.38). Her uncle is Tito and the notebook
+is a recipe notebook, so ``locks_in_text`` puts *always render this exactly* in
+front of the draft engine for a sentence about ``apetito``.
 
-Each claim below is asserted as it runs. If one stops holding, this exits
-non-zero — which is the good outcome, and means somebody closed a gap and should
-update this script and ``IDEAS.md`` §6.35.
+**No verb for somebody unverified** (§6.39). Her aunt met a man. Nieves has not
+met him. ``EntityResolver`` can only ``seal``, so the honest row had to go in
+around the recipe — while ``resolve()`` already has a full branch for exactly
+the state its writer cannot produce.
+
+None of these is invisible in the strict sense — the ledger has the events and
+she can scroll it. What she cannot do is *see them on a surface built for the
+job*: the chain gives her reason in full and the text she replaced as a digest,
+so she learns that she changed her mind and why, and never what she changed it
+from.
+
+And none is a bug in how this handles teams. For a team a colleague's overrule
+is the high-signal event and that surface works; a deferral is one row in an
+aggregate; two people rarely seal the same alias to different canonicals without
+one of them noticing. For Nieves every one of those is the *normal* case,
+because she is the only person holding a key.
+
+Each claim below is asserted as it runs, and the gaps are asserted too — those
+fail when a gap **closes**, which is the good outcome and still has to stop the
+build, because a demo narrating a gap that no longer exists is the same defect
+as one narrating a fix that never landed. Entries: §6.35, §6.37, §6.38, §6.39.
 """
 from __future__ import annotations
 
@@ -85,7 +108,8 @@ os.environ.setdefault("NESTOR_SEAL_KEY", "shoebox-fixture-key-not-a-secret")
 # Through ui.dispatch rather than Curator directly: the claim is about what she
 # can see on a screen, and a demo that reached past the surface to the library
 # would be proving something she cannot check.
-from nestor import cascade, memory, storage, ui           # noqa: E402
+from nestor import (cascade, entity, glossary, memory,    # noqa: E402
+                    reconcile, storage, ui)
 from nestor.sqlite_store import SqliteStore               # noqa: E402
 
 BOLD, DIM, GREEN, AMBER, RED, OFF = (
@@ -126,8 +150,8 @@ def gap(condition: bool, what: str) -> None:
     """
     if not condition:
         _FAILURES.append(f"(gap closed, update this script) {what}")
-        print(f"   {GREEN}GAP CLOSED — update demo/shoebox.py and IDEAS §6.35: "
-              f"{what}{OFF}")
+        print(f"   {GREEN}GAP CLOSED — update demo/shoebox.py and the IDEAS "
+              f"entry it names (§6.35, §6.37, §6.38, §6.39): {what}{OFF}")
 
 
 def build(store) -> None:
@@ -167,6 +191,44 @@ def build(store) -> None:
                     reason="From the last letter. Whose face. Leaving it.")
     memory.add_pair("la casa de la esquina", "the corner house", ES, EN,
                     origin=ORIGIN, store=store, reason="Which corner. Which house.")
+
+
+def the_people(store) -> None:
+    """The cast of the letters, as she works them out. Same mechanic, different
+    matcher — an alias and the person it denotes."""
+    people = entity.EntityResolver(store, domain="person")
+    for surface, canonical in (
+            ("Consuelo", "Consuelo Aguirre Toll (1931-2025)"),
+            ("Chelo", "Consuelo Aguirre Toll (1931-2025)"),
+            ("la abuela", "Consuelo Aguirre Toll (1931-2025)"),
+            ("Nieves", "Nieves Aguirre-Toll (b. 1988)")):
+        people.seal(surface, canonical, verifier=HER, origin=ORIGIN)
+    return people
+
+
+def the_measures(store):
+    """The recipe notebook. A measure is a figure with a tolerance, which is the
+    third recipe and the one that turns out to handle collision properly."""
+    figures = reconcile.Reconciler(store, domain="measure", pct_tol=0.05)
+    figures.seal_baseline("un vaso (aceite, ml)", 200, verifier=HER, origin=ORIGIN)
+    return figures
+
+
+def the_locks(workdir) -> None:
+    """Words the family keeps. Mostly these are *do not translate this*.
+
+    Pinned to the working directory explicitly — `glossary.set_glossary_path`,
+    IDEAS §6.27. Without it this writes term locks into whatever directory the
+    demo was launched from, which is the defect that entry exists about, reached
+    from the wrong end by the fixture that found its sibling.
+    """
+    glossary.set_glossary_path(workdir / "glossary.json")
+    for term, rendering in (("terremoto", "earthquake"),
+                            ("abuela", "abuela"),
+                            ("Chelo", "Chelo"),
+                            ("a punto de nieve", "to stiff peaks"),
+                            ("Tito", "Tito")):
+        glossary.add_term(term, rendering, ES, EN)
 
 
 def main() -> int:
@@ -270,12 +332,106 @@ def main() -> int:
          "to another instance on export. The one person who wrote the condition "
          "down is the one person never shown it.")
 
-    beat(6, "What the fixture is for.")
-    say("Neither gap is a bug in how this handles teams. Both are surfaces that "
-        "were never asked about one person working alone over time —")
-    say("which is the shape of every archive, every estate, every notebook "
-        "somebody is trying to finish before their kid stops asking.")
-    note("IDEAS §6.35. Both open.")
+    beat(6, "The letters are Spanish. The people in them are an entity graph.")
+    people = the_people(store)
+    for probe in ("Chelo", "la Abuela"):
+        r = people.resolve(probe)
+        claim(r["sealed"], f"{probe} resolves to a sealed canonical")
+        say(f"{GREEN}✓{OFF} {probe:<12} → {r['canonical']}  ({r['confidence']:.3f})")
+    guess = people.resolve("Consuelito")
+    claim(guess["canonical"] is None and guess["provenance"].get("suggestion"),
+          "a near miss is offered as a suggestion, not served as a fact")
+    say(f"{AMBER}~{OFF} Consuelito  → suggestion only: "
+        f"{guess['provenance']['suggestion']}  ({guess['confidence']:.3f})")
+    note("Close enough to be worth showing her, not close enough to answer with. "
+         "The threshold doing its job on somebody's grandmother.")
+
+    beat(7, "Two men called Pepe.")
+    say("Consuelo's father was Jose. Her brother was also Jose. Both are 'Pepe',")
+    say("thirty years apart, in the same shoebox.")
+    people.seal("Pepe", "Jose Aguirre (1901-1974)", verifier=HER, origin=ORIGIN)
+    people.seal("Pepe", "Jose Aguirre Toll (1938-2011)", verifier=HER, origin=ORIGIN)
+    live = [p for p in store.memory_list("person", "person", limit=99)
+            if p["source_text"] == "Pepe"]
+    gap(len(live) == 1 and not store.memory_lineage(live[0]["id"]),
+        "entity.seal silently overwrites a same-verifier collision")
+    say(f"\n   Sealing the second {RED}succeeded{OFF}. No exception, no warning.")
+    say(f"   live rows for 'Pepe': {RED}{len(live)}{OFF} → {live[0]['target_text']}")
+    say(f"   memory_lineage():     {RED}{store.memory_lineage(live[0]['id'])}{OFF}")
+    note("Her great-grandfather is gone from the store. add_pair exempts a "
+         "same-verifier re-seal as a correction, and for one person holding one "
+         "archive that exemption is always in force — so the guard the recipe's "
+         "own docstring advertises can never fire. IDEAS §6.37.")
+
+    beat(8, "The same collision, in the recipe notebook.")
+    figures = the_measures(store)
+    check = figures.check("un vaso (aceite, ml)", 250)
+    claim(check["flagged"], "50ml out is flagged against the sealed baseline")
+    say(f"un vaso = 200ml.  Observing 250 → flagged, variation {check['variation']:.0f}")
+    figures.seal_baseline("un vaso (aceite, ml)", 250, verifier=HER, origin=ORIGIN)
+    rows = store.memory_list("un vaso (aceite, ml)", "measure", limit=9)
+    kept = [r for r in rows if r["target_text"] == "200"]
+    claim(bool(kept), "the numeric recipe KEEPS the baseline it replaced")
+    say("\n   She changes her mind — same verifier, same key, second value:")
+    for r in rows:
+        mark = GREEN + "✓" + OFF if r["status"] == "sealed" else DIM + "~" + OFF
+        say(f"     {mark} [{r['status']:<7}] {r['target_text']}")
+    note("reconcile._guard_existing_baselines retires the old one and keeps the "
+         "row; the chain names it in plain text. Entity destroyed it. Same "
+         "situation, same verifier, two recipes, and only one of them was "
+         "written on purpose — 'a second baseline does not replace the first, "
+         "it joins it.'")
+
+    beat(9, "The words the family keeps.")
+    the_locks(workdir)
+    line = "Chelo, tu abuela, te manda un beso — mi terremoto."
+    locks = glossary.locks_in_text(line, ES, EN)
+    claim("Chelo" in locks and "terremoto" in locks,
+          "her locks fire on the sentence they are for")
+    say(f"{line}")
+    say(f"   → {', '.join(sorted(locks))}")
+    tito = glossary.locks_in_text("se come con buen apetito", ES, EN)
+    gap("Tito" in tito, "a short lock fires inside a longer word")
+    say("\n   Her uncle is Tito. The notebook is a recipe notebook:")
+    say(f"   'se come con buen apetito'  →  {RED}{tito}{OFF}")
+    note("`t.lower() in lower` is a substring with no word boundary, and the "
+         "glossary is tier 2's constraint — so a sentence about appetite reaches "
+         "the draft engine carrying an instruction about a man. IDEAS §6.38.")
+
+    beat(10, "Somebody living.")
+    say("Her aunt called. She has met somebody — Tony, born 1972.")
+    gap(not hasattr(entity.EntityResolver, "propose"),
+        "the entity recipe has no verb for an unverified alias")
+    memory.add_pair("Tony", "Tony (b. 1972)", "person", "person", status="draft",
+                    origin=ORIGIN, store=store,
+                    reason="My tia's. I have not met him and I do not know his "
+                           "full name — 'goes by Tony' is all I have.")
+    tony = people.resolve("Tony")
+    claim(tony["canonical"] is None and tony["provenance"].get("draft"),
+          "the reader understands a draft the writer cannot create")
+    say(f"\n   EntityResolver offers: {RED}"
+        f"{[m for m in dir(entity.EntityResolver) if not m.startswith('_')]}{OFF}")
+    say("   so the draft went in around it, via memory.add_pair.")
+    say(f"   resolve('Tony') → suggestion {tony['provenance']['suggestion']!r}, "
+        f"sealed={tony['sealed']}")
+    note("resolve() has a whole branch for a state the recipe has no verb to "
+         "produce, and the one verb it does have is the one a machine may not "
+         "use. IDEAS §6.39 — the smallest thing on the open list.")
+
+    beat(11, "What the fixture is for.")
+    say("Five gaps, across all three recipes, and not one of them is a bug in how")
+    say("this handles teams:")
+    say(f"  {DIM}§6.35{OFF}  a revision she cannot see, and a deferral nobody reads")
+    say(f"  {DIM}§6.37{OFF}  an alias overwritten, where the numeric recipe keeps it")
+    say(f"  {DIM}§6.38{OFF}  a lock that fires inside a word")
+    say(f"  {DIM}§6.39{OFF}  no verb for a person nobody has verified")
+    say("")
+    say("Every one is a state a business deployment either never reaches or "
+        "reaches with a colleague standing next to it. None was visible until")
+    say("somebody's actual life was in the store — which is the shape of every "
+        "archive, every estate, every notebook somebody is trying to finish")
+    say("before their kid stops asking.")
+    note("All open. This fixture fails the build if any of them closes quietly.")
 
     if not args.keep:
         shutil.rmtree(workdir, ignore_errors=True)

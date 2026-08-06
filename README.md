@@ -292,12 +292,13 @@ bench/                measuring where the seal threshold stops holding — see b
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
-└── shoebox.py          one verifier, her own archive, and the two records nothing shows her (IDEAS §6.35)
+└── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
 └── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
-scripts/              dogfood and fleet-checkout utilities
+scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
+                      trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
