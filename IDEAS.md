@@ -2803,3 +2803,62 @@ Corpus caveat, stated because 13 is a small number: this is far too few rows to
 set a deployment's dial from, and the probes were written by the same person who
 wrote the defect descriptions — §3.4 stage 2 is the entry about why that flatters
 a matcher.
+
+### 6.31 Nothing that persists carries a version — **measured**, fix **open**
+
+*Raised 2026-08-06 while wiring the package for PyPI. The packaging half
+shipped; this is the half that did not, because it should not be stamped
+without being argued.*
+
+> Written on a branch off `master`, where §6.25–§6.30 did not exist, so this
+> entry carried a note warning that its number assumed PR #42 landed first. It
+> was folded into #42 instead and the numbering is contiguous, so the warning is
+> gone rather than left to puzzle somebody. The note is mentioned here only
+> because a caveat that silently disappears is indistinguishable from one that
+> was never checked.
+
+Four things could carry a version. Measured, as of `c68b8be`:
+
+| | version? |
+|---|---|
+| the **package** | `0.1.0` in `pyproject.toml` since `7fb841e`, never moved; no `__version__`, no tags, no changelog |
+| the **bundle** (`portable.py`) | **yes** — `BUNDLE_VERSION = 2`, `SUPPORTED_BUNDLE_VERSIONS = (1, 2)`, a per-version field map, and an explicit refusal naming what it reads and writes |
+| the **store schema** | **no** — no `PRAGMA user_version`, no meta table |
+| the **ledger format** | **no** — entries carry `kind`, `at`, `prev`, `hash` and a payload, and nothing saying which format wrote them |
+
+The package half is now done: `__version__` from installed metadata, a
+changelog, a release runbook, and a publish workflow that cannot fire. The
+interesting part is the asymmetry the table shows.
+
+**The thing that crosses a trust boundary is versioned carefully. The things
+that persist locally are not versioned at all.** A bundle leaves one deployment
+and lands in another, so it got a version, a supported-range check, per-version
+field sets, and a guard subtle enough to know that `True` is not version 1 and
+that `2.0` is version 2 because a browser round-trip turns `1` into `1.0`. The
+store and the chain never leave, so nobody had to think about it — and they are
+the two things that outlive every process that touches them.
+
+**The store.** Migrations detect state by probing with `PRAGMA table_info` and
+reacting to which columns are absent. That works, and it is why `init_db` on a
+pre-lineage database raises `OperationalError: no such column: superseded_by` —
+it builds an index over a column that another method adds, and with no version
+to consult there is nothing but call order enforcing the dependency. (Filed
+separately as §6.25 on the PR #42 branch.) A `user_version` would make the
+migration a decision about a number rather than an inference from a shape.
+
+**The ledger is the one that gets harder the longer it waits**, and it is why
+this entry proposes nothing. The chain is append-only and hash-linked, so
+historical entries cannot be re-hashed under new rules without breaking the
+chain they exist to protect. Which means the format is *already frozen* — not by
+a decision, but by the first entry anybody wrote. Adding a version field now
+versions everything after it and leaves everything before it as the implicit
+version 0, and whether that is acceptable is exactly the kind of question
+`docs/seal-staleness-and-quorum.md` had to ask about `weight`: what does a
+reader do with a record whose format predates the field that would have told
+them its format?
+
+**Not proposed here:** a `user_version` stamp, a ledger `v` field, or any
+migration. Both touch persistence and the audit path, which per `CLAUDE.md`
+wants an adversarial read, and the ledger question wants deciding before
+anything is stamped rather than after. What is proposed is that the decision
+stop being deferred by not being written down.
