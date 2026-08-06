@@ -294,7 +294,8 @@ bench/                measuring where the seal threshold stops holding — see b
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
 ├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
-└── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
+├── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
+└── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers

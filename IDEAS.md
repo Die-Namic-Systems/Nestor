@@ -3936,3 +3936,67 @@ inside it, which is an *absent* corpus, and "I could not look" was the correct
 answer being read as a defect. A bare directory is not an empty corpus, and that
 distinction is now a test of its own so the next reader of this file does not
 have to rediscover it.
+
+---
+
+### 6.47 A claim's own source counts as an independent witness — **measured**, fix **open** (and it may not have one)
+
+*Found 2026-08-06 by running `demo/the_verification.py`, not by designing it. An
+article about animal-sound onomatopoeia crossed the operator's desk mid-session;
+three of its word-origin claims looked wrong, and checking them turned out to be
+a better test of the box than anything invented, because the answers were not
+known when it started.*
+
+jeles corroborates a finding only when at least `MIN_INDEPENDENT_SOURCES = 2`
+**distinct registrable domains** back it. Running four real claims past that bar:
+
+```
+squeak           4 source(s)   draft   the article is wrong
+woof             5 source(s)   draft   the article is wrong
+ribbit           6 source(s)   draft   the article is wrong
+hollywood-frog   3 source(s)   draft   the article holds
+```
+
+Two of the ribbit row's six domains are **`wordsmarts.com` — the article being
+checked — and `x.com`, a post quoting it nearly verbatim.** Distinct registrable
+domains, so the independence rule counts them as two independent sources. They
+are one claim, twice.
+
+**This is not news to jeles and the entry should not pretend it is.**
+`_independence.py` already says the bar is *"a cheap heuristic, deliberately
+weaker and deliberately named apart"* than its constitution's Independent
+Witness, *"so nothing built on it borrows authority it has not earned"* — because
+two domains can be one actor who bought both. What is new is a concrete instance,
+measured, of a shape the disclaimer describes abstractly: not one actor holding
+two domains, but **one text republished**, which is far more common and needs no
+bad faith at all.
+
+**And it is a step past the defect jeles already fixed.** `_NON_WITNESS` lists 21
+domains that can never witness, because an unfiltered count read DuckDuckGo as a
+source about every claim — verified there by a claim invented on the spot being
+"corroborated by 2 independent sources (duckduckgo.com, wikipedia.org)". A
+blocklist closes that, because the search engine is the same for every query. It
+cannot close this one: **the domain to exclude is different for every claim, and
+is only knowable once you know where the claim came from.** Provenance, not a
+list — and provenance of the claim under test is not something a corroboration
+count has access to.
+
+**Which is an argument for the seal rather than against the count.** No number of
+agreeing pages distinguishes four sources from one source quoted four times. A
+human reading the four pages notices in seconds. That is the division of labour
+this repo asserts, arrived at from the other end: corroboration is evidence, and
+verification is a decision.
+
+**Every row landed as a draft, including the three that are right.** Three of
+these four are refutations of a published claim and the evidence backs them,
+which is precisely the situation where a demo is tempted to reward itself. Being
+right is not being checked, and a test pins that the demo contains no
+`status="sealed"` and no `verifier=` at all.
+
+**Fix: open, and possibly none.** The honest options are (a) pass the claim's
+source domain into the independence test so it can exclude itself — cheap, and
+catches only the literal self-citation, not the four repeaters; (b) compare text
+similarity across citations and count near-duplicates once — which is a matcher
+problem, and this repo has one; or (c) accept it, keep the disclaimer, and let
+the seal carry the weight. This entry does not pick. Filing anything on jeles'
+side needs the operator's word.
