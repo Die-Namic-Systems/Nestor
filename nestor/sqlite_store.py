@@ -340,6 +340,7 @@ class SqliteStore:
     def init_db(self) -> None:
         with self._db() as conn:
             conn.executescript(_SCHEMA)
+            self._ensure_lineage_schema(conn)
             self._ensure_unique_key(conn)
             self._ensure_embedding_schema(conn)
 
