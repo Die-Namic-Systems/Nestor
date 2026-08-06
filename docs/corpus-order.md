@@ -17,22 +17,33 @@ anything is built on it.
 
 | repository | position by date | taken | why |
 |---|---|---|---|
-| `yggdrasil-training-data` | 5th (2026-04-15) | near the end | operator's decision |
-| `sean-data-vault` | 34th (2026-05-25) | near the end | operator's decision |
+| `yggdrasil-training-data` | 5th (2026-04-15) | near the end | operator's decision — data archive |
+| `willow-mcp` | 7th (2026-04-18) | near the end | operator's decision — **active production** |
+| `sean-data-vault` | 34th (2026-05-25) | near the end | operator's decision — data archive |
 
-Both are **data archives rather than source** — a behavioural corpus and an
+Two are **data archives rather than source** — a behavioural corpus and an
 operator archive of fleet snapshots and knowledge bases. Taking them late means
 the extractor shapes are mature by the time they are read, which matters more
 for repositories whose content *is* the payload than for ones whose content is
 documents about a payload.
 
-## Open, and it arrives at rung 7
+`willow-mcp` is held for a different and stronger reason: it is **under active
+development**. An extraction pins `repo@commit` into every row's origin (§6.43),
+and against a moving head that pin describes a state that no longer exists by
+the time the entry is written. A corpus of a live repository is a corpus of a
+particular afternoon, mislabelled as a corpus of the repository.
 
-**Forks are still unresolved.** 44 of the 105 are forks of other people's
-projects. Extracting one measures its *upstream author's* structure, not this
-operator's, so the rows would be provenance-correct and subject-wrong — a corpus
-about somebody else filed under this chronology. `hermes-agent` (2026-04-18) is
-the first, and the question wants an answer before it, not after.
+## Forks — default applied, reversible
+
+44 of the 105 are forks. Extracting one measures its *upstream author's*
+structure rather than this operator's: provenance-correct and subject-wrong, a
+corpus about somebody else filed under this chronology.
+
+**Default, unless the operator says otherwise: forks are skipped in sequence and
+revisited at the end with the other held repositories.** If any carries local
+modifications worth reading, the honest unit is the *diff against upstream*, not
+the tree — and that is a different extractor, not a flag on this one.
+`hermes-agent` (2026-04-18) is the first affected and is skipped under this rule.
 
 ## Where a rung's results go
 
