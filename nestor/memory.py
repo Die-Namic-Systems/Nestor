@@ -418,6 +418,38 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                     "source_sha": _sha(norm),
                     "same_verifier": replaced_verifier == verifier,
                 })
+        elif status == "sealed" and audit:
+            # Reached only when the row is ALREADY sealed with THIS target — the
+            # branch above covers every other seal. Until IDEAS §6.26 this fell
+            # straight through to `return existing`: a second reviewer agreeing
+            # with the first wrote nothing, appended nothing, raised nothing, and
+            # got the stored row back as though they had sealed it.
+            #
+            # Nothing about the row changes here, and nothing about serving does.
+            # There is one `verifier` column and one `seal_sig`, and they belong
+            # to whoever got there first; the second signature has nowhere to
+            # live but the chain. That is the whole fix — the store still holds
+            # one decision, and the ledger now holds both people.
+            first = (existing.get("verifier") or "")
+            # NOT `not _same_verifier(first, verifier)`. That helper answers
+            # "may we assume the same actor", and resolves unknown to *not the
+            # same* so a guard fails closed. Negating it inherits the wrong
+            # polarity: two anonymous re-seals would become a countersignature
+            # between two people who never identified themselves. Both sides
+            # must NAME somebody before this is evidence of anything.
+            if first and verifier and first != verifier:
+                _log_seal_event({
+                    "kind": "countersign", "pair_id": existing["id"],
+                    "verifier": verifier, "countersigned": first,
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "source_sha": _sha(norm), "target_sha": _sha(target_text),
+                    "origin": origin,
+                    # The signature the row cannot carry. Computed above with
+                    # this caller's key, so with a keyring installed an unknown
+                    # or revoked countersigner is refused before the store is
+                    # touched — same refusal a seal gets, for the same reason.
+                    "sig": seal_sig,
+                })
         return existing
     pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,

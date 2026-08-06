@@ -205,11 +205,30 @@ signature on it, and the UI can say so precisely without inventing a scale.
    they did. That is the `ConflictingDraftError` complaint, unaddressed for
    seals.
 
-2. **Then measure whether anyone countersigns.** With step 1 shipped, the
-   question "does N-of-M have any users" becomes answerable from a real
-   deployment's chain instead of from intuition. §1.4 has been open since it was
-   written partly because nobody knows whether it is wanted; that is a
-   measurement, and it is now a cheap one.
+   > **Shipped 2026-08-06** — `IDEAS.md` §6.26. One ledger append, landed alone.
+   > The entry carries the countersigner's own signature over the fields a seal
+   > signs, because `tm_pairs` has one `verifier` and one `seal_sig` and they
+   > belong to whoever got there first. Row unchanged, serving unchanged, chain
+   > still verifies.
+   >
+   > It cost one subtlety worth naming here, since this memo is where the
+   > reasoning lives: writing the condition as `not _same_verifier(a, b)` would
+   > have recorded a countersignature between two *anonymous* callers, because
+   > that helper resolves unknown to "not the same actor" so a conflict guard
+   > fails closed. Negated, it fabricates agreement between people who never
+   > identified themselves — in the one file that exists to say who decided what.
+
+2. **Then measure whether anyone countersigns** — *now possible, and not yet
+   done.* §1.4 has been open partly because nobody knows whether it is wanted,
+   and until step 1 that was unanswerable: the question "does N-of-M have any
+   users" had no data behind it, because the events were being discarded as they
+   happened. They are recorded now, so the question is a `grep` over a real
+   deployment's chain rather than an intuition.
+
+   **Nobody has run it.** Until somebody does, everything below stays where it
+   is. N-of-M is a schema change to the audited path, and designing one for
+   users who have not been shown to exist is how a field ends up carrying a
+   distinction the mechanism does not otherwise make.
 
 3. **Do not ship weight decay.** Not in `weight`, not anywhere. If staleness is
    wanted before step 2 concludes, ship the *listing* — curator surfaces seals

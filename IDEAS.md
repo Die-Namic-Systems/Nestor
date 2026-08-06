@@ -2597,7 +2597,7 @@ The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
 correctness bug folded quietly into a performance change is how a reviewer ends
 up unable to tell which half a regression came from.
 
-### 6.26 A countersignature is discarded without a word — **measured**, fix **open**
+### 6.26 A countersignature is discarded without a word — **shipped**
 
 *Found 2026-08-06 while arguing §1.4 through; see
 [`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §1.*
@@ -2638,6 +2638,43 @@ naming the second verifier, leaving the row and the serving path untouched. It
 is listed separately from §1.4 because it stands on its own — it is worth doing
 whether or not N-of-M is ever wanted, and it is the prerequisite that makes
 "does anyone countersign?" a measurement rather than a guess.
+
+**Shipped 2026-08-06, and it was one ledger append.** Landed alone, on its own
+branch, because two reviewers and the PR that found it all said the same thing:
+do not bundle this with the performance work it was discovered next to.
+
+*What it records.* `countersign` names the second verifier and the first
+(`countersigned`), the source and target digests, and — the part that makes it
+evidence rather than a log line — **a signature over the same bound fields a
+seal signs, made with the countersigner's own key.** `tm_pairs` has one
+`verifier` and one `seal_sig` and they belong to whoever got there first, so
+the second signature has nowhere to live but the chain. Verified: the entry
+validates under `sam` and does not validate under a claim that `rita` made it.
+With a keyring installed, an unknown or revoked countersigner is refused before
+the store is touched, exactly as a seal is.
+
+*What it does not record, and this is where the fix could have gone wrong.* The
+obvious way to write the condition is `not _same_verifier(first, second)`. That
+helper answers *may we assume the same actor* and resolves unknown to **not the
+same**, so a conflict guard fails closed — and negating it inherits the wrong
+polarity. Two anonymous re-seals would have become a recorded agreement between
+two people who never identified themselves: a fabricated countersignature, in
+the one file that exists to say who decided what. Both sides must name somebody.
+`test_two_anonymous_seals_do_not_fabricate_a_countersignature` is the gate.
+
+*Nothing else moves.* The row is byte-identical before and after, `best_sealed`
+returns the same row with the same verifier, and the chain still verifies. Three
+of the ten tests fail against the reporting revision — the entry itself, the
+signature-is-evidence check, and the accumulation of a third reviewer. The other
+seven pass on both sides and are guards: they are the *must-not-record* and
+*must-not-move* cases, which is precisely where a wrong version of this breaks.
+
+*What is now unblocked.* §1.4's step 2 —
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §5 —
+was "measure whether anyone countersigns", and it was unanswerable because the
+data did not exist. It exists now. **Nobody has run that measurement yet**, and
+the memo's position is unchanged until somebody does: N-of-M is a schema change
+that should not be designed for users who have not been shown to exist.
 
 ### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
 
