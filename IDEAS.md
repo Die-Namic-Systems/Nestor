@@ -2415,3 +2415,44 @@ The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
 `init_db` — and it is deliberately **not** in the §6.8 commit. A latent
 correctness bug folded quietly into a performance change is how a reviewer ends
 up unable to tell which half a regression came from.
+
+
+### 6.28 Concurrent writers: the known limit, quantified — **measured**, fix **open**
+
+*Measured 2026-08-06 while walking `docs/code-review-lessons.md` §11 over the
+§6.8 change — the checklist row "concurrent / pooled threads?".*
+
+`TODO.md` §2 says a store that takes concurrent writers is missing and that the
+reference `SqliteStore` is not it. That is qualitative. The number:
+
+12 threads on one file-backed store, each calling `memory_init()` then
+`add_pair()` then `memory_find()`, released from a barrier together, 300 trials
+= 3600 concurrent init-and-write sequences per run. Failures are
+`OperationalError: database is locked`.
+
+| revision | run 1 | run 2 | run 3 |
+|----------|------:|------:|------:|
+| `c68b8be` (before §6.8) | 12 | 9 | 3 |
+| after §6.8 | 4 | 5 | 9 |
+
+**Roughly 0.1–0.3%, and §6.8 neither causes nor fixes it.** The ranges overlap
+completely. The first pair of runs read 12 against 4 and looked like the fix had
+reduced contention — a plausible story, since shorter write transactions ought
+to conflict less — and repeating it dissolved that. It is recorded here because
+the wrong version of this entry is the one I nearly wrote from a single pair.
+
+Nothing to fix in §6.8. What this quantifies is the limit `TODO.md` already
+names: a caller doing concurrent writes to `SqliteStore` gets a hard failure a
+fraction of a percent of the time, with no retry and no queue. `nestor.ui` is a
+threaded server, so the reachable form of this is two reviewers acting at the
+same moment.
+
+**Not added as a test.** It takes minutes, and a gate that fires on 0.1% of runs
+is a flaky build rather than a guarantee. The number belongs in the record; the
+fix belongs in whatever replaces the reference store.
+
+A method note, since the count is the point: the first attempt at this
+comparison used `git stash push` on an already-committed file, which stashes
+nothing and silently ran the *same* revision twice. The paired runs above use
+`git checkout c68b8be -- nestor/sqlite_store.py`, verified each time by grepping
+for `_Conn` in the file before running.
