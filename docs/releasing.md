@@ -163,13 +163,31 @@ DDL. The performance win and this hazard are the same change, and the honest
 statement of the trade is: **Nestor's store upgrades on process start, not on
 package upgrade.**
 
-This is the weakest of the three available fixes, chosen deliberately. The strong
-one is a schema generation in the database that invalidates the flag when it
-moves — which is §6.31, which argues that stamping a version into persistence is
-a decision to be argued rather than slipped into another change. Shipping half of
-it inside a performance reland is the shape this repository keeps punishing. The
-documentation is what is owed until that argument happens; if the next migration
-is security-relevant, the argument happens first.
+**This rule is latched, because a rule that only lives in a document is a rule
+that fails silently.** `tests/test_sqlite_store.py::test_a_schema_change_has_to_be_a_deliberate_release_decision`
+pins a digest of the DDL `memory_init` actually leaves in `sqlite_master` — the
+effective schema, not the source that produced it, so comments and refactors move
+nothing and a real change moves it every time. Change the schema and the build
+stops with this paragraph's requirement in the failure message. Verified by
+adding a plausible column and watching it go red:
+
+```
+the effective schema changed (f42f4ae579f0c8bd -> 0a1db724f072da1a).
+Since §6.8 a warm connection skips migrations it did not have when it was
+opened, so long-lived processes will NOT pick this up on a package upgrade —
+only on restart. docs/releasing.md requires the release notes to say so.
+```
+
+Tripping it is not a bug. It means: say the restart line, then update the pin in
+the same commit.
+
+Documentation remains the weaker half of the fix, and the latch does not change
+that. The strong one is a schema generation in the database that invalidates the
+flag when it moves — which is §6.31, which argues that stamping a version into
+persistence is a decision to be argued rather than slipped into another change.
+Shipping half of it inside a performance reland is the shape this repository
+keeps punishing. **If the next migration is security-relevant, that argument
+happens before it, not after.**
 
 ## What is deliberately not automated
 

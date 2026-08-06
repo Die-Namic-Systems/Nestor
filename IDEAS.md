@@ -2907,12 +2907,24 @@ stop being deferred by not being written down.
 > change. A `user_version` that invalidates the flag when it moves is the fix,
 > and it touches no hash chain, so the argument it needs is small.
 >
-> `docs/releasing.md` now carries the interim rule: **a release that changes
+> `docs/releasing.md` carries the interim rule: **a release that changes
 > `_SCHEMA` or an `_ensure_*` must say that long-lived processes need
-> restarting.** Documentation is the weakest of the three available fixes and is
-> named as such there; it is what is owed until the `user_version` argument
-> happens, and if the next migration is security-relevant the argument happens
-> first.
+> restarting.** It is what is owed until the `user_version` argument happens,
+> and if the next migration is security-relevant the argument happens first.
+>
+> **And it is latched, on a second reviewer's objection: *gates fail builds,
+> `docs/releasing.md` does not.*** That objection is §6.12's own thesis pointed
+> back at me — I wrote *the detection kit as gates, not advice* and then answered
+> a finding with advice. `test_a_schema_change_has_to_be_a_deliberate_release_decision`
+> pins a digest of the DDL `memory_init` leaves in `sqlite_master`: the effective
+> schema rather than the source, so comments and refactors move nothing and a
+> real change moves it every time, with the restart requirement in the failure
+> message. Verified by adding a plausible `quorum_count` column and watching it
+> go red. Stable across interpreters — identical digest under 3.10/sqlite 3.45.1
+> and 3.11 — because `sqlite_master` stores the DDL as written.
+>
+> The latch does not upgrade documentation into a fix. It makes the
+> documentation unskippable, which is a different and smaller claim.
 >
 > **The ledger half is unchanged and still wants arguing.** A hash chain cannot
 > be re-hashed under new rules, so the format is already frozen by its first

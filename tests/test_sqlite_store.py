@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import pathlib
 import shutil
@@ -416,3 +417,43 @@ def test_conn_declares_no_schema_ready_default():
     an invitation even where it is no longer load-bearing: the next person to
     read this class should not find a flag that looks like it can be flipped."""
     assert "schema_ready" not in sqlite_store._Conn.__dict__
+
+
+#: sha256[:16] of the sorted DDL `memory_init` actually leaves in sqlite_master.
+#: Mirrored, not derived from _SCHEMA — deriving it would make the pin true by
+#: construction, which is the vacuity `test_ledger_kinds.py` set the precedent
+#: against. Stable across interpreters: identical under 3.10/sqlite 3.45.1 and
+#: 3.11, because sqlite_master stores the DDL as written.
+PINNED_SCHEMA_DIGEST = "f42f4ae579f0c8bd"
+
+
+def test_a_schema_change_has_to_be_a_deliberate_release_decision(tmp_path):
+    """The latch behind `docs/releasing.md`'s restart rule.
+
+    Since IDEAS §6.8, `memory_init` skips its work on a connection that has
+    already done it, so a long-lived process does not run a migration
+    introduced after its pooled connections were opened. The rule that follows
+    — *a release changing the schema must tell operators to restart* — lived
+    only in prose, and prose does not fail a build.
+
+    This does. It hashes the DDL `memory_init` leaves behind rather than the
+    source that produced it, so comments and refactors move nothing and a real
+    change to the database's shape moves it every time.
+
+    Tripping this is not a bug. It means: say the restart line in the release
+    notes, and update the digest in the same commit.
+    """
+    store = SqliteStore(str(tmp_path / "pin.db"))
+    store.memory_init()
+    with store._db() as conn:
+        ddl = sorted(r[0] for r in conn.execute(
+            "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL"))
+
+    digest = hashlib.sha256("\n".join(ddl).encode("utf-8")).hexdigest()[:16]
+    assert digest == PINNED_SCHEMA_DIGEST, (
+        f"the effective schema changed ({PINNED_SCHEMA_DIGEST} -> {digest}).\n"
+        f"Since §6.8 a warm connection skips migrations it did not have when it "
+        f"was opened, so long-lived processes will NOT pick this up on a package "
+        f"upgrade — only on restart. docs/releasing.md requires the release notes "
+        f"to say so. Do that, then update PINNED_SCHEMA_DIGEST in this file, in "
+        f"the same commit.")
