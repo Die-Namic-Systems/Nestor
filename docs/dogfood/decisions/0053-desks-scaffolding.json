@@ -1,0 +1,33 @@
+{
+  "pr": 53,
+  "branch": "claude/client-intake",
+  "date": "2026-08-06",
+  "note": "Scaffolding for a client fixture that stands up more than one Nestor deployment. Extracted persona-free from the two-desks fixture on claude/nestor-intake-repo-review-icanwi; that branch keeps its own walk-through and its findings. This file will grow when the client's fixture lands on the same PR.",
+  "decisions": [
+    {
+      "question": "Bring the two-desks work over by copying the fixture, or by extracting the scaffolding?",
+      "commitment": "Extract. demo/desks.py holds how to stand a desk up and how to say a claim failed, and knows nothing about whose desk it is.",
+      "why": "The persona and the findings belong to the branch that earned them, and copying the fixture would have this branch carrying an Attercliffe walk-through nobody asked it to review. It also would have duplicated the machinery in two places before either had merged. Extracting means the client fixture starts from a module with a test rather than from a file it has to gut."
+    },
+    {
+      "question": "What is the module actually for, if the demo it came from is not here?",
+      "commitment": "The three process globals: the ledger path, the store and the matcher. Desk.activate sets all three together and every accessor calls it first.",
+      "why": "A fixture that stands two desks up and sets these once has not built two desks — it has built one desk that changes its mind about which store it is. The failure is quiet: both desks' decisions land in whichever chain was configured last, and any count taken afterwards is a true number about the wrong thing. That is not hypothetical; it is what the first fixture written against this arrangement did, and it reported one desk's total as the other's. Switching desks is now one call you cannot half-do rather than three you can."
+    },
+    {
+      "question": "Why install the matcher process-wide rather than only passing matcher= to each call?",
+      "commitment": "Process-wide, in activate().",
+      "why": "nestor.ui has no matcher of its own and no field for one, so every write the surface makes normalizes with whatever is installed. Passing matcher= covers the library calls a fixture makes and misses every seal and rejection made at the surface — which is where the human decisions are, and therefore the only ones worth a fixture. The constraint that comes with it is stated in the module docstring rather than hidden: one process holds one matcher, so two custom-matcher desks in one interpreter are two desks taking turns, and scripts/two_instances.py is what to reach for when that is not good enough."
+    },
+    {
+      "question": "Does the module get a test when it has no fixture using it yet?",
+      "commitment": "Yes — tests/test_desks.py, six tests, including one that reproduces the failure the module exists to prevent.",
+      "why": "Otherwise it is scaffolding with no consumer and nothing holding it to its claims until the client fixture arrives. The last test sets the globals directly, the way a fixture that had never heard of Desk would, and asserts both desks' decisions land in one chain — so the thing being prevented is executable rather than described."
+    },
+    {
+      "question": "Do those six tests hold anything?",
+      "commitment": "Proven by mutation. Dropping the matcher line from activate() turns two red; dropping the ledger line turns three red.",
+      "why": "A gate nobody has watched fail is a description. Also recorded: the first version of this file assumed a proposal writes a ledger line and asserted on chains after calling propose(). It does not — a draft is not a decision and appends nothing — so four tests failed for a reason that was the test's error rather than the module's, and they were rewritten to seal first. And the SerialMatcher used here keeps every digit it finds, so an early restatement of 'ward 6' keyed to 44716 and missed; that was the test's fault too, and the assertion now avoids stray digits and says why."
+    }
+  ]
+}

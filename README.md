@@ -293,7 +293,8 @@ bench/                measuring where the seal threshold stops holding — see b
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
-└── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
+├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
+└── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
