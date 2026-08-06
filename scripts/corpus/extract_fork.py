@@ -55,6 +55,30 @@ def strip_trailers(body: str) -> str:
     return " ".join(" ".join(kept).split())
 
 
+def created_by(root: pathlib.Path, files: set, email: str) -> tuple[set, set]:
+    """Split touched files into ``(created here, merely modified)``.
+
+    §6.49's gap. ``touched`` is not ``authored``: a file the operator edited was
+    written by whoever added it, and its docstrings are that person's habit. Run
+    over a fork's delta without this split, docstring coverage reported 77% —
+    upstream's number, about to be filed under this operator's name.
+
+    The creator is the author of the commit that added the path
+    (``--diff-filter=A``, oldest such commit, since a path can be added, deleted
+    and re-added).
+    """
+    created, modified = set(), set()
+    for path in sorted(files):
+        rel = path.relative_to(root)
+        try:
+            adds = _git(root, "log", "--diff-filter=A", "--format=%ae",
+                        "--", str(rel)).split()
+        except subprocess.SubprocessError:
+            adds = []
+        (created if adds and adds[-1] == email else modified).add(path)
+    return created, modified
+
+
 def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
     """``(commit rows, files touched, commit count)`` for one author."""
     raw = _git(root, "log", f"--author={email}", f"--format=%h{SEP}%ad{SEP}%s{SEP}%b\x1d",
@@ -98,6 +122,7 @@ def main() -> int:
         out.unlink()
 
     commits, touched, count = delta(root, args.email)
+    created, modified = created_by(root, touched, args.email)
     total_commits = len(_git(root, "log", "--format=%h").splitlines())
 
     origin = provenance.Origin(args.name, root, __file__)
@@ -112,7 +137,13 @@ def main() -> int:
               f"touching {len(touched)} file(s)")
         print(f"  commits with a stated reason: {len(commits)}/{count}")
         if defined:
-            print(f"  docstring coverage in touched files: {len(symbols)}/{defined}")
+            print(f"  docstrings over all touched files: {len(symbols)}/{defined}"
+                  f"   <- blended, not the operator's")
+            for label, group in (("created here", created), ("modified only", modified)):
+                rows, total = common.docstrings(root, only=group)
+                if total:
+                    print(f"    {label:14} {len(rows):4}/{total:<4} "
+                          f"({len(rows) / total:.0%})  over {len(group)} file(s)")
     finally:
         store.close()
     print(f"\n  store: {out}")

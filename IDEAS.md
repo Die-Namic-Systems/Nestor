@@ -4353,3 +4353,50 @@ that looked unique and were not. This is a *population* that looked like the
 author's and was not. In all three the extractor produced a confident number
 about the wrong set of things, and in all three the only thing that caught it
 was asking what the denominator was made of.
+
+### 6.50 python-sdk: zero, and the attribution fix that made zero trustworthy — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/python-sdk` (created 2026-04-23), rung 9, a
+fork. Read under the delta rule.*
+
+**§6.49's open gap is closed first**, because running two more forks with a
+denominator known to be contaminated would only have produced two more wrong
+numbers. `extract_fork.py` now splits touched files by *creator* —
+`--diff-filter=A`, oldest adding commit — and reports coverage for each group
+rather than blending them. Verified against the hand-measurement from §6.49
+rather than trusted:
+
+```
+docstrings over all touched files: 20/26   <- blended, not the operator's
+  created here      3/5   (60%)  over 2 file(s)
+  modified only    17/21  (81%)  over 1 file(s)
+```
+
+Those are the two numbers §6.49 computed by hand after the fact. The extractor
+now derives them, so no later fork can quietly report upstream's habit as this
+operator's.
+
+**And then the rung itself returned nothing.**
+
+```
+delta: 0 of 851 commit(s) by rudi193@gmail.com, touching 0 file(s)
+0 pair(s): 0 draft, 0 sealed
+```
+
+Zero operator-matching author identities appear anywhere in its history, and its
+head commit is dated 2026-04-15 — eight days *before* the fork was created. The
+repository was forked and never advanced by a single commit. It is a bookmark.
+
+**A zero is a finding when the alternative was a large wrong number.** The tree
+holds 356 Python files and 36 markdown documents. The standard extractor would
+have read them happily and produced several hundred rows about the Model Context
+Protocol SDK's authors, filed under this operator's chronology at position nine.
+Every one would have carried a correct `origin` and been about the wrong person.
+That is the failure mode §6.49 named — a population that looks like the author's
+and is not — and here the delta rule refuses it by construction rather than by
+noticing afterwards.
+
+The corpus now records something it could not have before: **the difference
+between a repository this operator built and one they bookmarked, as a number
+rather than an impression.** Of the two, only the number survives a session
+ending.
