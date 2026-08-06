@@ -96,11 +96,20 @@ def tables(root: pathlib.Path) -> Iterator[tuple[pathlib.Path, str, list[str], l
             yield path, heading, header, row
 
 
-def load(store, plan, origin, declined: collections.Counter | None = None) -> dict:
+def load(store, plan, origin, declined: collections.Counter | None = None,
+         root: pathlib.Path | None = None) -> dict:
     """Add every row as a draft. Returns ``memory.stats``; prints as it goes.
 
     ``plan`` is a list of ``(shape, rows, source_lang, target_lang)`` where each
     row is ``(source, target, reason, path, anchor)``.
+
+    Pass ``root`` to get a **coverage** report: which documents produced no row
+    at all. §6.44 is the reason it exists. Two duplicate skills sat in a
+    repository, one of them empty, and the store raised no collision — not
+    because they agreed but because neither ever reached it. A silent store
+    cannot distinguish "consistent" from "absent", so any claim about corpus
+    consistency needs the coverage number printed beside it or it cannot be
+    falsified.
     """
     print(origin.banner())
     collisions: list[tuple] = []
@@ -125,6 +134,18 @@ def load(store, plan, origin, declined: collections.Counter | None = None) -> di
     stats = memory.stats(store=store)
     print(f"\n  {stats['total']} pair(s): {stats['draft']} draft, "
           f"{stats['sealed']} sealed")
+
+    if root is not None:
+        touched = {pathlib.Path(r[3]).resolve()
+                   for _shape, rows, _sl, _tl in plan for r in rows}
+        every = [p.resolve() for p in docs(root)]
+        silent = [p for p in every if p not in touched]
+        print(f"\n  coverage: {len(every) - len(silent)}/{len(every)} document(s) "
+              f"produced at least one row")
+        for p in silent[:10]:
+            print(f"    silent  {p.relative_to(root.resolve())}")
+        if len(silent) > 10:
+            print(f"    … and {len(silent) - 10} more")
 
     if declined:
         print(f"\n  not extracted: {sum(declined.values())} row(s) under "

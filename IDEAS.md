@@ -4024,3 +4024,66 @@ in a broken fence, failing the repository's own verifier, one of four things
 that verifier fails. The idea did not decay; the **carrier** did, each time it
 moved from a document to a mechanism. That is worth having found, and it is the
 first thing in this corpus that the chronology alone would never have shown.
+
+### 6.45 willow-seed extracted: ten drafts, coverage 2/8, and a promise the document keeps once — **measured**, coverage now **shipped**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-seed` (created 2026-02-25), rung 4.
+Private, so structure and counts only. The smallest yield of the exercise so
+far, and the entry is longer than the extraction because the small yield is the
+result.*
+
+| shape | drafts |
+|---|---|
+| grading question → `*Measure:*` | 1 |
+| grading question → `*Reference:*` | 8 |
+| audit finding → recommended fix | 1 |
+| definitional tables | 0 |
+| **total** | **10 draft, 0 sealed** |
+
+Verified against the source rather than trusted: the document contains 10
+questions, 1 `*Measure:*` line, 8 `*Reference:*` lines, and 1 `Recommended fix`.
+The extractor found exactly what is there.
+
+**Coverage is now printed by every run**, which is §6.44's open question turned
+into a mechanism in `scripts/corpus/common.py`:
+
+```
+coverage: 2/8 document(s) produced at least one row
+  silent  CANON_MOVED.md · MAINTAINER.md · README.md · REPLANT.md
+  silent  docs/QUICKSTART.md · log/2026-07-10-first-session.md
+```
+
+Six of eight documents are prose that declares no schema, and the run says so
+rather than reporting ten rows and letting the reader assume that was all there
+was to find.
+
+**It earned itself inside one run.** The first execution reported `1 draft` and
+`coverage 1/8`. Without the coverage line that is a plausible result for a small
+repository and would have been written up as one. With it, the number was
+obviously wrong, and the cause was mine: `_italic` builds its pattern as
+`\*{}:\*` and I called it with `"Measure:"`, producing a doubled colon that
+matched nothing. **The mechanism built to stop me trusting a silent store caught
+me trusting a silent store, on its first use, about ninety minutes after §6.44
+argued for it.**
+
+**The finding, which the store did not produce and counting did.** `GRADING.md`
+opens by describing itself as *"ten questions … with how to measure each and
+reference points to sit your numbers against."* Measured: the reference points
+are there for 8 of 10. **The measure is there for 1 of 10.** The document's
+first promise holds for one question and the second for eight, and nothing in
+the repository says so, because nothing in the repository counts.
+
+That is worth separating from every earlier rung. §6.41 through §6.44 found
+things by *collision* — two answers to one key, the store objecting. This found
+something by *absence*, and no collision could ever have surfaced it: nine
+missing `*Measure:*` fields are nine rows that do not exist, and a store cannot
+object to a row it was never offered. A corpus of drafts detects contradiction;
+only coverage detects omission. Both numbers have to be reported or the memory
+flatters its source.
+
+**Rung 4 also breaks the lineage's shape, which is itself information.** SAFE,
+Willow and Aionic each carried the propose/ratify idea in some form. `willow-seed`
+does not restate it at all — its subject is a person grading their own system,
+and its one boundary statement is about *not* pointing the instrument at somebody
+else. Four rungs in, the chronology is not a single idea repeated; it is one idea
+that stops here and a different one starting.
