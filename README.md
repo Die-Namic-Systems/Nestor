@@ -311,6 +311,7 @@ docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, �
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
 docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
+docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 
