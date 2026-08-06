@@ -1,13 +1,12 @@
 {
-  "pr": 55,
   "branch": "claude/jeles-bridge",
   "date": "2026-08-06",
-  "note": "A bridge from the fleet's verified-corpus organ (rudi193-cmd/Jeles) into this store. PROVISIONAL NUMBER: no PR is open yet \u2014 GitHub Actions is mid-incident and adding a third stalled CI run to a degraded service helps nobody. Rename to the number it actually opens as, per the 0051/0052/0053 precedent, which has now cost three commits.",
+  "note": "A bridge from the fleet's verified-corpus organ (rudi193-cmd/Jeles) into this store.  — GitHub Actions is mid-incident and adding a third stalled CI run to a degraded service helps nobody. Rename to the number it actually opens as, per the 0051/0052/0053 precedent, which has now cost three commits. CONSOLIDATED 2026-08-06 onto claude/the-box: this and six sibling decision files were written on separate branches and now land in ONE pull request. The `pr` field is null rather than the provisional number this file was named with — the number was a guess, and every row built from it carries `pr:N` as its origin, so guessing put a PR that does not exist into the store's provenance. The key is REMOVED rather than set to null: the builder reads `data.get('pr', '?')`, so a present-but-null key yields the origin `pr:None` — measured, after this file first said `pr:?` while the store said otherwise. Absent, it reads `pr:?` until a real number is assigned. The file name and `branch` keep the history of where the work was actually done.",
   "decisions": [
     {
       "question": "jeles nuggets carry verified_by and verified_at. Do they cross as sealed?",
       "commitment": "No. Every nugget crosses as a draft, including verification_kind='human'.",
-      "why": "jeles' own put_nugget docstring says it: 'verified_by is a claim: whatever string the writer supplied.' It is scrupulous about the distinction \u2014 written_by is 'the fact beside it', corpus_server pins tool-call writes to 'asserted', and a lower kind may not overwrite a higher \u2014 but none of those is a check. Nothing stops a writer typing any name. That is precisely the case nestor.portable.import_bundle already demotes when a bundle asserts a seal it cannot prove, so this reports in the same shape and for the same reason. Proven by mutation: making the bridge trust verified_by turns four tests red including the live-corpus one."
+      "why": "jeles' own put_nugget docstring says it: 'verified_by is a claim: whatever string the writer supplied.' It is scrupulous about the distinction — written_by is 'the fact beside it', corpus_server pins tool-call writes to 'asserted', and a lower kind may not overwrite a higher — but none of those is a check. Nothing stops a writer typing any name. That is precisely the case nestor.portable.import_bundle already demotes when a bundle asserts a seal it cannot prove, so this reports in the same shape and for the same reason. Proven by mutation: making the bridge trust verified_by turns four tests red including the live-corpus one."
     },
     {
       "question": "Is anything lost by demoting?",
@@ -15,9 +14,9 @@
       "why": "Demoting is not discarding. A reviewer opening the queue has to be able to see what jeles believed and who it believed it on behalf of, or the demotion is just data loss with a principle attached. Pinned by a test that asserts the citations survive the crossing."
     },
     {
-      "question": "What does the matcher mirror \u2014 jeles' ranking, or its answering?",
+      "question": "What does the matcher mirror — jeles' ranking, or its answering?",
       "commitment": "Its answering. NuggetMatcher implements containment-then-symmetry, not the loose ranking.",
-      "why": "jeles separates the two deliberately: search_nuggets ranks loosely and will surface a near miss, ask_corpus answers only when the nugget contains every content word the asker used and the two overlap symmetrically. That is the same split as lookup vs best_sealed here, arrived at independently, so the strict rule belongs on the matcher that feeds best_sealed. Measured: exact 1.000, one shared word 0.500, an extra qualifier 0.667, unrelated 0.000 \u2014 only the exact match clears 0.92."
+      "why": "jeles separates the two deliberately: search_nuggets ranks loosely and will surface a near miss, ask_corpus answers only when the nugget contains every content word the asker used and the two overlap symmetrically. That is the same split as lookup vs best_sealed here, arrived at independently, so the strict rule belongs on the matcher that feeds best_sealed. Measured: exact 1.000, one shared word 0.500, an extra qualifier 0.667, unrelated 0.000 — only the exact match clears 0.92."
     },
     {
       "question": "Do jeles gaps become rows?",
@@ -26,8 +25,8 @@
     },
     {
       "question": "Can a bridged nugget be sealed through the human surface?",
-      "commitment": "Not correctly, today. The integration is blocked on IDEAS \u00a76.40.",
-      "why": "NuggetMatcher is a custom matcher and nestor.ui has no way to be told about one, so a seal made there lands under a key this domain never computes and becomes unreachable \u2014 measured on two other custom-matcher domains in demo/two_desks.py (PR #53). The docstring carries the warning and the workaround (memory.set_matcher in-process). This is the most useful thing the integration has to say: a finding that read as a design curiosity two hours ago is now the thing standing between two fleet repos."
+      "commitment": "Not correctly, today. The integration is blocked on IDEAS §6.40.",
+      "why": "NuggetMatcher is a custom matcher and nestor.ui has no way to be told about one, so a seal made there lands under a key this domain never computes and becomes unreachable — measured on two other custom-matcher domains in demo/two_desks.py (PR #53). The docstring carries the warning and the workaround (memory.set_matcher in-process). This is the most useful thing the integration has to say: a finding that read as a design curiosity two hours ago is now the thing standing between two fleet repos."
     },
     {
       "question": "Should the test suite depend on jeles being installed?",
@@ -37,37 +36,37 @@
     {
       "question": "Two sibling repos in one fleet. Did either know about the other?",
       "commitment": "No. grep for 'nestor' across all of jeles returns 0.",
-      "why": "Recorded because it is the interesting part. Independently, jeles built three verification rungs, a rank-based overwrite guard, a ranking/answering split, and 'I don't know yet' as a first-class output. Every one has a counterpart here. The single thing it does not have is a key and a chain \u2014 which is the entire content of this package's category argument, and it was arrived at by somebody who had never read a line of it."
+      "why": "Recorded because it is the interesting part. Independently, jeles built three verification rungs, a rank-based overwrite guard, a ranking/answering split, and 'I don't know yet' as a first-class output. Every one has a counterpart here. The single thing it does not have is a key and a chain — which is the entire content of this package's category argument, and it was arrived at by somebody who had never read a line of it."
     },
     {
       "question": "What does a nestor seal look like once it goes back to jeles?",
       "commitment": "An assertion. export_sealed emits verification_kind='asserted', written_by='nestor'.",
-      "why": "A row here was sealed by a named human under a key this store does not hold and appended to a hash chain, and none of that can travel. put_nugget rejects unknown kwargs outright (measured: TypeError on seal_sig) and the stored record has eleven fields, none for evidence; the only free-form slots are sources and tags, and a signature is neither a citation nor a label. What arrives is a question, an answer and a name \u2014 which is what jeles itself calls an assertion, and what its own corpus_server pins tool-call writes to, for exactly the same reason: nobody at the receiving end checked it. Claiming 'human' would be asserting something this package could no longer back."
+      "why": "A row here was sealed by a named human under a key this store does not hold and appended to a hash chain, and none of that can travel. put_nugget rejects unknown kwargs outright (measured: TypeError on seal_sig) and the stored record has eleven fields, none for evidence; the only free-form slots are sources and tags, and a signature is neither a citation nor a label. What arrives is a question, an answer and a name — which is what jeles itself calls an assertion, and what its own corpus_server pins tool-call writes to, for exactly the same reason: nobody at the receiving end checked it. Claiming 'human' would be asserting something this package could no longer back."
     },
     {
       "question": "So does the loop close?",
       "commitment": "No. Measured both routes, and it was not what I first assumed.",
-      "why": "Without nugget_id the write is action='created' \u2014 a duplicate, and jeles then serves the original because human outranks asserted, so the round trip's contribution is invisible and the corpus is one row bigger. With the original id it is refused: {'error': 'kind_downgrade_refused'}, and the message is better than most \u2014 'A lower rung cannot overwrite a higher one \u2014 write it as a new nugget and let a person supersede the existing one.' I had assumed the first route would hit the overwrite guard; it does not, because the guard is only reached when an id is supplied. Checked rather than described, and the recipe's LANDING constant records both outcomes as text."
+      "why": "Without nugget_id the write is action='created' — a duplicate, and jeles then serves the original because human outranks asserted, so the round trip's contribution is invisible and the corpus is one row bigger. With the original id it is refused: {'error': 'kind_downgrade_refused'}, and the message is better than most — 'A lower rung cannot overwrite a higher one — write it as a new nugget and let a person supersede the existing one.' I had assumed the first route would hit the overwrite guard; it does not, because the guard is only reached when an id is supplied. Checked rather than described, and the recipe's LANDING constant records both outcomes as text."
     },
     {
       "question": "Whose bug is it?",
       "commitment": "Nobody's. Every step is correct behaviour on both sides.",
-      "why": "Inbound this store demotes because verified_by is unsigned \u2014 correct. Outbound it degrades to asserted because the schema has nowhere to put evidence \u2014 correct given the schema. On landing it duplicates or is refused \u2014 both correct. The asymmetry is not in the trust models, which are nearly identical and were arrived at independently; it is that one of them has a field for a signature. That is the finding, and it is worth more than a defect would be."
+      "why": "Inbound this store demotes because verified_by is unsigned — correct. Outbound it degrades to asserted because the schema has nowhere to put evidence — correct given the schema. On landing it duplicates or is refused — both correct. The asymmetry is not in the trust models, which are nearly identical and were arrived at independently; it is that one of them has a field for a signature. That is the finding, and it is worth more than a defect would be."
     },
     {
       "question": "Then fix jeles?",
       "commitment": "No. PROPOSAL states the one-field fix and this branch does not make it.",
-      "why": "It is their schema. A seal_sig or general evidence mapping would let a verification cross a repository boundary intact, and would be the only version of this integration where the round trip adds something instead of costing something. Proposed, not made \u2014 the same rule that governs every row this package writes, applied to a change in somebody else's repository."
+      "why": "It is their schema. A seal_sig or general evidence mapping would let a verification cross a repository boundary intact, and would be the only version of this integration where the round trip adds something instead of costing something. Proposed, not made — the same rule that governs every row this package writes, applied to a change in somebody else's repository."
     },
     {
       "question": "Does the export guard hold?",
       "commitment": "Proven by mutation, and the test was rewritten because it was skipping.",
-      "why": "A row that says sealed and whose signature does not verify is not exported \u2014 laundering outward is still laundering. The first version of that test asked the store for a way to forge a row in place, found none, and skipped, which proved nothing at all. Rewritten to forge the way the threat actually looks: file-backed store, straight into tm_pairs behind the library, then assert the forgery genuinely fails is_verified_seal before asserting the export refuses it. Removing the check turns it red."
+      "why": "A row that says sealed and whose signature does not verify is not exported — laundering outward is still laundering. The first version of that test asked the store for a way to forge a row in place, found none, and skipped, which proved nothing at all. Rewritten to forge the way the threat actually looks: file-backed store, straight into tm_pairs behind the library, then assert the forgery genuinely fails is_verified_seal before asserting the export refuses it. Removing the check turns it red."
     },
     {
       "question": "The round trip was only exercised by tests. Make it runnable?",
-      "commitment": "Yes \u2014 demo/the_border.py, seven beats, both directions.",
-      "why": "This repo's own policy is that the thing which earned a finding ships runnable, and the finding here is a claim about two packages interacting. A test asserting it is a gate; a fixture walking it is the only form somebody can read and disbelieve. It is also the odd one out in demo/: not fiction. Both packages are real and every number it prints was produced by running it \u2014 only the nugget's content is invented."
+      "commitment": "Yes — demo/the_border.py, seven beats, both directions.",
+      "why": "This repo's own policy is that the thing which earned a finding ships runnable, and the finding here is a claim about two packages interacting. A test asserting it is a gate; a fixture walking it is the only form somebody can read and disbelieve. It is also the odd one out in demo/: not fiction. Both packages are real and every number it prints was produced by running it — only the nugget's content is invented."
     },
     {
       "question": "jeles is not a dependency. What does the fixture do without it?",
@@ -76,8 +75,8 @@
     },
     {
       "question": "Its gap() assertions are about somebody else's code. Is that different?",
-      "commitment": "Yes, and the message says so: 'CHANGED ON THEIR SIDE \u2014 re-read jeles and update both'.",
-      "why": "Every other fixture here fails when nestor breaks. This one also fails when jeles moves \u2014 grows a field for evidence, or changes how a downgrade lands \u2014 and that is the likeliest way it goes stale, because nobody working in this repo will be watching. A generic red would send somebody hunting in the wrong repository."
+      "commitment": "Yes, and the message says so: 'CHANGED ON THEIR SIDE — re-read jeles and update both'.",
+      "why": "Every other fixture here fails when nestor breaks. This one also fails when jeles moves — grows a field for evidence, or changes how a downgrade lands — and that is the likeliest way it goes stale, because nobody working in this repo will be watching. A generic red would send somebody hunting in the wrong repository."
     },
     {
       "question": "Can it touch a real corpus?",
@@ -89,5 +88,6 @@
       "commitment": "No. One asserted on a phrase with an ANSI escape through the middle of it.",
       "why": "The fixture colours its output, so '0 sealed, 1 demoted to draft' is not a contiguous string in stdout. The assertion failed on a claim that was true. Fixed by stripping escapes in the test rather than by loosening the assertion, which was the tempting wrong move: the weaker version would have passed against output that no longer said what it needed to."
     }
-  ]
+  ],
+  "consolidated_onto": "claude/the-box"
 }

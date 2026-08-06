@@ -5,8 +5,8 @@
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T18:43:37.549873+00:00",
-  "digest": "f596928f789bce7a90d11e6ea1c9b92a680166e2c451f31131ed4d11d3bb2e38",
+  "created_at": "2026-08-06T18:46:01.709026+00:00",
+  "digest": "8f3fa8eca050e8ddba9ebd14fec5515aa9a07ab96c8ef89360cb68bfc79ebd15",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,9 +19,9 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T18:43:37.536670+00:00",
-      "id": "3cf06621-dca1-4770-a1a8-a1420ebc02b6",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.702826+00:00",
+      "id": "8b7195fb-1b71-4503-a2a6-dccf0179d6ce",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "how was each gate shown to be a gate",
@@ -33,9 +33,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.535776+00:00",
-      "id": "a7adf5f0-1625-491a-aa5e-31e4bc360d35",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.702263+00:00",
+      "id": "442d6a61-c63b-4c5a-81e5-3f53d07cb576",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is two verifiers the same independence jeles means",
@@ -47,9 +47,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.533466+00:00",
-      "id": "8a98424a-c874-47a8-9e15-37a4b1d3d37d",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.701456+00:00",
+      "id": "32552cc3-bd7d-4841-930b-ee2dfb123fc5",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "was step 2 actually answered",
@@ -61,9 +61,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.532668+00:00",
-      "id": "b90e461a-54b8-4b44-9c7d-56a8e1d9b6e4",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.700813+00:00",
+      "id": "6f55aced-9ef6-47c0-864c-af9d70174767",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what does it do with a chain that does not verify",
@@ -75,9 +75,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.532236+00:00",
-      "id": "a61e46e2-b4d7-4d63-b171-3a9f2428ab68",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.700164+00:00",
+      "id": "3d1821eb-c830-415c-9693-3d1243de7414",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "how are actors counted across ledger kinds",
@@ -89,9 +89,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.531417+00:00",
-      "id": "38975d0b-098b-45d1-ae26-e03305e6f91c",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.699585+00:00",
+      "id": "bc935974-af83-4257-b496-d7b8fcda2eb9",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "a chain with zero countersignatures is that data about quorum",
@@ -103,9 +103,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.530724+00:00",
-      "id": "63c1f830-7ec7-4841-ac34-295ed72eb897",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.699030+00:00",
+      "id": "63b573dd-6e69-4e6b-996f-41a0f16fd71d",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "both numbers are printed why not just the correct one",
@@ -117,9 +117,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.529596+00:00",
-      "id": "c1a98519-4603-4d63-95bb-8ada16208682",
-      "origin": "pr:61",
+      "created_at": "2026-08-06T18:46:01.698240+00:00",
+      "id": "c89af0e0-cb63-4cb3-bbed-6cc56a92d21d",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "why is the countersignature count a script rather than a grep",
@@ -131,9 +131,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.528502+00:00",
-      "id": "bc64f88e-cbaf-455e-9fac-cf1222bfc173",
-      "origin": "pr:60",
+      "created_at": "2026-08-06T18:46:01.697063+00:00",
+      "id": "8ebfeaed-3d68-492e-943e-29fbc02816f5",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "where does the clause text come from",
@@ -145,9 +145,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.527534+00:00",
-      "id": "8f18f907-18b0-4a6b-8f66-6658d65bf55a",
-      "origin": "pr:60",
+      "created_at": "2026-08-06T18:46:01.696520+00:00",
+      "id": "a3f5b3fb-19a8-4cd2-839e-bedc843561ac",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the first run reported const05 failing was it",
@@ -159,9 +159,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.526744+00:00",
-      "id": "1b9fd4e6-7120-4267-b6d1-3b77de8c84fb",
-      "origin": "pr:60",
+      "created_at": "2026-08-06T18:46:01.695891+00:00",
+      "id": "fad11a38-4940-499c-bd1f-918a7d2d20c6",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "const03ii satisfied or not applicable",
@@ -173,9 +173,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.526174+00:00",
-      "id": "5c0517d7-eaba-4912-a599-2e6900b3545c",
-      "origin": "pr:60",
+      "created_at": "2026-08-06T18:46:01.695245+00:00",
+      "id": "b7eb1880-e39e-4ea6-880e-db18d535feb7",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "why a fourth verdict differently rather than pass or fail",
@@ -187,9 +187,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.524870+00:00",
-      "id": "3582ee65-da06-4b6f-84c2-455608ea6d24",
-      "origin": "pr:60",
+      "created_at": "2026-08-06T18:46:01.694578+00:00",
+      "id": "a42cc12b-6ffb-4f5d-8a41-7d9c745cfe71",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "does the package satisfy the constitution it was extracted from",
@@ -201,9 +201,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.523656+00:00",
-      "id": "6d01f04a-c70b-4161-9e98-4ada59c16981",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.693955+00:00",
+      "id": "786610ee-a9fe-4368-a3e4-59f3efe5dcec",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "anything go wrong in this round",
@@ -215,9 +215,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.521047+00:00",
-      "id": "8fb2f0cd-2fe9-4cac-adf4-2ae146633217",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.693475+00:00",
+      "id": "d10d1d1b-e88c-4e59-bca3-a2beafb8c9cf",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "did the late feeders repeat the emptyversusunreadable mistake",
@@ -229,9 +229,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.520139+00:00",
-      "id": "83131b48-a3f5-4269-a593-8d49f5e6362d",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.692838+00:00",
+      "id": "4c6381ee-37ec-4ba0-bfae-6ef343dab592",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the migrations feed contradicted the jeles feed which is right",
@@ -243,9 +243,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.519253+00:00",
-      "id": "f03eeba1-5152-4611-9fd3-40079e250a13",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.692285+00:00",
+      "id": "d1b5fc05-4718-4212-9358-801036ba1c57",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the remaining two feeds what are they",
@@ -257,9 +257,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.518113+00:00",
-      "id": "7a4991cd-cc1b-4d97-aafd-905830e834e4",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.691549+00:00",
+      "id": "62669e3e-b8c6-4efe-a4b8-6470832bc9a6",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is a true empty a failure",
@@ -271,9 +271,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.516235+00:00",
-      "id": "99ed9bd9-7bae-4b43-a4e5-ed31cf8a369a",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.690991+00:00",
+      "id": "f9117ce5-e5b5-46d4-be86-5c990d400570",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "import the feeders or run them as subprocesses",
@@ -285,9 +285,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.515310+00:00",
-      "id": "22cb2a9d-0eb0-45f2-8e26-b31397d27cf0",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.690480+00:00",
+      "id": "a16e9a4d-d122-477e-b49a-816644b49917",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what does the top add that the feeders do not have alone",
@@ -299,9 +299,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.514178+00:00",
-      "id": "f20ac68d-3b5c-402f-97da-9188eac77c5f",
-      "origin": "pr:59",
+      "created_at": "2026-08-06T18:46:01.689879+00:00",
+      "id": "449721c9-5231-4d81-95f6-5c8d2a496b8b",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "running the feeders empty what did it find",
@@ -313,9 +313,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.513081+00:00",
-      "id": "b66e92f8-0a13-4c74-9d60-fbbddec237d9",
-      "origin": "pr:58",
+      "created_at": "2026-08-06T18:46:01.689258+00:00",
+      "id": "3b125bfb-92db-4893-9210-cb653648df87",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is the sharedhost count a security finding",
@@ -327,9 +327,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.511170+00:00",
-      "id": "91300ebb-000f-4a7b-b05c-c4c891fa4130",
-      "origin": "pr:58",
+      "created_at": "2026-08-06T18:46:01.688517+00:00",
+      "id": "da115074-3a2f-4592-bbf0-e0d357b7160a",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "43 of 71 subjects have exactly one source is that a finding",
@@ -341,9 +341,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.510397+00:00",
-      "id": "1ff0a102-b472-4b44-9b4a-d28a553d7d04",
-      "origin": "pr:58",
+      "created_at": "2026-08-06T18:46:01.687910+00:00",
+      "id": "8c3aa923-304c-4784-8857-e711762bafbc",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "a custom matcher for source declarations",
@@ -355,9 +355,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.509480+00:00",
-      "id": "b022fbe4-d531-4592-bdd8-1fb93f874f19",
-      "origin": "pr:58",
+      "created_at": "2026-08-06T18:46:01.687362+00:00",
+      "id": "58835769-062a-43a8-ae7f-9fcabaea0cdd",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "why this corpus rather than willow19s gaps which was the first pick",
@@ -369,9 +369,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.508412+00:00",
-      "id": "667a4662-881a-433c-81dc-f840af9d95d1",
-      "origin": "pr:58",
+      "created_at": "2026-08-06T18:46:01.686739+00:00",
+      "id": "74272d08-3f99-4385-8317-4c6135be2045",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "which field of a source declaration is worth a seal",
@@ -383,9 +383,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.507126+00:00",
-      "id": "586e8b11-cc5c-416a-8f7e-f488d6c4dbc4",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.686110+00:00",
+      "id": "b1d93d9c-e912-4707-9505-508daf144052",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the suite is clean but ruff check scripts is not fix it here",
@@ -397,9 +397,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.506439+00:00",
-      "id": "28a46816-5285-4894-a76c-b8cfef86e6c0",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.685333+00:00",
+      "id": "5e8bc854-53f0-42ef-b0c4-cd7c88bb31bb",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "do any two clauses collide in this store",
@@ -411,9 +411,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.505440+00:00",
-      "id": "06f5f677-373c-42ab-908d-77e9c6dfad54",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.684506+00:00",
+      "id": "cb2cb2de-a294-4dd3-b5f4-5b2f6585fda3",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what did the first run find",
@@ -425,9 +425,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.504537+00:00",
-      "id": "2a4129f9-1e91-402a-a93a-d87d7e9a9d8d",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.683770+00:00",
+      "id": "89f34c35-c9f7-4b50-8da4-9eeb332838d0",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "a fourth matcher for clause text",
@@ -439,9 +439,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.501148+00:00",
-      "id": "3889b963-4e5d-4ad9-8b26-be27cdbcf8f9",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.682943+00:00",
+      "id": "539d121c-cf23-443d-8af5-86846f633aa0",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "read by importing or by parsing",
@@ -453,9 +453,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.500189+00:00",
-      "id": "8c6616ee-6e4d-4fd8-b0ce-c569a27878b7",
-      "origin": "pr:57",
+      "created_at": "2026-08-06T18:46:01.681674+00:00",
+      "id": "57dd0154-b83f-4fe3-8b33-66fa479625b9",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what is the sourcetarget pair when you feed a repo a constitution",
@@ -467,9 +467,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.498443+00:00",
-      "id": "0452e99a-326e-4add-bb5f-785df3adecef",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.680417+00:00",
+      "id": "47577ff8-e021-49de-a32b-857841237ece",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "these are claims about repositories this repo does not control how are they held",
@@ -481,9 +481,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.496962+00:00",
-      "id": "51413a17-b04d-4e97-a43f-f9c31597e5ad",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.679631+00:00",
+      "id": "7a0559cf-2146-4e69-8e73-3bd469851381",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what is the sharpest single artifact in the ancestry",
@@ -495,9 +495,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.495686+00:00",
-      "id": "a9be3136-14a0-42dd-a036-766139015552",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.678848+00:00",
+      "id": "dfc449ea-1149-4a13-8beb-ab58c9ed464d",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what did this package actually add then",
@@ -509,9 +509,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.494564+00:00",
-      "id": "e2ebfc6c-beb7-4018-95e3-677c8c1efc8d",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.677943+00:00",
+      "id": "973a8573-82c4-41fc-895f-6119593c7406",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is you may propose you may not confirm original to this package",
@@ -523,9 +523,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.493666+00:00",
-      "id": "12700fbc-9c1c-419a-b70e-31409d8c2169",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.677130+00:00",
+      "id": "151337e2-15df-410d-962a-50a9930ad1fa",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "both halves in one table",
@@ -537,9 +537,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.492830+00:00",
-      "id": "f51b91c4-4f8e-41e0-b62b-9ce8b4a3d9e5",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.676279+00:00",
+      "id": "e9be2799-5ab0-45a6-8a18-dd929780fee9",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what prompted it",
@@ -551,9 +551,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.492044+00:00",
-      "id": "f4f2d7c1-01ac-41df-93f8-4c305e7956e5",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.674932+00:00",
+      "id": "8bf17bcf-8ed2-494b-9812-efd9eee72649",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "why is this worth a heading rather than a clause",
@@ -565,9 +565,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.491339+00:00",
-      "id": "819100e6-2940-40d3-b03d-ad301a343b75",
-      "origin": "pr:56",
+      "created_at": "2026-08-06T18:46:01.673830+00:00",
+      "id": "605eacd1-fb3f-4409-bc2a-7cea2abf1a05",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is a choice made in chat is not a signature wrong",
@@ -579,9 +579,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.490445+00:00",
-      "id": "09fb8094-5d3d-439d-a51a-4549e030d2a3",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.673163+00:00",
+      "id": "cad37026-af15-4ed3-92ea-2820f3602d47",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "did the fixtures own tests hold first time",
@@ -593,9 +593,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.489692+00:00",
-      "id": "a9af07d6-327a-4dbd-8a89-e86d5aa73a32",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.672513+00:00",
+      "id": "9dc1d98d-695c-43ec-be5f-2efbf5293c5c",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "can it touch a real corpus",
@@ -607,9 +607,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.488718+00:00",
-      "id": "c5834b1c-7af9-48b6-9f74-6f96747138ef",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.671674+00:00",
+      "id": "188755cc-ff62-48cf-b661-98d91f724712",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "its gap assertions are about somebody elses code is that different",
@@ -621,9 +621,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.486614+00:00",
-      "id": "3a3b1337-3a99-47a4-949e-cecd9573d3d5",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.670966+00:00",
+      "id": "05e6ba31-1d74-4ccb-8c5b-3fe83bf4b074",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "jeles is not a dependency what does the fixture do without it",
@@ -635,9 +635,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.484421+00:00",
-      "id": "580c4038-9a91-46d2-8fbe-cc23d568b478",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.669899+00:00",
+      "id": "f1b5d113-4f5e-4301-a8ca-3de7ab0f2053",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the round trip was only exercised by tests make it runnable",
@@ -649,9 +649,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.483387+00:00",
-      "id": "e9d6a641-03c4-4572-beeb-915cadabaeb9",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.669100+00:00",
+      "id": "37a67d73-1ff6-4d8e-bf3f-4e9b7f9dc284",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "does the export guard hold",
@@ -663,9 +663,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.482333+00:00",
-      "id": "fd990173-08e0-423e-987a-0ac93cb4369b",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.668250+00:00",
+      "id": "3cd5d96c-98e4-4b8e-9645-6215ea3c8e6b",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "then fix jeles",
@@ -677,9 +677,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.480767+00:00",
-      "id": "eba69b45-04e0-448a-803f-2fdd22e61d84",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.667190+00:00",
+      "id": "485eff5f-33cc-42a2-b7fd-892e783b5623",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "whose bug is it",
@@ -691,9 +691,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.479693+00:00",
-      "id": "300043dd-f67b-4987-bd54-d6cca5d077a9",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.665928+00:00",
+      "id": "b44ed44f-36f7-44bd-ba8a-66c72ac45511",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "so does the loop close",
@@ -705,9 +705,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.477590+00:00",
-      "id": "6af0bf60-5264-4c48-89df-95ec70f02ec1",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.664768+00:00",
+      "id": "ac0babf3-66cc-46a2-bbed-a439f35fdbc9",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what does a nestor seal look like once it goes back to jeles",
@@ -719,9 +719,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.476808+00:00",
-      "id": "9d230f6f-acdf-443a-beab-cbab322cbc42",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.663956+00:00",
+      "id": "f1480c0f-aec3-4993-ba07-8b23f1f1d05f",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "two sibling repos in one fleet did either know about the other",
@@ -733,9 +733,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.475716+00:00",
-      "id": "20003412-2be6-4834-978d-04b62a2bf46b",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.663010+00:00",
+      "id": "1ad3c598-56a3-42b2-bc42-645be3601adf",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "should the test suite depend on jeles being installed",
@@ -747,9 +747,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.474127+00:00",
-      "id": "f81d46a4-e9e8-46e9-b4df-90c3a34b39ab",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.662095+00:00",
+      "id": "03c303e3-3bab-4dec-9326-68b2fbfcdd39",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "can a bridged nugget be sealed through the human surface",
@@ -761,9 +761,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.472844+00:00",
-      "id": "601f2072-e480-4f66-b0b2-b0394a771293",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.661388+00:00",
+      "id": "7336f9ea-b6f5-4c65-9fbd-3b6aee14eafd",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "do jeles gaps become rows",
@@ -775,9 +775,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.471740+00:00",
-      "id": "e076fcb7-00d7-433d-855e-b895db70c78a",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.660349+00:00",
+      "id": "fcbb5936-32fa-4f55-9b06-53eda0244f57",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what does the matcher mirror jeles ranking or its answering",
@@ -789,9 +789,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.470195+00:00",
-      "id": "67838b54-833c-4a5c-b3e6-9962e416e3cf",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.659755+00:00",
+      "id": "f6b33f02-38cf-46cd-bfce-02d6a3e23dd1",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is anything lost by demoting",
@@ -803,9 +803,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.469381+00:00",
-      "id": "bf42ba89-eb96-4d0e-9886-f714ca8de90f",
-      "origin": "pr:55",
+      "created_at": "2026-08-06T18:46:01.658944+00:00",
+      "id": "655c5700-9431-47f7-aa88-0dd4565ee561",
+      "origin": "pr:?",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "jeles nuggets carry verified_by and verified_at do they cross as sealed",
@@ -817,8 +817,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.467583+00:00",
-      "id": "6abef195-70d4-41fa-8633-c83dba7b1587",
+      "created_at": "2026-08-06T18:46:01.658117+00:00",
+      "id": "210bda34-cc3b-4438-a7d4-800e71c7f880",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -831,8 +831,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.466629+00:00",
-      "id": "f5a92008-4c59-41d6-8e6b-f3785efbbb6d",
+      "created_at": "2026-08-06T18:46:01.657397+00:00",
+      "id": "a152b938-aa0f-4926-becc-dc0428a96fac",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -845,8 +845,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.465319+00:00",
-      "id": "1b8d18e3-7414-4c5a-98ab-6de33f848701",
+      "created_at": "2026-08-06T18:46:01.655772+00:00",
+      "id": "fc5e4785-4569-4201-8441-d8e44ceabb49",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -859,8 +859,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.464509+00:00",
-      "id": "58a54b57-e4d5-425d-9651-97d5a1cae6f3",
+      "created_at": "2026-08-06T18:46:01.655027+00:00",
+      "id": "06f27869-76bd-490d-a8b9-a99676bb7259",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -873,8 +873,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.463450+00:00",
-      "id": "60b15f38-208f-4846-8c79-42fe64733009",
+      "created_at": "2026-08-06T18:46:01.654389+00:00",
+      "id": "ba57756f-5101-43e9-ba1a-def1d7abdde8",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -887,8 +887,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.462661+00:00",
-      "id": "37691ebf-c9f3-4371-ac0b-c09351613140",
+      "created_at": "2026-08-06T18:46:01.653568+00:00",
+      "id": "18ff1f34-1463-41b6-8ebb-55aad5d7267a",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -901,8 +901,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.461983+00:00",
-      "id": "ebe42f1e-0468-4e51-9565-2302a9fb67a1",
+      "created_at": "2026-08-06T18:46:01.652776+00:00",
+      "id": "69c61777-3bc4-4882-b1ea-36bee8768034",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -915,8 +915,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.461435+00:00",
-      "id": "5bb62278-1d8d-48a9-9c6e-38ce4944887d",
+      "created_at": "2026-08-06T18:46:01.651446+00:00",
+      "id": "38c0e712-89c4-4d53-81ab-dbcde0234821",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -929,8 +929,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.460961+00:00",
-      "id": "d4349fad-e4b3-467b-afb7-a1377984778c",
+      "created_at": "2026-08-06T18:46:01.650744+00:00",
+      "id": "29037e2d-cf64-43f3-a5a5-ef230e699fb9",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -943,8 +943,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.460464+00:00",
-      "id": "fe530aef-5a9b-44e2-89db-612ee126e984",
+      "created_at": "2026-08-06T18:46:01.649893+00:00",
+      "id": "b948e4f5-e0dc-4387-a0ab-62cf8e8436aa",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -957,8 +957,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.459974+00:00",
-      "id": "47408460-c9d0-4be4-9ee5-14d2cdfff774",
+      "created_at": "2026-08-06T18:46:01.649074+00:00",
+      "id": "0e808b10-b054-4c74-8387-a7590569269f",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -971,8 +971,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.459457+00:00",
-      "id": "068e516c-39a6-4ec5-be74-f59fd37c467b",
+      "created_at": "2026-08-06T18:46:01.648365+00:00",
+      "id": "2c61f4da-c40f-4718-8b7d-b9c460c7af93",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -985,8 +985,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.458787+00:00",
-      "id": "5c7c6c50-8473-4aab-b277-9ad1f96743a9",
+      "created_at": "2026-08-06T18:46:01.647494+00:00",
+      "id": "9b83ac15-dfbd-4bb7-9115-cbb4a925d781",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -999,8 +999,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.458234+00:00",
-      "id": "ed34e5fc-4fcc-4e5a-87e3-aa07beac5b51",
+      "created_at": "2026-08-06T18:46:01.645963+00:00",
+      "id": "8d64cc83-1479-412f-b967-d0e424ad765c",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1013,8 +1013,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.457515+00:00",
-      "id": "e0c6b6b5-8d6f-4f91-b89e-ef55719abedf",
+      "created_at": "2026-08-06T18:46:01.644544+00:00",
+      "id": "fd96f145-1ef5-4030-9241-6c884380708b",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1027,8 +1027,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.456763+00:00",
-      "id": "81485e35-089f-4b9b-ae65-2b97b4c68a10",
+      "created_at": "2026-08-06T18:46:01.643470+00:00",
+      "id": "b33af8a1-38ec-47c8-bf9e-9ef0c494a7f5",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1041,8 +1041,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.456332+00:00",
-      "id": "52766e75-27da-4a76-a442-f7a02eb5707f",
+      "created_at": "2026-08-06T18:46:01.642535+00:00",
+      "id": "5cf5a63b-a903-485b-b924-cc47beb4ce82",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1055,8 +1055,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.455839+00:00",
-      "id": "7c065f93-a629-4780-b8a0-d4d42655ac4c",
+      "created_at": "2026-08-06T18:46:01.641626+00:00",
+      "id": "ce3c1016-4ab1-44d7-b5fe-cf11cc06f164",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1069,8 +1069,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.455346+00:00",
-      "id": "8cac1154-8119-4d0e-8fa1-b06125217589",
+      "created_at": "2026-08-06T18:46:01.641002+00:00",
+      "id": "4170b1cc-37d7-4aec-af04-f8b2e0bb864c",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1083,8 +1083,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.454759+00:00",
-      "id": "4fe4af6e-4d8e-490e-9495-0350779b759e",
+      "created_at": "2026-08-06T18:46:01.640075+00:00",
+      "id": "8a714adf-527e-4d81-946b-f0365820520d",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1097,8 +1097,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.454223+00:00",
-      "id": "364ec09e-2d32-4ad8-badb-d8e10e8e4069",
+      "created_at": "2026-08-06T18:46:01.639416+00:00",
+      "id": "edc66590-d3fb-40f7-8882-9146761bbb46",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1111,8 +1111,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.453634+00:00",
-      "id": "3074f6b9-699f-4418-91be-a751624a8714",
+      "created_at": "2026-08-06T18:46:01.638666+00:00",
+      "id": "fabcabf0-e0c3-4928-ab83-9b36695f4aa7",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1125,8 +1125,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.453017+00:00",
-      "id": "6ef96653-33c8-4777-8c28-ea41abaa6860",
+      "created_at": "2026-08-06T18:46:01.638107+00:00",
+      "id": "5a3339b0-3d89-4039-8020-bc972fd10e66",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1139,8 +1139,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.452443+00:00",
-      "id": "0d11685e-f62d-4a37-ab75-2c11963cd03b",
+      "created_at": "2026-08-06T18:46:01.637430+00:00",
+      "id": "5d7168ba-50ef-468d-8f30-cc308e19f5cb",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1153,8 +1153,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.451863+00:00",
-      "id": "3aeeee28-c60d-4ed1-adcd-f8fe3715e83f",
+      "created_at": "2026-08-06T18:46:01.636807+00:00",
+      "id": "32e39624-9d45-4c00-9f9a-d9c9dbe99020",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1167,8 +1167,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.450703+00:00",
-      "id": "a58eedac-7e55-478f-b182-f2002e5340bb",
+      "created_at": "2026-08-06T18:46:01.635556+00:00",
+      "id": "d5394a74-9cbf-4aa7-9363-dea37539b657",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1181,8 +1181,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.449630+00:00",
-      "id": "b9ec8c83-f974-4207-83c0-711b5ff52c57",
+      "created_at": "2026-08-06T18:46:01.634900+00:00",
+      "id": "f72b002e-d2a8-43d1-85c7-7488683db64d",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1195,8 +1195,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T18:43:37.448524+00:00",
-      "id": "62f2a5f1-c167-4ccd-ab9c-56377a3e5aab",
+      "created_at": "2026-08-06T18:46:01.634044+00:00",
+      "id": "d72abe41-13d9-48cf-8ff0-c52f733779a6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",

@@ -1,8 +1,7 @@
 {
-  "pr": 58,
   "branch": "claude/feed-jeles-sources",
   "date": "2026-08-06",
-  "note": "Second repo feed, stacked on claude/feed-willow-constitution. jeles' 65-institution source registry, as source -> the subjects it claims to serve. PROVISIONAL NUMBER — no PR open yet.",
+  "note": "Second repo feed, stacked on claude/feed-willow-constitution. jeles' 65-institution source registry, as source -> the subjects it claims to serve. . CONSOLIDATED 2026-08-06 onto claude/the-box: this and six sibling decision files were written on separate branches and now land in ONE pull request. The `pr` field is null rather than the provisional number this file was named with — the number was a guess, and every row built from it carries `pr:N` as its origin, so guessing put a PR that does not exist into the store's provenance. The key is REMOVED rather than set to null: the builder reads `data.get('pr', '?')`, so a present-but-null key yields the origin `pr:None` — measured, after this file first said `pr:?` while the store said otherwise. Absent, it reads `pr:?` until a real number is assigned. The file name and `branch` keep the history of where the work was actually done.",
   "decisions": [
     {
       "question": "Which field of a source declaration is worth a seal?",
@@ -29,5 +28,6 @@
       "commitment": "No. 2 shared hosts out of 84 is a tight allow-list, and the script now says so.",
       "why": "The first draft framed it as adjacent to willow-2.0's CONST-0-3 (no self-extension of reach), which reads as an accusation the numbers do not support. Granting one source's reach does grant a host others use — at this ratio that is a note, not a finding. Recorded because overstating a neighbour's risk is the same error as overstating my own certainty, and I did it in the same file where I caught the other one."
     }
-  ]
+  ],
+  "consolidated_onto": "claude/the-box"
 }

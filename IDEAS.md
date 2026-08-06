@@ -3704,3 +3704,61 @@ Witness. That caveat lands harder here. jeles at least has
 `registrable_domain()` to collapse two pages on one site into one source. There
 is no such function for humans, and two names in the `verifier` column can be
 one person with two keys.
+
+---
+
+### 6.43 `dogfood_store.py --verify` says the store matches the decision files, and does not check where a row came from — **measured**, fix **open**
+
+*Found 2026-08-06 while consolidating seven branches into one and correcting the
+`pr` field in seven decision files. Found by querying the store instead of
+trusting the gate that had just said the store was correct.*
+
+The builder turns each file's `pr` field into every row's **origin**:
+
+```python
+origin = f"pr:{data.get('pr', '?')}"
+```
+
+`--verify` compares a digest, and the digest is over three columns:
+
+```python
+rows = sorted((p["source_text"], p["target_text"], p["status"]) ...)
+```
+
+`origin` is not among them. Neither is `reason`. So a decision file can change
+where its rows claim to have come from, the committed `.db` can keep saying
+something else, and the gate prints:
+
+```
+the committed store matches the decision files, and seals nothing
+```
+
+Measured: set `"pr": 9999` in one decision file, do **not** rebuild, run
+`--verify`. Exit 0, digest unchanged, and the store still says `pr:?` for those
+rows. The sentence the gate prints is wider than the check it ran — it says
+*matches the decision files*, and it means *the questions, commitments and
+statuses match*.
+
+Why it matters more here than the size of the bug suggests: the dogfood store's
+entire claim is provenance. `tests/test_dogfood_store.py` opens by saying the
+value of that store "is entirely in where its rows came from — a memory whose
+contents arrived from somewhere nobody can see is not an audit trail, it is a
+pile." The one field carrying *where it came from* is the field the gate does
+not cover.
+
+**It is also the repo's recurring shape, in a mild form.** The digest is a
+narrower assertion than the sentence printed beside it, so the guard is real and
+the promise is not — `docs/code-review-lessons.md` §8–§9, one layer up from the
+usual instance.
+
+**Fix, deliberately not taken in the consolidation PR that found it.** Add
+`origin` (and probably `reason`) to `_bundle_digest`. That churns the digest once
+and closes it. It was left out because the branch it was found on exists to
+*reduce* scope, and a gate's semantics changing inside a seven-branch merge is
+the wrong place to hide it. The finding is here so the fix can be its own change
+with its own mutation test — a digest that does not go red when `origin` moves is
+the whole defect, so the test writes itself.
+
+**Not affected:** this consolidation's own correctness. The seven files' origins
+were checked by querying `tm_pairs` directly rather than by believing `--verify`,
+which is how the gap was noticed at all.
