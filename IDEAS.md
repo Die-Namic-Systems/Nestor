@@ -4509,3 +4509,49 @@ fourth: the `### P1:` convention held, this did not. The difference is that a
 form either recurs or does not, while a quantity has a distribution, and three
 points do not describe one. **Any future claim of this shape needs its spread
 reported beside it, not just its centre.**
+
+### 6.53 claude_code_RLM: the third bookmark, and the pairing that gives it meaning — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/claude_code_RLM` (created 2026-04-28), rung
+12, a fork. The operator asked for this and rung 11 to be read together: both
+were created on the same day, one a private repository of their own and one a
+fork of somebody else's.*
+
+```
+delta: 0 of 4 commit(s) by rudi193@gmail.com, touching 0 file(s)
+0 pair(s): 0 draft, 0 sealed
+```
+
+Four commits in the entire history, all four by `john-adeojo@brainqub3.com`, all
+dated 2026-01-18 — three months before the fork was taken. Ten files. Forked,
+never touched. The third bookmark in five forks read.
+
+**The pairing is what makes the zero informative, and it is the operator's
+framing rather than mine.** These two repositories were created the same day:
+
+| | willow-bot (own) | claude_code_RLM (fork) |
+|---|---|---|
+| drafts | 100 | 0 |
+| commits by the operator | the whole history | 0 of 4 |
+| shapes declared | docstrings, rubric, **rules** | none |
+
+On 2026-04-28 the operator built a bot with a named trigger table and bookmarked
+somebody's scaffold. A chronology alone records two repositories created that
+day and implies a day's work in two places. The corpus says one of them is work
+and the other is a link, and it says it with a number that does not depend on
+anyone remembering.
+
+**Three of five forks are empty, and that ratio is now worth watching rather
+than concluding.** `hermes-agent` 2 commits, `python-sdk` 0, `litellm` 0,
+`claude_code_RLM` 0 — and §6.52 has just finished being corrected for stating a
+rate from too few points. So: **4 of 5 forks read so far carry no operator
+commit; 39 forks remain unread; no rate is claimed.** The number goes in the
+record because it will be checkable against the other 39, not because it means
+something yet.
+
+**What a bookmark still tells you.** Nothing about the operator's code, and
+something about their reading: what they thought worth keeping a copy of, and
+when. That is real information and this corpus cannot hold it — a fork with zero
+commits produces zero rows, so the *act of forking* leaves no trace in the store
+at all. Whether that act belongs in the memory is a question for the operator,
+not for the extractor, and it is written down here rather than answered.
