@@ -2676,6 +2676,35 @@ data did not exist. It exists now. **Nobody has run that measurement yet**, and
 the memo's position is unchanged until somebody does: N-of-M is a schema change
 that should not be designed for users who have not been shown to exist.
 
+> **Two things review found, and the second is this entry's own defect one edge
+> over.**
+>
+> **Counting.** `seal` is idempotent and `countersign` is not: `rita`×3 records
+> one entry, `sam`×3 after rita records **three**. Kept deliberately — a seal is
+> a state and a countersignature is an event, and three attestations carry three
+> timestamps and three signatures that an append-only chain exists to keep. But
+> it means `grep -c countersign` answers a different question from the one step 2
+> asks, and a UI retry inflates it. The memo now says **count distinct
+> `(pair_id, verifier)`**, and a test pins the two fields that count needs. Not
+> deduplicated in code: that would put a ledger read on the write path — a new
+> interaction, to enforce something the reader can do for itself.
+>
+> **Append failure.** `_log_seal_event` swallows a failed append, warns, and
+> returns; its docstring says why, and the reason is *"the pair is already
+> committed… raising would hand the caller a completed write plus an
+> exception."* **A countersignature commits nothing.** The ledger entry is the
+> whole product, so swallowing meant the operation silently did not happen —
+> which is precisely the defect this entry exists to close, reappearing on the
+> error edge. Worse, the warning it did emit read *"a seal was written but its
+> ledger entry was not"* on a call where no seal was written, so the one signal
+> a curator got was false.
+>
+> Countersignatures now append through `_log_countersign`, which **raises**.
+> That is safe here for exactly the reason the swallow is safe there: there is
+> nothing to roll back, so the caller is left where they started. Two gates fail
+> against the reviewed revision; a third is a guard on the fields the count
+> needs.
+
 ### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
 
 *Found 2026-08-06 while answering §6.22's second question; see

@@ -225,6 +225,23 @@ signature on it, and the UI can say so precisely without inventing a scale.
    happened. They are recorded now, so the question is a `grep` over a real
    deployment's chain rather than an intuition.
 
+   **Count distinct `(pair_id, verifier)`, never raw lines.** This matters
+   before anybody runs it, and it was raised in review rather than noticed here:
+   `seal` is idempotent and `countersign` is not. Sealing three times as `rita`
+   records one entry; countersigning three times as `sam` records **three**.
+   That asymmetry is deliberate — a seal is a *state*, so re-asserting it
+   changes nothing, while a countersignature is an *event*, and three of them
+   are three attestations with three timestamps and three signatures, which an
+   append-only chain exists to keep rather than collapse.
+
+   The consequence is that a `grep -c countersign` answers a different question
+   from the one step 2 asks. A UI retry, a flaky client, or a reviewer
+   re-opening the seal dialog all inflate it. **Distinct actors is the
+   measurement; entries are the evidence.**
+   `test_repeat_countersignatures_each_record_as_their_own_attestation` pins the
+   two fields that count depends on, so they cannot be dropped while the rest of
+   the suite stays green.
+
    **Nobody has run it.** Until somebody does, everything below stays where it
    is. N-of-M is a schema change to the audited path, and designing one for
    users who have not been shown to exist is how a field ends up carrying a

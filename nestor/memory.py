@@ -438,7 +438,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             # between two people who never identified themselves. Both sides
             # must NAME somebody before this is evidence of anything.
             if first and verifier and first != verifier:
-                _log_seal_event({
+                _log_countersign({
                     "kind": "countersign", "pair_id": existing["id"],
                     "verifier": verifier, "countersigned": first,
                     "source_lang": source_lang, "target_lang": target_lang,
@@ -989,6 +989,29 @@ def _log_seal_event(entry: dict) -> None:
             f"{exc}. The store and the trail now disagree; run "
             f"nestor.ledger.verify() and reconcile before trusting this row.",
             RuntimeWarning, stacklevel=2)
+
+
+def _log_countersign(entry: dict) -> None:
+    """Append a countersignature, and **raise** if the trail will not take it.
+
+    The opposite posture to :func:`_log_seal_event`, on that function's own
+    reasoning. It swallows because *"the pair is already committed by the time
+    we get here"*, so raising would hand the caller a completed write plus an
+    exception — the worst of both.
+
+    A countersignature commits nothing. There is no row to leave behind: the
+    ledger entry **is** the whole product (IDEAS §6.26 — `tm_pairs` has one
+    `verifier` and one `seal_sig` and they belong to whoever sealed first). So
+    an append that fails means the operation did not happen, and returning
+    normally would silently reproduce the exact defect §6.26 exists to close,
+    one edge over. Raising leaves the caller where they started.
+
+    Found in review of the PR that added the countersignature: the swallowed
+    path also warned *"a seal was written but its ledger entry was not"* on a
+    call where no seal was written, so the one signal a curator got was false.
+    """
+    from .cascade import _ledger_append
+    _ledger_append(entry)
 
 
 def _log_rejection(entry: dict) -> None:
