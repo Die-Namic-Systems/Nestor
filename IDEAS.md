@@ -3504,3 +3504,60 @@ returned the wrong row at 0.042, and ranked §6.35 — this finding's structural
 sibling, the entry that would have told me exactly where to look — **third, at
 0.031**. The box has now failed to connect a new finding to its own sibling
 three times running. §3.3's argument, again, from inside the tool.
+
+### 6.38 `locks_in_text` is a raw substring, so a short lock fires inside longer words — **measured**, fix **open**
+
+*Found 2026-08-06 giving §6.35's fixture a glossary. The second blindness on the
+line §6.22 already corrected itself about, and a different one.*
+
+```python
+lower = text.lower()
+return {t: tr for t, tr in terms_for(source_lang, target_lang).items()
+        if t.lower() in lower}                    # glossary.py, locks_in_text
+```
+
+`in` on a string is a substring test with no word boundary. Measured, with
+`{"Tito": "Tito"}` installed — her uncle's name, in a recipe notebook:
+
+```
+'Tito trajo el vino'                        -> {'Tito': 'Tito'}
+'se come con buen apetito'                  -> {'Tito': 'Tito'}
+'hay que comer con apetito, dice la abuela' -> {'Tito': 'Tito', 'abuela': 'abuela'}
+```
+
+The glossary is **tier 2's constraint**: `locks_in_text` feeds
+`engine.system_prompt(locks=...)`, which emits *"Locked terminology — always
+render these terms exactly as given."* So a sentence about appetite goes to the
+draft engine carrying an instruction about a man.
+
+**Distinct from the blindness already recorded, and worth keeping separate.**
+§6.22 corrected itself in place about *case*: both sides are lowercased, so
+`{"Nestor": "Nestor"}` fires on *"the nestor of the committee"*. Every example
+in that correction is a whole word, so the boundary problem is invisible in it.
+Case-blindness makes a lock fire on the wrong **sense** of the right word;
+boundary-blindness makes it fire on a word that was never there. Same line, two
+failures, and only one of them was known.
+
+**Why a family archive found it and a company deployment would not.** Business
+term bases lock long, distinctive strings — product names, legal phrases. A
+personal archive locks nicknames, and nicknames are short: `Tito`, `Chelo`,
+`Pepe`, `Nieves`. The shorter the lock the likelier it is a substring of
+something ordinary, and Spanish is rich in the endings that make it happen.
+
+**Not fixed, and the trade is real.** A word boundary kills `Tito` inside
+`apetito` and also kills `abuela` matching `abuelas`, which the substring gets
+for free — the glossary has no morphology and substring is standing in for it.
+So the choice is between a lock that over-fires and one that misses every
+inflection, and picking either from inside a bug fix decides what a term lock
+*is*. Deliberately left: no test pins the current behaviour, because a test
+asserting `Tito` matches `apetito` would fail on the fix, and
+`scripts/dogfood_session_decisions.py` already argues that findings which should
+move are printed rather than pinned. Nor does `locks_in_text`'s docstring name
+either blindness — it says only *"the subset of glossary terms that actually
+appear in this segment"*, which is what the function is for and not what it
+does. Annotating the defect where it lives would be worth a line and is not
+done here.
+
+**Related and not the same:** §6.22's real question is whether a glossary can
+express *do not translate this*, and the answer stayed no. This entry does not
+change that. It removes one more reason to reach for the glossary as the way out.
