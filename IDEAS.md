@@ -3319,3 +3319,77 @@ filter or two views, and that is a design decision about what a reviewer is
 looking for, not a spelling of a `kind`. Deciding it from inside the fix is how
 this repo has produced three criticals in a row before. **Open**, and the fixture
 now fails the build if either gap closes without this entry being updated.
+
+### 6.36 `nestor keys add` prints the wrong key and calls it the only copy — **measured**, fix **open**
+
+*Found 2026-08-06 by standing up a second instance (§6.35's fixture, box B) and
+enrolling a verifier on it. Not found by the test suite, which never reads the
+sentence.*
+
+`cmd_keys` emits one message for all three ways to add a verifier:
+
+```
+added nieves to keys.json
+  key  7b73c0cd0ddf020f…
+  This is the only time it is printed. nieves needs it to sign in
+  to the UI; the file itself is 0600 and holds the copy Nestor
+  verifies against.
+```
+
+Three claims. **All three hold for `hmac`**, the default: `entry.key` *is* the
+shared secret, it *is* only printed here, and it *is* what signs in. On both
+ed25519 paths they fail, and they fail differently.
+
+**`--type ed25519` (generate).** `Keyring.add` stores the public half as
+`entry.key` and the secret as `entry.private`; `signing_key()` returns
+`entry.private` for ed25519, and `Sessions.open` compares what is offered
+against that. So the CLI prints the half that does not sign in. Measured against
+box A's keyring:
+
+| key offered at `/api/session` | result |
+|---|---|
+| the one `nestor keys add` printed (public) | **403** — *"that is not nieves's key."* |
+| the one it never printed (private) | 200, session opened |
+
+The verifier is handed a key that is refused, told it is the only time they will
+see it, and never shown the one that works. It is in the 0600 file, which the
+message points at while describing something else.
+
+**`--type ed25519 --public HEX` (register a peer).** The key was typed on the
+command line by the operator, so *"the only time it is printed"* is false before
+the command runs — it is in their shell history. And the peer does not need it
+to sign in: they sign on their own instance with their own private half, which
+is the entire point of the peer case. Measured: a peer entry reports
+`can_sign=False`, exactly as designed. The sentence describes the opposite.
+
+**Also the machine-readable half.** `--json` emits `"key": entry.key.hex()`,
+which is the public half for ed25519. Consistent with the data model and still a
+trap: a script that pipes `.key` to a new verifier hands them something that
+cannot sign in.
+
+**Severity, stated precisely so nobody over- or under-reads it.** This is *not*
+a disclosure bug. A public key is not a secret and printing it costs nothing.
+The damage is an operator who cannot sign in and believes they have lost their
+only copy, and a sentence that teaches people to treat a public key as a
+credential — which is the habit the asymmetric work in TODO §1 exists to break.
+
+**Why it survived.** It is `docs/code-review-lessons.md`'s pointed-prose rule
+again: *a claim in a sentence must hold across every value that sentence can
+take.* The message was written when `hmac` was the only kind, and ed25519 was
+added underneath it (Nestor#17) without the sentence being re-read. Same error
+as the refusal that read *"close enough to be tempting"* — true at 0.71, false
+at 0.11.
+
+**And the fix is not the usual move.** CLAUDE.md says a failing guard wants the
+interaction removed rather than a condition added. That rule does not apply
+here: this is not one mechanism doing two things, it is **one sentence written
+for one case and applied to three**. Three cases that differ in what the key
+*is* want three messages, and collapsing them into flat prose that is true
+everywhere would drop the one thing an operator actually needs — where their
+signing key is.
+
+Which leaves the question this entry does not decide: **should the generate case
+print the private key at all?** Printing a signing key to a terminal puts it in
+scrollback and history; not printing it means the message must say where to find
+it instead. That is a deployment decision of the same family as TODO §1's key
+distribution, and it should be made with that rather than in passing. **Open.**
