@@ -1,0 +1,43 @@
+{
+  "pr": 55,
+  "branch": "claude/jeles-bridge",
+  "date": "2026-08-06",
+  "note": "A bridge from the fleet's verified-corpus organ (rudi193-cmd/Jeles) into this store. PROVISIONAL NUMBER: no PR is open yet — GitHub Actions is mid-incident and adding a third stalled CI run to a degraded service helps nobody. Rename to the number it actually opens as, per the 0051/0052/0053 precedent, which has now cost three commits.",
+  "decisions": [
+    {
+      "question": "jeles nuggets carry verified_by and verified_at. Do they cross as sealed?",
+      "commitment": "No. Every nugget crosses as a draft, including verification_kind='human'.",
+      "why": "jeles' own put_nugget docstring says it: 'verified_by is a claim: whatever string the writer supplied.' It is scrupulous about the distinction — written_by is 'the fact beside it', corpus_server pins tool-call writes to 'asserted', and a lower kind may not overwrite a higher — but none of those is a check. Nothing stops a writer typing any name. That is precisely the case nestor.portable.import_bundle already demotes when a bundle asserts a seal it cannot prove, so this reports in the same shape and for the same reason. Proven by mutation: making the bridge trust verified_by turns four tests red including the live-corpus one."
+    },
+    {
+      "question": "Is anything lost by demoting?",
+      "commitment": "No. verification_kind, verified_by, written_by, verified_at and every citation go into the row's reason.",
+      "why": "Demoting is not discarding. A reviewer opening the queue has to be able to see what jeles believed and who it believed it on behalf of, or the demotion is just data loss with a principle attached. Pinned by a test that asserts the citations survive the crossing."
+    },
+    {
+      "question": "What does the matcher mirror — jeles' ranking, or its answering?",
+      "commitment": "Its answering. NuggetMatcher implements containment-then-symmetry, not the loose ranking.",
+      "why": "jeles separates the two deliberately: search_nuggets ranks loosely and will surface a near miss, ask_corpus answers only when the nugget contains every content word the asker used and the two overlap symmetrically. That is the same split as lookup vs best_sealed here, arrived at independently, so the strict rule belongs on the matcher that feeds best_sealed. Measured: exact 1.000, one shared word 0.500, an extra qualifier 0.667, unrelated 0.000 — only the exact match clears 0.92."
+    },
+    {
+      "question": "Do jeles gaps become rows?",
+      "commitment": "No. bridge_gaps reads and returns; it writes nothing.",
+      "why": "A gap is a question with no answer. Writing a row with an empty target would invent the very thing the gap exists to record the absence of. Pinned by a test asserting the store is still empty after reading gaps."
+    },
+    {
+      "question": "Can a bridged nugget be sealed through the human surface?",
+      "commitment": "Not correctly, today. The integration is blocked on IDEAS §6.40.",
+      "why": "NuggetMatcher is a custom matcher and nestor.ui has no way to be told about one, so a seal made there lands under a key this domain never computes and becomes unreachable — measured on two other custom-matcher domains in demo/two_desks.py (PR #53). The docstring carries the warning and the workaround (memory.set_matcher in-process). This is the most useful thing the integration has to say: a finding that read as a design curiosity two hours ago is now the thing standing between two fleet repos."
+    },
+    {
+      "question": "Should the test suite depend on jeles being installed?",
+      "commitment": "No. Eight tests run on plain dicts; the live-corpus one uses importorskip.",
+      "why": "CI has no clone of jeles, and a fixture that mocked the system under test would prove the mock works. Verified both ways: 8 passed 1 skipped without jeles on the path, 9 passed with it."
+    },
+    {
+      "question": "Two sibling repos in one fleet. Did either know about the other?",
+      "commitment": "No. grep for 'nestor' across all of jeles returns 0.",
+      "why": "Recorded because it is the interesting part. Independently, jeles built three verification rungs, a rank-based overwrite guard, a ranking/answering split, and 'I don't know yet' as a first-class output. Every one has a counterpart here. The single thing it does not have is a key and a chain — which is the entire content of this package's category argument, and it was arrived at by somebody who had never read a line of it."
+    }
+  ]
+}

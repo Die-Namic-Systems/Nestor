@@ -297,7 +297,8 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
-└── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
+├── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
+└── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
 scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
