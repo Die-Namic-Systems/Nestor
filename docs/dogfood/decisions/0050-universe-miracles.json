@@ -1,5 +1,5 @@
 {
-  "pr": 49,
+  "pr": 50,
   "branch": "claude/universe-miracles-theory-hz6fm7",
   "date": "2026-08-06",
   "note": "A session run under a rule the operator set partway through: the 'life' goes through one box and the code through the other, and the code box comes first. The life box is demo/shoebox.py — a fictional woman, her dead grandmother's letters, and the three findings that fell out of putting somebody's actual life in a store. This file is the other box. It was originally built as scripts/dogfood_codebox.py plus a committed nestor.db regenerated four times in one afternoon, which is precisely the artifact dogfood_store.py's docstring says is unresolvable; it was migrated here on rebase rather than defended.",

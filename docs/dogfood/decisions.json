@@ -5,8 +5,8 @@
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T13:09:37.047535+00:00",
-  "digest": "4cbcfc62b5a4c74206f5f07aa0ac5153fda05fa44fb4d9ce05195cb1bd4577bb",
+  "created_at": "2026-08-06T13:21:00.438707+00:00",
+  "digest": "b1c3b11ba6c912a895be8b9eadda2dadeb8c86fb44cb7cc19933fa54c8b7e418",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,9 +19,9 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T13:09:37.046255+00:00",
-      "id": "ea9c9d51-0a43-40d1-a154-a2035de9a88e",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.436762+00:00",
+      "id": "f119940c-9323-475e-a5bb-b283a51694e3",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "my glossary fix and upstreams landed independently which survives",
@@ -33,9 +33,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.045827+00:00",
-      "id": "7d4db784-bda0-440e-a169-797d02c41a94",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.436302+00:00",
+      "id": "ebc72bad-e8e1-4cb6-8a9e-b645eb8f475a",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "how do you record a person nobody has verified yet",
@@ -47,9 +47,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.045427+00:00",
-      "id": "3cfe8ade-54d4-4608-9fe3-c774146d77cf",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.435765+00:00",
+      "id": "1edabb28-e6e2-4cf2-a2c4-3adf63bc07a9",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "is a glossary term lock matched on word boundaries",
@@ -61,9 +61,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.045001+00:00",
-      "id": "a17ea0a5-860d-4442-91cc-b797ac628565",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.435157+00:00",
+      "id": "d05488b9-0e4c-48d3-863e-b70b769f99a9",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "two dead men share a nickname what happens when the second is sealed",
@@ -75,9 +75,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.044385+00:00",
-      "id": "8acdce3c-af81-4502-9c39-f94058e74eea",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.434590+00:00",
+      "id": "56e0c70b-8424-4b6b-acfb-1e12beeb53a5",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "where should the code box governing this session live so the rule survives the container",
@@ -89,9 +89,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.043897+00:00",
-      "id": "e7f71393-55bc-4904-ac68-1418f13a02f3",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.434028+00:00",
+      "id": "8ee4feae-e9f6-4161-9627-14a35f9b98c8",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "does nestor keys add hand a verifier the key they need",
@@ -103,9 +103,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.043384+00:00",
-      "id": "f8842c4a-4026-4911-8bb3-3338f30d5c24",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.433625+00:00",
+      "id": "3ba41f61-04d3-4c62-b5d5-a6dbdcd55c70",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "where can a verifier see what she changed a seal from",
@@ -117,9 +117,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.042956+00:00",
-      "id": "2618bbb8-10b3-44d8-b9d2-c927d6f3fed7",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.433085+00:00",
+      "id": "ee638c8a-1d90-416e-b664-9374bb7bfcbe",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "what do the review surfaces show one verifier revising her own work over months rather than two people disagreeing",
@@ -131,9 +131,9 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.042432+00:00",
-      "id": "fe3203fb-dc2a-4b14-966c-8fb0b7f4e31f",
-      "origin": "pr:49",
+      "created_at": "2026-08-06T13:21:00.432696+00:00",
+      "id": "55d8be4c-c5ea-40ea-858a-6e38e7ff7f72",
+      "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "a ledger line that will not parse is a state that cannot happen what does the code do when it happens",
@@ -145,8 +145,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.041970+00:00",
-      "id": "96cadc93-33f5-49d4-8763-bbc5291d1c41",
+      "created_at": "2026-08-06T13:21:00.432285+00:00",
+      "id": "9d8ba04f-5510-4d01-a23e-26c7438f4b62",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -159,8 +159,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.041565+00:00",
-      "id": "295ab30d-5688-409a-8628-43c008eb785a",
+      "created_at": "2026-08-06T13:21:00.431851+00:00",
+      "id": "e85f991e-fbe2-4e0c-9fe4-2069787f11bb",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -173,8 +173,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.041110+00:00",
-      "id": "9ff3abc4-e785-4e2d-858a-22bb4bc480dc",
+      "created_at": "2026-08-06T13:21:00.431432+00:00",
+      "id": "3dba9e0b-0564-487d-93b4-eaa77f7d9dbc",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -187,8 +187,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.040581+00:00",
-      "id": "64ed1598-35e6-4933-ad08-12466ae490ac",
+      "created_at": "2026-08-06T13:21:00.430961+00:00",
+      "id": "b8f01fb2-da84-4cec-ad59-171c0dcc5f13",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -201,8 +201,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.039922+00:00",
-      "id": "28fc37d6-d1bd-4a95-988c-6dcc67fdf3e7",
+      "created_at": "2026-08-06T13:21:00.430475+00:00",
+      "id": "80789a9d-e8fa-4839-9a64-6648c4d6dd02",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -215,8 +215,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.039561+00:00",
-      "id": "8096f6f7-7dc6-4455-8c21-ca6963dcb5e1",
+      "created_at": "2026-08-06T13:21:00.429908+00:00",
+      "id": "d647c9d9-c842-4ce1-9e40-e14781f1a026",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -229,8 +229,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.039103+00:00",
-      "id": "2ab229bc-fbfd-4953-80e4-30fbdce9c017",
+      "created_at": "2026-08-06T13:21:00.429270+00:00",
+      "id": "83bf9359-dc0d-4891-bca3-b3af04e503b2",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -243,8 +243,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.038735+00:00",
-      "id": "c595f7eb-93a9-46e6-b77f-1a6f1bbf372e",
+      "created_at": "2026-08-06T13:21:00.428772+00:00",
+      "id": "0f54691a-9202-4c59-9aa2-a803f53a67bb",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -257,8 +257,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.038342+00:00",
-      "id": "5fadc7b2-aa27-40c5-9d64-f2cbfff3a2c0",
+      "created_at": "2026-08-06T13:21:00.428258+00:00",
+      "id": "ff3cf8c5-3f34-4b24-8238-b40998b906c5",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -271,8 +271,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.037935+00:00",
-      "id": "91b687a6-ecd0-4807-8df6-70c2dc8bba55",
+      "created_at": "2026-08-06T13:21:00.427765+00:00",
+      "id": "6b7144e0-5eb7-4efb-999b-a944d4c12b2b",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -285,8 +285,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.037410+00:00",
-      "id": "6c869f41-3f65-4f3f-beaf-ee4496cadd0b",
+      "created_at": "2026-08-06T13:21:00.427183+00:00",
+      "id": "0ba8efcc-396e-4d19-9162-332e9037ea64",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -299,8 +299,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.036864+00:00",
-      "id": "512eec69-e726-4eec-ac35-a9562fd75608",
+      "created_at": "2026-08-06T13:21:00.426539+00:00",
+      "id": "7a9bb478-358c-4f5f-9060-845aba176369",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -313,8 +313,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:09:37.036163+00:00",
-      "id": "5db46d78-e4be-4313-be6d-29cbcdec1213",
+      "created_at": "2026-08-06T13:21:00.425786+00:00",
+      "id": "1de28f40-5c44-4a27-94de-2a040934e3f5",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
