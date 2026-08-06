@@ -33,17 +33,31 @@ and against a moving head that pin describes a state that no longer exists by
 the time the entry is written. A corpus of a live repository is a corpus of a
 particular afternoon, mislabelled as a corpus of the repository.
 
-## Forks — default applied, reversible
+## Forks — included, but the unit is the delta
 
-44 of the 105 are forks. Extracting one measures its *upstream author's*
-structure rather than this operator's: provenance-correct and subject-wrong, a
-corpus about somebody else filed under this chronology.
+44 of the 105 are forks. Extracting the *tree* of one measures its upstream
+author's structure rather than this operator's: provenance-correct and
+subject-wrong, a corpus about somebody else filed under this chronology. That
+was the reason for the first, short-lived default of skipping them.
 
-**Default, unless the operator says otherwise: forks are skipped in sequence and
-revisited at the end with the other held repositories.** If any carries local
-modifications worth reading, the honest unit is the *diff against upstream*, not
-the tree — and that is a different extractor, not a flag on this one.
-`hermes-agent` (2026-04-18) is the first affected and is skipped under this rule.
+**The operator's correction, 2026-08-06: what was built on the forks matters.**
+It does, and it does not change the objection — it identifies the right unit.
+A fork's tree is upstream's work; the operator's commits on top are the
+contribution, and those are what a corpus of this author should hold.
+
+So forks are read with a **delta extractor** rather than the standard one:
+
+1. Clone with history (`--depth 1` cannot answer this question at all).
+2. Select the commits authored by the operator. Those are the delta, and their
+   number is itself a measurement — a fork with zero is a bookmark, not a
+   contribution, and the corpus should say which is which rather than assume.
+3. Take the commit subjects and bodies as pairs — a commit message is a
+   declaration written beside the change, the same argument that admits
+   docstrings.
+4. Run the standard shapes over **only the files those commits touched**.
+
+`hermes-agent` (2026-04-18), skipped under the old rule, is the first read under
+this one.
 
 ## Where a rung's results go
 
