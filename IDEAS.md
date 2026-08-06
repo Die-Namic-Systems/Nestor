@@ -2571,7 +2571,7 @@ different module: it puts a translation system in the position of translating
 its own refusals, unverified, which wants its own entry rather than smuggling
 into this one.
 
-### 6.25 `init_db` on a pre-lineage database raises — **open**
+### 6.25 `init_db` on a pre-lineage database raises — **shipped**
 
 *Found 2026-08-06 while building §6.8, in a test that had to be rewritten to
 stop riding on it.*
@@ -2592,10 +2592,22 @@ legacy file, which the two callers in `test_findings_2026_08_05.py` do — but o
 a fresh database, where `_SCHEMA` creates the modern `tm_pairs` and the column
 is present. So it has no reporter and no failing host, same as §6.22.
 
-The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
-`init_db` — and it is deliberately **not** in the §6.8 commit. A latent
+~~The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
+`init_db`~~ — and it is deliberately **not** in the §6.8 commit. A latent
 correctness bug folded quietly into a performance change is how a reviewer ends
 up unable to tell which half a regression came from.
+
+**Shipped 2026-08-06, and not as the one-liner above.** Reordering the calls
+inside `init_db` fixes this instance and leaves the shape: a precondition
+honoured by convention at call sites, with a second path free to forget it —
+which is the defect `TODO.md`'s closing note and review-lessons §8 give three
+worked examples of, and `init_db` *was* the second path. `_ensure_unique_key`
+owns the migration its own indexes depend on now, so no caller can arrive
+without it and there is no ordering left to get wrong. Idempotent; the cost is
+two `PRAGMA table_info` calls on a path that runs once per connection (§6.8).
+
+This falsified a claim in `_Conn`'s docstring — that `init_db` applies a strict
+subset of `memory_init` — which is corrected there rather than left standing.
 
 ### 6.26 A countersignature is discarded without a word — **shipped**
 
@@ -2705,7 +2717,7 @@ that should not be designed for users who have not been shown to exist.
 > against the reviewed revision; a third is a guard on the fields the count
 > needs.
 
-### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
+### 6.27 The glossary is addressed relative to the working directory — **shipped**
 
 *Found 2026-08-06 while answering §6.22's second question; see
 [`docs/carried-strings.md`](docs/carried-strings.md) §Q2.*
@@ -2784,7 +2796,7 @@ nothing and silently ran the *same* revision twice. The paired runs above use
 `git checkout c68b8be -- nestor/sqlite_store.py`, verified each time by grepping
 for `_Conn` in the file before running.
 
-### 6.29 Two of the three refusals are exported; the third is not — **measured**, fix **open**
+### 6.29 Two of the three refusals are exported; the third is not — **shipped**
 
 *Found 2026-08-06 by building a recipe against the package rather than reading
 it — §6.30.*
@@ -3080,3 +3092,72 @@ One question earned its place: *"can I use the patch recipe to pick a fix
 automatically?"* returned §6.30 at rank 1, whose fix text reads *"it is a review
 queue, not a tier-1 server; do not wire `fix_for` in anger."* The recipe
 correctly warned me off itself.
+
+### 6.33 The memory has never been given the project's decisions — **measured**, fix **open**
+
+*Found 2026-08-06 doing what the operator asked: feeding a code review through
+Nestor before answering it.*
+
+Three findings from the review of PR #46, queried against a store holding the
+open `IDEAS` entries plus a session's build decisions — 21 rows. Predictions
+were written down first, which is the only reason this is a finding rather than
+a shrug:
+
+| finding | predicted | returned |
+|---|---|---|
+| countersign idempotence | nothing relevant; new | nothing relevant (top 0.067) |
+| append-failure silence | the `_log_seal_event` swallow decision | §6.29 exports, §6.31 versioning (0.083) |
+| unsigned `sig` | the signing / keyring decisions | §6.31a, a README decision (0.057) |
+
+**Two of three wrong, and the one that was right is unfalsifiable** — the
+matcher returns noise for everything, so "nothing relevant" is its answer
+regardless. The loop contributed nothing to that review.
+
+§6.32 is one cause and not the main one. The bigger one: **the decisions that
+would have answered two of those three are not in the corpus, and never have
+been.** Why `_log_seal_event` swallows is a docstring. Why signing is opt-in is
+`QUESTIONS.md` §5 and Nestor#2. Every dogfood store this project has built holds
+`IDEAS` entries and one session's decisions — 21 rows against ~11k lines of
+code whose distinguishing feature is that almost every line is argued.
+
+So "use Nestor to help write Nestor" is currently limited less by the matcher
+than by an empty memory. The corpus exists; it is in docstrings, `QUESTIONS.md`,
+`docs/*.md` and commit messages, and nobody has fed it through.
+
+**Not proposed: a scraper.** Harvesting docstrings into pairs would produce
+thousands of rows nobody decided to put there, which is the opposite of a
+memory of *checked* decisions — and every one would be a draft, so it would
+grow the queue by thousands without a single seal. What the shape should be is
+the open question, and it is a real one: the thing that makes Nestor's memory
+worth having is that a human put each row in it.
+
+> **Corrected in place the same day, by running it again on PR #47.** "The loop
+> contributed nothing" was measured on one query set and stated too broadly. On
+> #47's own decisions, **2 of 5 hit, and hit hard**:
+>
+> | asked about | top | retrieved |
+> |---|---:|---|
+> | §6.25 fixed structurally, not as proposed | **0.226** | *"Should the §6.25 init_db bug be fixed inside the §6.8 commit?"* — the decision that deferred this very fix |
+> | §6.29 export the third refusal | **0.429** | §6.29 itself |
+> | §6.27 path seam | 0.040 | noise |
+> | three fixes in one commit | 0.042 | noise |
+> | no scraper for the corpus gap | 0.042 | noise |
+>
+> An order of magnitude above the ~0.04 floor, not a lucky ranking. And the
+> §6.25 hit was **useful**: it surfaced the decision this PR discharges, which
+> is what a decision memory is for.
+>
+> **The split is not random and it is not about the corpus.** The two that hit
+> share identifiers with their targets — `init_db`, `_ensure_unique_key`,
+> `ConflictingDraftError`. The three that missed are about *practice*: how to
+> shape a seam, how to size a commit, whether to scrape. Prose with no shared
+> identifier, which is §6.32's mechanism confirmed on a third corpus.
+>
+> So the accurate statement is not "the memory cannot help". It is: **it helps
+> when the question names code, and fails when the question names a practice —
+> and this project's decisions are mostly practices.** That is a worse problem
+> than an empty corpus, because filling the corpus does not fix it. A second
+> prediction failed too: I expected *"three fixes in one commit"* to collide
+> with this session's repeated decision to keep findings out of the commits that
+> found them. It scored 0.042, and the right row sat at rank 2 beneath a
+> nonsense score.

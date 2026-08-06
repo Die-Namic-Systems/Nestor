@@ -21,6 +21,7 @@ from nestor.sqlite_store import SqliteStore
 # ``monkeypatch`` where that is the right tool.
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
                      "NESTOR_CACHE_KEY", "NESTOR_LEDGER", "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
+                     "NESTOR_GLOSSARY",
                      "NESTOR_FRANK_STRICT",
                      "WILLOW_MCP_COMMAND", "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
 

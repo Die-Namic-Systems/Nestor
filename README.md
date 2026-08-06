@@ -899,6 +899,20 @@ controls how often the full walk runs on seal/reject: ``0`` is once per process
 
 Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
 
+Term locks resolve the same way: `NESTOR_GLOSSARY` or
+`glossary.set_glossary_path(...)`, defaulting to `./data/glossary.json` relative
+to the directory the process started in. Set one of the two in any deployment
+whose working directory is not the one the terms were entered from — a service
+unit and a developer shell reading different glossaries is silent, and the only
+symptom is tier-2 drafts ignoring terminology somebody chose (`IDEAS.md` §6.27).
+
+**Only the *default* is captured at startup.** A `chdir` cannot move the
+glossary under a running process, but `NESTOR_GLOSSARY` is read on every call —
+the same posture `NESTOR_LEDGER` has — so anything that mutates the environment
+mid-process still switches files. A deployment that wants the path fixed for the
+life of the process calls `glossary.set_glossary_path(...)` once at startup;
+that wins over the variable and nothing later can move it.
+
 **Nothing is ever deleted, and that is a design decision with a cost.** Rejecting
 and unsealing preserve the trail; there is no `memory_delete`, because hard
 deletion punches a hole in a hash chain by construction. An erasure path has to

@@ -101,6 +101,7 @@ from .entity import EntityResolver
 from .frank import set_forwarder as set_frank_forwarder
 from .matcher import Matcher, NumericMatcher, StringMatcher
 from .memory import (
+    ConflictingDraftError,
     ConflictingSealError,
     RejectedPairError,
     get_matcher,
@@ -119,6 +120,7 @@ from .storage import (
 )
 
 __all__ = [
+    "ConflictingDraftError",
     "ConflictingSealError",
     "Curator",
     "EntityResolver",

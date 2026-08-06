@@ -172,9 +172,13 @@ class _Conn(sqlite3.Connection):
     database. Subclassing is what makes the flag die exactly when the thing
     it describes dies.
 
-    ``init_db`` deliberately does not set it: ``init_db`` applies a strict
-    subset of ``memory_init`` (no lineage migration), so a connection it
-    touched still owes the rest.
+    ``init_db`` deliberately does not set it. That used to be because
+    ``init_db`` applied a strict subset — no lineage migration — and §6.25
+    removed the subset: ``_ensure_unique_key`` now owns the migration its own
+    indexes depend on, so both entry points run it. The flag stays
+    ``memory_init``'s anyway, because it describes ``memory_init``'s work. If
+    the two ever diverge again, a connection that only saw ``init_db`` must not
+    be excused from the difference by a claim the other method made.
 
     **No class-level default, and the read goes through ``__dict__``.** The
     first version of this carried ``schema_ready = False`` on the class and
@@ -350,7 +354,8 @@ class SqliteStore:
             if conn.__dict__.get("schema_ready", False):
                 return
             conn.executescript(_SCHEMA)
-            self._ensure_lineage_schema(conn)
+            # No _ensure_lineage_schema here: _ensure_unique_key owns it, so
+            # both entry points get it and neither can forget (§6.25).
             self._ensure_unique_key(conn)
             self._ensure_embedding_schema(conn)
             conn.schema_ready = True
@@ -392,7 +397,21 @@ class SqliteStore:
         A pre-existing database may already contain duplicates, in which case the
         index cannot be created. That degrades to the old behavior and says so,
         rather than failing every subsequent call.
+
+        **Every index below references ``superseded_by``, so this owns the
+        migration that adds it** (IDEAS §6.25). It used to require the caller to
+        have run ``_ensure_lineage_schema`` first, which ``memory_init`` did and
+        ``init_db`` did not — so ``init_db`` on a pre-lineage database raised
+        ``no such column: superseded_by``. §6.25 proposed fixing the call order
+        in ``init_db``; that is one line and it leaves the shape intact — a
+        guarantee enforced by convention at call sites, with a second path that
+        does not honour it, which is the defect ``TODO.md``'s closing note and
+        review-lessons §8 name three worked examples of. The precondition moves
+        inside the function that needs it instead, where no caller can arrive
+        without it. Idempotent, so the cost is two ``PRAGMA table_info`` calls
+        on a path that now runs once per connection anyway (§6.8).
         """
+        self._ensure_lineage_schema(conn)
         # The pre-lineage FULL unique index and the partial one cannot
         # coexist: the full one refuses the very row supersede exists to
         # keep (predecessor and successor share the key). Dropping an index
