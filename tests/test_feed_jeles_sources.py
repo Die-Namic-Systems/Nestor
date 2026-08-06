@@ -54,9 +54,17 @@ def test_it_parses_a_plain_assignment_too(tmp_path):
     assert got["loc"]["domain"] == ["history"]
 
 
-def test_a_registry_it_cannot_parse_yields_empty_not_an_exception(tmp_path):
-    assert FEED.extract(registry(tmp_path, 'SOURCES = {"x": some_call()}\n')) == {}
-    assert FEED.extract(registry(tmp_path, 'NOTHING = 1\n')) == {}
+def test_unreadable_is_none_and_genuinely_empty_is_a_dict(tmp_path):
+    """The distinction, at the parser. It was not always there.
+
+    Both of these returned `{}` until 2026-08-06, so a registry the parser could
+    not understand reported in the same words as one declaring nothing — the
+    conflation this package refuses for answers, made inside the package. Found
+    by running the feeders against an empty repository.
+    """
+    assert FEED.extract(registry(tmp_path, 'SOURCES = {"x": some_call()}\n')) is None
+    assert FEED.extract(registry(tmp_path, 'NOTHING = 1\n')) is None
+    assert FEED.extract(registry(tmp_path, 'SOURCES: dict[str, dict] = {}\n')) == {}
 
 
 def test_the_pair_is_source_to_subjects(tmp_path):
