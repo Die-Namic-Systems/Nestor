@@ -3241,3 +3241,81 @@ party using the library can still call `entries()` and never call
 makes the next one. The construction that would close it is a gate over the
 package's own call sites rather than a better docstring — §6.12's argument, and
 it is **open**.
+
+### 6.35 The solo verifier: two records kept carefully and shown to nobody — **measured**, fix **open**
+
+*Found 2026-08-06 by building a fixture for one person instead of a team. The
+operator's framing: the code side has had all the attention and the human side
+almost none, and one would complement the other. It did, in about fifteen
+minutes.*
+
+**The fixture.** `demo/shoebox.py` — Nieves Aguirre-Toll, translating her dead
+grandmother's letters from Spanish for a seven-year-old who has no Spanish. One
+verifier, her own archive, fourteen months. She is not keeping a memory for
+consistency across a team; she is keeping one for **consistency across time with
+herself**. Fiction, tagged `origin="fixture:consuelo-shoebox"` in every row and
+in the trail, on a temporary store.
+
+Nothing about the finding depends on the phrases chosen. It falls out of her
+*structure* — one verifier, revising over months — and reproduces under any
+archive, any language pair, any grandmother.
+
+**Two records this package keeps carefully and shows to nobody.**
+
+| record | kept where | read by |
+|---|---|---|
+| what a seal was revised *from* | `tm_pairs.superseded_by`, `memory_lineage()` | nothing in `nestor/` |
+| `reopen_when` — never vs not-yet | `tm_rejections`, bundle digest v2 | `portable.export_bundle` only |
+
+*The revision.* `Curator.replaced_seals` reads `kind="seal_replaced"`, which the
+**destructive** `add_pair` overwrite writes. `supersede_pair` — the safe verb
+that shipped as §6.11/§6.20's third verb — writes `kind="supersede"`. Measured
+on her store, where a seal was demonstrably replaced: `/api/replaced-seals`
+returns **0 rows at both settings**. `memory_lineage` has no caller anywhere in
+the package; the only production reference is `storage.py`'s capability-name
+list. `portable.py:190` then drops superseded rows from the bundle, so the
+history does not travel either.
+
+*The deferral.* `reject_match(reopen_when=...)` is stored, versioned into the
+digest (that is what `BUNDLE_VERSION = 2` is for) and exported. No human-facing
+surface reads it. Its own docstring says *"a reader that surfaces rejections
+should surface a non-empty `reopen_when` as a condition to re-check, not a
+closed door"* — a sentence describing a reader that does not exist.
+
+**Stated precisely, because neither is total invisibility.** Both events are in
+the raw ledger and she can scroll it. The chain carries her reason **in full**
+and the text she replaced as a **digest**. So she can learn *that* she changed
+her mind and *why*, and not *what she changed it from*, on any shipped surface.
+
+**Why a team never finds this.** `replaced_seals`' own docstring calls a
+different verifier's overwrite *"the highest-signal event this surface
+reports"* and files self-correction as *"routine and never refused"*. For a team
+that is defensible. For Nieves, self-correction is the **only** revision that
+can ever occur, so `conflicts_only=True` — the UI default — is empty by
+construction and stays empty for as long as she is the only person holding a
+key. The surfaces are not wrong about teams. They were never asked about her.
+
+It is the shape TODO.md's closing note already names, one layer out: not a guard
+that can be reached around, but **a record whose only reader was the use case
+somebody had in mind**. §6.34 was the same shape on the ledger's read side a few
+hours earlier — that one had `verify()` as a partial reader; these have none.
+
+**The gates.** `tests/test_shoebox.py` runs the fixture, and its two gap
+assertions fail when a gap is **closed** — the good outcome, and it still has to
+stop the build, because a demo narrating a gap that no longer exists is the same
+defect as one narrating a fix that never landed. Both proven to fire, by
+mutation:
+
+| mutation | result |
+|---|---|
+| `replaced_seals` also reads `kind="supersede"` | red — *"GAP CLOSED … blind to supersede"* |
+| the rejections view carries `reopen_when` | red — *"GAP CLOSED … no human-facing surface reads reopen_when"* |
+
+**Not fixed here, deliberately.** The obvious fix for the first is to make
+`replaced_seals` read both kinds, and that is the move CLAUDE.md warns about —
+another condition on a surface that already has one. The question underneath is
+whether "somebody overruled you" and "you changed your mind" are one view with a
+filter or two views, and that is a design decision about what a reviewer is
+looking for, not a spelling of a `kind`. Deciding it from inside the fix is how
+this repo has produced three criticals in a row before. **Open**, and the fixture
+now fails the build if either gap closes without this entry being updated.
