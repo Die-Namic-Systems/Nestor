@@ -50,6 +50,21 @@
       "why": "Measured: 'two people in the family share the same name' returns §6.35 top at 0.062, when the entry actually about two people sharing a name is §6.37. 'an alias for somebody nobody has verified' tops out at 0.062. The one query that scored (0.583) was phrased in the finding's own words. DefectMatcher weights identifier tokens above prose by design, and a risk described in plain English shares almost no identifiers with a defect title — so this is the matcher working as specified on input it was never meant for. It is left in because the browse view is still useful for finding candidates to read, and because a retrieval that scores 0.06 while looking confident is worth having on the record. Nothing is served: every row is a draft, so tier 1 is empty by construction and the bad ranking cannot reach an answer."
     },
     {
+      "question": "The role-play session produced a fixture's worth of material. Write it up?",
+      "commitment": "Yes — demo/filing_cabinet.py, ten beats, with tests/test_filing_cabinet.py.",
+      "why": "It is the third fixture here and the first whose archive belongs to somebody with a reason to want the answer to come out a particular way. shoebox.py is a granddaughter after the truth about her grandmother: every incentive points one direction, and what it found were surfaces nobody had built. This one is a man whose interests and his record diverge, and it exercises the opposite half of the package — not what it shows but what it refuses, and the one thing it cannot refuse."
+    },
+    {
+      "question": "What is the finding, as against the story?",
+      "commitment": "There is no per-domain verifier policy. Measured: add_pair(status='sealed', verifier='anybody-at-all') is accepted and is_verified_seal returns True.",
+      "why": "The client asked, in as many words, to be stopped from signing his own mileage rows — the one field three independent records in his file contradict him on. The package cannot do it: no required-signer list, nothing binding a domain to a name, and the only gate is possession of the seal key. That is defensible and it is not what was asked for, so the honest answer was to refuse and say the enforcement is a key he must give away and keep no copy of. No IDEAS number claimed: §6.40 and §6.41 are taken on claude/nestor-intake-repo-review-icanwi, and PR #52 has already shown what happens when a number is claimed before it lands. The argument is in the module docstring until the numbering is settled."
+    },
+    {
+      "question": "Do the fixture's three gap assertions hold anything?",
+      "commitment": "Proven by mutation, and the second mutation found the gate was broken.",
+      "why": "Giving EntityResolver a `propose` turns §6.39's assertion red. Making add_pair refuse a seal from an unenrolled verifier turns the policy assertion red — but only after a fix. The first version called add_pair unguarded, so the mutation made the fixture die with a traceback where it owed a GAP CLOSED. A gate that crashes instead of returning a verdict is not a gate; it now catches the refusal and reports it. This is the second time this session that mutation-testing found the defect in the test rather than in the code."
+    },
+    {
       "question": "Do those six tests hold anything?",
       "commitment": "Proven by mutation. Dropping the matcher line from activate() turns two red; dropping the ledger line turns three red.",
       "why": "A gate nobody has watched fail is a description. Also recorded: the first version of this file assumed a proposal writes a ledger line and asserted on chains after calling propose(). It does not — a draft is not a decision and appends nothing — so four tests failed for a reason that was the test's error rather than the module's, and they were rewritten to seal first. And the SerialMatcher used here keeps every digit it finds, so an early restatement of 'ward 6' keyed to 44716 and missed; that was the test's fault too, and the assertion now avoids stray digits and says why."
