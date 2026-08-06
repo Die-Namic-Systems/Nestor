@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "deny": [
+      "mcp__Google_Drive",
+      "mcp__Gmail",
+      "mcp__Google_Calendar"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
