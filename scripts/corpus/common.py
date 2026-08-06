@@ -182,6 +182,58 @@ def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
     return rows, total
 
 
+DEFAULT_DEFN_KEYS = ("term", "concept", "field", "name", "command", "tool",
+                     "env var", "option", "key", "module", "file", "idiom",
+                     "pattern", "skill", "table", "column")
+
+
+def definitions(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> list[tuple]:
+    """Tables whose first column is named as a term."""
+    rows = []
+    for path, heading, header, row in tables(root):
+        if header[0] not in defn_keys:
+            continue
+        target = " · ".join(c for c in row[1:] if c)
+        if len(row[0]) < 2 or len(target) < 4:
+            continue
+        rows.append((row[0], target, f"columns: {' | '.join(header)}", path, heading))
+    return rows
+
+
+def unclaimed(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS) -> collections.Counter:
+    """Table rows the standard shapes do not take, by header."""
+    out: collections.Counter = collections.Counter()
+    for _path, _heading, header, row in tables(root):
+        if header[0] in defn_keys or header[:2] == ["#", "check"]:
+            continue
+        if len(row[0]) < 2 or len(" · ".join(row[1:])) < 4:
+            continue
+        out[" | ".join(header)] += 1
+    return out
+
+
+def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS):
+    """The four shapes every repository in this corpus has turned out to carry.
+
+    Docstrings, the security rubric, identified findings, definitional tables.
+    Written after rung 7 needed byte-for-byte what rung 5 needed: two
+    repositories wanting the same extractor is the evidence, and a third copy of
+    the same file would have been the kind of duplication this whole exercise
+    exists to notice.
+
+    Returns ``(plan, declined, symbols, defined)`` so a caller can prepend its
+    own repository-specific shapes and still report both coverage denominators.
+    """
+    symbols, defined = docstrings(root)
+    plan = [
+        ("docstring", symbols, "symbol", "docstring"),
+        ("rubric", rubric(root), "check", "verdict"),
+        ("finding", findings(root), "finding", "fix"),
+        ("definition", definitions(root, defn_keys), "term", "term"),
+    ]
+    return plan, unclaimed(root, defn_keys), symbols, defined
+
+
 def load(store, plan, origin, declined: collections.Counter | None = None,
          root: pathlib.Path | None = None) -> dict:
     """Add every row as a draft. Returns ``memory.stats``; prints as it goes.

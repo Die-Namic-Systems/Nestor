@@ -23,7 +23,6 @@ Public repository.
 from __future__ import annotations
 
 import argparse
-import collections
 import pathlib
 import sys
 
@@ -33,31 +32,6 @@ import common                                                    # noqa: E402
 import provenance                                                # noqa: E402
 
 from nestor.sqlite_store import SqliteStore                      # noqa: E402
-
-DEFN_KEYS = ("term", "concept", "field", "name", "command", "option", "env var")
-
-
-def definitions(root: pathlib.Path) -> list[tuple]:
-    rows = []
-    for path, heading, header, row in common.tables(root):
-        if header[0] not in DEFN_KEYS:
-            continue
-        tgt = " · ".join(c for c in row[1:] if c)
-        if len(row[0]) < 2 or len(tgt) < 4:
-            continue
-        rows.append((row[0], tgt, f"columns: {' | '.join(header)}", path, heading))
-    return rows
-
-
-def declined(root: pathlib.Path) -> collections.Counter:
-    out: collections.Counter = collections.Counter()
-    for _p, _h, header, row in common.tables(root):
-        if header[0] in DEFN_KEYS or header[:2] == ["#", "check"]:
-            continue
-        if len(row[0]) < 2 or len(" · ".join(row[1:])) < 4:
-            continue
-        out[" | ".join(header)] += 1
-    return out
 
 
 def main() -> int:
@@ -73,18 +47,12 @@ def main() -> int:
         out.unlink()
 
     origin = provenance.Origin("openclaw-sap-gate", root, __file__)
-    symbols, defined = common.docstrings(root)
-    plan = [
-        ("docstring", symbols, "symbol", "docstring"),
-        ("rubric", common.rubric(root), "check", "verdict"),
-        ("finding", common.findings(root), "finding", "fix"),
-        ("definition", definitions(root), "term", "term"),
-    ]
+    plan, declined, symbols, defined = common.standard(root)
 
     store = SqliteStore(str(out))
     store.memory_init()
     try:
-        common.load(store, plan, origin, declined(root), root)
+        common.load(store, plan, origin, declined, root)
         print(f"\n  docstring coverage: {len(symbols)}/{defined} definition(s) "
               f"carry one")
     finally:

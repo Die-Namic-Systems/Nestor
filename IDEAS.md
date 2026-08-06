@@ -4227,3 +4227,63 @@ do not even reach the store as duplicates, since the qualified key makes them
 two legitimately distinct rows. **Fixing the key traded a false signal for a
 blind spot**, and the honest response was not to revert it but to measure the
 blind spot on purpose and write the number down.
+
+### 6.48 willow-nest extracted: the first repository that declares nothing new, and a ratio that survived its third test — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-nest` (created 2026-04-23), rung 7.
+Public, archived, and its own README says it was consolidated into Willow 2.0 —
+a repository that ended by being absorbed.*
+
+| shape | drafts |
+|---|---|
+| docstring | 19 |
+| rubric | 15 |
+| finding | 1 |
+| definitional tables | 0 |
+| **total** | **35 draft, 0 sealed** |
+
+Document coverage 1/1 — the repository has exactly one markdown file.
+
+**It declares no shape this corpus had not already met**, and that is the
+result rather than a disappointment. Every rung so far has contributed at least
+one new structure: constraints, facets, bilingual registers, skill contracts,
+graded questions, docstrings, plans. Rung 7 contributes none. The four shapes it
+does carry are the four that have now appeared in every code repository read.
+
+**So the extractor caught itself about to duplicate.** Rung 7 needed
+byte-for-byte what rung 5 needed. Writing `extract_willow_nest.py` as a copy
+would have been the third instance of the same four shapes in three files — the
+exact defect this whole exercise exists to detect, committed by the exercise. The
+shapes moved into `common.standard`, rung 5 was pointed at it, and rung 5
+re-runs to the **same 35 rows** with its toolchain digest moved `9577ac1` →
+`788c98f`: same rows, different tooling, and §6.43's format says so on every
+one. `extract_willow_nest.py` is now a docstring and a call.
+
+**The ratio held on its third measurement, which is the one that counts.**
+§6.47 committed to needing a third before the claim could be trusted:
+
+| rung | repository | definitions | docstring coverage |
+|---|---|---|---|
+| 5 | openclaw-sap-gate | 41 | **37%** |
+| 6 | willow-1.9 | 3,303 | **35%** |
+| 7 | willow-nest | 55 | **34.5%** |
+
+Three repositories, sizes spanning 80×, spread of 2.5 points. A library, a
+fleet, and an intake pipeline. This is now the most robust claim the corpus has
+produced and it is about the author rather than any repository: **roughly a
+third of what gets defined gets described, and the ratio does not move with
+scale.** It was stated as a hypothesis at rung 6 with two points and a warning;
+it is measured now.
+
+Worth being precise about what it is not. It is not a quality judgement — a
+docstring is a declaration the author chose to make, and 35% may be exactly the
+right number for code where two thirds of the definitions are obvious. What it
+is: a constant, discovered by reading three repositories in the order they were
+written, which no one of them contains.
+
+**One question left for a later rung.** `willow-nest` was folded into
+`willow-2.0`. Its 19 docstrings therefore exist twice — once here, archived at
+`2841ce2`, and once in whatever they became after the move. When the sequence
+reaches `willow-2.0`, those 19 rows are a ready-made test of whether
+consolidation preserved what it absorbed, and it is the first time this corpus
+will be able to ask that question with both sides in hand.
