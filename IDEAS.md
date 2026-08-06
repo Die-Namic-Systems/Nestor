@@ -3755,6 +3755,18 @@ because the run's headline number is only worth what its error rate is, and a
 collision report that quietly included a parser fault would be the same
 "absence reported as success" this codebase refuses elsewhere.
 
+> **Correction, same day (§6.43).** That paragraph was wrong, and wrong in the
+> way this file exists to prevent: it was inferred rather than checked. The run
+> did not print the *held* row's origin, so "two tables in one file" was a guess
+> from the new row's origin alone. Re-run with both origins printed, **all eight
+> collisions are across documents; none are within one file.** The `Journal
+> entries` pair is `docs/RELATIONSHIP_SCHEMA.md` against
+> `reference-implementations/aionic-journal/README.md` — two documents answering
+> two *different questions* about one term, which is still a key-scoping
+> weakness (the key does not record which question is being asked) but is not
+> the parser fault claimed above. The error rate this paragraph reported for
+> itself was made up. Left in place per §6's rule.
+
 **One exact duplicate deduped in silence.** 204 successful `add_pair` calls
 produced 203 rows: an identical restatement returns the stored row rather than
 raising. That is correct — it is not a conflict — but the asymmetry is worth
@@ -3882,3 +3894,60 @@ acts six days later. Nestor implements it as a store seven months after that,
 and this entry measures the enumeration with the implementation. Three rungs,
 one idea, and the corpus is the thing that lets you see it is one idea. That is
 the argument for continuing up the stack.
+
+### 6.43 `origin` now says what produced the row, which forced the extractors into the repository — **shipped**, visibility field still **open**
+
+*Built 2026-08-06 on the operator's instruction, closing the third gap of
+§6.41. Rung 2 of the corpus stack; applies to every rung, including the one
+below it when re-run.*
+
+**What a row's origin says now.** Four facts where there was one:
+
+```
+willow@cf1040a:CONSTITUTION.md#Identity Authority [decision/0853d53]
+└─repo  └─commit └─path        └─anchor            └─shape └─toolchain
+```
+
+The toolchain digest is a content hash over the extractor **and**
+`scripts/corpus/provenance.py` together, because a change to either changes what
+the rows mean. It cannot be bumped by hand and cannot go stale.
+
+**The consequence that made this more than a formatting change.** A digest of a
+script in a scratch directory names a thing nobody can fetch — the exact failure
+`scripts/dogfood_store.py` was built to refuse. Recording the extractor's
+identity is therefore only honest if the extractor is retrievable, so the
+extractors moved out of the container's scratchpad and into
+`scripts/corpus/`: `provenance.py`, `common.py`, and one file per repository.
+The instruction was three words long and its real content was *commit your
+tooling*.
+
+**Both claims in that module's docstring were checked, not asserted:**
+
+| claim | check | result |
+|---|---|---|
+| origins are reproducible | ran the Willow extractor twice, digested `(source, origin)` over all 134 rows | `753e01e259360b3a` both times |
+| the digest tracks content | appended one comment line to a copy of the extractor | `0853d53` → `70bf56c` |
+
+The second is the mutation this repository asks for: a digest that could not
+change would be decoration.
+
+**And it immediately caught a false claim in §6.41, which is corrected in place
+above.** Printing the *held* row's origin beside the new one — the thing the
+new format exists to make possible — showed that all eight SAFE collisions are
+across documents and none within one file. §6.41 had asserted that one of the
+eight was a parser fault, from the new row's origin alone, without ever reading
+the other. So the first thing better provenance did was falsify the paragraph
+that asked for it, roughly two hours after it was written and about ninety
+minutes after the same file recorded that inference-instead-of-checking is this
+project's characteristic error.
+
+**Yields are unchanged** — SAFE 229, Willow 134 — which is the point: the move
+from scratchpad to repository altered provenance and nothing else. SAFE's run
+additionally now reports 57 declined `field | value` rows it used to skip in
+silence.
+
+**Still open, and now the only unaddressed gap from §6.41:** no field marks a row
+unpublishable. Rung 3 (`Aionic-Claude-Skills`, 2026-02-11) is private, as is
+rung 1. Every private rung so far has been kept local by choosing an output path
+under gitignored `data/`, which remains a convention where this repository
+demands a mechanism.
