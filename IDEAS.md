@@ -4400,3 +4400,51 @@ The corpus now records something it could not have before: **the difference
 between a repository this operator built and one they bookmarked, as a number
 rather than an impression.** Of the two, only the number survives a session
 ending.
+
+### 6.51 litellm: zero again, and what two zeroes in a row are worth — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/litellm` (created 2026-04-23), rung 10, a
+fork, read under the delta rule. The largest repository the sequence has
+touched by an order of magnitude.*
+
+```
+delta: 0 of 37628 commit(s) by rudi193@gmail.com, touching 0 file(s)
+0 pair(s): 0 draft, 0 sealed
+```
+
+Zero operator-matching author identities in 37,628 commits. Head dated
+2026-04-23, the day the fork was created, and not advanced since.
+
+**The two rungs together are the argument the delta rule needed.** Rung 8 found
+a fork with a real contribution buried under two thousand upstream files. Rungs
+9 and 10 found two with none at all. Had all three been read as trees:
+
+| rung | repository | files a tree read would take | rows about the operator |
+|---|---|---|---|
+| 8 | hermes-agent | 2,034 | 38 |
+| 9 | python-sdk | 445 | 0 |
+| 10 | litellm | **8,137** | 0 |
+
+Ten and a half thousand files, and the operator's entire contribution across all
+three is two commits. A tree extraction would have buried a 38-row signal under
+a five-figure pile of other people's work and called the result a corpus of this
+author. **The delta rule is not a filter applied to the corpus; it is the
+difference between the corpus being about somebody and not.**
+
+**On reporting nothing, which this exercise now has to do 42 more times.** Two
+consecutive empty stores is the point at which the temptation appears to stop
+running the extractor on forks and simply record "no contribution" — and that
+would be an assumption dressed as a result, of exactly the kind §6.44 warned
+about when it established that silence cannot be distinguished from absence
+without a coverage number. So both runs are real runs, both wrote a store, and
+both printed their denominator. `0 of 37628` is a measurement. *"I did not
+bother"* is not, and the two are indistinguishable a month later.
+
+**One thing left open by the identity test.** The delta is selected by author
+email, and one email. If the operator ever committed under another address, or
+if a fork's contribution arrived by a merged pull request attributed upstream,
+this method scores it zero and would say so with the same confidence it says it
+here. Both these repositories also show **zero author identities matching the
+name**, which is a second and independent check — but it is still two checks of
+the same kind, and the honest statement is *no commit in this history is
+attributed to the operator*, not *the operator did nothing here*.
