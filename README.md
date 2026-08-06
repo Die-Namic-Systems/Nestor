@@ -273,6 +273,7 @@ nestor/
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
+├── homestead_paths.py  ~/.homestead/keep paths for homestead hosts (see docs/homestead-paths.md)
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
 └── segment.py        sentence/segment splitting
@@ -300,6 +301,7 @@ recipes/              the seam's "yours" row, built against the shipped package
 scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
+AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
 FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
@@ -981,7 +983,8 @@ handoffs from a charter rollup JSON plus files under your willow home:
 | Variable | Meaning | Default |
 |----------|---------|---------|
 | `NESTOR_GATE_ROLLUP` | path to fleet-gap seals JSON (willow `governance/decisions/*` schema) | unset — override with `nestor ui --gate-rollup` |
-| `WILLOW_HOME` | willow fleet root (`dispatch/<id>/handoff.json` for gate echo) | `~/github/.willow` |
+| `WILLOW_HOME` | willow **fleet** runtime root (`store/`, `dispatch/`, `mcp_apps/` — see `docs/roots-willow-and-homestead.md`) | `~/github/.willow` (alias `~/.willow`) |
+| `HOMESTEAD_HOME` | household root when a host pins Nestor under homestead (see `docs/homestead-paths.md`) | `<home>/.homestead` |
 
 With a keyring in force:
 

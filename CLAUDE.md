@@ -11,6 +11,14 @@ them until after making the mistakes two of them describe.
 
 ## Environment — before anything else
 
+**Agents:** [`AGENTS.md`](AGENTS.md) — git sync + `scripts/ci-lint.sh` on every session
+(cloud containers must `git pull` the PR branch or they redo lint failures).
+
+**Agent hooks (all CLIs):** shared policy in `hooks/` — see
+[`hooks/README.md`](hooks/README.md). Cursor uses `.cursor/hooks.json`; Claude
+Code uses `.claude/settings.json`. Both call `hooks/nestor-hook` with the same
+`session_start` and `before_mcp` modules.
+
 A cold clone is a trap shaped exactly like a working setup. The package
 imports from the repo root with **no install at all** — `python demo.py` and
 every README snippet run fine — while `nestor`, `python -m pytest` and the
@@ -232,8 +240,11 @@ Everything that follows falls out of that:
 - `python -m pytest -q` — CI installs `.[keys]` only, so the baseline is
   fastembed-**absent**. If you install the semantic extra you un-skip three
   model-downloading tests and diverge from CI.
-- `python -m ruff check nestor tests` (pinned `0.15.0`) and
-  `bandit -r nestor -ll -q`. Note CI does not lint `scripts/`.
+- **`bash scripts/ci-lint.sh`** (or `ruff check nestor tests hooks` + `bandit -r
+  nestor -ll -q`) — same gate as GitHub Actions. Do **not** add unused imports in
+  tests (`pytest`, `os`, `Path`, …); ruff **F401** fails CI and cloud will not
+  see your fix until it is **pushed to the PR branch** and the job re-runs.
+- Optional: `pre-commit install` then commits auto-fix ruff locally.
 - `docs/code-review-lessons.md` §11 is the pre-PR checklist. Use it.
 
 ---

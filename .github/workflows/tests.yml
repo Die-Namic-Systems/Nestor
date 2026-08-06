@@ -36,7 +36,7 @@ jobs:
         run: pip install ruff==0.15.0 bandit
 
       - name: Ruff (enforced)
-        run: ruff check nestor tests
+        run: ruff check nestor tests hooks
 
       - name: Bandit (enforced — tree is clean, keep it that way)
         run: bandit -r nestor -ll -q

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "hooks/nestor-hook cursor session_start",
+        "timeout": 15,
+        "failClosed": false
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "hooks/nestor-hook cursor before_mcp",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ]
+  }
+}
