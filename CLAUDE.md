@@ -237,8 +237,11 @@ Everything that follows falls out of that:
 - `python -m pytest -q` — CI installs `.[keys]` only, so the baseline is
   fastembed-**absent**. If you install the semantic extra you un-skip three
   model-downloading tests and diverge from CI.
-- `python -m ruff check nestor tests` (pinned `0.15.0`) and
-  `bandit -r nestor -ll -q`. Note CI does not lint `scripts/`.
+- **`bash scripts/ci-lint.sh`** (or `ruff check nestor tests hooks` + `bandit -r
+  nestor -ll -q`) — same gate as GitHub Actions. Do **not** add unused imports in
+  tests (`pytest`, `os`, `Path`, …); ruff **F401** fails CI and cloud will not
+  see your fix until it is **pushed to the PR branch** and the job re-runs.
+- Optional: `pre-commit install` then commits auto-fix ruff locally.
 - `docs/code-review-lessons.md` §11 is the pre-PR checklist. Use it.
 
 ---
