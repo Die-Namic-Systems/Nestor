@@ -3966,6 +3966,11 @@ third on the chronology), rung 3 of the stack. Private repository, so as with
 | definitional tables | 27 |
 | **total** | **66 draft, 0 sealed** |
 
+> **Corrected at rung 5 (§6.46): 81, not 66.** The 15 rows this run declined
+> under `# | check | status | notes` are the author's standing security rubric,
+> not noise. They are claimed now. The number above is what was measured on the
+> day, and it was an undercount.
+
 81 further table rows under 14 headers declined and printed. Two headers were
 moved *into* the definition shape mid-run after the first pass declined them —
 both name a term column outright — which moved the toolchain digest `d758565` →
@@ -4040,6 +4045,11 @@ result.*
 | definitional tables | 0 |
 | **total** | **10 draft, 0 sealed** |
 
+> **Corrected at rung 5 (§6.46): 25, not 10.** Same cause as §6.44's correction
+> — the 15 declined `# | check | status` rows are a rubric, and are claimed now.
+> The finding below about `GRADING.md` is unaffected: it concerns fields that do
+> not exist, which no amount of extractor coverage can conjure.
+
 Verified against the source rather than trusted: the document contains 10
 questions, 1 `*Measure:*` line, 8 `*Reference:*` lines, and 1 `Recommended fix`.
 The extractor found exactly what is there.
@@ -4087,3 +4097,61 @@ does not restate it at all — its subject is a person grading their own system,
 and its one boundary statement is about *not* pointing the instrument at somebody
 else. Four rungs in, the chronology is not a single idea repeated; it is one idea
 that stops here and a different one starting.
+
+### 6.46 openclaw-sap-gate extracted: the first code rung, two coverage denominators, and thirty rows recovered from the declined pile — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/openclaw-sap-gate` (created 2026-04-18),
+rung 5. Public. The first repository in the sequence that is mostly code — two
+markdown documents against four Python modules — and the shape of the extraction
+changes accordingly.*
+
+| shape | drafts |
+|---|---|
+| docstring (`symbol` → what it is for) | 15 |
+| rubric (`check` → verdict) | 15 |
+| finding (`ident` → recommended fix) | 2 |
+| definitional tables | 3 |
+| **total** | **35 draft, 0 sealed** |
+
+**Two coverage numbers, because one would have lied.**
+
+```
+coverage: 2/2 document(s) produced at least one row
+docstring coverage: 15/41 definition(s) carry one
+```
+
+The same repository is fully covered in documents and **37% covered in code**.
+A single figure would have reported either total success or a bad miss, and
+neither is true. §6.45 established that omission is invisible without coverage;
+this rung adds that coverage is per-*kind*, and a corpus spanning documents and
+code needs one denominator per kind or it is back to flattering its source.
+
+Note what the 26 undocumented definitions are not: they are not a defect. A
+docstring is a declaration the author chose to make, and the interesting fact is
+the ratio, not a demand.
+
+**Thirty rows came back from the declined pile, and that is the mechanism
+working as designed.** `# | Check | Status | Notes` was declined as noise in
+rung 3 (15 rows) and rung 4 (15 rows). Seeing it a third time here made it
+legible: it is the author's standing security rubric, one row per check, with
+the verdict in the second column. It is now claimed, and **§6.44 and §6.45 are
+corrected in place above — 66 becomes 81, 10 becomes 25.**
+
+`common.declined()` was introduced at rung 2 as *honesty* — an extractor that
+silently ignores 78% of candidate rows reads like one that found nothing. By
+rung 5 it is the **discovery channel**: the only reason those thirty rows were
+ever recoverable is that declining them printed their header instead of
+dropping them. Reporting what you refuse turns out to be how you find what you
+should have taken.
+
+**A shape that recurs across repositories is a fact about the author, not the
+repository.** `### P1: XX-YY-01 — title` with a `**Recommended fix:**` has now
+appeared unchanged in three checkouts spanning four months, so it moved into
+`common.findings` and rung 4's local copy was deleted. Re-run afterwards, rung 4
+yields the same 10 rows it did before the refactor (25 with the rubric), and its
+toolchain digest moved `bdc7abf` → `f12ce2f`, which is §6.43 behaving exactly as
+specified: same rows, different tooling, and the rows say so.
+
+This is the first thing the corpus has found that no single repository contains.
+The convention is only visible across three of them, and the chronology is what
+made it visible in order.

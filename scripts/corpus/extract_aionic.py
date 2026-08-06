@@ -117,7 +117,7 @@ def definitions(root: pathlib.Path) -> list[tuple]:
 def declined(root: pathlib.Path) -> collections.Counter:
     out: collections.Counter = collections.Counter()
     for _p, _h, header, row in common.tables(root):
-        if header[0] in DEFN_KEYS:
+        if header[0] in DEFN_KEYS or header[:2] == ["#", "check"]:
             continue
         if len(row[0]) < 2 or len(" · ".join(row[1:])) < 4:
             continue
@@ -142,6 +142,7 @@ def main() -> int:
         ("skill", described(root), "skill", "description"),
         ("trigger", triggers(root), "skill", "trigger"),
         ("framework", frameworks(root), "framework", "version"),
+        ("rubric", common.rubric(root), "check", "verdict"),
         ("definition", definitions(root), "term", "term"),
     ]
 

@@ -19,6 +19,7 @@ prints both provenances, rather than printing a count.
 """
 from __future__ import annotations
 
+import ast
 import collections
 import pathlib
 import re
@@ -94,6 +95,82 @@ def tables(root: pathlib.Path) -> Iterator[tuple[pathlib.Path, str, list[str], l
             if is_rule(line) or len(row) < 2:
                 continue
             yield path, heading, header, row
+
+
+def findings(root: pathlib.Path) -> list[tuple]:
+    """``### P1: XX-YY-01 — title`` with a recommended fix.
+
+    Shared rather than per-repository: this shape has now appeared in three
+    checkouts unchanged, which makes it a convention of the author rather than
+    a feature of any one repository.
+    """
+    rows = []
+    for path in docs(root):
+        for heading, block in sections(path.read_text(encoding="utf-8")):
+            m = re.match(r"^(P\d):\s*([A-Z][A-Z0-9]*-[A-Z]+-\d+)\s*[—-]\s*(.+)$", heading)
+            if not m:
+                continue
+            severity, ident, title = m.groups()
+            fix = field(block, "Recommended fix")
+            if not fix:
+                continue
+            status = field(block, "Status")
+            rows.append((f"{ident} — {title}", fix,
+                         f"severity {severity}" + (f", status {status}" if status else ""),
+                         path, ident))
+    return rows
+
+
+def rubric(root: pathlib.Path) -> list[tuple]:
+    """``# | Check | Status | Notes`` — a check and the verdict it got.
+
+    Declined as noise through rungs 3 and 4, fifteen rows in each, and visible
+    only because the declined rows were printed by header. It is the author's
+    standing security rubric, so the check is the claim and the status is the
+    answer. The two earlier rungs undercount by those rows; their entries state
+    what was measured at the time and their stores can be rebuilt from here.
+    """
+    rows = []
+    for path, heading, header, row in tables(root):
+        if header[:2] != ["#", "check"] or len(row) < 3:
+            continue
+        notes = row[3] if len(row) > 3 else ""
+        rows.append((row[1], row[2], f"{row[0]}: {notes}"[:400], path, heading))
+    return rows
+
+
+def docstrings(root: pathlib.Path) -> tuple[list[tuple], int]:
+    """``symbol → its docstring``, and how many definitions there were in all.
+
+    A docstring is a declaration, not an inference: the author wrote what the
+    thing is for, beside the thing. The second return value is the denominator,
+    because a docstring corpus without its coverage says nothing — see §6.45.
+    """
+    rows: list[tuple] = []
+    total = 0
+    for path in sorted(root.rglob("*.py")):
+        if ".git" in path.parts:
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except (SyntaxError, UnicodeDecodeError):
+            continue
+        module_doc = ast.get_docstring(tree)
+        total += 1
+        if module_doc:
+            rows.append((path.stem, " ".join(module_doc.split())[:600],
+                         "module docstring", path, path.stem))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            total += 1
+            doc = ast.get_docstring(node)
+            if not doc:
+                continue
+            kind = "class" if isinstance(node, ast.ClassDef) else "function"
+            rows.append((node.name, " ".join(doc.split())[:600],
+                         f"{kind} docstring", path, node.name))
+    return rows, total
 
 
 def load(store, plan, origin, declined: collections.Counter | None = None,

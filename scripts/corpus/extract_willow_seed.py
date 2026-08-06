@@ -13,7 +13,9 @@ small extraction. Only two structures repeat enough to be worth naming:
   number somebody actually got. Conflating them would lose the distinction the
   document is built on.
 * **finding** — `SECURITY_AUDIT.md` carries identified findings with a severity
-  and a recommended fix, the same shape as SAFE's hard stops.
+  and a recommended fix. The shape is shared (`common.findings`); it has since
+  turned up unchanged in a third checkout, which makes it the author's
+  convention rather than this repository's feature.
 
 Everything else here is prose that declares no schema, and it is left alone.
 The coverage line in the output is the honest report of that.
@@ -70,25 +72,6 @@ def grading(root: pathlib.Path) -> tuple[list[tuple], list[tuple]]:
     return measures, references
 
 
-def findings(root: pathlib.Path) -> list[tuple]:
-    """`### P2: WS-XXX-NN — title` with a severity and a recommended fix."""
-    rows = []
-    for path in common.docs(root):
-        for heading, block in common.sections(path.read_text(encoding="utf-8")):
-            m = re.match(r"^(P\d):\s*([A-Z]+-[A-Z]+-\d+)\s*[—-]\s*(.+)$", heading)
-            if not m:
-                continue
-            severity, ident, title = m.groups()
-            fix = common.field(block, "Recommended fix")
-            if not fix:
-                continue
-            status = common.field(block, "Status")
-            rows.append((f"{ident} — {title}", fix,
-                         f"severity {severity}" + (f", status {status}" if status else ""),
-                         path, ident))
-    return rows
-
-
 def definitions(root: pathlib.Path) -> list[tuple]:
     rows = []
     for path, heading, header, row in common.tables(root):
@@ -104,7 +87,7 @@ def definitions(root: pathlib.Path) -> list[tuple]:
 def declined(root: pathlib.Path) -> collections.Counter:
     out: collections.Counter = collections.Counter()
     for _p, _h, header, row in common.tables(root):
-        if header[0] in DEFN_KEYS:
+        if header[0] in DEFN_KEYS or header[:2] == ["#", "check"]:
             continue
         if len(row[0]) < 2 or len(" · ".join(row[1:])) < 4:
             continue
@@ -129,7 +112,8 @@ def main() -> int:
     plan = [
         ("grading-measure", measures, "question", "measure"),
         ("grading-reference", references, "question", "reference"),
-        ("finding", findings(root), "finding", "fix"),
+        ("finding", common.findings(root), "finding", "fix"),
+        ("rubric", common.rubric(root), "check", "verdict"),
         ("definition", definitions(root), "term", "term"),
     ]
 
