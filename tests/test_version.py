@@ -1,17 +1,27 @@
 """The version, and the release path that will one day use it.
 
-No `import yaml` anywhere below. CI's test job installs `.[keys] pytest
-coverage` and nothing else, so pyyaml is absent there even though bandit drags
-it into a lint environment — a gate that imports it would skip in CI, and a
-gate that can skip is not a gate. String assertions over the workflow are
-cruder and they cannot quietly stop running.
+**Two stdlib modules this file deliberately does not import.**
+
+`yaml`, because CI's test job installs `.[keys] pytest coverage` and nothing
+else — pyyaml is present in the lint job only, via bandit. A gate that imports
+it would skip here, and a gate that can skip is not a gate.
+
+`tomllib`, because it is 3.11+ and this package supports 3.10. The first draft
+of this file imported it and broke `test-matrix (3.10)` — a release-readiness
+suite that did not run on the oldest version being released for, which is a
+funnier version of the same mistake it exists to catch. The matrix caught it,
+which is what the matrix is for. Adding `tomli` would put a dependency in the
+test job for one file's convenience.
+
+So both the workflow and `pyproject.toml` are read as text. That is cruder than
+parsing and it cannot quietly stop running, which is the trade this file keeps
+making.
 """
 
 from __future__ import annotations
 
 import pathlib
 import re
-import tomllib
 from importlib.metadata import PackageNotFoundError, version as dist_version
 
 import pytest
@@ -19,8 +29,25 @@ import pytest
 import nestor
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PYPROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-DECLARED = PYPROJECT["project"]["version"]
+PYPROJECT_TEXT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+
+def table(name: str) -> str:
+    """The body of a ``[name]`` table as raw text. Not a TOML parser.
+
+    Every question this file asks of ``pyproject.toml`` is answerable by
+    looking — is this key present, is this value a string rather than a table,
+    does this list contain that entry. None of them need a parse tree, and the
+    one that looked like it did (the version) is a single scalar on its own
+    line.
+    """
+    body = PYPROJECT_TEXT.split(f"[{name}]", 1)
+    assert len(body) == 2, f"no [{name}] table in pyproject.toml"
+    return body[1].split("\n[", 1)[0]
+
+
+PROJECT = table("project")
+DECLARED = re.search(r'^version = "([^"]+)"', PROJECT, re.M).group(1)
 
 #: What the package reports when there is no installed distribution to ask.
 UNINSTALLED = "0+unknown"
@@ -109,20 +136,30 @@ def test_the_workflow_refuses_a_tag_that_disagrees_with_the_version():
     "readme", "license", "license-files", "classifiers", "keywords",
 ])
 def test_pyproject_carries_what_pypi_renders(promise):
-    assert promise in PYPROJECT["project"], promise
+    assert re.search(rf"^{re.escape(promise)} = ", PROJECT, re.M), promise
 
 
 def test_no_license_classifier_beside_a_license_expression():
     """setuptools rejects both together rather than reconciling two sources for
-    one fact — the same instinct as the test above it."""
-    assert isinstance(PYPROJECT["project"]["license"], str)
-    assert not [c for c in PYPROJECT["project"]["classifiers"]
-                if c.startswith("License ::")]
+    one fact — the same instinct as the written-once test above.
+
+    Scoped to the classifier list rather than the whole table, because the first
+    version searched the table text and matched the *comment* saying there is no
+    `License ::` classifier. Prose about the rule tripping the check for the
+    rule: the exact defect §6.13 recorded when it rejected a regex over source
+    lines for `system=` in favour of an AST walk. A text check has to be told
+    what it is allowed to look at.
+    """
+    assert re.search(r'^license = "', PROJECT, re.M), (
+        "license should be a PEP 639 SPDX string, not a table")
+    classifiers = re.search(r"^classifiers = \[(.*?)^\]", PROJECT, re.M | re.S).group(1)
+    assert "License ::" not in classifiers
 
 
 def test_the_publish_extra_is_not_folded_into_dev():
     """CI's dev install would otherwise carry a build backend and an upload
     client it never uses."""
-    extras = PYPROJECT["project"]["optional-dependencies"]
-    assert "publish" in extras
-    assert not [d for d in extras["dev"] if d.split(">")[0] in ("build", "twine")]
+    extras = table("project.optional-dependencies")
+    assert re.search(r"^publish = \[", extras, re.M)
+    dev = re.search(r"^dev = \[(.*?)\]", extras, re.M | re.S).group(1)
+    assert "build" not in dev and "twine" not in dev
