@@ -1,11 +1,6 @@
 """Tests for homestead-aligned path resolver."""
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
-import pytest
-
 from nestor import homestead_paths
 
 
