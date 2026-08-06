@@ -2456,3 +2456,113 @@ comparison used `git stash push` on an already-committed file, which stashes
 nothing and silently ran the *same* revision twice. The paired runs above use
 `git checkout c68b8be -- nestor/sqlite_store.py`, verified each time by grepping
 for `_Conn` in the file before running.
+
+### 6.29 Two of the three refusals are exported; the third is not — **measured**, fix **open**
+
+*Found 2026-08-06 by building a recipe against the package rather than reading
+it — §6.30.*
+
+`nestor/__init__.py` exports `ConflictingSealError` and `RejectedPairError`.
+It does not export `ConflictingDraftError`.
+
+```
+ConflictingSealError     in nestor.__all__: True    attr: True
+RejectedPairError        in nestor.__all__: True    attr: True
+ConflictingDraftError    in nestor.__all__: False   attr: False
+```
+
+So the one refusal that exists to direct a caller to the third verb is the one
+refusal a caller cannot catch from the public surface. A recipe hits it, reaches
+for `nestor.ConflictingDraftError`, gets `AttributeError`, and has to import
+from `nestor.memory` — while the other two sit where they were looked for.
+
+Not a functional defect: the exception is raised, it is catchable from the
+module, and nothing silently succeeds. It is an inconsistency in what the
+package presents as its vocabulary, and §6.20 is where it entered — the verb
+shipped, the error's export did not follow it.
+
+One line. Left unfixed here for the same reason §6.25 was: it belongs in a
+commit that is about the public surface, not folded into a recipe.
+
+### 6.30 A recipe for patches — built, measured, and it does not serve — **measured**
+
+*Built 2026-08-06 against the shipped package, `recipes/patch_review.py`.
+Nothing in `nestor/` was modified, which was the point.*
+
+The README's Matcher-seam table has a row reading *yours / yours / whatever you
+can normalize and score*, with a date matcher and a CSV-header mapper cited as
+evidence. This is a third: **source = a defect described in prose, target = the
+fix, sealed = a human checked that this fix is the fix.**
+
+**`DefectMatcher` weights identifiers above prose.** Defect descriptions carry
+two token populations — prose (*"returns"*, *"silently"*) that is near-identical
+across every bug report ever written, and identifiers (`memory_init`,
+`ConflictingSealError`, `sqlite_store.py:374`) that are almost the whole signal.
+`StringMatcher` is character difflib and cannot tell them apart. Identifiers are
+detected syntactically — snake_case, an internal case change, a dotted or
+colonned path — with no vocabulary list to maintain or mis-weight.
+
+**Measured**, 13 real defect→fix pairs from this repository's own history, each
+probed with a sentence somebody might type a month later:
+
+| matcher | correct defect at rank 1 |
+|---|---:|
+| `StringMatcher` (shipped default) | 4/13 |
+| `TokenJaccard` (bench, unweighted) | 6/13 |
+| `DefectMatcher` (`IDENT_WEIGHT=3.0`) | **7/13** |
+
+`IDENT_WEIGHT` was fixed at 3.0 **before** anything ran, and the curve is
+reported rather than tuned to: 1.0 → 6/13, 2.0 → 6/13, 3.0 → 7/13, 5.0 → 7/13,
+8.0 → 7/13. It saturates at the a-priori choice, so the constant stands and
+raising it buys nothing.
+
+**The headline is the disappointing half.** 7 of 13 is better than both
+baselines and is not good. And the threshold sweep says the recipe cannot serve
+at all:
+
+| cutoff | serves the right one | serves a **wrong** one |
+|---|---:|---:|
+| 0.04 | 7/13 | 6/13 |
+| 0.10 | 4/13 | 2/13 |
+| 0.15 | 3/13 | 1/13 |
+| 0.92 (shipped) | 0/13 | 0/13 |
+
+No cutoff is good at both jobs — the same shape the README's Accuracy section
+already reports for translation, and the same *class* of finding as §3.4 stage
+3, where `StringMatcher` returned 0.000 recall at every shipped threshold on a
+real human corpus. Token weighting improves **ranking** and does not make
+**serving** safe. So this recipe is a review queue, not a tier-1 server, and
+saying otherwise would be the thing §4.4 exists to refuse.
+
+**The package caught me mid-measurement**, which is worth recording as evidence
+the warning works: `best_sealed` with a custom matcher emits a `RuntimeWarning`
+saying `SEAL_THRESHOLD=0.92` was measured for `StringMatcher` and telling the
+caller to run `nestor calibrate --matcher`. It fired unprompted, in the right
+direction, on exactly the mistake a recipe author is most likely to make.
+
+**Rival patches: the refusal is right.** A defect can have two plausible fixes,
+and the store permits one live row per normalized source. Building this is what
+made the refusal make sense. §6.19's two hazards apply word for word — a machine
+swapping the row under a reviewer mid-review so they seal something they never
+read, or a caller believing a proposal landed when it did not. So rivals get two
+named exits and no third: `revise()`, where the abandoned proposal is kept with
+the reason it was abandoned *for*, and splitting the defect, because a
+description broad enough to admit two correct patches is usually describing two
+problems. That last is §6.22 in another domain — the key says these are the same
+source when they are not.
+
+What is genuinely lost is two *live* proposals awaiting one decision, which is
+the gap `docs/detection-kit-as-gates.md` names at the kit's tool #4: Nestor
+holds alternatives as lineage, never as concurrent competitors. If you want a
+bake-off between two patches, Nestor is where the outcome is recorded, not where
+the bake-off happens.
+
+**What it cannot do, and does not pretend to.** Decide whether a patch is
+correct. There is no execution in Nestor and the recipe adds none. A seal here
+means *a person checked this* and never *the tests passed* — the same limit
+§6.12 forced into precise words for the detection kit's tool #3.
+
+Corpus caveat, stated because 13 is a small number: this is far too few rows to
+set a deployment's dial from, and the probes were written by the same person who
+wrote the defect descriptions — §3.4 stage 2 is the entry about why that flatters
+a matcher.
