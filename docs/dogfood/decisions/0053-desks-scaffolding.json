@@ -25,6 +25,21 @@
       "why": "Otherwise it is scaffolding with no consumer and nothing holding it to its claims until the client fixture arrives. The last test sets the globals directly, the way a fixture that had never heard of Desk would, and asserts both desks' decisions land in one chain — so the thing being prevented is executable rather than described."
     },
     {
+      "question": "The client's fixture — a scripted walk-through like shoebox.py, or something else?",
+      "commitment": "Something else. demo/big_jim.py is a standing desk driven a command at a time, not an argument with an ending.",
+      "why": "shoebox.py and sixty_seconds.py both make a case and stop; their value is that they assert and exit non-zero. This one is for a person playing the verifier, so it needs a store that survives between runs and a surface that takes decisions when they arrive rather than in a fixed order. It is the first fixture here that is a tool rather than a demonstration, and it is the first consumer of demo/desks.py — which is how the scaffolding got exercised by something other than its own test."
+    },
+    {
+      "question": "How does the fixture avoid sealing on the operator's behalf?",
+      "commitment": "seal requires --verifier on the command line: no default, no $USER fallback, and no route to sealed from draft().",
+      "why": "TODO.md §5.1 — a name a script supplied is not a human checking anything. The machine-side verb (draft) cannot reach status=sealed at all, and the human-side verb refuses to run without a name someone typed. On a used-car lot the incentive to blur that is unusually strong, which is the reason the fixture is set there."
+    },
+    {
+      "question": "Why key on the last six of the VIN rather than the whole thing?",
+      "commitment": "KEY_TAIL = 6, fixed before anything was measured, and the collision risk is reported by `state` rather than hidden.",
+      "why": "Nobody on a forecourt reads all seventeen characters, and the last six are the sequential production number — the part that actually distinguishes two cars off the same line. It is a real trade-off, not a safe default: two vehicles can share a tail, and a disclosure served for the wrong car is the exact failure this product exists to prevent. So `state` counts keys held by more than one row and prints them in red. A number tuned until the demo looked good would be corpus-fitting wearing a method's clothes."
+    },
+    {
       "question": "Do those six tests hold anything?",
       "commitment": "Proven by mutation. Dropping the matcher line from activate() turns two red; dropping the ledger line turns three red.",
       "why": "A gate nobody has watched fail is a description. Also recorded: the first version of this file assumed a proposal writes a ledger line and asserted on chains after calling propose(). It does not — a draft is not a decision and appends nothing — so four tests failed for a reason that was the test's error rather than the module's, and they were rewritten to seal first. And the SerialMatcher used here keeps every digit it finds, so an early restatement of 'ward 6' keyed to 44716 and missed; that was the test's fault too, and the assertion now avoids stray digits and says why."
