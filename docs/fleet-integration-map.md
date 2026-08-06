@@ -30,7 +30,7 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 
 ---
 
-## §4.2 Category: AI verification, not translation memory — **open**
+## §4.2 Category: AI verification, not translation memory — **shipped**
 
 | Fleet piece | Plug |
 |-------------|------|
@@ -39,11 +39,13 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 | **`redential-cli`** proof graph | Different domain (webhook/auth anchors), but same *category* language: structural evidence, not “we are accurate” |
 | **`nestor` `calibrate` + bench** | “Here is your false-verification rate on your corpus” — use in README/QUESTIONS, not new code |
 
-**Action:** Lift §3 of the lineage doc (or a shortened quote) into README or QUESTIONS §marketing — code already exists in another repo.
+~~**Action:** Lift §3 of the lineage doc (or a shortened quote) into README or QUESTIONS §marketing — code already exists in another repo.~~
+
+**Done 2026-08-06, but not that way.** The README section *The category — verification, not translation memory* was written fresh, not lifted: it was built in a cloud container with no fleet checkout on disk and no access to `safe-app-store-public`, so `the-nestor-lineage.md` could not be read, let alone quoted. If that doc says it better, this section should be reconciled against it by someone who can open both. `IDEAS.md` §4.2.
 
 ---
 
-## §4.4 Bench as marketing asset — **open**
+## §4.4 Bench as marketing asset — **partly** (README section shipped; no landing page, no chart)
 
 | Fleet piece | Plug |
 |-------------|------|
@@ -52,7 +54,9 @@ No other repo owns this; it is **`SqliteStore`-local**. The bounded WAL pool (§
 | **`demo/sixty_seconds.py`** | Scripted demo; §4.3 still wants a **recording** |
 | **Lineage doc** | Cite-and-grade on almanac-data (51 entries) — parallel “we measure” story |
 
-**Action:** One landing page or README section linking demo + one `bench/results/*.json` chart + terpsi dispersion — no new bench code required.
+**Action:** ~~One landing page or~~ README section linking demo + one `bench/results/*.json` chart + terpsi dispersion — no new bench code required.
+
+**Done 2026-08-06:** the README half, as *Why the numbers are published* closing the Accuracy section — it links the demo and points at committed `bench/results/`. **Still open:** the landing page, the chart, and the terpsi dispersion, all of which want either a corpus checkout or a rendering surface this container does not have. `IDEAS.md` §4.4.
 
 ---
 
@@ -222,6 +226,6 @@ Stay **nestor-local** unless you import design from the rows above:
 
 ## Suggested priority (integration effort vs value)
 
-1. **Docs-only:** §4.2 / §4.4 from lineage + bench results; §5.5 frank + `ledger head` runbook.
+1. **Docs-only:** ~~§4.2~~ (shipped) / §4.4 landing page + chart still open; §5.5 frank + `ledger head` runbook.
 2. **Small code:** §6.8 `memory_init` skip; optional Memory sort by `created_at`.
 3. **Large / design:** §5.8 Ed25519 (borrow willow-mcp envelope shape); §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy.

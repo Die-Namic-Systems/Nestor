@@ -241,13 +241,48 @@ a person.
 That is also the honest marketing story (§4.2): not "we are accurate," but "here
 is your false-verification rate, measured on your corpus, and here is the dial."
 
-### 1.4 Seal staleness and quorum — **open**
+### 1.4 Seal staleness and quorum — **measured**, design **open**
 
 Every seal is equally authoritative forever, and one verifier is enough. Neither
 is obviously right for a regulated buyer. Worth considering: seal age surfaced
 in provenance; a `weight` that decays; N-of-M verification for high-stakes
-domains. The ledger already records who sealed what and when, so the data is
-there — nothing consumes it.
+domains. ~~The ledger already records who sealed what and when, so the data is
+there — nothing consumes it.~~
+
+> **Corrected in place, 2026-08-06**, by trying to argue the entry through:
+> [`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md). The
+> ledger records who sealed what and when for the **first** seal. It records
+> nothing about agreement. Two verifiers sealing one source with the same target
+> produces one row, one chain entry, and no trace of the second person —
+> measured, on a file-backed store with signing on. `memory.py:374` writes only
+> when the row is not already sealed *or* the target differs, so concurrence
+> satisfies neither arm and returns the stored row to the caller as if it were
+> theirs.
+>
+> So the premise "the data is there" is false for quorum specifically, and it is
+> the load-bearing premise: N-of-M cannot be computed from a history that was
+> never written, and no migration can backfill countersignatures that were
+> discarded. See §6.26.
+
+The memo's three conclusions, in brief:
+
+* **Decay must not live in `weight`.** The column is written by every seal path,
+  read by nothing in ranking, and absent from `signing._message` — so a decayed
+  weight is unsigned mutable state anyone with write access can reset while
+  every signature still verifies. Age should be derived from the ledger's
+  timestamp, which the chain covers, not stored beside the data it governs.
+* **Neither staleness nor quorum should change what is served silently.** A
+  decay multiplier turns "a human checked this" back into a confidence score —
+  the exact thing the README's first paragraph refuses — and withdraws a
+  verified answer on a date nobody chose, leaving the ledger with no decision to
+  point at. Staleness belongs in the curator queue, shaped like `reopen_when`.
+* **Sub-quorum is not a weaker seal; it is a draft.** That keeps the guard in
+  the one place a row becomes sealed rather than in every serving path, and
+  avoids inventing a "70% sealed".
+
+Still open, and named as open in the memo: how old is too old, whether any buyer
+actually asks for either, and the fact that a quorum of HMACs is a quorum only
+against outsiders until `TODO.md` §1 lands.
 
 ### 1.5 A numeric label could hold several baselines — **shipped**
 
@@ -989,7 +1024,7 @@ without asserting it.
 Still open, and deliberately separate: §4.2's positioning line, and §4.3's
 recorded demo.
 
-### 4.2 The category is AI verification, not translation memory — **open**
+### 4.2 The category is AI verification, not translation memory — **shipped**
 
 Tier 2 is an AI draft explicitly queued for review; tier 3 is a human sealing it;
 tier 1 is that seal served forever — all in a tamper-evident chain. That is a
@@ -1003,6 +1038,20 @@ with. Candidate line: *"Verified once. Served forever."*
 Where it wins: high-value, low-volume decisions — contracts, clinical notes,
 regulatory filings. Where it loses: high-volume chat, per §2 numbers. Don't
 pitch into the second; the demo would lose.
+
+**Shipped 2026-08-06** as a README section, *The category — verification, not
+translation memory*, placed directly after *The mechanic* and linked from
+Contents. It carries the TM-is-a-cache contrast, the permanent-capital curve,
+"Verified once, served forever", and both halves of the wins/loses pair with the
+losing half pointing at the §2 numbers rather than glossing them.
+
+**One clause from this entry was deliberately not shipped:** *"which nobody has
+solved."* It is a claim about every other system in the category, it was not
+checked, and there is no way to check it — which makes it precisely the kind of
+sentence this repo spent 2026-08-05 learning not to publish. The README makes
+the checkable claim instead: that this is a question regulated buyers are being
+asked. What Nestor answers is a fact about Nestor; what everyone else has failed
+to answer is not.
 
 ### 4.3 The 60-second demo — **shipped, except the recording**
 
@@ -1033,12 +1082,30 @@ things that exist to answer it.
 Every beat asserts what it narrates and the script exits non-zero if a claim
 does not hold, so it cannot rot into a lie between recordings. A test runs it.
 
-### 4.4 The bench is a marketing asset — **open**
+### 4.4 The bench is a marketing asset — **shipped**
 
 "We are accurate" is a claim a compliance buyer knows is a lie. "Here is our
 measured false-verification rate, here is the dial that sets it, here is the
 harness — run it yourself" is stronger *because* it admits a failure rate.
 Publishing `bench/results/` is a differentiator, not an exposure.
+
+**Shipped 2026-08-06** as *Why the numbers are published*, a subsection closing
+*Accuracy, and how to measure yours* — which is where the argument belongs,
+because by that point the reader has just been shown a table where the default
+threshold false-seals 16.4% of the time. The section says that was on purpose.
+
+Each of the three things the pitch names is a path in the repository, and the
+section says which: the harness is `bench/`, the dial is `SEAL_THRESHOLD` plus
+`nestor calibrate`, the numbers are the committed `bench/results/*.json` with
+parameters, environment and git revision attached. It also keeps
+`"complete": false` in view — a prefix is not an answer, and a marketing number
+would not bother to preserve the distinction.
+
+**No landing page, and no new bench code**, which is what the fleet map's
+"one landing page **or** README section" left open. The README section was the
+cheaper half and it is the one a buyer already reading the repo will reach. The
+recording in §4.3 is still the missing asset, and it is still nobody's code
+change.
 
 ---
 
@@ -1515,7 +1582,7 @@ bundles. Still open: N6–N9 (edges, DecisionMemory recipe, the gate) and
 carrying `reopen_when` in bundles (needs a BUNDLE_VERSION bump — it is not
 in REJECTION_FIELDS, so it does not travel yet).
 
-### 6.12 The detection kit as gates, not advice — **open**
+### 6.12 The detection kit as gates, not advice — **measured**, build **open**
 
 *Proposed 2026-08-05, same session as §6.11.*
 
@@ -1525,8 +1592,56 @@ the kit's nine tools can become **exit codes** the way `nestor ledger verify`
 made "is the chain intact?" one: tool #1 (independent confirmation) is the
 witness; #4/#5 (multiple hypotheses, don't trust it because it's yours) are
 `nestor decision check` + verifier-differs-from-author; #7 (every link holds)
-is the hash chain; #9 (falsifiability) is `reopen_when`. Unmapped: #2, #3,
-#6, #8, and the fallacy catalog.
+is the hash chain; #9 (falsifiability) is `reopen_when`. ~~Unmapped: #2, #3,
+#6, #8, and the fallacy catalog.~~
+
+> **Worked through 2026-08-06** —
+> [`docs/detection-kit-as-gates.md`](docs/detection-kit-as-gates.md). Four of
+> the nine are already exit codes, two are blocked on data Nestor discards, and
+> three cannot be gated at all. Three claims in the paragraph above are
+> corrected in place by that memo:
+>
+> * **#6 is not unmapped.** `cmd_calibrate` already returns
+>   `EXIT_ANSWER_IS_NO` when no cutoff on your corpus meets the target rate —
+>   quantification failing a build rather than advising one. Seven commands
+>   return that code, not one.
+> * **#3 is not unmapped.** Per-verifier keys plus `NESTOR_REQUIRE_SEAL_KEY=1`
+>   are the mapping, with a limit that has to be said out loud: Nestor gates
+>   whether an authority is *named and bound to a key*, never whether it is
+>   *knowledgeable*. Treating the first as evidence of the second is the fallacy
+>   the tool names.
+> * **`nestor decision check` does not exist.** The subcommand list is `ask,
+>   resolve, check, match, export, db, import, ledger, calibrate, keys,
+>   rejections, stats, ui, serve`. §6.11 records decision memory as **partly**
+>   shipped and the CLI surface is one of the parts that was not, so #4's
+>   mapping was written against a planned command.
+>
+> And #5's mapping — verifier-differs-from-author — is right and not
+> implementable: **there is no author field.** Measured, a draft entered with no
+> verifier and then sealed by `rita` is accepted, with nothing recording whether
+> rita also proposed it.
+>
+> **#8 is the useful row.** Occam's razor is permanently ungateable: there is no
+> mechanical test for *simpler*, and a check claiming to enforce parsimony would
+> be a number standing in for a judgement — the exact substitution the kit is
+> written to catch. A gate for #8 would be baloney about baloney detection, and
+> the right output is that sentence rather than a metric nobody can defend. #2
+> is worse than unmapped: `ConflictingSealError` makes recorded disagreement
+> impossible by design, so debate happens where the system cannot see it.
+>
+> **The pattern worth naming:** #1 and #5 are blocked the same way, and it is
+> the same way §1.4 and §6.26 are blocked. Nestor records *decisions*
+> thoroughly and *the process that produced them* not at all. That is a coherent
+> choice — it is why the ledger is small enough to verify — and it puts a whole
+> class of detection-kit gates out of reach until some of that process is
+> written down.
+>
+> One new gate is proposed and not built: **a test that cannot fail is a
+> description**, mechanized — run a change's new tests against `HEAD~1` and fail
+> if none of them fail. It needs no new data and gates the claim this repo makes
+> about its own work most often. Not built because the exemption rule (pure
+> guards, docs changes, behaviour-neutral refactors) wants designing before the
+> gate does.
 
 ### 6.13 Ground rule 2b made executable — **shipped**
 
@@ -2122,14 +2237,30 @@ strings where case *is* the meaning, and there is no field that says so.
 
 **The one mechanism that could express it is outside everything.**
 `glossary.locks_in_text` → `system_prompt(locks=...)` already emits *"Locked
-terminology — always render these terms exactly as given"*, and an identity
-lock (`{"Nestor": "Nestor"}`) is precisely carry-through. But the glossary is
+terminology — always render these terms exactly as given"*, and ~~an identity
+lock (`{"Nestor": "Nestor"}`) is precisely carry-through~~. But the glossary is
 `data/glossary.json`, and `grep` for it in `portable.py`, `cascade.py` and
 `sqlite_store.py` returns **0, 0, 0**: not bundled, not ledgered, not sealable,
 not superseded, no verifier, no signature. The one place Nestor can say *do not
 translate this* is the one place with none of Nestor's guarantees. A bundle
 that carries every pair and rejection carries no locks, so the receiving host
 composes prompts the sending host would not have.
+
+> **Corrected in place, 2026-08-06**, while answering the three questions below
+> in [`docs/carried-strings.md`](docs/carried-strings.md). The identity-lock
+> escape hatch does not work. `locks_in_text` matches case-insensitively
+> (`glossary.py:36` lowercases both sides), so `{"Nestor": "Nestor"}` fires on
+> *"he was the nestor of the committee"* as readily as on the name — measured,
+> all three of `Nestor` / `nestor` / `NESTOR` return the lock. It would put
+> *always render exactly as given* into the prompt for the one row in the pair
+> that is a real translation.
+>
+> So the glossary is not the mechanism that could express the distinction and
+> merely lacks guarantees. It is a **second** mechanism with the same blindness:
+> the store case-folds in `normalize` deliberately, the glossary case-folds in
+> `locks_in_text` incidentally. The diagnosis "there is no field that says so"
+> stands; the named way out does not. There is no way to say this today, in any
+> component, with any combination of existing parts.
 
 **What is not being proposed.** Not a `kind` column, and not on the strength of
 one example — that is the shape §6.17 keeps punishing, a field added to carry a
@@ -2145,6 +2276,33 @@ and the third may dissolve the other two:
 3. Does a carried string want a *pair* at all? `Nestor -> Нестор` is a fact
    about a script, not about a language pair, and the table is a language-pair
    table.
+
+**Answered 2026-08-06** — [`docs/carried-strings.md`](docs/carried-strings.md),
+and question 3 does dissolve the other two:
+
+1. **Carried, not proper.** "Proper noun" is a property of a word; carriage is a
+   property of an intention, and *Nestor* is a name in one segment and a common
+   noun in the next — which is this entry. The broader framing also needs no
+   linguistics and covers SKUs, identifiers, paths and citations, none of which
+   a grammarian would call proper nouns and all of which have the requirement.
+2. **Neither, as posed** — the glossary is not currently a policy file, because
+   a policy file has a location and `data/glossary.json` is relative to the
+   process working directory (§6.27). The real complaint in this entry is the
+   *bundle*, not the seal, and bundling locks fixes it without sealing them:
+   nobody verifies that a string is carried, so there is nothing for a
+   `verifier` column to have been right about.
+3. **No pair.** `Nestor -> Нестор` is transliteration — a real transform with a
+   real target, which belongs in a pair table like any other. The carried case
+   is `Nestor -> Nestor`, and that is not a pair but **membership in a set**:
+   one column, no target (it can only equal the source), no language direction
+   (a string carried `en->ru` is carried on the way back). The two rows stop
+   competing because only one of them is a translation, and no field has to say
+   which — the set says which, consulted before normalization rather than
+   inside it.
+
+The one hard constraint that falls out: whatever holds carried strings must not
+be keyed on a case-folded normal form, which is what rules out putting them in
+`tm_pairs` and reproducing this collision one layer down.
 
 **Also true, and the reason this is in §6 rather than fixed:** nobody has hit
 it. It has no reporter, no failing host, and one contrived reproduction. It is
@@ -2349,3 +2507,84 @@ and the frozenset is pinned so growing it is a decision rather than a drift.
 different module: it puts a translation system in the position of translating
 its own refusals, unverified, which wants its own entry rather than smuggling
 into this one.
+
+### 6.26 A countersignature is discarded without a word — **measured**, fix **open**
+
+*Found 2026-08-06 while arguing §1.4 through; see
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §1.*
+
+A second verifier sealing an already-sealed pair with the **same** target
+writes nothing, appends nothing, and raises nothing. `memory.add_pair` returns
+the stored row, so the caller has every reason to believe they sealed it.
+
+Measured, file-backed store, `NESTOR_SEAL_KEY` set:
+
+```
+after rita : verifier='rita' weight=1.0 sig=07e4bf0dd287...
+after sam  : verifier='rita' weight=1.0 sig=07e4bf0dd287...
+rows for this source: 1
+```
+
+and one ledger entry, `{'kind': 'seal', 'verifier': 'rita'}`.
+
+The branch is `memory.py:374` — a seal writes when the row is not already
+sealed **or** the target differs. Agreement satisfies neither arm.
+
+**This is the failure mode the file next to it already names.** Fifteen lines
+below, `ConflictingDraftError` exists precisely because a draft over a different
+draft *"silently returned the stored row"*, and its comment says that is worse
+than either alternative. The concurring-seal path does exactly that, and has no
+error, because before quorum was contemplated there was no reason to tell "you
+sealed it" apart from "somebody else did".
+
+Note what is **not** wrong here: nothing is overwritten, no rejection is
+bypassed, and the served answer is correct. Disagreement is still loud
+(`ConflictingSealError`). The defect is that Nestor is better instrumented for
+reviewers who fight than for reviewers who concur — a person did a thing, under
+their own key, and the tamper-evident record of who decided what does not
+contain it.
+
+**The fix is one ledger append**, not a schema change: a `countersign` entry
+naming the second verifier, leaving the row and the serving path untouched. It
+is listed separately from §1.4 because it stands on its own — it is worth doing
+whether or not N-of-M is ever wanted, and it is the prerequisite that makes
+"does anyone countersign?" a measurement rather than a guess.
+
+### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
+
+*Found 2026-08-06 while answering §6.22's second question; see
+[`docs/carried-strings.md`](docs/carried-strings.md) §Q2.*
+
+```python
+_PATH = pathlib.Path("data/glossary.json")     # nestor/glossary.py:7
+```
+
+Relative, and resolved against the process working directory on every call —
+`load()`, `save()`, `add_term()` and `locks_in_text()` all go through it. So the
+glossary a deployment has is a function of where it was launched from. A
+`systemd` unit with a different `WorkingDirectory` than the developer shell that
+wrote the locks reads an empty glossary and says nothing.
+
+Measured, one process:
+
+```
+glossary path is relative to CWD: data/glossary.json -> True
+same process, different cwd, load() returns: {}
+```
+
+It wrote a glossary, read it back, changed directory, and the same call returned
+`{}`. No error, no warning — term locks simply stop being applied, and the only
+visible symptom is that tier-2 drafts quietly stop respecting terminology
+somebody entered on purpose.
+
+§6.22 calls the glossary *"correctly a policy file that happens to be
+under-guarded"*. That is one step short: it is unsigned, unledgered, unbundled
+**and** unlocatable, and the last of those is the only one with a live blast
+radius today. The others are gaps in guarantees Nestor could offer; this one
+silently drops a promise it already makes.
+
+Unlike the rest of §6.22 this does not wait on a design question and does not
+need a reporter — it needs an absolute path, resolved once, from an explicit
+setting rather than from `os.getcwd()` at call time. It is listed separately for
+that reason: everything else in §6.22 is deliberately parked, and this should
+not be parked with it.
