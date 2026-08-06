@@ -28,7 +28,8 @@ from nestor import cascade, ledger
 #: make this test true by construction and therefore vacuous.
 PINNED = {
     "baseline_replaced", "baseline_seal", "bundle_import", "corpus_seed",
-    "entity_resolve", "entity_seal", "passage", "proposal", "reconcile",
+    "countersign", "entity_resolve", "entity_seal", "passage", "proposal",
+    "reconcile",
     "reject_match", "reject_pair", "reject_segment", "restore", "seal",
     "seal_override", "seal_replaced", "seed_conflict", "seed_rejected",
     "segment_sealed", "supersede", "unseal",

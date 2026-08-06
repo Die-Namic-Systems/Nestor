@@ -418,6 +418,38 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                     "source_sha": _sha(norm),
                     "same_verifier": replaced_verifier == verifier,
                 })
+        elif status == "sealed" and audit:
+            # Reached only when the row is ALREADY sealed with THIS target — the
+            # branch above covers every other seal. Until IDEAS §6.26 this fell
+            # straight through to `return existing`: a second reviewer agreeing
+            # with the first wrote nothing, appended nothing, raised nothing, and
+            # got the stored row back as though they had sealed it.
+            #
+            # Nothing about the row changes here, and nothing about serving does.
+            # There is one `verifier` column and one `seal_sig`, and they belong
+            # to whoever got there first; the second signature has nowhere to
+            # live but the chain. That is the whole fix — the store still holds
+            # one decision, and the ledger now holds both people.
+            first = (existing.get("verifier") or "")
+            # NOT `not _same_verifier(first, verifier)`. That helper answers
+            # "may we assume the same actor", and resolves unknown to *not the
+            # same* so a guard fails closed. Negating it inherits the wrong
+            # polarity: two anonymous re-seals would become a countersignature
+            # between two people who never identified themselves. Both sides
+            # must NAME somebody before this is evidence of anything.
+            if first and verifier and first != verifier:
+                _log_countersign({
+                    "kind": "countersign", "pair_id": existing["id"],
+                    "verifier": verifier, "countersigned": first,
+                    "source_lang": source_lang, "target_lang": target_lang,
+                    "source_sha": _sha(norm), "target_sha": _sha(target_text),
+                    "origin": origin,
+                    # The signature the row cannot carry. Computed above with
+                    # this caller's key, so with a keyring installed an unknown
+                    # or revoked countersigner is refused before the store is
+                    # touched — same refusal a seal gets, for the same reason.
+                    "sig": seal_sig,
+                })
         return existing
     pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
@@ -952,11 +984,39 @@ def _log_seal_event(entry: dict) -> None:
     try:
         _log_rejection(entry)
     except Exception as exc:              # noqa: BLE001 — never fail a seal on audit
+        # Name the entry kind — hard-coding "seal" lied when any other kind
+        # (or, before §6.26's split, a countersign) took this path.
+        kind = str(entry.get("kind") or "entry")
         warnings.warn(
-            f"a seal was written but its ledger entry was not: {type(exc).__name__}: "
-            f"{exc}. The store and the trail now disagree; run "
-            f"nestor.ledger.verify() and reconcile before trusting this row.",
+            f"a {kind} was written but its ledger entry was not: "
+            f"{type(exc).__name__}: {exc}. The store and the trail now disagree; "
+            f"run nestor.ledger.verify() and reconcile before trusting this row.",
             RuntimeWarning, stacklevel=2)
+
+
+def _log_countersign(entry: dict) -> None:
+    """Append a countersignature, and **raise** if the trail will not take it.
+
+    The opposite posture to :func:`_log_seal_event`, on that function's own
+    reasoning. It swallows because *"the pair is already committed by the time
+    we get here"*, so raising would hand the caller a completed write plus an
+    exception — the worst of both.
+
+    A countersignature commits nothing. There is no row to leave behind: the
+    ledger entry **is** the whole product (IDEAS §6.26 — `tm_pairs` has one
+    `verifier` and one `seal_sig` and they belong to whoever sealed first). So
+    an append that fails means the operation did not happen, and returning
+    normally would silently reproduce the exact defect §6.26 exists to close,
+    one edge over. Raising leaves the caller where they started.
+
+    Found in review of the PR that added the countersignature: the swallowed
+    path also warned *"a seal was written but its ledger entry was not"* on a
+    call where no seal was written, so the one signal a curator got was false.
+    Countersignatures no longer use that helper; its warning now names
+    ``entry["kind"]`` so a future passenger cannot repeat the lie.
+    """
+    from .cascade import _ledger_append
+    _ledger_append(entry)
 
 
 def _log_rejection(entry: dict) -> None:

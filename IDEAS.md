@@ -2597,7 +2597,7 @@ The fix is one line — `_ensure_lineage_schema` before `_ensure_unique_key` in
 correctness bug folded quietly into a performance change is how a reviewer ends
 up unable to tell which half a regression came from.
 
-### 6.26 A countersignature is discarded without a word — **measured**, fix **open**
+### 6.26 A countersignature is discarded without a word — **shipped**
 
 *Found 2026-08-06 while arguing §1.4 through; see
 [`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §1.*
@@ -2638,6 +2638,72 @@ naming the second verifier, leaving the row and the serving path untouched. It
 is listed separately from §1.4 because it stands on its own — it is worth doing
 whether or not N-of-M is ever wanted, and it is the prerequisite that makes
 "does anyone countersign?" a measurement rather than a guess.
+
+**Shipped 2026-08-06, and it was one ledger append.** Landed alone, on its own
+branch, because two reviewers and the PR that found it all said the same thing:
+do not bundle this with the performance work it was discovered next to.
+
+*What it records.* `countersign` names the second verifier and the first
+(`countersigned`), the source and target digests, and — the part that makes it
+evidence rather than a log line — **a signature over the same bound fields a
+seal signs, made with the countersigner's own key.** `tm_pairs` has one
+`verifier` and one `seal_sig` and they belong to whoever got there first, so
+the second signature has nowhere to live but the chain. Verified: the entry
+validates under `sam` and does not validate under a claim that `rita` made it.
+With a keyring installed, an unknown or revoked countersigner is refused before
+the store is touched, exactly as a seal is.
+
+*What it does not record, and this is where the fix could have gone wrong.* The
+obvious way to write the condition is `not _same_verifier(first, second)`. That
+helper answers *may we assume the same actor* and resolves unknown to **not the
+same**, so a conflict guard fails closed — and negating it inherits the wrong
+polarity. Two anonymous re-seals would have become a recorded agreement between
+two people who never identified themselves: a fabricated countersignature, in
+the one file that exists to say who decided what. Both sides must name somebody.
+`test_two_anonymous_seals_do_not_fabricate_a_countersignature` is the gate.
+
+*Nothing else moves.* The row is byte-identical before and after, `best_sealed`
+returns the same row with the same verifier, and the chain still verifies. Three
+of the ten tests fail against the reporting revision — the entry itself, the
+signature-is-evidence check, and the accumulation of a third reviewer. The other
+seven pass on both sides and are guards: they are the *must-not-record* and
+*must-not-move* cases, which is precisely where a wrong version of this breaks.
+
+*What is now unblocked.* §1.4's step 2 —
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §5 —
+was "measure whether anyone countersigns", and it was unanswerable because the
+data did not exist. It exists now. **Nobody has run that measurement yet**, and
+the memo's position is unchanged until somebody does: N-of-M is a schema change
+that should not be designed for users who have not been shown to exist.
+
+> **Two things review found, and the second is this entry's own defect one edge
+> over.**
+>
+> **Counting.** `seal` is idempotent and `countersign` is not: `rita`×3 records
+> one entry, `sam`×3 after rita records **three**. Kept deliberately — a seal is
+> a state and a countersignature is an event, and three attestations carry three
+> timestamps and three signatures that an append-only chain exists to keep. But
+> it means `grep -c countersign` answers a different question from the one step 2
+> asks, and a UI retry inflates it. The memo now says **count distinct
+> `(pair_id, verifier)`**, and a test pins the two fields that count needs. Not
+> deduplicated in code: that would put a ledger read on the write path — a new
+> interaction, to enforce something the reader can do for itself.
+>
+> **Append failure.** `_log_seal_event` swallows a failed append, warns, and
+> returns; its docstring says why, and the reason is *"the pair is already
+> committed… raising would hand the caller a completed write plus an
+> exception."* **A countersignature commits nothing.** The ledger entry is the
+> whole product, so swallowing meant the operation silently did not happen —
+> which is precisely the defect this entry exists to close, reappearing on the
+> error edge. Worse, the warning it did emit read *"a seal was written but its
+> ledger entry was not"* on a call where no seal was written, so the one signal
+> a curator got was false.
+>
+> Countersignatures now append through `_log_countersign`, which **raises**.
+> That is safe here for exactly the reason the swallow is safe there: there is
+> nothing to roll back, so the caller is left where they started. Two gates fail
+> against the reviewed revision; a third is a guard on the fields the count
+> needs.
 
 ### 6.27 The glossary is addressed relative to the working directory — **measured**, fix **open**
 
@@ -2745,7 +2811,7 @@ shipped, the error's export did not follow it.
 One line. Left unfixed here for the same reason §6.25 was: it belongs in a
 commit that is about the public surface, not folded into a recipe.
 
-### 6.30 A recipe for patches — built, measured, and it does not serve — **measured**
+### 6.30 A recipe for patches — built, measured, and it does not serve — **measured**, and **qualified by §6.32**
 
 *Built 2026-08-06 against the shipped package, `recipes/patch_review.py`.
 Nothing in `nestor/` was modified, which was the point.*
@@ -2827,6 +2893,18 @@ Corpus caveat, stated because 13 is a small number: this is far too few rows to
 set a deployment's dial from, and the probes were written by the same person who
 wrote the defect descriptions — §3.4 stage 2 is the entry about why that flatters
 a matcher.
+
+> **The caveat was right, 2026-08-06 — §6.32.** Run against a second corpus
+> (`IDEAS.md`'s own open entries, probed with questions that are not paraphrases
+> of them), `DefectMatcher` scores **3/6** and `StringMatcher` **4/6**. The 7/13
+> advantage above does not reproduce. At n=6 one question is the whole
+> difference, so this establishes the advantage is *not general* rather than
+> reversed — but the table above should not be read as evidence that identifier
+> weighting beats character similarity, only that it did on the corpus I wrote.
+>
+> The mechanism is that token sets have no morphology: `seals` and `seal` share
+> nothing, so a query scoring 0.1975 under character difflib scores **0.0000**
+> here. The win was measured and the loss was never looked for.
 
 ### 6.31 Nothing that persists carries a version — **measured**, fix **open**
 
@@ -2930,3 +3008,75 @@ stop being deferred by not being written down.
 > be re-hashed under new rules, so the format is already frozen by its first
 > entry, and adding a version now leaves everything before it as an implicit
 > version 0. Nothing found in review moves that question either way.
+
+### 6.32 The loop, fourth turn — and it found the recipe's caveat was right — **measured**
+
+*Run 2026-08-06 with `scripts/dogfood_next_piece.py`. The operator asked for
+Nestor to be used to write the next piece of Nestor; I had built §6.26 without
+running the loop once, which is the thing §6.19 exists to say is worth doing.*
+
+The first three turns (§6.14, §6.18, §6.19) fed session decisions through the
+translation recipe. This one feeds **`IDEAS.md`'s own open entries** through
+`recipes/patch_review.py` — defect → proposed fix — and asks the six questions
+somebody would type before picking up the next piece of work. The questions were
+written before any score was looked at, and deliberately are **not** paraphrases
+of the defect text.
+
+**§6.30's advantage does not reproduce.**
+
+| matcher | rank-1 on the bench corpus (§6.30) | rank-1 on Nestor's own findings |
+|---|---:|---:|
+| `DefectMatcher` | 7/13 | **3/6** |
+| `StringMatcher` | 4/13 | **4/6** |
+
+§6.30 shipped with a caveat in its own last paragraph: *"the probes were written
+by the same person who wrote the defect descriptions — §3.4 stage 2 is the entry
+about why that flatters a matcher."* This is the second corpus that caveat asked
+for, and the caveat was right.
+
+**Stated precisely, because n is 6.** One question is the entire difference.
+This establishes that the 7/13 advantage **is not general** — not that
+`StringMatcher` is better. What it removes is the licence to describe
+`DefectMatcher` as an improvement without saying on which corpus.
+
+**The mechanism, and it is not subtle: no morphology.**
+
+```
+"should seals expire?"  vs  "every seal is authoritative forever…"
+    DefectMatcher 0.0000      StringMatcher 0.1975
+    shared tokens: []
+```
+
+`seals` and `seal` are different tokens, so a token-set matcher scores **zero**
+on a query that character difflib handles for free. Change one letter and
+`DefectMatcher` gives 0.1111 and ranks §1.4 first. Weighting identifiers buys
+precision on the rows that share an identifier and pays for it by throwing away
+everything character similarity knew about the shape of a word. §6.30 measured
+the win and never looked for the loss.
+
+**And the acronym/synonym class, live on Nestor's own corpus.** *"can I catch
+the error that tells me to call `revise_draft`?"* shares **zero** tokens with the
+entry that answers it, which talks about `ConflictingDraftError` and "the third
+verb". No lexical matcher of any kind reaches that; it is exactly the fraction
+§3.3's semantic matcher exists to justify itself on, and `bench/token_matchers.py`
+was written to size. Here it is, in the wild, in this repository's own notes.
+
+**Not fixed, and that is the point.** Adding singular-folding because six
+questions asked for it is fitting the corpus and calling it a method —
+`bench/token_matchers.py` says so about stopword lists and §6.30 says so about
+`IDENT_WEIGHT`. The fix is cheap and it should be *measured on a corpus nobody
+wrote for it*, which is the same standard this entry just held §6.30 to.
+
+**What the loop says about using Nestor to write Nestor.** `fix_for` returned
+`None` six times out of six and structurally always will: everything a machine
+proposes is a draft, a machine may not seal, and tier 1 serves seals. So the
+answer to *"can Nestor help write the next piece of Nestor"* is **it can surface
+what was already decided and it cannot decide** — the queue view is available to
+a machine, the serving view is not, and the gap between them is a human at
+`nestor.ui`. That is the covenant working exactly as designed, and it is worth
+having measured rather than assumed.
+
+One question earned its place: *"can I use the patch recipe to pick a fix
+automatically?"* returned §6.30 at rank 1, whose fix text reads *"it is a review
+queue, not a tier-1 server; do not wire `fix_for` in anger."* The recipe
+correctly warned me off itself.
