@@ -4275,6 +4275,14 @@ third of what gets defined gets described, and the ratio does not move with
 scale.** It was stated as a hypothesis at rung 6 with two points and a warning;
 it is measured now.
 
+> **Corrected at rung 11 (§6.52).** The fourth measurement is **42%**
+> (`willow-bot`, 74/177), which sits outside the 34.5–37 band above. Four points
+> are 34.5 · 35 · 37 · 42 — a spread of 7.5, three times what this paragraph
+> reports. The claim survives in weakened form — *between a third and two fifths
+> of what gets defined gets described* — but **"does not move with scale" is not
+> supported** and was written on three points that happened to agree. The
+> sentence was true of its evidence and overstated as a rule.
+
 Worth being precise about what it is not. It is not a quality judgement — a
 docstring is a declaration the author chose to make, and 35% may be exactly the
 right number for code where two thirds of the definitions are obvious. What it
@@ -4448,3 +4456,56 @@ here. Both these repositories also show **zero author identities matching the
 name**, which is a second and independent check — but it is still two checks of
 the same kind, and the honest statement is *no commit in this history is
 attributed to the operator*, not *the operator did nothing here*.
+
+### 6.52 willow-bot: a generic runner that demoted itself within one run, a rule shape, and the ratio's fourth point breaking the band — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-bot` (created 2026-04-28), rung 11.
+Private, so structure and counts only. Read together with rung 12 at the
+operator's request — same creation date, one private source and one fork.*
+
+| shape | drafts |
+|---|---|
+| docstring | 74 |
+| rubric | 15 |
+| rule (condition → action) | 11 |
+| finding · definition | 0 |
+| **total** | **100 draft, 0 sealed** |
+
+Document coverage 3/4.
+
+**The generic runner was written for this rung and this rung refused it.**
+`extract_standard.py` exists because rung 7's bespoke file was a docstring and a
+call, and rung 11 looked like a second copy of it with one string changed —
+which is where a third copy becomes inevitable. It was written,
+`extract_willow_nest.py` was deleted after verifying `--name willow-nest`
+reproduces its 35 rows exactly, and rung 11 was run through it.
+
+Its declined-row report then said, within that one run, that the assumption was
+wrong: eleven rows under two headers, both of the form *when this, do that*.
+Eight named triggers — Lokasenna, Mistletoe, Web of Anansi, Cattle of Hermes —
+each with the condition that fires it and the action it takes, plus three
+webhook events mapped to disk operations. So rung 11 got a bespoke extractor
+after all, and the sequence is the design working rather than a mistake: the
+generic path is correct for a repository that declares nothing new, and the
+mechanism that tells you which kind you have is the one that prints what it
+refused.
+
+**A rule is not a definition and not a finding.** It is a third kind of claim
+with its own failure mode — a rule can be wrong by *firing when it should not*,
+which nothing definitional can do. Given a store whose whole subject is whether
+a human checked something, rules are the rows most worth a human checking, and
+they are the first shape in this corpus that could be tested by running it
+rather than by reading it.
+
+**The docstring ratio's fourth point breaks the band, and §6.48 is corrected in
+place above.** 74/177 is **42%**, against 34.5 · 35 · 37 from rungs 5–7. The
+spread goes from 2.5 points to 7.5. The claim survives as *between a third and
+two fifths*; the phrase **"does not move with scale" does not survive** — it was
+written on three points that happened to agree, two rungs after this same file
+recorded that a claim must hold across every value its sentence can take.
+
+That is twice now that a number stated at three observations has moved on the
+fourth: the `### P1:` convention held, this did not. The difference is that a
+form either recurs or does not, while a quantity has a distribution, and three
+points do not describe one. **Any future claim of this shape needs its spread
+reported beside it, not just its centre.**
