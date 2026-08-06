@@ -40,6 +40,16 @@
       "why": "Nobody on a forecourt reads all seventeen characters, and the last six are the sequential production number — the part that actually distinguishes two cars off the same line. It is a real trade-off, not a safe default: two vehicles can share a tail, and a disclosure served for the wrong car is the exact failure this product exists to prevent. So `state` counts keys held by more than one row and prints them in red. A number tuned until the demo looked good would be corpus-fitting wearing a method's clothes."
     },
     {
+      "question": "Where does the review desk's list of defects come from?",
+      "commitment": "Parsed from the `### 6.N` headings of IDEAS.md in this checkout, and nowhere else.",
+      "why": "Same rule scripts/dogfood_store.py states and gates: a memory whose rows came from somewhere nobody can see is not an audit trail. A desk listing defects an agent remembered would be exactly that. An entry is open because its own heading says open, not because this module has a view — which is also why it disagrees with a naive grep: `grep -cE '^### 6.[0-9]+ .*open'` counts 11 because §6.7's *title* is 'while the store is open', while the parser reads the status field and correctly counts 10."
+    },
+    {
+      "question": "Does `bearing` — plain-English risk in, relevant defect out — actually work?",
+      "commitment": "No, and the command says so on screen rather than presenting the ranking as an answer.",
+      "why": "Measured: 'two people in the family share the same name' returns §6.35 top at 0.062, when the entry actually about two people sharing a name is §6.37. 'an alias for somebody nobody has verified' tops out at 0.062. The one query that scored (0.583) was phrased in the finding's own words. DefectMatcher weights identifier tokens above prose by design, and a risk described in plain English shares almost no identifiers with a defect title — so this is the matcher working as specified on input it was never meant for. It is left in because the browse view is still useful for finding candidates to read, and because a retrieval that scores 0.06 while looking confident is worth having on the record. Nothing is served: every row is a draft, so tier 1 is empty by construction and the bad ranking cannot reach an answer."
+    },
+    {
       "question": "Do those six tests hold anything?",
       "commitment": "Proven by mutation. Dropping the matcher line from activate() turns two red; dropping the ledger line turns three red.",
       "why": "A gate nobody has watched fail is a description. Also recorded: the first version of this file assumed a proposal writes a ledger line and asserted on chains after calling propose(). It does not — a draft is not a decision and appends nothing — so four tests failed for a reason that was the test's error rather than the module's, and they were rewritten to seal first. And the SerialMatcher used here keeps every digit it finds, so an early restatement of 'ward 6' keyed to 44716 and missed; that was the test's fault too, and the assertion now avoids stray digits and says why."
