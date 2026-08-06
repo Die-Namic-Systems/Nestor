@@ -302,3 +302,72 @@ def test_a_pre_sig_embedding_table_is_rebuilt_not_left_to_raise(tmp_path):
         cols = {r[1] for r in conn.execute("PRAGMA table_info(tm_embeddings)")}
         assert "sig" in cols
         assert conn.execute("SELECT COUNT(*) FROM tm_embeddings").fetchone()[0] == 0
+
+
+# --- IDEAS §6.8: the schema script is idempotent, which is not the same as free.
+
+
+def _ddl_seen(store) -> list:
+    """Statements the store's pooled connection is asked to run, from now on.
+
+    One thread, a pool that hands back the connection it was just given, so the
+    trace installed here is the trace on the connection the next call borrows.
+    """
+    seen: list = []
+    with store._db() as conn:
+        conn.set_trace_callback(seen.append)
+    return seen
+
+
+def test_memory_init_does_not_replay_the_schema_on_a_warm_connection(tmp_path):
+    """§6.8. Twelve public functions in `nestor.memory` open with
+    `store.memory_init()`, so the schema script and its three migration probes
+    ran once per operation rather than once per connection."""
+    store = SqliteStore(str(tmp_path / "n.db"))
+    store.memory_init()
+
+    seen = _ddl_seen(store)
+    store.memory_init()
+    with store._db() as conn:
+        conn.set_trace_callback(None)
+
+    ddl = [s for s in seen if any(k in s.upper() for k in ("CREATE ", "DROP ", "ALTER "))]
+    assert not ddl, f"the schema was replayed on a connection that had it: {ddl[:3]}"
+
+
+def test_a_second_store_on_one_file_still_builds_its_own_connection(tmp_path):
+    """The flag is per connection, not per database. A second store has its own
+    pool, so it must not inherit the first store's belief about a file."""
+    db = str(tmp_path / "n.db")
+    SqliteStore(db).memory_init()
+
+    other = SqliteStore(db)
+    seen = _ddl_seen(other)
+    other.memory_init()
+    with other._db() as conn:
+        conn.set_trace_callback(None)
+
+    assert any("CREATE" in s.upper() for s in seen), (
+        "a fresh connection skipped the schema, which means the flag outlived "
+        "the connection it describes")
+
+
+def test_init_db_does_not_excuse_memory_init(tmp_path):
+    """A **guard** — it passes before the §6.8 change as well as after, because
+    before it there was no flag to set wrongly. It is here because the cheapest
+    wrong version of this fix is to mark the connection ready inside `init_db`,
+    which applies a strict subset: no `_ensure_lineage_schema`. A connection
+    marked by the subset would make `memory_init` skip the ALTERs that bring a
+    pre-lineage database up to date, and every `SELECT superseded_by` would
+    raise on a database nobody could see was half-migrated."""
+    store = SqliteStore(str(tmp_path / "n.db"))
+    store.init_db()
+
+    seen = _ddl_seen(store)
+    store.memory_init()
+    with store._db() as conn:
+        conn.set_trace_callback(None)
+
+    assert any("CREATE" in s.upper() for s in seen), (
+        "memory_init did no schema work after init_db, so init_db claimed a "
+        "completeness it does not deliver")
