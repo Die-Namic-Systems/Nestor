@@ -315,6 +315,11 @@ def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None =
     return plan, unclaimed(root, defn_keys, only), symbols, defined
 
 
+def normalize_key(source: str, source_lang: str, target_lang: str) -> tuple:
+    """How the store itself keys a row, for counting distinct rows honestly."""
+    return (memory.get_matcher().normalize(source), source_lang, target_lang)
+
+
 def load(store, plan, origin, declined: collections.Counter | None = None,
          root: pathlib.Path | None = None) -> dict:
     """Add every row as a draft. Returns ``memory.stats``; prints as it goes.
@@ -335,19 +340,29 @@ def load(store, plan, origin, declined: collections.Counter | None = None,
 
     for shape, rows, sl, tl in plan:
         added = clashed = 0
+        seen: set = set()
         for src, tgt, reason, path, anchor in rows:
             where = origin.of(path, anchor, shape)
             try:
                 memory.add_pair(src, tgt, sl, tl, status="draft",
                                 reason=reason, origin=where, store=store)
                 added += 1
+                seen.add(normalize_key(src, sl, tl))
             except memory.ConflictingDraftError:
                 hits = memory.lookup(src, sl, tl, limit=1, store=store)
                 held = hits[0]["pair"] if hits else {}
                 collisions.append((shape, src, held.get("target_text", "?"), tgt,
                                    held.get("origin", "?"), where))
                 clashed += 1
-        print(f"  {shape:18} {added:4} draft(s)"
+        # `added` counts accepted calls; `seen` counts the rows they became.
+        # `add_pair` returns the stored row for an exact restatement rather than
+        # raising, so the two differ whenever a source repeats a claim verbatim —
+        # quiet-corner offers `id -> INTEGER PK` in 32 separate schema tables.
+        # Printing only the first number overstates a shape's contribution, and
+        # this loop printed it beside the row total for twenty rungs.
+        dupes = added - len(seen)
+        print(f"  {shape:18} {len(seen):4} row(s)"
+              + (f" from {added} add(s)" if dupes else "")
               + (f"   {clashed} collision(s)" if clashed else ""))
 
     stats = memory.stats(store=store)

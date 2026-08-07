@@ -5249,3 +5249,54 @@ reason — 74%, with no fork below 40%.**
 That is the first quantity in this exercise supported well enough to survive
 being written down, and it took twenty-two repositories, one flag fix, one
 identity vetting, and two prior withdrawals to get there.
+
+### 6.66 Four repositories, two of them empty, and a counter that has been overstating every shape for twenty rungs — **measured**
+
+*Run 2026-08-06 against `community` (fork), `rudi193-cmd`,
+`rudi193-cmd.github.io` and `quiet-corner` (created 2026-05-26 to 05-30),
+rung 23.*
+
+| repository | rows | note |
+|---|---|---|
+| quiet-corner | 90 | 89 definitions from 257 adds |
+| community (fork) | 19 | **11 of 19 commits are the operator's** |
+| rudi193-cmd | 0 | profile README, coverage 0/1 |
+| rudi193-cmd.github.io | 0 | one page, coverage 0/1 |
+
+**`community` is the operator's fork by majority.** Eleven of nineteen commits —
+58%, against a fork median nearer 1% — touching 64 files. Every earlier fork was
+a small delta on somebody else's tree. This one is mostly theirs, and the delta
+rule handles it without modification: the unit was always the operator's
+commits, and here the operator's commits are most of the repository.
+
+**Two repositories yield nothing and should.** A GitHub profile README and a
+one-page site declare no structure because they *are* the declaration. §6.58
+established that this corpus holds what was written in a shape a machine can key
+on; a profile page is prose about a person. Coverage 0/1 twice, printed, and
+correct.
+
+**The counter has been lying by a name.** Each shape printed the number of
+accepted `add_pair` calls, labelled as drafts, beside a row total that came from
+`memory.stats`. Those differ whenever a source restates a claim verbatim, because
+`add_pair` returns the stored row rather than raising. `quiet-corner` makes the
+gap impossible to miss: **257 adds became 89 rows.**
+
+The repeats are SQL schema tables — `id → INTEGER PK` in **32** separate tables,
+`created_at → TIMESTAMP` in 18. Both directions of the defect matter:
+
+* **The report was wrong.** Twenty rungs printed adds beside rows without
+  remarking that they disagree. The load loop now prints `89 row(s) from 257
+  add(s)`, so the gap is visible where it exists and silent where it does not.
+  Earlier entries' per-shape numbers are *adds*; their totals were always rows
+  and were always right.
+* **The key is wrong, for the fourth time.** `id` is not an identifier — it is a
+  column name scoped to a table, and thirty-two tables each declare their own.
+  §6.42 (table cell), §6.47 (bare symbol), §6.55 (name plus domain), and now a
+  schema column: **every key this corpus has gotten wrong has been a string that
+  looked unique in the document it came from and was not unique in the corpus.**
+  That is now a rule with four instances behind it, and it is the single most
+  reliable finding this exercise has produced.
+
+Not re-keyed here. Qualifying definition keys by their table heading would change
+every rung's rows, and the honest move at rung 23 is to record the fourth
+instance and decide the re-key deliberately rather than mid-batch.
