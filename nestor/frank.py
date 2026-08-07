@@ -107,8 +107,21 @@ class WillowForwarder:
 
     ``WILLOW_MCP_COMMAND``  server argv as a JSON list
                             (default: ``[sys.executable, "-m", "willow_mcp"]``)
-    ``WILLOW_APP_ID``       the app seat to call as (default: ``nestor``)
+    ``NESTOR_FRANK_APP_ID`` the app seat to call as (default: ``nestor``)
+    ``WILLOW_APP_ID``       fallback for the above, and a trap — see below
     ``NESTOR_FRANK_PROJECT`` FRANK project name (default: ``nestor``)
+
+    .. note::
+
+       ``WILLOW_APP_ID`` is read second, not first, and that ordering is load
+       bearing. It is a *client-scoped* variable: a fleet shell exports one
+       value for whatever seat that shell is driving, and anything in the
+       process inherits it. Read first, it silently re-seats this forwarder —
+       a shell set up for the orchestrator made Nestor's ledger mirror call as
+       ``willow``, which willow-mcp refuses outright (``frank_append`` for
+       ``willow`` demands a human-orchestrator host), so a correctly seated
+       Nestor stopped forwarding the moment the fleet env was sourced.
+       ``NESTOR_FRANK_APP_ID`` is Nestor's own line, and it wins.
     """
 
     def __init__(
@@ -121,7 +134,12 @@ class WillowForwarder:
         env: Optional[dict[str, str]] = None,
     ) -> None:
         self._command = command or _default_command()
-        self._app_id = app_id or os.environ.get("WILLOW_APP_ID", "").strip() or DEFAULT_PROJECT
+        self._app_id = (
+            app_id
+            or os.environ.get("NESTOR_FRANK_APP_ID", "").strip()
+            or os.environ.get("WILLOW_APP_ID", "").strip()
+            or DEFAULT_PROJECT
+        )
         self._project = project or os.environ.get("NESTOR_FRANK_PROJECT", "").strip() or DEFAULT_PROJECT
         self._timeout = timeout
         self._env = env

@@ -1070,9 +1070,19 @@ ledger trustworthy — it never touches the governance database directly.
 | Variable | Meaning | Default |
 |----------|---------|---------|
 | `WILLOW_MCP_COMMAND` | server argv, JSON list or plain string | `[sys.executable, "-m", "willow_mcp"]` |
-| `WILLOW_APP_ID` | app seat to call as (needs `frank_write`) | `nestor` |
+| `NESTOR_FRANK_APP_ID` | app seat to call as (needs `frank_write`) | `nestor` |
+| `WILLOW_APP_ID` | fallback for the above — see the note | unset |
 | `NESTOR_FRANK_PROJECT` | FRANK project name | `nestor` |
 | `NESTOR_FRANK_STRICT` | raise instead of swallowing forward failures | unset |
+
+`WILLOW_APP_ID` is read **second**, and the ordering matters. It is
+*client-scoped* — "the seat this client is driving" — so a fleet shell exports
+one value and every package in the process inherits it. Read first, it silently
+re-seats this forwarder: a shell set up for the orchestrator made Nestor call
+`frank_append` as `willow`, which willow-mcp refuses outright (that seat demands
+a human-orchestrator host), so a correctly seated Nestor stopped forwarding the
+moment a fleet env was sourced. `NESTOR_FRANK_APP_ID` is Nestor's own line and
+it wins; the seat it names needs `frank_write` in its willow-mcp manifest.
 
 Local entries are written **first** and stay the source of truth; forwarding is
 best-effort, because a governance mirror that is down, denied or absent must

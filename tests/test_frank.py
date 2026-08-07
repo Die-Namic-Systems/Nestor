@@ -206,3 +206,33 @@ def test_willow_forwarder_reports_an_unstartable_server():
 def test_willow_mcp_command_accepts_a_plain_string():
     os.environ["WILLOW_MCP_COMMAND"] = "python3 -m willow_mcp"
     assert frank._default_command() == ["python3", "-m", "willow_mcp"]
+
+
+# ── which seat the forwarder calls as ───────────────────────────────────────
+#
+# WILLOW_APP_ID is client-scoped: a fleet shell exports one value for the seat
+# that shell is driving, and everything in the process inherits it. Read first,
+# it re-seated this forwarder — a shell set up for the orchestrator made Nestor
+# call frank_append as `willow`, which willow-mcp refuses outright — so a
+# correctly seated Nestor went silent the moment a fleet env was sourced.
+
+def test_app_id_defaults_to_nestor():
+    assert frank.willow_forwarder()._app_id == "nestor"
+
+
+def test_nestor_frank_app_id_wins_over_a_fleet_wide_willow_app_id():
+    os.environ["WILLOW_APP_ID"] = "willow"
+    os.environ["NESTOR_FRANK_APP_ID"] = "nestor"
+    assert frank.willow_forwarder()._app_id == "nestor"
+
+
+def test_willow_app_id_is_still_honoured_on_its_own():
+    """Back-compat: a seat named only by WILLOW_APP_ID keeps working."""
+    os.environ["WILLOW_APP_ID"] = "some-other-seat"
+    assert frank.willow_forwarder()._app_id == "some-other-seat"
+
+
+def test_an_explicit_argument_beats_both_variables():
+    os.environ["WILLOW_APP_ID"] = "willow"
+    os.environ["NESTOR_FRANK_APP_ID"] = "nestor"
+    assert frank.willow_forwarder(app_id="audit-seat")._app_id == "audit-seat"
