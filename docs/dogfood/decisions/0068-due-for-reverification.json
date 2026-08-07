@@ -1,0 +1,42 @@
+{
+  "branch": "claude/audit-against-jeles",
+  "date": "2026-08-07",
+  "note": "Round 3 of the jeles exchange: the decay half of docs/seal-staleness-and-quorum.md, built as §3 says to build it. Building it measured §2's own argument and found one sentence too strong. No `pr` key by design, see IDEAS 6.43.",
+  "decisions": [
+    {
+      "question": "Should staleness change what gets served?",
+      "commitment": "No. It produces a list, and a test pins that the words weight, multiplier, decay and SEAL_THRESHOLD stay out of the code.",
+      "why": "§3's argument is that a decay curve feeding a score multiplier converts the one structural fact this package sells — a human checked this — back into a confidence number, and does it silently, on a date nobody chose, with no decision in the trail to answer 'why did this stop being served'. The listing therefore reads only, writes nothing, opens no store, and prints that nothing stopped being served. The day it feeds best_sealed is the day the memo was written to prevent, so the prohibition is a gate rather than a comment."
+    },
+    {
+      "question": "Where does a seal's age come from?",
+      "commitment": "The chain, never the row. Measured rather than assumed.",
+      "why": "signing._message covers exactly [source_norm, target_text, verifier], so tm_pairs.created_at is outside the signature. Moving a sealed row's created_at back twenty-seven years leaves is_verified_seal returning True — so a staleness read off that column is a number anyone who can write the row can put back. A test drives that mutation and asserts the seal still verifies, which will start failing if the signature ever grows to cover the column."
+    },
+    {
+      "question": "Is the ledger's timestamp unmovable, as §2 claims?",
+      "commitment": "Not on the newest entry. §2 was too strong by one entry, and the memo is corrected in place.",
+      "why": "Measured on a three-entry chain: editing ts on entry 0 or 1 breaks the walk, editing entry 2 does not. This is NOT a finding about the code — ledger.verify's docstring states it at length, calls it a property of the chain rather than a bug in the walk, and ships expected_head to close it. Reporting it as a discovery would have been the fifth false finding of the day. The defect is that the memo asserted the property with no caveat, and a freshness question is where it bites hardest: the unvouched-for entry is the newest decision, which is the one a staleness listing is most often asked about."
+    },
+    {
+      "question": "How does the listing handle the unvouched-for tail?",
+      "commitment": "It reports an age drawn from the last entry as reported-and-not-verified, and says to pass --expected-head. With a matching head supplied, the warning goes away.",
+      "why": "Refusing to report it would hide work; reporting it as verified would be a claim the chain does not support. Saying which of the two it is costs one line of output and is the same distinction the rest of these tools hold between 'nothing matched' and 'I could not look'."
+    },
+    {
+      "question": "The listing printed something untrue during testing. What?",
+      "commitment": "The per-row tail marker ignored --expected-head, so following the command's own advice changed nothing on screen.",
+      "why": "The summary said 'pass --expected-head to close it' and passing it left every row still flagged unvouched-for. Found by running it both ways rather than by reading the code, and only because the correct head was tried at all. Fixed, and pinned by a test asserting the marker is present without the head and absent with it — a message that tells the reader to do something must change when they do it."
+    },
+    {
+      "question": "How was the listing shown to be a gate rather than a description?",
+      "commitment": "Seven mutations, all red.",
+      "why": "countersign no longer freshening a pair; retired pairs listed as overdue; the tail flag ignoring --expected-head; every entry marked as the tail; an undated entry defaulting to now rather than being skipped; ageing over a chain that fails verification; and the file growing a score multiplier. The last is the one worth naming — it is the design §3 exists instead of, so a test that could not see it arrive would be decoration."
+    },
+    {
+      "question": "What is still open?",
+      "commitment": "Nothing consumes the listing. It is a command somebody runs, not a queue the curator shows.",
+      "why": "§3's design wants an aged seal to appear in the curator as due for re-verification, beside the review work that already happens there. That touches the UI, which is a wider blast radius than a read-only script, so it is the next bite rather than this one. Recorded so the gap between the shipped listing and the argued design is visible rather than assumed closed."
+    }
+  ]
+}

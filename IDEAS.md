@@ -4186,3 +4186,57 @@ written with the uncertainty honestly flagged, and flagging was worth something 
 it is why they were still there to check. It was not worth as much as checking:
 one had the wrong mechanism, and the other pointed the wrong way entirely. A
 hypothesis nobody runs decays into a fact nobody questioned.
+
+---
+
+### 6.49 The staleness memo's §2 names the wrong timestamp as unmovable, by one entry — **measured**, listing **shipped**, caveat **open**
+
+*Round 3 of the jeles exchange, 2026-08-07. Built as §3 of
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) says to
+build it, and the building measured §2's own argument.*
+
+`scripts/due_for_reverification.py` is the listing §3 argues for: an aged seal
+keeps serving, keeps saying who sealed it and when, and additionally appears as
+work for a person. It carries no score, no weight and no multiplier, and a test
+pins that those words stay out of it — the day this feeds `best_sealed` is the
+day the memo was written to prevent.
+
+**§2's first claim holds.** `signing._message` covers exactly
+`[source_norm, target_text, verifier]`, so `tm_pairs.created_at` is outside the
+signature. Measured: move a sealed row's `created_at` back twenty-seven years
+and `is_verified_seal` still returns True. Age must not come from the row.
+
+**§2's second claim is too strong by one entry.** It calls the ledger's `ts`
+*"the only timestamp in the system that cannot be moved without the chain saying
+so"*. On a three-entry chain:
+
+```
+entry 0 ts (2 entries follow)   -> verify=False  broken chain at line 2
+entry 1 ts (1 entry follows)    -> verify=False  broken chain at line 3
+entry 2 ts (LAST — none follow) -> verify=True   intact — 3 entries
+```
+
+**This is not a finding about the code, and reporting it as one would have been
+the fifth false finding of the day.** `ledger.verify`'s docstring already states
+it in full — *"each line is vouched for by the line after it, so the newest entry
+has nothing after it to vouch for it… That is a property of the chain, not a bug
+in the walk"* — and already ships `expected_head` to close it. The defect is in
+the memo, which asserted the property without the caveat. Corrected there in
+place.
+
+It bites hardest exactly here. The unvouched-for entry is the newest decision,
+which is the one a freshness question asks about most often. So the listing
+reports an age drawn from the tail as **reported, not verified**, and says to
+pass `--expected-head`.
+
+**And it caught a lie in its own output while being tested.** The per-row
+`[tail: age unvouched-for]` marker ignored `--expected-head`, so following the
+command's own advice changed nothing on screen — the summary said *"pass
+--expected-head to close it"* and passing it did not close it. Found by running
+both ways rather than by reading, fixed, and pinned by a test that asserts the
+marker disappears when the head is supplied.
+
+**Still open:** nothing consumes this. It is a command somebody runs, not a queue
+the curator shows, and §3's design wants the listing surfaced where the review
+work already happens. That is the next bite and it touches the UI, which is a
+wider blast radius than a read-only script.
