@@ -4757,3 +4757,25 @@ evidence that **shared keys grow faster than rows do**, because every new rung
 can collide with all thirteen before it. If that holds, the comparison pass gets
 more valuable per rung as the corpus grows, and the decision to build it at
 thirteen rather than at fifty was worth the interruption.
+
+### 6.57 claude-deep-review: the fourth bookmark — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/claude-deep-review` (created 2026-05-09),
+rung 15, a fork.*
+
+```
+delta: 0 of 224 commit(s) by rudi193@gmail.com, touching 0 file(s)
+0 pair(s): 0 draft, 0 sealed
+```
+
+Five forks read, four with no operator commit. The store is gitignored and the
+run produced no code change, so this rung's only artefact is this entry — which
+is the correct outcome and worth stating: **a rung that finds nothing still
+costs a branch, a run, and a paragraph.** §6.51 argued that skipping the
+extractor on a fork that "obviously" has nothing would be an assumption dressed
+as a result. The cost of honouring that is exactly this: three lines of output
+and a commit that changes one file.
+
+The one forward-looking note is unchanged from §6.51 and still unanswered: the
+delta is selected by a single author email with a name match as a second check.
+Four zeroes now rest on that assumption.
