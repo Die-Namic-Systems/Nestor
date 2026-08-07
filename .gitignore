@@ -42,3 +42,6 @@ bench/results/local/
 # visibly, rather than reaching around it with `git add -f`.
 !docs/dogfood/**/*.db
 !docs/dogfood/**/ledger.jsonl
+
+# scratch review desk — the path hooks/before_write.py tells you to use
+.review/
