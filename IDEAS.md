@@ -4889,3 +4889,83 @@ at three observations, hedged at four, and abandoned at seven, while the one
 seven rungs without a single exception. Forms recur or they do not. Quantities
 have distributions, and this project has now paid twice to learn that three
 points do not describe one.
+
+### 6.60 willow-2.0: 3,680 drafts, and the consolidation test rung 7 banked — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-2.0` (created 2026-05-18), rung 18.
+Public, and **not archived** — its head moved the day before this run, so the
+`repo@commit` pin records one afternoon rather than a settled repository. The
+same objection that put `willow-mcp` on the held list; read here on instruction,
+with the caveat carried in the rows.*
+
+| shape | drafts |
+|---|---|
+| docstring | 2,954 |
+| definitional tables | 731 |
+| skill | 186 |
+| sourced-claim (`Claim | Primary sources`) | 68 |
+| rule (`Rule | What it means`) | 50 |
+| goal · intent · success | 49 |
+| rubric | 15 |
+| **total** | **3,680 draft, 0 sealed** |
+
+The largest rung: 558 documents, 850 modules, 7,289 table rows in the source.
+Docstring coverage 2,955/9,240 — 32%, the eighth point in a distribution this
+file has stopped drawing conclusions from.
+
+**The consolidation test, banked at rung 7 and now paid.** `willow-nest` was
+folded into this repository. Its 19 docstrings, matched by symbol name:
+
+```
+ 0  survive at the same path with the same docstring
+ 5  docstring identical somewhere in willow-2.0
+ 2  name present, docstring differs
+12  name absent entirely
+```
+
+Everything moved — expected, that is what consolidation is. What the two changed
+rows say is not expected:
+
+**`route_file`** — `router.py` → `apps/nest/router.py`:
+
+> *nest:* "Full intake **for one file**: classify → b17 → store record → move →
+> return result. **Raises FileNotFoundError if src doesn't exist.**"
+> *2.0:* "Full intake: classify -> b17 -> store record -> move -> return result."
+
+The documented **exception contract was dropped in the move**. Nothing announced
+it. A reader of `willow-2.0` alone cannot know the function was ever documented
+to raise, and a reader of `willow-nest` alone cannot know it stopped being said.
+Two rungs eleven apart, and the corpus is the only place both are visible.
+
+**`classify`** — `classify.py` → `sap/core/nest_rules.py`:
+
+> *nest:* "Return the track for a filename, or None if unknown. **Priority order
+> matters — legal before narrative, handoffs before specs.**"
+> *2.0:* "Track for a filename, or None if unknown. **Order in the rules file
+> wins.**"
+
+That one is a *correct* rewrite recording a real design change — ordering moved
+from code into data. But the specific knowledge (legal before narrative,
+handoffs before specs) is now stated nowhere in the docstring, only in a file
+the docstring points at. The claim got shorter and the reader got further from
+the fact.
+
+**And consolidation multiplied the namesakes.** `classify` is one symbol in
+`willow-nest` and **four** in `willow-2.0` — a triage lane, a category assigner,
+a filename track, and a model-tier picker. §6.47 found bare symbol names to be
+bad keys; this shows *why* the problem grows: merging repositories merges
+namespaces, and the qualified key that §6.47 introduced is what makes rung 18
+readable at all.
+
+**Comparison pass, on arrival:**
+
+```
+18 stores, 7,444 rows
+keys in more than one repository: 1,214   drift 173 · two kinds 94 · restated 1,032
+```
+
+One rung doubled the corpus and took shared keys from 121 to 1,214 — tenfold.
+§6.56 guessed that shared keys grow faster than rows; two rungs later the corpus
+has doubled and the shared keys have gone up by an order of magnitude. The
+guess holds so far, on two observations, which by this file's own hard-won rule
+is not enough to state as a rate. It is written down to be checked at rung 25.
