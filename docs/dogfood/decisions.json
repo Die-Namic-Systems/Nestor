@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 28,
+    "pairs": 35,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T13:43:15.486336+00:00",
-  "digest": "61005d864b90f24e72ebb476bd4b417cd6a521e202c404296bd3a69000559ea5",
+  "created_at": "2026-08-06T15:53:52.863532+00:00",
+  "digest": "d6d7bb0aee9c29068c9d9c5f34cc91a496bab94d7b88d6dbb077fba771f9bf68",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,8 +19,106 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T13:43:15.484820+00:00",
-      "id": "0b6ed8c3-d79a-436c-bbbd-c4be1432c9c8",
+      "created_at": "2026-08-06T15:53:52.861874+00:00",
+      "id": "5a42f446-f8d7-4f52-b3ad-db05cb29a655",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "two desks in one process share cascades ledger path does the fixture care",
+      "source_text": "Two desks in one process share cascade's ledger path. Does the fixture care?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — at_desk() switches it at every crossing, and a test reads both files.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.861391+00:00",
+      "id": "5ed017bb-1fbe-438a-9d5b-d9ad5da0df32",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "did the first version of those assertions actually hold anything",
+      "source_text": "Did the first version of those assertions actually hold anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not all of them. The beat-7 assertion was vacuous and was rewritten.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.861042+00:00",
+      "id": "1da8da21-c35b-43f6-91e3-bb5ed946d2bf",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the eight gap assertions pass do they mean anything",
+      "source_text": "The eight gap assertions pass. Do they mean anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proven by mutation, twice, before commit.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.860695+00:00",
+      "id": "49b010c2-7cfd-4bce-b348-88ed44392fc4",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "propose the fix",
+      "source_text": "Propose the fix?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Both entries land measured with the fix open, and the fixture queues the finding as a draft.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.860290+00:00",
+      "id": "a92c7406-1291-4fc8-a4b8-30bfd39062c7",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is 640 one finding or two the lost seal and the lost rejection",
+      "source_text": "Is §6.40 one finding or two — the lost seal and the lost rejection?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One entry, two consequences, because it is one root cause and one fix.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.859972+00:00",
+      "id": "b9d8cab3-8bdf-4375-b5f0-c10f783d5a65",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the fixture seal through the library where it works or through nestorui where it does not",
+      "source_text": "Should the fixture seal through the library, where it works, or through nestor.ui, where it does not?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Through ui.dispatch, the same call the browser makes.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.859619+00:00",
+      "id": "e396c8e5-b13f-4209-98b1-b0a630316f71",
+      "origin": "pr:53",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the client wanted two nestors is that two demos or one",
+      "source_text": "The client wanted two Nestors. Is that two demos, or one?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One file, demo/two_desks.py, holding both desks.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-06T15:53:52.859266+00:00",
+      "id": "a0eaf940-466c-4e1e-b4c2-e312ec0411ec",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -33,8 +131,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.484415+00:00",
-      "id": "452b8509-e410-44c2-90fa-adb8640f63ab",
+      "created_at": "2026-08-06T15:53:52.858884+00:00",
+      "id": "7cde076d-157a-4169-8159-5b7b497600e0",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -47,8 +145,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483920+00:00",
-      "id": "7144802a-7f64-48dd-9795-a105626f3f53",
+      "created_at": "2026-08-06T15:53:52.858356+00:00",
+      "id": "0238c576-f6ec-4b52-9ad4-afa64c6d310b",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -61,8 +159,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483488+00:00",
-      "id": "e896af9c-2359-4b00-8c48-ff0d4dbf288e",
+      "created_at": "2026-08-06T15:53:52.857870+00:00",
+      "id": "edd28bea-6288-4b13-a4b8-49986d60b2f5",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -75,8 +173,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.483025+00:00",
-      "id": "526f58a5-b24e-44ed-b971-5e0f0b8a5aa8",
+      "created_at": "2026-08-06T15:53:52.857295+00:00",
+      "id": "f26337a6-7063-4535-9f26-11c2e4692c3b",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -89,8 +187,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.482566+00:00",
-      "id": "23434771-21d9-4391-8ca8-29db085e6ed9",
+      "created_at": "2026-08-06T15:53:52.856853+00:00",
+      "id": "fc8363a4-04d9-4949-b7e0-0edbbfc4bf6d",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -103,8 +201,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.482135+00:00",
-      "id": "4d33e898-976a-4c6b-a103-9beda012bc8d",
+      "created_at": "2026-08-06T15:53:52.855953+00:00",
+      "id": "f9ef8f16-b59b-45b9-9246-f636f84223a6",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -117,8 +215,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.481620+00:00",
-      "id": "e16de148-9e4d-4c8a-90d9-6f09a6ab05e6",
+      "created_at": "2026-08-06T15:53:52.855490+00:00",
+      "id": "7c377551-26f0-4e03-9b00-682d5d4c3338",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -131,8 +229,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.481167+00:00",
-      "id": "f310dce6-c787-4bd8-8aa7-e9dbdc081e52",
+      "created_at": "2026-08-06T15:53:52.855040+00:00",
+      "id": "3c2a39a5-a0df-4978-b5f6-ec90aa986d3f",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -145,8 +243,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.480790+00:00",
-      "id": "9d376ba1-de95-4ac4-b71d-3c90c41b17d9",
+      "created_at": "2026-08-06T15:53:52.854625+00:00",
+      "id": "d6ed1e8a-ba0f-424b-b2af-a54f4fed54d4",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -159,8 +257,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.480426+00:00",
-      "id": "fed9488e-ce6c-40fc-a59f-150ae21f4c3f",
+      "created_at": "2026-08-06T15:53:52.854222+00:00",
+      "id": "89e80299-ee04-4353-889b-b8bf6943ebde",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -173,8 +271,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479949+00:00",
-      "id": "01cbb650-1a52-4a9c-b4bc-3a66676816dd",
+      "created_at": "2026-08-06T15:53:52.853792+00:00",
+      "id": "03552fbc-9ec1-4d59-a71d-2df987d317b0",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -187,8 +285,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479418+00:00",
-      "id": "c2f5a714-cf1b-4314-88aa-b0bad87bea94",
+      "created_at": "2026-08-06T15:53:52.853438+00:00",
+      "id": "2c5a40f4-0daa-4438-a8dc-0ff69db484cf",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -201,8 +299,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.479015+00:00",
-      "id": "2a0196ad-cbff-44eb-8acc-5d1ef4562733",
+      "created_at": "2026-08-06T15:53:52.853074+00:00",
+      "id": "6cf2597c-b8c9-4822-9af0-82bc9b64d456",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -215,8 +313,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.478552+00:00",
-      "id": "261c4e30-59ef-4686-9d82-f707b084fd17",
+      "created_at": "2026-08-06T15:53:52.852756+00:00",
+      "id": "cd3bee8d-f510-41c8-a191-7a923f1063c0",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -229,8 +327,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.478147+00:00",
-      "id": "73c77df4-0a53-4781-adae-2df127fa14ef",
+      "created_at": "2026-08-06T15:53:52.852326+00:00",
+      "id": "e7e33e12-7482-4454-9940-c39408a042d1",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -243,8 +341,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.477705+00:00",
-      "id": "61d90433-713d-44fa-9aef-2ad521ea2d18",
+      "created_at": "2026-08-06T15:53:52.851867+00:00",
+      "id": "f58816b8-12d2-4b78-817c-a00cb3a8e6ae",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -257,8 +355,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.477311+00:00",
-      "id": "d34bfd7a-33c5-462b-b3c9-af1abbc3de63",
+      "created_at": "2026-08-06T15:53:52.851466+00:00",
+      "id": "c298aad4-0464-47c7-ba0f-a3f30fe83a87",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -271,8 +369,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476899+00:00",
-      "id": "68619612-f227-4f3b-bc61-5984ce6247f9",
+      "created_at": "2026-08-06T15:53:52.851084+00:00",
+      "id": "8061703e-1d46-4d4e-af73-f880371198e7",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -285,8 +383,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476445+00:00",
-      "id": "7e314227-d089-402f-abf5-a1ebffe56ff6",
+      "created_at": "2026-08-06T15:53:52.850676+00:00",
+      "id": "d22d1152-6555-40d8-9583-930c4bd81301",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -299,8 +397,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.476064+00:00",
-      "id": "614102ef-1f08-4366-9241-c5ee1739efb1",
+      "created_at": "2026-08-06T15:53:52.850296+00:00",
+      "id": "34c6b28c-aafd-406d-aee1-70235e5bee0e",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -313,8 +411,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.475501+00:00",
-      "id": "1495a900-7d86-4781-94d4-313286a752b5",
+      "created_at": "2026-08-06T15:53:52.849274+00:00",
+      "id": "08602416-b1f3-410d-8bdd-f11d817b598d",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -327,8 +425,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.474958+00:00",
-      "id": "15cd775f-7a54-486d-b0b1-bb99c46cc1b6",
+      "created_at": "2026-08-06T15:53:52.848864+00:00",
+      "id": "000ffcac-af0f-45ef-871e-71722c7013bc",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -341,8 +439,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.474432+00:00",
-      "id": "75297444-dbe5-4a10-a771-c7248189652b",
+      "created_at": "2026-08-06T15:53:52.848492+00:00",
+      "id": "4c1ba716-4353-482c-9a88-a926b6f3d0d2",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -355,8 +453,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.473993+00:00",
-      "id": "dd1c0500-c80f-475a-b02b-bb953ceaf89d",
+      "created_at": "2026-08-06T15:53:52.848113+00:00",
+      "id": "77b09f71-7bb0-4a75-8526-813585cedda6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -369,8 +467,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.473505+00:00",
-      "id": "97168778-dc02-40d3-a23f-a2abe3ea72f2",
+      "created_at": "2026-08-06T15:53:52.847760+00:00",
+      "id": "e021309c-9cc0-4351-a34e-25f37d7f40c4",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -383,8 +481,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.472980+00:00",
-      "id": "1e340b7e-72ff-4056-8a27-3485cae14ae0",
+      "created_at": "2026-08-06T15:53:52.847324+00:00",
+      "id": "08fa8e4c-f26a-4bd6-b964-b842ba3d6cc6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -397,8 +495,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T13:43:15.472204+00:00",
-      "id": "0d7559b7-40c5-4c9f-a226-cda5ff0d2b7f",
+      "created_at": "2026-08-06T15:53:52.846828+00:00",
+      "id": "d9ca4572-2c1e-438b-b37c-4fad61ebf5b6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
