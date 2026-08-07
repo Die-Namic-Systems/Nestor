@@ -1,4 +1,5 @@
 {
+  "pr": 57,
   "branch": "claude/audit-against-jeles",
   "date": "2026-08-06",
   "note": "Round 1 of the jeles/Nestor exchange: run this package against jeles' working rules, the way scripts/audit_against_constitution.py runs it against willow-2.0's clauses. No `pr` key — the field becomes every row's origin, and guessing a number puts a pull request that does not exist into the store's provenance (see IDEAS 6.43).",

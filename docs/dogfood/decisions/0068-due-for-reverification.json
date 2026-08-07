@@ -1,7 +1,8 @@
 {
+  "pr": 57,
   "branch": "claude/audit-against-jeles",
   "date": "2026-08-07",
-  "note": "Round 3 of the jeles exchange: the decay half of docs/seal-staleness-and-quorum.md, built as §3 says to build it. Building it measured §2's own argument and found one sentence too strong. No `pr` key by design, see IDEAS 6.43.",
+  "note": "Round 3 of the jeles exchange: the decay half of docs/seal-staleness-and-quorum.md, built as §3 says to build it. Building it measured §2's own argument and found one sentence too strong. Written with no `pr` key, per IDEAS 6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assigned 57 when the PR opened.",
   "decisions": [
     {
       "question": "Should staleness change what gets served?",

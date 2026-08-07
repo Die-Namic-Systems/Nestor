@@ -1,7 +1,8 @@
 {
+  "pr": 57,
   "branch": "claude/audit-against-jeles",
   "date": "2026-08-06",
-  "note": "Real material, arrived at by accident: an animal-sounds article crossed the operator's desk mid-session and three of its word-origin claims looked wrong. Running them past jeles' corroboration bar and into this store found something neither package's own tests had. No `pr` key by design, see IDEAS 6.43.",
+  "note": "Real material, arrived at by accident: an animal-sounds article crossed the operator's desk mid-session and three of its word-origin claims looked wrong. Running them past jeles' corroboration bar and into this store found something neither package's own tests had. Written with no `pr` key, per IDEAS 6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assigned 57 when the PR opened.",
   "decisions": [
     {
       "question": "Why use a stray magazine article as test material rather than a designed fixture?",

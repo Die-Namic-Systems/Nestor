@@ -1,7 +1,8 @@
 {
+  "pr": 57,
   "branch": "claude/audit-against-jeles",
   "date": "2026-08-06",
-  "note": "Pointing the box at itself: the empty-run discipline, applied to every script that reads another repository — including the ones written before the discipline was articulated. No `pr` key by design, see IDEAS 6.43.",
+  "note": "Pointing the box at itself: the empty-run discipline, applied to every script that reads another repository — including the ones written before the discipline was articulated. Written with no `pr` key, per IDEAS 6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assigned 57 when the PR opened.",
   "decisions": [
     {
       "question": "Why one gate over six scripts rather than a test beside each?",

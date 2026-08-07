@@ -1,7 +1,8 @@
 {
+  "pr": 57,
   "branch": "claude/audit-against-jeles",
   "date": "2026-08-06",
-  "note": "Round 2 of the jeles/Nestor exchange, pointed back the other way. A reading with citations rather than a script, because the subject is somebody else's design. Nothing imported, executed, or written on jeles' side, and nothing filed there. No `pr` key by design — see IDEAS 6.43.",
+  "note": "Round 2 of the jeles/Nestor exchange, pointed back the other way. A reading with citations rather than a script, because the subject is somebody else's design. Nothing imported, executed, or written on jeles' side, and nothing filed there. Written with no `pr` key, per IDEAS 6.43. Assigned 57 when the PR opened.",
   "decisions": [
     {
       "question": "Why did Round 2 produce a document rather than a runnable script?",
