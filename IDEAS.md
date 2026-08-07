@@ -3632,6 +3632,133 @@ reach or reaches with a colleague standing next to it, and all three were
 invisible until somebody's actual life was in the store. The fixture is worth
 more than the entries it produced.
 
+### 6.40 `nestor ui` can be aimed at a custom domain and cannot be told its matcher — **measured**, fix **open**
+
+*Found 2026-08-06 by standing a fictional client's intake desk next to a desk
+reviewing this repo, in `demo/two_desks.py`. Both desks brought their own
+matcher, because the README's recipe table invites exactly that. Only one of
+them survived the human surface, and §6.41 is why.*
+
+The surface takes the domain and not the matcher:
+
+```
+nestor ui --source-lang incident --target-lang incident     # accepted
+nestor ui --matcher …                                       # no such flag
+ui.App(store, source_lang=…, target_lang=…, engine_name=…)  # no such field
+```
+
+So every write the UI makes goes through `memory.get_matcher(None)` — the
+process-wide default, `StringMatcher`. Measured, on a domain whose matcher keys
+an incident report to the device serial it names:
+
+| | |
+|---|---|
+| draft written by the domain | key `'CH4471'` |
+| the human seals it at `/api/seal-draft` | HTTP **200** |
+| the row that is now sealed | key `'pump sn ch4471 overdelivered during the night run'` |
+| the draft she was sealing | **still a draft**, still queued |
+| `best_sealed` for the *exact wording she sealed* | **None** |
+
+`_seal_draft` loads the row by id — it is holding `source_norm` — and then calls
+`add_pair(row["source_text"], …)`, which recomputes the key from the text with
+the default matcher. `memory_find` on the recomputed key misses the draft, so
+this is an insert rather than an upgrade. Two rows for one incident: a signed,
+chain-recorded seal under a key the domain will never compute, and the draft it
+was supposed to retire.
+
+**The rejection path is the same defect and the worse consequence.**
+`_reject_match` passes no matcher either, so a human's *no* is filed under
+`query_norm` computed by `StringMatcher`, while `best_sealed` looks rejections
+up under the domain's own key. Measured: `rejected_ids` under her key is
+`(set(), set())`; under the UI's key it holds the target. The record is real,
+correct and signed. It is filed where nothing will ask for it, and the wrong
+match is served again.
+
+That is the README's first two promises — *verified once, served forever* and
+*a wrong match is never served again* — both void for any domain that took the
+Matcher seam at its word.
+
+**The audit trail cannot catch this, which is the part worth sitting with.** The
+chain is intact and every entry in it verifies. Nothing was tampered with,
+nothing was forged, and a `nestor ledger verify` is clean. The record is *true*
+and the answer is *missing* — a failure mode no hash chain is aimed at, in the
+one product whose pitch is that the trail is the guarantee.
+
+**The rescue exists and is one per process.** `memory.set_matcher(SERIALS)`
+fixes it completely — measured: the UI upgrades the row in place, the key
+survives, `best_sealed` returns 1.0. It is a module global. So one interpreter
+holds one matcher, and with the intake desk's installed, the review desk's next
+defect — prose about code, quoting a device serial as any real write-up would —
+is stored under `'CH4471'`. Two custom-matcher domains are two deployments.
+Nothing in the package, the README or `docs/` says so.
+
+**Not proposed here, deliberately:** the fix. `ui.App` gaining a `matcher` field
+threaded through `_seal`, `_seal_draft` and `_reject_match` is what the mutation
+below implements and it turns all eight of the fixture's gap assertions red, so
+it is *a* fix. Whether it is the right one is a design question this entry does
+not settle: the alternative is that the UI stop recomputing a key it was already
+holding, which is the smaller change and fixes `_seal_draft` without answering
+what `_seal` or a fresh `/api/reject-match` should do. Per `CLAUDE.md` this
+touches persistence and the audit path and wants an adversarial read before a
+patch, not after.
+
+**Proven by mutation before commit.** Implementing the `ui.App.matcher` fix and
+wiring the fixture to pass each desk's matcher turns all eight gap assertions in
+`demo/two_desks.py` red and the run exits non-zero. The first version of the
+beat-7 assertion was **vacuous** and is worth recording: it compared the stored
+key to `SerialMatcher.normalize(text)` for a defect description containing no
+serial, where that matcher falls through to `str(v).strip().lower()` — which is
+byte-identical to `StringMatcher`'s output for that string, so the assertion held
+whether or not her matcher was installed. It was rewritten around a defect
+description that quotes a serial, where the three matchers produce three
+distinct keys. That is `CLAUDE.md`'s "a test that cannot fail", found in a test
+written to prove a gap, by the same session that had just read the rule.
+
+### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **open**
+
+*The other half of §6.40, and the reason it went unfound for so long: the two
+desks in `demo/two_desks.py` hit the identical bug and only one of them notices.*
+
+`README` calls `Matcher` **a two-method seam** — `normalize` and `similarity` —
+and `recipes/patch_review.py` describes `score(raw_a, raw_b)` as *"the optional
+`score`"*. `best_sealed` prefers it when it is present, and then compares the
+raw query text against each row's `source_text`, **never consulting the
+normalized key at all**.
+
+So a wrong key is free for a matcher that implements the optional method, and
+fatal for one that does not:
+
+| matcher | `score()` | key rewritten by the UI | seal still served |
+|---|---|---|---|
+| `DefectMatcher` (the review desk) | yes | yes | **yes**, 1.000 |
+| `SerialMatcher` (the intake desk) | no | yes | **no** — `None` |
+
+Both desks are running the same package through the same endpoint with the same
+defect underneath. The intake desk implemented the seam exactly as documented
+and lost a human's verification; the review desk implemented one method more
+than it had to and kept it.
+
+**Measured by mutation, and it is a one-method diff.** Adding `score()` to
+`SerialMatcher` — touching *nothing* in `nestor/` — makes her lost seals
+reachable again and turns this entry's gap assertion red along with the two in
+beat 3 that say her verification is gone. The guarantee is riding on a method
+the seam says is optional.
+
+**The design question, not picked here.** Three coherent answers and they are
+not the same product:
+
+* `score()` is **not** optional — promote it to the seam and say so, which
+  breaks every matcher written against the documented two.
+* The UI stops re-keying, and `score()` stays a performance and fidelity
+  choice rather than a correctness one. This is §6.40's smaller fix.
+* The seam keeps both paths and the package **says** which guarantees hold on
+  each, which is the honest documentation answer and fixes nothing.
+
+The reason to write it down rather than pick: this is the same shape as §3.1's
+`normalize`-versus-`score` split, which was argued on retrieval quality when the
+question was retrieval. It turns out to also decide whether a seal is reachable,
+and that argument has not been had.
+
 ---
 
 ### 6.42 The quorum memo's step 2 has been unrunnable, and its zero would have been unreadable — **measured**, question **open**
