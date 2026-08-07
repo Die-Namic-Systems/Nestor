@@ -5445,3 +5445,54 @@ orders of magnitude depending on what X was written in.
 
 That is not a defect to fix. It is the shape of the instrument, and the fifty-six
 silent documents are the only reason it is visible at all.
+
+### 6.70 The almanac org: eleven repositories with zero divergence, and a template that has walked away from all of them — **measured**
+
+*Run 2026-08-06 against the fourteen `almanac-data` repositories (created
+2026-06-29 to 07-24), rung 27. The first rung that is a template and its
+instances.*
+
+| repository | rows | docstring coverage |
+|---|---|---|
+| almanac-template | 38 | 30/151 |
+| eleven `*-almanac` instances | **21 each** | **21/77 each** |
+| almanac-data · .github | 0 | — |
+
+**Eleven repositories, and every extracted row is identical.** Not "the same
+count" — the same rows. Compared as sets against `climate-almanac`: **11/11
+identical**, across climate, health, economy, environment, civic, education,
+science, energy, agriculture, transportation and justice.
+
+This is the corpus's first measurement of *perfect* consistency, and it is
+worth noticing that it took eleven stores to see. Any single almanac says
+nothing; the eleventh identical one says the generator worked and nobody has
+edited an instance since.
+
+**And the template has walked away from all of them.** The instances are a strict
+subset: **17 template rows appear in no instance, and 0 instance rows are absent
+from the template.** The seventeen are maintenance tooling —
+
+```
+scripts/check_recovery_rot.py          present in 0/5 instances checked
+scripts/alert_on_revision_drift.py     present in 0/5
+.github/workflows/recovery-bot.yml     present in 0/5
+```
+
+— scripts that detect *rot* and *drift* in the almanacs' own data, plus the
+weekly workflow that runs them. So the template gained the machinery for
+noticing when an almanac goes stale, and eleven almanacs never received it.
+
+The finding states itself without help: **the drift-detection tooling has
+drifted.** And it is the exact failure this corpus keeps meeting under different
+names — §6.44's linter that passes none of its subjects, §6.58's coverage that
+only sees what the format expresses. A check that exists in one place and runs
+in none is indistinguishable from no check, and only counting across all twelve
+repositories makes the difference visible.
+
+**A note on what "zero divergence" costs to establish.** Eleven identical stores
+contribute 231 rows, of which 21 are distinct. The comparison pass counts 2,063
+restated keys corpus-wide, and this rung is responsible for a large share of the
+growth — repositories that agree perfectly inflate the *restated* bucket exactly
+as much as repositories that were carefully kept in sync by hand. The bucket
+counts agreement; it cannot tell generated agreement from maintained agreement,
+and after this rung most of it is generated.
