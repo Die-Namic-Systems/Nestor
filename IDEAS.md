@@ -5878,3 +5878,57 @@ pairs, byte-identical today, maintained by a build step nobody re-runs by hand.
 The corpus now holds both sides; a future run that reports `12 rows from 12 adds`
 instead of `6 from 12` is reporting that a bundled copy has diverged, without
 anyone needing to think to look.
+
+### 6.79 yggdrasil: a corpus already in pair form, of which 29,002 rows are refused — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/yggdrasil-training-data` (created
+2026-04-15), rung 34. Private; structure and counts only. Held since rung 5 as a
+data archive and read on the operator's instruction.*
+
+**The only source in the chronology that was already a pair corpus.** Sixteen
+JSONL files, 65 MB, in the shape `prompt` / `chosen` / `rejected` — this
+project's own subject, in another vocabulary, four months earlier.
+
+| | rows | verdict |
+|---|---|---|
+| `slm_baseline` · `slm_positive` · `slm_voice` · `slm_negative` | 28,432 | harvested from `SESSION_*` transcripts — **refused** |
+| `sft_v8` (`llm_generated`) · `slm_refusal` | 566 | model-generated — **refused** |
+| `slm_governance` (48) · `sft_v8` (`handcrafted`, 50) | 98 | **taken** |
+| `corrections/` | 32 | **taken** |
+| **total** | **137 rows, 29,002 refused** | |
+
+**The refusal is the finding.** Those 28,432 rows are instruction/response pairs
+whose *response* side is an assistant's output, captured from conversations.
+Importing them would file model output under this operator's name — and at 60% of
+the entire corpus it would be §6.49's error (a population that looks like the
+author's and is not) at the largest scale available anywhere in these 105
+repositories. They are counted, printed by source, and declined.
+
+**A label lied, and both fields had to agree.** The first run took 176 authored
+rows. Seventy-eight of them came from `slm_refusal.jsonl`, which marks its rows
+`source_type: governance` while their `source` field reads
+`refusal-synthetic-77HE`. Synthetic rows wearing an authored type. Taking the
+type at its word would have imported 78 generated rows as the operator's
+writing — **the fifth time in this exercise that a string which looked like it
+identified something did not** (§6.42, §6.47, §6.55, §6.66, and now a metadata
+field contradicting its neighbour). The fix is the same shape every time: require
+a second field to agree, and never let one string carry identity alone.
+
+**The 32 corrections are the most on-subject material in the whole chronology.**
+Each is a human correcting an agent mid-session: the prompt, what the agent
+should have said, what it did say, an error type (`ambiguous`,
+`drift_from_mandate`), and `correction_absorbed` recording whether the agent took
+it. That is the entire premise of this product, captured live, by the operator,
+before this product existed.
+
+**And 880 recorded rejections are deliberately not imported as rejections.**
+`dpo_pairs.jsonl` and `corrections/` carry a `rejected` field — real answers a
+real person turned down. Nestor has verbs for precisely that, and `CLAUDE.md`
+reserves them for a human's no. The operator made those decisions; writing them
+into a store is nonetheless an act, and it is theirs. Every row lands as a
+**draft**, with the rejected text and error type preserved in `reason` where a
+curator can see them. Promoting them is a question for `nestor.ui`.
+
+That is the covenant doing real work rather than being quoted: the one rung where
+the machine had, in hand, 880 human decisions it could have written down as
+decisions, and did not.
