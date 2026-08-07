@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 35,
+    "pairs": 53,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-06T15:53:52.863532+00:00",
-  "digest": "d6d7bb0aee9c29068c9d9c5f34cc91a496bab94d7b88d6dbb077fba771f9bf68",
+  "created_at": "2026-08-07T01:27:32.644731+00:00",
+  "digest": "ca2c60d3f76da87f0ee89bf4cf007f36df5dc163f4a1c95eb3fad3354ae5ab34",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,8 +19,260 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-06T15:53:52.861874+00:00",
-      "id": "5a42f446-f8d7-4f52-b3ad-db05cb29a655",
+      "created_at": "2026-08-07T01:27:32.642510+00:00",
+      "id": "ba2ba671-1fa1-4d1a-aee3-5262624be698",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the gate work",
+      "source_text": "Does the gate work?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — it blocked the write of its own test file, in the session that built it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.641794+00:00",
+      "id": "737a5d36-97de-45fe-8dd9-209b2d5ead4b",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happens when the gate itself has a bug",
+      "source_text": "What happens when the gate itself has a bug?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Fails closed on its subject, open on itself.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.641367+00:00",
+      "id": "3b90c065-3bfe-49e8-bb5e-ad746c929053",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "block or warn",
+      "source_text": "Block, or warn?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Block, and redirect: the refusal names the two commands that clear it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.640905+00:00",
+      "id": "bf0caac4-2af7-44d4-8857-e35653578ed5",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the sessionstart scripts unbound variable cosmetic or real",
+      "source_text": "The session-start script's unbound variable — cosmetic or real?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Real, and silent. Fixed by resolving the root once, guarded, in all three places.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.640473+00:00",
+      "id": "81a00906-7cea-4706-973c-0007cb62817b",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the operator said the reviewbeforewrite hook was not working was it",
+      "source_text": "The operator said the review-before-write hook was not working. Was it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The hook worked. The hook they wanted did not exist.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.639908+00:00",
+      "id": "0b90e0cd-c615-4093-b8cd-c513ddff71b5",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do those six tests hold anything",
+      "source_text": "Do those six tests hold anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proven by mutation. Dropping the matcher line from activate() turns two red; dropping the ledger line turns three red.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.639433+00:00",
+      "id": "3386abe4-59cb-46e1-b375-923b46145b1a",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do the fixtures three gap assertions hold anything",
+      "source_text": "Do the fixture's three gap assertions hold anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proven by mutation, and the second mutation found the gate was broken.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.638940+00:00",
+      "id": "4207ee74-084c-40f5-9683-74ce0c588743",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the finding as against the story",
+      "source_text": "What is the finding, as against the story?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "There is no per-domain verifier policy. Measured: add_pair(status='sealed', verifier='anybody-at-all') is accepted and is_verified_seal returns True.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.638385+00:00",
+      "id": "0143f885-77fa-4cc6-899e-dc97b763e94b",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the roleplay session produced a fixtures worth of material write it up",
+      "source_text": "The role-play session produced a fixture's worth of material. Write it up?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — demo/filing_cabinet.py, ten beats, with tests/test_filing_cabinet.py.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.637792+00:00",
+      "id": "841c5fef-d540-4645-a193-33fa0ccaaf06",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does bearing plainenglish risk in relevant defect out actually work",
+      "source_text": "Does `bearing` — plain-English risk in, relevant defect out — actually work?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and the command says so on screen rather than presenting the ranking as an answer.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.637231+00:00",
+      "id": "b5608c92-7ee7-4d02-8c9d-62acaf64a717",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the review desks list of defects come from",
+      "source_text": "Where does the review desk's list of defects come from?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Parsed from the `### 6.N` headings of IDEAS.md in this checkout, and nowhere else.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.636711+00:00",
+      "id": "f18ad3a7-77f9-4ea8-9206-901fdb5d2921",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why key on the last six of the vin rather than the whole thing",
+      "source_text": "Why key on the last six of the VIN rather than the whole thing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "KEY_TAIL = 6, fixed before anything was measured, and the collision risk is reported by `state` rather than hidden.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.636264+00:00",
+      "id": "d66af82c-663a-47de-9b68-6f2b23cd5b44",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the fixture avoid sealing on the operators behalf",
+      "source_text": "How does the fixture avoid sealing on the operator's behalf?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "seal requires --verifier on the command line: no default, no $USER fallback, and no route to sealed from draft().",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.635851+00:00",
+      "id": "eabf7d24-5924-4f4e-bc23-65387684dbb1",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the clients fixture a scripted walkthrough like shoeboxpy or something else",
+      "source_text": "The client's fixture — a scripted walk-through like shoebox.py, or something else?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Something else. demo/big_jim.py is a standing desk driven a command at a time, not an argument with an ending.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.635357+00:00",
+      "id": "52ab62a7-f385-406b-b6fe-0cfcc23d45e6",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the module get a test when it has no fixture using it yet",
+      "source_text": "Does the module get a test when it has no fixture using it yet?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — tests/test_desks.py, six tests, including one that reproduces the failure the module exists to prevent.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.634873+00:00",
+      "id": "ba16e9c4-b981-4908-bd19-a7d19d85607b",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why install the matcher processwide rather than only passing matcher to each call",
+      "source_text": "Why install the matcher process-wide rather than only passing matcher= to each call?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Process-wide, in activate().",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.634472+00:00",
+      "id": "7797f2f2-f7fc-499d-80db-9ed446c0e260",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the module actually for if the demo it came from is not here",
+      "source_text": "What is the module actually for, if the demo it came from is not here?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The three process globals: the ledger path, the store and the matcher. Desk.activate sets all three together and every accessor calls it first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.633995+00:00",
+      "id": "6261bc78-5bda-48ec-b001-19f4824eda0a",
+      "origin": "pr:54",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "bring the twodesks work over by copying the fixture or by extracting the scaffolding",
+      "source_text": "Bring the two-desks work over by copying the fixture, or by extracting the scaffolding?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Extract. demo/desks.py holds how to stand a desk up and how to say a claim failed, and knows nothing about whose desk it is.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-07T01:27:32.633483+00:00",
+      "id": "1110b1d2-8520-475e-9af6-d7a795ac8d99",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -33,8 +285,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.861391+00:00",
-      "id": "5ed017bb-1fbe-438a-9d5b-d9ad5da0df32",
+      "created_at": "2026-08-07T01:27:32.633073+00:00",
+      "id": "872bf6f7-03b2-4357-bf01-d402a6f6daed",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -47,8 +299,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.861042+00:00",
-      "id": "1da8da21-c35b-43f6-91e3-bb5ed946d2bf",
+      "created_at": "2026-08-07T01:27:32.632629+00:00",
+      "id": "11532aca-fb04-4dee-938f-37d73c0c8b60",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -61,8 +313,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.860695+00:00",
-      "id": "49b010c2-7cfd-4bce-b348-88ed44392fc4",
+      "created_at": "2026-08-07T01:27:32.632212+00:00",
+      "id": "2d18e9c3-c5fd-47c1-bd6b-fa6dbee55a6b",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -75,8 +327,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.860290+00:00",
-      "id": "a92c7406-1291-4fc8-a4b8-30bfd39062c7",
+      "created_at": "2026-08-07T01:27:32.631670+00:00",
+      "id": "67592307-c0b3-461d-aa55-3ef3d19c3428",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -89,8 +341,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.859972+00:00",
-      "id": "b9d8cab3-8bdf-4375-b5f0-c10f783d5a65",
+      "created_at": "2026-08-07T01:27:32.631217+00:00",
+      "id": "1fe6de6d-0b60-42f3-aeb8-ed35d487947f",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -103,8 +355,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.859619+00:00",
-      "id": "e396c8e5-b13f-4209-98b1-b0a630316f71",
+      "created_at": "2026-08-07T01:27:32.630800+00:00",
+      "id": "a368533e-ecc2-4db5-bce8-be7e59801231",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -117,8 +369,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.859266+00:00",
-      "id": "a0eaf940-466c-4e1e-b4c2-e312ec0411ec",
+      "created_at": "2026-08-07T01:27:32.630394+00:00",
+      "id": "2b20a608-bda5-40b1-92eb-837bd07a3422",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -131,8 +383,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.858884+00:00",
-      "id": "7cde076d-157a-4169-8159-5b7b497600e0",
+      "created_at": "2026-08-07T01:27:32.629985+00:00",
+      "id": "69577d7d-1a7f-4657-8f35-eb5d0974d305",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -145,8 +397,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.858356+00:00",
-      "id": "0238c576-f6ec-4b52-9ad4-afa64c6d310b",
+      "created_at": "2026-08-07T01:27:32.629594+00:00",
+      "id": "14487925-ee96-49ab-9e72-db90e466db11",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -159,8 +411,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.857870+00:00",
-      "id": "edd28bea-6288-4b13-a4b8-49986d60b2f5",
+      "created_at": "2026-08-07T01:27:32.629170+00:00",
+      "id": "c4302305-3670-409c-8d66-6e8ec215d868",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -173,8 +425,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.857295+00:00",
-      "id": "f26337a6-7063-4535-9f26-11c2e4692c3b",
+      "created_at": "2026-08-07T01:27:32.628743+00:00",
+      "id": "58094218-8a55-495b-aebc-a6ccbd5f61f4",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -187,8 +439,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.856853+00:00",
-      "id": "fc8363a4-04d9-4949-b7e0-0edbbfc4bf6d",
+      "created_at": "2026-08-07T01:27:32.628282+00:00",
+      "id": "f37e6696-76e0-4917-b99a-a53b1a810b05",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -201,8 +453,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.855953+00:00",
-      "id": "f9ef8f16-b59b-45b9-9246-f636f84223a6",
+      "created_at": "2026-08-07T01:27:32.627874+00:00",
+      "id": "f3e6cef2-833b-458c-8dee-7011f929cf22",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -215,8 +467,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.855490+00:00",
-      "id": "7c377551-26f0-4e03-9b00-682d5d4c3338",
+      "created_at": "2026-08-07T01:27:32.627469+00:00",
+      "id": "07ec1c4f-45fe-4bc9-956f-cb8dd0f51751",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -229,8 +481,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.855040+00:00",
-      "id": "3c2a39a5-a0df-4978-b5f6-ec90aa986d3f",
+      "created_at": "2026-08-07T01:27:32.627058+00:00",
+      "id": "a9931f9f-349d-463e-86b1-ba0d3191f26a",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -243,8 +495,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.854625+00:00",
-      "id": "d6ed1e8a-ba0f-424b-b2af-a54f4fed54d4",
+      "created_at": "2026-08-07T01:27:32.626655+00:00",
+      "id": "22e850d1-25e1-4b2f-b58d-627dabfa6d75",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -257,8 +509,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.854222+00:00",
-      "id": "89e80299-ee04-4353-889b-b8bf6943ebde",
+      "created_at": "2026-08-07T01:27:32.626245+00:00",
+      "id": "53ddd207-e002-4f7e-a148-6395a6e4f013",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -271,8 +523,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.853792+00:00",
-      "id": "03552fbc-9ec1-4d59-a71d-2df987d317b0",
+      "created_at": "2026-08-07T01:27:32.625883+00:00",
+      "id": "14a138ae-97e9-47b3-8194-032cd643c5f4",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -285,8 +537,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.853438+00:00",
-      "id": "2c5a40f4-0daa-4438-a8dc-0ff69db484cf",
+      "created_at": "2026-08-07T01:27:32.625539+00:00",
+      "id": "b5777bb6-bd33-4dcf-b219-9071864df0ad",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -299,8 +551,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.853074+00:00",
-      "id": "6cf2597c-b8c9-4822-9af0-82bc9b64d456",
+      "created_at": "2026-08-07T01:27:32.625187+00:00",
+      "id": "ed3a9e67-a784-4128-9f4a-86c2ff7950ea",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -313,8 +565,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.852756+00:00",
-      "id": "cd3bee8d-f510-41c8-a191-7a923f1063c0",
+      "created_at": "2026-08-07T01:27:32.624813+00:00",
+      "id": "7d2940d7-ab88-4a18-8f7f-87c4157a616b",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -327,8 +579,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.852326+00:00",
-      "id": "e7e33e12-7482-4454-9940-c39408a042d1",
+      "created_at": "2026-08-07T01:27:32.624406+00:00",
+      "id": "c17c4074-8ef5-4e73-b99d-945402af7906",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -341,8 +593,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.851867+00:00",
-      "id": "f58816b8-12d2-4b78-817c-a00cb3a8e6ae",
+      "created_at": "2026-08-07T01:27:32.624020+00:00",
+      "id": "306097d5-14b9-4c4b-93c3-543e28f17cda",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -355,8 +607,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.851466+00:00",
-      "id": "c298aad4-0464-47c7-ba0f-a3f30fe83a87",
+      "created_at": "2026-08-07T01:27:32.623428+00:00",
+      "id": "cb21af44-db23-42be-8de9-6974cd3cf0fb",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -369,8 +621,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.851084+00:00",
-      "id": "8061703e-1d46-4d4e-af73-f880371198e7",
+      "created_at": "2026-08-07T01:27:32.622992+00:00",
+      "id": "62e04045-8d97-4374-9405-4c42180bbec2",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -383,8 +635,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.850676+00:00",
-      "id": "d22d1152-6555-40d8-9583-930c4bd81301",
+      "created_at": "2026-08-07T01:27:32.622437+00:00",
+      "id": "e5b03e44-773d-436f-baf2-42082924db58",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -397,8 +649,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.850296+00:00",
-      "id": "34c6b28c-aafd-406d-aee1-70235e5bee0e",
+      "created_at": "2026-08-07T01:27:32.622041+00:00",
+      "id": "a87544d2-92b3-4cca-900b-a5e54f9ddc34",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -411,8 +663,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.849274+00:00",
-      "id": "08602416-b1f3-410d-8bdd-f11d817b598d",
+      "created_at": "2026-08-07T01:27:32.621578+00:00",
+      "id": "bcc15bf5-a70d-450e-ad68-d5b68d0018ab",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -425,8 +677,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.848864+00:00",
-      "id": "000ffcac-af0f-45ef-871e-71722c7013bc",
+      "created_at": "2026-08-07T01:27:32.621209+00:00",
+      "id": "7886848e-4e5f-471b-8c5d-f3a7f9ebaae6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -439,8 +691,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.848492+00:00",
-      "id": "4c1ba716-4353-482c-9a88-a926b6f3d0d2",
+      "created_at": "2026-08-07T01:27:32.620857+00:00",
+      "id": "6cb02ea5-10eb-4549-bb41-6d28a8f12323",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -453,8 +705,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.848113+00:00",
-      "id": "77b09f71-7bb0-4a75-8526-813585cedda6",
+      "created_at": "2026-08-07T01:27:32.620380+00:00",
+      "id": "a15abe5f-2ebf-40e8-a440-290c89fb7e22",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -467,8 +719,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.847760+00:00",
-      "id": "e021309c-9cc0-4351-a34e-25f37d7f40c4",
+      "created_at": "2026-08-07T01:27:32.619946+00:00",
+      "id": "4e0a8d27-48b2-45f8-8673-a0086413b2ca",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -481,8 +733,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.847324+00:00",
-      "id": "08fa8e4c-f26a-4bd6-b964-b842ba3d6cc6",
+      "created_at": "2026-08-07T01:27:32.619368+00:00",
+      "id": "d8959fce-3f73-425a-93ae-c467394f9f2a",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -495,8 +747,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-06T15:53:52.846828+00:00",
-      "id": "d9ca4572-2c1e-438b-b37c-4fad61ebf5b6",
+      "created_at": "2026-08-07T01:27:32.618657+00:00",
+      "id": "14634842-dddf-4b3a-a1ea-a1461f2c39a7",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",

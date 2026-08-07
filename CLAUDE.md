@@ -195,6 +195,43 @@ from somewhere nobody can see is not an audit trail.
 Every row goes in as a **draft**. You may propose. The queue at `nestor.ui` is
 where that changes, and `--verify` fails on a sealed row however it got there.
 
+## Tooling you built to answer a question ships with the answer
+
+**If you wrote a script, a harness or a fixture to reach a finding, it goes in
+the PR that carries the finding.** Not tidied away, not left in `/tmp`, not
+described in a commit message as *"measured locally"*.
+
+The container dies. A measurement whose apparatus died with it is a number
+nobody can reproduce, and `IDEAS.md` is already carrying entries that had to be
+re-earned because their scratch directory was gone by the next session — see
+§6.37–§6.39 and the fixture that had to be written to make them executable
+again.
+
+The bar is not *"is this reusable?"* — you are the worst judge of that, and the
+honest record of `scripts/two_instances.py` is **written once, used once, found
+§6.36 on the way**. The bar is:
+
+> would somebody have to rebuild this to check my claim, or to answer the same
+> question again?
+
+If yes, commit it. Three things follow:
+
+- **It gets a test**, even if nothing consumes it yet — otherwise it is
+  scaffolding with nothing holding it to its claims. `tests/test_desks.py`
+  exists for a module whose first real consumer arrived two commits later.
+- **It gets its limits in the docstring**, especially the ones that bit you.
+  `demo/desks.py` says one process holds one matcher because a fixture built on
+  it silently wrote two desks into one chain and then counted the total as one
+  desk's.
+- **It says what its record is.** Used once is a fine record. Claiming more
+  than that is the thing to avoid.
+
+Prefer `demo/` for anything a reader is meant to run and watch, `scripts/` for
+what an operator runs, `hooks/` for what fires without being asked. A reusable
+piece extracted from a fixture goes in **persona-free** — the story belongs to
+the fixture that earned it, and machinery carrying somebody's grandmother around
+is machinery nobody reuses.
+
 ## Findings go in the list
 
 `IDEAS.md` §6, per §6's own rule: a follow-up raised in conversation and not
