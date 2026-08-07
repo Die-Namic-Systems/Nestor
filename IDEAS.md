@@ -5407,3 +5407,41 @@ and reporting them as "drift" would be exactly the §6.42 error at a new altitud
 a signal that is evidence of *something happened here* being written up as
 evidence of *something went wrong here*. Thirty-eight questions is a genuinely
 useful output. Thirty-eight findings would have been a lie.
+
+### 6.69 The June pile: thirteen forks, and a writing repository that the corpus cannot read — **measured**
+
+*Run 2026-08-06 against `DispatchesFromReality` and the thirteen forks created
+2026-06-12 to 06-30, rung 26.*
+
+| fork | commits | files | rows |
+|---|---|---|---|
+| mex | 4 | 2 | 3 |
+| codejail | 3 | 4 | 29 |
+| sshelf · mcp-local-rag · cowsay-files · glapagos | 2 each | 6 · 9 · 2 · 2 | 26 · 2 · 1 · 4 |
+| ctx · codejail · PDFMathTranslate · HeatWatch · mcp-mem0 · LightAgent · codebase-memory-mcp · Tauon | 1 each | | 30 · 11 · 8 · 6 · 1 · 1 · 1 |
+
+Twenty-two commits. **Thirty-nine forks read; thirty-nine carry operator
+commits.** `Tauon` is the second 9,749-commit upstream to yield a single row.
+
+**`DispatchesFromReality` is the sharpest case yet of the bias §6.58 named**, and
+the first time it lands on a repository the operator wrote *entirely themselves*:
+
+```
+15 pair(s)   coverage: 3/56 document(s)   460 rows declined under 72 headers
+```
+
+Fifty-six documents of professional writing, and the corpus takes fifteen rows —
+all from tables. §6.58 found this in a manual somebody else's format made
+schema-light. Here the subject *is* prose: essays are the artefact, and there is
+no table to key on because there was never any reason to write one.
+
+Three rungs now — 16, 23 and this — say the same thing from different angles, and
+together they are strong enough to state plainly: **this corpus is a memory of
+the operator's *structured* output, and the proportion of their work that is
+structured varies from near-100% (a governance repository, a skills library) to
+near-zero (a manual, a profile, a body of essays).** Any claim of the form "the
+corpus holds N rows about X" carries an unstated denominator that changes by two
+orders of magnitude depending on what X was written in.
+
+That is not a defect to fix. It is the shape of the instrument, and the fifty-six
+silent documents are the only reason it is visible at all.
