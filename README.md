@@ -294,6 +294,7 @@ bench/                measuring where the seal threshold stops holding — see b
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
 ├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
+├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
 ├── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
 ├── big_jim.py          a standing desk for a used-car lot, keyed on VIN — driven a command at a time
 ├── review_desk.py      the other desk: patch_review over this repo's own open findings, seeded from IDEAS.md
