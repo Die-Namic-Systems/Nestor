@@ -27,7 +27,7 @@ _USER_MESSAGE = (
 )
 _AGENT_MESSAGE = (
     "Nestor source seat: do not use willow-mcp or nestor-as-MCP for "
-    "routine development. Read hooks/seat.md and CLAUDE.md."
+    "routine development. Read hooks/seat.md and docs/agent-guide.md."
 )
 
 

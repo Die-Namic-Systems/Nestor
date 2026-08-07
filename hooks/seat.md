@@ -11,10 +11,10 @@ This is not the willow charter seat and not an operator Jarvis desk.
 ## Do here (default)
 
 - Edit code and markdown **in this repository** with normal IDE tools.
-- Use the repo **`.venv`** and documented commands (`CLAUDE.md` → Environment).
+- Use the repo **`.venv`** and documented commands (`docs/agent-guide.md` → Environment).
 - Verify with **`bash scripts/ci-lint.sh`** and **`python -m pytest -q`** (see `AGENTS.md`).
 - Use **`nestor` CLI** against local paths (`--db`, `nestor ui`, export/import) when exercising the product.
-- Record product decisions in **`docs/dogfood/decisions/`** and rebuild with **`python scripts/dogfood_store.py --rebuild`** (see `CLAUDE.md` → Decisions go in the store).
+- Record product decisions in **`docs/dogfood/decisions/`** and rebuild with **`python scripts/dogfood_store.py --rebuild`** (see `docs/agent-guide.md` → Decisions go in the store).
 
 ## Do not use for routine Nestor work
 
@@ -28,4 +28,4 @@ Fleet wiring (SOIL gap import, charter rollup, Hanuman handoffs) is **after** th
 
 ## Governance (unchanged)
 
-**You may propose. You may not confirm.** No `status="sealed"` and no `verifier=` with a human name unless they signed in `nestor ui` (`CLAUDE.md`).
+**You may propose. You may not confirm.** No `status="sealed"` and no `verifier=` with a human name unless they signed in `nestor ui` (`docs/agent-guide.md`).

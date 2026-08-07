@@ -40,7 +40,7 @@ def build_context(root: Path | None = None) -> str:
             return f"{seat}\n\n[check] pytest: {line}"
     except (OSError, subprocess.TimeoutExpired):
         pass
-    return f"{seat}\n\n[check] pytest: not ready — activate .venv per CLAUDE.md (Environment)"
+    return f"{seat}\n\n[check] pytest: not ready — activate .venv per docs/agent-guide.md (Environment)"
 
 
 def maybe_bootstrap_claude_venv(root: Path) -> None:

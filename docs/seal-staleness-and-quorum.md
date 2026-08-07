@@ -112,6 +112,36 @@ invisible — a wrong weight looks exactly like a right one.
 unsigned like `weight`. The ledger's is covered by the hash chain, which is the
 only timestamp in the system that cannot be moved without the chain saying so.
 
+> **Both halves measured 2026-08-07, and the second sentence was too strong** —
+> `IDEAS.md` §6.49,
+> [`scripts/due_for_reverification.py`](../scripts/due_for_reverification.py).
+>
+> The row's clock is as unsigned as claimed. `signing._message` covers exactly
+> `[source_norm, target_text, verifier]`, and moving a sealed row's `created_at`
+> back twenty-seven years leaves `is_verified_seal` returning **True**. A
+> staleness read off that column is a number anyone who can write the row can
+> put back, exactly as argued.
+>
+> The ledger's clock is **not** the timestamp that cannot be moved. It is the
+> timestamp that cannot be moved *except on the newest entry*. Measured on a
+> three-entry chain — editing `ts` on entry 0 or 1 breaks the walk, editing
+> entry 2 does not:
+>
+> ```
+> entry 0 ts (2 entries follow)   -> verify=False  broken chain at line 2
+> entry 1 ts (1 entry follows)    -> verify=False  broken chain at line 3
+> entry 2 ts (LAST — none follow) -> verify=True   intact — 3 entries
+> ```
+>
+> This is not a defect and not news: [`nestor/ledger.py`](../nestor/ledger.py)'s
+> `verify` docstring states it at length — *"each line is vouched for by the line
+> after it, so the newest entry has nothing after it to vouch for it"* — and
+> ships `expected_head` to close it. The memo simply did not carry the caveat,
+> and a freshness question is where it bites hardest: the entry with no
+> corroboration is the most recent decision, which is the one a staleness listing
+> is most often asked about. The listing therefore reports an age drawn from the
+> tail as **reported and not verified** unless `--expected-head` is supplied.
+
 So if staleness is ever computed, it is computed **from the ledger at read
 time**, and there is nothing to tamper with independently, because there is
 nothing stored. The cost is that the ledger must be readable on the serving
@@ -246,6 +276,29 @@ signature on it, and the UI can say so precisely without inventing a scale.
    is. N-of-M is a schema change to the audited path, and designing one for
    users who have not been shown to exist is how a field ends up carrying a
    distinction the mechanism does not otherwise make.
+
+   > **Runnable 2026-08-06, still unrun** — `IDEAS.md` §6.42,
+   > [`scripts/count_countersignatures.py`](../scripts/count_countersignatures.py).
+   > The sentence above stays, because it is still true of the only thing that
+   > would settle this: **no deployment chain has been measured.** There is none
+   > in this checkout — `data/ledger.jsonl` does not exist and the dogfood store
+   > is drafts. Step 2's answer is exactly as unknown as when this was written.
+   >
+   > What changed is that the two ways of getting it wrong are now closed, and
+   > one of them was worse than this memo said. The count warning above is
+   > handled: both numbers are printed, so the gap is visible rather than
+   > silently resolved in the reader's favour. On a chain where one person
+   > countersigned one pair three times — four entries, **two** distinct acts.
+   >
+   > The second way is not in this memo at all, and it would have made a zero
+   > unreadable. `add_pair` logs a countersignature only when `first and
+   > verifier and first != verifier`, so a chain with one reviewer **cannot**
+   > produce one. A zero from that chain is not evidence that reviewers decline
+   > to concur; it is evidence that nobody was asked. Had step 2 been run
+   > against a single-reviewer deployment and reported "no demand", it would
+   > have closed §1.4 on a number that could only ever have been zero. The tool
+   > separates the two verdicts by counting the distinct people who decided
+   > anything in the chain, which is a fact the chain already carries.
 
 3. **Do not ship weight decay.** Not in `weight`, not anywhere. If staleness is
    wanted before step 2 concludes, ship the *listing* — curator surfaces seals

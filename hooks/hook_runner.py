@@ -7,6 +7,7 @@ import json
 import sys
 
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
+from hooks.before_write import evaluate_write
 from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo_root
 
 
@@ -59,10 +60,39 @@ def _emit_before_mcp(fmt: str, allow: bool, user: str, agent: str) -> None:
     )
 
 
+def _emit_before_write(fmt: str, allow: bool, user: str, agent: str) -> None:
+    """Both dialects, and for Claude both spellings of a deny.
+
+    Claude Code has moved from ``{"decision": "block"}`` to
+    ``hookSpecificOutput.permissionDecision``; older builds read the first and
+    newer ones the second. A gate that silently degrades to advice on half the
+    installed base is the exact failure this hook exists to fix, so it emits
+    both rather than betting on a version.
+    """
+    if allow:
+        print(json.dumps({"decision": "allow"} if fmt == "claude"
+                         else {"permission": "allow"}))
+        return
+    if fmt == "claude":
+        print(json.dumps({
+            "decision": "block",
+            "reason": agent or user,
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": agent or user,
+            },
+        }))
+        return
+    print(json.dumps({"permission": "deny", "user_message": user,
+                      "agent_message": agent}))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Nestor CLI-agnostic hook runner")
     parser.add_argument("format", choices=("cursor", "claude"))
-    parser.add_argument("module", choices=("session_start", "before_mcp"))
+    parser.add_argument("module",
+                    choices=("session_start", "before_mcp", "before_write"))
     args = parser.parse_args()
 
     root = repo_root()
@@ -72,6 +102,14 @@ def main() -> None:
         if args.format == "claude":
             maybe_bootstrap_claude_venv(root)
         _emit_session_start(args.format, build_context(root))
+        return
+
+    if args.module == "before_write":
+        try:
+            allow, user, agent = evaluate_write(payload, root)
+        except Exception:          # fail OPEN on our own bugs — see before_write
+            allow, user, agent = True, "", ""
+        _emit_before_write(args.format, allow, user, agent)
         return
 
     normalized = normalize_for_mcp_gate(args.format, payload)
