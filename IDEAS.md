@@ -4555,3 +4555,69 @@ when. That is real information and this corpus cannot hold it — a fork with ze
 commits produces zero rows, so the *act of forking* leaves no trace in the store
 at all. Whether that act belongs in the memory is a question for the operator,
 not for the extractor, and it is written down here rather than answered.
+
+### 6.54 The archived app store: 1,012 drafts, a lesson shape, and §6.22 arriving as a live case in the operator's own fiction — **measured**, cross-repository comparison **open**
+
+*Run 2026-08-06 against `safe-app-store-private-archive-20260608` (created
+2026-04-26), rung 13. Private; structure and counts only. A snapshot taken
+before a cleanup, so it holds things the live repository may not.*
+
+| shape | drafts |
+|---|---|
+| docstring | 805 |
+| definitional tables | 142 |
+| rubric | 35 |
+| lesson (exemplar → design claim) | 19 |
+| stack (exemplar → what it is built with) | 18 |
+| persona (name → what it is for) | 9 |
+| **total** | **1,012 draft, 0 sealed** |
+
+Document coverage 25/150; docstring coverage 805/2,712 — **30%**, a fifth point
+below the band §6.48 already had to be corrected for. 506 rows under 74 headers
+declined and printed.
+
+**The lesson shape is the most checkable row this corpus has produced.** A design
+study of existing terminal applications ends each record with a claim — *"when
+there are dozens of resource types, command mode beats menu navigation, but you
+must ship tab-completion or only the author will know what's possible."* That is
+falsifiable, drawn from something that shipped, and separated deliberately from
+the `stack` row beside it: the lesson can stay true long after the stack it was
+learned from is stale, and merging them would let one rot the other.
+
+**And then the rung produced the case §6.22 described in the abstract.** Two
+names appear in both this repository and rung 1's `SAFE`, three months apart,
+under different schemas:
+
+| | rung 1 · 2026-01-05 · `Domain/Voice/Function/Direction` | rung 13 · 2026-04-26 · `Lineage/Type/Core function` |
+|---|---|---|
+| **Gerald** | "Core voice. Opens doors through absurdity that serious frameworks cannot." | "Exists. Witnesses. Occasionally intervenes…" — *Type: Enlightened rotisserie chicken* |
+| **Professor Oakenscroll** | "Academic satire. 97% ratio vs 17% for serious content." | "Documents. Explains. Files working papers about things that haven't happened yet…" |
+
+**Neither pair is a contradiction, and that is the whole point.** Rung 1
+describes an *operational role* — what this voice does for the operator's work,
+with an engagement ratio attached. Rung 13 describes a *character's function
+inside a fiction*. Both are true. They are not two answers to one question; they
+are one name carrying two different kinds of claim, which is exactly what §6.22
+recorded as having no field, and what `docs/carried-strings.md` argued about
+using the word *Nestor* itself. The corpus has now generated a live instance,
+from the operator's own material, of the design gap this project documented and
+declined to fix.
+
+A store cannot help here. Given both rows it would either collide them — wrongly,
+since neither answer is incorrect — or hold them apart in different domains and
+say nothing, which is what happened.
+
+**The structural finding, and it is now the largest open question in the
+exercise.** *This comparison was impossible for any store to make.* The corpus is
+**thirteen separate stores**, one per rung. `ConflictingDraftError` fires within a
+store and cannot fire across them, so every drift between repositories — the
+whole reason for reading a chronology in order — is invisible to the machinery
+and visible only to a script somebody writes by hand, as this one was.
+
+Thirteen rungs in, the corpus can detect that a repository disagrees with itself
+and cannot detect that the author disagrees with themselves. That inverts the
+stated purpose. **Open:** whether the rungs merge into one store with the
+repository as a domain tag, or stay separate with a comparison pass over their
+exported bundles. The second is cheaper and keeps each rung independently
+rebuildable; the first is the only one that would let the store, rather than a
+person, notice.
