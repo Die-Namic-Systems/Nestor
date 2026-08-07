@@ -1,7 +1,8 @@
 {
+  "pr": 58,
   "branch": "corpus/35-data-vault",
   "date": "2026-08-07",
-  "note": "Thirty-six rungs of the corpus-from-a-corpus exercise, stacked one repository per branch, plus the agent log itself read back into a store. 105 repositories in the chronology, 100 read, 18,924 rows across 99 stores, 0 sealed. Written with no `pr` key, per IDEAS §6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assign when the PR opens.",
+  "note": "Thirty-six rungs of the corpus-from-a-corpus exercise, stacked one repository per branch, plus the agent log itself read back into a store. 105 repositories in the chronology, 100 read, 18,924 rows across 99 stores, 0 sealed. Written with no `pr` key, per IDEAS §6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assigned 58 when the PR opened.",
   "decisions": [
     {
       "question": "Does anything this exercise produced get sealed?",
