@@ -5204,3 +5204,48 @@ that shared keys outgrow rows now has a clear counter-example: **it depends
 entirely on whether the rung talks about the same things as its predecessors.**
 A configuration repository full of one-off capability names collides with
 nothing. The guess is withdrawn before it was ever a claim.
+
+### 6.65 Eight more forks, and the first quantity this file has earned the right to state — **measured**
+
+*Run 2026-08-06 against `stash`, `statewave`, `holon`, `ogham-mcp`, `mengram`,
+`ShibaClaw`, `ctxvault` and `vcspull` (all created 2026-05-25), rung 22.
+`sean-data-vault`, created the same day, stays on the held list.*
+
+| fork | commits | files | rows |
+|---|---|---|---|
+| stash | 5 | 4 | 3 |
+| ctxvault | 4 | 19 | 32 |
+| holon | 4 | 3 | 4 |
+| vcspull | 2 | 10 | 30 |
+| ogham-mcp · ShibaClaw · statewave · mengram | 1 each | 3 · 2 · 2 · 1 | 39 · 36 · 1 · 1 |
+
+Nineteen commits. **Twenty-two forks read; twenty-two carry operator commits.**
+The word "bookmark" has now been wrong every single time it was used.
+
+**And with twenty-two observations, the reason-rate is finally reportable.**
+Of 112 authored commits across the forks, **75 carry a body beyond the subject —
+66%**. The per-fork distribution:
+
+```
+0 · 0 · 40 · 42 · 50 · 60 · 65 · 66 · 75 · 75 · 85 · 100 ×10
+```
+
+This file has withdrawn two quantities for being asserted from three or four
+points (§6.52, §6.59) and withdrawn a third guess before it became a claim
+(§6.64). This one is different in a way worth naming precisely: **112 events
+across 22 independent repositories, with the distribution printed rather than
+summarised.** The mean is 66% and it is not the interesting number — the
+interesting number is that ten of twenty-two forks are at 100% and two are at 0%,
+which is not a spread around a centre but two populations.
+
+The two zeroes are `python-sdk` (9 commits) and `claude_code_RLM` (1) — the same
+two forks §6.61 identified as having commits that touch **no files**. Their
+messages are subjects with no bodies because the commits are merge artefacts of
+work that landed upstream. So the 0% is not a habit of writing thin commit
+messages; it is an artefact wearing one, and the honest statement of the
+distribution excludes them: **of 102 commits that changed something, 75 state a
+reason — 74%, with no fork below 40%.**
+
+That is the first quantity in this exercise supported well enough to survive
+being written down, and it took twenty-two repositories, one flag fix, one
+identity vetting, and two prior withdrawals to get there.
