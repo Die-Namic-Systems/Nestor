@@ -1,4 +1,5 @@
 {
+  "pr": 56,
   "branch": "claude/the-box",
   "date": "2026-08-07",
   "note": "Adopting PR #55's split — operating rules move from CLAUDE.md to a participant-neutral docs/agent-guide.md — by merging that branch in here and carrying the covenant section across, plus the four findings from the adversarial read of it. No `pr` key by design, see IDEAS 6.43.",
