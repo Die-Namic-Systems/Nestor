@@ -28,7 +28,7 @@ from typing import Optional
 from . import frank, langid, memory
 from .engine import get_engine
 from .ledger import LedgerError, verify as _ledger_verify
-from .matcher import matcher_audit_fields
+from .matcher import Matcher, matcher_audit_fields
 from .segment import _split_segments
 from .storage import Storage, get_store
 
@@ -433,12 +433,21 @@ _ledger_append = ledger_append
 
 def translate_segment(text: str, source_lang: str, target_lang: str,
                       engine=None, document_id: str = "", position: int = 0,
-                      store: Optional[Storage] = None) -> Passage:
+                      store: Optional[Storage] = None,
+                      matcher: Optional[Matcher] = None) -> Passage:
+    """One segment through the cascade: sealed, draft, or pending.
+
+    ``matcher`` is injected the same way ``store`` is, and for the same reason:
+    a host may run two domains in one process, and the process-wide default can
+    only describe one of them. Left ``None`` it resolves to that default, so
+    behavior is unchanged for every caller that does not pass one.
+    """
     store = get_store(store)
     # tier 1 — Nestor's ledger
-    hit = memory.best_sealed(text, source_lang, target_lang, store=store)
+    hit = memory.best_sealed(text, source_lang, target_lang, store=store,
+                             matcher=matcher)
     if hit:
-        m = memory.get_matcher()
+        m = memory.get_matcher(matcher)
         audit = matcher_audit_fields(m)
         passage = Passage(source=text, target=hit["pair"]["target_text"], tier=1,
                           state="sealed", engine="memory",
@@ -481,7 +490,8 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
 
 def translate_text(text: str, target_lang: str, source_lang: str = "",
                    engine_name: str = "auto", title: str = "",
-                   store: Optional[Storage] = None) -> tuple[dict, list[Passage]]:
+                   store: Optional[Storage] = None,
+                   matcher: Optional[Matcher] = None) -> tuple[dict, list[Passage]]:
     """Run the cascade over a block of text. Returns (document, passages).
     A document is created only if at least one segment needs review."""
     store = get_store(store)
@@ -495,7 +505,8 @@ def translate_text(text: str, target_lang: str, source_lang: str = "",
                                 source_lang=source_lang, target_lang=target_lang)
     passages = [
         translate_segment(seg, source_lang, target_lang, engine=engine,
-                          document_id=doc["id"], position=i, store=store)
+                          document_id=doc["id"], position=i, store=store,
+                          matcher=matcher)
         for i, seg in enumerate(segments)
     ]
     if any(p.tier != 1 for p in passages):
@@ -506,7 +517,8 @@ def translate_text(text: str, target_lang: str, source_lang: str = "",
 
 
 def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
-                   store: Optional[Storage] = None) -> Optional[dict]:
+                   store: Optional[Storage] = None,
+                   matcher: Optional[Matcher] = None) -> Optional[dict]:
     """The reviewer's "no" — the missing half of :func:`graduate_segment`.
 
     A reviewer could always accept a queued draft and never reject one, so a bad
@@ -531,6 +543,7 @@ def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
         target_lang=doc.get("target_lang", "es"),
         target_text=seg["candidate"], verifier=verifier,
         reason=reason or f"segment:{segment_id[:8]}", store=store,
+        matcher=matcher,
     )
     updater = getattr(store, "update_segment_status", None)
     if callable(updater):
@@ -542,9 +555,13 @@ def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
 
 
 def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
-                     store: Optional[Storage] = None) -> Optional[dict]:
+                     store: Optional[Storage] = None,
+                     matcher: Optional[Matcher] = None) -> Optional[dict]:
     """Tier 3 → tier 1: a verified segment's pair enters the sealed memory.
-    Called from the host's review path when a segment reaches 'verified'."""
+    Called from the host's review path when a segment reaches 'verified'.
+
+    ``matcher`` decides the key this seal is filed under. Pass the domain's own
+    or the seal lands where that domain will never look for it (IDEAS §6.40)."""
     store = get_store(store)
     seg = store.get_segment(segment_id)
     if not seg or not seg.get("candidate"):
@@ -554,7 +571,7 @@ def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
         source_text=seg["source_text"], target_text=seg["candidate"],
         source_lang=doc.get("source_lang", "en"), target_lang=doc.get("target_lang", "es"),
         status="sealed", verifier=verifier, weight=weight, origin=f"doc:{seg['document_id'][:8]}",
-        store=store,
+        store=store, matcher=matcher,
     )
     # Mark the segment decided, exactly as `reject_segment` does. Without this a
     # sealed segment stayed 'pending' forever: the pair was in the memory and

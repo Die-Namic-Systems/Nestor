@@ -46,6 +46,36 @@ what moved.
   that. All three now report the damage — the CLI on stderr, so a script parsing
   stdout is unaffected. `IDEAS.md` §6.34.
 
+### Fixed
+
+- **`nestor ui` can be told the matcher that keys its domain.** A domain is its
+  tags *and* its matcher; the surface took only the tags, so every decision a
+  human made through it — seal, seal-in-place, reject-match, queue seal and
+  reject — was keyed with the process-wide default instead of the domain's own.
+  Measured consequence, on a domain keying incident reports to the device serial
+  they name: the human clicked seal, got a `200` and a valid signature, and the
+  row that became sealed was a **second** row under a key her domain never
+  computes. The draft she was sealing stayed queued, `best_sealed` for the exact
+  wording she sealed returned `None`, and her recorded rejection was filed where
+  nothing looks it up — so the wrong match was served again. Both promises this
+  README leads with, void for any domain that took the Matcher seam at its word.
+
+  `ui.App` now carries `matcher`, `nestor ui` takes `--matcher` for the shipped
+  ones, and it is threaded through every decision the surface makes, including
+  the cascade behind `/api/ask` (`translate_segment`, `translate_text`,
+  `graduate_segment` and `reject_segment` all accept `matcher=` now). `None`
+  still means *defer to the process-wide matcher*, so nothing changes for a host
+  that never had this problem. `/api/state` reports which matcher is in force and
+  where it came from — two surfaces keyed differently used to describe themselves
+  identically, which is what kept this invisible. `/api/match` refuses a named
+  matcher on a domain with its own rather than silently scoring under a different
+  notion of similarity.
+
+  The audit trail was correct throughout, which is the part worth sitting with: a
+  hash chain cannot catch a true record of an answer nobody can reach.
+  `IDEAS.md` §6.40, and §6.41 — which asked whether the optional `score()` should
+  become mandatory — is answered by this rather than by promoting the method.
+
 ### Changed
 
 - `nestor ledger verify` numbers lines from 1. It counted from 0 and reported

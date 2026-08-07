@@ -78,6 +78,7 @@ from typing import Any, Callable, Mapping, Optional
 from . import answer, cascade, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
 from .entity import EntityResolver
+from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .storage import Storage, supports_curation, supports_queue, supports_rejection
@@ -164,12 +165,28 @@ class Sessions:
 
 @dataclass
 class App:
-    """Everything a request needs: the store, the domain, and the policy."""
+    """Everything a request needs: the store, the domain, its matcher, and the policy.
+
+    ``matcher`` is the domain's own, injected exactly like ``store`` — and it is
+    not optional decoration. A domain is a *pair*: the tags that name it and the
+    matcher that keys it. This surface used to take only the first half, so every
+    decision a human made here was filed under the process-wide default's key
+    rather than the domain's own, and IDEAS §6.40 measured what that costs: a
+    seal lands as a second row under a key the domain will never compute, the
+    draft it was meant to retire stays queued, and a rejection is recorded where
+    nothing will ever ask for it — so the wrong match is served again.
+
+    ``None`` means "use the process-wide matcher", which is both the historical
+    behaviour and the right answer for a host running one domain. It stops being
+    right the moment there are two (see ``demo/two_desks.py``), because a single
+    global can only describe one of them.
+    """
 
     store: Storage
     source_lang: str = "en"
     target_lang: str = "es"
     engine_name: str = "offline"
+    matcher: Optional[Matcher] = None
     read_only: bool = False
     verifier_hint: str = ""
     db_path: str = ""
@@ -328,7 +345,13 @@ def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
         "engine": app.engine_name,
         "db": app.db_path,
         "verifier_hint": app.verifier_hint,
-        "domain": {"source_lang": app.source_lang, "target_lang": app.target_lang},
+        # The matcher belongs in the domain block because a domain IS the tags
+        # and the matcher. Reporting only the tags is what made §6.40 invisible:
+        # two surfaces keyed differently described themselves identically, and
+        # nothing an operator could read said which one was filing their seals.
+        "domain": {"source_lang": app.source_lang, "target_lang": app.target_lang,
+                   "matcher": matcher_audit_fields(memory.get_matcher(app.matcher))["matcher"],
+                   "matcher_source": "app" if app.matcher is not None else "process"},
         "capabilities": caps,
         "stats": memory.stats(store=app.store),
         "summary": summary,
@@ -480,7 +503,7 @@ def _ask(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict
     return answer.ask(app.store, text,
                       _str(payload, "source_lang") or app.source_lang,
                       _str(payload, "target_lang") or app.target_lang,
-                      engine_name=app.engine_name)
+                      engine_name=app.engine_name, matcher=app.matcher)
 
 
 def _domains(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -566,10 +589,26 @@ def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
     text = _str(payload, "text")
     if not text:
         raise ApiError(400, "nothing to match", code="bad_request")
+    named = _str(payload, "matcher")
+    if app.matcher is not None:
+        # A named matcher off the wire cannot conjure this domain's own, and
+        # answering under a different one would be a confident wrong answer to
+        # the only question Nestor is asked. Refuse rather than silently
+        # substitute — a caller who asked for `numeric` on a domain keyed by
+        # something else needs to know the two are not interchangeable.
+        if named:
+            raise ApiError(
+                400,
+                f"this surface serves a domain with its own matcher; it cannot "
+                f"score {named!r} as well",
+                code="bad_request")
+        chosen: "str | Matcher" = app.matcher
+    else:
+        chosen = named or "string"
     return answer.match(app.store, text,
                         _str(payload, "source_lang") or app.source_lang,
                         _str(payload, "target_lang") or app.target_lang,
-                        matcher=_str(payload, "matcher", "string"),
+                        matcher=chosen,
                         abs_tol=_float(payload, "abs_tol", 0.0),
                         pct_tol=_float(payload, "pct_tol", 0.05),
                         # /match is in _NO_DECISION, so --read-only allows it.
@@ -596,7 +635,8 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
     override = bool(payload.get("override"))
     pair = memory.add_pair(source, target, source_lang, target_lang, status="sealed",
                            verifier=who, origin=_str(payload, "origin", "ui"),
-                           store=app.store, override_conflict=override,
+                           store=app.store, matcher=app.matcher,
+                           override_conflict=override,
                            override_rejection=override)
     # add_pair ledgers the seal itself. What it cannot know is that a human was
     # shown another human's decision and chose to overrule it anyway, so that —
@@ -631,6 +671,11 @@ def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         origin=row.get("origin") or "ui:seal-draft",
         reason=_str(payload, "reason"),
         store=app.store,
+        # The measured heart of §6.40. `add_pair` recomputes the key from the
+        # text, so without the domain's matcher this "seal in place" inserts a
+        # second row under the default's key and leaves the draft it was sealing
+        # queued — a 200, a signed seal, and nothing retired.
+        matcher=app.matcher,
         override_conflict=override,
         override_rejection=override,
     )
@@ -689,7 +734,12 @@ def _reject_match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
         source, _str(payload, "source_lang") or app.source_lang,
         _str(payload, "target_lang") or app.target_lang,
         pair_id=_str(payload, "pair_id"), target_text=_str(payload, "target_text"),
-        verifier=_verifier(app, payload), reason=_str(payload, "reason"), store=app.store)
+        verifier=_verifier(app, payload), reason=_str(payload, "reason"), store=app.store,
+        # A rejection is filed under the query's key, and `best_sealed` looks it
+        # up under the domain's. Keyed by the default instead, the human's "no"
+        # is recorded correctly, signed, and invisible — and the wrong match is
+        # served again, which is the promise this endpoint exists to keep.
+        matcher=app.matcher)
     return {"rejection": {k: v for k, v in rejection.items() if k != "reject_sig"}}
 
 
@@ -717,7 +767,8 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         raise ApiError(404, "no such segment, or it has no candidate to seal",
                        code="not_found")
     if not edited or edited == seg.get("candidate"):
-        pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store)
+        pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store,
+                                        matcher=app.matcher)
         if pair is None:
             raise ApiError(404, "no such segment, or it has no candidate to seal",
                            code="not_found")
@@ -727,7 +778,7 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     pair = memory.add_pair(
         seg["source_text"], edited, doc.get("source_lang", app.source_lang),
         doc.get("target_lang", app.target_lang), status="sealed", verifier=who,
-        origin=f"doc:{seg['document_id'][:8]}", store=app.store,
+        origin=f"doc:{seg['document_id'][:8]}", store=app.store, matcher=app.matcher,
         override_conflict=bool(payload.get("override")),
         override_rejection=bool(payload.get("override")))
     app.store.update_segment_status(segment_id, "verified")
@@ -744,7 +795,8 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
     _require_rejection(app)
     segment_id = _str(payload, "segment_id")
     rejection = cascade.reject_segment(segment_id, verifier=_verifier(app, payload),
-                                       reason=_str(payload, "reason"), store=app.store)
+                                       reason=_str(payload, "reason"), store=app.store,
+                                       matcher=app.matcher)
     if rejection is None:
         raise ApiError(404, "no such segment, or it has no candidate to reject",
                        code="not_found")
@@ -967,6 +1019,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--port", type=int, default=8765, help="bind port (default: 8765)")
     p.add_argument("--source-lang", default="en", help="default source domain tag")
     p.add_argument("--target-lang", default="es", help="default target domain tag")
+    p.add_argument("--matcher", default="string", choices=answer.MATCHERS,
+                   help="the matcher that keys this domain (default: string). A "
+                        "domain is the tags AND the matcher; aiming this surface "
+                        "at a domain keyed by a different one files every seal "
+                        "and rejection where that domain will never look. A "
+                        "CUSTOM matcher cannot be named here — pass it in code "
+                        "as ui.App(matcher=...), or install it process-wide with "
+                        "memory.set_matcher()")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
                    help="draft engine used by the Ask view (default: offline — a click "
                         "in a browser should not silently call a paid API)")
@@ -1036,8 +1096,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         if candidate.is_file():
             gate_rollup = str(candidate)
 
+    # `--matcher string` is the default and resolves to `None`, not to a fresh
+    # StringMatcher: None means "defer to the process-wide matcher", which is
+    # what a host that called memory.set_matcher() before launching this surface
+    # is entitled to expect. Building one here would override that silently, and
+    # substituting a matcher behind a host's back is the whole defect.
+    chosen_matcher = None if args.matcher == "string" else answer.build_matcher(args.matcher)
     app = App(store=store, source_lang=args.source_lang, target_lang=args.target_lang,
-              engine_name=args.engine, read_only=args.read_only,
+              engine_name=args.engine, matcher=chosen_matcher, read_only=args.read_only,
               verifier_hint=args.verifier, db_path=args.db,
               gate_rollup_path=gate_rollup,
               sessions=Sessions(hours=args.session_hours))

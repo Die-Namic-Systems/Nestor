@@ -3632,7 +3632,7 @@ reach or reaches with a colleague standing next to it, and all three were
 invisible until somebody's actual life was in the store. The fixture is worth
 more than the entries it produced.
 
-### 6.40 `nestor ui` can be aimed at a custom domain and cannot be told its matcher — **measured**, fix **open**
+### 6.40 `nestor ui` can be aimed at a custom domain and cannot be told its matcher — **measured**, fix **shipped**
 
 *Found 2026-08-06 by standing a fictional client's intake desk next to a desk
 reviewing this repo, in `demo/two_desks.py`. Both desks brought their own
@@ -3702,6 +3702,47 @@ what `_seal` or a fresh `/api/reject-match` should do. Per `CLAUDE.md` this
 touches persistence and the audit path and wants an adversarial read before a
 patch, not after.
 
+---
+
+**Shipped 2026-08-07, as the `ui.App.matcher` version — and the entry above was
+right to hesitate, because the smaller alternative is wrong.** "Stop recomputing
+a key it was already holding" fixes `_seal_draft`, which is the one path holding
+a row whose `source_norm` it could reuse. It has no answer for `_seal` (raw text,
+no row), for `/api/reject-match` (a *query* that was never stored), for
+`/api/ask`, or for `/api/match` — all of which must key by something, and in a
+custom domain the only correct something is the domain's matcher. Reusing a
+stored key would also make the surface unable to *re-key* a row whose matcher
+changed, which is a repair operation the curator will eventually want. So the
+field it is.
+
+What shipped is wider than the three functions named above, because tracing the
+paths found more of them:
+
+| | |
+|---|---|
+| `ui.App.matcher` | the domain's matcher, injected like `store`. `None` = defer to the process-wide one, so nothing changes for a host that never had this problem |
+| `nestor ui --matcher` | the **shipped** matchers by name. A custom one cannot come off a wire and the flag's help says so |
+| threaded through | `_seal`, `_seal_draft`, `_reject_match`, `_queue_seal` (both branches), `_queue_reject`, `_ask`, `_match` |
+| `cascade` | `translate_segment`, `translate_text`, `graduate_segment`, `reject_segment` all take `matcher=` — the serve path was global-only too, so `/api/ask` disagreed with the writes |
+| `answer` | `ask(matcher=)`; `match()` now takes a `Matcher` **or** a name, because a name cannot conjure a custom one |
+| `/api/state` | reports `domain.matcher` and `domain.matcher_source`. Two surfaces keyed differently used to describe themselves identically, which is what made this invisible |
+
+`/api/match` **refuses** a named matcher when the App has its own (400) rather
+than silently substituting: answering "would this be served?" under a different
+notion of similarity than the one that sealed the row is a confident wrong answer
+to the only question Nestor is asked.
+
+Proven by mutation *after* the fix as well as before: reverting the seven
+`matcher=app.matcher` call sites to `None` turns 8 of the 12 tests in
+`tests/test_ui_custom_matcher.py` red. The 4 that stay green are the ones about
+the field and the refusal rather than the threading, which is correct and worth
+recording — a test that passes under the mutation it was written to catch is a
+test that proves nothing.
+
+`demo/two_desks.py` keeps every beat and inverts every outcome; its eight `gap()`
+assertions are now `claim()`s. The fixture is kept rather than retired because it
+asks the same questions it asked when the answer was no.
+
 **Proven by mutation before commit.** Implementing the `ui.App.matcher` fix and
 wiring the fixture to pass each desk's matcher turns all eight gap assertions in
 `demo/two_desks.py` red and the run exits non-zero. The first version of the
@@ -3714,7 +3755,7 @@ description that quotes a serial, where the three matchers produce three
 distinct keys. That is `CLAUDE.md`'s "a test that cannot fail", found in a test
 written to prove a gap, by the same session that had just read the rule.
 
-### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **open**
+### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **answered by §6.40**
 
 *The other half of §6.40, and the reason it went unfound for so long: the two
 desks in `demo/two_desks.py` hit the identical bug and only one of them notices.*
@@ -3758,6 +3799,22 @@ The reason to write it down rather than pick: this is the same shape as §3.1's
 `normalize`-versus-`score` split, which was argued on retrieval quality when the
 question was retrieval. It turns out to also decide whether a seal is reachable,
 and that argument has not been had.
+
+**Answered 2026-08-07 by §6.40 shipping, and it is the second option.** The UI
+stops re-keying — it keys with the domain's own matcher — so `score()` goes back
+to being the performance and fidelity choice §3.1 argued it was, and the two
+methods the README documents are sufficient again. The first option is not taken:
+promoting `score()` to the seam would break every matcher written against the
+documented two, to fix a problem that turned out to be the caller's, not the
+seam's.
+
+What stays true, and is the part worth keeping this entry for: **the guarantee
+was riding on an optional method, and that is why nobody found it.** A defect
+that spares whoever implemented *more* than the documentation asked, and bites
+whoever implemented exactly what it asked, is invisible to the person who wrote
+the documentation — they are the one most likely to have implemented more.
+`demo/two_desks.py` beat 6 still measures the one-method difference between the
+two desks for exactly this reason; it is no longer a gap, it is the explanation.
 
 ---
 

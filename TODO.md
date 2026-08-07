@@ -62,6 +62,12 @@ file no longer a secret and change the deployment story considerably.
 * **Seal staleness and quorum.** A seal is true forever and one person's seal is
   enough. Neither is obviously right for a regulated buyer, and neither has been
   argued through. §1.4.
+* ~~**The UI cannot be told its domain's matcher.**~~ Shipped 2026-08-07:
+  `ui.App(matcher=)` and `nestor ui --matcher`, threaded through every decision
+  the surface makes. §6.40, and it answers §6.41. Worth keeping visible here for
+  one reason — it was found by pointing a fixture at the Matcher seam *from the
+  human surface* rather than from the library, and nothing else in this queue has
+  been looked at that way yet.
 * **Record the sixty seconds.** `demo/sixty_seconds.py` is the script — eight
   beats, self-asserting, `--fast` for CI. Nobody has pointed a screen recorder
   at it. §4.3.
