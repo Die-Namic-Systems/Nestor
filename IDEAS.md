@@ -5144,3 +5144,63 @@ operator columns do not (60%, 45%), which is what a distribution looks like when
 one side is thousands of files by many hands and the other is twenty-six files
 by one. No claim is made from it. It is here so that when a third fork lands,
 there is something to compare against.
+
+### 6.64 willow-config: a third persona schema that shares no names, and a refusal I nearly made from an assumption — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-config` (created 2026-05-24), rung
+21. Private; structure and counts only. 617 markdown documents, three Python
+modules — a configuration and handoff repository.*
+
+| shape | drafts |
+|---|---|
+| capability (`Capability` → `Location`) | 760 |
+| definitional tables | 65 |
+| risk (`Risk` → `Mitigation`) | 40 |
+| docstring | 16 |
+| mandate (agent → what it does) | 8 |
+| prohibition (agent → what it must not) | 7 |
+| **total** | **772 draft, 0 sealed** |
+
+**I nearly refused the 811-row capability table, and the reasoning was sound and
+the premise was invented.** The argument written down before checking: a table
+appearing in 138 session handoffs is one rolling snapshot restated, not 811
+declarations, and extracting it would fill the store with time-series noise the
+corpus has no shape for. Then it was counted: **653 distinct capability names**,
+most-repeated six times. An accumulating inventory, not a redrawn one. The
+refusal would have been the largest single act of under-extraction in this
+exercise, and it would have shipped with a paragraph of justification and no
+number under it — which is the precise shape of every error §6.41 through §6.62
+records.
+
+**A mandate and a prohibition are stored as separate pairs**, not folded
+together. They fail differently: one is broken by inaction and the other by
+action, and a store that merges them cannot say which was violated. That is also
+this project's own covenant restated in somebody else's repository — *what you
+may do* and *what you may not* as two claims rather than one.
+
+**The third persona schema, and it shares nothing with the first two.**
+
+| rung | schema | entries |
+|---|---|---|
+| 1 · SAFE | `Domain` / `Voice` / `Function` / `Direction` | 21 |
+| 13 · app-store archive | `Lineage` / `Type` / `Core function` | 9 |
+| 21 · willow-config | `Register` / `Mandate` / `Namespace` | 8 |
+
+Overlap, measured: rungs 1∩13 share **two** names (Gerald, Professor
+Oakenscroll — §6.54's case). Rungs 1∩21 share **none**. Rungs 13∩21 share
+**none**.
+
+Three schemas, four months, thirty-eight entries, and the later two describe an
+entirely different population from the first. The obvious reading — that one
+cast of characters was redescribed as the schema evolved — is **false**, and only
+a set intersection could say so. What actually happened is that a vocabulary for
+describing *voices* was reused to describe *agents*, and the corpus is the only
+place both are visible under one lens.
+
+**Comparison pass:** 21 stores, 9,380 rows, 1,237 shared keys (186 drift · 108
+two kinds · 1,032 restated). Rung 21 added 772 rows and only 23 shared keys —
+against rung 18, which added 3,680 rows and 1,093 shared keys. §6.56's guess
+that shared keys outgrow rows now has a clear counter-example: **it depends
+entirely on whether the rung talks about the same things as its predecessors.**
+A configuration repository full of one-off capability names collides with
+nothing. The guess is withdrawn before it was ever a claim.
