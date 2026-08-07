@@ -4127,3 +4127,62 @@ similarity across citations and count near-duplicates once — which is a matche
 problem, and this repo has one; or (c) accept it, keep the disclaimer, and let
 the seal carry the weight. This entry does not pick. Filing anything on jeles'
 side needs the operator's word.
+
+---
+
+### 6.48 Both hypotheses §6.47's feed raised were measurable, and neither was right as written — **measured**, filed as jeles#53
+
+*Measured 2026-08-07 against jeles at `ed48de7`, offline, with a stubbed
+`llm_respond`. `scripts/feed_jeles_sources.py` printed both as open questions;
+both are corrected in place there, and this entry is why.*
+
+The feeder ended on two things it said it had not measured. Asked properly, one
+is **confirmed with the wrong reason attached** and the other is **false, in the
+opposite direction from the one feared**.
+
+**Hypothesis 1 — "a single-sourced subject struggles to clear the bar."**
+True. 43 of 71 subject tags in jeles' registry have exactly one source, and a
+claim routed to any of them cannot be corroborated. The stated reason — narrow
+routing breadth — was not the mechanism.
+
+`verify._identity` reads `citation["source"]` first and falls back to
+`institution` only when that is empty. `sources._result` puts the **registry
+key** in `source`: checked by parsing rather than by sampling, all **69**
+`_result` call sites pass a non-empty constant, 65 distinct values. So the
+`institution` arm is unreachable for registry output, and the per-record
+institution each adapter assembles — author affiliations, publisher, journal —
+is never counted. Measured:
+
+```
+1 adapter, 5 genuinely different institutions -> ['openalex']         single_source
+2 adapters, the SAME 5 institutions           -> ['core','openalex']  corroborated
+```
+
+The count is over **adapters**. Which means the same defect runs both ways, and
+the second is worse: two adapters carrying one institution read as corroborated,
+which is the false corroboration `tests/test_verify.py` opens by saying the
+module exists to prevent.
+
+**Hypothesis 2 — "9 sources list doi.org, `registrable_domain()` collapses them,
+so nine institutions could corroborate as one."** False for registry output, and
+backwards. The site is only a *fallback* for a citation with no label, and
+`_result` always sets one, so the fallback is unreachable on that path.
+Measured: two doi.org citations from different adapters keep distinct keys
+(`openalex`, `core`) — they do not collapse. The error is the reverse of the one
+guessed: not over-collapsing distinct institutions into one, but failing to
+collapse one institution reached twice.
+
+**What this is not.** Nothing inside jeles wires `sources.search()` into
+`verify_claims` — the only callers are its tests — so this is a latent contract
+mismatch across a seam rather than a live defect there. Whether it bites depends
+on what the host passes, and that host's design docs live in safe-app-store,
+which is not readable from here. Filed as **jeles#53** saying exactly that, with
+no fix proposed: the obvious inversion (prefer `institution` over `source`) would
+change what `institutional.py` citations count as, since there `source` genuinely
+*is* the institution.
+
+**The lesson is the one this repo keeps paying for.** Both hypotheses were
+written with the uncertainty honestly flagged, and flagging was worth something —
+it is why they were still there to check. It was not worth as much as checking:
+one had the wrong mechanism, and the other pointed the wrong way entirely. A
+hypothesis nobody runs decays into a fact nobody questioned.

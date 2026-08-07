@@ -194,20 +194,37 @@ def main() -> int:
     print(f"\n{BOLD}subjects with exactly one source{OFF}  "
           f"{DIM}{len(alone)} of {len(per_subject)}{OFF}")
     print(f"   {', '.join(alone) if alone else 'none'}")
+    # Both of the hypotheses this block used to raise have now been measured
+    # against the checkout, and neither was right as written. Corrected in
+    # place and visibly, per the standing rule: a claim that was acted on is
+    # part of the record, and quietly deleting it would leave the reader of an
+    # older run with no way to know it had been withdrawn.
     print(f"\n   {DIM}MEASURED: routing breadth only — a query tagged to one of "
-          f"these fans out to one institution.{OFF}")
-    print(f"   {DIM}NOT measured, and worth checking: jeles corroborates a "
-          f"finding only when MIN_INDEPENDENT_SOURCES{OFF}")
-    print(f"   {DIM}distinct *registrable domains* back it (jeles._independence "
-          f"— the DNS sense, not these subject{OFF}")
-    print(f"   {DIM}tags). Whether a single-sourced subject therefore struggles "
-          f"to clear that bar is a hypothesis.{OFF}")
-    print(f"   {DIM}Sharper version, from the host counts above: 9 sources list "
-          f"doi.org, and registrable_domain(){OFF}")
-    print(f"   {DIM}collapses every doi.org citation to one source — so nine "
-          f"institutions could corroborate as one.{OFF}")
-    print(f"   {DIM}Also unmeasured. Both are questions this feed raises and "
-          f"does not answer.{OFF}")
+          f"these fans out to one source.{OFF}")
+    print(f"\n   {AMBER}Hypothesis 1, was 'unmeasured' — now CONFIRMED, and the "
+          f"stated reason was wrong.{OFF}")
+    print(f"   {DIM}It asked whether a single-sourced subject struggles to clear "
+          f"the corroboration bar. It does,{OFF}")
+    print(f"   {DIM}and not because coverage is narrow: jeles.verify._identity "
+          f"reads citation['source'] FIRST,{OFF}")
+    print(f"   {DIM}and sources._result puts the REGISTRY KEY there (all 69 call "
+          f"sites, 65 constants). So the{OFF}")
+    print(f"   {DIM}per-record institution each adapter assembles is never "
+          f"counted. One adapter returning five{OFF}")
+    print(f"   {DIM}different institutions counts as one. Measured: "
+          f"['openalex'] -> single_source. jeles#53.{OFF}")
+    print(f"\n   {RED}Hypothesis 2, was 'unmeasured' — now FALSIFIED, and it was "
+          f"wrong in the OPPOSITE direction.{OFF}")
+    print(f"   {DIM}It said 9 sources list doi.org and registrable_domain() "
+          f"collapses them, so nine institutions{OFF}")
+    print(f"   {DIM}could corroborate as one. That cannot happen for registry "
+          f"output: the site is only a{OFF}")
+    print(f"   {DIM}FALLBACK for a citation with no label, and _result always "
+          f"sets one. Measured — two doi.org{OFF}")
+    print(f"   {DIM}citations from different adapters keep distinct keys "
+          f"('openalex', 'core'). The real error runs{OFF}")
+    print(f"   {DIM}the other way: two adapters carrying the SAME institution "
+          f"read as corroborated.{OFF}")
 
     sealed = sum(1 for r in store.memory_candidates(DOMAIN, TARGET)
                  if r["status"] == "sealed")

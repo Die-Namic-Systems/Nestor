@@ -85,18 +85,43 @@ def test_it_never_imports_the_repo_it_reads():
     assert "ast.parse" in body
 
 
-def test_it_marks_the_corroboration_claim_as_unmeasured():
-    """The correction, pinned.
+def test_it_separates_what_it_measured_from_what_it_only_asked():
+    """The script must always say which half of its own output is evidence.
 
-    An earlier draft was going to assert that single-sourced subjects cannot
-    clear jeles' two-source bar. `jeles._independence` counts registrable
-    domains, not subject tags — a different meaning of the same word. The script
-    must keep saying which half it measured.
+    This test used to require the literal words "NOT measured", because the two
+    corroboration claims were open questions. They have since been measured
+    (IDEAS §6.48, jeles#53) and the block now reports CONFIRMED and FALSIFIED —
+    so the old assertion started failing, correctly, on the commit that answered
+    them. Renamed and widened rather than deleted: the property worth holding
+    was never "these two stay unmeasured", it was "routing breadth and the
+    corroboration bar are never reported as one finding".
     """
     src = (REPO / "scripts" / "feed_jeles_sources.py").read_text()
-    assert "MEASURED" in src and "NOT measured" in src
+    assert "MEASURED: routing breadth only" in src, \
+        "the script must keep saying which half of the claim it measured directly"
     assert "registrable" in src, \
         "the script must name the sense of 'domain' the corroboration rule uses"
+
+
+def test_the_two_corrected_hypotheses_still_carry_their_verdicts():
+    """A correction that loses its own history is a quiet edit.
+
+    Both claims were printed as open questions and both turned out wrong — one
+    confirmed with the wrong mechanism, one false in the opposite direction. The
+    block keeps what each said and what it became, so a reader holding an older
+    run can tell it was withdrawn rather than never made.
+
+    Asserted on short phrases, not sentences: these are f-strings wrapped across
+    source lines, so a sentence that reads as one line of output is not one
+    contiguous string in the file. The first version of this test asserted the
+    whole sentence and failed for that reason alone — a test that is wrong about
+    where the text lives proves nothing about what the text says.
+    """
+    src = (REPO / "scripts" / "feed_jeles_sources.py").read_text()
+    for phrase in ("now CONFIRMED", "stated reason was wrong",
+                   "now FALSIFIED", "OPPOSITE direction"):
+        assert phrase in src, f"the correction no longer says {phrase!r}"
+    assert "jeles#53" in src, "the correction must cite where it was reported"
 
 
 @pytest.mark.skipif(not JELES.exists(), reason="no jeles checkout present")

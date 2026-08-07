@@ -1,0 +1,32 @@
+{
+  "branch": "claude/audit-against-jeles",
+  "date": "2026-08-07",
+  "note": "scripts/feed_jeles_sources.py ended on two questions it said it had not measured. Both were measurable offline. Neither was right as written. Filed as jeles#53. No `pr` key by design, see IDEAS 6.43.",
+  "decisions": [
+    {
+      "question": "Do the 43 single-sourced subjects actually struggle to clear jeles' corroboration bar?",
+      "commitment": "Yes — and the reason written into the feeder was wrong. It is not routing breadth.",
+      "why": "verify._identity reads citation['source'] first and only falls back to 'institution' when that is empty. sources._result puts the registry key in 'source' — checked by parsing rather than sampling, all 69 call sites pass a non-empty constant, 65 distinct values — so the fallback is unreachable for registry output and the per-record institution each adapter assembles is never counted. Measured offline with a stubbed llm_respond: one adapter returning five genuinely different institutions yields ['openalex'] and single_source; two adapters carrying the same five yield ['core','openalex'] and corroborated. The count is over adapters."
+    },
+    {
+      "question": "Was the sharper doi.org hypothesis right?",
+      "commitment": "No. False for registry output, and wrong in the opposite direction from the one feared.",
+      "why": "It claimed 9 sources list doi.org and registrable_domain() collapses them, so nine institutions could corroborate as one. The site is only a fallback for a citation with no label and _result always sets one, so that path is unreachable. Measured: two doi.org citations from different adapters keep distinct keys. The real error is the reverse — not over-collapsing distinct institutions, but failing to collapse one institution reached twice, which is a false corroboration rather than a missed one."
+    },
+    {
+      "question": "Why correct the feeder's output rather than delete the two claims?",
+      "commitment": "Corrected in place and visibly, with what each claim said and what it turned out to be.",
+      "why": "A claim that was acted on is part of the record. Deleting it would leave anyone holding an older run with no way to know it had been withdrawn, and would hide that the repo's own tooling raised a question it then got wrong twice. The block now prints CONFIRMED-with-the-wrong-reason and FALSIFIED-in-the-opposite-direction, with the measurement beside each."
+    },
+    {
+      "question": "How much of this was reported to jeles, and in what register?",
+      "commitment": "Filed as jeles#53 with the reproduction, no fix proposed, and an explicit statement of what it is not.",
+      "why": "Nothing inside jeles wires sources.search() into verify_claims — the only callers are its tests — so it is a latent contract mismatch across a seam rather than a live defect there. Whether it bites depends on what the host passes, and that host's design docs live in safe-app-store, which is not readable from this session. The issue says so rather than guessing, and says the first useful step is probably looking at what ask-jeles passes rather than changing code. The obvious inversion is not proposed because preferring 'institution' over 'source' would change what institutional.py citations count as, where 'source' genuinely is the institution."
+    },
+    {
+      "question": "What does this say about flagging uncertainty?",
+      "commitment": "Flagging is why the claims were still there to check. It is not a substitute for checking.",
+      "why": "Both hypotheses were written with the uncertainty stated honestly, which is the only reason they survived to be measured rather than hardening into background fact. But one carried the wrong mechanism and the other pointed the wrong way entirely, and neither error was visible without running it. The repo's own rule, paid for again: a hypothesis nobody runs decays into a fact nobody questioned."
+    }
+  ]
+}
