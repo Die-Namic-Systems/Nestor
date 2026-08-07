@@ -4690,3 +4690,70 @@ stores side by side.
 
 That is the argument for the mechanism over the inspection, made by the
 mechanism, against the inspection that asked for it.
+
+### 6.56 safe-app-willow-grove: a corrections table, and the first rung to run the comparison pass on arrival — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/safe-app-willow-grove` (created 2026-05-03),
+rung 14. Private; structure and counts only. First rung read with
+`compare.py` in place, so drift is checked the day the rows enter rather than
+thirteen rungs later.*
+
+| shape | drafts |
+|---|---|
+| docstring | 406 |
+| definitional tables | 205 |
+| rubric | 17 |
+| **correction** (claim → verdict) | 16 |
+| goal | 14 |
+| **total** | **657 draft, 0 sealed** |
+
+Document coverage 28/73; docstring coverage 406/1,386 — **29%**, a sixth point,
+now well below the band §6.48 was corrected for once already.
+
+**The corrections table is the most on-subject shape this corpus has met.**
+`Claim | Status` lists what an earlier revision of this repository's own audit
+asserted, and what a later reading did to each assertion:
+
+```
+ 5  withdrawn        1  wrong        1  fixed        1  closed
+ 7  corrected (to a different severity, a different verdict, a different count)
+```
+
+Read one row: *"Scope 'Total Python files ~45' — **Wrong.** 117 tracked `*.py`."*
+Another: *"G-KART-01 — unsigned Kart tasks (P1) — **Withdrawn.** No Kart worker
+in this repo."* A P1 finding, retracted, because the file it was about was not
+there.
+
+Nestor exists to answer whether a human checked something. This is a human
+recording that they checked, and were **wrong** — sixteen times, in one table,
+against their own prior work. Those rows are worth more than agreeing ones, and
+they are the first in the corpus that carry their own refutation. They were
+declined as noise on the first run and recovered from the declined-header report,
+which is now the fourth time that mechanism has produced the rung's best content.
+
+**The plan schema moved to `common.labelled`** — `Goal` / `Architecture` /
+`Tech Stack`, first met at rung 6 and again here. Two repositories sharing a
+schema makes it the author's convention rather than one repository's feature, the
+same argument that moved `findings` at rung 5 and `rubric` at rung 6. Rung 6
+re-runs to the same 1,340 rows with the same 16/3/12 shape counts afterwards.
+
+**And a disagreement inside one repository, surfaced by the store rather than by
+reading:** `CLAUDE.md` and `README.md` both document the commands, and they
+differ — *"Main Textual dashboard (active, full-featured)"* against *"Main
+Textual dashboard"*; *"Standalone Textual DM app"* against *"Standalone DM app"*.
+Not contradictions. Two documents describing one thing, one of them staler than
+the other, which is the condition that precedes a contradiction.
+
+**The comparison pass, run on arrival:**
+
+```
+14 stores, 3,686 rows
+keys in more than one repository: 121   drift 46 · two kinds 26 · restated 61
+```
+
+One rung added 657 rows and tripled the cross-repository key count, from 40 to
+121. That is not this repository being unusually derivative — it is the first
+evidence that **shared keys grow faster than rows do**, because every new rung
+can collide with all thirteen before it. If that holds, the comparison pass gets
+more valuable per rung as the corpus grows, and the decision to build it at
+thirteen rather than at fifty was worth the interruption.

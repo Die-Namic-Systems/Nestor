@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import collections
 import pathlib
-import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
@@ -35,42 +34,6 @@ from nestor.sqlite_store import SqliteStore                      # noqa: E402
 
 DEFN_KEYS = ("term", "concept", "field", "name", "command", "tool", "env var",
              "option", "table", "key", "module", "file")
-
-
-def title(path: pathlib.Path, text: str) -> str:
-    """The document's own H1, falling back to its filename."""
-    m = re.search(r"^#\s+(.+)$", text, re.M)
-    return " ".join(m.group(1).split()) if m else path.stem
-
-
-def _labelled(root: pathlib.Path, label: str, minimum: int = 12) -> list[tuple]:
-    """`(document title -> **label:** value)` wherever the label appears."""
-    rows = []
-    for path in common.docs(root):
-        text = path.read_text(encoding="utf-8")
-        value = common.field(text, label)
-        if len(value) < minimum:
-            continue
-        why = " | ".join(x for x in (
-            f"Architecture: {common.field(text, 'Architecture')[:200]}"
-            if common.field(text, "Architecture") else "",
-            f"Tech Stack: {common.field(text, 'Tech Stack')[:120]}"
-            if common.field(text, "Tech Stack") else "",
-        ) if x)
-        rows.append((title(path, text), value[:600], why, path, label.lower()))
-    return rows
-
-
-def goals(root: pathlib.Path) -> list[tuple]:
-    return _labelled(root, "Goal")
-
-
-def successes(root: pathlib.Path) -> list[tuple]:
-    return _labelled(root, "Success")
-
-
-def whens(root: pathlib.Path) -> list[tuple]:
-    return _labelled(root, "When")
 
 
 def definitions(root: pathlib.Path) -> list[tuple]:
@@ -111,9 +74,9 @@ def main() -> int:
     origin = provenance.Origin("willow-1.9", root, __file__)
     symbols, defined = common.docstrings(root)
     plan = [
-        ("goal", goals(root), "plan", "goal"),
-        ("success", successes(root), "plan", "success"),
-        ("when", whens(root), "power", "trigger"),
+        ("goal", common.labelled(root, "Goal"), "plan", "goal"),
+        ("success", common.labelled(root, "Success"), "plan", "success"),
+        ("when", common.labelled(root, "When"), "power", "trigger"),
         ("docstring", symbols, "symbol", "docstring"),
         ("rubric", common.rubric(root), "check", "verdict"),
         ("finding", common.findings(root), "finding", "fix"),

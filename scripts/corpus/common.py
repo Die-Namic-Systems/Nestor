@@ -193,9 +193,36 @@ def docstrings(root: pathlib.Path, only: set | None = None) -> tuple[list[tuple]
     return rows, total
 
 
+def labelled(root: pathlib.Path, label: str, minimum: int = 12,
+             only: set | None = None) -> list[tuple]:
+    """``(document title -> **label:** value)`` wherever the label appears.
+
+    The plan schema — ``Goal`` / ``Architecture`` / ``Tech Stack`` / ``Success``
+    — first met in rung 6 and again in rung 14. Two repositories sharing a
+    schema makes it the author's convention rather than one repository's
+    feature, the same argument that moved ``findings`` here at rung 5.
+    """
+    rows = []
+    for path in docs(root, only):
+        text = path.read_text(encoding="utf-8")
+        value = field(text, label)
+        if len(value) < minimum:
+            continue
+        why = " | ".join(x for x in (
+            f"Architecture: {field(text, 'Architecture')[:200]}"
+            if field(text, "Architecture") else "",
+            f"Tech Stack: {field(text, 'Tech Stack')[:120]}"
+            if field(text, "Tech Stack") else "",
+        ) if x)
+        m = re.search(r"^#\s+(.+)$", text, re.M)
+        title = " ".join(m.group(1).split()) if m else path.stem
+        rows.append((title, value[:600], why, path, label.lower()))
+    return rows
+
+
 DEFAULT_DEFN_KEYS = ("term", "concept", "field", "name", "command", "tool",
                      "env var", "option", "key", "module", "file", "idiom",
-                     "pattern", "skill", "table", "column")
+                     "pattern", "skill", "table", "column", "path")
 
 
 def definitions(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None = None) -> list[tuple]:
