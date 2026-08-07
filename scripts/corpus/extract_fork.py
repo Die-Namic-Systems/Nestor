@@ -71,7 +71,7 @@ def created_by(root: pathlib.Path, files: set, email: str) -> tuple[set, set]:
     for path in sorted(files):
         rel = path.relative_to(root)
         try:
-            adds = _git(root, "log", "--diff-filter=A", "--format=%ae",
+            adds = _git(root, "log", "--all", "--diff-filter=A", "--format=%ae",
                         "--", str(rel)).split()
         except subprocess.SubprocessError:
             adds = []
@@ -80,9 +80,17 @@ def created_by(root: pathlib.Path, files: set, email: str) -> tuple[set, set]:
 
 
 def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
-    """``(commit rows, files touched, commit count)`` for one author."""
-    raw = _git(root, "log", f"--author={email}", f"--format=%h{SEP}%ad{SEP}%s{SEP}%b\x1d",
-               "--date=short")
+    """``(commit rows, files touched, commit count)`` for one author.
+
+    **Walks every ref, not HEAD.** `git log` defaults to HEAD, and a fork's
+    contribution characteristically lives on a pull-request branch that was
+    merged upstream rather than into the fork's default branch. Scanning HEAD
+    reported zero for five consecutive forks that hold between one and twelve
+    authored commits each — see §6.61. `--all` is the whole fix and its absence
+    was the whole error.
+    """
+    raw = _git(root, "log", "--all", f"--author={email}",
+               f"--format=%h{SEP}%ad{SEP}%s{SEP}%b\x1d", "--date=short")
     rows: list[tuple] = []
     count = 0
     for record in raw.split("\x1d"):
@@ -102,7 +110,7 @@ def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
         rows.append((subject.strip(), text[:900], f"commit {sha}, {date}",
                      root / "README.md", sha))
 
-    names = _git(root, "log", f"--author={email}", "--name-only", "--format=")
+    names = _git(root, "log", "--all", f"--author={email}", "--name-only", "--format=")
     touched = {(root / n).resolve() for n in names.splitlines() if n.strip()}
     return rows, {p for p in touched if p.exists()}, count
 
@@ -123,7 +131,7 @@ def main() -> int:
 
     commits, touched, count = delta(root, args.email)
     created, modified = created_by(root, touched, args.email)
-    total_commits = len(_git(root, "log", "--format=%h").splitlines())
+    total_commits = len(_git(root, "log", "--all", "--format=%h").splitlines())
 
     origin = provenance.Origin(args.name, root, __file__)
     plan, declined, symbols, defined = common.standard(root, only=touched)

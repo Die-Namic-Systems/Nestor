@@ -4324,6 +4324,11 @@ delta: 2 of 4766 commit(s), touching 3 file(s)
 commits with a stated reason: 2/2
 ```
 
+> **Corrected at rung 19 (§6.61): 12 commits, not 2; 7 files, not 3; 295 rows,
+> not 38.** The scan walked `HEAD`, and this fork's contribution lives on
+> pull-request branches. Every number in this entry is an undercount and the
+> paragraph below reasons from the wrong one.
+
 **The delta count is itself the measurement.** 2 of 4,766 is 0.04% — this fork
 is very nearly a bookmark. Very nearly, and the remainder is a Kart task-queue
 tool and a security audit, which the tree extractor would have buried under two
@@ -4391,6 +4396,12 @@ delta: 0 of 851 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
+> **Corrected at rung 19 (§6.61): 9 commits, not 0.** This entry's central claim
+> — that the repository was "forked and never advanced by a single commit" — is
+> false. It was produced by a `HEAD`-only scan. The nine commits touch no files
+> (their content merged upstream), which is a different and less flattering
+> finding than the one below.
+
 Zero operator-matching author identities appear anywhere in its history, and its
 head commit is dated 2026-04-15 — eight days *before* the fork was created. The
 repository was forked and never advanced by a single commit. It is a bookmark.
@@ -4419,6 +4430,9 @@ touched by an order of magnitude.*
 delta: 0 of 37628 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
+
+> **Corrected at rung 19 (§6.61): 7 commits, not 0; 5 files; 81 rows.** The
+> table below, and the argument built on it, rest on a `HEAD`-only scan.
 
 Zero operator-matching author identities in 37,628 commits. Head dated
 2026-04-23, the day the fork was created, and not advanced since.
@@ -4521,6 +4535,10 @@ fork of somebody else's.*
 delta: 0 of 4 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
+
+> **Corrected at rung 19 (§6.61): 1 operator commit, not 0.** The pairing
+> argument below still holds directionally — willow-bot is work and this is
+> close to a link — but it was stated on a number that was wrong.
 
 Four commits in the entire history, all four by `john-adeojo@brainqub3.com`, all
 dated 2026-01-18 — three months before the fork was taken. Ten files. Forked,
@@ -4773,6 +4791,10 @@ delta: 0 of 224 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
+> **Corrected at rung 19 (§6.61): 7 commits, not 0; 2 files; 25 rows.** And the
+> sentence below is wrong twice over: five forks had been read and *all five*
+> carried operator commits.
+
 Five forks read, four with no operator commit. The store is gitignored and the
 run produced no code change, so this rung's only artefact is this entry — which
 is the correct outcome and worth stating: **a rung that finds nothing still
@@ -4969,3 +4991,59 @@ One rung doubled the corpus and took shared keys from 121 to 1,214 — tenfold.
 has doubled and the shared keys have gone up by an order of magnitude. The
 guess holds so far, on two observations, which by this file's own hard-won rule
 is not enough to state as a rate. It is written down to be checked at rung 25.
+
+### 6.61 Every fork number in this file was wrong, and the fix is one flag — **measured**, five entries corrected in place
+
+*Found 2026-08-06 at rung 19 while reading `sigmap`, the sixth fork. This is the
+largest error in the exercise and it invalidated five published entries.*
+
+**The defect.** `extract_fork.py` selected the operator's commits with
+`git log --author=…`, which walks **HEAD**. A fork's contribution
+characteristically does *not* live on the fork's default branch: it lives on the
+pull-request branch it was raised from, which is merged **upstream** and never
+into the fork's own main line. Every such commit was invisible.
+
+**How it surfaced.** `sigmap` reported two authored commits, both touching zero
+files. One of their messages describes writing `packages/adapters/willow.js` in
+detail. That file **exists in the tree** — and `git log --diff-filter=A` credits
+it to the upstream maintainer's release commit. A contribution that shipped,
+attributed to somebody else, reported by this corpus as two empty commits. Asking
+why produced `git log --all`, and `--all` produced this:
+
+| fork | reported | actual | files | rows |
+|---|---|---|---|---|
+| hermes-agent | 2 | **12** | 7 | 295 |
+| python-sdk | 0 | **9** | 0 | 0 |
+| litellm | 0 | **7** | 5 | 81 |
+| claude-deep-review | 0 | **7** | 2 | 25 |
+| claude_code_RLM | 0 | **1** | 0 | 0 |
+| basic-memory | — | 10 | 13 | 230 |
+| awesome-claude-skills · sigmap · ngrok-python · DontFeedTheAI · engram | — | 5 · 4 · 3 · 3 · 2 | | |
+
+**There are no bookmarks.** All eleven forks read carry operator commits. §6.50,
+§6.51, §6.53 and §6.57 each argued at length about what a zero *means* — "the
+difference between a repository this operator built and one they bookmarked, as a
+number rather than an impression" — and the number was an artefact of a missing
+flag. All five entries are corrected in place above rather than edited quietly.
+
+**What makes this worse than a bug.** §6.51 stated the limitation exactly:
+*"if a contribution arrived by a merged pull request attributed upstream, this
+method scores it zero and would say so with the same confidence it says it
+here."* That sentence was written, published, and then not acted on for four
+rungs, while four more zeroes were reported with full confidence beneath it.
+**Naming a limitation is not the same as testing for it**, and this file now
+contains the proof — written by the same process that named it.
+
+**The second phenomenon, which the fix reveals rather than hides.**
+`python-sdk` has 9 authored commits touching 0 files; `claude_code_RLM` has 1
+touching 0. Those commits are real and their diffs are empty, because the work
+landed upstream and the fork's copy is an artefact. So the honest categories are
+three, not two: *contributed here*, *contributed through here to upstream*, and
+*never touched* — and the corpus can distinguish the first from the other two
+but not yet the second from the third.
+
+**What the whole method now rests on.** Author identity, still one email. The
+by-name scan disagrees with the by-email scan on six of eleven forks, so the true
+counts are floors rather than totals. Written down and not fixed, because the
+lesson of the last hour is that writing a limitation down is where the work
+starts.
