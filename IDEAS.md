@@ -4621,3 +4621,72 @@ repository as a domain tag, or stay separate with a comparison pass over their
 exported bundles. The second is cheaper and keeps each rung independently
 rebuildable; the first is the only one that would let the store, rather than a
 person, notice.
+
+### 6.55 The comparison pass: what thirteen stores could not see about each other — **shipped**
+
+*Built 2026-08-06 on the operator's decision. §6.54 left two ways to close the
+gap — merge the rungs into one store, or compare their exported bundles. The
+second was chosen: cheaper, and each rung stays independently rebuildable.*
+
+`scripts/corpus/compare.py` reads every store in `data/corpus`, keys every row
+through **Nestor's own normalizer** so it matches the way the store matches, and
+groups by key across repositories. It reads bundles, seals nothing, writes
+nothing — a comparison that mutated its inputs would make the next one
+unrepeatable.
+
+```
+13 store(s), 3,029 row(s) total
+keys present in more than one repository: 40
+  (a key can earn more than one label, so these need not sum)
+  drift           25
+  two kinds        6
+  restated        11
+sealed rows across the whole corpus: 0
+```
+
+**The classification is the substance.** *drift* is the same key answered
+differently within one kind of claim. *two kinds* is one name doing two jobs —
+§6.22's case, not an error. *restated* is agreement, which is not a problem and
+is the cheapest kind of drift to create, since nothing disagrees yet and nothing
+ever warns.
+
+**It produced a security dashboard nobody built.** The rubric rows, invisible in
+any single store, line up across seven repositories:
+
+| check | verdicts across repositories |
+|---|---|
+| No hardcoded dev paths | 5 × PASS, **1 × FAIL** (aionic), 1 × FIXED |
+| requirements.txt pinned | 3 × PASS, 2 × WARN, **1 × MISSING** (aionic), 1 × FIXED |
+| Race conditions | 7 × PASS |
+
+Twenty-five keys drift. Most are rubric checks whose answers genuinely differ
+per repository — which is not disagreement but *state*, and the pass currently
+cannot tell those apart from a real contradiction. That distinction is the next
+thing this tool needs.
+
+**Two defects in the pass, both mine, both found by running it:**
+
+1. **The classifier returned one label and hid a real finding under a rarer
+   one.** `Ratification` drifts *within* `term→term` — willow-1.9 says "Sean
+   explicitly approves merge to default branch", Willow says "the formal
+   approval process by which a proposal becomes binding law" — *and* appears as
+   `decision→authority`. Labelled once, it came out as "two kinds" and the drift
+   vanished. Drift is now judged per kind of claim and "two kinds" across them;
+   a key can earn both.
+2. **It missed the exact case it was built for.** Rung 1's facet key was
+   `Gerald (Absurdist dispatches, squeakdogs, The Binder)` — name *plus* domain —
+   so it could never match a bare `Gerald`. This is §6.42 and §6.47 pointing the
+   other way: those keys were too coarse, this one was too **specific**, and both
+   directions produce a confident wrong answer. The key is now the identifier
+   and the domain moved to `reason`, where it was always context rather than
+   identity.
+
+**And with both fixed it beat the hand analysis that motivated it.** §6.54
+compared Gerald across two rungs by hand and found two descriptions. The
+repeatable pass finds **three** — a `facet` in SAFE, a `persona` in the archive,
+and a `term` in the archive's own dramatis personae table, the last of which sits
+in the *same repository* as the second and was invisible to a person reading two
+stores side by side.
+
+That is the argument for the mechanism over the inspection, made by the
+mechanism, against the inspection that asked for it.

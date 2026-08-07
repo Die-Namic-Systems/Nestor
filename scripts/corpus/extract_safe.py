@@ -64,7 +64,8 @@ def facets(root: pathlib.Path) -> list[tuple]:
                 f"Voice: {common.field(block, 'Voice')}" if common.field(block, "Voice") else "",
                 f"Direction: {common.field(block, 'Direction')}" if common.field(block, "Direction") else "",
             ) if x)
-            rows.append((f"{heading} ({domain})", function, why, path, heading))
+            rows.append((heading, function, f"Domain: {domain}" + (f" | {why}" if why else ""),
+                     path, heading))
     return rows
 
 
