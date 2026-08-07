@@ -5776,3 +5776,50 @@ nothing reached the store  the duplicate skills of §6.44
 The fourth is the dangerous one, because it is the only one where the number is
 wrong rather than merely terse — and it is the one that took nine rungs and a
 missing `--all` to find.
+
+### 6.77 The homestead batch, three more empty repositories, and three the session cannot read at all — **measured**, three repositories **blocked**
+
+*Run 2026-08-06 against `homestead-law`, `homestead`, `homestead-ledger` and the
+three private organisation profiles (created 2026-08-03 to 08-04), rung 32 — the
+last rung of the chronology before the operator's three holds.*
+
+| repository | rows | document coverage | docstring coverage |
+|---|---|---|---|
+| homestead | 361 | 1/14 | 356/522 — **68%** |
+| homestead-law | 0 | 0/0 | — |
+| homestead-ledger | 0 | 0/0 | — |
+
+`homestead`'s 68% is the highest docstring coverage in the corpus, and it is the
+newest substantial repository in the chronology. Whether that is a trend or the
+sixteenth point in a distribution that spans 11–68% is not a question fourteen
+prior withdrawals leave any appetite for answering.
+
+**Three of the five newest repositories are empty.** `Forge` (2026-08-02),
+`homestead-law` (2026-08-04 15:45) and `homestead-ledger` (2026-08-04 21:59) hold
+no files at all. `homestead-ledger` was created **two minutes** after `homestead`,
+which had content immediately — a name reserved beside a repository that was
+being started, and not yet filled.
+
+That is a real shape at the end of a chronology and it would be invisible in any
+other view. A repository list shows six repositories in five days; the corpus
+shows three repositories and three reservations. `0/0` says it, and `0/6` would
+not have.
+
+**Three repositories cannot be read in this session, and the reason is
+structural.** The private organisation profiles —
+`Die-Namic-Systems/.github`, `hornbook-knowledge/.github`,
+`willow-memory/.github` — are refused by `add_repo`:
+
+> *repository name ".github" begins with '.', so its clone directory would be a
+> hidden path … Repositories whose names begin with '.' cannot be attached.*
+
+Confirmed rather than assumed: a direct clone fails with
+`could not read Username for 'https://github.com'` — the anonymous lane serves
+public repositories, and these are private. `rudi193-cmd/.github` was readable
+only because it is public.
+
+So the chronology's coverage is **102 of 105 repositories**, with three excluded
+by the operator and three unreadable by the tooling. Recorded as a gap in the
+corpus rather than as an absence in the record: those three organisations have
+profiles, this corpus does not know what they say, and it should not be possible
+to read this file later and mistake one for the other.
