@@ -5641,3 +5641,50 @@ yes and a defensible no, with different corpora on either side. Recorded and
 unanswered, because guessing it would silently change forty rungs of counts —
 and §6.61's whole lesson was what happens when a counting assumption goes
 untested.
+
+### 6.74 Delegation counts, and the inference I made about it was wrong — **shipped**, one fork **open**
+
+*Ruled 2026-08-06 by the operator, closing §6.73. Two rulings: a commit their
+agent makes on their repository is their contribution, and a fork holding only
+delegated commits is a contribution rather than a bookmark.*
+
+**In the operator's own repositories this required no change**, and saying so is
+the point. Own repositories are read whole-tree by `extract_standard.py`, which
+never filters by author — `DispatchesFromReality`'s 22 agent commits and
+`quiet-corner`'s 7 have been contributing rows since the day they were read.
+The question only ever bit on forks, where authorship is the filter.
+
+**The rule, and the date that makes it decidable.** An agent commit that
+*predates* the fork belonged to upstream before the operator existed in that
+history; one that postdates it is on their side. Five of eight forks carrying
+agent commits resolved on that alone — every one of theirs predates the fork.
+
+| fork | was | now | delegated |
+|---|---|---|---|
+| Imageination | 0 commits, 0 rows | **3 commits, 4 rows** | 3 |
+| redential-cli | 13 commits, 29 rows | **15 commits, 31 rows** | 2 |
+
+`Imageination` was the corpus's only bookmark for exactly one rung. **Forty
+forks read, forty contributions.**
+
+**And I was wrong about `redential-cli`, in a way worth recording.** I proposed
+its two agent commits were upstream's, reasoning that they were dated the fork
+day, sat before the operator's own commits, and had subjects like *"Add
+ai/mcp to taxonomy.json (1.5.1 → 1.6.0)"* — a version bump, which I called "a
+maintainer's release act". The operator says they are theirs. The inference was
+tidy, the evidence was real, and the conclusion was wrong, because **what a
+commit looks like is not evidence of who authored it** — I was reading style and
+calling it provenance. That is the fourth-key error (§6.66) in yet another
+costume: a string that looked like it identified something and did not.
+
+The corrected rule takes no view on subject matter at all. Date and identity
+only.
+
+**One fork is left open and is not being guessed at.** `litellm` holds 86
+post-fork agent commits among **1,372 third-party** post-fork commits — the
+signature of a repository synced from an upstream that itself uses agents
+heavily. Counting them would add 86 commits of somebody else's work; not
+counting them may drop a few of the operator's. Given that I have just been
+wrong once by inferring from what commits *look* like, the honest move is to
+leave it to the person who knows, and it stays excluded until they say
+otherwise.

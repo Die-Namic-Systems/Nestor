@@ -45,6 +45,8 @@ import provenance                                                # noqa: E402
 from nestor.sqlite_store import SqliteStore                      # noqa: E402
 
 SEP = "\x1e"
+# Identities an agent commits under when working on the operator's behalf.
+AGENTS = ("noreply@anthropic.com", "cursoragent@cursor.com")
 TRAILER = re.compile(r"^(Co-authored-by|Signed-off-by|Claude-Session|"
                      r"Co-Authored-By|Reviewed-by|Refs):", re.I)
 
@@ -83,6 +85,39 @@ def created_by(root: pathlib.Path, files: set, emails: list[str]) -> tuple[set, 
             adds = []
         (created if adds and adds[-1] in emails else modified).add(path)
     return created, modified
+
+
+def delegated(root: pathlib.Path, since: str | None) -> list[str]:
+    """Agent-authored commits on the operator's side of the fork.
+
+    §6.73 found `Imageination` reading as the corpus's only bookmark while
+    holding three commits by `Claude <noreply@anthropic.com>`, dated the day the
+    fork was taken, adding CI and a CONTRIBUTING file. An agent committing under
+    its own identity is not the operator's address, so §6.62's address-only rule
+    — correct, and the reason thirteen namesakes were excluded — cannot see
+    delegation.
+
+    The operator's ruling: a commit their agent makes on their fork is their
+    contribution. The date is the discriminator, because an agent commit that
+    **predates** the fork belonged to upstream before the operator existed in
+    this history. Five of eight forks resolved on that alone.
+
+    It is not sufficient by itself. `litellm` carries 86 post-fork agent commits
+    among 1,372 third-party ones — a repository that was synced from an upstream
+    which uses agents heavily. So the count is reported per fork rather than
+    trusted, and a number large enough to be a sync is a question for the
+    operator, not an answer from this function.
+    """
+    if not since:
+        return []
+    who = [f"--author={a}" for a in AGENTS]
+    raw = _git(root, "log", "--all", *who, "--format=%ad %h", "--date=short")
+    out = []
+    for line in raw.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] >= since:
+            out.append(parts[1])
+    return out
 
 
 def delta(root: pathlib.Path, emails: list[str]) -> tuple[list[tuple], set, int]:
@@ -127,6 +162,9 @@ def main() -> int:
     ap.add_argument("--repo", required=True)
     ap.add_argument("--name", required=True, help="corpus name for origins")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--since", help="fork creation date (YYYY-MM-DD). Agent-"
+                    "authored commits on or after it count as the operator's "
+                    "delegated work; see §6.74.")
     ap.add_argument("--email", nargs="+",
                     default=["rudi193@gmail.com",
                              "236912655+rudi193-cmd@users.noreply.github.com"],
@@ -141,8 +179,10 @@ def main() -> int:
     if out.exists():
         out.unlink()
 
-    commits, touched, count = delta(root, args.email)
-    created, modified = created_by(root, touched, args.email)
+    agent_shas = delegated(root, args.since)
+    emails = list(args.email) + (list(AGENTS) if agent_shas else [])
+    commits, touched, count = delta(root, emails) if agent_shas else delta(root, args.email)
+    created, modified = created_by(root, touched, emails)
     total_commits = len(_git(root, "log", "--all", "--format=%h").splitlines())
 
     origin = provenance.Origin(args.name, root, __file__)
@@ -157,6 +197,9 @@ def main() -> int:
               f"{'/'.join(e.split('@')[0] for e in args.email)}, "
               f"touching {len(touched)} file(s)")
         print(f"  commits with a stated reason: {len(commits)}/{count}")
+        if agent_shas:
+            print(f"  of which delegated (agent-authored, on or after "
+                  f"{args.since}): {len(agent_shas)}")
         if defined:
             print(f"  docstrings over all touched files: {len(symbols)}/{defined}"
                   f"   <- blended, not the operator's")
