@@ -5496,3 +5496,45 @@ growth — repositories that agree perfectly inflate the *restated* bucket exact
 as much as repositories that were carefully kept in sync by hand. The bucket
 counts agreement; it cannot tell generated agreement from maintained agreement,
 and after this rung most of it is generated.
+
+### 6.71 The early-July batch: five repositories, no new shapes, and the ratio's full spread — **measured**
+
+*Run 2026-08-06 against `jeles-remote`, `awesome-sovereign-software`,
+`kartikeya`, `safe-design` and `willow-gate` (created 2026-07-01 to 07-10),
+rung 28.*
+
+| repository | rows | document coverage | docstring coverage |
+|---|---|---|---|
+| kartikeya | 121 | 0/3 | 121/308 — 39% |
+| willow-gate | 118 | 1/5 | 102/290 — 35% |
+| safe-design | 34 | 1/1 | 28/66 — 42% |
+| awesome-sovereign-software | 7 | 0/4 | 7/13 — 54% |
+| jeles-remote | 1 | 0/1 | 1/5 — 20% |
+
+281 rows. **None of the five declares a shape the corpus had not already met**,
+so all five ran through `extract_standard.py` unmodified — the second time that
+has been true of a whole batch (rung 7 was the first, for one repository).
+
+**Document coverage is near-zero across all five: 2 of 14 documents.** These are
+working code repositories with a README and little else, and almost everything
+extracted came from Python. That is the mirror image of rungs 1 and 21, which
+were nearly all documents and almost no code, and it is the same instrument
+reading two different halves of the same person's output.
+
+**The docstring ratio, with fourteen points, has the spread it always had:**
+
+```
+11 · 20 · 29 · 29.5 · 32 · 34.5 · 35 · 35 · 37 · 39 · 42 · 42 · 54 · 58
+```
+
+Low 11 (`quiet-corner`), high 58 (`tui-scaffold`), and no clustering worth the
+name. §6.48 asserted "roughly a third, and it does not move with scale" on three
+of these; §6.52 hedged it on four; §6.59 withdrew it on seven. Fourteen points
+later the withdrawal reads as the only defensible move available, and the
+distribution is printed here rather than summarised because a mean over that
+range would be a number with no referent.
+
+The useful residue is negative and worth keeping: **there is no such thing as
+this operator's docstring rate.** What there is, is a rate per repository, which
+varies by a factor of five, and which the corpus can report per rung and should
+never average.
