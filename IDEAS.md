@@ -3889,3 +3889,354 @@ the whole defect, so the test writes itself.
 **Not affected:** this consolidation's own correctness. The seven files' origins
 were checked by querying `tm_pairs` directly rather than by believing `--verify`,
 which is how the gap was noticed at all.
+
+---
+
+### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **open**
+
+*Found 2026-08-06 by running jeles' own escalation against this package
+(`scripts/audit_against_jeles.py`). jeles closed this hole after demonstrating it
+had one; the demonstration is what made it worth aiming here.*
+
+`conflict_scan.py` carries a comment recording a hand-built proposal that claimed
+`verification_kind="human"` and **was given it**. The fix was an allow-list
+(`_ALLOWED_ARGS`) plus a pin, and jeles was explicit about the shape of the
+refusal: an argument outside the list "produces an error receipt naming what was
+refused. It is **not silently dropped**, and it does not stop the rest of the
+list."
+
+Aimed here, the escalation fails — which is the part that matters:
+
+```
+nestor_propose {source_text, candidate, status: "sealed",
+                verifier: "a-machine", verification_kind: "human"}
+  -> {"state": "draft", "verified": false,
+      "note": "queued for human review — a proposal is never served as verified"}
+```
+
+`answer.propose` has no `status` parameter to pass, and `serve.call` forwards
+named arguments rather than splatting the dict, so there is nothing to smuggle
+through. That is one step *earlier* than jeles' vet, and stronger: no verb, no
+argument, nothing to allow-list.
+
+**The gap is the reply.** Three forbidden arguments were discarded and the
+response says so nowhere. A model that sent `status: "sealed"` gets an
+unqualified success and a general sentence about human review. It has no way to
+learn that what it asked for is refused, so it will ask again.
+
+This is the same asymmetry §6.26 closed for countersignatures — *"a reviewer who
+countersigns believes they did something, and nothing anywhere records that they
+did"* — and the same one `ConflictingDraftError` exists for. It is also the
+persona rule applied to a machine reader: **a refusal has to read as one, and if
+you did not do something the sentence saying so must contain the not.** The note
+is true and general; it is not a refusal of what was asked.
+
+**Fix, not taken here:** name the discarded keys in the reply, the way the
+keyring already names an unknown verifier (`'(empty)' is not in the keyring`).
+Left open because the reply shape is a wire contract with any MCP host, which is
+a wider blast radius than the audit branch that found it.
+
+**What the rest of the audit found** — 2 satisfied, 3 differently, 0 failing:
+
+| | |
+|---|---|
+| JELES-RUNG | **satisfied** — closed one step earlier than jeles' vet |
+| JELES-RECEIPT | **differently** — above |
+| JELES-WITNESS | **differently** — key custody, and it is off by default |
+| JELES-INDEPENDENCE | **differently** — one *signed* attestation against jeles' two unsigned |
+| JELES-DEFAULT | **satisfied** — `add_pair` defaults to `draft`; `put_nugget` defaults to `human` |
+
+The defaults falling opposite ways is the one worth keeping. A caller here who
+says nothing **proposes**; a caller there who says nothing **asserts a human
+checked it**. jeles guards that at its gateway and this package does not need to.
+Recorded because an audit that reports only where the audited party is weaker is
+not an audit, it is a posture.
+
+**And the witness verdict was FAILS on the first run, wrongly.** The probe sealed
+with an empty verifier under a single `NESTOR_SEAL_KEY`, saw it verify, and
+reported that an anonymous seal is served. Under a keyring the same call is
+refused *before the store is touched*, with the empty string rendered `'(empty)'`
+— somebody had already thought about that exact case. What the probe had measured
+was the weakest of two configurations, picked by accident because it was the one
+the script set at import. Second false FAIL in one day from a probe that did not
+reproduce the condition it named; both are now pinned by tests that run both
+configurations.
+
+---
+
+### 6.45 Two repositories hit "a condition checked outside the write", separately, and both wrote down what it cost — **verified**, lesson **shipped**
+
+*Round 2 of the jeles/Nestor exchange, 2026-08-06. A reading, not a run —
+[`docs/two-stores.md`](docs/two-stores.md) cites a file and line for every claim.
+Nothing was imported, executed or written on jeles' side.*
+
+`jeles/corpus.py:168-174`, explaining why the overwrite guard is a callable run
+*inside* the write transaction rather than a check in the caller:
+
+> a check that reads the prior record, returns, and only then writes is a
+> read-modify-write with nothing holding the gap — **the same shape that lost 36
+> of 50 gap counts.**
+
+That is [`CLAUDE.md`](CLAUDE.md)'s recurring defect — *a condition checked in
+Python, guarding a write that cannot re-assert it* — arrived at independently,
+with a measured cost. Three criticals of that shape landed here in one session
+and the fix that worked every time was the same move in a different mechanism:
+the precondition in the `WHERE` clause; two walks each bounded by construction
+instead of one walk with a filter.
+
+Two codebases, no shared code, same failure, same correction, both recorded. The
+lesson was already written down in both places; what is new is that it was
+reached twice. That is the difference between a house style and a real property
+of this kind of system, and it is the sense of corroboration
+`scripts/count_countersignatures.py` was built to care about — two independent
+observations rather than one repeated.
+
+**The round expected something else and was wrong three times.** It set out to
+show that jeles' corpus vouches for itself: that `put_nugget` writes a
+human-verified nugget with no human, that the `verification_kind="human"` default
+is a hole, and that a lower rung can overwrite a higher one. `verified_by` is
+required and the write is refused without it (`corpus.py:416`); the default is
+documented as being for in-process callers and is pinned to `"asserted"` at the
+MCP boundary (`corpus.py:395-401`); and a lower rung is refused with the remedy
+in the message (`corpus.py:408`). The one claim that survived — no hash chain —
+is a tradeoff jeles never claimed otherwise about, so reporting it as a gap would
+be grading another package against this one's product pitch.
+
+**And jeles is ahead of this package in the one place §6.44 says it is behind.**
+`corpus.py:466`: *"The kind comes back in the receipt: a caller that asked for one
+rung and got another should not have to re-read the record to find out."* Plus
+`conflict_scan.py:386`, where a refused argument produces a receipt naming it,
+"not silently dropped". §6.44 found the same gap here from the opposite
+direction one round earlier. Two independent routes to one finding, and jeles
+got there first — which is the strongest argument yet for fixing it.
+
+---
+
+### 6.46 The empty-run discipline was in four scripts and not in the fifth's absent branch — **measured**, fix **shipped**
+
+*Found 2026-08-06 by pointing the box at itself: running every script that reads
+another repository against a corpus that is missing, and one that is present and
+bare.*
+
+Six scripts under `scripts/` read a checkout that is not this one, written at
+different times, sharing a discipline articulated *after* two of them existed:
+
+```
+could not look   the corpus is absent          -> exit 1, and say so
+a true empty     the corpus is there, and bare -> exit 0, and say so
+```
+
+The sweep found the discipline holds on exit codes everywhere. It does not hold
+on **words**, and the words are the whole point — an exit code of 1 does not tell
+a reader which of the two refusals they got.
+
+`feed_jeles_sources.py` refuses an absent `jeles/sources.py` with:
+
+```
+no jeles/sources.py under <path>
+```
+
+and nothing else. Twelve lines below, its *unparseable* branch says *"'I could
+not look' — refusing rather than reporting zero"* and explains that this is not
+the same as an empty registry. So the file whose docstring exists to distinguish
+`None` from `{}` had two refusals distinguishable only by exit code. Fixed.
+
+**And one message overstated in a partial case.** `feed_willow19_plans.py` looks
+for `docs/superpowers/plans` and `.../specs` and reported *"the plan directories
+exist and hold 0 .md files"* whenever **either** existed. A deployment whose
+`specs/` was missing or misspelled was told both were checked and both were
+empty. The empty case is the one nobody re-reads the path for, which is exactly
+where a plural that is sometimes singular does its damage — the same shape as
+CLAUDE.md's refusal-message lesson, where a sentence true at 0.71 was false at
+0.11. It now names the directories it found and names the ones it did not.
+
+**The gate is one file over all six**, not a paragraph in each:
+`tests/test_corpus_readers_fail_closed.py`. The failure being prevented is
+*drift* — one reader answering in another's vocabulary — and a seventh script
+would have no way to inherit the lesson otherwise. It caught the
+`feed_jeles_sources.py` defect on its first run.
+
+**A false finding on the way, the fourth of the day.** The sweep first reported
+that `feed_willow19_plans.py` called a readable-empty corpus unreadable. It does
+not. The fixture was a bare `docs/superpowers/` with no `plans/` or `specs/`
+inside it, which is an *absent* corpus, and "I could not look" was the correct
+answer being read as a defect. A bare directory is not an empty corpus, and that
+distinction is now a test of its own so the next reader of this file does not
+have to rediscover it.
+
+---
+
+### 6.47 A claim's own source counts as an independent witness — **measured**, fix **open** (and it may not have one)
+
+*Found 2026-08-06 by running `demo/the_verification.py`, not by designing it. An
+article about animal-sound onomatopoeia crossed the operator's desk mid-session;
+three of its word-origin claims looked wrong, and checking them turned out to be
+a better test of the box than anything invented, because the answers were not
+known when it started.*
+
+jeles corroborates a finding only when at least `MIN_INDEPENDENT_SOURCES = 2`
+**distinct registrable domains** back it. Running four real claims past that bar:
+
+```
+squeak           4 source(s)   draft   the article is wrong
+woof             5 source(s)   draft   the article is wrong
+ribbit           6 source(s)   draft   the article is wrong
+hollywood-frog   3 source(s)   draft   the article holds
+```
+
+Two of the ribbit row's six domains are **`wordsmarts.com` — the article being
+checked — and `x.com`, a post quoting it nearly verbatim.** Distinct registrable
+domains, so the independence rule counts them as two independent sources. They
+are one claim, twice.
+
+**This is not news to jeles and the entry should not pretend it is.**
+`_independence.py` already says the bar is *"a cheap heuristic, deliberately
+weaker and deliberately named apart"* than its constitution's Independent
+Witness, *"so nothing built on it borrows authority it has not earned"* — because
+two domains can be one actor who bought both. What is new is a concrete instance,
+measured, of a shape the disclaimer describes abstractly: not one actor holding
+two domains, but **one text republished**, which is far more common and needs no
+bad faith at all.
+
+**And it is a step past the defect jeles already fixed.** `_NON_WITNESS` lists 21
+domains that can never witness, because an unfiltered count read DuckDuckGo as a
+source about every claim — verified there by a claim invented on the spot being
+"corroborated by 2 independent sources (duckduckgo.com, wikipedia.org)". A
+blocklist closes that, because the search engine is the same for every query. It
+cannot close this one: **the domain to exclude is different for every claim, and
+is only knowable once you know where the claim came from.** Provenance, not a
+list — and provenance of the claim under test is not something a corroboration
+count has access to.
+
+**Which is an argument for the seal rather than against the count.** No number of
+agreeing pages distinguishes four sources from one source quoted four times. A
+human reading the four pages notices in seconds. That is the division of labour
+this repo asserts, arrived at from the other end: corroboration is evidence, and
+verification is a decision.
+
+**Every row landed as a draft, including the three that are right.** Three of
+these four are refutations of a published claim and the evidence backs them,
+which is precisely the situation where a demo is tempted to reward itself. Being
+right is not being checked, and a test pins that the demo contains no
+`status="sealed"` and no `verifier=` at all.
+
+**Fix: open, and possibly none.** The honest options are (a) pass the claim's
+source domain into the independence test so it can exclude itself — cheap, and
+catches only the literal self-citation, not the four repeaters; (b) compare text
+similarity across citations and count near-duplicates once — which is a matcher
+problem, and this repo has one; or (c) accept it, keep the disclaimer, and let
+the seal carry the weight. This entry does not pick. Filing anything on jeles'
+side needs the operator's word.
+
+---
+
+### 6.48 Both hypotheses §6.47's feed raised were measurable, and neither was right as written — **measured**, filed as jeles#53
+
+*Measured 2026-08-07 against jeles at `ed48de7`, offline, with a stubbed
+`llm_respond`. `scripts/feed_jeles_sources.py` printed both as open questions;
+both are corrected in place there, and this entry is why.*
+
+The feeder ended on two things it said it had not measured. Asked properly, one
+is **confirmed with the wrong reason attached** and the other is **false, in the
+opposite direction from the one feared**.
+
+**Hypothesis 1 — "a single-sourced subject struggles to clear the bar."**
+True. 43 of 71 subject tags in jeles' registry have exactly one source, and a
+claim routed to any of them cannot be corroborated. The stated reason — narrow
+routing breadth — was not the mechanism.
+
+`verify._identity` reads `citation["source"]` first and falls back to
+`institution` only when that is empty. `sources._result` puts the **registry
+key** in `source`: checked by parsing rather than by sampling, all **69**
+`_result` call sites pass a non-empty constant, 65 distinct values. So the
+`institution` arm is unreachable for registry output, and the per-record
+institution each adapter assembles — author affiliations, publisher, journal —
+is never counted. Measured:
+
+```
+1 adapter, 5 genuinely different institutions -> ['openalex']         single_source
+2 adapters, the SAME 5 institutions           -> ['core','openalex']  corroborated
+```
+
+The count is over **adapters**. Which means the same defect runs both ways, and
+the second is worse: two adapters carrying one institution read as corroborated,
+which is the false corroboration `tests/test_verify.py` opens by saying the
+module exists to prevent.
+
+**Hypothesis 2 — "9 sources list doi.org, `registrable_domain()` collapses them,
+so nine institutions could corroborate as one."** False for registry output, and
+backwards. The site is only a *fallback* for a citation with no label, and
+`_result` always sets one, so the fallback is unreachable on that path.
+Measured: two doi.org citations from different adapters keep distinct keys
+(`openalex`, `core`) — they do not collapse. The error is the reverse of the one
+guessed: not over-collapsing distinct institutions into one, but failing to
+collapse one institution reached twice.
+
+**What this is not.** Nothing inside jeles wires `sources.search()` into
+`verify_claims` — the only callers are its tests — so this is a latent contract
+mismatch across a seam rather than a live defect there. Whether it bites depends
+on what the host passes, and that host's design docs live in safe-app-store,
+which is not readable from here. Filed as **jeles#53** saying exactly that, with
+no fix proposed: the obvious inversion (prefer `institution` over `source`) would
+change what `institutional.py` citations count as, since there `source` genuinely
+*is* the institution.
+
+**The lesson is the one this repo keeps paying for.** Both hypotheses were
+written with the uncertainty honestly flagged, and flagging was worth something —
+it is why they were still there to check. It was not worth as much as checking:
+one had the wrong mechanism, and the other pointed the wrong way entirely. A
+hypothesis nobody runs decays into a fact nobody questioned.
+
+---
+
+### 6.49 The staleness memo's §2 names the wrong timestamp as unmovable, by one entry — **measured**, listing **shipped**, caveat **open**
+
+*Round 3 of the jeles exchange, 2026-08-07. Built as §3 of
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) says to
+build it, and the building measured §2's own argument.*
+
+`scripts/due_for_reverification.py` is the listing §3 argues for: an aged seal
+keeps serving, keeps saying who sealed it and when, and additionally appears as
+work for a person. It carries no score, no weight and no multiplier, and a test
+pins that those words stay out of it — the day this feeds `best_sealed` is the
+day the memo was written to prevent.
+
+**§2's first claim holds.** `signing._message` covers exactly
+`[source_norm, target_text, verifier]`, so `tm_pairs.created_at` is outside the
+signature. Measured: move a sealed row's `created_at` back twenty-seven years
+and `is_verified_seal` still returns True. Age must not come from the row.
+
+**§2's second claim is too strong by one entry.** It calls the ledger's `ts`
+*"the only timestamp in the system that cannot be moved without the chain saying
+so"*. On a three-entry chain:
+
+```
+entry 0 ts (2 entries follow)   -> verify=False  broken chain at line 2
+entry 1 ts (1 entry follows)    -> verify=False  broken chain at line 3
+entry 2 ts (LAST — none follow) -> verify=True   intact — 3 entries
+```
+
+**This is not a finding about the code, and reporting it as one would have been
+the fifth false finding of the day.** `ledger.verify`'s docstring already states
+it in full — *"each line is vouched for by the line after it, so the newest entry
+has nothing after it to vouch for it… That is a property of the chain, not a bug
+in the walk"* — and already ships `expected_head` to close it. The defect is in
+the memo, which asserted the property without the caveat. Corrected there in
+place.
+
+It bites hardest exactly here. The unvouched-for entry is the newest decision,
+which is the one a freshness question asks about most often. So the listing
+reports an age drawn from the tail as **reported, not verified**, and says to
+pass `--expected-head`.
+
+**And it caught a lie in its own output while being tested.** The per-row
+`[tail: age unvouched-for]` marker ignored `--expected-head`, so following the
+command's own advice changed nothing on screen — the summary said *"pass
+--expected-head to close it"* and passing it did not close it. Found by running
+both ways rather than by reading, fixed, and pinned by a test that asserts the
+marker disappears when the head is supplied.
+
+**Still open:** nothing consumes this. It is a command somebody runs, not a queue
+the curator shows, and §3's design wants the listing surfaced where the review
+work already happens. That is the next bite and it touches the UI, which is a
+wider blast radius than a read-only script.

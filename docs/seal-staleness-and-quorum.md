@@ -112,6 +112,36 @@ invisible — a wrong weight looks exactly like a right one.
 unsigned like `weight`. The ledger's is covered by the hash chain, which is the
 only timestamp in the system that cannot be moved without the chain saying so.
 
+> **Both halves measured 2026-08-07, and the second sentence was too strong** —
+> `IDEAS.md` §6.49,
+> [`scripts/due_for_reverification.py`](../scripts/due_for_reverification.py).
+>
+> The row's clock is as unsigned as claimed. `signing._message` covers exactly
+> `[source_norm, target_text, verifier]`, and moving a sealed row's `created_at`
+> back twenty-seven years leaves `is_verified_seal` returning **True**. A
+> staleness read off that column is a number anyone who can write the row can
+> put back, exactly as argued.
+>
+> The ledger's clock is **not** the timestamp that cannot be moved. It is the
+> timestamp that cannot be moved *except on the newest entry*. Measured on a
+> three-entry chain — editing `ts` on entry 0 or 1 breaks the walk, editing
+> entry 2 does not:
+>
+> ```
+> entry 0 ts (2 entries follow)   -> verify=False  broken chain at line 2
+> entry 1 ts (1 entry follows)    -> verify=False  broken chain at line 3
+> entry 2 ts (LAST — none follow) -> verify=True   intact — 3 entries
+> ```
+>
+> This is not a defect and not news: [`nestor/ledger.py`](../nestor/ledger.py)'s
+> `verify` docstring states it at length — *"each line is vouched for by the line
+> after it, so the newest entry has nothing after it to vouch for it"* — and
+> ships `expected_head` to close it. The memo simply did not carry the caveat,
+> and a freshness question is where it bites hardest: the entry with no
+> corroboration is the most recent decision, which is the one a staleness listing
+> is most often asked about. The listing therefore reports an age drawn from the
+> tail as **reported and not verified** unless `--expected-head` is supplied.
+
 So if staleness is ever computed, it is computed **from the ledger at read
 time**, and there is nothing to tamper with independently, because there is
 nothing stored. The cost is that the ledger must be readable on the serving

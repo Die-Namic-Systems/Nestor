@@ -2,7 +2,7 @@
   "pr": 56,
   "branch": "claude/the-box",
   "date": "2026-08-07",
-  "note": "Adopting PR #55's split — operating rules move from CLAUDE.md to a participant-neutral docs/agent-guide.md — by merging that branch in here and carrying the covenant section across, plus the four findings from the adversarial read of it. No `pr` key by design, see IDEAS 6.43.",
+  "note": "Adopting PR #55's split — operating rules move from CLAUDE.md to a participant-neutral docs/agent-guide.md — by merging that branch in here and carrying the covenant section across, plus the four findings from the adversarial read of it. Written with no `pr` key, per IDEAS 6.43 — the builder turns that field into every row's origin, so a guessed number puts a pull request that does not exist into the store's provenance. Assigned 56 when the PR opened.",
   "decisions": [
     {
       "question": "Where does the covenant section live now?",

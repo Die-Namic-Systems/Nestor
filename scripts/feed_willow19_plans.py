@@ -81,9 +81,22 @@ def main() -> int:
         return 1
     files = sorted(p for d in present for p in d.glob("*.md"))
     if not files:
+        # Name the directories actually found, not the pair that was looked for.
+        # This said "the plan directories exist and hold 0 .md files" whenever
+        # *either* existed — so a deployment whose specs/ was missing or
+        # misspelled was told both were checked and both were empty, and the
+        # missing one never surfaced. The empty case is the one place nobody
+        # re-reads the path, which is exactly where a plural that is sometimes
+        # singular does its damage. CLAUDE.md: a claim in a sentence must hold
+        # across every value that sentence can take.
+        found = ", ".join(f"{d.parent.name}/{d.name}" for d in present)
+        missing = [d.name for d in dirs if d not in present]
         print(f"\n{BOLD}willow-1.9 plans → nestor{OFF}")
-        print(f"   {AMBER}the plan directories exist and hold 0 .md files{OFF}")
-        print(f"   {DIM}A true empty, not a failure.{OFF}\n")
+        print(f"   {AMBER}{found} exist(s) and hold(s) 0 .md files{OFF}")
+        if missing:
+            print(f"   {AMBER}not found at all: "
+                  f"{', '.join('superpowers/' + m for m in missing)}{OFF}")
+        print(f"   {DIM}A true empty, not a failure — for what was there.{OFF}\n")
         return 0
 
     work = pathlib.Path(args.keep) if args.keep else pathlib.Path(

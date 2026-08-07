@@ -1,0 +1,53 @@
+{
+  "pr": 57,
+  "branch": "claude/audit-against-jeles",
+  "date": "2026-08-06",
+  "note": "Round 1 of the jeles/Nestor exchange: run this package against jeles' working rules, the way scripts/audit_against_constitution.py runs it against willow-2.0's clauses. No `pr` key — the field becomes every row's origin, and guessing a number puts a pull request that does not exist into the store's provenance (see IDEAS 6.43).",
+  "decisions": [
+    {
+      "question": "Why audit against jeles when willow-2.0's constitution has already been used?",
+      "commitment": "Because jeles' rules are working mechanisms with a demonstrated escalation behind them, not prose about what must not happen.",
+      "why": "conflict_scan.py carries a comment recording a hand-built proposal that claimed verification_kind='human' and was given it. The allow-list exists because that happened. A rule with a reproduction behind it is a sharper instrument than a clause, because the question stops being 'do we agree' and becomes 'do we have the hole they proved they had'."
+    },
+    {
+      "question": "Does a proposal reaching this package's tool surface get to name its own rung?",
+      "commitment": "No, and it is closed one step earlier than jeles closes it.",
+      "why": "answer.propose has no status parameter, and serve.call forwards named arguments rather than splatting the args dict, so there is nothing to smuggle and nothing to vet. Measured: nestor_propose with status='sealed', verifier='a-machine' and verification_kind='human' returns state='draft', verified=false. jeles vets against a 6-argument allow-list and pins the rung to 'machine'; here there is no verb and no argument to allow-list."
+    },
+    {
+      "question": "The escalation fails. Is the caller told it failed?",
+      "commitment": "No. Three forbidden arguments were discarded and the reply says so nowhere. IDEAS 6.44, fix open.",
+      "why": "jeles chose explicitly the other way on this exact point — an error receipt naming what was refused, 'not silently dropped'. Here a model that asked to seal gets an unqualified success plus a general sentence about human review, so it cannot learn that what it asked for is refused and will ask again. Same asymmetry 6.26 closed for countersignatures and ConflictingDraftError closed for drafts: somebody asked for something, did not get it, and was handed a success. The fix is not in this branch because the reply shape is a wire contract with any MCP host."
+    },
+    {
+      "question": "The witness probe returned FAILS on the first run. Was it right?",
+      "commitment": "No. It measured the weakest of two signing configurations and reported the result as if it were the package's behaviour.",
+      "why": "It sealed with verifier='' under a single NESTOR_SEAL_KEY, saw is_verified_seal return True, and reported that an anonymous seal is served. Under a keyring the same call raises UnknownVerifierError before the store is touched, and the empty string is rendered '(empty)' in the message — somebody had already considered that case. The configuration was picked by accident, being the one the script set at import. The probe now runs both in separate interpreters, because set_keyring is process-wide and asking both questions in one process makes the second answer depend on the first. Second false FAIL in one day from a probe that did not reproduce the condition it named."
+    },
+    {
+      "question": "How are jeles' rules obtained?",
+      "commitment": "Parsed from the checkout by ast — constants, frozensets, dict-of-frozenset, and one function's default argument. Nothing imported, nothing executed.",
+      "why": "Same rule and same reason as the feeders: a summary of somebody else's rule, written by the party being audited, is the least trustworthy sentence available. The default-argument reader earns its own helper because corpus.put_nugget's rung is a default, not a constant — a reader grepping for constants would conclude jeles pins nothing there. literal_eval refuses a Call, so frozenset({...}) is unwrapped by recognising exactly that one constructor rather than by evaluating anything."
+    },
+    {
+      "question": "A bug was found in this audit's own reader before it shipped. Which?",
+      "commitment": "ast.arguments keeps posonlyargs separate from args while defaults spans both, so the default-argument alignment was off by the number of positional-only parameters.",
+      "why": "jeles' put_nugget has no `/`, so the run that mattered was correct by luck and the defect would have surfaced later against some other function — silently, and as a claim about somebody else's repository. Fixed, and pinned by a fixture using `/` rather than by the checkout, because the checkout is the one input that cannot exercise it."
+    },
+    {
+      "question": "Which way do the two packages' defaults fall?",
+      "commitment": "Opposite ways. add_pair defaults to status='draft'; corpus.put_nugget defaults to verification_kind='human'.",
+      "why": "A caller here who says nothing proposes; a caller there who says nothing asserts that a human checked it. jeles guards that at its gateway, which is why the default costs it nothing, and this package does not need to. Recorded deliberately: an audit that reports only where the audited party is weaker is a posture, not an audit."
+    },
+    {
+      "question": "How was the jeles audit's reader shown to be a gate rather than a description?",
+      "commitment": "Six mutations of the reader; five went red. The sixth survives because the property is defended twice.",
+      "why": "Red: posonly ignored in the alignment; frozenset no longer unwrapped; dict-of-frozenset no longer walked; keyword-only defaults ignored; the witness probe running only one signing mode. Survived: removing read_rules' exists() guard alone, because _module_constant returns None for an unreadable path and the closing sanity check catches it anyway — remove both and three tests go red. Written into the test's docstring so the next reader does not re-run that mutation and conclude the gate is decorative."
+    },
+    {
+      "question": "What happened when this decision file was first built into the store?",
+      "commitment": "It was refused. ConflictingDraftError — this file asked a question an earlier decision file had already answered differently.",
+      "why": "Both files carried the question 'How was each gate shown to be a gate?' with different commitments, and the builder keys a pair on its source text. The store declined to overwrite and named both proposals in the message rather than returning the stored one as though it were mine — the exact defect that error exists to prevent, hit by the tool that dogfoods it, on a decision file about verifying things properly. The question is now specific to this audit, which is what it should have said in the first place: two decisions that genuinely differ were sharing one question, and the store noticed before a reviewer would have."
+    }
+  ]
+}
