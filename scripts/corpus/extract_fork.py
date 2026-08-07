@@ -19,6 +19,12 @@ top, so that is the unit:
 
 Requires history: a `--depth 1` clone cannot answer any of this.
 
+**The identity is a set of emails, never a name.** Enumerating every plausible
+identity across eleven forks found the operator under three display names
+(`Sean  Campbell`, `Sean Campbell`, `rudi193-cmd`) and two addresses — while a
+name match would have swept in three unrelated people sharing a first or last
+name and still missed `rudi193-cmd`. Names are ambiguous; addresses are not.
+
 Trailers (`Co-authored-by`, `Signed-off-by`, `Claude-Session`) are stripped from
 bodies. They are attribution metadata rather than the author's account of the
 change, and leaving them in would file the same three lines under every row.
@@ -55,7 +61,7 @@ def strip_trailers(body: str) -> str:
     return " ".join(" ".join(kept).split())
 
 
-def created_by(root: pathlib.Path, files: set, email: str) -> tuple[set, set]:
+def created_by(root: pathlib.Path, files: set, emails: list[str]) -> tuple[set, set]:
     """Split touched files into ``(created here, merely modified)``.
 
     §6.49's gap. ``touched`` is not ``authored``: a file the operator edited was
@@ -75,12 +81,12 @@ def created_by(root: pathlib.Path, files: set, email: str) -> tuple[set, set]:
                         "--", str(rel)).split()
         except subprocess.SubprocessError:
             adds = []
-        (created if adds and adds[-1] == email else modified).add(path)
+        (created if adds and adds[-1] in emails else modified).add(path)
     return created, modified
 
 
-def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
-    """``(commit rows, files touched, commit count)`` for one author.
+def delta(root: pathlib.Path, emails: list[str]) -> tuple[list[tuple], set, int]:
+    """``(commit rows, files touched, commit count)`` for the given authors.
 
     **Walks every ref, not HEAD.** `git log` defaults to HEAD, and a fork's
     contribution characteristically lives on a pull-request branch that was
@@ -89,7 +95,8 @@ def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
     authored commits each — see §6.61. `--all` is the whole fix and its absence
     was the whole error.
     """
-    raw = _git(root, "log", "--all", f"--author={email}",
+    who = [f"--author={e}" for e in emails]
+    raw = _git(root, "log", "--all", *who,
                f"--format=%h{SEP}%ad{SEP}%s{SEP}%b\x1d", "--date=short")
     rows: list[tuple] = []
     count = 0
@@ -110,7 +117,7 @@ def delta(root: pathlib.Path, email: str) -> tuple[list[tuple], set, int]:
         rows.append((subject.strip(), text[:900], f"commit {sha}, {date}",
                      root / "README.md", sha))
 
-    names = _git(root, "log", "--all", f"--author={email}", "--name-only", "--format=")
+    names = _git(root, "log", "--all", *who, "--name-only", "--format=")
     touched = {(root / n).resolve() for n in names.splitlines() if n.strip()}
     return rows, {p for p in touched if p.exists()}, count
 
@@ -120,7 +127,12 @@ def main() -> int:
     ap.add_argument("--repo", required=True)
     ap.add_argument("--name", required=True, help="corpus name for origins")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--email", default="rudi193@gmail.com")
+    ap.add_argument("--email", nargs="+",
+                    default=["rudi193@gmail.com",
+                             "236912655+rudi193-cmd@users.noreply.github.com"],
+                    help="author emails to count as the operator; matched as a "
+                         "set because one person commits under several display "
+                         "names and more than one address")
     args = ap.parse_args()
 
     root = pathlib.Path(args.repo).resolve()
@@ -141,7 +153,8 @@ def main() -> int:
     store.memory_init()
     try:
         common.load(store, plan, origin, declined)
-        print(f"\n  delta: {count} of {total_commits} commit(s) by {args.email}, "
+        print(f"\n  delta: {count} of {total_commits} commit(s) by "
+              f"{'/'.join(e.split('@')[0] for e in args.email)}, "
               f"touching {len(touched)} file(s)")
         print(f"  commits with a stated reason: {len(commits)}/{count}")
         if defined:

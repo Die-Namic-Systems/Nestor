@@ -5047,3 +5047,56 @@ by-name scan disagrees with the by-email scan on six of eleven forks, so the tru
 counts are floors rather than totals. Written down and not fixed, because the
 lesson of the last hour is that writing a limitation down is where the work
 starts.
+
+### 6.62 The identity widened, and the vetting mattered more than the widening — **measured**
+
+*Run 2026-08-06 immediately after §6.61, closing the last assumption the fork
+method rested on.*
+
+§6.61 ended by saying the corrected counts were **floors rather than totals**,
+because the delta was selected by one email while a name-based scan disagreed on
+six of eleven forks. The obvious fix was to match on the name as well. It would
+have been wrong.
+
+**Enumerating the identities first is what made the difference.** Every author in
+all eleven forks whose name or address could plausibly be the operator, with
+counts:
+
+| identity | verdict |
+|---|---|
+| `Sean  Campbell <rudi193@gmail.com>` (two spaces) | the operator |
+| `Sean Campbell <rudi193@gmail.com>` | the operator |
+| `rudi193-cmd <rudi193@gmail.com>` | the operator |
+| `rudi193-cmd <…@users.noreply.github.com>` | the operator |
+| `Sean Marsh Glover <s.glover12@gmail.com>` | **somebody else** |
+| `Sean Walker <root@seankwalker.com>` | **somebody else** |
+| `salt-555 <seanalt555@gmail.com>` | **somebody else** |
+| `davidcampbelldc <…>` | **somebody else** |
+
+Three display names, two addresses, one person. And four other people who share
+a first or last name with them. **A name match would have swept in all four and
+still missed `rudi193-cmd`**, which is the identity carrying most of the
+commits. The disagreement §6.61 flagged was not the email scan missing
+contributions — it was the name scan finding strangers.
+
+**So the widening is by address, and it is small:**
+
+```
+hermes-agent  12 -> 13     every other fork: unchanged
+```
+
+One commit, under the GitHub noreply address. Total across eleven forks: **64
+authored commits**. These are now totals rather than floors, and the difference
+between saying that and assuming it is one enumeration that took a minute.
+
+**The lesson is the inverse of §6.61's and worth having both.** §6.61 was a
+limitation named and not tested, for four rungs. This was a limitation named and
+tested immediately — and the test said the obvious fix was harmful. *Both* halves
+matter: an untested limitation is a liability, and an untested **fix** is the
+same liability wearing a solution's clothes. The corpus is now at 8,057 rows and
+the only reason any of them are attributable is that a name was never used as a
+key.
+
+Which is, exactly, §6.22 and §6.55 again — a name is not an identifier — arriving
+for the third time, in the one place where getting it wrong would have
+misattributed another person's work to this operator.
