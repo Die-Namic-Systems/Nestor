@@ -3632,7 +3632,7 @@ reach or reaches with a colleague standing next to it, and all three were
 invisible until somebody's actual life was in the store. The fixture is worth
 more than the entries it produced.
 
-### 6.40 `minimal_output` is a parameter on one tool of fifty-five, and the group it belongs to decides what a repo corpus costs — **measured**, corpus build **open**
+### 6.50 `minimal_output` is a parameter on one tool of fifty-five, and the group it belongs to decides what a repo corpus costs — **measured**, corpus build **open**
 
 *Raised 2026-08-06 by the operator, who read `minimal_output` in a tool call and
 took it for a tool name. It is not one, and the correction is the useful part:
@@ -3716,7 +3716,7 @@ rows came from somewhere nobody can see is the thing this project exists to
 refuse. **Open:** which of these tools the corpus build is allowed to use, and
 whether each row records the call that produced it.
 
-### 6.41 The oldest repository, extracted: 229 drafts, eight self-contradictions, and three things Nestor has no field for — **measured**, corpus design **open**
+### 6.51 The oldest repository, extracted: 229 drafts, eight self-contradictions, and three things Nestor has no field for — **measured**, corpus design **open**
 
 *Run 2026-08-06 against `rudi193-cmd/SAFE` (created 2026-01-05, the first
 repository on the operator's list), the opening move of a corpus built from a
@@ -3755,7 +3755,7 @@ because the run's headline number is only worth what its error rate is, and a
 collision report that quietly included a parser fault would be the same
 "absence reported as success" this codebase refuses elsewhere.
 
-> **Correction, same day (§6.43).** That paragraph was wrong, and wrong in the
+> **Correction, same day (§6.53).** That paragraph was wrong, and wrong in the
 > way this file exists to prevent: it was inferred rather than checked. The run
 > did not print the *held* row's origin, so "two tables in one file" was a guess
 > from the new row's origin alone. Re-run with both origins printed, **all eight
@@ -3796,13 +3796,13 @@ the corpus's cheapest form of drift is the one the store says nothing about.
    about the extraction: which extractor, which revision of it, which run. Two
    rows disagreeing is only diagnosable if you can tell a corpus contradiction
    from a parser change, and the eight collisions above are exactly that
-   question. §6.40 left this open as *whether each row records the call that
+   question. §6.50 left this open as *whether each row records the call that
    produced it*; one repository in, it is no longer hypothetical.
 
 **A fourth thing, which is not a gap but a reason to keep going.** The oldest
 repository states this project's central rule seven months before this project
 existed — the propose/ratify split, as a constitutional document, including the
-clause that silence is not approval. The chronology assembled in §6.40 is
+clause that silence is not approval. The chronology assembled in §6.50 is
 therefore not a list, it is a lineage, and "a corpus from a corpus" has a
 subject: watching one idea get restated across a hundred and five repositories
 and seven months, with a store that objects when two statements of it disagree.
@@ -3817,11 +3817,11 @@ The rows exist locally and can be shown on request. **Open:** where the corpus
 lives, what its visibility field looks like, and whether the extractor becomes
 committed tooling or stays scaffolding.
 
-### 6.42 Willow extracted: the first bilingual rows, a constitution that is 56% human, and a generic extractor that buried its own best content — **measured**, extractor design **open**
+### 6.52 Willow extracted: the first bilingual rows, a constitution that is 56% human, and a generic extractor that buried its own best content — **measured**, extractor design **open**
 
 *Run 2026-08-06 against `rudi193-cmd/Willow` (created 2026-01-10, second on the
 chronology), rung 2 of the per-repo stack, branched from the SAFE rung. Public
-repository, so unlike §6.41 this entry may quote it.*
+repository, so unlike §6.51 this entry may quote it.*
 
 **Yield, after the rewrite described below.** Named shapes only:
 
@@ -3872,7 +3872,7 @@ generic run raised 63 `ConflictingDraftError`s. Sampled with the held row's
 origin beside the new one, they were `P0`, `P1`, `Doctor`, `Store` — generic
 first cells colliding across unrelated tables. The named run raises **zero**.
 So: *a collision is evidence about the corpus only after the key is scoped
-correctly; before that it is evidence about the parser.* §6.41 reported eight
+correctly; before that it is evidence about the parser.* §6.51 reported eight
 collisions on SAFE and caught one parser fault among them. That ratio was luck
 of a small definitional repository, not a property of the method.
 
@@ -3885,7 +3885,7 @@ of a small definitional repository, not a property of the method.
    two ways — which in a controlled vocabulary is the more common drift, and here
    it is 8 of 72 rows.
 2. **Exact duplicates dedupe in silence, again.** 73 successful adds, 72 rows.
-   Same asymmetry as §6.41, now confirmed on a second corpus rather than
+   Same asymmetry as §6.51, now confirmed on a second corpus rather than
    inferred from one.
 
 **The lineage holds and sharpens.** SAFE stated the propose/ratify split as a
@@ -3895,10 +3895,10 @@ and this entry measures the enumeration with the implementation. Three rungs,
 one idea, and the corpus is the thing that lets you see it is one idea. That is
 the argument for continuing up the stack.
 
-### 6.43 `origin` now says what produced the row, which forced the extractors into the repository — **shipped**, visibility field still **open**
+### 6.53 `origin` now says what produced the row, which forced the extractors into the repository — **shipped**, visibility field still **open**
 
 *Built 2026-08-06 on the operator's instruction, closing the third gap of
-§6.41. Rung 2 of the corpus stack; applies to every rung, including the one
+§6.51. Rung 2 of the corpus stack; applies to every rung, including the one
 below it when re-run.*
 
 **What a row's origin says now.** Four facts where there was one:
@@ -3931,10 +3931,10 @@ tooling*.
 The second is the mutation this repository asks for: a digest that could not
 change would be decoration.
 
-**And it immediately caught a false claim in §6.41, which is corrected in place
+**And it immediately caught a false claim in §6.51, which is corrected in place
 above.** Printing the *held* row's origin beside the new one — the thing the
 new format exists to make possible — showed that all eight SAFE collisions are
-across documents and none within one file. §6.41 had asserted that one of the
+across documents and none within one file. §6.51 had asserted that one of the
 eight was a parser fault, from the new row's origin alone, without ever reading
 the other. So the first thing better provenance did was falsify the paragraph
 that asked for it, roughly two hours after it was written and about ninety
@@ -3946,17 +3946,17 @@ from scratchpad to repository altered provenance and nothing else. SAFE's run
 additionally now reports 57 declined `field | value` rows it used to skip in
 silence.
 
-**Still open, and now the only unaddressed gap from §6.41:** no field marks a row
+**Still open, and now the only unaddressed gap from §6.51:** no field marks a row
 unpublishable. Rung 3 (`Aionic-Claude-Skills`, 2026-02-11) is private, as is
 rung 1. Every private rung so far has been kept local by choosing an output path
 under gitignored `data/`, which remains a convention where this repository
 demands a mechanism.
 
-### 6.44 Aionic extracted: a linter that passes none of its own subjects, and the discovery that silence from the store means nothing — **measured**, extractor coverage **open**
+### 6.54 Aionic extracted: a linter that passes none of its own subjects, and the discovery that silence from the store means nothing — **measured**, extractor coverage **open**
 
 *Run 2026-08-06 against `rudi193-cmd/Aionic-Claude-Skills` (created 2026-02-11,
 third on the chronology), rung 3 of the stack. Private repository, so as with
-§6.41 this entry records structure and counts and quotes no content.*
+§6.51 this entry records structure and counts and quotes no content.*
 
 | shape | drafts |
 |---|---|
@@ -3966,7 +3966,7 @@ third on the chronology), rung 3 of the stack. Private repository, so as with
 | definitional tables | 27 |
 | **total** | **66 draft, 0 sealed** |
 
-> **Corrected at rung 5 (§6.46): 81, not 66.** The 15 rows this run declined
+> **Corrected at rung 5 (§6.56): 81, not 66.** The 15 rows this run declined
 > under `# | check | status | notes` are the author's standing security rubric,
 > not noise. They are claimed now. The number above is what was measured on the
 > day, and it was an undercount.
@@ -3974,7 +3974,7 @@ third on the chronology), rung 3 of the stack. Private repository, so as with
 81 further table rows under 14 headers declined and printed. Two headers were
 moved *into* the definition shape mid-run after the first pass declined them —
 both name a term column outright — which moved the toolchain digest `d758565` →
-`fbee500`, exactly as §6.43 intends: the rows now say which extractor produced
+`fbee500`, exactly as §6.53 intends: the rows now say which extractor produced
 them, and it is not the earlier one.
 
 **The repository carries two incompatible skill formats.** Of 26 `SKILL.md`
@@ -4006,13 +4006,13 @@ executes.
 | `core/base17-compact/SKILL.md` | empty — zero lines |
 | `core/dual-commit/SKILL.md` | 7 lines, opening inside a stray ```` ```markdown ```` fence |
 
-**The finding that generalises, and it is the complement of §6.42.** Two skills
+**The finding that generalises, and it is the complement of §6.52.** Two skills
 exist in both `core/` and `skills/`: `ternary-context` is byte-identical in both,
 `base17-compact` is empty in one and 105 lines in the other. **The store raised
 no collision for either**, and could not have — both live among the 6 files with
 no contract row, so nothing about them ever reached it.
 
-§6.42 established that a collision is evidence about the parser before it is
+§6.52 established that a collision is evidence about the parser before it is
 evidence about the corpus. This rung adds the other half: **a non-collision is
 evidence about nothing at all.** Silence from the store can mean the corpus
 agrees with itself, or it can mean the rows never arrived — and the store cannot
@@ -4030,7 +4030,7 @@ that verifier fails. The idea did not decay; the **carrier** did, each time it
 moved from a document to a mechanism. That is worth having found, and it is the
 first thing in this corpus that the chronology alone would never have shown.
 
-### 6.45 willow-seed extracted: ten drafts, coverage 2/8, and a promise the document keeps once — **measured**, coverage now **shipped**
+### 6.55 willow-seed extracted: ten drafts, coverage 2/8, and a promise the document keeps once — **measured**, coverage now **shipped**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-seed` (created 2026-02-25), rung 4.
 Private, so structure and counts only. The smallest yield of the exercise so
@@ -4045,7 +4045,7 @@ result.*
 | definitional tables | 0 |
 | **total** | **10 draft, 0 sealed** |
 
-> **Corrected at rung 5 (§6.46): 25, not 10.** Same cause as §6.44's correction
+> **Corrected at rung 5 (§6.56): 25, not 10.** Same cause as §6.54's correction
 > — the 15 declined `# | check | status` rows are a rubric, and are claimed now.
 > The finding below about `GRADING.md` is unaffected: it concerns fields that do
 > not exist, which no amount of extractor coverage can conjure.
@@ -4054,7 +4054,7 @@ Verified against the source rather than trusted: the document contains 10
 questions, 1 `*Measure:*` line, 8 `*Reference:*` lines, and 1 `Recommended fix`.
 The extractor found exactly what is there.
 
-**Coverage is now printed by every run**, which is §6.44's open question turned
+**Coverage is now printed by every run**, which is §6.54's open question turned
 into a mechanism in `scripts/corpus/common.py`:
 
 ```
@@ -4073,7 +4073,7 @@ repository and would have been written up as one. With it, the number was
 obviously wrong, and the cause was mine: `_italic` builds its pattern as
 `\*{}:\*` and I called it with `"Measure:"`, producing a doubled colon that
 matched nothing. **The mechanism built to stop me trusting a silent store caught
-me trusting a silent store, on its first use, about ninety minutes after §6.44
+me trusting a silent store, on its first use, about ninety minutes after §6.54
 argued for it.**
 
 **The finding, which the store did not produce and counting did.** `GRADING.md`
@@ -4083,7 +4083,7 @@ are there for 8 of 10. **The measure is there for 1 of 10.** The document's
 first promise holds for one question and the second for eight, and nothing in
 the repository says so, because nothing in the repository counts.
 
-That is worth separating from every earlier rung. §6.41 through §6.44 found
+That is worth separating from every earlier rung. §6.51 through §6.54 found
 things by *collision* — two answers to one key, the store objecting. This found
 something by *absence*, and no collision could ever have surfaced it: nine
 missing `*Measure:*` fields are nine rows that do not exist, and a store cannot
@@ -4098,7 +4098,7 @@ and its one boundary statement is about *not* pointing the instrument at somebod
 else. Four rungs in, the chronology is not a single idea repeated; it is one idea
 that stops here and a different one starting.
 
-### 6.46 openclaw-sap-gate extracted: the first code rung, two coverage denominators, and thirty rows recovered from the declined pile — **measured**
+### 6.56 openclaw-sap-gate extracted: the first code rung, two coverage denominators, and thirty rows recovered from the declined pile — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/openclaw-sap-gate` (created 2026-04-18),
 rung 5. Public. The first repository in the sequence that is mostly code — two
@@ -4122,7 +4122,7 @@ docstring coverage: 15/41 definition(s) carry one
 
 The same repository is fully covered in documents and **37% covered in code**.
 A single figure would have reported either total success or a bad miss, and
-neither is true. §6.45 established that omission is invisible without coverage;
+neither is true. §6.55 established that omission is invisible without coverage;
 this rung adds that coverage is per-*kind*, and a corpus spanning documents and
 code needs one denominator per kind or it is back to flattering its source.
 
@@ -4134,7 +4134,7 @@ the ratio, not a demand.
 working as designed.** `# | Check | Status | Notes` was declined as noise in
 rung 3 (15 rows) and rung 4 (15 rows). Seeing it a third time here made it
 legible: it is the author's standing security rubric, one row per check, with
-the verdict in the second column. It is now claimed, and **§6.44 and §6.45 are
+the verdict in the second column. It is now claimed, and **§6.54 and §6.55 are
 corrected in place above — 66 becomes 81, 10 becomes 25.**
 
 `common.declined()` was introduced at rung 2 as *honesty* — an extractor that
@@ -4149,14 +4149,14 @@ repository.** `### P1: XX-YY-01 — title` with a `**Recommended fix:**` has now
 appeared unchanged in three checkouts spanning four months, so it moved into
 `common.findings` and rung 4's local copy was deleted. Re-run afterwards, rung 4
 yields the same 10 rows it did before the refactor (25 with the rubric), and its
-toolchain digest moved `bdc7abf` → `f12ce2f`, which is §6.43 behaving exactly as
+toolchain digest moved `bdc7abf` → `f12ce2f`, which is §6.53 behaving exactly as
 specified: same rows, different tooling, and the rows say so.
 
 This is the first thing the corpus has found that no single repository contains.
 The convention is only visible across three of them, and the chronology is what
 made it visible in order.
 
-### 6.47 willow-1.9 extracted: 1,340 drafts, two coverage ratios that match across an 80× size gap, and a key that was wrong in a second domain — **measured**
+### 6.57 willow-1.9 extracted: 1,340 drafts, two coverage ratios that match across an 80× size gap, and a key that was wrong in a second domain — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-1.9` (created 2026-04-22), rung 6.
 Public and **archived**, which is the reason it is safe to read: an archived
@@ -4184,7 +4184,7 @@ were two unrelated functions that happen to share a name across modules. Keyed
 on `path::symbol` the count is **0**, and the 54 rows that had been refused come
 back — yield rose 1,101 → 1,155 purely from fixing the key.
 
-This is §6.42 arriving in a second domain, and the recurrence is the point. In
+This is §6.52 arriving in a second domain, and the recurrence is the point. In
 markdown the coarse key was a table's first cell; in Python it was a function
 name. Both looked like identifiers. Neither was one. **A collision is evidence
 about the key until the key is proven, and "it is obviously unique" is not a
@@ -4206,7 +4206,7 @@ made at all, and a third before it should be trusted.
 
 Document coverage is a different story: **38 of 134** markdown files produced a
 row. The silent ones are largely `.claude/` agents, commands and skills, which
-declare their contract in prose rather than in any repeated schema. Per §6.46
+declare their contract in prose rather than in any repeated schema. Per §6.56
 that is reported per-kind and not averaged, because 35% of code and 28% of
 documents are two facts, and their mean is none.
 
@@ -4222,13 +4222,13 @@ now asked directly. Of the symbols defined in more than one module:
 
 Those 7 are the interesting ones: identical text in two files, which is the
 cheapest kind of drift to create and the hardest to notice, because nothing
-disagrees yet. §6.42 recorded that exact duplicates dedupe in silence; here they
+disagrees yet. §6.52 recorded that exact duplicates dedupe in silence; here they
 do not even reach the store as duplicates, since the qualified key makes them
 two legitimately distinct rows. **Fixing the key traded a false signal for a
 blind spot**, and the honest response was not to revert it but to measure the
 blind spot on purpose and write the number down.
 
-### 6.48 willow-nest extracted: the first repository that declares nothing new, and a ratio that survived its third test — **measured**
+### 6.58 willow-nest extracted: the first repository that declares nothing new, and a ratio that survived its third test — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-nest` (created 2026-04-23), rung 7.
 Public, archived, and its own README says it was consolidated into Willow 2.0 —
@@ -4256,11 +4256,11 @@ would have been the third instance of the same four shapes in three files — th
 exact defect this whole exercise exists to detect, committed by the exercise. The
 shapes moved into `common.standard`, rung 5 was pointed at it, and rung 5
 re-runs to the **same 35 rows** with its toolchain digest moved `9577ac1` →
-`788c98f`: same rows, different tooling, and §6.43's format says so on every
+`788c98f`: same rows, different tooling, and §6.53's format says so on every
 one. `extract_willow_nest.py` is now a docstring and a call.
 
 **The ratio held on its third measurement, which is the one that counts.**
-§6.47 committed to needing a third before the claim could be trusted:
+§6.57 committed to needing a third before the claim could be trusted:
 
 | rung | repository | definitions | docstring coverage |
 |---|---|---|---|
@@ -4275,7 +4275,7 @@ third of what gets defined gets described, and the ratio does not move with
 scale.** It was stated as a hypothesis at rung 6 with two points and a warning;
 it is measured now.
 
-> **Corrected at rung 11 (§6.52).** The fourth measurement is **42%**
+> **Corrected at rung 11 (§6.62).** The fourth measurement is **42%**
 > (`willow-bot`, 74/177), which sits outside the 34.5–37 band above. Four points
 > are 34.5 · 35 · 37 · 42 — a spread of 7.5, three times what this paragraph
 > reports. The claim survives in weakened form — *between a third and two fifths
@@ -4296,7 +4296,7 @@ reaches `willow-2.0`, those 19 rows are a ready-made test of whether
 consolidation preserved what it absorbed, and it is the first time this corpus
 will be able to ask that question with both sides in hand.
 
-### 6.49 hermes-agent extracted as a delta: 2 commits of 4,766, and a headline number that was somebody else's — **measured**, per-file attribution **open**
+### 6.59 hermes-agent extracted as a delta: 2 commits of 4,766, and a headline number that was somebody else's — **measured**, per-file attribution **open**
 
 *Run 2026-08-06 against `rudi193-cmd/hermes-agent` (created 2026-04-18), rung 8,
 and the first **fork**. The operator's correction — that what was built on the
@@ -4324,7 +4324,7 @@ delta: 2 of 4766 commit(s), touching 3 file(s)
 commits with a stated reason: 2/2
 ```
 
-> **Corrected at rung 19 (§6.61): 12 commits, not 2; 7 files, not 3; 295 rows,
+> **Corrected at rung 19 (§6.71): 12 commits, not 2; 7 files, not 3; 295 rows,
 > not 38.** The scan walked `HEAD`, and this fork's contribution lives on
 > pull-request branches. Every number in this entry is an undercount and the
 > paragraph below reasons from the wrong one.
@@ -4361,22 +4361,22 @@ way, and the extractor does not currently know it. **Open:** attribute per file
 by `git log --diff-filter=A`, and report operator-created and operator-modified
 separately, so a fork can contribute to the ratio instead of poisoning it.
 
-This is the same defect as §6.42 and §6.47 in a third dress. Those were keys
+This is the same defect as §6.52 and §6.57 in a third dress. Those were keys
 that looked unique and were not. This is a *population* that looked like the
 author's and was not. In all three the extractor produced a confident number
 about the wrong set of things, and in all three the only thing that caught it
 was asking what the denominator was made of.
 
-### 6.50 python-sdk: zero, and the attribution fix that made zero trustworthy — **measured**
+### 6.60 python-sdk: zero, and the attribution fix that made zero trustworthy — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/python-sdk` (created 2026-04-23), rung 9, a
 fork. Read under the delta rule.*
 
-**§6.49's open gap is closed first**, because running two more forks with a
+**§6.59's open gap is closed first**, because running two more forks with a
 denominator known to be contaminated would only have produced two more wrong
 numbers. `extract_fork.py` now splits touched files by *creator* —
 `--diff-filter=A`, oldest adding commit — and reports coverage for each group
-rather than blending them. Verified against the hand-measurement from §6.49
+rather than blending them. Verified against the hand-measurement from §6.59
 rather than trusted:
 
 ```
@@ -4385,7 +4385,7 @@ docstrings over all touched files: 20/26   <- blended, not the operator's
   modified only    17/21  (81%)  over 1 file(s)
 ```
 
-Those are the two numbers §6.49 computed by hand after the fact. The extractor
+Those are the two numbers §6.59 computed by hand after the fact. The extractor
 now derives them, so no later fork can quietly report upstream's habit as this
 operator's.
 
@@ -4396,7 +4396,7 @@ delta: 0 of 851 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
-> **Corrected at rung 19 (§6.61): 9 commits, not 0.** This entry's central claim
+> **Corrected at rung 19 (§6.71): 9 commits, not 0.** This entry's central claim
 > — that the repository was "forked and never advanced by a single commit" — is
 > false. It was produced by a `HEAD`-only scan. The nine commits touch no files
 > (their content merged upstream), which is a different and less flattering
@@ -4411,7 +4411,7 @@ holds 356 Python files and 36 markdown documents. The standard extractor would
 have read them happily and produced several hundred rows about the Model Context
 Protocol SDK's authors, filed under this operator's chronology at position nine.
 Every one would have carried a correct `origin` and been about the wrong person.
-That is the failure mode §6.49 named — a population that looks like the author's
+That is the failure mode §6.59 named — a population that looks like the author's
 and is not — and here the delta rule refuses it by construction rather than by
 noticing afterwards.
 
@@ -4420,7 +4420,7 @@ between a repository this operator built and one they bookmarked, as a number
 rather than an impression.** Of the two, only the number survives a session
 ending.
 
-### 6.51 litellm: zero again, and what two zeroes in a row are worth — **measured**
+### 6.61 litellm: zero again, and what two zeroes in a row are worth — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/litellm` (created 2026-04-23), rung 10, a
 fork, read under the delta rule. The largest repository the sequence has
@@ -4431,7 +4431,7 @@ delta: 0 of 37628 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
-> **Corrected at rung 19 (§6.61): 7 commits, not 0; 5 files; 81 rows.** The
+> **Corrected at rung 19 (§6.71): 7 commits, not 0; 5 files; 81 rows.** The
 > table below, and the argument built on it, rest on a `HEAD`-only scan.
 
 Zero operator-matching author identities in 37,628 commits. Head dated
@@ -4456,7 +4456,7 @@ difference between the corpus being about somebody and not.**
 **On reporting nothing, which this exercise now has to do 42 more times.** Two
 consecutive empty stores is the point at which the temptation appears to stop
 running the extractor on forks and simply record "no contribution" — and that
-would be an assumption dressed as a result, of exactly the kind §6.44 warned
+would be an assumption dressed as a result, of exactly the kind §6.54 warned
 about when it established that silence cannot be distinguished from absence
 without a coverage number. So both runs are real runs, both wrote a store, and
 both printed their denominator. `0 of 37628` is a measurement. *"I did not
@@ -4471,7 +4471,7 @@ name**, which is a second and independent check — but it is still two checks o
 the same kind, and the honest statement is *no commit in this history is
 attributed to the operator*, not *the operator did nothing here*.
 
-### 6.52 willow-bot: a generic runner that demoted itself within one run, a rule shape, and the ratio's fourth point breaking the band — **measured**
+### 6.62 willow-bot: a generic runner that demoted itself within one run, a rule shape, and the ratio's fourth point breaking the band — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-bot` (created 2026-04-28), rung 11.
 Private, so structure and counts only. Read together with rung 12 at the
@@ -4511,7 +4511,7 @@ a human checked something, rules are the rows most worth a human checking, and
 they are the first shape in this corpus that could be tested by running it
 rather than by reading it.
 
-**The docstring ratio's fourth point breaks the band, and §6.48 is corrected in
+**The docstring ratio's fourth point breaks the band, and §6.58 is corrected in
 place above.** 74/177 is **42%**, against 34.5 · 35 · 37 from rungs 5–7. The
 spread goes from 2.5 points to 7.5. The claim survives as *between a third and
 two fifths*; the phrase **"does not move with scale" does not survive** — it was
@@ -4524,7 +4524,7 @@ form either recurs or does not, while a quantity has a distribution, and three
 points do not describe one. **Any future claim of this shape needs its spread
 reported beside it, not just its centre.**
 
-### 6.53 claude_code_RLM: the third bookmark, and the pairing that gives it meaning — **measured**
+### 6.63 claude_code_RLM: the third bookmark, and the pairing that gives it meaning — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/claude_code_RLM` (created 2026-04-28), rung
 12, a fork. The operator asked for this and rung 11 to be read together: both
@@ -4536,7 +4536,7 @@ delta: 0 of 4 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
-> **Corrected at rung 19 (§6.61): 1 operator commit, not 0.** The pairing
+> **Corrected at rung 19 (§6.71): 1 operator commit, not 0.** The pairing
 > argument below still holds directionally — willow-bot is work and this is
 > close to a link — but it was stated on a number that was wrong.
 
@@ -4561,7 +4561,7 @@ anyone remembering.
 
 **Three of five forks are empty, and that ratio is now worth watching rather
 than concluding.** `hermes-agent` 2 commits, `python-sdk` 0, `litellm` 0,
-`claude_code_RLM` 0 — and §6.52 has just finished being corrected for stating a
+`claude_code_RLM` 0 — and §6.62 has just finished being corrected for stating a
 rate from too few points. So: **4 of 5 forks read so far carry no operator
 commit; 39 forks remain unread; no rate is claimed.** The number goes in the
 record because it will be checkable against the other 39, not because it means
@@ -4574,7 +4574,7 @@ commits produces zero rows, so the *act of forking* leaves no trace in the store
 at all. Whether that act belongs in the memory is a question for the operator,
 not for the extractor, and it is written down here rather than answered.
 
-### 6.54 The archived app store: 1,012 drafts, a lesson shape, and §6.22 arriving as a live case in the operator's own fiction — **measured**, cross-repository comparison **open**
+### 6.64 The archived app store: 1,012 drafts, a lesson shape, and §6.22 arriving as a live case in the operator's own fiction — **measured**, cross-repository comparison **open**
 
 *Run 2026-08-06 against `safe-app-store-private-archive-20260608` (created
 2026-04-26), rung 13. Private; structure and counts only. A snapshot taken
@@ -4590,13 +4590,13 @@ before a cleanup, so it holds things the live repository may not.*
 | persona (name → what it is for) | 9 |
 | **total** | **1,012 draft, 0 sealed** |
 
-> **Corrected at rung 17 (§6.59): 1,023, not 1,012.** `SKILL.md` front matter
+> **Corrected at rung 17 (§6.69): 1,023, not 1,012.** `SKILL.md` front matter
 > became a shared shape once it had appeared in four of the operator's
 > repositories, and this one holds eleven such rows that the run did not then
 > claim.
 
 Document coverage 25/150; docstring coverage 805/2,712 — **30%**, a fifth point
-below the band §6.48 already had to be corrected for. 506 rows under 74 headers
+below the band §6.58 already had to be corrected for. 506 rows under 74 headers
 declined and printed.
 
 **The lesson shape is the most checkable row this corpus has produced.** A design
@@ -4645,9 +4645,9 @@ exported bundles. The second is cheaper and keeps each rung independently
 rebuildable; the first is the only one that would let the store, rather than a
 person, notice.
 
-### 6.55 The comparison pass: what thirteen stores could not see about each other — **shipped**
+### 6.65 The comparison pass: what thirteen stores could not see about each other — **shipped**
 
-*Built 2026-08-06 on the operator's decision. §6.54 left two ways to close the
+*Built 2026-08-06 on the operator's decision. §6.64 left two ways to close the
 gap — merge the rungs into one store, or compare their exported bundles. The
 second was chosen: cheaper, and each rung stays independently rebuildable.*
 
@@ -4698,13 +4698,13 @@ thing this tool needs.
    a key can earn both.
 2. **It missed the exact case it was built for.** Rung 1's facet key was
    `Gerald (Absurdist dispatches, squeakdogs, The Binder)` — name *plus* domain —
-   so it could never match a bare `Gerald`. This is §6.42 and §6.47 pointing the
+   so it could never match a bare `Gerald`. This is §6.52 and §6.57 pointing the
    other way: those keys were too coarse, this one was too **specific**, and both
    directions produce a confident wrong answer. The key is now the identifier
    and the domain moved to `reason`, where it was always context rather than
    identity.
 
-**And with both fixed it beat the hand analysis that motivated it.** §6.54
+**And with both fixed it beat the hand analysis that motivated it.** §6.64
 compared Gerald across two rungs by hand and found two descriptions. The
 repeatable pass finds **three** — a `facet` in SAFE, a `persona` in the archive,
 and a `term` in the archive's own dramatis personae table, the last of which sits
@@ -4714,7 +4714,7 @@ stores side by side.
 That is the argument for the mechanism over the inspection, made by the
 mechanism, against the inspection that asked for it.
 
-### 6.56 safe-app-willow-grove: a corrections table, and the first rung to run the comparison pass on arrival — **measured**
+### 6.66 safe-app-willow-grove: a corrections table, and the first rung to run the comparison pass on arrival — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/safe-app-willow-grove` (created 2026-05-03),
 rung 14. Private; structure and counts only. First rung read with
@@ -4731,7 +4731,7 @@ thirteen rungs later.*
 | **total** | **657 draft, 0 sealed** |
 
 Document coverage 28/73; docstring coverage 406/1,386 — **29%**, a sixth point,
-now well below the band §6.48 was corrected for once already.
+now well below the band §6.58 was corrected for once already.
 
 **The corrections table is the most on-subject shape this corpus has met.**
 `Claim | Status` lists what an earlier revision of this repository's own audit
@@ -4781,7 +4781,7 @@ can collide with all thirteen before it. If that holds, the comparison pass gets
 more valuable per rung as the corpus grows, and the decision to build it at
 thirteen rather than at fifty was worth the interruption.
 
-### 6.57 claude-deep-review: the fourth bookmark — **measured**
+### 6.67 claude-deep-review: the fourth bookmark — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/claude-deep-review` (created 2026-05-09),
 rung 15, a fork.*
@@ -4791,23 +4791,23 @@ delta: 0 of 224 commit(s) by rudi193@gmail.com, touching 0 file(s)
 0 pair(s): 0 draft, 0 sealed
 ```
 
-> **Corrected at rung 19 (§6.61): 7 commits, not 0; 2 files; 25 rows.** And the
+> **Corrected at rung 19 (§6.71): 7 commits, not 0; 2 files; 25 rows.** And the
 > sentence below is wrong twice over: five forks had been read and *all five*
 > carried operator commits.
 
 Five forks read, four with no operator commit. The store is gitignored and the
 run produced no code change, so this rung's only artefact is this entry — which
 is the correct outcome and worth stating: **a rung that finds nothing still
-costs a branch, a run, and a paragraph.** §6.51 argued that skipping the
+costs a branch, a run, and a paragraph.** §6.61 argued that skipping the
 extractor on a fork that "obviously" has nothing would be an assumption dressed
 as a result. The cost of honouring that is exactly this: three lines of output
 and a commit that changes one file.
 
-The one forward-looking note is unchanged from §6.51 and still unanswered: the
+The one forward-looking note is unchanged from §6.61 and still unanswered: the
 delta is selected by a single author email with a name match as a second check.
 Four zeroes now rest on that assumption.
 
-### 6.58 willow-tech-manual: 23 rows from 46 documents, and the bias the corpus has been carrying all along — **measured**
+### 6.68 willow-tech-manual: 23 rows from 46 documents, and the bias the corpus has been carrying all along — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-tech-manual` (created 2026-05-12),
 rung 16. Public. A Mintlify documentation site written as a **workshop manual** —
@@ -4850,10 +4850,10 @@ exists only where a heading or a cell put it. Extracting claims from prose means
 inferring them, which is the line every rung so far has refused to cross. So the
 finding stands as a limit: coverage numbers per rung have been measuring the
 repositories' formatting habits at least as much as the extractor's reach, and
-§6.45's *"only coverage detects omission"* now needs a companion — **coverage
+§6.55's *"only coverage detects omission"* now needs a companion — **coverage
 detects omission only within what the format can express.**
 
-### 6.59 tui-scaffold: four skills invisible to a parser choice, and the docstring ratio finally withdrawn — **measured**
+### 6.69 tui-scaffold: four skills invisible to a parser choice, and the docstring ratio finally withdrawn — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/tui-scaffold` (created 2026-05-12), rung 17.
 Private; structure and counts only.*
@@ -4883,8 +4883,8 @@ folded scalar *is* a plain string; it is just written across lines. The caution
 was right about lists and wrong about this, and the cost was every skill in the
 repository reported as a silent document.
 
-That is a third variety of the same error. §6.42 and §6.47 were keys too coarse;
-§6.55 was a key too specific. This is a **reader too strict** — and like the
+That is a third variety of the same error. §6.52 and §6.57 were keys too coarse;
+§6.65 was a key too specific. This is a **reader too strict** — and like the
 others it failed silently, in the direction of confident under-reporting, and was
 caught only by the coverage line saying four `SKILL.md` files produced nothing.
 
@@ -4900,8 +4900,8 @@ matter at all.
 29 · 29.5 · 34.5 · 35 · 37 · 42 · 58
 ```
 
-§6.48 claimed "roughly a third, and it does not move with scale" on three points.
-§6.52 corrected it to "between a third and two fifths" on four. Rung 17 is 58%
+§6.58 claimed "roughly a third, and it does not move with scale" on three points.
+§6.62 corrected it to "between a third and two fifths" on four. Rung 17 is 58%
 and breaks that too. **There is no stable ratio.** The right response is not a
 third weakening — it is to stop making the claim and report the distribution.
 
@@ -4912,7 +4912,7 @@ seven rungs without a single exception. Forms recur or they do not. Quantities
 have distributions, and this project has now paid twice to learn that three
 points do not describe one.
 
-### 6.60 willow-2.0: 3,680 drafts, and the consolidation test rung 7 banked — **measured**
+### 6.70 willow-2.0: 3,680 drafts, and the consolidation test rung 7 banked — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-2.0` (created 2026-05-18), rung 18.
 Public, and **not archived** — its head moved the day before this run, so the
@@ -4974,9 +4974,9 @@ the fact.
 
 **And consolidation multiplied the namesakes.** `classify` is one symbol in
 `willow-nest` and **four** in `willow-2.0` — a triage lane, a category assigner,
-a filename track, and a model-tier picker. §6.47 found bare symbol names to be
+a filename track, and a model-tier picker. §6.57 found bare symbol names to be
 bad keys; this shows *why* the problem grows: merging repositories merges
-namespaces, and the qualified key that §6.47 introduced is what makes rung 18
+namespaces, and the qualified key that §6.57 introduced is what makes rung 18
 readable at all.
 
 **Comparison pass, on arrival:**
@@ -4987,12 +4987,12 @@ keys in more than one repository: 1,214   drift 173 · two kinds 94 · restated 
 ```
 
 One rung doubled the corpus and took shared keys from 121 to 1,214 — tenfold.
-§6.56 guessed that shared keys grow faster than rows; two rungs later the corpus
+§6.66 guessed that shared keys grow faster than rows; two rungs later the corpus
 has doubled and the shared keys have gone up by an order of magnitude. The
 guess holds so far, on two observations, which by this file's own hard-won rule
 is not enough to state as a rate. It is written down to be checked at rung 25.
 
-### 6.61 Every fork number in this file was wrong, and the fix is one flag — **measured**, five entries corrected in place
+### 6.71 Every fork number in this file was wrong, and the fix is one flag — **measured**, five entries corrected in place
 
 *Found 2026-08-06 at rung 19 while reading `sigmap`, the sixth fork. This is the
 largest error in the exercise and it invalidated five published entries.*
@@ -5020,13 +5020,13 @@ why produced `git log --all`, and `--all` produced this:
 | basic-memory | — | 10 | 13 | 230 |
 | awesome-claude-skills · sigmap · ngrok-python · DontFeedTheAI · engram | — | 5 · 4 · 3 · 3 · 2 | | |
 
-**There are no bookmarks.** All eleven forks read carry operator commits. §6.50,
-§6.51, §6.53 and §6.57 each argued at length about what a zero *means* — "the
+**There are no bookmarks.** All eleven forks read carry operator commits. §6.60,
+§6.61, §6.63 and §6.67 each argued at length about what a zero *means* — "the
 difference between a repository this operator built and one they bookmarked, as a
 number rather than an impression" — and the number was an artefact of a missing
 flag. All five entries are corrected in place above rather than edited quietly.
 
-**What makes this worse than a bug.** §6.51 stated the limitation exactly:
+**What makes this worse than a bug.** §6.61 stated the limitation exactly:
 *"if a contribution arrived by a merged pull request attributed upstream, this
 method scores it zero and would say so with the same confidence it says it
 here."* That sentence was written, published, and then not acted on for four
@@ -5048,12 +5048,12 @@ counts are floors rather than totals. Written down and not fixed, because the
 lesson of the last hour is that writing a limitation down is where the work
 starts.
 
-### 6.62 The identity widened, and the vetting mattered more than the widening — **measured**
+### 6.72 The identity widened, and the vetting mattered more than the widening — **measured**
 
-*Run 2026-08-06 immediately after §6.61, closing the last assumption the fork
+*Run 2026-08-06 immediately after §6.71, closing the last assumption the fork
 method rested on.*
 
-§6.61 ended by saying the corrected counts were **floors rather than totals**,
+§6.71 ended by saying the corrected counts were **floors rather than totals**,
 because the delta was selected by one email while a name-based scan disagreed on
 six of eleven forks. The obvious fix was to match on the name as well. It would
 have been wrong.
@@ -5076,7 +5076,7 @@ counts:
 Three display names, two addresses, one person. And four other people who share
 a first or last name with them. **A name match would have swept in all four and
 still missed `rudi193-cmd`**, which is the identity carrying most of the
-commits. The disagreement §6.61 flagged was not the email scan missing
+commits. The disagreement §6.71 flagged was not the email scan missing
 contributions — it was the name scan finding strangers.
 
 **So the widening is by address, and it is small:**
@@ -5089,7 +5089,7 @@ One commit, under the GitHub noreply address. Total across eleven forks: **64
 authored commits**. These are now totals rather than floors, and the difference
 between saying that and assuming it is one enumeration that took a minute.
 
-**The lesson is the inverse of §6.61's and worth having both.** §6.61 was a
+**The lesson is the inverse of §6.71's and worth having both.** §6.71 was a
 limitation named and not tested, for four rungs. This was a limitation named and
 tested immediately — and the test said the obvious fix was harmful. *Both* halves
 matter: an untested limitation is a liability, and an untested **fix** is the
@@ -5097,11 +5097,11 @@ same liability wearing a solution's clothes. The corpus is now at 8,057 rows and
 the only reason any of them are attributable is that a name was never used as a
 key.
 
-Which is, exactly, §6.22 and §6.55 again — a name is not an identifier — arriving
+Which is, exactly, §6.22 and §6.65 again — a name is not an identifier — arriving
 for the third time, in the one place where getting it wrong would have
 misattributed another person's work to this operator.
 
-### 6.63 Three forks, and the largest delta the corpus has read — **measured**
+### 6.73 Three forks, and the largest delta the corpus has read — **measured**
 
 *Run 2026-08-06 against `smallcode`, `ghgrab` and `mcp-memory-service` (all
 created 2026-05-21), rung 20. Read together at the operator's request.*
@@ -5121,7 +5121,7 @@ author.
 
 **The identity vetting earned itself again, immediately.** A fifth namesake
 appears here — `Sean K <logikal@users.noreply.github.com>` — with one commit in
-`mcp-memory-service`. Not the operator, and correctly excluded, because §6.62
+`mcp-memory-service`. Not the operator, and correctly excluded, because §6.72
 settled that the identity is a set of *addresses*. Had the name-based widening
 gone in, this rung would have credited a stranger's commit to this chronology on
 its first run.
@@ -5131,7 +5131,7 @@ its first run.
 a single observation, not a rate. This file has now been burned twice by
 quantities asserted from too few points, and one fork is one point.
 
-**Second measurement of the split §6.49 nearly got wrong:**
+**Second measurement of the split §6.59 nearly got wrong:**
 
 ```
 mcp-memory-service   created here 10/22 (45%)   modified only 472/569 (83%)
@@ -5145,7 +5145,7 @@ one side is thousands of files by many hands and the other is twenty-six files
 by one. No claim is made from it. It is here so that when a third fork lands,
 there is something to compare against.
 
-### 6.64 willow-config: a third persona schema that shares no names, and a refusal I nearly made from an assumption — **measured**
+### 6.74 willow-config: a third persona schema that shares no names, and a refusal I nearly made from an assumption — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-config` (created 2026-05-24), rung
 21. Private; structure and counts only. 617 markdown documents, three Python
@@ -5169,7 +5169,7 @@ corpus has no shape for. Then it was counted: **653 distinct capability names**,
 most-repeated six times. An accumulating inventory, not a redrawn one. The
 refusal would have been the largest single act of under-extraction in this
 exercise, and it would have shipped with a paragraph of justification and no
-number under it — which is the precise shape of every error §6.41 through §6.62
+number under it — which is the precise shape of every error §6.51 through §6.72
 records.
 
 **A mandate and a prohibition are stored as separate pairs**, not folded
@@ -5187,7 +5187,7 @@ may do* and *what you may not* as two claims rather than one.
 | 21 · willow-config | `Register` / `Mandate` / `Namespace` | 8 |
 
 Overlap, measured: rungs 1∩13 share **two** names (Gerald, Professor
-Oakenscroll — §6.54's case). Rungs 1∩21 share **none**. Rungs 13∩21 share
+Oakenscroll — §6.64's case). Rungs 1∩21 share **none**. Rungs 13∩21 share
 **none**.
 
 Three schemas, four months, thirty-eight entries, and the later two describe an
@@ -5199,13 +5199,13 @@ place both are visible under one lens.
 
 **Comparison pass:** 21 stores, 9,380 rows, 1,237 shared keys (186 drift · 108
 two kinds · 1,032 restated). Rung 21 added 772 rows and only 23 shared keys —
-against rung 18, which added 3,680 rows and 1,093 shared keys. §6.56's guess
+against rung 18, which added 3,680 rows and 1,093 shared keys. §6.66's guess
 that shared keys outgrow rows now has a clear counter-example: **it depends
 entirely on whether the rung talks about the same things as its predecessors.**
 A configuration repository full of one-off capability names collides with
 nothing. The guess is withdrawn before it was ever a claim.
 
-### 6.65 Eight more forks, and the first quantity this file has earned the right to state — **measured**
+### 6.75 Eight more forks, and the first quantity this file has earned the right to state — **measured**
 
 *Run 2026-08-06 against `stash`, `statewave`, `holon`, `ogham-mcp`, `mengram`,
 `ShibaClaw`, `ctxvault` and `vcspull` (all created 2026-05-25), rung 22.
@@ -5231,15 +5231,15 @@ Of 112 authored commits across the forks, **75 carry a body beyond the subject �
 ```
 
 This file has withdrawn two quantities for being asserted from three or four
-points (§6.52, §6.59) and withdrawn a third guess before it became a claim
-(§6.64). This one is different in a way worth naming precisely: **112 events
+points (§6.62, §6.69) and withdrawn a third guess before it became a claim
+(§6.74). This one is different in a way worth naming precisely: **112 events
 across 22 independent repositories, with the distribution printed rather than
 summarised.** The mean is 66% and it is not the interesting number — the
 interesting number is that ten of twenty-two forks are at 100% and two are at 0%,
 which is not a spread around a centre but two populations.
 
 The two zeroes are `python-sdk` (9 commits) and `claude_code_RLM` (1) — the same
-two forks §6.61 identified as having commits that touch **no files**. Their
+two forks §6.71 identified as having commits that touch **no files**. Their
 messages are subjects with no bodies because the commits are merge artefacts of
 work that landed upstream. So the 0% is not a habit of writing thin commit
 messages; it is an artefact wearing one, and the honest statement of the
@@ -5250,7 +5250,7 @@ That is the first quantity in this exercise supported well enough to survive
 being written down, and it took twenty-two repositories, one flag fix, one
 identity vetting, and two prior withdrawals to get there.
 
-### 6.66 Four repositories, two of them empty, and a counter that has been overstating every shape for twenty rungs — **measured**
+### 6.76 Four repositories, two of them empty, and a counter that has been overstating every shape for twenty rungs — **measured**
 
 *Run 2026-08-06 against `community` (fork), `rudi193-cmd`,
 `rudi193-cmd.github.io` and `quiet-corner` (created 2026-05-26 to 05-30),
@@ -5270,7 +5270,7 @@ rule handles it without modification: the unit was always the operator's
 commits, and here the operator's commits are most of the repository.
 
 **Two repositories yield nothing and should.** A GitHub profile README and a
-one-page site declare no structure because they *are* the declaration. §6.58
+one-page site declare no structure because they *are* the declaration. §6.68
 established that this corpus holds what was written in a shape a machine can key
 on; a profile page is prose about a person. Coverage 0/1 twice, printed, and
 correct.
@@ -5291,7 +5291,7 @@ The repeats are SQL schema tables — `id → INTEGER PK` in **32** separate tab
   and were always right.
 * **The key is wrong, for the fourth time.** `id` is not an identifier — it is a
   column name scoped to a table, and thirty-two tables each declare their own.
-  §6.42 (table cell), §6.47 (bare symbol), §6.55 (name plus domain), and now a
+  §6.52 (table cell), §6.57 (bare symbol), §6.65 (name plus domain), and now a
   schema column: **every key this corpus has gotten wrong has been a string that
   looked unique in the document it came from and was not unique in the corpus.**
   That is now a rule with four instances behind it, and it is the single most
@@ -5301,7 +5301,7 @@ Not re-keyed here. Qualifying definition keys by their table heading would chang
 every rung's rows, and the honest move at rung 23 is to record the fourth
 instance and decide the re-key deliberately rather than mid-batch.
 
-### 6.67 Four forks, and nine namesakes in one repository — **measured**
+### 6.77 Four forks, and nine namesakes in one repository — **measured**
 
 *Run 2026-08-06 against `openclaw`, `kanon`, `commcare-nova` and `claudeclaw`
 (all created 2026-06-04), rung 24.*
@@ -5328,7 +5328,7 @@ seans-openclawbot <seandai.apps@gmail.com>
 ```
 
 One repository, nine strangers, and exactly one identity that is the operator.
-§6.61 fixed a missing `--all` that had been costing contributions; §6.62 rejected
+§6.71 fixed a missing `--all` that had been costing contributions; §6.72 rejected
 the obvious follow-up of matching names too, on the evidence of four namesakes
 across eleven forks. Here are nine more in a single checkout. **Had the name
 match gone in, this rung would have attributed a 70,860-commit project's
@@ -5343,15 +5343,15 @@ only one of them carries a body. That single row is the honest yield, and the
 distance between one row and tens of thousands is the entire argument of
 `docs/corpus-order.md` in a single number.
 
-**One observation against §6.65's reason-rate, deliberately not folded in.**
-`openclaw` is 1/9 — 11%, below the 40% floor §6.65 reported across 22 forks.
+**One observation against §6.75's reason-rate, deliberately not folded in.**
+`openclaw` is 1/9 — 11%, below the 40% floor §6.75 reported across 22 forks.
 Adding it moves the corpus figure from 75/102 to 76/111, and the floor claim
 ("no fork below 40%") is now **false**. Recorded here rather than by editing
-§6.65: that entry's numbers were correct for the 22 forks it measured, and this
+§6.75: that entry's numbers were correct for the 22 forks it measured, and this
 is the twenty-third disagreeing. The claim was always about a sample and this is
 what a sample growing looks like.
 
-### 6.68 Two before-and-after pairs: a redaction verified complete, and a docstring diff that turns out to be a question — **measured**
+### 6.78 Two before-and-after pairs: a redaction verified complete, and a docstring diff that turns out to be a question — **measured**
 
 *Run 2026-08-06 against `willow-1.9-local-archive-20260608` and
 `safe-app-store` (both 2026-06-08), rung 25. Each is the counterpart of a
@@ -5403,12 +5403,12 @@ documentation keeping up.
 
 **A docstring diff is a question, not an answer.** The corpus surfaces it, and
 resolving it takes reading the code. Every one of the 38 is currently unresolved,
-and reporting them as "drift" would be exactly the §6.42 error at a new altitude:
+and reporting them as "drift" would be exactly the §6.52 error at a new altitude:
 a signal that is evidence of *something happened here* being written up as
 evidence of *something went wrong here*. Thirty-eight questions is a genuinely
 useful output. Thirty-eight findings would have been a lie.
 
-### 6.69 The June pile: thirteen forks, and a writing repository that the corpus cannot read — **measured**
+### 6.79 The June pile: thirteen forks, and a writing repository that the corpus cannot read — **measured**
 
 *Run 2026-08-06 against `DispatchesFromReality` and the thirteen forks created
 2026-06-12 to 06-30, rung 26.*
@@ -5423,7 +5423,7 @@ useful output. Thirty-eight findings would have been a lie.
 Twenty-two commits. **Thirty-nine forks read; thirty-nine carry operator
 commits.** `Tauon` is the second 9,749-commit upstream to yield a single row.
 
-**`DispatchesFromReality` is the sharpest case yet of the bias §6.58 named**, and
+**`DispatchesFromReality` is the sharpest case yet of the bias §6.68 named**, and
 the first time it lands on a repository the operator wrote *entirely themselves*:
 
 ```
@@ -5431,7 +5431,7 @@ the first time it lands on a repository the operator wrote *entirely themselves*
 ```
 
 Fifty-six documents of professional writing, and the corpus takes fifteen rows —
-all from tables. §6.58 found this in a manual somebody else's format made
+all from tables. §6.68 found this in a manual somebody else's format made
 schema-light. Here the subject *is* prose: essays are the artefact, and there is
 no table to key on because there was never any reason to write one.
 
@@ -5446,7 +5446,7 @@ orders of magnitude depending on what X was written in.
 That is not a defect to fix. It is the shape of the instrument, and the fifty-six
 silent documents are the only reason it is visible at all.
 
-### 6.70 The almanac org: eleven repositories with zero divergence, and a template that has walked away from all of them — **measured**
+### 6.80 The almanac org: eleven repositories with zero divergence, and a template that has walked away from all of them — **measured**
 
 *Run 2026-08-06 against the fourteen `almanac-data` repositories (created
 2026-06-29 to 07-24), rung 27. The first rung that is a template and its
@@ -5484,7 +5484,7 @@ noticing when an almanac goes stale, and eleven almanacs never received it.
 
 The finding states itself without help: **the drift-detection tooling has
 drifted.** And it is the exact failure this corpus keeps meeting under different
-names — §6.44's linter that passes none of its subjects, §6.58's coverage that
+names — §6.54's linter that passes none of its subjects, §6.68's coverage that
 only sees what the format expresses. A check that exists in one place and runs
 in none is indistinguishable from no check, and only counting across all twelve
 repositories makes the difference visible.
@@ -5497,7 +5497,7 @@ as much as repositories that were carefully kept in sync by hand. The bucket
 counts agreement; it cannot tell generated agreement from maintained agreement,
 and after this rung most of it is generated.
 
-### 6.71 The early-July batch: five repositories, no new shapes, and the ratio's full spread — **measured**
+### 6.81 The early-July batch: five repositories, no new shapes, and the ratio's full spread — **measured**
 
 *Run 2026-08-06 against `jeles-remote`, `awesome-sovereign-software`,
 `kartikeya`, `safe-design` and `willow-gate` (created 2026-07-01 to 07-10),
@@ -5528,8 +5528,8 @@ reading two different halves of the same person's output.
 ```
 
 Low 11 (`quiet-corner`), high 58 (`tui-scaffold`), and no clustering worth the
-name. §6.48 asserted "roughly a third, and it does not move with scale" on three
-of these; §6.52 hedged it on four; §6.59 withdrew it on seven. Fourteen points
+name. §6.58 asserted "roughly a third, and it does not move with scale" on three
+of these; §6.62 hedged it on four; §6.69 withdrew it on seven. Fourteen points
 later the withdrawal reads as the only defensible move available, and the
 distribution is printed here rather than summarised because a mean over that
 range would be a number with no referent.
@@ -5539,7 +5539,7 @@ this operator's docstring rate.** What there is, is a rate per repository, which
 varies by a factor of five, and which the corpus can report per rung and should
 never average.
 
-### 6.72 The corpus reads Nestor, and finds it nearly unreadable — **measured**
+### 6.82 The corpus reads Nestor, and finds it nearly unreadable — **measured**
 
 *Run 2026-08-06 against `willow-data-vault`, `willow-grove`, `Jeles`, `UTETY`,
 `corpus-lens` and **`nestor`** (created 2026-07-12 to 07-16), rung 29. Nestor is
@@ -5565,7 +5565,7 @@ and the review lessons that is **5,673 lines of the densest argument in the
 entire corpus**, and it yields four rows — all four from one illustrative table
 inside §6.18, of the form ``supersede_pair`` → ``ValueError``.
 
-**This is §6.58's bias landing on the instrument itself, and it is worth stating
+**This is §6.68's bias landing on the instrument itself, and it is worth stating
 without softening.** The repository whose entire subject is *"has a human checked
 this, and how would you know"* contributes almost nothing to a corpus of checked
 claims, because it makes its claims in sentences. Every lesson this exercise has
@@ -5587,7 +5587,7 @@ prose against 1 row per 2 lines of code**. Row counts compare repositories to
 themselves over time, which is what rungs 18 and 25 used them for and where they
 work. They do not measure how much a repository knows.
 
-### 6.73 The first real bookmark, and a whole category of authorship the method cannot see — **measured**, attribution **open**
+### 6.83 The first real bookmark, and a whole category of authorship the method cannot see — **measured**, attribution **open**
 
 *Run 2026-08-06 against `redential-cli`, `Imageination`, `multimodels-mcp` and
 `willow-compose` (created 2026-07-17 to 07-20), rung 30. `mealie` is excluded at
@@ -5602,7 +5602,7 @@ the operator's request and recorded in `docs/corpus-order.md`.*
 
 **`Imageination` is the first true bookmark.** Four commits in the whole history:
 an initial commit by the upstream author, and three by `Claude
-<noreply@anthropic.com>`. No operator identity appears anywhere. §6.61 declared
+<noreply@anthropic.com>`. No operator identity appears anywhere. §6.71 declared
 "there are no bookmarks" across eleven forks and that was true of those eleven;
 forty forks in, here is one.
 
@@ -5629,7 +5629,7 @@ Two populations again, and this time they are not separable by inspection.
 repositories and are certainly theirs. `Imageination`'s 3 are on a fork, the day
 it was taken, and could be either.
 
-**This is not a bug to fix quietly.** §6.62 established that identity is a set of
+**This is not a bug to fix quietly.** §6.72 established that identity is a set of
 addresses because names are ambiguous, and that ruling was right — it excluded
 thirteen namesakes across two rungs. It also, necessarily, excludes delegation:
 an agent committing under its own identity is not the operator's address, and no
@@ -5639,12 +5639,12 @@ The question is the operator's, not the extractor's: **when your agent commits
 under its own name, on your repository, is that your contribution?** A defensible
 yes and a defensible no, with different corpora on either side. Recorded and
 unanswered, because guessing it would silently change forty rungs of counts —
-and §6.61's whole lesson was what happens when a counting assumption goes
+and §6.71's whole lesson was what happens when a counting assumption goes
 untested.
 
-### 6.74 Delegation counts, and the inference I made about it was wrong — **shipped**, one fork **open**
+### 6.84 Delegation counts, and the inference I made about it was wrong — **shipped**, one fork **open**
 
-*Ruled 2026-08-06 by the operator, closing §6.73. Two rulings: a commit their
+*Ruled 2026-08-06 by the operator, closing §6.83. Two rulings: a commit their
 agent makes on their repository is their contribution, and a fork holding only
 delegated commits is a contribution rather than a bookmark.*
 
@@ -5674,7 +5674,7 @@ ai/mcp to taxonomy.json (1.5.1 → 1.6.0)"* — a version bump, which I called "
 maintainer's release act". The operator says they are theirs. The inference was
 tidy, the evidence was real, and the conclusion was wrong, because **what a
 commit looks like is not evidence of who authored it** — I was reading style and
-calling it provenance. That is the fourth-key error (§6.66) in yet another
+calling it provenance. That is the fourth-key error (§6.76) in yet another
 costume: a string that looked like it identified something and did not.
 
 The corrected rule takes no view on subject matter at all. Date and identity
@@ -5689,13 +5689,13 @@ wrong once by inferring from what commits *look* like, the honest move is to
 leave it to the person who knows, and it stays excluded until they say
 otherwise.
 
-### 6.75 litellm dropped, and the record remembers three where the operator remembers one — **measured**
+### 6.85 litellm dropped, and the record remembers three where the operator remembers one — **measured**
 
 *Excluded 2026-08-06 on the operator's instruction: "I think I had one
 contribution there, that never got merged." Store deleted, exclusion recorded in
 `docs/corpus-order.md`.*
 
-Dropping it also settles §6.74's open question — the 86 post-fork agent commits
+Dropping it also settles §6.84's open question — the 86 post-fork agent commits
 are moot — and it is the cheapest possible resolution: the only person who could
 adjudicate them removed the repository instead.
 
@@ -5726,7 +5726,7 @@ merged is a decision about what belongs in the corpus, and it survives the count
 being three rather than one. It is reversible in a single command if the three
 branches turn out to be worth keeping.
 
-### 6.76 The late-July batch, and three kinds of nothing — **measured**
+### 6.86 The late-July batch, and three kinds of nothing — **measured**
 
 *Run 2026-08-06 against `oakenscrolls-office`, `safe-app-common-package`,
 `terpsi-music`, `rudi193-cmd/.github`, `Forge` and `quick-stupids` (created
@@ -5769,15 +5769,15 @@ across this exercise:
 ```
 nothing existed          Forge
 nothing was keyable      .github, quick-stupids, willow-data-vault
-nothing was yours        the fork zeroes (all since corrected — §6.61)
-nothing reached the store  the duplicate skills of §6.44
+nothing was yours        the fork zeroes (all since corrected — §6.71)
+nothing reached the store  the duplicate skills of §6.54
 ```
 
 The fourth is the dangerous one, because it is the only one where the number is
 wrong rather than merely terse — and it is the one that took nine rungs and a
 missing `--all` to find.
 
-### 6.77 The homestead batch, three more empty repositories, and three the session cannot read at all — **measured**, three repositories **blocked**
+### 6.87 The homestead batch, three more empty repositories, and three the session cannot read at all — **measured**, three repositories **blocked**
 
 *Run 2026-08-06 against `homestead-law`, `homestead`, `homestead-ledger` and the
 three private organisation profiles (created 2026-08-03 to 08-04), rung 32 — the
@@ -5824,7 +5824,7 @@ corpus rather than as an absence in the record: those three organisations have
 profiles, this corpus does not know what they say, and it should not be possible
 to read this file later and mistake one for the other.
 
-### 6.78 willow-mcp: a fourth persona schema, and twenty documents that exist twice — **measured**
+### 6.88 willow-mcp: a fourth persona schema, and twenty documents that exist twice — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/willow-mcp` (created 2026-04-18), rung 33.
 Held since rung 7 as active production and read on the operator's instruction.
@@ -5853,7 +5853,7 @@ Docstring coverage 1,537/4,332 — 35%.
 
 **`Voice` is the only field present in all four**, across seven months. Everything
 else was invented, used, and replaced. `Boundaries` is stored separately from the
-persona for §6.64's reason — a boundary and a description fail differently.
+persona for §6.74's reason — a boundary and a description fail differently.
 
 **Twenty documents exist twice, and the counter found it.** Every shape reported
 `N rows from exactly 2N adds`: persona 6/12, boundary 6/12, permission 11/22,
@@ -5865,12 +5865,12 @@ Checked rather than assumed, because the interesting failure would be a stale
 copy: **every bundled copy is byte-identical to its source.** No drift. The
 vendoring is currently honest.
 
-That check exists only because §6.66 changed the load loop to print rows beside
+That check exists only because §6.76 changed the load loop to print rows beside
 adds. Before that change this rung would have reported 12 personas and 22
 permissions — doubled counts, with nothing to indicate why — and the vendoring
 would have been invisible. **A reporting fix made three rungs ago found a
 structural fact about a repository it was not looking for**, which is the second
-time honest counting has paid out as discovery rather than as accuracy (§6.46
+time honest counting has paid out as discovery rather than as accuracy (§6.56
 was the first).
 
 **And the vendored copies are exactly what a later drift would break.** Twenty
@@ -5879,7 +5879,7 @@ The corpus now holds both sides; a future run that reports `12 rows from 12 adds
 instead of `6 from 12` is reporting that a bundled copy has diverged, without
 anyone needing to think to look.
 
-### 6.79 yggdrasil: a corpus already in pair form, of which 29,002 rows are refused — **measured**
+### 6.89 yggdrasil: a corpus already in pair form, of which 29,002 rows are refused — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/yggdrasil-training-data` (created
 2026-04-15), rung 34. Private; structure and counts only. Held since rung 5 as a
@@ -5900,7 +5900,7 @@ project's own subject, in another vocabulary, four months earlier.
 **The refusal is the finding.** Those 28,432 rows are instruction/response pairs
 whose *response* side is an assistant's output, captured from conversations.
 Importing them would file model output under this operator's name — and at 60% of
-the entire corpus it would be §6.49's error (a population that looks like the
+the entire corpus it would be §6.59's error (a population that looks like the
 author's and is not) at the largest scale available anywhere in these 105
 repositories. They are counted, printed by source, and declined.
 
@@ -5910,7 +5910,7 @@ rows. Seventy-eight of them came from `slm_refusal.jsonl`, which marks its rows
 `refusal-synthetic-77HE`. Synthetic rows wearing an authored type. Taking the
 type at its word would have imported 78 generated rows as the operator's
 writing — **the fifth time in this exercise that a string which looked like it
-identified something did not** (§6.42, §6.47, §6.55, §6.66, and now a metadata
+identified something did not** (§6.52, §6.57, §6.65, §6.76, and now a metadata
 field contradicting its neighbour). The fix is the same shape every time: require
 a second field to agree, and never let one string carry identity alone.
 
@@ -5933,7 +5933,7 @@ That is the covenant doing real work rather than being quoted: the one rung wher
 the machine had, in hand, 880 human decisions it could have written down as
 decisions, and did not.
 
-### 6.80 sean-data-vault, under an allowlist — and the chronology closes at 100 of 105 — **measured**
+### 6.90 sean-data-vault, under an allowlist — and the chronology closes at 100 of 105 — **measured**
 
 *Run 2026-08-06 against `rudi193-cmd/sean-data-vault` (created 2026-05-25),
 rung 35, the last. A 2.4 GB personal archive, and the only rung read under an
@@ -5970,14 +5970,14 @@ the same reason 28,432 were at rung 34), and every binary.
 kept, not filtered — they surface in `compare.py` as `restated`, which is what
 an archive is *for*.
 
-### 6.81 The log, fed to the thing it is about — 119 claims, and a status the legend defines and nobody has ever used — **measured**
+### 6.91 The log, fed to the thing it is about — 119 claims, and a status the legend defines and nobody has ever used — **measured**
 
 *Run 2026-08-07 with `scripts/corpus/extract_ideas.py` over `IDEAS.md` at two
 refs — `origin/master` (`4f9b1f7`) and the corpus stack's tip (`e2632be`) —
 into a fresh store, `data/corpus/ideas.db`. Not a repository rung: the
 operator's instruction was "the whole log, and a fresh one."*
 
-**Why by hand.** §6.72 measured this file at four rows from 3,891 lines. The
+**Why by hand.** §6.82 measured this file at four rows from 3,891 lines. The
 corpus cannot read its own findings, because they are prose and every shape the
 extractor knows requires a declared structure. So this extractor takes the one
 structure `IDEAS.md` really does declare — the `### N.N Claim — **status**`
@@ -5999,15 +5999,28 @@ meant, which is the line all thirty-five rungs refused to cross.
 them collided, so no shared entry was silently edited on either side while the
 stack ran.
 
-**The key is the claim, never the number.** Ten numbers, §6.40 through §6.49,
-hold two different findings each: master kept writing entries while this stack
-wrote its own. That is §6.66's lesson at the scale of a file — a number
-identifies a slot, not a claim — and it is the reason the collision is *reported*
-here rather than resolved by renumbering. The claims never conflicted; only the
-labels did.
+**The key is the claim, never the number.** At the time of the run, ten numbers
+— 6.40 through 6.49 — held two different findings each: master kept writing
+entries while this stack wrote its own. That is §6.76's lesson at the scale of a
+file. The claims never conflicted; only the labels did, which is why the store
+reports the collision as a fact rather than resolving it.
+
+**Corrected 2026-08-07, after the operator's decision to put this on master.**
+The paragraph above originally ended *"the reason the collision is reported here
+rather than resolved by renumbering"* — and then it was resolved by renumbering,
+because master's ten are merged and this stack's are not. Entries 6.40–6.81
+shifted to **6.50–6.91**; 138 cross-references in this file and 27 in eleven
+extractor docstrings moved with them. The claim that the collision did not need
+resolving lasted one instruction.
+
+What survives the shift is the point the entry was making. The 119 rows are
+keyed on the claim, so not one of them moved; their `origin` still reads
+`6.61@e2632be`, and that is still true, because a number pinned to a commit
+names a slot that existed. A number pinned to nothing would now be a lie in 41
+rows.
 
 **What the store found that reading top to bottom does not.** With the verdicts
-in a column instead of scattered across 6,011 lines:
+in a column instead of scattered across the 6,011 lines the run read:
 
 | status | entries | in the legend? |
 |---|---|---|
@@ -6032,7 +6045,7 @@ not the one in use.
 reads its own author's output — "checked, not assumed" has no independent check
 here, and a claim of mine that was wrong arrives in the store still wearing the
 verdict I gave it. Several entries above are corrections of earlier ones
-(§6.61, §6.66, §6.59); the withdrawn versions are in this store too, as drafts,
+(§6.71, §6.76, §6.69); the withdrawn versions are in this store too, as drafts,
 which is the only reason that is safe. Sealing one would put a known-false claim
 in the memory permanently. 119 draft, 0 sealed.
 
@@ -6045,7 +6058,7 @@ in the memory permanently. 119 draft, 0 sealed.
 | repositories in the list | **105** |
 | read | **100** |
 | excluded by the operator | 2 — `mealie`, `litellm` |
-| unreadable by the tooling | 3 — the private org `.github` profiles (§6.77) |
+| unreadable by the tooling | 3 — the private org `.github` profiles (§6.87) |
 | **rows** | **18,924 across 99 stores** |
 | **sealed** | **0** |
 
@@ -6062,16 +6075,16 @@ rung 34, where 880 of the operator's own recorded rejections were held as drafts
 rather than written down as decisions.
 
 **What the exercise actually produced.** Not a memory of what the operator knows
-— §6.72 measured that against the one repository where both sides could be
+— §6.82 measured that against the one repository where both sides could be
 inspected and found roughly 1 row per 700 lines of prose against 1 per 2 lines
 of code. What it produced is a record of *what was written in a shape a machine
 could key on*, plus a list of the ways a machine gets that wrong:
 
-- five strings that looked like identifiers and were not (§6.42, §6.47, §6.55, §6.66, §6.79)
-- one flag that turned eleven contributions into zeroes (§6.61)
-- one limitation named and left untested for four rungs (§6.51 → §6.61)
-- three quantities asserted from too few points and withdrawn (§6.48 → §6.59)
-- one counter that reported adds as rows for twenty rungs (§6.66)
+- five strings that looked like identifiers and were not (§6.52, §6.57, §6.65, §6.76, §6.89)
+- one flag that turned eleven contributions into zeroes (§6.71)
+- one limitation named and left untested for four rungs (§6.61 → §6.71)
+- three quantities asserted from too few points and withdrawn (§6.58 → §6.69)
+- one counter that reported adds as rows for twenty rungs (§6.76)
 
 Every one was found by a mechanism built to report what it refused, rather than
 by anybody being careful.

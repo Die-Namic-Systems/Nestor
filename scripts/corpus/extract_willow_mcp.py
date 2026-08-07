@@ -18,7 +18,7 @@ Three shapes beyond the standard four:
   function` and rung 21's `Register`/`Mandate`/`Namespace`. `Voice` is the only
   field that has survived all four.
 * **boundary** — `**Boundaries:**` is stored separately from the persona, for the
-  reason §6.64 gave when it split mandate from prohibition: they fail
+  reason §6.74 gave when it split mandate from prohibition: they fail
   differently, and a store that merges them cannot say which was crossed.
 * **permission** — `Tool | Permission`, the authorization each tool requires.
   A permission table is the most directly checkable claim in this repository:

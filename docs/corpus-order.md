@@ -1,13 +1,13 @@
 # The order the corpus takes the repositories
 
-*The sequence for the corpus-from-a-corpus exercise (IDEAS §6.40–§6.45). Written
+*The sequence for the corpus-from-a-corpus exercise (IDEAS §6.50–§6.55). Written
 2026-08-06. This file exists because the order has exceptions now, and an
 exception agreed in conversation and not written down is one a later session
 will silently undo.*
 
 ## The rule
 
-**Oldest first, by GitHub `created_at`** — the chronology measured in §6.40, not
+**Oldest first, by GitHub `created_at`** — the chronology measured in §6.50, not
 the last-push order the repository listing returns by default. One repository
 per rung, each rung branched from the one below it (`corpus/NN-<repo>`), so a
 rung carries every rung beneath it and a low rung has to be right before
@@ -30,7 +30,7 @@ for repositories whose content *is* the payload than for ones whose content is
 documents about a payload.
 
 `willow-mcp` is held for a different and stronger reason: it is **under active
-development**. An extraction pins `repo@commit` into every row's origin (§6.43),
+development**. An extraction pins `repo@commit` into every row's origin (§6.53),
 and against a moving head that pin describes a state that no longer exists by
 the time the entry is written. A corpus of a live repository is a corpus of a
 particular afternoon, mislabelled as a corpus of the repository.
@@ -65,6 +65,6 @@ this one.
 
 Findings to `IDEAS.md` §6, one entry per rung. Extracted rows stay in gitignored
 `data/corpus/`, and for a private source nothing extracted is committed at all —
-see §6.41. The extractors themselves are committed, under `scripts/corpus/`,
+see §6.51. The extractors themselves are committed, under `scripts/corpus/`,
 because a row whose `origin` names a toolchain nobody can fetch is not provenance
-(§6.43).
+(§6.53).

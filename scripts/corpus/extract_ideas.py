@@ -22,11 +22,16 @@ meant, which is the line all thirty-five rungs refused to cross. The heading is
 a claim the author wrote as a claim; the status is a verdict the author wrote as
 a verdict. Nothing here is inferred.
 
-**The key is the claim, never the number.** Two branches of this repository both
-number entries 6.40 through 6.49, for ten different pairs of findings. A number
-identifies a slot in a file, not a claim — §6.66's lesson, and the reason this
-tool records the number in `origin` and lets the duplication show up as a
-reported fact rather than a silently resolved one.
+**The key is the claim, never the number.** When this was first run, two branches
+of the repository both numbered entries 6.40 through 6.49, for ten different
+pairs of findings — a number identifies a slot in a file, not a claim (§6.76).
+The file has since been renumbered and the store has not: rows keyed on the claim
+did not move, and their `origin` still reads `6.61@e2632be`, which stays true
+because the number is pinned to a commit where that slot existed.
+
+That is the whole argument for this tool recording the number in `origin` and
+letting the duplication show up as a reported fact. Had the number been the key,
+the renumbering would have made 41 rows wrong.
 
 Every row lands as a **draft**. Several entries are corrections of earlier ones;
 sealing a finding that was later withdrawn would put a known-false claim in the

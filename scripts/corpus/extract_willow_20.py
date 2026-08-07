@@ -17,7 +17,7 @@ Read here on the operator's instruction, with the caveat carried into the rows.
 Beyond the shared shapes it declares two worth naming:
 
 * **rule** — `Rule | What it means`, ten rows. A rule can be wrong by firing
-  when it should not, which no definition can; §6.52 argued this at rung 11.
+  when it should not, which no definition can; §6.62 argued this at rung 11.
 * **sourced claim** — `Claim | Primary sources`, ten rows. A claim paired with
   the evidence for it is the nearest thing in this whole corpus to what the
   product is for, and the pairing is the author's, not the extractor's.

@@ -11,7 +11,7 @@ Every row lands as a **draft**. The extractor is a machine and may propose.
 
 **The source is private and names minors.** The store this writes belongs in
 gitignored `data/`, and nothing it produces should be committed without its
-owner's decision. See IDEAS §6.41.
+owner's decision. See IDEAS §6.51.
 """
 from __future__ import annotations
 

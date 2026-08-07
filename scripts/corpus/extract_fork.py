@@ -66,7 +66,7 @@ def strip_trailers(body: str) -> str:
 def created_by(root: pathlib.Path, files: set, emails: list[str]) -> tuple[set, set]:
     """Split touched files into ``(created here, merely modified)``.
 
-    §6.49's gap. ``touched`` is not ``authored``: a file the operator edited was
+    §6.59's gap. ``touched`` is not ``authored``: a file the operator edited was
     written by whoever added it, and its docstrings are that person's habit. Run
     over a fork's delta without this split, docstring coverage reported 77% —
     upstream's number, about to be filed under this operator's name.
@@ -90,10 +90,10 @@ def created_by(root: pathlib.Path, files: set, emails: list[str]) -> tuple[set, 
 def delegated(root: pathlib.Path, since: str | None) -> list[str]:
     """Agent-authored commits on the operator's side of the fork.
 
-    §6.73 found `Imageination` reading as the corpus's only bookmark while
+    §6.83 found `Imageination` reading as the corpus's only bookmark while
     holding three commits by `Claude <noreply@anthropic.com>`, dated the day the
     fork was taken, adding CI and a CONTRIBUTING file. An agent committing under
-    its own identity is not the operator's address, so §6.62's address-only rule
+    its own identity is not the operator's address, so §6.72's address-only rule
     — correct, and the reason thirteen namesakes were excluded — cannot see
     delegation.
 
@@ -127,7 +127,7 @@ def delta(root: pathlib.Path, emails: list[str]) -> tuple[list[tuple], set, int]
     contribution characteristically lives on a pull-request branch that was
     merged upstream rather than into the fork's default branch. Scanning HEAD
     reported zero for five consecutive forks that hold between one and twelve
-    authored commits each — see §6.61. `--all` is the whole fix and its absence
+    authored commits each — see §6.71. `--all` is the whole fix and its absence
     was the whole error.
     """
     who = [f"--author={e}" for e in emails]
@@ -164,7 +164,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--since", help="fork creation date (YYYY-MM-DD). Agent-"
                     "authored commits on or after it count as the operator's "
-                    "delegated work; see §6.74.")
+                    "delegated work; see §6.84.")
     ap.add_argument("--email", nargs="+",
                     default=["rudi193@gmail.com",
                              "236912655+rudi193-cmd@users.noreply.github.com"],

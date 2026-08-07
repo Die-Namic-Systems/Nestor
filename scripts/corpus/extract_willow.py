@@ -17,7 +17,7 @@ Five shapes. Two are worth naming because they are not definitions:
 two-column table: 568 rows, 7% of them from a header naming a term, and it
 filed the constitutional decision rows under the same domain tag as a ``P1``
 row from a findings list. A generic extractor buries its best rows among its
-worst. Everything no shape claims is counted and reported instead. IDEAS §6.42.
+worst. Everything no shape claims is counted and reported instead. IDEAS §6.52.
 """
 from __future__ import annotations
 

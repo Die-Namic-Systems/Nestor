@@ -7,18 +7,18 @@
 **Why this exists.** `ConflictingDraftError` fires *within* a store. The corpus
 is one store per repository, so every disagreement *between* repositories is
 invisible to the machinery — and disagreement between repositories is the entire
-reason for reading a chronology in order. §6.54 found Gerald described two ways
+reason for reading a chronology in order. §6.64 found Gerald described two ways
 three months apart and only because a script was written by hand to look. This
 is that script, made repeatable.
 
 **The classification is the substance, not the count.** A key in two
 repositories is one of three different things, and collapsing them would repeat
-§6.42's mistake at corpus scale:
+§6.52's mistake at corpus scale:
 
 ``restated``
     Same key, same answer, two repositories. Not a problem — but the cheapest
     kind of drift to *create*, because nothing disagrees yet and nothing ever
-    warns. §6.47 measured the same effect inside one repository.
+    warns. §6.57 measured the same effect inside one repository.
 
 ``drift``
     Same key, **same kind of claim**, different answers. This is a real

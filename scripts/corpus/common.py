@@ -8,7 +8,7 @@ Two behaviours in that loop are not incidental and should not be simplified
 away:
 
 **A refused row is reported with both origins.** `ConflictingDraftError` means
-one key has two answers. §6.42 measured why that is not automatically a finding
+one key has two answers. §6.52 measured why that is not automatically a finding
 about the corpus: with a coarse key it is a finding about the parser, and the
 only thing that separates the two cases is whether the held row and the new one
 came from the same document. So the loop asks the store what it is holding and
@@ -197,11 +197,11 @@ def docstrings(root: pathlib.Path, only: set | None = None) -> tuple[list[tuple]
 
     A docstring is a declaration, not an inference: the author wrote what the
     thing is for, beside the thing. The second return value is the denominator,
-    because a docstring corpus without its coverage says nothing — see §6.45.
+    because a docstring corpus without its coverage says nothing — see §6.55.
 
     **The key is qualified by file, and that is not cosmetic.** Keyed on the bare
     symbol, rung 6 raised 54 collisions, nearly all of them two unrelated
-    functions that happen to share a name — §6.42's lesson arriving in a second
+    functions that happen to share a name — §6.52's lesson arriving in a second
     domain: a collision is evidence about the key before it is evidence about
     the corpus. Qualifying the key removes the false ones and leaves the real
     question (two implementations of one interface that disagree) to be asked
@@ -353,7 +353,7 @@ def load(store, plan, origin, declined: collections.Counter | None = None,
     row is ``(source, target, reason, path, anchor)``.
 
     Pass ``root`` to get a **coverage** report: which documents produced no row
-    at all. §6.44 is the reason it exists. Two duplicate skills sat in a
+    at all. §6.54 is the reason it exists. Two duplicate skills sat in a
     repository, one of them empty, and the store raised no collision — not
     because they agreed but because neither ever reached it. A silent store
     cannot distinguish "consistent" from "absent", so any claim about corpus

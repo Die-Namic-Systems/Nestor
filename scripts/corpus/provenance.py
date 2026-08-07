@@ -1,10 +1,10 @@
 """What produced a row, in the one field a pair has for saying so.
 
 `origin` already carried where the *text* came from — a file and an anchor.
-IDEAS §6.41 recorded what it did not carry: which extractor, at which revision,
+IDEAS §6.51 recorded what it did not carry: which extractor, at which revision,
 reading which revision of which repository. Without that, two rows disagreeing
 cannot be sorted into "the corpus contradicts itself" and "the parser changed",
-and §6.42 measured exactly how much that distinction is worth — sixty-three
+and §6.52 measured exactly how much that distinction is worth — sixty-three
 collisions that turned out to be the parser.
 
 So an origin built here names four things:

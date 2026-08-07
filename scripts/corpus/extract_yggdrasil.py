@@ -20,7 +20,7 @@ rows:
 The 28,400 are instruction/response pairs whose *response* side is an
 assistant's output, captured from conversations. Importing them would file
 model output under this operator's name at a scale that would make it 60% of
-the entire corpus — §6.49's error (a population that looks like the author's and
+the entire corpus — §6.59's error (a population that looks like the author's and
 is not) at the largest scale it could possibly occur. They are counted and
 refused.
 

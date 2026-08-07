@@ -16,7 +16,7 @@ code fence. Both are extracted, and which format a row came from is recorded in
 its reason, because that difference is the most interesting fact in the corpus.
 
 **The source is private.** The store belongs in gitignored `data/`; nothing it
-produces is committed. See IDEAS §6.41.
+produces is committed. See IDEAS §6.51.
 """
 from __future__ import annotations
 
