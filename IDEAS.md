@@ -5586,3 +5586,58 @@ repository where both sides can be inspected — about **1 row per 700 lines of
 prose against 1 row per 2 lines of code**. Row counts compare repositories to
 themselves over time, which is what rungs 18 and 25 used them for and where they
 work. They do not measure how much a repository knows.
+
+### 6.73 The first real bookmark, and a whole category of authorship the method cannot see — **measured**, attribution **open**
+
+*Run 2026-08-06 against `redential-cli`, `Imageination`, `multimodels-mcp` and
+`willow-compose` (created 2026-07-17 to 07-20), rung 30. `mealie` is excluded at
+the operator's request and recorded in `docs/corpus-order.md`.*
+
+| repository | commits | files | rows |
+|---|---|---|---|
+| redential-cli (fork) | 13 | 30 | 29 |
+| willow-compose (private) | — | — | 36 |
+| multimodels-mcp (fork) | 2 | 3 | 0 |
+| **Imageination (fork)** | **0** | 0 | 0 |
+
+**`Imageination` is the first true bookmark.** Four commits in the whole history:
+an initial commit by the upstream author, and three by `Claude
+<noreply@anthropic.com>`. No operator identity appears anywhere. §6.61 declared
+"there are no bookmarks" across eleven forks and that was true of those eleven;
+forty forks in, here is one.
+
+**Except it probably is not one, and that is the finding.** The fork was created
+2026-07-17. The three agent-authored commits are dated 2026-07-17. They add
+engineering standards, CI, lint config and a CONTRIBUTING file — the shape of
+somebody setting up a repository they have just taken. Almost certainly the
+operator's work, delegated, and **invisible to every scan this corpus performs**,
+because the author field says `Claude` and the identity rule is a set of the
+operator's addresses.
+
+**Measured across every clone in the session** — commits authored by an agent
+identity (`Claude`, `cursoragent`, `noreply@anthropic.com`):
+
+```
+litellm 613 · basic-memory 93 · DispatchesFromReality 22 · openclaw 11
+quiet-corner 7 · python-sdk 6 · Imageination 3 · redential-cli 2
+mcp-memory-service 2 · hermes-agent 1
+```
+
+Two populations again, and this time they are not separable by inspection.
+`litellm`'s 613 are upstream's — a large project whose maintainers use agents.
+`DispatchesFromReality`'s 22 and `quiet-corner`'s 7 are in the operator's **own**
+repositories and are certainly theirs. `Imageination`'s 3 are on a fork, the day
+it was taken, and could be either.
+
+**This is not a bug to fix quietly.** §6.62 established that identity is a set of
+addresses because names are ambiguous, and that ruling was right — it excluded
+thirteen namesakes across two rungs. It also, necessarily, excludes delegation:
+an agent committing under its own identity is not the operator's address, and no
+amount of address-matching will find it.
+
+The question is the operator's, not the extractor's: **when your agent commits
+under its own name, on your repository, is that your contribution?** A defensible
+yes and a defensible no, with different corpora on either side. Recorded and
+unanswered, because guessing it would silently change forty rungs of counts —
+and §6.61's whole lesson was what happens when a counting assumption goes
+untested.
