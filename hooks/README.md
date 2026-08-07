@@ -27,3 +27,4 @@ Codex / other CLIs: point their hook command at the same `hooks/nestor-hook` lin
 Household-bound Nestor state uses **`~/.homestead`** (`HOMESTEAD_HOME`), not `.nestor` — see [`docs/homestead-paths.md`](../docs/homestead-paths.md).
 
 Cold-start for agents: [`AGENTS.md`](../AGENTS.md) (git sync + `scripts/ci-lint.sh`).
+Operating rules: [`docs/agent-guide.md`](../docs/agent-guide.md).

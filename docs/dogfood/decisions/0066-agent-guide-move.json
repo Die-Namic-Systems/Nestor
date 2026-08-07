@@ -1,0 +1,43 @@
+{
+  "pr": 56,
+  "branch": "claude/the-box",
+  "date": "2026-08-07",
+  "note": "Adopting PR #55's split — operating rules move from CLAUDE.md to a participant-neutral docs/agent-guide.md — by merging that branch in here and carrying the covenant section across, plus the four findings from the adversarial read of it. No `pr` key by design, see IDEAS 6.43.",
+  "decisions": [
+    {
+      "question": "Where does the covenant section live now?",
+      "commitment": "docs/agent-guide.md, under 'The one rule that is not a guideline', with the tooling section from #54 alongside it.",
+      "why": "#55 moves the whole operating layer out of CLAUDE.md and this branch had added two sections to the file it empties, so the conflict was guaranteed and the only question was ordering. Merging #55 into this branch and resolving here means the move happens once, with both sections in it, rather than #55 landing and then a follow-up dragging them across. Section positions were located by searching for their headings rather than by line number — the first attempt hardcoded indices from `grep -n` and inserted into the wrong place, because grep is 1-indexed and a Python list is not."
+    },
+    {
+      "question": "Why is CLAUDE.md not purely a pointer, when #55 says not to duplicate policy there?",
+      "commitment": "Two lines stay: the covenant, and where decisions go. Both are pointers to the full statement, not the statement.",
+      "why": "CLAUDE.md is auto-loaded and docs/agent-guide.md is not. The split trades a mechanical encounter for a voluntary one, and the guide's own opening records an agent who did not follow the pointers. Keeping the two standing rules in the file that is read by construction costs five lines and no drift, because neither line is the policy — the policy is in the guide, and the gate now requires both files to name where decisions go."
+    },
+    {
+      "question": "The move took 263 lines out of the link-checking gate. Fixed how?",
+      "commitment": "docs/agent-guide.md added to test_docs.py's DOCS, which was built from ROOT.glob('*.md') alone.",
+      "why": "Measured before the fix: the same broken link appended to docs/agent-guide.md left the suite green and appended to AGENTS.md failed. It matters more than usual for this file because the move rewrote every relative link to ../, so the change most likely to break a path was exactly the one that had left coverage."
+    },
+    {
+      "question": "What guarded the pointer from CLAUDE.md to the guide?",
+      "commitment": "Nothing. Now test_the_thin_pointer_still_points does, and it asserts the markdown link form rather than the filename appearing.",
+      "why": "Measured: replacing CLAUDE.md with three lines naming neither file left the whole suite green. The chain is auto-load -> pointer -> guide and the only enforced link was the auto-load, landing on a file whose entire job is to forward. The first version of the new test was itself too weak — replacing the markdown link with the words 'the guide' kept it green, because CLAUDE.md names the file again in prose lower down. A mention is not a pointer; the assertion is on `](target)`."
+    },
+    {
+      "question": "The standing-rule gate was retargeted from CLAUDE.md to the guide. Kept?",
+      "commitment": "Extended, not retargeted: CLAUDE.md, docs/agent-guide.md, and the PR template.",
+      "why": "The retarget was necessary for #55 to pass, since the thin pointer no longer carried the string — but the test's own docstring is 'a rule only an agent's memory carries is a rule that lasts one session', and the point of naming CLAUDE.md was that the encounter is mechanical. Both files now: the one read by construction, and the one holding the rule in full."
+    },
+    {
+      "question": "The move rewrote the guide's opening. Restored?",
+      "commitment": "Yes. The 2026-08-05 incident sentence is back, and a paragraph saying plainly that this file is not auto-loaded.",
+      "why": "The opening had gone from 'it exists because on 2026-08-05 an agent read none of them until after making the mistakes two of them describe' to 'this guide is the operating layer agents meet every session' — a recorded observation replaced by a claim about agent behaviour, in the commit that removes the mechanism which made the claim true. Keeping the incident costs nothing. Adding the note about auto-loading is new: an agent reading the guide should know the guarantee that it got there is one pointer weaker than it used to be."
+    },
+    {
+      "question": "The write gate blocked this session mid-edit. What happened?",
+      "commitment": "hooks/before_write.py refused a write to tests/ because the review desk had not been consulted in 575 minutes. The desk was consulted rather than the gate worked around.",
+      "why": "The gate was written on this branch yesterday and fired on its author, which is the intended audience per the guide's 'the gates are aimed at you'. The desk returned 0.027 as its best match and said so — nothing close, reported as nothing close rather than dressed up as a hit. Recorded because a gate that fires on the person who wrote it, and is obeyed, is the only evidence that it will fire on anyone else."
+    }
+  ]
+}

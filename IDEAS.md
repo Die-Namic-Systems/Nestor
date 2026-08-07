@@ -3758,3 +3758,134 @@ The reason to write it down rather than pick: this is the same shape as §3.1's
 `normalize`-versus-`score` split, which was argued on retrieval quality when the
 question was retrieval. It turns out to also decide whether a seal is reachable,
 and that argument has not been had.
+
+---
+
+### 6.42 The quorum memo's step 2 has been unrunnable, and its zero would have been unreadable — **measured**, question **open**
+
+*Written 2026-08-06. Not a defect in the package — a defect in the way its one
+open persistence question was going to get answered.*
+
+[`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md) §5 lists
+four steps toward N-of-M sealing. Step 1 shipped (§6.26 — concurrence stopped
+being discarded). Step 2 is *measure whether anyone countersigns*, and everything
+below it is blocked on the answer, because N-of-M is a schema change to the
+audited path.
+
+The memo ends step 2 with three words: **"Nobody has run it."** It stayed that
+way partly because the measurement had two ways to come out wrong, and both look
+like an answer.
+
+**The count is not the number of entries.** The memo says so — *distinct actors
+is the measurement; entries are the evidence* — and now it is measured rather
+than argued. A chain where one reviewer countersigned one pair three times:
+
+```
+   4 entrie(s)                    what `grep -c countersign` would say
+   2 distinct (pair, verifier)    what step 2 asks for
+```
+
+Three of those four entries are one person, one pair, three clicks. The
+asymmetry is deliberate — a seal is a *state* and re-asserting it changes
+nothing, while a countersignature is an *event* — and it means a UI retry or a
+flaky client inflates the raw count without anybody countersigning anything.
+Measured on a chain `memory.add_pair` wrote: four re-seals produced **1** seal
+entry and **3** countersign entries.
+
+**The zero has two meanings and only one of them is data.** `add_pair` logs a
+countersignature only when `first and verifier and first != verifier` — both
+sides must name themselves. So a chain with one reviewer *cannot* produce one,
+however its reviewers feel about quorum:
+
+```
+   no second reviewer   1 named actor(s) in the whole chain
+   measured             2 people decided things here, so a countersignature
+                        was available — and none of them took it
+```
+
+Those are the same zero and different findings. Reporting the first as "no
+demand for quorum" is [`scripts/feed_all.py`](scripts/feed_all.py)'s conflation
+with different nouns: *nothing matched* and *I could not look* are different
+sentences, and so are *they did not* and *they could not*. The discriminator is
+in the chain — count the distinct people who ever decided anything in it — so
+the tool can tell without being told.
+
+[`scripts/count_countersignatures.py`](scripts/count_countersignatures.py) reads
+a chain and nothing else: no store, no matcher, no process globals, no writes,
+and a chain that does not verify gets no count at all. A tally over an entry
+somebody may have edited is worse than none, because it reads as a measurement.
+
+**What is still open, precisely.** The tool exists and is gated. It has been run
+against fixture chains covering all four of its verdicts. It has **not** been run
+against a deployment, because there is no deployment chain in this checkout —
+`data/ledger.jsonl` does not exist and the dogfood store is drafts. So step 2's
+*answer* is exactly as unknown as it was this morning. What changed is that the
+question is now askable by somebody with a real chain, and cannot be answered
+wrong in the two ways it was going to be.
+
+**And the count is of names, not people.** jeles reaches the same bar of 2 from
+the other direction (`jeles/_independence.py`) and is careful about what it
+buys: two distinct domains can still be one actor who bought both, so its rule
+is "a cheap heuristic, deliberately weaker" than its constitution's Independent
+Witness. That caveat lands harder here. jeles at least has
+`registrable_domain()` to collapse two pages on one site into one source. There
+is no such function for humans, and two names in the `verifier` column can be
+one person with two keys.
+
+---
+
+### 6.43 `dogfood_store.py --verify` says the store matches the decision files, and does not check where a row came from — **measured**, fix **open**
+
+*Found 2026-08-06 while consolidating seven branches into one and correcting the
+`pr` field in seven decision files. Found by querying the store instead of
+trusting the gate that had just said the store was correct.*
+
+The builder turns each file's `pr` field into every row's **origin**:
+
+```python
+origin = f"pr:{data.get('pr', '?')}"
+```
+
+`--verify` compares a digest, and the digest is over three columns:
+
+```python
+rows = sorted((p["source_text"], p["target_text"], p["status"]) ...)
+```
+
+`origin` is not among them. Neither is `reason`. So a decision file can change
+where its rows claim to have come from, the committed `.db` can keep saying
+something else, and the gate prints:
+
+```
+the committed store matches the decision files, and seals nothing
+```
+
+Measured: set `"pr": 9999` in one decision file, do **not** rebuild, run
+`--verify`. Exit 0, digest unchanged, and the store still says `pr:?` for those
+rows. The sentence the gate prints is wider than the check it ran — it says
+*matches the decision files*, and it means *the questions, commitments and
+statuses match*.
+
+Why it matters more here than the size of the bug suggests: the dogfood store's
+entire claim is provenance. `tests/test_dogfood_store.py` opens by saying the
+value of that store "is entirely in where its rows came from — a memory whose
+contents arrived from somewhere nobody can see is not an audit trail, it is a
+pile." The one field carrying *where it came from* is the field the gate does
+not cover.
+
+**It is also the repo's recurring shape, in a mild form.** The digest is a
+narrower assertion than the sentence printed beside it, so the guard is real and
+the promise is not — `docs/code-review-lessons.md` §8–§9, one layer up from the
+usual instance.
+
+**Fix, deliberately not taken in the consolidation PR that found it.** Add
+`origin` (and probably `reason`) to `_bundle_digest`. That churns the digest once
+and closes it. It was left out because the branch it was found on exists to
+*reduce* scope, and a gate's semantics changing inside a seven-branch merge is
+the wrong place to hide it. The finding is here so the fix can be its own change
+with its own mutation test — a digest that does not go red when `origin` moves is
+the whole defect, so the test writes itself.
+
+**Not affected:** this consolidation's own correctness. The seven files' origins
+were checked by querying `tm_pairs` directly rather than by believing `--verify`,
+which is how the gap was noticed at all.

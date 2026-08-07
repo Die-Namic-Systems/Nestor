@@ -298,15 +298,18 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 ├── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
 ├── big_jim.py          a standing desk for a used-car lot, keyed on VIN — driven a command at a time
 ├── review_desk.py      the other desk: patch_review over this repo's own open findings, seeded from IDEAS.md
-└── filing_cabinet.py   one man's papers against his own lot's disclosures — three open gaps (§6.22, §6.39, and the verifier policy that does not exist)
+├── filing_cabinet.py   one man's papers against his own lot's disclosures — three open gaps (§6.22, §6.39, and the verifier policy that does not exist)
+└── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
-└── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
+├── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
+└── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
 scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
+docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
 FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
@@ -314,6 +317,7 @@ docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, �
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
 docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
+docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 

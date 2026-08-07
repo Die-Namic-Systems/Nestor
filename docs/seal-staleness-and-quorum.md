@@ -247,6 +247,29 @@ signature on it, and the UI can say so precisely without inventing a scale.
    users who have not been shown to exist is how a field ends up carrying a
    distinction the mechanism does not otherwise make.
 
+   > **Runnable 2026-08-06, still unrun** — `IDEAS.md` §6.42,
+   > [`scripts/count_countersignatures.py`](../scripts/count_countersignatures.py).
+   > The sentence above stays, because it is still true of the only thing that
+   > would settle this: **no deployment chain has been measured.** There is none
+   > in this checkout — `data/ledger.jsonl` does not exist and the dogfood store
+   > is drafts. Step 2's answer is exactly as unknown as when this was written.
+   >
+   > What changed is that the two ways of getting it wrong are now closed, and
+   > one of them was worse than this memo said. The count warning above is
+   > handled: both numbers are printed, so the gap is visible rather than
+   > silently resolved in the reader's favour. On a chain where one person
+   > countersigned one pair three times — four entries, **two** distinct acts.
+   >
+   > The second way is not in this memo at all, and it would have made a zero
+   > unreadable. `add_pair` logs a countersignature only when `first and
+   > verifier and first != verifier`, so a chain with one reviewer **cannot**
+   > produce one. A zero from that chain is not evidence that reviewers decline
+   > to concur; it is evidence that nobody was asked. Had step 2 been run
+   > against a single-reviewer deployment and reported "no demand", it would
+   > have closed §1.4 on a number that could only ever have been zero. The tool
+   > separates the two verdicts by counting the distinct people who decided
+   > anything in the chain, which is a fact the chain already carries.
+
 3. **Do not ship weight decay.** Not in `weight`, not anywhere. If staleness is
    wanted before step 2 concludes, ship the *listing* — curator surfaces seals
    older than a configured age — which changes nothing about what is served and

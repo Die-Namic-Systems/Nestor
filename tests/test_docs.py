@@ -26,8 +26,18 @@ import pytest
 
 ROOT = pathlib.Path(__file__).parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
+#: Root-level markdown, plus the nested docs that carry operating rules rather
+#: than prose. `docs/agent-guide.md` is here because 263 lines moved out of
+#: `CLAUDE.md` into it, and a corpus built from `ROOT.glob("*.md")` alone
+#: silently stopped link-checking every one of them. Measured before the fix:
+#: the same broken link appended to `docs/agent-guide.md` left the suite green,
+#: and appended to `AGENTS.md` failed. The move also rewrote every relative link
+#: to `../`, so the change most likely to break a path was the one that left
+#: coverage.
 DOCS = {p.name: p.read_text(encoding="utf-8")
-        for p in ROOT.glob("*.md")} | {"bench/README.md": (ROOT / "bench" / "README.md").read_text(encoding="utf-8")}
+        for p in ROOT.glob("*.md")} | {
+    rel: (ROOT / rel).read_text(encoding="utf-8")
+    for rel in ("bench/README.md", "docs/agent-guide.md")}
 
 
 def slugify(heading: str) -> str:
