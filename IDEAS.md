@@ -5538,3 +5538,51 @@ The useful residue is negative and worth keeping: **there is no such thing as
 this operator's docstring rate.** What there is, is a rate per repository, which
 varies by a factor of five, and which the corpus can report per rung and should
 never average.
+
+### 6.72 The corpus reads Nestor, and finds it nearly unreadable — **measured**
+
+*Run 2026-08-06 against `willow-data-vault`, `willow-grove`, `Jeles`, `UTETY`,
+`corpus-lens` and **`nestor`** (created 2026-07-12 to 07-16), rung 29. Nestor is
+read at `master` (`1c88057`), the same as every other repository is read at its
+default branch — so this session's thirty entries are not in it.*
+
+| repository | rows | document coverage | docstring coverage |
+|---|---|---|---|
+| **nestor** | **870** | **2/28** | 862/1773 — 49% |
+| Jeles | 450 | 1/5 | 436/744 — 59% |
+| UTETY | 119 | 1/12 | 117/415 — 28% |
+| corpus-lens | 43 | 0/6 | 43/163 — 26% |
+| willow-grove | 28 | 2/6 | 5/16 — 31% |
+| willow-data-vault | 0 | 0/1 | — |
+
+**Two of twenty-eight.** Of Nestor's 870 rows, **862 come from Python** and
+eight from documents — four from `IDEAS.md` and four from `docs/releasing.md`.
+Silent: `README.md`, `CLAUDE.md`, `TODO.md`, `QUESTIONS.md`, both `FINDINGS-*`
+files, `docs/code-review-lessons.md`, and twenty more.
+
+`IDEAS.md` is 3,891 lines. `README.md` is 1,408. Together with `QUESTIONS.md`
+and the review lessons that is **5,673 lines of the densest argument in the
+entire corpus**, and it yields four rows — all four from one illustrative table
+inside §6.18, of the form ``supersede_pair`` → ``ValueError``.
+
+**This is §6.58's bias landing on the instrument itself, and it is worth stating
+without softening.** The repository whose entire subject is *"has a human checked
+this, and how would you know"* contributes almost nothing to a corpus of checked
+claims, because it makes its claims in sentences. Every lesson this exercise has
+produced — four wrong keys, a missing `--all`, an untested limitation, the
+withdrawal of three quantities — is written in prose that the machinery built to
+find such things cannot see.
+
+Not a paradox and not an indictment of either side. A precise statement of what
+the corpus is: **it holds what was written in a shape a machine can key on, and
+the most valuable thinking in these 105 repositories is not written that way.**
+That has been true since rung 1 and provable only now, because only Nestor could
+be measured against a full reading of what it actually contains.
+
+**The honest consequence for everything above.** Every rung's yield has been
+reported as a number of rows. Rung 29 shows the ratio that number bears to the
+underlying material is not stable, not knowable in advance, and — for the one
+repository where both sides can be inspected — about **1 row per 700 lines of
+prose against 1 row per 2 lines of code**. Row counts compare repositories to
+themselves over time, which is what rungs 18 and 25 used them for and where they
+work. They do not measure how much a repository knows.
