@@ -56,6 +56,15 @@ what moved.
   `license = { text = "Apache-2.0" }` table still built but is deprecated, and a
   packaging change is the cheap moment to stop carrying it.
 
+- `frank.WillowForwarder` reads `NESTOR_FRANK_APP_ID` before `WILLOW_APP_ID`
+  when choosing the seat to call as. `WILLOW_APP_ID` is client-scoped — one
+  value per shell for whatever seat that shell drives — so read first it
+  silently re-seated the forwarder: a fleet shell set up for the orchestrator
+  made Nestor call `frank_append` as `willow`, which willow-mcp refuses
+  outright, and a correctly seated Nestor stopped mirroring the moment the
+  fleet env was sourced. `WILLOW_APP_ID` still works on its own, so a seat
+  named only that way is unaffected. `docs/local-fleet.md`.
+
 ### Not changed, and named so nobody assumes otherwise
 
 - **No version bump.** `0.1.0` stands. What the first released version should be

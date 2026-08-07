@@ -22,7 +22,7 @@ from nestor.sqlite_store import SqliteStore
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
                      "NESTOR_CACHE_KEY", "NESTOR_LEDGER", "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
                      "NESTOR_GLOSSARY",
-                     "NESTOR_FRANK_STRICT",
+                     "NESTOR_FRANK_STRICT", "NESTOR_FRANK_APP_ID", "NESTOR_FRANK_PROJECT",
                      "WILLOW_MCP_COMMAND", "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
 
 
