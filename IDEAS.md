@@ -5100,3 +5100,47 @@ key.
 Which is, exactly, §6.22 and §6.55 again — a name is not an identifier — arriving
 for the third time, in the one place where getting it wrong would have
 misattributed another person's work to this operator.
+
+### 6.63 Three forks, and the largest delta the corpus has read — **measured**
+
+*Run 2026-08-06 against `smallcode`, `ghgrab` and `mcp-memory-service` (all
+created 2026-05-21), rung 20. Read together at the operator's request.*
+
+| fork | commits | files | rows | with a stated reason |
+|---|---|---|---|---|
+| smallcode | 2 | 2 | 34 | 2/2 |
+| ghgrab | 1 | 4 | 26 | 1/1 |
+| **mcp-memory-service** | **26** | **24** | **491** | 17/26 |
+
+`mcp-memory-service` is the largest fork contribution in the corpus by every
+measure, and it would have read as **zero** under the extractor as it stood four
+rungs ago. Twenty-six commits, of 2,865, on a repository whose tree is somebody
+else's — the delta rule and the `--all` fix between them are the entire reason
+those 491 rows exist rather than several thousand rows about the upstream
+author.
+
+**The identity vetting earned itself again, immediately.** A fifth namesake
+appears here — `Sean K <logikal@users.noreply.github.com>` — with one commit in
+`mcp-memory-service`. Not the operator, and correctly excluded, because §6.62
+settled that the identity is a set of *addresses*. Had the name-based widening
+gone in, this rung would have credited a stranger's commit to this chronology on
+its first run.
+
+**The first fork with enough commits for the reason-rate to mean anything:**
+17 of 26 commit messages carry a body beyond the subject — **65%**. Recorded as
+a single observation, not a rate. This file has now been burned twice by
+quantities asserted from too few points, and one fork is one point.
+
+**Second measurement of the split §6.49 nearly got wrong:**
+
+```
+mcp-memory-service   created here 10/22 (45%)   modified only 472/569 (83%)
+hermes-agent         created here  3/5  (60%)   modified only  17/21 (81%)
+```
+
+The blended figure would have been 482/591 — **82%** — and it is upstream's
+number both times. The two upstream columns agree closely (81%, 83%) and the two
+operator columns do not (60%, 45%), which is what a distribution looks like when
+one side is thousands of files by many hands and the other is twenty-six files
+by one. No claim is made from it. It is here so that when a third fork lands,
+there is something to compare against.
