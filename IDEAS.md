@@ -5823,3 +5823,58 @@ by the operator and three unreadable by the tooling. Recorded as a gap in the
 corpus rather than as an absence in the record: those three organisations have
 profiles, this corpus does not know what they say, and it should not be possible
 to read this file later and mistake one for the other.
+
+### 6.78 willow-mcp: a fourth persona schema, and twenty documents that exist twice — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-mcp` (created 2026-04-18), rung 33.
+Held since rung 7 as active production and read on the operator's instruction.
+**Its head is dated the day of this run** — the pin records one afternoon, which
+is what the hold was about and is now carried in 1,887 rows instead of avoided.*
+
+| shape | rows |
+|---|---|
+| docstring | 1,537 |
+| definitional tables | 296 |
+| rubric | 15 |
+| permission (`Tool` → required grant) | 11 |
+| state · persona · boundary · intent | 10 · 6 · 6 · 6 |
+| **total** | **1,887 draft, 0 sealed** |
+
+Docstring coverage 1,537/4,332 — 35%.
+
+**A fourth schema for describing an agent**, after three already met:
+
+| rung | schema |
+|---|---|
+| 1 · SAFE | `Domain` / `Voice` / `Function` / `Direction` |
+| 13 · app-store archive | `Lineage` / `Type` / `Core function` |
+| 21 · willow-config | `Register` / `Mandate` / `Namespace` |
+| 33 · willow-mcp | `Voice` / `Posture` / `Boundaries` |
+
+**`Voice` is the only field present in all four**, across seven months. Everything
+else was invented, used, and replaced. `Boundaries` is stored separately from the
+persona for §6.64's reason — a boundary and a description fail differently.
+
+**Twenty documents exist twice, and the counter found it.** Every shape reported
+`N rows from exactly 2N adds`: persona 6/12, boundary 6/12, permission 11/22,
+intent 6/12. The cause is that `skills/` and `docs/templates/` are **vendored
+into `src/willow_mcp/bundle/`** so the package ships its own documentation —
+20 of 126 markdown files are byte-identical pairs.
+
+Checked rather than assumed, because the interesting failure would be a stale
+copy: **every bundled copy is byte-identical to its source.** No drift. The
+vendoring is currently honest.
+
+That check exists only because §6.66 changed the load loop to print rows beside
+adds. Before that change this rung would have reported 12 personas and 22
+permissions — doubled counts, with nothing to indicate why — and the vendoring
+would have been invisible. **A reporting fix made three rungs ago found a
+structural fact about a repository it was not looking for**, which is the second
+time honest counting has paid out as discovery rather than as accuracy (§6.46
+was the first).
+
+**And the vendored copies are exactly what a later drift would break.** Twenty
+pairs, byte-identical today, maintained by a build step nobody re-runs by hand.
+The corpus now holds both sides; a future run that reports `12 rows from 12 adds`
+instead of `6 from 12` is reporting that a bundled copy has diverged, without
+anyone needing to think to look.

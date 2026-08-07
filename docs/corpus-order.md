@@ -18,7 +18,7 @@ anything is built on it.
 | repository | position by date | taken | why |
 |---|---|---|---|
 | `yggdrasil-training-data` | 5th (2026-04-15) | near the end | operator's decision — data archive |
-| `willow-mcp` | 7th (2026-04-18) | near the end | operator's decision — **active production** |
+| `willow-mcp` | 7th (2026-04-18) | **taken at rung 33** | held for active production; read on instruction, pin caveat carried in the rows |
 | `sean-data-vault` | 34th (2026-05-25) | near the end | operator's decision — data archive |
 | `mealie` | 98th (2026-08-01) | **excluded** | operator's decision — a fork taken to read, not to build on |
 | `litellm` | 12th (2026-04-23) | **excluded** | operator's decision — contribution never merged |
