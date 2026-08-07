@@ -5970,6 +5970,72 @@ the same reason 28,432 were at rung 34), and every binary.
 kept, not filtered — they surface in `compare.py` as `restated`, which is what
 an archive is *for*.
 
+### 6.81 The log, fed to the thing it is about — 119 claims, and a status the legend defines and nobody has ever used — **measured**
+
+*Run 2026-08-07 with `scripts/corpus/extract_ideas.py` over `IDEAS.md` at two
+refs — `origin/master` (`4f9b1f7`) and the corpus stack's tip (`e2632be`) —
+into a fresh store, `data/corpus/ideas.db`. Not a repository rung: the
+operator's instruction was "the whole log, and a fresh one."*
+
+**Why by hand.** §6.72 measured this file at four rows from 3,891 lines. The
+corpus cannot read its own findings, because they are prose and every shape the
+extractor knows requires a declared structure. So this extractor takes the one
+structure `IDEAS.md` really does declare — the `### N.N Claim — **status**`
+heading — and lifts four fields without interpreting any of them: the heading is
+the claim, the bolded status words are the verdict, the italic line each entry
+opens with is the reason, and the number goes in `origin`.
+
+Pulling the *argument* out of an entry's body would mean deciding what the prose
+meant, which is the line all thirty-five rungs refused to cross.
+
+```
+187 headings across two refs  ->  119 rows, 0 collisions
+  shared by both refs   68   (§1–§5's 29, plus §6.1–§6.39)
+  master only           10
+  stack only            41
+```
+
+**The 68 are the branch point, measured rather than assumed** — and not one of
+them collided, so no shared entry was silently edited on either side while the
+stack ran.
+
+**The key is the claim, never the number.** Ten numbers, §6.40 through §6.49,
+hold two different findings each: master kept writing entries while this stack
+wrote its own. That is §6.66's lesson at the scale of a file — a number
+identifies a slot, not a claim — and it is the reason the collision is *reported*
+here rather than resolved by renumbering. The claims never conflicted; only the
+labels did.
+
+**What the store found that reading top to bottom does not.** With the verdicts
+in a column instead of scattered across 6,011 lines:
+
+| status | entries | in the legend? |
+|---|---|---|
+| measured | 62 | yes |
+| shipped | 48 | yes |
+| open | 27 | yes |
+| *no status at all* | 9 | — |
+| verified | 2 | yes |
+| **partly** | 2 | **no** |
+| **blocked** | 1 | **no** |
+| **hypothesis** | **0** | **yes — with a definition** |
+
+`hypothesis` is defined at line 12 — *"Plausible, untested — do not cite as
+fact"* — used seven times in prose, and has never once tagged an entry. The
+status the vocabulary exists to isolate is the status nothing is ever filed
+under, while two statuses it does not offer carry three entries. All nine
+untagged entries are in §1–§5, which predate §6's tagging rule; §6 is 80 for 80.
+The rule holds exactly where it was declared and the vocabulary it declares is
+not the one in use.
+
+**The caveat, which is not small.** This is the one rung where the extractor
+reads its own author's output — "checked, not assumed" has no independent check
+here, and a claim of mine that was wrong arrives in the store still wearing the
+verdict I gave it. Several entries above are corrections of earlier ones
+(§6.61, §6.66, §6.59); the withdrawn versions are in this store too, as drafts,
+which is the only reason that is safe. Sealing one would put a known-false claim
+in the memory permanently. 119 draft, 0 sealed.
+
 ---
 
 ## The chronology, closed
