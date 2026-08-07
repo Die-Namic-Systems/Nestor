@@ -5300,3 +5300,53 @@ The repeats are SQL schema tables — `id → INTEGER PK` in **32** separate tab
 Not re-keyed here. Qualifying definition keys by their table heading would change
 every rung's rows, and the honest move at rung 23 is to record the fourth
 instance and decide the re-key deliberately rather than mid-batch.
+
+### 6.67 Four forks, and nine namesakes in one repository — **measured**
+
+*Run 2026-08-06 against `openclaw`, `kanon`, `commcare-nova` and `claudeclaw`
+(all created 2026-06-04), rung 24.*
+
+| fork | total commits | operator | files | rows |
+|---|---|---|---|---|
+| openclaw | **70,860** | 9 | 8 | 1 |
+| claudeclaw | 763 | 4 | 6 | 2 |
+| commcare-nova | 894 | 1 | 1 | 0 |
+| kanon | 43 | 1 | 3 | 1 |
+
+Twenty-six forks read; twenty-six carry operator commits.
+
+**`openclaw` is the strongest vindication the identity rule will get.** Its
+history holds **nine** author identities that a name-based match would have
+claimed for this operator:
+
+```
+J. Campbell <fork42@mac.com>          Sean McLellan <Oceanswave@…>
+Sean <sy1754222911@gmail.com>         Sean McLellan <oceanswave@clawdbot.lan>
+Sean Coley <sean@senza.work>          Sean Sun <1194458432@qq.com>
+clawSean <sean@openclaw.ai>           clawSean <seancrustacean@gmail.com>
+seans-openclawbot <seandai.apps@gmail.com>
+```
+
+One repository, nine strangers, and exactly one identity that is the operator.
+§6.61 fixed a missing `--all` that had been costing contributions; §6.62 rejected
+the obvious follow-up of matching names too, on the evidence of four namesakes
+across eleven forks. Here are nine more in a single checkout. **Had the name
+match gone in, this rung would have attributed a 70,860-commit project's
+contributors to one person** and the corpus would have said so with a straight
+face.
+
+**And openclaw is the sharpest case of the ratio the delta rule exists for.**
+Nine commits out of 70,860 — 0.013%. A tree extraction would have produced tens
+of thousands of rows about a large open-source project and filed them under this
+chronology at position twenty-four. The nine commits produce **one** row, because
+only one of them carries a body. That single row is the honest yield, and the
+distance between one row and tens of thousands is the entire argument of
+`docs/corpus-order.md` in a single number.
+
+**One observation against §6.65's reason-rate, deliberately not folded in.**
+`openclaw` is 1/9 — 11%, below the 40% floor §6.65 reported across 22 forks.
+Adding it moves the corpus figure from 75/102 to 76/111, and the floor claim
+("no fork below 40%") is now **false**. Recorded here rather than by editing
+§6.65: that entry's numbers were correct for the 22 forks it measured, and this
+is the twenty-third disagreeing. The claim was always about a sample and this is
+what a sample growing looks like.
