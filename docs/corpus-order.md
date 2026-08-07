@@ -21,6 +21,7 @@ anything is built on it.
 | `willow-mcp` | 7th (2026-04-18) | near the end | operator's decision — **active production** |
 | `sean-data-vault` | 34th (2026-05-25) | near the end | operator's decision — data archive |
 | `mealie` | 98th (2026-08-01) | **excluded** | operator's decision — a fork taken to read, not to build on |
+| `litellm` | 12th (2026-04-23) | **excluded** | operator's decision — contribution never merged |
 
 Two are **data archives rather than source** — a behavioural corpus and an
 operator archive of fleet snapshots and knowledge bases. Taking them late means

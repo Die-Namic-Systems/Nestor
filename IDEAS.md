@@ -5688,3 +5688,40 @@ counting them may drop a few of the operator's. Given that I have just been
 wrong once by inferring from what commits *look* like, the honest move is to
 leave it to the person who knows, and it stays excluded until they say
 otherwise.
+
+### 6.75 litellm dropped, and the record remembers three where the operator remembers one — **measured**
+
+*Excluded 2026-08-06 on the operator's instruction: "I think I had one
+contribution there, that never got merged." Store deleted, exclusion recorded in
+`docs/corpus-order.md`.*
+
+Dropping it also settles §6.74's open question — the 86 post-fork agent commits
+are moot — and it is the cheapest possible resolution: the only person who could
+adjudicate them removed the repository instead.
+
+**The instruction's premise does not match the history, and that is the finding.**
+The seven commits found under the operator's addresses sit on **three separate
+branches**:
+
+```
+feat/custom-finetuned-gguf-cookbook   3 commits, 2026-04-22 to 05-21
+fix/botocore-optional-import          2 commits, 2026-05-18
+pr-26307                              2 commits, 2026-05-19
+```
+
+Three attempts, not one. One of them carries *"fix: address PR review feedback
+on cookbook"*, so it was read by somebody before it stalled. Another carries a
+merge from `upstream/main`, so it was kept current for a while.
+
+**This is the first time in seventy-five entries that the corpus has contradicted
+the operator about their own work**, and it is exactly the case the whole
+exercise was built for — not a machine catching an error, but a record holding
+detail a person had no reason to keep. Two of three attempts left no trace in
+memory because neither landed. The one that did leave a trace is the one they
+still recall.
+
+Recorded and the exclusion stands. **The operator's instruction is not
+invalidated by the finding**: dropping a repository whose contributions never
+merged is a decision about what belongs in the corpus, and it survives the count
+being three rather than one. It is reversible in a single command if the three
+branches turn out to be worth keeping.
