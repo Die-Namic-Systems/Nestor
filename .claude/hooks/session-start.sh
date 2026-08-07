@@ -11,7 +11,7 @@
 # and the only layout that cannot be half-satisfied by system site-packages.
 set -euo pipefail
 
-# Local sessions manage their own .venv (see CLAUDE.md — Environment).
+# Local sessions manage their own .venv (see docs/agent-guide.md — Environment).
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi

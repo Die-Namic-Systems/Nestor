@@ -310,6 +310,7 @@ scripts/              dogfood, fleet-checkout, and two_instances.py — the expo
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
+docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
 FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued

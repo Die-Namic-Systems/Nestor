@@ -122,9 +122,44 @@ def test_the_builder_reads_the_repository_and_not_a_configured_path(monkeypatch)
 
 # --- the rule stays visible ------------------------------------------------
 
-@pytest.mark.parametrize("doc", ["CLAUDE.md", ".github/pull_request_template.md"])
+@pytest.mark.parametrize(
+    "doc",
+    ["CLAUDE.md", "docs/agent-guide.md", ".github/pull_request_template.md"],
+)
 def test_the_standing_rule_is_written_where_somebody_will_meet_it(doc):
-    """A rule only an agent's memory carries is a rule that lasts one session."""
+    """A rule only an agent's memory carries is a rule that lasts one session.
+
+    `CLAUDE.md` is back in this list on purpose. When the guide was split out it
+    was retargeted from `CLAUDE.md` to `docs/agent-guide.md` — necessary, since
+    the thin pointer no longer carried the string, but it swapped a *mechanical*
+    encounter for a voluntary one. `CLAUDE.md` is auto-loaded; the guide is
+    reached by choosing to follow a pointer, and the guide's own opening records
+    an agent who did not follow the pointers. Both, then: the file that is read
+    by construction and the file that holds the rule in full.
+    """
     text = (ROOT / doc).read_text(encoding="utf-8")
     assert "docs/dogfood/decisions" in text, (
         f"{doc} does not mention where decisions go")
+
+
+def test_the_thin_pointer_still_points():
+    """`CLAUDE.md` forwards to the guide, and nothing else checked that it does.
+
+    Measured on the split: replacing `CLAUDE.md` with three lines naming neither
+    file left the whole suite green. The chain is auto-load -> pointer -> guide,
+    and the only mechanically enforced link in it was the auto-load — landing on
+    a file whose entire job is to forward. An edit that drops the forward breaks
+    the chain in silence, and the file that says *do not duplicate policy here*
+    is exactly the one nobody thinks to test.
+
+    The assertion is on the **link form**, not on the filename appearing. The
+    first version checked `target in text` and stayed green when the markdown
+    link was replaced by the words "the guide", because `CLAUDE.md` names the
+    file again further down in prose. A mention is not a pointer, and this test
+    is named for the pointer.
+    """
+    text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    for target in ("docs/agent-guide.md", "AGENTS.md"):
+        assert f"]({target})" in text, (
+            f"CLAUDE.md has no markdown link to {target} — it is the one file "
+            f"an agent is made to read, so a pointer that has rotted is silent")
