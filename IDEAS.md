@@ -5350,3 +5350,60 @@ Adding it moves the corpus figure from 75/102 to 76/111, and the floor claim
 §6.65: that entry's numbers were correct for the 22 forks it measured, and this
 is the twenty-third disagreeing. The claim was always about a sample and this is
 what a sample growing looks like.
+
+### 6.68 Two before-and-after pairs: a redaction verified complete, and a docstring diff that turns out to be a question — **measured**
+
+*Run 2026-08-06 against `willow-1.9-local-archive-20260608` and
+`safe-app-store` (both 2026-06-08), rung 25. Each is the counterpart of a
+repository already read, which makes this the first rung that is entirely
+comparison.*
+
+**Pair one: `willow-1.9` public, against the private pre-cleanup archive.**
+
+```
+in both: 1,340    answers differing: 0    public only: 0    archive only: 1
+```
+
+One thousand three hundred and forty rows identical, and the archive holds
+**exactly one thing the public repository does not**:
+`tools/nest_watcher.py::_send_commit_alert`. The file exists in both; the
+function does not. What it does is read a legal-matter manifest — case number,
+session date, file count, summary — and broadcast it to a channel.
+
+So the cleanup removed one function, and it was the function handling legal case
+data. **The corpus can now say a redaction was complete**, not by trusting it but
+by diffing 1,341 rows and finding the single difference to be the one that should
+be there. That is a use for this thing nobody designed it for, and it is the most
+directly valuable output of twenty-five rungs.
+
+**Pair two: the app store archive (2026-04-26) against the live repository
+(2026-06-08).**
+
+```
+archive 1,023 rows · live 2,472
+in both 969   answers differing 38   live only 1,503   archive only 54
+```
+
+Six weeks, and the store more than doubled. Thirty-eight docstrings changed. One
+of them, checked rather than reported:
+
+> `apps/the-squirrel/db/fragments.py::init_schema`
+> *archive:* "Create fragments, tree_branches, **fragment_lattice_cells**. Idempotent."
+> *live:* "Create fragments, tree_branches. Idempotent."
+
+A table vanished from the sentence. Checked in the code: `fragment_lattice_cells`
+goes from **7 mentions and a `CREATE TABLE` to zero**. The docstring did not rot —
+it tracked a real removal, exactly.
+
+**And that is the finding, because rung 18 looked identical and was not.**
+There, `route_file` lost "Raises FileNotFoundError if src doesn't exist" while the
+behaviour stayed. Same signature — a docstring gets shorter between two snapshots
+— and opposite meanings: one is documentation decaying, the other is
+documentation keeping up.
+
+**A docstring diff is a question, not an answer.** The corpus surfaces it, and
+resolving it takes reading the code. Every one of the 38 is currently unresolved,
+and reporting them as "drift" would be exactly the §6.42 error at a new altitude:
+a signal that is evidence of *something happened here* being written up as
+evidence of *something went wrong here*. Thirty-eight questions is a genuinely
+useful output. Thirty-eight findings would have been a lie.
