@@ -5725,3 +5725,54 @@ invalidated by the finding**: dropping a repository whose contributions never
 merged is a decision about what belongs in the corpus, and it survives the count
 being three rather than one. It is reversible in a single command if the three
 branches turn out to be worth keeping.
+
+### 6.76 The late-July batch, and three kinds of nothing — **measured**
+
+*Run 2026-08-06 against `oakenscrolls-office`, `safe-app-common-package`,
+`terpsi-music`, `rudi193-cmd/.github`, `Forge` and `quick-stupids` (created
+2026-07-23 to 08-02), rung 31.*
+
+| repository | rows | document coverage | docstring coverage |
+|---|---|---|---|
+| terpsi-music | 677 | 7/55 | 637/1045 — 61% |
+| oakenscrolls-office | 53 | 1/1 | 45/135 — 33% |
+| safe-app-common-package | 14 | 0/1 | 14/37 — 38% |
+| rudi193-cmd/.github | 0 | 0/6 | — |
+| quick-stupids | 0 | 0/5 | — |
+| **Forge** | 0 | 0/0 | — |
+
+`terpsi-music` is the second-largest single-repository yield outside the willow
+line, and its 61% docstring coverage is the highest measured anywhere.
+
+**Three repositories return zero, and they are three different things.** The
+corpus has been reporting `0 rows` as one outcome for thirty rungs; here the
+distinction becomes unavoidable:
+
+| | | |
+|---|---|---|
+| `.github` | 6 documents, none keyed | **prose** — community health files, all sentences |
+| `quick-stupids` | 5 documents, none keyed | **prose** — the same |
+| `Forge` | **0 documents, 0 files** | **empty** — created 2026-08-02, never populated |
+
+`Forge`'s coverage line reads `0/0`, and that is not the same statement as
+`0/6`. One says *nothing here was in a shape I could read*; the other says
+*there was nothing here*. A denominator of zero is the only honest way to write
+the second, and it only exists because coverage is reported as a fraction rather
+than a percentage — a formatting choice made at rung 4 for a different reason
+that turns out to carry the distinction for free.
+
+**A fourth kind of nothing, from earlier, now has a name.** Rungs 9–15 reported
+`0 rows` for forks with no *operator* commits — a fourth case, meaning *there was
+plenty here and none of it was yours*. So `0` has meant four different things
+across this exercise:
+
+```
+nothing existed          Forge
+nothing was keyable      .github, quick-stupids, willow-data-vault
+nothing was yours        the fork zeroes (all since corrected — §6.61)
+nothing reached the store  the duplicate skills of §6.44
+```
+
+The fourth is the dangerous one, because it is the only one where the number is
+wrong rather than merely terse — and it is the one that took nine rungs and a
+missing `--all` to find.
