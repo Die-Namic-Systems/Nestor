@@ -4779,3 +4779,49 @@ and a commit that changes one file.
 The one forward-looking note is unchanged from §6.51 and still unanswered: the
 delta is selected by a single author email with a name match as a second check.
 Four zeroes now rest on that assumption.
+
+### 6.58 willow-tech-manual: 23 rows from 46 documents, and the bias the corpus has been carrying all along — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/willow-tech-manual` (created 2026-05-12),
+rung 16. Public. A Mintlify documentation site written as a **workshop manual** —
+`03-fault-diagnosis`, `appendix-c-torque-settings`,
+`12-carburation-and-fuel-system` — with no Python at all.*
+
+```
+23 pair(s): 23 draft, 0 sealed
+coverage: 4/46 document(s) produced at least one row
+```
+
+**Four of forty-six.** The lowest coverage of any rung, and the rows it did
+produce are a file-layout table: `docs/introduction/` → *"Chapter 1 —
+orientation and map"*. The manual's actual content — how to diagnose a fault,
+what torque to use, what to do when the thing will not start — produced nothing.
+
+**This is a bias the corpus has had since rung 1 and has only now been forced to
+notice.** Every shape it knows keys on a *declared* structure: a table header, a
+field label, front matter, a docstring, a commit message. Prose that carries its
+meaning in sentences is invisible. Thirteen rungs of increasing yield made that
+look like competence, when much of it was the repositories happening to be
+schema-heavy.
+
+The honest statement of what this corpus is: **not a memory of what the operator
+knows, but a memory of what the operator wrote down in a shape a machine could
+key on.** Those are different sets and nothing until now has shown where they
+diverge. A 46-document manual that yields 23 rows shows it precisely.
+
+Worth separating from a quality judgement, twice over. The manual is not
+deficient — a workshop manual is *supposed* to be prose, and a torque figure in
+a sentence is not worse than a torque figure in a table. And the extractor is not
+broken; it declined 55 rows under ten headers and printed every one, which is how
+this is legible at all. The gap is between what the format can hold and what the
+document contains, and no amount of extractor work closes it. Only a different
+kind of reading would, and that reading would no longer be *checked, not
+inferred*.
+
+**Recorded rather than fixed.** The rule this project runs on is that a row
+exists only where a heading or a cell put it. Extracting claims from prose means
+inferring them, which is the line every rung so far has refused to cross. So the
+finding stands as a limit: coverage numbers per rung have been measuring the
+repositories' formatting habits at least as much as the extractor's reach, and
+§6.45's *"only coverage detects omission"* now needs a companion — **coverage
+detects omission only within what the format can express.**
