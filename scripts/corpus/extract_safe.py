@@ -30,27 +30,6 @@ from nestor.sqlite_store import SqliteStore                      # noqa: E402
 SKIP_HEADERS = {("field", "value"), ("beat", "function")}
 
 
-def constraints(root: pathlib.Path) -> list[tuple]:
-    """``HS-*`` / ``GOV-*`` blocks: the constraint, and what happens on trigger."""
-    rows = []
-    for path in common.docs(root):
-        text = path.read_text(encoding="utf-8")
-        for heading, block in common.sections(text):
-            ident = heading.split(":")[0].strip()
-            if not ident.startswith(("HS-", "GOV-")):
-                continue
-            constraint = common.field(block, "Constraint")
-            # A stop states its commitment as a Response, or as Rules where the
-            # commitment is a list. HS-005 is shaped the second way.
-            target = common.field(block, "Response") or common.field(block, "Rules")
-            if not (constraint and target):
-                continue
-            trigger = common.field(block, "Trigger")
-            rows.append((f"{ident} — {constraint}", target,
-                         f"Trigger: {trigger}" if trigger else "", path, ident))
-    return rows
-
-
 def facets(root: pathlib.Path) -> list[tuple]:
     """Entries carrying the four-field schema: Domain, Voice, Function, Direction."""
     rows = []
@@ -98,7 +77,7 @@ def main() -> int:
     origin = provenance.Origin("safe", root, __file__)
     defs, declined = definitions(root)
     plan = [
-        ("constraint", constraints(root), "constraint", "constraint"),
+        ("constraint", common.constraints(root), "constraint", "constraint"),
         ("facet", facets(root), "facet", "facet"),
         ("definition", defs, "term", "term"),
     ]

@@ -149,6 +149,31 @@ def findings(root: pathlib.Path, only: set | None = None) -> list[tuple]:
     return rows
 
 
+def constraints(root: pathlib.Path, only: set | None = None) -> list[tuple]:
+    """``HS-*`` / ``GOV-*`` blocks: the constraint, and what happens on trigger.
+
+    Rung 1's shape, met again at rung 35 in an archive that carries copies of the
+    governance documents. Two repositories makes it the author's convention, the
+    same argument that moved `findings` at rung 5 and `rubric` at rung 6.
+    """
+    rows = []
+    for path in docs(root, only):
+        for heading, block in sections(path.read_text(encoding="utf-8")):
+            ident = heading.split(":")[0].strip()
+            if not ident.startswith(("HS-", "GOV-")):
+                continue
+            constraint = field(block, "Constraint")
+            # A stop states its commitment as a Response, or as Rules where the
+            # commitment is a list.
+            target = field(block, "Response") or field(block, "Rules")
+            if not (constraint and target):
+                continue
+            trigger = field(block, "Trigger")
+            rows.append((f"{ident} — {constraint}", target,
+                         f"Trigger: {trigger}" if trigger else "", path, ident))
+    return rows
+
+
 def rubric(root: pathlib.Path, only: set | None = None) -> list[tuple]:
     """``# | Check | Status | Notes`` — a check and the verdict it got.
 

@@ -5932,3 +5932,80 @@ curator can see them. Promoting them is a question for `nestor.ui`.
 That is the covenant doing real work rather than being quoted: the one rung where
 the machine had, in hand, 880 human decisions it could have written down as
 decisions, and did not.
+
+### 6.80 sean-data-vault, under an allowlist — and the chronology closes at 100 of 105 — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/sean-data-vault` (created 2026-05-25),
+rung 35, the last. A 2.4 GB personal archive, and the only rung read under an
+allowlist.*
+
+**The operator's premise was that it would be mostly duplicate. It is not.**
+
+```
+vault markdown files                      151
+byte-identical to something already read   29   (19%)
+found nowhere else in the corpus          122   (81%)
+```
+
+The duplication is real and it is in the 2.4 GB of Postgres dumps, Google Drive
+legacy and repository extras — not in the prose. So the question was never
+duplication; it was **category**. Every other rung extracted things the operator
+*declared*. This one holds things they *accumulated*: PDFs, images, Windows
+backups, a legacy Drive export.
+
+That is a judgement about someone's material, not about data, so it went to
+them. Taken: `personal-research`, `professional`, `willow-store`, `experiments`,
+`github-repo-extras`, `made-by-willow`. Left out and named rather than dropped:
+`provided-by-sean/stories`, `claude-code-sessions` (transcripts, declined for
+the same reason 28,432 were at rung 34), and every binary.
+
+| shape | rows |
+|---|---|
+| definitional tables | 135 |
+| docstring | 15 |
+| constraint | 5 |
+| **total** | **155 draft, 0 sealed** |
+
+632 rows under 116 headers declined and printed. The 29 known duplicates are
+kept, not filtered — they surface in `compare.py` as `restated`, which is what
+an archive is *for*.
+
+---
+
+## The chronology, closed
+
+| | |
+|---|---|
+| repositories in the list | **105** |
+| read | **100** |
+| excluded by the operator | 2 — `mealie`, `litellm` |
+| unreadable by the tooling | 3 — the private org `.github` profiles (§6.77) |
+| **rows** | **18,924 across 99 stores** |
+| **sealed** | **0** |
+
+```
+keys in more than one repository: 2,427
+  drift 336 · two kinds 149 · restated 2,088
+```
+
+**Zero sealed rows, after thirty-five rungs.** Not one row in eighteen thousand
+claims a human checked it, because not one has. The queue at `nestor.ui` is
+where that changes, and it has never been opened. That is the covenant surviving
+contact with a corpus large enough to make breaking it convenient — including at
+rung 34, where 880 of the operator's own recorded rejections were held as drafts
+rather than written down as decisions.
+
+**What the exercise actually produced.** Not a memory of what the operator knows
+— §6.72 measured that against the one repository where both sides could be
+inspected and found roughly 1 row per 700 lines of prose against 1 per 2 lines
+of code. What it produced is a record of *what was written in a shape a machine
+could key on*, plus a list of the ways a machine gets that wrong:
+
+- five strings that looked like identifiers and were not (§6.42, §6.47, §6.55, §6.66, §6.79)
+- one flag that turned eleven contributions into zeroes (§6.61)
+- one limitation named and left untested for four rungs (§6.51 → §6.61)
+- three quantities asserted from too few points and withdrawn (§6.48 → §6.59)
+- one counter that reported adds as rows for twenty rungs (§6.66)
+
+Every one was found by a mechanism built to report what it refused, rather than
+by anybody being careful.
