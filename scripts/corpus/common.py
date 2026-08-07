@@ -67,12 +67,31 @@ def frontmatter(text: str) -> dict[str, str]:
     if not lines or lines[0].strip() != "---":
         return {}
     out: dict[str, str] = {}
+    pending: str | None = None
+    folded: list[str] = []
     for line in lines[1:]:
         if line.strip() == "---":
             break
-        m = re.match(r"^([A-Za-z][\w-]*):\s*(\S.*)$", line)
-        if m:
-            out[m.group(1).lower()] = m.group(2).strip().strip("\"'")
+        if pending is not None:
+            # A block scalar's body is indented; anything at column 0 ends it.
+            if line.startswith((" ", "\t")) and line.strip():
+                folded.append(line.strip())
+                continue
+            out[pending] = " ".join(folded)
+            pending, folded = None, []
+        m = re.match(r"^([A-Za-z][\w-]*):\s*(.*)$", line)
+        if not m:
+            continue
+        key, value = m.group(1).lower(), m.group(2).strip()
+        if value in (">", ">-", "|", "|-"):
+            # Folded/literal block scalar. Skipping these cost rung 17 every
+            # skill it had: the value is a plain string, just written across
+            # lines, and refusing it is not the same caution as refusing a list.
+            pending, folded = key, []
+        elif value:
+            out[key] = value.strip("\"'")
+    if pending is not None and folded:
+        out[pending] = " ".join(folded)
     return out
 
 
@@ -250,6 +269,29 @@ def unclaimed(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None 
     return out
 
 
+def skills(root: pathlib.Path, only: set | None = None) -> list[tuple]:
+    """``SKILL.md`` front matter: the skill's name and what it is for.
+
+    Present in four of the operator's own repositories, which is the bar this
+    corpus uses for a shape belonging in `common` rather than in one extractor.
+    Rung 3 met 26 of them and got a bespoke reader; rung 17 met four written with
+    folded block scalars and got none at all until `frontmatter` learned to read
+    those, which is the only reason this is here rather than still repo-specific.
+    """
+    rows = []
+    for path in sorted(root.rglob("SKILL.md")):
+        if ".git" in path.parts:
+            continue
+        if only is not None and path.resolve() not in only:
+            continue
+        fm = frontmatter(path.read_text(encoding="utf-8"))
+        name, desc = fm.get("name"), fm.get("description")
+        if not (name and desc and len(desc) > 8):
+            continue
+        rows.append((name, desc[:600], "SKILL.md front matter", path, name))
+    return rows
+
+
 def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None = None):
     """The four shapes every repository in this corpus has turned out to carry.
 
@@ -265,6 +307,7 @@ def standard(root: pathlib.Path, defn_keys=DEFAULT_DEFN_KEYS, only: set | None =
     symbols, defined = docstrings(root, only)
     plan = [
         ("docstring", symbols, "symbol", "docstring"),
+        ("skill", skills(root, only), "skill", "description"),
         ("rubric", rubric(root, only), "check", "verdict"),
         ("finding", findings(root, only), "finding", "fix"),
         ("definition", definitions(root, defn_keys, only), "term", "term"),

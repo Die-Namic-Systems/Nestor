@@ -4572,6 +4572,11 @@ before a cleanup, so it holds things the live repository may not.*
 | persona (name → what it is for) | 9 |
 | **total** | **1,012 draft, 0 sealed** |
 
+> **Corrected at rung 17 (§6.59): 1,023, not 1,012.** `SKILL.md` front matter
+> became a shared shape once it had appeared in four of the operator's
+> repositories, and this one holds eleven such rows that the run did not then
+> claim.
+
 Document coverage 25/150; docstring coverage 805/2,712 — **30%**, a fifth point
 below the band §6.48 already had to be corrected for. 506 rows under 74 headers
 declined and printed.
@@ -4825,3 +4830,62 @@ finding stands as a limit: coverage numbers per rung have been measuring the
 repositories' formatting habits at least as much as the extractor's reach, and
 §6.45's *"only coverage detects omission"* now needs a companion — **coverage
 detects omission only within what the format can express.**
+
+### 6.59 tui-scaffold: four skills invisible to a parser choice, and the docstring ratio finally withdrawn — **measured**
+
+*Run 2026-08-06 against `rudi193-cmd/tui-scaffold` (created 2026-05-12), rung 17.
+Private; structure and counts only.*
+
+| shape | drafts |
+|---|---|
+| docstring | 30 |
+| definitional tables | 10 |
+| skill (name → what it is for) | 4 |
+| **total** | **44 draft, 0 sealed** |
+
+Document coverage 6/16; docstring coverage 30/52.
+
+**The four skills were declared, and the extractor could not see them.** Their
+front matter writes the description as a folded block scalar:
+
+```yaml
+name: tui-layout-screens
+description: >-
+  Textual screen composition: when adding or refactoring screens, routing,
+  modal flows, or push_screen/pop_screen behavior in this repo.
+```
+
+`common.frontmatter` skipped every key whose value was not a scalar on one line —
+a deliberate choice, documented as refusing to half-read nested structures. But a
+folded scalar *is* a plain string; it is just written across lines. The caution
+was right about lists and wrong about this, and the cost was every skill in the
+repository reported as a silent document.
+
+That is a third variety of the same error. §6.42 and §6.47 were keys too coarse;
+§6.55 was a key too specific. This is a **reader too strict** — and like the
+others it failed silently, in the direction of confident under-reporting, and was
+caught only by the coverage line saying four `SKILL.md` files produced nothing.
+
+**The shape moved to `common.standard`** once counted across the clones: skills
+appear in four of the operator's own repositories (26 · 4 · 1 · 1). Rung 13 gains
+eleven rows as a result and **is corrected in place above: 1,023, not 1,012.**
+Rung 6 is unchanged — its single `SKILL.md` carries no `name`/`description` front
+matter at all.
+
+**And the docstring ratio is withdrawn, not weakened.** Seven measurements:
+
+```
+29 · 29.5 · 34.5 · 35 · 37 · 42 · 58
+```
+
+§6.48 claimed "roughly a third, and it does not move with scale" on three points.
+§6.52 corrected it to "between a third and two fifths" on four. Rung 17 is 58%
+and breaks that too. **There is no stable ratio.** The right response is not a
+third weakening — it is to stop making the claim and report the distribution.
+
+The pattern is worth keeping even though the claim is not: a quantity was stated
+at three observations, hedged at four, and abandoned at seven, while the one
+*form* the corpus asserted at three — the `### P1:` convention — has held through
+seven rungs without a single exception. Forms recur or they do not. Quantities
+have distributions, and this project has now paid twice to learn that three
+points do not describe one.
