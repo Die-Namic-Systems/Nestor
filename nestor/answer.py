@@ -56,7 +56,102 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
         except ImportError as exc:
             raise ValueError(str(exc)) from exc
     raise ValueError(f"unknown matcher {name!r} — the shipped matchers are "
-                     f"{', '.join(MATCHERS)}; a custom one is injected in code.")
+                     f"{', '.join(MATCHERS)}; a custom one is named "
+                     f"'module:attribute' (see load_matcher).")
+
+
+def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
+                 persist: bool = True) -> Optional[Matcher]:
+    """A shipped matcher by name, or a custom one by ``'module:attribute'``.
+
+    ``ui.App`` can be handed a matcher because a host constructs it in Python.
+    ``nestor serve`` and ``nestor ask`` cannot: they *are* the process, so there
+    is no earlier moment at which a host could call ``memory.set_matcher()``, and
+    a name off a command line cannot conjure a class nobody shipped. That left a
+    custom domain unable to use either surface at all — a model asking over MCP
+    got ``pending`` for a phrase a human had just sealed through the fixed UI.
+    IDEAS §6.41; this is the half §6.40 did not reach.
+
+    So a spec containing ``:`` is an import path::
+
+        nestor serve --matcher acme.incidents:SERIALS      # a module attribute
+        nestor ask   --matcher acme.incidents:SerialMatcher  # or a callable
+
+    The attribute may be a ready matcher or something callable that returns one;
+    a class is the common case and is called with no arguments. Whatever comes
+    back must offer ``normalize`` and ``similarity``, and is refused here if it
+    does not — a matcher that fails the seam at the first *query* fails it after
+    the operator has already been told the server started.
+
+    ``"string"`` returns ``None``, not a ``StringMatcher``: None means "defer to
+    the process-wide matcher", which is what a host that installed one is
+    entitled to expect, and constructing one here would silently override it.
+
+    **This imports and runs the module named.** That is the same authority the
+    command line already has — an operator who can pass this flag can pass
+    ``python -c`` — so it is not a new privilege, but it is the reason the spec
+    is a flag and never a value read from a request, a bundle or a stored row.
+    """
+    spec = (spec or "").strip()
+    if not spec or spec == "string":
+        return None
+    if ":" not in spec:
+        return build_matcher(spec, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
+
+    module_name, _, attr = spec.partition(":")
+    if not module_name or not attr:
+        raise ValueError(
+            f"matcher {spec!r} is not a usable import path — it wants "
+            f"'module:attribute', e.g. 'acme.incidents:SERIALS'")
+    import importlib
+    # Every failure below becomes a ValueError naming the spec, because every
+    # caller of this function turns a ValueError into "refusing to start: …" and
+    # anything else into a traceback. The list of ways this can go wrong is long
+    # and dull — a class whose __init__ takes arguments, a leading dot, a module
+    # that raises at import, a syntax error, a factory that throws — and the
+    # first of those is the single most likely mistake a user makes with this
+    # feature. Catching only ImportError meant the common case tracebacked out
+    # of a stdio server, which is a broken pipe to whatever launched it.
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as exc:
+        raise ValueError(
+            f"cannot import {module_name!r} for matcher {spec!r}: "
+            f"{type(exc).__name__}: {exc}") from exc
+    try:
+        found = getattr(module, attr)
+    except AttributeError as exc:
+        raise ValueError(f"{module_name!r} has no attribute {attr!r}") from exc
+
+    # A class or factory is the common case; a module-level instance is the other.
+    #
+    # `isinstance(found, type)` rather than "does it look like a matcher yet":
+    # a *class* already has `normalize` and `similarity` as attributes — they are
+    # the unbound functions — so duck-typing here silently accepts the class
+    # itself and every later call arrives one argument short.
+    if isinstance(found, type) or (callable(found)
+                                   and not hasattr(found, "normalize")):
+        try:
+            found = found()
+        except Exception as exc:
+            raise ValueError(
+                f"calling {spec} to build a matcher raised "
+                f"{type(exc).__name__}: {exc}") from exc
+    # Re-asked after the call, not only before it: a factory that returns the
+    # class rather than an instance lands here still a class, with `normalize`
+    # present as an unbound function, and would pass the seam check below only
+    # to fail at the first query — which is the exact failure this validation
+    # exists to move forward to startup.
+    if isinstance(found, type):
+        raise ValueError(
+            f"{spec} produced the class {found.__name__} rather than an "
+            f"instance of it — a factory has to return a built matcher")
+    missing = [m for m in ("normalize", "similarity") if not callable(getattr(found, m, None))]
+    if missing:
+        raise ValueError(
+            f"{spec} is not a Matcher — the seam is normalize(value) and "
+            f"similarity(a_norm, b_norm), and this is missing: {', '.join(missing)}")
+    return found
 
 
 def _candidate(m: dict) -> dict:
@@ -235,17 +330,36 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
     }
 
 
-def resolve(store: Storage, surface: str, domain: str = "entity") -> dict:
-    """Alias → canonical entity, with the same three answers the cascade gives."""
+def resolve(store: Storage, surface: str, domain: str = "entity",
+            matcher: Optional[Matcher] = None) -> dict:
+    """Alias → canonical entity, with the same three answers the cascade gives.
+
+    ``matcher`` reaches both halves, and it has to, because this function used to
+    use **two** in one response: the verdict came from ``EntityResolver`` (which
+    hardcodes ``StringMatcher`` when given none) while ``candidates`` came from
+    ``memory.lookup`` with no matcher at all — the process-wide one. With a
+    custom matcher installed, one payload could carry ``verified: False`` beside
+    a candidate scoring ``1.0``, which is two answers to one question.
+
+    Passing it also stops a server that was *told* how its domain is keyed from
+    contradicting itself: ``nestor_ask`` honoured the matcher and
+    ``nestor_resolve`` did not, so a model got "no human verified this mapping"
+    for a mapping a human had sealed.
+    """
     if not surface.strip():
         raise ValueError("nothing to resolve")
-    result = EntityResolver(store, domain=domain).resolve(surface)
+    resolver = EntityResolver(store, domain=domain, matcher=matcher)
+    result = resolver.resolve(surface)
     result["domain"] = domain
     result["verified"] = bool(result.get("sealed"))
+    # `resolver.matcher`, not `matcher`: it is the one the verdict above was
+    # reached with, including the StringMatcher default when none was given, so
+    # the two halves of this payload cannot disagree about what a match is.
     result["candidates"] = [
         {**_candidate(m), "surface": m["pair"]["source_text"],
          "canonical": m["pair"]["target_text"]}
-        for m in memory.lookup(surface, domain, domain, limit=5, store=store)]
+        for m in memory.lookup(surface, domain, domain, limit=5, store=store,
+                               matcher=resolver.matcher)]
     result["threshold"] = memory.SEAL_THRESHOLD
     return result
 

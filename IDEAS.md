@@ -3755,7 +3755,7 @@ description that quotes a serial, where the three matchers produce three
 distinct keys. That is `CLAUDE.md`'s "a test that cannot fail", found in a test
 written to prove a gap, by the same session that had just read the rule.
 
-### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **answered for `nestor ui`, open for `serve`/CLI**
+### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **answered, everywhere**
 
 *The other half of §6.40, and the reason it went unfound for so long: the two
 desks in `demo/two_desks.py` hit the identical bug and only one of them notices.*
@@ -3808,17 +3808,61 @@ The first option is not taken: promoting `score()` to the seam would break every
 matcher written against the documented two, to fix a problem that turned out to
 be the caller's, not the seam's.
 
-**Still open at `nestor serve` and `nestor ask`**, and this correction is owed to
-an audit that caught the first version of this paragraph claiming the whole
-question closed. Neither surface has a matcher field: `serve.Server.call` reaches
-`answer.ask` with none, `nestor_match` takes a name only, and `cli.cmd_ask` does
-the same. Both are launched as processes, so `memory.set_matcher()` is not
+**Was still open at `nestor serve` and `nestor ask`** — a correction owed to an
+audit that caught the first version of this paragraph claiming the whole question
+closed. Neither surface had a matcher field: `serve.Server.call` reached
+`answer.ask` with none, `nestor_match` took a name only, and `cli.cmd_ask` did
+the same. Both are launched as *processes*, so `memory.set_matcher()` was not
 reachable either, and unlike `ui.App` neither is usefully constructible as a
 library object with one injected. So a model asking over MCP, or an operator at
-the terminal, still gets `pending` for a phrase a human sealed through the fixed
-UI — and a matcher without `score()` still loses its seals on those two paths,
-which is precisely the load-bearing-optional-method situation this entry names.
-The honest status is per-surface, and the header now says so.
+the terminal, got `pending` for a phrase a human had sealed through the fixed UI.
+
+**Closed 2026-08-07 by `answer.load_matcher`.** The missing piece was never a
+flag — `nestor ui --matcher` already existed and took shipped names, which is
+exactly the thing that cannot name a custom matcher. What a process needs is a
+*spec*:
+
+```bash
+nestor serve --matcher acme.incidents:SERIALS     # a module attribute
+nestor ask   --matcher acme.incidents:SerialMatcher   # a class, or a factory
+nestor ui    --matcher acme.incidents:SERIALS     # the same spec, same loader
+```
+
+Measured end to end over real stdio MCP, one sealed row keyed `CH4471`, the same
+question asked twice:
+
+| | |
+|---|---|
+| `nestor serve` (no `--matcher`) | `verified: False`, state **pending** |
+| `nestor serve --matcher acme_incidents:SERIALS` | `verified: True`, state **sealed** |
+
+`Server` gains `matcher` and the same `domain_matcher()` rule `ui.App` learned
+the hard way — the server's matcher for the server's domain, and nothing else,
+because every tool takes per-call domain tags. `nestor_match` refuses a name that
+disagrees with what is in force and honours one that agrees, matching the browser
+surface; a model is less able than a human to notice a confidently wrong answer.
+`nestor_propose` needs nothing: it writes a segment, not a pair, so it keys
+nothing (pinned by a test, so a future change that starts keying is noticed).
+
+**The loader imports and runs the module named**, which is why the spec is a flag
+and never a value read from a request, a bundle or a stored row. It is the same
+authority the command line already has — an operator who can pass this flag can
+pass `python -c` — so it is not a new privilege, but the boundary is worth
+stating rather than assuming. It also validates: something that is not a matcher
+is refused at load time, because a seam failure at the first *query* arrives
+after the operator has been told the server started.
+
+So `score()` is now optional on every surface, which is what this entry asked
+for. "Every" was checked rather than assumed, and an audit found two it had
+missed: `nestor_resolve` (which honoured nothing while `nestor_ask` beside it
+honoured the matcher, so one server gave two answers about one row) and `nestor
+calibrate --matcher`, still restricted to shipped names — the one tool
+`memory.py` tells you to measure a threshold with, unusable by anyone who had
+just followed this entry's advice to ship a custom matcher. Both take the spec
+now. The epistemic point stands and is the reason to keep reading it: **a defect
+that spares whoever implemented more than the documentation asked, and bites
+whoever implemented exactly what it asked, is invisible to the person who wrote
+the documentation** — they are the most likely to have done more.
 
 What stays true, and is the part worth keeping this entry for: **the guarantee
 was riding on an optional method, and that is why nobody found it.** A defect

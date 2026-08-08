@@ -48,6 +48,49 @@ what moved.
 
 ### Fixed
 
+- **`nestor serve` and `nestor ask` can be told a custom matcher too**, which
+  closes the half of `IDEAS.md` §6.41 that §6.40's fix did not reach. Both are
+  launched as *processes*, so there is no earlier moment at which a host could
+  call `memory.set_matcher()`, and a shipped name off a command line cannot
+  conjure a matcher nobody shipped — so a custom domain could not use either
+  surface at all. Measured end to end over stdio MCP, on one sealed row: without
+  a matcher the model is told **pending** for a phrase a human sealed; with one
+  it gets the seal and the verifier's name.
+
+  `answer.load_matcher` takes a shipped name *or* `module:attribute` — a module
+  attribute, a class, or a factory — and `nestor serve`, `nestor ask`, `nestor
+  match` and `nestor ui` all take the same spec through the same loader. It
+  validates at load time — a spec that is not a matcher, a factory that returns a
+  class rather than an instance, a class whose `__init__` wants arguments, or a
+  module that raises on import all refuse to start with a message naming the spec
+  rather than failing at the first query or tracebacking out of a stdio server.
+  It **imports the module named**, which is the
+  same authority the command line already has; that is why it is a flag and never
+  a value read from a request, a bundle or a stored row. `serve.Server` gains
+  `matcher` and the same `domain_matcher()` rule `ui.App` learned: the server's
+  matcher for the server's domain and no other, because every tool takes per-call
+  domain tags. `nestor_match` refuses a name that disagrees with what is in force
+  and honours one that agrees — compared against the *spec*, because comparing
+  against the matcher's class name refused `numeric` on a server started
+  `--matcher numeric` while accepting `NumericMatcher`, and the tool schema
+  offers a model only the former. A shipped name also stays a name internally, so
+  per-call `abs_tol`/`pct_tol` still reach it; against a custom matcher, which
+  owns its own notion of nearness, they are refused rather than silently ignored.
+  `nestor_resolve` gets the matcher too — without it one server answered `sealed`
+  from `nestor_ask` and `unverified` from `nestor_resolve` for the same row — and
+  `answer.resolve` now scores its candidate list with the matcher that reached
+  the verdict instead of the process-wide one, so a payload can no longer carry
+  `verified: false` beside a candidate scoring 1.0. `nestor calibrate --matcher`
+  takes the spec as well: it is the tool `memory.py` tells you to measure with,
+  and it was the last flag that could not name a custom matcher.
+
+  Third-party code now runs inside `nestor serve`, so the import happens with
+  stdout redirected to stderr: a `print()` in a matcher module would otherwise
+  land in front of the JSON-RPC handshake and most hosts drop the connection.
+
+  `ui --matcher` is no longer restricted to `choices=answer.MATCHERS`, which had
+  made a custom matcher unnameable at the one surface that could already take one.
+
 - **`nestor ui` can be told the matcher that keys its domain.** A domain is its
   tags *and* its matcher; the surface took only the tags, so every decision a
   human made through it — seal, seal-in-place, reject-match, queue seal and
@@ -74,9 +117,8 @@ what moved.
   The audit trail was correct throughout, which is the part worth sitting with: a
   hash chain cannot catch a true record of an answer nobody can reach.
   `IDEAS.md` §6.40, and §6.41 — which asked whether the optional `score()` should
-  become mandatory — is answered by this *for `nestor ui`* rather than by
-  promoting the method. It stays open for `nestor serve` and `nestor ask`, which
-  still have no way to be told a matcher at all.
+  become mandatory — is answered by this rather than by promoting the method,
+  and finished by the `--matcher` spec entry above.
 
   **The first version of this fix shipped three defects of its own**, found by an
   adversarial audit before merge and fixed here. They are listed because two of
