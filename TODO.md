@@ -38,7 +38,10 @@ file no longer a secret and change the deployment story considerably.
   not its matcher, so `/api/import` can land rows in a key space the destination
   never computes; domain tags compare with exact string equality, so a
   capitalisation typo silently falls back instead of refusing; and
-  `add_pair`'s race retry drops `reason=`. All measured, none fixed.
+  `add_pair`'s race retry drops `reason=`. The third **shipped** (the retry now
+  forwards `reason`, regression in `test_findings_2026_08_07_deferred.py`); the
+  first two remain measured and unfixed — each carries a design choice §6.92
+  declined to make, not a clean bug.
 * **An erasure path.** There is no `memory_delete`, deliberately — deletion
   punches a hole in a hash chain by construction. It has to be *designed against*
   the ledger (tombstones plus documented re-anchoring, or key destruction for

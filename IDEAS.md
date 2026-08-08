@@ -6861,14 +6861,24 @@ consequences for a store that may hold two domains differing only in case. The
 alternative is to refuse a near-miss rather than fall back. Either is better than
 the current silence, and neither is free.
 
-**3. `memory.add_pair`'s race retry drops `reason=`.**
+**3. `memory.add_pair`'s race retry drops `reason=`. — shipped**
 
 At `memory.py:475-480`, the retry taken when a concurrent insert wins the race
-re-calls itself without forwarding `reason`, so a seal that loses that race
-silently loses its recorded rationale and skips the `memory_set_reason` refusal
+re-called itself without forwarding `reason`, so a seal that lost that race
+silently lost its recorded rationale and skipped the `memory_set_reason` refusal
 path. Pre-existing and unrelated to the matcher work; noticed while reading that
 function because the §6.40 fix now depends on it forwarding `matcher=`, which it
 does correctly.
+
+Fixed by adding `reason=reason` to the retry call. The regression is in
+`tests/test_findings_2026_08_07_deferred.py`: the race is made deterministic by
+lying to the first `memory_find` so the seal takes the insert path and collides
+with a draft already in the store — the exact window the retry exists for. On
+retry it upgrades that draft to a seal, and its `reason` must ride along. The
+test was run against the unfixed revision first and observed to fail (the sealed
+row came back with an empty `reason`). Findings 1 and 2 remain **open** — each
+carries a design choice this entry declined to make, and neither is a clean bug
+fix the way this one was.
 
 ---
 
