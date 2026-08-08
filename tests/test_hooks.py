@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import json
+import pathlib
+import subprocess
 
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
 from hooks.hook_runner import _emit_before_mcp
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
 
 
 def test_fleet_mcp_is_blocked_in_cursor_shape():
@@ -57,3 +61,33 @@ def test_cursor_mcp_deny_keeps_permission_dialect(capsys):
     out = json.loads(capsys.readouterr().out)
     assert out["permission"] == "deny"
     assert out["agent_message"] == "agent msg"
+
+
+def _run_hook(payload: dict) -> dict:
+    """Drive the real wrapper end-to-end and return its parsed stdout JSON."""
+    done = subprocess.run(
+        [str(REPO / "hooks" / "nestor-hook"), "claude", "before_mcp"],
+        input=json.dumps(payload),
+        capture_output=True, text=True, cwd=REPO, timeout=60)
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def test_the_mcp_gate_denies_end_to_end():
+    """Through the real ``hooks/nestor-hook``, which the emit tests cannot cover.
+
+    The bug was that ``{"decision": "block"}`` alone was emitted, and
+    ``PreToolUse`` only honors ``hookSpecificOutput.permissionDecision`` — so the
+    gate degraded to advice and the fleet MCP call went through. Assert the
+    spelling that actually blocks lands on the wire, not just in the unit.
+    """
+    out = _run_hook({"tool_name": "mcp__willow-mcp__store_get", "tool_input": {}})
+    assert out["decision"] == "block"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def test_the_mcp_gate_allows_end_to_end():
+    out = _run_hook({"tool_name": "mcp__codebase-memory-mcp__search_graph",
+                     "tool_input": {}})
+    assert out["decision"] == "allow"
