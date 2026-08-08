@@ -6815,3 +6815,67 @@ could key on*, plus a list of the ways a machine gets that wrong:
 
 Every one was found by a mechanism built to report what it refused, rather than
 by anybody being careful.
+
+---
+
+### 6.92 Three findings from the §6.40/§6.41 audits that were deferred, and were living only in merged-PR prose — **measured**, fix **open**
+
+*Recorded 2026-08-07 at the end of the session that produced them. Each was
+found by an adversarial audit of PR #60 or #61, judged out of scope for the PR
+in hand, and written into that PR's "Out of scope" section. That is the wrong
+place: a merged pull request is not where this repo keeps its queue, and none of
+the three appeared in `IDEAS.md`, `TODO.md` or `QUESTIONS.md`. Filing them here
+is the whole of this entry — the analysis below is the auditors', reproduced so
+it survives the branch.*
+
+**1. The portable bundle carries a domain's tags and not its matcher.**
+
+`portable.import_bundle` trusts `row["source_norm"]` from the file and never
+renormalizes, which is **correct and must stay**: `signing.seal_is_valid`
+verifies against that norm, so recomputing it would invalidate every seal
+signature in transit. The gap is that nothing records or checks *which* matcher
+produced those norms. `export_bundle` filters on `source_lang`/`target_lang`
+only, `PAIR_FIELDS` has no matcher field, and `verify_bundle` requires
+`source_norm` without any provenance for it.
+
+So importing a `StringMatcher` bundle into a `SerialMatcher` domain with matching
+tags lands rows in a key space the destination will never compute, and reports
+`{"sealed": n}` with no warning — §6.40's symptom arriving through `/api/import`.
+This PR pair's own thesis is that *a domain is its tags **and** its matcher*; the
+portable format still models a domain as its tags alone.
+
+Shape of a fix: a bundle-level matcher label from `matcher_audit_fields`, plus
+warn-or-refuse on mismatch. It can only ever be a warning — that field is
+explicitly not a stable identifier — but a warning beats silence.
+
+**2. `_domain_matcher` compares domain tags with exact string equality.**
+
+`ui._domain_matcher` and `serve.Server.domain_matcher` both decide "is this
+request about my domain?" with `==`. A caller sending `Incident` against a
+surface configured `incident` falls back to the process-wide matcher and answers
+`pending` rather than refusing — the §6.40 failure, reachable by a capitalisation
+typo, and silent in the same way.
+
+Not obviously a bug fix: case-folding tags is a behaviour change with its own
+consequences for a store that may hold two domains differing only in case. The
+alternative is to refuse a near-miss rather than fall back. Either is better than
+the current silence, and neither is free.
+
+**3. `memory.add_pair`'s race retry drops `reason=`.**
+
+At `memory.py:475-480`, the retry taken when a concurrent insert wins the race
+re-calls itself without forwarding `reason`, so a seal that loses that race
+silently loses its recorded rationale and skips the `memory_set_reason` refusal
+path. Pre-existing and unrelated to the matcher work; noticed while reading that
+function because the §6.40 fix now depends on it forwarding `matcher=`, which it
+does correctly.
+
+---
+
+**Why this entry exists at all, which is the part worth keeping.** Both audits
+were run deliberately and both found real defects; the failure was afterwards.
+"Out of scope" written in a PR body reads like a decision and behaves like a
+deletion — the PR merges, the prose stops being anybody's inbox, and the finding
+is gone from every surface a future session would search. The rule that follows:
+a finding deferred is a finding filed, in the queue this repo actually keeps, in
+the same change that defers it.
