@@ -247,3 +247,274 @@ def test_the_process_wide_matcher_is_still_honoured_when_no_flag_is_given(sealed
     finally:
         memory.set_matcher(was)
     assert isinstance(memory.get_matcher(), StringMatcher)
+
+
+# ── the wiring the flags actually go through ────────────────────────────────
+#
+# Found by audit: every test above either exercised `load_matcher` or handed a
+# Server a matcher in Python — both of which already worked. The user-visible
+# half (cmd_ask, cmd_match, serve.main) had NO coverage, and all three flags
+# could be made inert without a single test going red. These drive the entry
+# points, so deleting the wiring fails the build.
+
+def _cli_store(tmp_path, matcher, source=REPORT, target=ADJUDICATION):
+    from nestor import storage
+    cascade.set_ledger_path(tmp_path / "ledger.jsonl")
+    store = SqliteStore(str(tmp_path / "n.db"))
+    store.init_db()
+    store.memory_init()
+    storage.set_store(store)
+    memory.add_pair(source, target, DOMAIN, DOMAIN, status="sealed",
+                    verifier="ines", store=store, matcher=matcher)
+    return store
+
+
+def test_cmd_ask_honours_the_matcher_flag(tmp_path, seal_key, capsys):
+    from nestor import cli
+
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, SERIALS)
+    argv = ["--db", str(tmp_path / "n.db"), "--json",
+            "ask", RESTATED, "--from", DOMAIN, "--to", DOMAIN]
+
+    rc = cli.main(argv + ["--matcher", f"{__name__}:SERIALS"])
+    assert rc == 0, "nestor ask --matcher did not reach the seal"
+    assert '"verified": true' in capsys.readouterr().out.lower()
+
+    assert cli.main(argv) == 1, "the control must miss — otherwise this proves nothing"
+
+
+def test_cmd_match_honours_the_matcher_flag(tmp_path, seal_key, capsys):
+    from nestor import cli
+
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, SERIALS)
+    argv = ["--db", str(tmp_path / "n.db"), "--json",
+            "match", RESTATED, "--from", DOMAIN, "--to", DOMAIN]
+
+    assert cli.main(argv + ["--matcher", f"{__name__}:SERIALS"]) == 0
+    out = capsys.readouterr().out
+    assert '"normalized": "CH4471"' in out
+    assert cli.main(argv) == 1
+
+
+def test_cmd_match_still_reports_a_shipped_name_as_the_name(tmp_path, seal_key, capsys):
+    """`--matcher numeric --json` reported "NumericMatcher" for one release —
+    a machine-readable field changed in what was billed as a pure addition."""
+    from nestor import cli
+
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    from nestor import answer as _a
+    _cli_store(tmp_path, _a.build_matcher("numeric"), source="1000", target="ceiling")
+    cli.main(["--db", str(tmp_path / "n.db"), "--json", "match", "1000",
+              "--from", DOMAIN, "--to", DOMAIN, "--matcher", "numeric"])
+    assert '"matcher": "numeric"' in capsys.readouterr().out
+
+
+def test_cmd_match_still_honours_tolerances_for_a_shipped_matcher(tmp_path, seal_key, capsys):
+    from nestor import answer as _a, cli
+
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, _a.build_matcher("numeric"), source="1000", target="ceiling")
+    argv = ["--db", str(tmp_path / "n.db"), "--json", "match", "1500",
+            "--from", DOMAIN, "--to", DOMAIN, "--matcher", "numeric"]
+    assert cli.main(argv + ["--abs-tol", "1000"]) == 0, "abs_tol was not applied"
+    assert cli.main(argv) == 1
+
+
+def test_serve_main_hands_its_matcher_to_the_server(tmp_path, seal_key, monkeypatch):
+    """`serve.main` is the only place `--matcher` becomes a `Server.matcher`,
+    and nothing exercised it."""
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, SERIALS)
+    built = {}
+
+    real = serve.Server
+
+    def capture(**kwargs):
+        built.update(kwargs)
+        server = real(**kwargs)
+        server.run = lambda *a, **k: None      # do not take over stdio
+        return server
+
+    monkeypatch.setattr(serve, "Server", capture)
+    rc = serve.main(["--db", str(tmp_path / "n.db"), "--source-lang", DOMAIN,
+                     "--target-lang", DOMAIN, "--matcher", f"{__name__}:SERIALS"])
+    assert rc == 0
+    assert built["matcher"] is SERIALS, "--matcher never reached the Server"
+    assert built["matcher_spec"] == f"{__name__}:SERIALS", (
+        "the spec must survive, or a name that agrees gets refused")
+
+
+def test_serve_main_defaults_leave_the_server_deferring(tmp_path, seal_key, monkeypatch):
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, SERIALS)
+    built = {}
+    real = serve.Server
+
+    def capture(**kwargs):
+        built.update(kwargs)
+        server = real(**kwargs)
+        server.run = lambda *a, **k: None
+        return server
+
+    monkeypatch.setattr(serve, "Server", capture)
+    serve.main(["--db", str(tmp_path / "n.db")])
+    assert built["matcher"] is None
+
+
+# ── what the first version of this change got wrong ─────────────────────────
+
+def test_a_shipped_name_that_agrees_is_honoured_on_a_shipped_server(sealed_store):
+    """The refusal compared against the matcher's CLASS name, so on a server
+    started `--matcher numeric` the tool schema offered `string|numeric|semantic`
+    and every one of them was refused, while `NumericMatcher` — advertised
+    nowhere — worked. A model reading the enum could not get a right answer."""
+    server = serve.Server(store=sealed_store, source_lang="fig", target_lang="fig",
+                          matcher=answer.load_matcher("numeric"),
+                          matcher_spec="numeric")
+    enum = [t for t in server.tools() if t["name"] == "nestor_match"][0][
+        "inputSchema"]["properties"]["matcher"]["enum"]
+    assert "numeric" in enum
+    out = server.call("nestor_match", {"text": "1000", "source_lang": "fig",
+                                       "target_lang": "fig", "matcher": "numeric"})
+    assert out["matcher"] == "numeric", "the name the model is told to send was refused"
+
+
+def test_tolerances_still_reach_a_shipped_server_matcher(sealed_store):
+    """`answer.match` can only apply abs_tol/pct_tol while it still has a NAME to
+    rebuild from. Handing it the object made them silently inert: the same call
+    on the same store answered True without --matcher and False with it."""
+    memory.add_pair("1000", "ceiling", "fig", "fig", status="sealed",
+                    verifier="rita", store=sealed_store,
+                    matcher=answer.build_matcher("numeric"))
+    server = serve.Server(store=sealed_store, source_lang="fig", target_lang="fig",
+                          matcher=answer.load_matcher("numeric"),
+                          matcher_spec="numeric")
+    args = {"text": "1500", "source_lang": "fig", "target_lang": "fig"}
+    assert server.call("nestor_match", {**args, "abs_tol": 1000})["served"] is True
+    assert server.call("nestor_match", args)["served"] is False
+
+
+def test_tolerances_are_refused_for_a_custom_matcher_rather_than_ignored(sealed_store):
+    """A custom matcher owns its own notion of nearness. Accepting a number that
+    changes nothing is the confident-wrong-answer shape this entry is about."""
+    server = serve.Server(store=sealed_store, source_lang=DOMAIN, target_lang=DOMAIN,
+                          matcher=SERIALS, matcher_spec=f"{__name__}:SERIALS")
+    with pytest.raises(ValueError, match="abs_tol and pct_tol"):
+        server.call("nestor_match", {"text": REPORT, "abs_tol": 5})
+
+
+def test_a_factory_that_returns_the_class_is_refused(tmp_path):
+    """The class-instantiation fix checked before the call and not after, so a
+    factory returning the class sailed through and failed at the first query —
+    which is exactly what load-time validation exists to prevent."""
+    mod = tmp_path / "returns_class.py"
+    mod.write_text(
+        "class M:\n"
+        "    def normalize(self, v): return str(v)\n"
+        "    def similarity(self, a, b): return 1.0\n"
+        "def factory(): return M\n", encoding="utf-8")
+    import sys
+    sys.path.insert(0, str(tmp_path))
+    try:
+        with pytest.raises(ValueError, match="rather than an instance"):
+            answer.load_matcher("returns_class:factory")
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("returns_class", None)
+
+
+def test_a_class_needing_constructor_arguments_is_refused_not_tracebacked(tmp_path):
+    """The most likely first mistake with this feature. It used to raise
+    TypeError straight out of main()."""
+    mod = tmp_path / "needs_args.py"
+    mod.write_text(
+        "class M:\n"
+        "    def __init__(self, threshold): self.t = threshold\n"
+        "    def normalize(self, v): return str(v)\n"
+        "    def similarity(self, a, b): return 1.0\n", encoding="utf-8")
+    import sys
+    sys.path.insert(0, str(tmp_path))
+    try:
+        with pytest.raises(ValueError, match="TypeError"):
+            answer.load_matcher("needs_args:M")
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("needs_args", None)
+
+
+def test_a_module_that_raises_at_import_is_refused_not_tracebacked(tmp_path):
+    mod = tmp_path / "explodes.py"
+    mod.write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+    import sys
+    sys.path.insert(0, str(tmp_path))
+    try:
+        with pytest.raises(ValueError, match="cannot import"):
+            answer.load_matcher("explodes:M")
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("explodes", None)
+
+
+def test_a_matcher_module_printing_does_not_corrupt_the_protocol_stream(tmp_path, seal_key, capsys):
+    """stdout is the JSON-RPC channel and the handshake has not happened yet, so
+    an ordinary print() in a user's matcher module would land in front of it and
+    most hosts drop the connection. This hazard did not exist before --matcher
+    could import third-party code."""
+    os.environ["NESTOR_SEAL_KEY"] = "test-key"
+    _cli_store(tmp_path, SERIALS)
+    mod = tmp_path / "chatty.py"
+    mod.write_text(
+        "print('loading acme matcher v2.1 ...')\n"
+        "class M:\n"
+        "    def normalize(self, v): return str(v)\n"
+        "    def similarity(self, a, b): return 1.0\n"
+        "MATCHER = M()\n", encoding="utf-8")
+    import sys
+    sys.path.insert(0, str(tmp_path))
+    capsys.readouterr()
+    try:
+        real = serve.Server
+        import unittest.mock as mock
+        with mock.patch.object(serve, "Server") as fake:
+            def capture(**kwargs):
+                s = real(**kwargs)
+                s.run = lambda *a, **k: None
+                return s
+            fake.side_effect = capture
+            serve.main(["--db", str(tmp_path / "n.db"), "--matcher", "chatty:MATCHER"])
+        captured = capsys.readouterr()
+        assert "loading acme matcher" not in captured.out, (
+            "a matcher module's print() landed on the JSON-RPC channel")
+        assert "loading acme matcher" in captured.err
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("chatty", None)
+
+
+def test_resolve_does_not_contradict_ask_on_the_same_server(sealed_store):
+    """One server, one domain, one sealed row: nestor_ask honoured the matcher
+    and nestor_resolve did not, so a model was told no human had verified a
+    mapping a human had sealed."""
+    server = serve.Server(store=sealed_store, source_lang=DOMAIN, target_lang=DOMAIN,
+                          matcher=SERIALS, matcher_spec=f"{__name__}:SERIALS")
+    asked = server.call("nestor_ask", {"text": RESTATED})
+    resolved = server.call("nestor_resolve", {"surface": RESTATED, "domain": DOMAIN})
+    assert asked["verified"] is True
+    assert resolved["verified"] is True, (
+        "nestor_resolve says unverified for what nestor_ask serves as sealed")
+
+
+def test_resolve_scores_its_candidates_with_the_matcher_that_reached_the_verdict(sealed_store):
+    """It used to use two: EntityResolver's for the verdict, the process-wide one
+    for `candidates`. One payload could carry verified=False beside a 1.0."""
+    was = memory.get_matcher()
+    memory.set_matcher(SERIALS)
+    try:
+        out = answer.resolve(sealed_store, RESTATED, DOMAIN)
+    finally:
+        memory.set_matcher(was)
+    top = max((c["similarity"] for c in out["candidates"]), default=0.0)
+    assert not (out["verified"] is False and top >= memory.SEAL_THRESHOLD), (
+        f"verified={out['verified']} beside a candidate scoring {top}")

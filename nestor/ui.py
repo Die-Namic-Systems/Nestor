@@ -61,6 +61,7 @@ curator "draft" has already lost the argument.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import ipaddress
 import json
 import os
@@ -559,7 +560,9 @@ def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, An
     surface = _str(payload, "surface")
     if not surface:
         raise ApiError(400, "nothing to resolve", code="bad_request")
-    return answer.resolve(app.store, surface, _str(payload, "domain") or "entity")
+    entity_domain = _str(payload, "domain") or "entity"
+    return answer.resolve(app.store, surface, entity_domain,
+                          matcher=_domain_matcher(app, entity_domain, entity_domain))
 
 
 def _entity_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -1149,8 +1152,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     # what a host that called memory.set_matcher() before launching this surface
     # is entitled to expect. Building one here would override that silently, and
     # substituting a matcher behind a host's back is the whole defect.
+    # `redirect_stdout` because this runs somebody else's module when the spec is
+    # an import path, and `--read-only` has to reach the matcher's constructor:
+    # `answer.match` can only forward `persist` on the name path, so a semantic
+    # matcher built here under --read-only must be built with persist=False or
+    # its embedding cache writes on a surface that promised not to.
     try:
-        chosen_matcher = answer.load_matcher(args.matcher)
+        with contextlib.redirect_stdout(sys.stderr):
+            chosen_matcher = answer.load_matcher(args.matcher,
+                                                 persist=not args.read_only)
     except ValueError as exc:
         print(f"refusing to start: {exc}", file=sys.stderr)
         return 2

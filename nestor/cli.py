@@ -124,19 +124,19 @@ def cmd_check(args) -> int:
 
 
 def cmd_match(args) -> int:
-    # `load_matcher` rather than the raw name: a custom domain's matcher cannot
-    # be named by one of the shipped words, and `nestor match` answering under
-    # StringMatcher for a domain keyed by something else is a confident wrong
-    # answer to the only question this command asks. None -> the process-wide
-    # default, which is what the bare `--matcher string` always meant.
-    loaded = answer.load_matcher(args.matcher, abs_tol=args.abs_tol,
-                                 pct_tol=args.pct_tol)
-    # None means "string", and this is a one-shot process where nothing could
-    # have called set_matcher() — so the name is exactly as correct here as the
-    # object, and passing it keeps the reported `matcher` field reading
-    # "string" the way every earlier release did.
+    # A bare shipped name goes through as the NAME, not as an object. Two
+    # reasons, one of them a regression this originally shipped: `answer.match`
+    # reports `matcher` back verbatim on the name path and as the class name on
+    # the object path, so `--matcher numeric --json` changed from "numeric" to
+    # "NumericMatcher" — a machine-readable field, altered in a release billed as
+    # a pure addition. And tolerances are only applied where a name can be
+    # rebuilt with them. An import spec has neither property and must be loaded.
+    chosen = args.matcher
+    if ":" in args.matcher:
+        chosen = answer.load_matcher(args.matcher, abs_tol=args.abs_tol,
+                                     pct_tol=args.pct_tol)
     result = answer.match(_store(args), args.text, args.source_lang, args.target_lang,
-                          matcher=loaded if loaded is not None else "string",
+                          matcher=chosen,
                           abs_tol=args.abs_tol, pct_tol=args.pct_tol)
     _emit(result, args.json,
           (f"✓ would be served  {result['target']}   (by {result['verifier']}, "
@@ -316,7 +316,16 @@ def cmd_ledger(args) -> int:
 def cmd_calibrate(args) -> int:
     """Where the threshold should sit for this corpus. See :mod:`nestor.calibrate`."""
     from . import answer, calibrate as calibrate_mod
-    matcher = answer.build_matcher(args.matcher, abs_tol=args.abs_tol, pct_tol=args.pct_tol)
+    # `load_matcher`, not `build_matcher`: `memory.py` tells a user to "measure
+    # with `nestor calibrate --matcher …` on your corpus before trusting serves
+    # at the shipped default", and this was the one --matcher flag in the package
+    # that still could not name a custom matcher — so anyone who followed this
+    # release's advice to ship one could not follow that advice to calibrate it.
+    # None (the `string` default) means the shipped StringMatcher here: this is a
+    # measurement of a named matcher, not a serve path that should defer.
+    matcher = (answer.load_matcher(args.matcher, abs_tol=args.abs_tol,
+                                   pct_tol=args.pct_tol)
+               or answer.build_matcher("string"))
     result = calibrate_mod.calibrate(
         _store(args), source_lang=args.source_lang, target_lang=args.target_lang,
         target_rate=args.target, sample=args.sample, seed=args.seed, matcher=matcher)
@@ -543,8 +552,7 @@ def build_parser() -> argparse.ArgumentParser:
     cal = sub.add_parser("calibrate",
                          help="where the seal threshold should sit for this corpus")
     domain_args(cal)
-    cal.add_argument("--matcher", default="string", choices=answer.MATCHERS,
-                     help="matcher to measure (default: string)")
+    cal.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     cal.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
     cal.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
     cal.add_argument("--target", type=float, default=0.01,

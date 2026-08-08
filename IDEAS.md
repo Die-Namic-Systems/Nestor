@@ -3853,7 +3853,13 @@ is refused at load time, because a seam failure at the first *query* arrives
 after the operator has been told the server started.
 
 So `score()` is now optional on every surface, which is what this entry asked
-for. The epistemic point stands and is the reason to keep reading it: **a defect
+for. "Every" was checked rather than assumed, and an audit found two it had
+missed: `nestor_resolve` (which honoured nothing while `nestor_ask` beside it
+honoured the matcher, so one server gave two answers about one row) and `nestor
+calibrate --matcher`, still restricted to shipped names — the one tool
+`memory.py` tells you to measure a threshold with, unusable by anyone who had
+just followed this entry's advice to ship a custom matcher. Both take the spec
+now. The epistemic point stands and is the reason to keep reading it: **a defect
 that spares whoever implemented more than the documentation asked, and bites
 whoever implemented exactly what it asked, is invisible to the person who wrote
 the documentation** — they are the most likely to have done more.

@@ -38,6 +38,7 @@ Stdlib only: MCP over stdio is newline-delimited JSON-RPC 2.0, which is a
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import sys
 from dataclasses import dataclass, field
@@ -72,6 +73,14 @@ class Server:
     target_lang: str = "es"
     engine_name: str = "offline"
     matcher: Optional[Matcher] = None
+    #: The spec ``matcher`` was built from, when it came from ``--matcher``.
+    #: Kept because throwing it away costs two things: a caller naming the same
+    #: shipped matcher the server is using gets refused (the tool schema offers
+    #: exactly those names, so the only value a conforming model can send is the
+    #: one that fails), and per-call tolerances stop working, because
+    #: ``answer.match`` can only apply them while it still has a *name* to
+    #: rebuild from. Both were live defects; see `_resolve_matcher`.
+    matcher_spec: str = ""
     read_only: bool = False
     client: str = "unknown-client"
     _initialized: bool = field(default=False, repr=False)
@@ -89,6 +98,49 @@ class Server:
         if source_lang == self.source_lang and target_lang == self.target_lang:
             return self.matcher
         return None
+
+    def _resolve_matcher(self, source_lang: str, target_lang: str, named: str,
+                         tolerances: bool = False) -> "str | Matcher":
+        """What `nestor_match` should score with, or a refusal saying why not.
+
+        Three things have to come out right at once, and the first version got
+        two of them wrong:
+
+        * A name that **agrees** with what is in force is honoured. The tool
+          schema offers `string | numeric | semantic`, so on a server started
+          with `--matcher numeric` those are the only values a conforming model
+          can send — and comparing against the matcher's *class* name refused
+          every one of them while accepting `NumericMatcher`, which is advertised
+          nowhere. Comparing against the spec fixes it.
+        * A shipped name resolves to the **name**, not the object, so
+          `answer.match` can still rebuild it with per-call `abs_tol`/`pct_tol`.
+          Passing the object made those arguments silently inert: the same call
+          on the same store answered `served: True` without `--matcher numeric`
+          and `served: False` with it.
+        * Tolerances that **cannot** be honoured are refused rather than ignored.
+          A custom matcher owns its own notion of nearness; accepting a number
+          that changes nothing is the confident-wrong-answer shape this whole
+          entry is about.
+        """
+        own = self.domain_matcher(source_lang, target_lang)
+        if own is None:
+            return named or "string"
+
+        spec = self.matcher_spec or matcher_audit_fields(own)["matcher"]
+        if named and named not in (spec, matcher_audit_fields(own)["matcher"]):
+            raise ValueError(
+                f"this server keys {source_lang!r}→{target_lang!r} with {spec!r}; "
+                f"it cannot score {named!r} as well")
+        # A shipped name is re-resolvable, so hand the name over and let
+        # `answer.match` apply the tolerances to a freshly built matcher.
+        if spec in answer.MATCHERS:
+            return spec
+        if tolerances:
+            raise ValueError(
+                f"this server keys {source_lang!r}→{target_lang!r} with {spec!r}, "
+                f"which defines its own notion of nearness — abs_tol and pct_tol "
+                f"cannot be applied to it")
+        return own
 
     # -- the tools --------------------------------------------------------
 
@@ -151,9 +203,10 @@ class Server:
                 "name": "nestor_match",
                 "description":
                     "The bare mechanic over any domain: normalize a value, score it against the "
-                    "sealed pairs, and report whether it would be served as verified. Use for a "
-                    "custom domain built on the string, numeric, or semantic matcher "
-                    "(semantic needs nestor[semantic]).",
+                    "sealed pairs, and report whether it would be served as verified. Omit "
+                    "`matcher` to score with whatever keys this domain — this server may have "
+                    "been given a matcher of its own, in which case naming a different one is "
+                    "refused rather than silently substituted.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"text": {"type": "string"}, **domain,
@@ -211,8 +264,14 @@ class Server:
                               engine_name=self.engine_name,
                               matcher=self.domain_matcher(sl, tl))
         if name == "nestor_resolve":
-            return answer.resolve(store, str(args.get("surface", "")),
-                                  str(args.get("domain") or "entity"))
+            # The entity domain is its own tag, so this gets the server's matcher
+            # only when the server was pointed at that domain. Without this the
+            # same server contradicted itself: nestor_ask honoured the matcher
+            # and nestor_resolve did not.
+            entity_domain = str(args.get("domain") or "entity")
+            return answer.resolve(store, str(args.get("surface", "")), entity_domain,
+                                  matcher=self.domain_matcher(entity_domain,
+                                                              entity_domain))
         if name == "nestor_check":
             return answer.check(store, str(args.get("label", "")),
                                 str(args.get("observed", "")),
@@ -220,30 +279,21 @@ class Server:
                                 abs_tol=float(args.get("abs_tol") or 0.0),
                                 pct_tol=float(args.get("pct_tol") or 0.05))
         if name == "nestor_match":
-            own = self.domain_matcher(sl, tl)
-            named = str(args.get("matcher") or "")
-            if own is not None:
-                # Same rule the browser surface applies: a name that agrees with
-                # what is in force is honoured, a name that disagrees is refused.
-                # Scoring a model's query under a different notion of similarity
-                # than the one that sealed the rows is a confident wrong answer
-                # to the only question this server is asked, and a model is less
-                # able than a human to notice.
-                if named and named != matcher_audit_fields(own)["matcher"]:
-                    raise ValueError(
-                        f"this server keys {sl!r}→{tl!r} with "
-                        f"{matcher_audit_fields(own)['matcher']!r}; it cannot "
-                        f"score {named!r} as well")
-                chosen: "str | Matcher" = own
-            else:
-                chosen = named or "string"
+            chosen = self._resolve_matcher(sl, tl, str(args.get("matcher") or ""),
+                                           tolerances=("abs_tol" in args
+                                                       or "pct_tol" in args))
             return answer.match(store, str(args.get("text", "")), sl, tl,
                                 matcher=chosen,
                                 abs_tol=float(args.get("abs_tol") or 0.0),
                                 pct_tol=float(args.get("pct_tol") or 0.05),
                                 # A match is a read. The semantic matcher would
                                 # like to cache its vectors, and --read-only did
-                                # not agree to that.
+                                # not agree to that. Honoured only on the name
+                                # path — an injected matcher was constructed by
+                                # the operator, who chose its persistence when
+                                # they built it (and `serve.main` builds one with
+                                # persist=False under --read-only for exactly
+                                # this reason).
                                 persist=not self.read_only)
         if name == "nestor_provenance":
             found = answer.provenance(store, str(args.get("pair_id", "")))
@@ -360,7 +410,15 @@ def describe(server: Server) -> str:
         "improvising). Prefer a sealed answer over your own; when nothing is sealed, "
         "say what is missing and offer nestor_propose so a human can verify it.\n"
         f"This server cannot {', '.join(WITHHELD)}. Verification is a human act, and "
-        "a model marking its own output as verified would empty the word."
+        "a model marking its own output as verified would empty the word.\n"
+        # Named here because nothing else tells a model what keys this domain,
+        # and nestor_match's `matcher` argument is otherwise a guess. The browser
+        # surface publishes the same fact via /api/state; this is serve's
+        # equivalent, and without it a refusal is unrecoverable rather than
+        # informative.
+        f"This server keys {server.source_lang!r}→{server.target_lang!r} with "
+        f"{matcher_audit_fields(memory.get_matcher(server.matcher))['matcher']!r}"
+        + (" (its own)." if server.matcher is not None else " (the default).")
     )
 
 
@@ -414,8 +472,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Resolved before the store is opened and before the stream does: a matcher
     # that cannot be loaded is a configuration problem, and a traceback out of
     # main() on a stdio server is a broken pipe to whatever launched it.
+    #
+    # `redirect_stdout` because this line runs somebody else's module. stdout is
+    # the JSON-RPC channel and the handshake has not happened yet, so an ordinary
+    # `print()` in a user's matcher module would land in front of it and most
+    # hosts drop the connection on a non-JSON line. This is a hazard the
+    # --matcher spec introduces — before it, no third-party code ran here — so
+    # the containment belongs at the point that introduced it. stderr is where
+    # this file already says human-facing output goes.
     try:
-        chosen_matcher = answer.load_matcher(args.matcher)
+        with contextlib.redirect_stdout(sys.stderr):
+            chosen_matcher = answer.load_matcher(args.matcher,
+                                                 persist=not args.read_only)
     except ValueError as exc:
         print(f"refusing to start: {exc}", file=sys.stderr)
         return 2
@@ -425,7 +493,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     storage.set_store(store)
     server = Server(store=store, source_lang=args.source_lang,
                     target_lang=args.target_lang, engine_name=args.engine,
-                    matcher=chosen_matcher, read_only=args.read_only)
+                    matcher=chosen_matcher, matcher_spec=args.matcher,
+                    read_only=args.read_only)
     # stdout is the protocol channel; anything human-facing goes to stderr or it
     # corrupts the stream.
     print(f"nestor MCP server on stdio — db={args.db} "
