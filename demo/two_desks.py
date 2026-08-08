@@ -47,35 +47,47 @@ Two desks, one package, two custom matchers. Both people confirm the only way
 anybody is allowed to: at ``nestor.ui``, because a machine may propose and may
 not confirm.
 
-What the two desks found
-------------------------
-**The surface can be aimed at a custom domain and cannot be told its matcher**
-(§6.40). ``nestor ui`` takes ``--source-lang`` and ``--target-lang``, so it
-points at ``incident``/``incident`` happily. There is no ``--matcher``, and
-``ui.App`` has no field for one. Every write the UI makes — seal, seal-draft,
-reject-match — therefore normalizes with the default ``StringMatcher``. So
-Ines's seal lands under a key her domain will never compute: a **second** row
-appears, the draft she was sealing stays a draft, and the next morning the same
-incident comes back **pending**. Her verification is in the store, signed, in the
-chain, and unreachable. Her recorded *no* goes the same way and the wrong match
-is still served.
+What the two desks found — and what closed it
+----------------------------------------------
+**The surface could be aimed at a custom domain and could not be told its
+matcher** (§6.40). ``nestor ui`` takes ``--source-lang`` and ``--target-lang``,
+so it pointed at ``incident``/``incident`` happily. There was no ``--matcher``
+and ``ui.App`` had no field for one, so every write the UI made — seal,
+seal-draft, reject-match — normalized with the default ``StringMatcher``. Ines's
+seal landed under a key her domain would never compute: a **second** row
+appeared, the draft she was sealing stayed a draft, and the next morning the
+same incident came back **pending**. Her verification was in the store, signed,
+in the chain, and unreachable. Her recorded *no* went the same way and the wrong
+match was served again.
 
-**And the desk next door is fine, for a reason nobody chose** (§6.41).
+**Fixed.** ``ui.App`` carries a ``matcher``, ``nestor ui`` takes ``--matcher``
+for the shipped ones, and it is threaded through every decision the surface
+makes — ``add_pair``, ``reject_match``, ``graduate_segment``, ``reject_segment``
+and the cascade behind ``/api/ask``. ``None`` still means "defer to the
+process-wide matcher", so nothing changes for a host that never had this problem.
+The beats below are unchanged and their outcomes are inverted: this fixture now
+runs green, and it is kept precisely because it asks the same questions it asked
+when the answer was no.
+
+**The desk next door was fine, for a reason nobody chose** (§6.41).
 ``DefectMatcher`` implements ``score(raw_a, raw_b)`` — documented as *optional* —
 and ``best_sealed`` prefers it, comparing raw text and never consulting the
-mismatched key. Ruaridh's seals work. The guarantee the README leads with is
-being held up, in his box, by a method the seam says he did not have to write.
-Ines wrote the seam as documented and lost it.
+mismatched key. Ruaridh's seals worked throughout. That is the half worth
+remembering: a defect that spares whoever implemented **more** than the
+documentation asked, and bites whoever implemented exactly what it asked, is a
+defect that stays invisible to the person who wrote the documentation. §6.41
+asked whether to make ``score()`` mandatory or to stop re-keying; §6.40's fix
+answers it by stopping the re-keying, which puts ``score()`` back to being the
+optimisation it is described as.
 
-**The rescue is real and it is process-wide.** ``memory.set_matcher()`` fixes
-this completely — one row, upgraded in place, served at 1.0. It is a module
-global, so one process can hold one matcher, and ``nestor ui`` has no hook that
-calls it at all. Two custom-matcher desks are two deployments, and that is a
-sentence nobody has had to write down before.
+**Two custom-matcher desks used to be two deployments.** ``memory.set_matcher()``
+fixed the keying completely and is a module global, so one process could hold her
+matcher or his, never both. Both desks now run in one interpreter, each keyed by
+its own, with the global untouched — beat 7 measures exactly that.
 
-The last beat is the one worth staying for: the finding the intake desk produced
-is the first thing in the review desk's queue, **as a draft**, because this
-script may propose and may not confirm.
+The last beat is the one worth staying for: what this fixture found goes into the
+review desk's queue **as a draft**, because this script may propose and may not
+confirm — including about the surface that covenant is enforced by.
 """
 from __future__ import annotations
 
@@ -210,8 +222,11 @@ def desk_a(workdir: pathlib.Path) -> tuple:
     store.init_db()
     store.memory_init()
     storage.set_store(store)
+    # `matcher=` is the field §6.40 was about not having. A domain is the tags
+    # AND the matcher; handing over only the tags is what filed her seals where
+    # she would never look.
     app = ui.App(store=store, source_lang=INCIDENT, target_lang=INCIDENT,
-                 db_path=str(root / "nestor.db"))
+                 matcher=SERIALS, db_path=str(root / "nestor.db"))
     return store, app, root
 
 
@@ -224,7 +239,7 @@ def desk_b(workdir: pathlib.Path) -> tuple:
     store.init_db()
     store.memory_init()
     app = ui.App(store=store, source_lang=DEFECT, target_lang=DEFECT,
-                 db_path=str(root / "nestor.db"))
+                 matcher=patch_review.MATCHER, db_path=str(root / "nestor.db"))
     return store, app, root
 
 
@@ -285,40 +300,44 @@ def main() -> int:
     say(f"HTTP {GREEN}{status}{OFF}. Sealed by {sealed.get('verifier')!r}. "
         f"It looks exactly like success.")
 
-    gap(sealed["id"] != draft["id"],
-        "sealing a draft through the UI writes a NEW row rather than upgrading it")
-    say("But the row she sealed is not the row she was reading:")
+    claim(sealed["id"] == draft["id"],
+          "sealing a draft through the UI upgrades that row rather than writing a new one")
+    claim(sealed["source_norm"] == draft["source_norm"],
+          "and the key her domain computed survives the seal")
+    say("And the row she sealed is the row she was reading:")
     say(f"   draft  id {draft['id'][:8]}…  key {draft['source_norm']!r}")
-    say(f"   sealed id {sealed['id'][:8]}…  key {sealed['source_norm'][:46]!r}")
-    note("add_pair recomputed the key from source_text with the DEFAULT matcher.")
-    note("ui.App carries source_lang and target_lang. It has no field for a matcher.")
+    say(f"   sealed id {sealed['id'][:8]}…  key {sealed['source_norm']!r}")
+    note("add_pair recomputes the key from source_text — with HER matcher, because")
+    note("ui.App now carries one. It used to carry only the two domain tags, and")
+    note("this beat is where that cost her the verification (§6.40, closed).")
 
     # ---------------------------------------------------------------- 3
-    beat(3, "The next morning, the same event, and her verification is gone")
+    beat(3, "The next morning, the same event, and her verification holds")
     say(f"{DIM}ward sister{OFF} {RESTATED}")
     say(f"Her matcher keys that to {BOLD}{SERIALS.normalize(RESTATED)!r}{OFF} — "
         f"the same incident.")
     again = memory.best_sealed(RESTATED, INCIDENT, INCIDENT, store=store_a,
                                matcher=SERIALS)
-    gap(again is None,
-        "a seal made through the UI is unreachable to the domain that made the draft")
-    say(f"Nestor: {AMBER}pending{OFF}.")
+    claim(again is not None,
+          "a seal made through the UI is reachable to the domain that made the draft")
+    say(f"Nestor: {GREEN}verified{OFF} — {again['pair']['verifier']!r}, "
+        f"{again['similarity']:.3f}.")
     exact = memory.best_sealed(REPORT, INCIDENT, INCIDENT, store=store_a,
                                matcher=SERIALS)
-    gap(exact is None,
-        "even the EXACT wording she sealed comes back pending")
-    say(f"And so does the exact sentence she sealed, {BOLD}word for word{OFF}.")
+    claim(exact is not None,
+          "and so does the exact wording she sealed")
+    say(f"And the exact sentence she sealed, {BOLD}word for word{OFF}, likewise.")
     say()
     say("What is actually in her store:")
     show_rows(store_a, INCIDENT)
     still = [r for r in rows(store_a, INCIDENT) if r["status"] == "draft"]
-    gap(len(still) == 1 and still[0]["id"] == draft["id"],
-        "the draft she sealed is still a draft, still queued")
-    note("Two rows for one incident: a signed seal under a key her domain never")
-    note("computes, and the draft she thought she had just retired.")
+    claim(not still, "the draft she sealed is retired, not still queued")
+    note("One row for one incident. This is the beat that used to show two: a")
+    note("signed seal under a key her domain never computed, and the draft she")
+    note("thought she had retired, still sitting in her queue.")
 
     # ---------------------------------------------------------------- 4
-    beat(4, "She says no, durably, and it is served anyway")
+    beat(4, "She says no, durably, and it stops being served")
     memory.add_pair(REPORT, ADJUDICATION, INCIDENT, INCIDENT, status="sealed",
                     verifier=INES, origin=ORIGIN, store=store_a, matcher=SERIALS,
                     reason="Sealed through the library so there is something to refuse.")
@@ -344,17 +363,18 @@ def main() -> int:
 
     after = memory.best_sealed(WRONG_FOR, INCIDENT, INCIDENT, store=store_a,
                                matcher=SERIALS)
-    gap(after is not None,
-        "a rejection recorded through the UI suppresses nothing in a custom domain")
-    say(f"Ask again: {RED}still served{OFF}.")
+    claim(after is None,
+          "a rejection recorded through the UI suppresses the match in a custom domain")
+    say(f"Ask again: {GREEN}not served{OFF}.")
     mine = memory.rejected_ids(SERIALS.normalize(WRONG_FOR), INCIDENT, INCIDENT,
                                store_a)
-    theirs = memory.rejected_ids(stored_key, INCIDENT, INCIDENT, store_a)
-    gap(mine == (set(), set()) and theirs != (set(), set()),
-        "the recorded no is real, and filed under a key the domain never computes")
-    note(f"rejected_ids under her key: {mine[0] or '{}'}, {mine[1] or '{}'} — nothing.")
-    note(f"Under the UI's key: {len(theirs[1])} target. The 'no' exists. It is "
-         f"filed where nobody asks.")
+    claim(mine != (set(), set()),
+          "the recorded no is filed under the key her domain actually asks with")
+    claim(stored_key == SERIALS.normalize(WRONG_FOR),
+          "and reject_match keyed the query with her matcher, not the default")
+    note(f"rejected_ids under her key: {len(mine[1])} target — the one she refused.")
+    note("This is the promise the README leads with, and the beat where it used to")
+    note("be void: the 'no' was real, signed, and filed where nobody asks.")
 
     # ---------------------------------------------------------------- 5
     beat(5, "The desk next door reviews the tool, and its seals work")
@@ -376,53 +396,57 @@ def main() -> int:
     say(f"HTTP {GREEN}{status}{OFF}, and asking again returns it: "
         f"{GREEN}verified{OFF}, {served['similarity']:.3f}, by "
         f"{served['pair']['verifier']!r}.")
-    note("Identical bug underneath — his row was re-keyed exactly like hers:")
     say(f"   his draft key  {prop['source_norm'][:46]!r}")
     say(f"   his sealed key {body_b['pair']['source_norm'][:46]!r}")
-    gap(prop["source_norm"] != body_b["pair"]["source_norm"],
-        "the review desk's key is rewritten too — it is simply survivable there")
+    claim(prop["source_norm"] == body_b["pair"]["source_norm"],
+          "the review desk's key is preserved too, for the same reason hers is")
+    note("His row used to be re-keyed exactly like hers. The difference was that")
+    note("his desk survived it, and beat 6 is why — which is the more interesting")
+    note("half, because it is what kept the defect out of sight.")
 
     # ---------------------------------------------------------------- 6
-    beat(6, "Why his desk survives it, which is not a thing anybody chose")
+    beat(6, "Why his desk survived it, which is why nobody found this sooner")
     say("DefectMatcher implements score(raw_a, raw_b). SerialMatcher does not.")
     say("best_sealed prefers score() when it is there, compares the raw texts,")
-    say(f"and {BOLD}never consults the key at all{OFF} — so a wrong key costs "
+    say(f"and {BOLD}never consults the key at all{OFF} — so a wrong key cost him "
         f"nothing.")
     claim(hasattr(patch_review.MATCHER, "score"), "DefectMatcher offers score()")
     claim(not hasattr(SERIALS, "score"), "SerialMatcher offers only the two methods")
+    claim(memory.uses_raw_score(patch_review.MATCHER)
+          and not memory.uses_raw_score(SERIALS),
+          "the two desks still differ on the optional third method")
     say()
     say("The seam, as the README documents it, is two methods. score() is the")
     say(f"{BOLD}optional{OFF} third. Ines implemented the documented seam and lost")
-    say("her seals; Ruaridh implemented one method more and kept his.")
-    gap(memory.uses_raw_score(patch_review.MATCHER)
-        and not memory.uses_raw_score(SERIALS),
-        "an optional method is what decides whether seals survive the UI")
-    note("This is the part to argue about rather than patch: either score() is")
-    note("not optional, or the UI must stop re-keying. §6.41 does not pick.")
+    say("her seals; Ruaridh implemented one method more and never noticed.")
+    say()
+    say(f"§6.41 asked which to change: make score() mandatory, or {BOLD}stop "
+        f"re-keying{OFF}.")
+    say("It did not pick. §6.40's fix picks: the UI keys with the domain's own")
+    say("matcher, so the two methods the README promises are enough again, and")
+    say("score() goes back to being what it says it is — an optimisation.")
+    note("Worth keeping the beat even though the gap closed: a defect that only")
+    note("bites the people who implemented exactly what was documented, and spares")
+    note("the ones who did more, is a defect that stays invisible to its author.")
 
     # ---------------------------------------------------------------- 7
-    beat(7, "The rescue exists, and it is one per process")
-    say("memory.set_matcher() fixes this completely — the UI's add_pair picks it")
-    say("up and the row is upgraded in place, at 1.0. Measured, not asserted:")
-    at_desk(root_a)
-    was_installed = memory.get_matcher()   # put back at the end of this beat
-    memory.set_matcher(SERIALS)
-    probe = memory.add_pair("Pump SN CH-9002 stalled mid-infusion.",
-                            "Motor stall, batch CH-9002, returned to Sheffield.",
-                            INCIDENT, INCIDENT, status="draft", origin=ORIGIN,
-                            store=store_a, matcher=SERIALS)
-    status, fixed = ui.dispatch(app_a, "POST", "/api/seal-draft", {},
-                                {"pair_id": probe["id"], "verifier": INES})
-    claim(fixed["pair"]["id"] == probe["id"],
-          "with the matcher installed process-wide, the UI upgrades the row")
-    claim(fixed["pair"]["source_norm"] == probe["source_norm"],
-          "and the key survives the seal")
-    say(f"   same row upgraded: {GREEN}yes{OFF}   key kept: "
-        f"{fixed['pair']['source_norm']!r}")
+    beat(7, "Two desks, one process, and each keyed by its own matcher")
+    say("The old rescue was memory.set_matcher() — a module global, so one process")
+    say("could hold her matcher or his, never both. Two custom-matcher desks were")
+    say("therefore two deployments, which is a sentence nobody had had to write.")
+    say()
+    say("The per-App matcher is what makes them one process again. Both desks are")
+    say(f"live right now, in {BOLD}this{OFF} interpreter, and the global is still "
+        f"the default:")
+    installed = memory.get_matcher()
+    claim(installed is not SERIALS and installed is not patch_review.MATCHER,
+          "neither desk had to install its matcher process-wide")
+    say(f"   process-wide matcher: {type(installed).__name__} — neither desk's")
+    say(f"   her surface keys with {type(app_a.matcher).__name__}")
+    say(f"   his surface keys with {type(app_b.matcher).__name__}")
 
     say()
-    say("But it is a module global, so it is her matcher or his, not both. He")
-    say("writes up her bug — quoting her serial, as anybody would:")
+    say("He writes up the bug she hit — quoting her serial, as anybody would:")
     at_desk(root_b)
     HIS_DEFECT = ("reject_match records query_norm with the default matcher, so "
                   "the CH4471 rejection never suppresses anything")
@@ -434,13 +458,39 @@ def main() -> int:
     stored = d_sealed["pair"]["source_norm"]
     say(f"{DIM}defect {OFF}{HIS_DEFECT[:60]}…")
     say(f"   his domain asks under  {patch_review.MATCHER.normalize(HIS_DEFECT)[:44]!r}")
-    say(f"   it was stored under    {BOLD}{stored!r}{OFF}")
-    gap(stored == SERIALS.normalize(HIS_DEFECT) != patch_review.MATCHER.normalize(HIS_DEFECT),
-        "with HER matcher installed, HIS defect is filed under a device serial")
-    say(f"His defect about her bug is filed under {BOLD}her device serial{OFF}.")
+    say(f"   it was stored under    {BOLD}{stored[:44]!r}{OFF}")
+    claim(stored == patch_review.MATCHER.normalize(HIS_DEFECT),
+          "his defect is filed by HIS matcher even though it names her device serial")
+    claim(stored != SERIALS.normalize(HIS_DEFECT),
+          "and not under the serial, which is what the global would have done")
+    say(f"Filed as a defect, {BOLD}not{OFF} as a device serial. The text contains "
+        f"both;")
+    note("which one it *means* is the matcher's question, and each desk now gets")
+    note("to answer it for itself. The global still works and is still there for a")
+    note("host running one domain — it is no longer the only way, or a ceiling.")
+
+    say()
+    say("The global rescue, still measured rather than assumed:")
+    at_desk(root_a)
+    was_installed = memory.get_matcher()   # put back at the end of this beat
+    memory.set_matcher(SERIALS)
+    plain = ui.App(store=store_a, source_lang=INCIDENT, target_lang=INCIDENT,
+                   db_path=str(root_a / "nestor.db"))
+    probe = memory.add_pair("Pump SN CH-9002 stalled mid-infusion.",
+                            "Motor stall, batch CH-9002, returned to Sheffield.",
+                            INCIDENT, INCIDENT, status="draft", origin=ORIGIN,
+                            store=store_a, matcher=SERIALS)
+    status, fixed = ui.dispatch(plain, "POST", "/api/seal-draft", {},
+                                {"pair_id": probe["id"], "verifier": INES})
+    claim(fixed["pair"]["id"] == probe["id"],
+          "an App with no matcher of its own still defers to the process-wide one")
+    claim(fixed["pair"]["source_norm"] == probe["source_norm"],
+          "and the key survives that seal too")
+    say(f"   same row upgraded: {GREEN}yes{OFF}   key kept: "
+        f"{fixed['pair']['source_norm']!r}")
     memory.set_matcher(was_installed)
-    note("Two custom-matcher domains are two processes, and therefore two")
-    note("deployments. Nothing in the package or the README says so.")
+    note("App.matcher=None means 'defer', not 'use StringMatcher' — so a host that")
+    note("installed one globally before launching the surface keeps what it set.")
 
     # ---------------------------------------------------------------- 8
     beat(8, "What the notified body asked for, and what the chains can show")
@@ -450,28 +500,35 @@ def main() -> int:
     say(f"Her chain holds {a_entries} entries, his {b_entries}, and they are "
         f"separate files.")
     say("Every entry in hers verifies. It records what she sealed and what she")
-    say("rejected. It is not wrong about anything.")
-    note("The audit trail is intact. What is broken is the serving path it")
-    note("describes — which is the failure mode a hash chain cannot catch, because")
-    note("nothing was tampered with. The record is true and the answer is missing.")
+    say("rejected, and now the serving path agrees with it.")
+    note("The chain was intact all along — that is the part worth remembering. What")
+    note("was broken was the serving path it described, and a hash chain cannot")
+    note("catch that: nothing had been tampered with. The record was true and the")
+    note("answer was missing, which is the one failure mode this product's own")
+    note("integrity guarantee is blind to by construction.")
 
     # ---------------------------------------------------------------- 9
     beat(9, "What this fixture is for")
     say("It is the first thing pointed at the Matcher seam from the human surface")
     say("rather than from the library, and the seam is the package's whole")
     say("extension story. Two desks because one would have hidden it: on")
-    say("Ruaridh's alone the bug is invisible, and on Ines's alone it reads as")
+    say("Ruaridh's alone the bug was invisible, and on Ines's alone it read as")
     say("her mistake.")
     say()
+    say(f"It now runs {BOLD}green{OFF}, and that is the point of keeping it. The")
+    say("beats did not change; the outcomes did. Every claim above is the same")
+    say("question this fixture asked when the answer was no.")
+    say()
     at_desk(root_b)
-    say(f"The finding goes into his queue the only way this script may put it "
+    say(f"The verification goes into his queue the only way this script may put it "
         f"there — {BOLD}as a draft{OFF}:")
     queued = patch_review.propose(
-        "nestor ui can be aimed at a custom domain and cannot be told its matcher, "
-        "so seal-draft and reject-match re-key with StringMatcher",
-        "Give ui.App a matcher field and a --matcher flag, and thread it through "
-        "every add_pair and reject_match the UI makes.",
-        reason="Found by demo/two_desks.py. IDEAS §6.40. Proposed, not decided.",
+        "nestor ui could be aimed at a custom domain and could not be told its "
+        "matcher, so seal-draft and reject-match re-keyed with StringMatcher",
+        "Fixed: ui.App carries a matcher and a --matcher flag, threaded through "
+        "every add_pair, reject_match and cascade call the UI makes.",
+        reason="Found and closed via demo/two_desks.py. IDEAS §6.40. This fixture "
+               "re-measures it on every run; a human still confirms.",
         origin=ORIGIN, store=store_b)
     claim(queued["status"] == "draft",
           "the fixture proposes the finding and does not seal it")

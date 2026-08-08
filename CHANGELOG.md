@@ -46,6 +46,69 @@ what moved.
   that. All three now report the damage — the CLI on stderr, so a script parsing
   stdout is unaffected. `IDEAS.md` §6.34.
 
+### Fixed
+
+- **`nestor ui` can be told the matcher that keys its domain.** A domain is its
+  tags *and* its matcher; the surface took only the tags, so every decision a
+  human made through it — seal, seal-in-place, reject-match, queue seal and
+  reject — was keyed with the process-wide default instead of the domain's own.
+  Measured consequence, on a domain keying incident reports to the device serial
+  they name: the human clicked seal, got a `200` and a valid signature, and the
+  row that became sealed was a **second** row under a key her domain never
+  computes. The draft she was sealing stayed queued, `best_sealed` for the exact
+  wording she sealed returned `None`, and her recorded rejection was filed where
+  nothing looks it up — so the wrong match was served again. Both promises this
+  README leads with, void for any domain that took the Matcher seam at its word.
+
+  `ui.App` now carries `matcher`, `nestor ui` takes `--matcher` for the shipped
+  ones, and it is threaded through every decision the surface makes, including
+  the cascade behind `/api/ask` (`translate_segment`, `translate_text`,
+  `graduate_segment` and `reject_segment` all accept `matcher=` now). `None`
+  still means *defer to the process-wide matcher*, so nothing changes for a host
+  that never had this problem. `/api/state` reports which matcher is in force and
+  where it came from — two surfaces keyed differently used to describe themselves
+  identically, which is what kept this invisible. `/api/match` refuses a named
+  matcher on a domain with its own rather than silently scoring under a different
+  notion of similarity.
+
+  The audit trail was correct throughout, which is the part worth sitting with: a
+  hash chain cannot catch a true record of an answer nobody can reach.
+  `IDEAS.md` §6.40, and §6.41 — which asked whether the optional `score()` should
+  become mandatory — is answered by this *for `nestor ui`* rather than by
+  promoting the method. It stays open for `nestor serve` and `nestor ask`, which
+  still have no way to be told a matcher at all.
+
+  **The first version of this fix shipped three defects of its own**, found by an
+  adversarial audit before merge and fixed here. They are listed because two of
+  them are the same mistake the fix was for, one level up:
+
+  - **`App.matcher` was applied to every request, including ones about another
+    domain.** `/api/reject-match` is shared by every recipe, so the Entity view's
+    reject started keying alias rejections with the *incident* domain's matcher —
+    a human's "no", recorded and signed, filed where `EntityResolver` never
+    looks. §6.40's own symptom, in the neighbouring recipe, caused by §6.40's fix.
+    A matcher now applies only to the domain it describes; anything else defers
+    to the process-wide default, which is what those recipes already used.
+  - **The refusal broke the browser.** `/api/match` rejected any named matcher on
+    a custom-matcher surface, and the Match view's picker is a `<select>` that
+    always sends a value — so the panel returned a 400 blaming the caller for a
+    field the page itself filled in. The page now shows the matcher's name
+    instead of a picker and sends no name; the API accepts a name that agrees
+    with the domain's matcher and refuses only a genuinely different one.
+  - **The threading stopped at tier 1.** `Engine.translate` had no matcher
+    parameter, so the shipped engines called `memory.lookup` with the
+    process-wide one: in a custom domain the offline engine matched nothing, and
+    every unsealed query landed `pending` and never entered the review queue.
+    `Engine.translate` now takes `matcher=`, widened the same way `store=` was
+    and tolerated the same way, so an engine written against the old signature
+    still works.
+
+  Also: `--matcher semantic` without the extra now refuses to start with a
+  message instead of a traceback (and before the store is opened), and the Ask
+  view shows which matcher is in force — the `/api/state` field added for that
+  purpose went one release with nothing rendering it, which is the same defect
+  one layer up.
+
 ### Changed
 
 - `nestor ledger verify` numbers lines from 1. It counted from 0 and reported

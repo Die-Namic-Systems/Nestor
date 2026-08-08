@@ -1,23 +1,27 @@
 """The two-desks fixture has to keep being true, in both directions.
 
-`demo/two_desks.py` makes two kinds of claim and this runs both. The ordinary
-ones — the review desk still serves the fix a human sealed, each desk keeps its
-own chain, the fixture proposes rather than seals — fail if somebody breaks the
-recipe seam. The other eight are claims that a **gap is still open**: sealing
-through `nestor.ui` writes a new row instead of upgrading one, the seal it makes
-is unreachable to the domain that drafted it, the draft stays queued, a recorded
-rejection suppresses nothing, and with a matcher installed process-wide one
-desk's keys are computed by the other desk's parser. Those fail when somebody
-closes the gap, which is the good outcome and still has to stop the build,
-because a demo narrating a gap that no longer exists is the same defect as one
-narrating a fix that never landed.
+`demo/two_desks.py` used to hold eight assertions that a **gap was still open**:
+sealing through `nestor.ui` wrote a new row instead of upgrading one, the seal it
+made was unreachable to the domain that drafted it, the draft stayed queued, a
+recorded rejection suppressed nothing, and with a matcher installed process-wide
+one desk's keys were computed by the other desk's parser. Its `gap()` helper
+failed the build when one of them *stopped* being true, on the argument that a
+demo narrating a gap somebody closed is the same defect as one narrating a fix
+that never landed.
 
-`IDEAS.md` §6.40 and §6.41 hold the arguments, and the fixture is what makes
-their measurements executable rather than quoted. Both were proven by mutation
-before commit — implementing the §6.40 fix (`ui.App.matcher`, threaded through
-`_seal`, `_seal_draft` and `_reject_match`) turns all eight gap assertions red;
-giving `SerialMatcher` the optional `score()` and touching nothing in the
-package turns §6.41's red along with the two that say her seals are lost.
+§6.40 is now closed, so all eight have flipped to ordinary `claim()`s of the
+correct behaviour and the fixture runs green. That is the outcome the `gap()`
+mechanism was built to force, and it worked: closing the fix without rewriting
+the narrative would have stopped this build.
+
+The beats are unchanged and the outcomes are inverted, which is why the fixture
+is kept rather than deleted — it asks the same questions it asked when the answer
+was no, so a regression puts the old answers back and this test says so. The two
+remaining `§6.41` claims are not a gap: `DefectMatcher` still implements the
+optional `score()` and `SerialMatcher` still does not, and the fixture records
+that this difference is what kept the defect invisible to the desk that had it.
+
+`IDEAS.md` §6.40 and §6.41 hold the arguments.
 
 Run as a subprocess: the script installs a process-wide store, ledger path and
 seal key, and is meant to be run that way.
@@ -48,14 +52,57 @@ def test_it_walks_the_beats_it_promises():
     out = run().stdout
     for beat in ("The intake desk, and a question nobody has adjudicated",
                  "She verifies it, at the only surface she is allowed to use",
-                 "the same event, and her verification is gone",
-                 "She says no, durably, and it is served anyway",
+                 "the same event, and her verification holds",
+                 "She says no, durably, and it stops being served",
                  "The desk next door reviews the tool, and its seals work",
-                 "Why his desk survives it",
-                 "The rescue exists, and it is one per process",
+                 "Why his desk survived it",
+                 "Two desks, one process, and each keyed by its own matcher",
                  "What the notified body asked for",
                  "What this fixture is for"):
         assert beat in out, f"missing beat: {beat}"
+
+
+def test_the_fixture_measures_the_thing_that_regressed():
+    """The outcomes, read out of the fixture's own printed evidence.
+
+    Written this way after an audit: the first version of this test asserted the
+    *absence* of the four sentences the fixture used to print. Every one of them
+    had been deleted from the script in the same commit, so no code path could
+    emit them and their absence was guaranteed by the diff rather than by the
+    fix — the exact pattern `nestor/answer.py` records as a past incident, four
+    dead negative assertions, reproduced in the change whose IDEAS entry
+    congratulates itself for catching vacuous tests.
+
+    So this asserts what the fixture *prints* instead, and each line only
+    appears when the thing it describes actually happened.
+    """
+    out = run().stdout
+    # Beat 2/3: the seal upgraded one row and the domain can reach it. The
+    # serial IS the key, printed from the row the surface wrote.
+    assert "sealed id" in out and "key 'CH4471'" in out, (
+        "the sealed row is not keyed by the domain's own matcher")
+    # Beat 3: served, not pending, for the restated wording.
+    assert "verified" in out and "Nestor: \033[33mpending\033[0m" not in out.split("3.")[1].split("4.")[0], (
+        "the restated incident came back pending — §6.40 has regressed")
+    # Beat 7: both desks live in one process with neither matcher installed globally.
+    assert "process-wide matcher: StringMatcher — neither desk's" in out
+    assert "her surface keys with SerialMatcher" in out
+    assert "his surface keys with DefectMatcher" in out
+
+
+def test_no_gap_assertion_survives_unnoticed():
+    """`gap()` fails the build when a gap closes. It now has no call sites, and
+    that is a fact worth pinning rather than leaving to a reader: if somebody
+    adds one back, it means they found a NEW gap, and this test tells them to
+    say so in IDEAS rather than leaving it in a fixture nobody re-reads."""
+    source = DEMO.read_text(encoding="utf-8")
+    calls = [ln for ln in source.splitlines()
+             if ln.lstrip().startswith("gap(")]
+    assert not calls, (
+        "demo/two_desks.py has gap() assertions again — a gap this fixture "
+        "reports is either newly found (write it up in IDEAS) or newly closed "
+        f"(rewrite the beat): {calls}")
+    assert "GAP CLOSED" not in run().stdout
 
 
 def test_it_says_it_is_fiction_before_it_says_anything_else(tmp_path):

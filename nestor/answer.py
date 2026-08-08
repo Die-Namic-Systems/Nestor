@@ -21,7 +21,7 @@ from typing import Optional
 from . import cascade, memory
 from .engine import get_engine
 from .entity import EntityResolver
-from .matcher import Matcher, NumericMatcher, StringMatcher
+from .matcher import Matcher, NumericMatcher, StringMatcher, matcher_audit_fields
 from .persona import Persona, get_persona
 from .reconcile import Reconciler
 from .storage import Storage
@@ -206,17 +206,22 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
 
 
 def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "es",
-        engine_name: str = "offline") -> dict:
+        engine_name: str = "offline", matcher: Optional[Matcher] = None) -> dict:
     """Run the cascade over one phrase: sealed, draft, or pending.
 
     Appends a passage to the ledger, exactly as any other serve does — an answer
     served without a trail is the thing Nestor exists to prevent, and neither a
     browser nor a model is an exception to that.
+
+    ``matcher`` must be the domain's own wherever one is in use. The cascade and
+    the candidate list below both key off it, and a read keyed differently from
+    the writes is how a sealed row stops being found (IDEAS §6.40).
     """
     if not text.strip():
         raise ValueError("nothing to ask")
     passage = cascade.translate_segment(
-        text, source_lang, target_lang, engine=get_engine(engine_name), store=store)
+        text, source_lang, target_lang, engine=get_engine(engine_name), store=store,
+        matcher=matcher)
     return {
         "passage": {"source": passage.source, "target": passage.target,
                     "state": passage.state, "mark": passage.mark, "tier": passage.tier,
@@ -224,7 +229,8 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
                     "meta": passage.meta},
         "verified": passage.state == "sealed",
         "matches": [_candidate(m) for m in
-                    memory.lookup(text, source_lang, target_lang, limit=5, store=store)],
+                    memory.lookup(text, source_lang, target_lang, limit=5, store=store,
+                                  matcher=matcher)],
         "threshold": memory.SEAL_THRESHOLD,
     }
 
@@ -262,12 +268,29 @@ def check(store: Storage, label: str, observed, domain: str = "value",
 
 
 def match(store: Storage, text: str, source_lang: str, target_lang: str,
-          matcher: str = "string", abs_tol: float = 0.0, pct_tol: float = 0.05,
-          persist: bool = True) -> dict:
-    """The bare mechanic over any domain: normalize, score, would it be served?"""
+          matcher: "str | Matcher" = "string", abs_tol: float = 0.0,
+          pct_tol: float = 0.05, persist: bool = True) -> dict:
+    """The bare mechanic over any domain: normalize, score, would it be served?
+
+    ``matcher`` is a shipped matcher's **name** when it came off a wire, or a
+    :class:`~nestor.matcher.Matcher` when the caller holds the domain's own. A
+    name cannot conjure a custom matcher, so a host serving a custom domain has
+    to be able to hand over the object — otherwise this endpoint answers "would
+    this be served?" under a different notion of similarity than the one that
+    sealed the row, which is a confident wrong answer to the only question
+    Nestor is asked (IDEAS §6.40).
+    """
     if not text.strip():
         raise ValueError("nothing to match")
-    m = build_matcher(matcher, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
+    if isinstance(matcher, str):
+        m = build_matcher(matcher, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
+        matcher_name = matcher
+    else:
+        m = matcher
+        # The same label the ledger records for a tier-1 serve, so the two agree
+        # and neither invents a second naming rule. Not a stable identifier —
+        # see matcher_audit_fields.
+        matcher_name = matcher_audit_fields(m)["matcher"]
     hit = memory.best_sealed(text, source_lang, target_lang, store=store, matcher=m,
                              context_threshold=0.0)
     norm = m.normalize(text)
@@ -285,7 +308,7 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
         "verifier": hit["pair"].get("verifier", "") if hit else "",
         "confidence": hit["similarity"] if hit else 0.0,
         "threshold": memory.SEAL_THRESHOLD,
-        "matcher": matcher,
+        "matcher": matcher_name,
         "matches": candidates[:_MATCH_DISPLAY],
         "reason": "" if hit else _why_not_served(
             store, m, text, norm, source_lang, target_lang, candidates,

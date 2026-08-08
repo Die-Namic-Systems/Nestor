@@ -56,15 +56,25 @@ queue, reads the nugget and its sources, and seals under their own key. What
 they are signing is *"I checked this"*, which is a different sentence from what
 jeles stored, and the difference is the point.
 
-.. warning::
+Sealing a bridged nugget
+------------------------
+Hand the surface this module's matcher, and a human can seal these where they
+are meant to::
 
-   Sealing a bridged nugget through ``nestor.ui`` currently **loses it**.
-   :class:`NuggetMatcher` is a custom matcher, the surface has no way to be told
-   about one, and the seal lands under a key this domain never computes — see
-   IDEAS §6.40 and ``demo/two_desks.py``. Until that is fixed the only way to
-   seal these correctly is in-process with ``memory.set_matcher(MATCHER)``
-   installed. This integration is blocked on that finding, which is the most
-   useful thing it has to say.
+    from nestor import ui
+    from recipes import jeles_bridge
+
+    app = ui.App(store=store, source_lang=jeles_bridge.DOMAIN,
+                 target_lang=jeles_bridge.DOMAIN, matcher=jeles_bridge.MATCHER)
+
+This used to be the blocker rather than the instructions. ``nestor.ui`` took the
+domain tags and had no field for a matcher, so a seal made here landed under a
+key this domain never computes: the bridged draft stayed queued and the
+verification was unreachable — see IDEAS §6.40 and ``demo/two_desks.py``. The
+only workaround was ``memory.set_matcher(MATCHER)`` process-wide, which is a
+module global and therefore rules out running this bridge beside any other
+custom-matcher domain. Both are gone; the global still works and is no longer
+the only way.
 """
 from __future__ import annotations
 

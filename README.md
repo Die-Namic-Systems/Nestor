@@ -406,6 +406,49 @@ cross-talk.
 > compare the query to each row's ``source_text`` that way instead. The two jobs
 > no longer pull against each other. See [`IDEAS.md`](IDEAS.md) §3.1.
 
+### A domain is its tags *and* its matcher
+
+Every surface that keys a row has to be handed the matcher that keys it. The
+domain tags alone are half of a domain, and a surface holding only that half
+files decisions under the default's key instead of yours — silently, with a
+`200` and a valid signature:
+
+```python
+from nestor import memory, ui
+
+app = ui.App(store=store, source_lang="incident", target_lang="incident",
+             matcher=SerialMatcher())        # ← the other half
+
+memory.set_matcher(SerialMatcher())          # or process-wide, for a single-domain host
+```
+
+`nestor ui --matcher {string,numeric,semantic}` names a **shipped** matcher; a
+custom one cannot come off a wire, so it is passed in code. `ui.App(matcher=None)`
+— the default — defers to the process-wide matcher rather than forcing
+`StringMatcher`, so a host that called `set_matcher()` before launching the
+surface keeps what it set. The Ask view shows which matcher is in force beside
+the engine, and `/api/state` reports it as `domain.matcher` / `domain.matcher_source`.
+
+**`App.matcher` describes `App`'s domain and no other.** The Ask and Match views
+let a human retype the domain tags, and `/api/reject-match` is shared by every
+recipe — the Entity view rejects an alias through it carrying the *entity*
+domain, which `EntityResolver` keys with its own matcher. A request about another
+domain therefore falls back to the process-wide default rather than borrowing
+this App's. Getting that wrong re-created §6.40 one recipe over, for exactly one
+release.
+
+**Not yet true of `nestor serve` or `nestor ask`.** Neither takes a matcher, and
+both are launched as processes, so `set_matcher()` is not reachable either. A
+model asking over MCP still gets `pending` for a phrase a human sealed through
+this UI in a custom domain. `IDEAS.md` §6.41.
+
+This is written down because it was measured, not anticipated:
+[`IDEAS.md`](IDEAS.md) §6.40 and the two-desk fixture
+[`demo/two_desks.py`](demo/two_desks.py) found that the UI had no way to be told,
+which made both promises at the top of this README void for any domain that took
+this seam at its word. The trail stayed intact throughout — a hash chain cannot
+catch a true record of an answer nobody can reach.
+
 ---
 
 ## The recipes
