@@ -39,6 +39,15 @@ def _emit_session_start(fmt: str, context: str) -> None:
 
 
 def _emit_before_mcp(fmt: str, allow: bool, user: str, agent: str) -> None:
+    """Both dialects, and for Claude the deny spelling PreToolUse honors.
+
+    Same failure as :func:`_emit_before_write`: Claude Code's ``PreToolUse``
+    reads ``hookSpecificOutput.permissionDecision``, not the top-level
+    ``{"decision": "block"}`` this used to emit alone — that spelling was never
+    honored for ``PreToolUse``, so the MCP gate degraded to advice and let
+    willow-mcp / nestor-as-MCP through. Emit both, matching the write gate, so
+    the block lands on old and new builds alike.
+    """
     if allow:
         if fmt == "claude":
             print(json.dumps({"decision": "allow"}))
@@ -47,7 +56,15 @@ def _emit_before_mcp(fmt: str, allow: bool, user: str, agent: str) -> None:
         return
     reason = agent or user
     if fmt == "claude":
-        print(json.dumps({"decision": "block", "reason": reason}))
+        print(json.dumps({
+            "decision": "block",
+            "reason": reason,
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+            },
+        }))
         return
     print(
         json.dumps(
