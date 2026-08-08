@@ -48,6 +48,30 @@ what moved.
 
 ### Fixed
 
+- **`nestor serve` and `nestor ask` can be told a custom matcher too**, which
+  closes the half of `IDEAS.md` §6.41 that §6.40's fix did not reach. Both are
+  launched as *processes*, so there is no earlier moment at which a host could
+  call `memory.set_matcher()`, and a shipped name off a command line cannot
+  conjure a matcher nobody shipped — so a custom domain could not use either
+  surface at all. Measured end to end over stdio MCP, on one sealed row: without
+  a matcher the model is told **pending** for a phrase a human sealed; with one
+  it gets the seal and the verifier's name.
+
+  `answer.load_matcher` takes a shipped name *or* `module:attribute` — a module
+  attribute, a class, or a factory — and `nestor serve`, `nestor ask`, `nestor
+  match` and `nestor ui` all take the same spec through the same loader. It
+  validates at load time, so a spec that is not a matcher refuses to start rather
+  than failing at the first query. It **imports the module named**, which is the
+  same authority the command line already has; that is why it is a flag and never
+  a value read from a request, a bundle or a stored row. `serve.Server` gains
+  `matcher` and the same `domain_matcher()` rule `ui.App` learned: the server's
+  matcher for the server's domain and no other, because every tool takes per-call
+  domain tags. `nestor_match` refuses a name that disagrees with what is in force
+  and honours one that agrees, as the browser surface does.
+
+  `ui --matcher` is no longer restricted to `choices=answer.MATCHERS`, which had
+  made a custom matcher unnameable at the one surface that could already take one.
+
 - **`nestor ui` can be told the matcher that keys its domain.** A domain is its
   tags *and* its matcher; the surface took only the tags, so every decision a
   human made through it — seal, seal-in-place, reject-match, queue seal and

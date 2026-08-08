@@ -1073,14 +1073,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--port", type=int, default=8765, help="bind port (default: 8765)")
     p.add_argument("--source-lang", default="en", help="default source domain tag")
     p.add_argument("--target-lang", default="es", help="default target domain tag")
-    p.add_argument("--matcher", default="string", choices=answer.MATCHERS,
+    p.add_argument("--matcher", default="string",
                    help="the matcher that keys this domain (default: string). A "
                         "domain is the tags AND the matcher; aiming this surface "
                         "at a domain keyed by a different one files every seal "
                         "and rejection where that domain will never look. A "
-                        "CUSTOM matcher cannot be named here — pass it in code "
-                        "as ui.App(matcher=...), or install it process-wide with "
-                        "memory.set_matcher()")
+                        "shipped name (string, numeric, semantic), or a custom "
+                        "matcher as 'module:attribute' — the same spec `nestor "
+                        "serve` and `nestor ask` take. In-process hosts can still "
+                        "pass the object: ui.App(matcher=...)")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
                    help="draft engine used by the Ask view (default: offline — a click "
                         "in a browser should not silently call a paid API)")
@@ -1149,8 +1150,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # is entitled to expect. Building one here would override that silently, and
     # substituting a matcher behind a host's back is the whole defect.
     try:
-        chosen_matcher = (None if args.matcher == "string"
-                          else answer.build_matcher(args.matcher))
+        chosen_matcher = answer.load_matcher(args.matcher)
     except ValueError as exc:
         print(f"refusing to start: {exc}", file=sys.stderr)
         return 2

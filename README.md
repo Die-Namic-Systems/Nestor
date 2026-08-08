@@ -437,10 +437,23 @@ domain therefore falls back to the process-wide default rather than borrowing
 this App's. Getting that wrong re-created §6.40 one recipe over, for exactly one
 release.
 
-**Not yet true of `nestor serve` or `nestor ask`.** Neither takes a matcher, and
-both are launched as processes, so `set_matcher()` is not reachable either. A
-model asking over MCP still gets `pending` for a phrase a human sealed through
-this UI in a custom domain. `IDEAS.md` §6.41.
+**A process is told by a spec, not by a name.** `nestor serve` and `nestor ask`
+*are* the process, so there is no earlier moment at which a host could call
+`set_matcher()`, and a shipped name cannot conjure a custom matcher. Point them
+at one with `module:attribute`:
+
+```bash
+nestor serve --matcher acme.incidents:SERIALS      # a module attribute
+nestor ask "CH4471 free-flow" --matcher acme.incidents:SerialMatcher   # or a class
+nestor ui --matcher acme.incidents:SERIALS         # the same spec everywhere
+```
+
+Without it, a model asking over MCP gets `pending` for a phrase a human sealed
+through this UI — measured, and the reason the flag exists (`IDEAS.md` §6.41).
+The loader **imports the module named**, which is the same authority the command
+line already has; it is a flag for that reason, and never a value read from a
+request or a stored row. A spec that does not resolve to something offering
+`normalize` and `similarity` is refused at startup rather than at the first query.
 
 This is written down because it was measured, not anticipated:
 [`IDEAS.md`](IDEAS.md) §6.40 and the two-desk fixture

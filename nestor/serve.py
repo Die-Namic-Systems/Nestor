@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, TextIO
 
 from . import answer, cascade, keyring, ledger as ledger_mod, memory, signing, storage
+from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
 from .storage import Storage
 
@@ -70,9 +71,24 @@ class Server:
     source_lang: str = "en"
     target_lang: str = "es"
     engine_name: str = "offline"
+    matcher: Optional[Matcher] = None
     read_only: bool = False
     client: str = "unknown-client"
     _initialized: bool = field(default=False, repr=False)
+
+    def domain_matcher(self, source_lang: str, target_lang: str) -> Optional[Matcher]:
+        """This server's matcher — but only for the domain it describes.
+
+        Same rule as ``ui.App``, and it is here for the same reason: a matcher
+        keys one domain, every tool below takes per-call domain tags, and lending
+        this one to a call about some other domain is the category error §6.40
+        was about. ``None`` defers to the process-wide matcher.
+        """
+        if self.matcher is None:
+            return None
+        if source_lang == self.source_lang and target_lang == self.target_lang:
+            return self.matcher
+        return None
 
     # -- the tools --------------------------------------------------------
 
@@ -192,7 +208,8 @@ class Server:
         tl = str(args.get("target_lang") or self.target_lang)
         if name == "nestor_ask":
             return answer.ask(store, str(args.get("text", "")), sl, tl,
-                              engine_name=self.engine_name)
+                              engine_name=self.engine_name,
+                              matcher=self.domain_matcher(sl, tl))
         if name == "nestor_resolve":
             return answer.resolve(store, str(args.get("surface", "")),
                                   str(args.get("domain") or "entity"))
@@ -203,8 +220,25 @@ class Server:
                                 abs_tol=float(args.get("abs_tol") or 0.0),
                                 pct_tol=float(args.get("pct_tol") or 0.05))
         if name == "nestor_match":
+            own = self.domain_matcher(sl, tl)
+            named = str(args.get("matcher") or "")
+            if own is not None:
+                # Same rule the browser surface applies: a name that agrees with
+                # what is in force is honoured, a name that disagrees is refused.
+                # Scoring a model's query under a different notion of similarity
+                # than the one that sealed the rows is a confident wrong answer
+                # to the only question this server is asked, and a model is less
+                # able than a human to notice.
+                if named and named != matcher_audit_fields(own)["matcher"]:
+                    raise ValueError(
+                        f"this server keys {sl!r}→{tl!r} with "
+                        f"{matcher_audit_fields(own)['matcher']!r}; it cannot "
+                        f"score {named!r} as well")
+                chosen: "str | Matcher" = own
+            else:
+                chosen = named or "string"
             return answer.match(store, str(args.get("text", "")), sl, tl,
-                                matcher=str(args.get("matcher") or "string"),
+                                matcher=chosen,
                                 abs_tol=float(args.get("abs_tol") or 0.0),
                                 pct_tol=float(args.get("pct_tol") or 0.05),
                                 # A match is a read. The semantic matcher would
@@ -354,6 +388,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target-lang", default="es", help="default target domain tag")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
                    help="draft engine for nestor_ask (default: offline)")
+    p.add_argument("--matcher", default="string",
+                   help="the matcher that keys this domain: a shipped name "
+                        f"({', '.join(answer.MATCHERS)}) or a custom one as "
+                        "'module:attribute'. A model asking about a domain keyed "
+                        "by a matcher this server was not given is told 'pending' "
+                        "for phrases a human has sealed")
     p.add_argument("--read-only", action="store_true",
                    help="withhold nestor_propose too — pure lookup")
     return p
@@ -371,17 +411,26 @@ def main(argv: Optional[list[str]] = None) -> int:
     except keyring.KeyringError as exc:
         print(f"refusing to start: {exc}", file=sys.stderr)
         return 2
+    # Resolved before the store is opened and before the stream does: a matcher
+    # that cannot be loaded is a configuration problem, and a traceback out of
+    # main() on a stdio server is a broken pipe to whatever launched it.
+    try:
+        chosen_matcher = answer.load_matcher(args.matcher)
+    except ValueError as exc:
+        print(f"refusing to start: {exc}", file=sys.stderr)
+        return 2
     store = SqliteStore(args.db)
     store.init_db()
     store.memory_init()
     storage.set_store(store)
     server = Server(store=store, source_lang=args.source_lang,
                     target_lang=args.target_lang, engine_name=args.engine,
-                    read_only=args.read_only)
+                    matcher=chosen_matcher, read_only=args.read_only)
     # stdout is the protocol channel; anything human-facing goes to stderr or it
     # corrupts the stream.
     print(f"nestor MCP server on stdio — db={args.db} "
           f"ledger={cascade._ledger_path()} "
+          f"matcher={matcher_audit_fields(memory.get_matcher(chosen_matcher))['matcher']} "
           f"{'read-only' if args.read_only else 'ask + propose'}", file=sys.stderr)
     server.run(sys.stdin, sys.stdout)
     return 0

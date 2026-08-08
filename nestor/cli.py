@@ -45,6 +45,14 @@ from .sqlite_store import SqliteStore
 
 EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
 
+#: Shared by every subcommand that keys a query, so the sentence a user reads is
+#: the same one wherever they meet it. A shipped name, or `module:attribute` for
+#: a domain's own — see `answer.load_matcher`, and IDEAS §6.41 for why a name
+#: alone was not enough.
+_MATCHER_HELP = ("the matcher that keys this domain: a shipped name "
+                 "(string, numeric, semantic) or a custom one as "
+                 "'module:attribute', e.g. 'acme.incidents:SERIALS'")
+
 
 def _store(args) -> SqliteStore:
     if getattr(args, "ledger", ""):
@@ -69,7 +77,8 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 
 def cmd_ask(args) -> int:
     result = answer.ask(_store(args), args.text, args.source_lang, args.target_lang,
-                        engine_name=args.engine)
+                        engine_name=args.engine,
+                        matcher=answer.load_matcher(args.matcher))
     p = result["passage"]
     verifier = (p.get("meta") or {}).get("verifier", "")
     _emit(result, args.json,
@@ -115,8 +124,20 @@ def cmd_check(args) -> int:
 
 
 def cmd_match(args) -> int:
+    # `load_matcher` rather than the raw name: a custom domain's matcher cannot
+    # be named by one of the shipped words, and `nestor match` answering under
+    # StringMatcher for a domain keyed by something else is a confident wrong
+    # answer to the only question this command asks. None -> the process-wide
+    # default, which is what the bare `--matcher string` always meant.
+    loaded = answer.load_matcher(args.matcher, abs_tol=args.abs_tol,
+                                 pct_tol=args.pct_tol)
+    # None means "string", and this is a one-shot process where nothing could
+    # have called set_matcher() — so the name is exactly as correct here as the
+    # object, and passing it keeps the reported `matcher` field reading
+    # "string" the way every earlier release did.
     result = answer.match(_store(args), args.text, args.source_lang, args.target_lang,
-                          matcher=args.matcher, abs_tol=args.abs_tol, pct_tol=args.pct_tol)
+                          matcher=loaded if loaded is not None else "string",
+                          abs_tol=args.abs_tol, pct_tol=args.pct_tol)
     _emit(result, args.json,
           (f"✓ would be served  {result['target']}   (by {result['verifier']}, "
            f"similarity {result['confidence']})" if result["served"]
@@ -454,6 +475,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("text")
     domain_args(ask)
     ask.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"))
+    ask.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     ask.set_defaults(func=cmd_ask)
 
     res = sub.add_parser("resolve", help="resolve a surface form to a canonical entity")
@@ -472,7 +494,7 @@ def build_parser() -> argparse.ArgumentParser:
     mat = sub.add_parser("match", help="the bare seam over any domain")
     mat.add_argument("text")
     domain_args(mat)
-    mat.add_argument("--matcher", default="string", choices=answer.MATCHERS)
+    mat.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
     mat.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
     mat.set_defaults(func=cmd_match)

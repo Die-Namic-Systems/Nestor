@@ -56,7 +56,79 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
         except ImportError as exc:
             raise ValueError(str(exc)) from exc
     raise ValueError(f"unknown matcher {name!r} — the shipped matchers are "
-                     f"{', '.join(MATCHERS)}; a custom one is injected in code.")
+                     f"{', '.join(MATCHERS)}; a custom one is named "
+                     f"'module:attribute' (see load_matcher).")
+
+
+def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
+                 persist: bool = True) -> Optional[Matcher]:
+    """A shipped matcher by name, or a custom one by ``'module:attribute'``.
+
+    ``ui.App`` can be handed a matcher because a host constructs it in Python.
+    ``nestor serve`` and ``nestor ask`` cannot: they *are* the process, so there
+    is no earlier moment at which a host could call ``memory.set_matcher()``, and
+    a name off a command line cannot conjure a class nobody shipped. That left a
+    custom domain unable to use either surface at all — a model asking over MCP
+    got ``pending`` for a phrase a human had just sealed through the fixed UI.
+    IDEAS §6.41; this is the half §6.40 did not reach.
+
+    So a spec containing ``:`` is an import path::
+
+        nestor serve --matcher acme.incidents:SERIALS      # a module attribute
+        nestor ask   --matcher acme.incidents:SerialMatcher  # or a callable
+
+    The attribute may be a ready matcher or something callable that returns one;
+    a class is the common case and is called with no arguments. Whatever comes
+    back must offer ``normalize`` and ``similarity``, and is refused here if it
+    does not — a matcher that fails the seam at the first *query* fails it after
+    the operator has already been told the server started.
+
+    ``"string"`` returns ``None``, not a ``StringMatcher``: None means "defer to
+    the process-wide matcher", which is what a host that installed one is
+    entitled to expect, and constructing one here would silently override it.
+
+    **This imports and runs the module named.** That is the same authority the
+    command line already has — an operator who can pass this flag can pass
+    ``python -c`` — so it is not a new privilege, but it is the reason the spec
+    is a flag and never a value read from a request, a bundle or a stored row.
+    """
+    spec = (spec or "").strip()
+    if not spec or spec == "string":
+        return None
+    if ":" not in spec:
+        return build_matcher(spec, abs_tol=abs_tol, pct_tol=pct_tol, persist=persist)
+
+    module_name, _, attr = spec.partition(":")
+    if not module_name or not attr:
+        raise ValueError(
+            f"matcher {spec!r} is not a usable import path — it wants "
+            f"'module:attribute', e.g. 'acme.incidents:SERIALS'")
+    import importlib
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise ValueError(f"cannot import {module_name!r} for matcher {spec!r}: {exc}") from exc
+    try:
+        found = getattr(module, attr)
+    except AttributeError as exc:
+        raise ValueError(f"{module_name!r} has no attribute {attr!r}") from exc
+
+    # A class or factory is the common case; a module-level instance is the other.
+    #
+    # `isinstance(found, type)` rather than "does it look like a matcher yet":
+    # a *class* already has `normalize` and `similarity` as attributes — they are
+    # the unbound functions — so duck-typing here silently accepts the class
+    # itself and every later call arrives one argument short. Caught by a test
+    # written to assert a class is instantiated, which is why that test exists.
+    if isinstance(found, type) or (callable(found)
+                                   and not hasattr(found, "normalize")):
+        found = found()
+    missing = [m for m in ("normalize", "similarity") if not callable(getattr(found, m, None))]
+    if missing:
+        raise ValueError(
+            f"{spec} is not a Matcher — the seam is normalize(value) and "
+            f"similarity(a_norm, b_norm), and this is missing: {', '.join(missing)}")
+    return found
 
 
 def _candidate(m: dict) -> dict:
