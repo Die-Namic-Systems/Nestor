@@ -62,20 +62,47 @@ def test_it_walks_the_beats_it_promises():
         assert beat in out, f"missing beat: {beat}"
 
 
-def test_the_closed_gap_stays_closed():
-    """The regression guard the `gap()` helper turned into once §6.40 landed.
+def test_the_fixture_measures_the_thing_that_regressed():
+    """The outcomes, read out of the fixture's own printed evidence.
 
-    These are the exact sentences the fixture printed when the answer was no.
-    Their absence is the assertion: if a refactor drops `App.matcher` on the
-    floor again, the narrative reverts and one of these comes back.
+    Written this way after an audit: the first version of this test asserted the
+    *absence* of the four sentences the fixture used to print. Every one of them
+    had been deleted from the script in the same commit, so no code path could
+    emit them and their absence was guaranteed by the diff rather than by the
+    fix — the exact pattern `nestor/answer.py` records as a past incident, four
+    dead negative assertions, reproduced in the change whose IDEAS entry
+    congratulates itself for catching vacuous tests.
+
+    So this asserts what the fixture *prints* instead, and each line only
+    appears when the thing it describes actually happened.
     """
     out = run().stdout
-    for old in ("writes a NEW row rather than upgrading it",
-                "is unreachable to the domain that made the draft",
-                "still a draft, still queued",
-                "suppresses nothing in a custom domain"):
-        assert old not in out, f"§6.40 has regressed — the fixture is printing: {old}"
-    assert "GAP CLOSED" not in out
+    # Beat 2/3: the seal upgraded one row and the domain can reach it. The
+    # serial IS the key, printed from the row the surface wrote.
+    assert "sealed id" in out and "key 'CH4471'" in out, (
+        "the sealed row is not keyed by the domain's own matcher")
+    # Beat 3: served, not pending, for the restated wording.
+    assert "verified" in out and "Nestor: \033[33mpending\033[0m" not in out.split("3.")[1].split("4.")[0], (
+        "the restated incident came back pending — §6.40 has regressed")
+    # Beat 7: both desks live in one process with neither matcher installed globally.
+    assert "process-wide matcher: StringMatcher — neither desk's" in out
+    assert "her surface keys with SerialMatcher" in out
+    assert "his surface keys with DefectMatcher" in out
+
+
+def test_no_gap_assertion_survives_unnoticed():
+    """`gap()` fails the build when a gap closes. It now has no call sites, and
+    that is a fact worth pinning rather than leaving to a reader: if somebody
+    adds one back, it means they found a NEW gap, and this test tells them to
+    say so in IDEAS rather than leaving it in a fixture nobody re-reads."""
+    source = DEMO.read_text(encoding="utf-8")
+    calls = [ln for ln in source.splitlines()
+             if ln.lstrip().startswith("gap(")]
+    assert not calls, (
+        "demo/two_desks.py has gap() assertions again — a gap this fixture "
+        "reports is either newly found (write it up in IDEAS) or newly closed "
+        f"(rewrite the beat): {calls}")
+    assert "GAP CLOSED" not in run().stdout
 
 
 def test_it_says_it_is_fiction_before_it_says_anything_else(tmp_path):

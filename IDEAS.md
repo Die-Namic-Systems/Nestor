@@ -3755,7 +3755,7 @@ description that quotes a serial, where the three matchers produce three
 distinct keys. That is `CLAUDE.md`'s "a test that cannot fail", found in a test
 written to prove a gap, by the same session that had just read the rule.
 
-### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **answered by §6.40**
+### 6.41 An optional method on the Matcher seam is what decides whether seals survive — **measured**, design **answered for `nestor ui`, open for `serve`/CLI**
 
 *The other half of §6.40, and the reason it went unfound for so long: the two
 desks in `demo/two_desks.py` hit the identical bug and only one of them notices.*
@@ -3800,13 +3800,25 @@ The reason to write it down rather than pick: this is the same shape as §3.1's
 question was retrieval. It turns out to also decide whether a seal is reachable,
 and that argument has not been had.
 
-**Answered 2026-08-07 by §6.40 shipping, and it is the second option.** The UI
-stops re-keying — it keys with the domain's own matcher — so `score()` goes back
-to being the performance and fidelity choice §3.1 argued it was, and the two
-methods the README documents are sufficient again. The first option is not taken:
-promoting `score()` to the seam would break every matcher written against the
-documented two, to fix a problem that turned out to be the caller's, not the
-seam's.
+**Answered 2026-08-07 by §6.40 shipping, and it is the second option — at
+`nestor ui`.** That surface stops re-keying: it keys with the domain's own
+matcher, so `score()` goes back to being the performance and fidelity choice §3.1
+argued it was, and the two methods the README documents are sufficient *there*.
+The first option is not taken: promoting `score()` to the seam would break every
+matcher written against the documented two, to fix a problem that turned out to
+be the caller's, not the seam's.
+
+**Still open at `nestor serve` and `nestor ask`**, and this correction is owed to
+an audit that caught the first version of this paragraph claiming the whole
+question closed. Neither surface has a matcher field: `serve.Server.call` reaches
+`answer.ask` with none, `nestor_match` takes a name only, and `cli.cmd_ask` does
+the same. Both are launched as processes, so `memory.set_matcher()` is not
+reachable either, and unlike `ui.App` neither is usefully constructible as a
+library object with one injected. So a model asking over MCP, or an operator at
+the terminal, still gets `pending` for a phrase a human sealed through the fixed
+UI — and a matcher without `score()` still loses its seals on those two paths,
+which is precisely the load-bearing-optional-method situation this entry names.
+The honest status is per-surface, and the header now says so.
 
 What stays true, and is the part worth keeping this entry for: **the guarantee
 was riding on an optional method, and that is why nobody found it.** A defect

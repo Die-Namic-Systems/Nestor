@@ -104,12 +104,15 @@ def system_prompt(source_lang: str, target_lang: str,
 
 
 def _context_pairs(text: str, source_lang: str, target_lang: str,
-                   limit: int = 3, store=None) -> list[dict]:
+                   limit: int = 3, store=None, matcher=None) -> list[dict]:
     """Nearby verified-sealed TM pairs, fed to the engine as style/terminology
     context. Verified only: a forged "sealed" row must not reach the engine's
-    system prompt as authoritative TM (Nestor#2 follow-up)."""
+    system prompt as authoritative TM (Nestor#2 follow-up).
+
+    ``matcher`` for the same reason ``translate`` takes one — see there."""
     return memory.verified_sealed(
-        memory.lookup(text, source_lang, target_lang, limit=limit, store=store))
+        memory.lookup(text, source_lang, target_lang, limit=limit, store=store,
+                      matcher=matcher))
 
 
 class OfflineEngine:
@@ -125,7 +128,7 @@ class OfflineEngine:
     name = "offline-tm"
 
     def translate(self, text: str, source_lang: str, target_lang: str,
-                  store=None) -> Draft | None:
+                  store=None, matcher=None) -> Draft | None:
         # Forged seals are filtered here for the same reason `_context_pairs`
         # filters them: a row nobody signed must not be copied verbatim into the
         # first thing a reviewer reads. `without_forged_seals` rather than
@@ -137,7 +140,8 @@ class OfflineEngine:
         # it returns None where a legitimate second-best match existed, which
         # would turn a forgery into a denial of service.
         matches = memory.without_forged_seals(
-            memory.lookup(text, source_lang, target_lang, limit=5, store=store))
+            memory.lookup(text, source_lang, target_lang, limit=5, store=store,
+                          matcher=matcher))
         if not matches:
             return None
         m = matches[0]
@@ -167,9 +171,10 @@ class ClaudeEngine:
         self._client = anthropic.Anthropic()
 
     def translate(self, text: str, source_lang: str, target_lang: str,
-                  store=None) -> Draft | None:
+                  store=None, matcher=None) -> Draft | None:
         locks = glossary.locks_in_text(text, source_lang, target_lang)
-        context = _context_pairs(text, source_lang, target_lang, store=store)
+        context = _context_pairs(text, source_lang, target_lang, store=store,
+                                 matcher=matcher)
         a = self._anthropic
         try:
             response = self._client.messages.create(

@@ -178,12 +178,40 @@ def test_match_scores_with_the_domains_matcher(desk):
     assert out["matcher"] == "serial", "the report must name the matcher that scored it"
 
 
-def test_match_refuses_to_score_a_named_matcher_on_a_custom_domain(desk):
+def test_match_refuses_to_score_a_different_named_matcher(desk):
     """Silently substituting would answer the only question Nestor is asked under
     a different notion of similarity than the one that sealed the row."""
     status, out = post(desk, "/api/match", text=REPORT, matcher="numeric")
     assert status == 400
-    assert "its own matcher" in out["error"]
+    assert "keyed by 'serial'" in out["error"]
+    assert "'numeric'" in out["error"]
+
+
+def test_match_accepts_a_name_that_agrees_with_the_domains_matcher(desk):
+    """A refusal is for a caller asking for something else, not for one asking
+    for what is already in force. The first version of this refused any named
+    matcher at all — which broke the browser, because the Match view's picker is
+    a `<select>` that always sends a value."""
+    status, out = post(desk, "/api/match", text=REPORT, matcher="serial")
+    assert status == 200
+    assert out["normalized"] == "CH4471"
+
+
+def test_the_match_view_does_not_send_a_matcher_on_a_custom_domain():
+    """The page's half of the same fix, pinned on the page source.
+
+    `submitMatch` builds its body from a `<select>` that is only rendered when
+    the surface has no matcher of its own; on a custom-matcher surface it shows
+    the matcher's name instead and omits the field. A test at the API layer
+    cannot catch a client that sends the wrong thing, which is exactly how this
+    regression shipped.
+    """
+    from nestor import ui_page
+
+    assert 'd.matcher_source === "app"' in ui_page.PAGE, (
+        "the Match view must not offer a picker on a surface with its own matcher")
+    assert "...(picker ? { matcher: picker.value } : {})" in ui_page.PAGE, (
+        "submitMatch must omit `matcher` when there is no picker")
 
 
 # ── the surface says which matcher it is using ──────────────────────────────
@@ -260,3 +288,100 @@ def test_two_desks_in_one_process_keep_their_own_keys(tmp_path, seal_key):
         "one process, two domains, and the same text keyed two different ways")
     assert memory.get_matcher() is not SERIALS, (
         "neither desk had to install its matcher process-wide")
+
+
+# ── the App's matcher describes the App's domain and no other ───────────────
+#
+# Found by audit, after the first version of this fix shipped: `/api/reject-match`
+# is shared by every recipe, and the Entity view rejects an alias through it
+# carrying the *entity* domain — which `EntityResolver` keys with its own
+# StringMatcher. Passing `app.matcher` there re-created §6.40 one recipe over:
+# HTTP 200, a real signature, and a rejection filed where nothing looks it up.
+
+def test_an_alias_rejection_is_not_keyed_by_the_incident_domains_matcher(desk):
+    """The regression §6.40's own fix introduced."""
+    from nestor.entity import EntityResolver
+
+    resolver = EntityResolver(desk.store, domain="entity")
+    resolver.seal("AWS", "Amazon Web Services", verifier="ines")
+    assert resolver.resolve("AWS")["sealed"], "fixture: the alias must resolve first"
+
+    status, out = post(desk, "/api/reject-match", source="AWS",
+                       source_lang="entity", target_lang="entity",
+                       target_text="Amazon Web Services", verifier="ines",
+                       reason="Wrong expansion in this context.")
+    assert status == 200
+    # StringMatcher's key, which is what EntityResolver asks with — NOT
+    # SerialMatcher's, which would be 'AWS' unchanged.
+    assert out["rejection"]["query_norm"] == "aws", (
+        "the alias rejection was keyed by the App's matcher, not the recipe's")
+    assert not resolver.resolve("AWS")["sealed"], (
+        "the recorded no did not suppress the alias — §6.40, one recipe over")
+
+
+def test_a_seal_for_another_domain_does_not_borrow_the_apps_matcher(desk):
+    """The Ask and Match views let a human retype the domain tags, so a request
+    can be about a domain this App's matcher does not describe."""
+    status, body = post(desk, "/api/seal", source="the annual invoice",
+                        target="la factura anual", source_lang="en", target_lang="es",
+                        verifier="ines")
+    assert status == 200
+    assert body["pair"]["source_norm"] == "the annual invoice", (
+        "a seal in another domain was keyed by this App's matcher")
+
+
+def test_the_apps_own_domain_still_gets_the_apps_matcher(desk):
+    """The guard must not be so broad that it disables the fix."""
+    status, body = post(desk, "/api/seal", source=REPORT, target=ADJUDICATION,
+                        source_lang=DOMAIN, target_lang=DOMAIN, verifier="ines")
+    assert status == 200
+    assert body["pair"]["source_norm"] == "CH4471"
+
+
+def test_ask_in_another_domain_is_not_scored_by_the_apps_matcher(desk):
+    memory.add_pair("the annual invoice", "la factura anual", "en", "es",
+                    status="sealed", verifier="ines", store=desk.store)
+    status, out = post(desk, "/api/ask", text="the annual invoice",
+                       source_lang="en", target_lang="es")
+    assert status == 200
+    assert out["verified"] is True, (
+        "a foreign-domain ask was scored with the incident matcher and missed")
+
+
+# ── tier 2 keys with the domain's matcher too ───────────────────────────────
+
+def test_the_offline_engine_drafts_in_a_custom_matcher_domain(desk):
+    """Found by audit: the threading stopped at the tier-1 boundary.
+
+    `Engine.translate` had no matcher parameter, so the shipped engines called
+    `memory.lookup` with the process-wide one. In a custom domain the query's
+    norm and each row's stored norm are then two unrelated key spaces, so the
+    offline engine matched nothing: every unsealed query landed `pending` and
+    never entered the review queue. Silently — a reviewer just sees an empty
+    queue and concludes the machine had no opinion.
+    """
+    memory.add_pair("Pump SN CH-9002 stalled mid-infusion.",
+                    "Motor stall, batch CH-9002, returned to Sheffield.",
+                    DOMAIN, DOMAIN, status="draft", store=desk.store, matcher=SERIALS)
+    status, out = post(desk, "/api/ask", text="CH9002 stall, ward 3.")
+    assert status == 200
+    assert out["passage"]["tier"] == 2, (
+        f"tier 2 found nothing to draft: {out['passage']}")
+    assert out["passage"]["state"] == "draft"
+    assert "Motor stall" in out["passage"]["target"]
+
+
+def test_an_engine_written_against_the_old_signature_still_works(desk):
+    """The widening is tolerated the same way `store=` already was."""
+    class LegacyEngine:
+        name = "legacy"
+
+        def translate(self, text, source_lang, target_lang):   # no store=, no matcher=
+            from nestor.engine import Draft
+            return Draft(text="from a legacy engine", engine=self.name, confidence=0.4)
+
+    passage = cascade.translate_segment("anything at all", DOMAIN, DOMAIN,
+                                        engine=LegacyEngine(), store=desk.store,
+                                        matcher=SERIALS)
+    assert passage.tier == 2
+    assert passage.target == "from a legacy engine"

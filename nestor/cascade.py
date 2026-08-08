@@ -458,11 +458,27 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
     else:
         # tier 2 — Nova's draft
         engine = engine or get_engine()
+        # The threading has to reach here or tier 2 keys with a different matcher
+        # than tier 1 did, inside one response: the shipped engines answer by
+        # calling `memory.lookup`, which compares the query's norm against each
+        # row's *stored* norm. In a custom-matcher domain those are two unrelated
+        # key spaces, so the offline engine drafts nothing (every unsealed query
+        # lands `pending` and never enters the queue) and the Claude engine gets
+        # no verified-TM context — silently, in both cases.
+        #
+        # Widened in the same shape as `store=`, and tolerated the same way: a
+        # custom engine written against the older signature keeps working and
+        # falls back to the process-wide matcher, which is what it was already
+        # using.
         try:
-            draft = engine.translate(text, source_lang, target_lang, store=store)
+            draft = engine.translate(text, source_lang, target_lang, store=store,
+                                     matcher=matcher)
         except TypeError:
-            # A custom engine that doesn't accept store= relies on the global store.
-            draft = engine.translate(text, source_lang, target_lang)
+            try:
+                draft = engine.translate(text, source_lang, target_lang, store=store)
+            except TypeError:
+                # A custom engine that doesn't accept store= relies on the global store.
+                draft = engine.translate(text, source_lang, target_lang)
         if draft:
             passage = Passage(source=text, target=draft.text, tier=2, state="draft",
                               engine=draft.engine, confidence=draft.confidence)

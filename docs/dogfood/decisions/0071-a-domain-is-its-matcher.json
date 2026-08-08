@@ -2,7 +2,7 @@
   "pr": 60,
   "branch": "claude/song-lyrics-discussion-6rw3fr",
   "date": "2026-08-07",
-  "note": "Closing IDEAS §6.40 — the human surface could be aimed at a custom domain and could not be told the matcher that keys it. The entry deliberately declined to propose a fix, naming two candidates and saying the choice wanted an adversarial read first. These are the decisions that read produced.",
+  "note": "Closing IDEAS §6.40 — the human surface could be aimed at a custom domain and could not be told the matcher that keys it. The entry deliberately declined to propose a fix, naming two candidates and saying the choice wanted an adversarial read first. These are the decisions that read produced. Then an audit found three defects in the fix itself, two of them the same category error one level up; the last three decisions are what that audit forced.",
   "decisions": [
     {
       "question": "Between §6.40's two candidate fixes — give the surface a matcher, or stop it recomputing a key it was already holding — which is right?",
@@ -16,8 +16,8 @@
     },
     {
       "question": "When a request names a matcher on a domain that has its own, which wins?",
-      "commitment": "Neither. It is a 400.",
-      "why": "Both silent answers are wrong. Honouring the name scores the query under a different notion of similarity than the one that sealed the rows, which produces a confident wrong answer to the only question this product is ever asked. Ignoring the name and using the domain's returns a result the caller will read as an answer about the matcher they asked for. The caller has asked something that has no correct answer, and the honest reply is to say so — the same reasoning build_matcher already applies to an unknown name, where refusing beats defaulting."
+      "commitment": "A name that AGREES with the domain's matcher is honoured; a name that disagrees is a 400. Never a silent substitution.",
+      "why": "Both silent answers are wrong. Honouring a different name scores the query under a different notion of similarity than the one that sealed the rows, which produces a confident wrong answer to the only question this product is ever asked. Ignoring the name and using the domain's returns a result the caller will read as an answer about the matcher they asked for. So a genuine disagreement is refused, the same reasoning build_matcher already applies to an unknown name. The first version refused ANY name, which was right in principle and wrong in practice — see the separate decision on what that cost the browser; a caller asking for what is already in force is not asking for something else, and treating those two as one is what broke the Match view."
     },
     {
       "question": "Does §6.41's optional `score()` become mandatory, now that its question is live?",
@@ -33,6 +33,21 @@
       "question": "How is a fix like this shown to work, when the defect produced a 200 and a valid signature?",
       "commitment": "Mutation after the fix, not only before — and record which tests do NOT fail under it.",
       "why": "The whole character of this defect is that it looks like success from every surface a caller can reach, so a test that checks the endpoint returns 200, or that a sealed row exists, would have passed throughout. Reverting the seven threading call sites turns 8 of 12 red; the 4 that stay green are the ones about the App field and the 400 refusal rather than the threading. Recording that split matters more than the count: a test that passes under the mutation it was written to catch proves nothing, and knowing which of yours are in that category is the difference between a suite and a decoration. §6.40's own history makes the point — its first beat-7 assertion was vacuous, comparing keys that were byte-identical for the string chosen."
+    },
+    {
+      "question": "Does App.matcher apply to every request the surface handles?",
+      "commitment": "No. Only to the domain it describes. Every other domain defers to the process-wide default.",
+      "why": "The first version passed app.matcher to every keying call, and an audit caught what that costs: /api/reject-match is shared by every recipe, so the Entity view — which rejects an alias carrying the *entity* domain, keyed by EntityResolver's own StringMatcher — began filing rejections under the incident domain's matcher. HTTP 200, a real signature, a rejection nothing looks up, and the wrong entity served again. That is §6.40's exact symptom, produced by §6.40's fix, one recipe over. The rule that falls out is sharper than the original fix: a matcher keys ONE domain, so an App holding the tags of one and the matcher of the same one must not lend that matcher to a request about another. It also settles the per-request-tags question the audit raised separately — the Ask and Match views let a human retype the tags, and now that retyping correctly changes which matcher applies."
+    },
+    {
+      "question": "What did refusing every named matcher cost, and what does it teach about testing?",
+      "commitment": "It broke the only client. Test the client, not only the endpoint.",
+      "why": "The refusal was right in principle and shipped as a regression, because the only client sends the field unconditionally: the Match view's picker is a <select> that always has a value, so every click on a custom-matcher surface got a 400 blaming the caller for a field the page filled in itself. The test written for the refusal passed precisely because it posted the field explicitly — it certified the regression instead of catching it. Two changes, and the second is the general lesson: accept a name that agrees with what is in force (a caller asking for what is already true is not asking for something else), and test the client, not only the endpoint. An API-layer test cannot catch a client sending the wrong thing, which is exactly how this shipped."
+    },
+    {
+      "question": "How far does the matcher have to be threaded before the fix is real?",
+      "commitment": "Past tier 1. Engine.translate takes a matcher, or the same response uses two.",
+      "why": "The threading stopped where §6.40's measurement stopped — at the sealed-memory lookup — and the audit found tier 2 still keying with the process-wide matcher. In a custom domain the query's norm and each row's stored norm are then unrelated key spaces, so the offline engine matched nothing: every unsealed query landed `pending` and never entered the review queue, and the Claude engine got no verified-TM context. Silently, in both cases; a reviewer just sees an empty queue and concludes the machine had no opinion. The generalisable part is that an entry's measured table is a floor and not a map — §6.40 measured the seal and rejection paths because those are where the human acts, and the fix had to cover every path that keys anything, which is a strictly larger set. Widened in the same shape as `store=` and tolerated the same way, so a custom engine on the old signature keeps working."
     }
   ]
 }

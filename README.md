@@ -426,8 +426,21 @@ memory.set_matcher(SerialMatcher())          # or process-wide, for a single-dom
 custom one cannot come off a wire, so it is passed in code. `ui.App(matcher=None)`
 — the default — defers to the process-wide matcher rather than forcing
 `StringMatcher`, so a host that called `set_matcher()` before launching the
-surface keeps what it set. `/api/state` reports `domain.matcher` and
-`domain.matcher_source` so you can see which one is in force.
+surface keeps what it set. The Ask view shows which matcher is in force beside
+the engine, and `/api/state` reports it as `domain.matcher` / `domain.matcher_source`.
+
+**`App.matcher` describes `App`'s domain and no other.** The Ask and Match views
+let a human retype the domain tags, and `/api/reject-match` is shared by every
+recipe — the Entity view rejects an alias through it carrying the *entity*
+domain, which `EntityResolver` keys with its own matcher. A request about another
+domain therefore falls back to the process-wide default rather than borrowing
+this App's. Getting that wrong re-created §6.40 one recipe over, for exactly one
+release.
+
+**Not yet true of `nestor serve` or `nestor ask`.** Neither takes a matcher, and
+both are launched as processes, so `set_matcher()` is not reachable either. A
+model asking over MCP still gets `pending` for a phrase a human sealed through
+this UI in a custom domain. `IDEAS.md` §6.41.
 
 This is written down because it was measured, not anticipated:
 [`IDEAS.md`](IDEAS.md) §6.40 and the two-desk fixture

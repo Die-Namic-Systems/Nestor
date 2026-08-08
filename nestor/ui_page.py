@@ -1465,6 +1465,17 @@ function translateForm() {
       h("span", { class: "muted", text: "→" }),
       h("input", { id: "ask-tl", value: q.target_lang || d.target_lang, size: 4 }),
       h("span", { class: "chip", text: "engine: " + S.state.engine }),
+      /* Which matcher keys this domain, where the human deciding can see it.
+         Two surfaces keyed differently used to describe themselves identically,
+         and that is what let §6.40 sit unfound: nothing a person could read said
+         which matcher was filing their seals. The field existed in /api/state
+         for one release before anything rendered it, which is the same defect
+         one layer up. */
+      h("span", { class: "chip mono",
+                  title: d.matcher_source === "app"
+                    ? "this surface was given this domain's matcher"
+                    : "the process-wide default — no matcher was given to this surface",
+                  text: "matcher: " + d.matcher }),
       h("span", { class: "spacer" }),
       h("button", { class: "primary", disabled: S.state.read_only, onclick: submitAsk }, "Ask")));
 }
@@ -1668,10 +1679,19 @@ function matchForm() {
       h("input", { id: "m-sl", value: q.source_lang || d.source_lang, size: 6, title: "source domain tag" }),
       h("span", { class: "muted", text: "→" }),
       h("input", { id: "m-tl", value: q.target_lang || d.target_lang, size: 6, title: "target domain tag" }),
-      h("select", { id: "m-matcher" },
-        ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"],
-            ["semantic", "SemanticMatcher (optional extra)"]].map(([v, t]) =>
-          h("option", { value: v, selected: (q.matcher || "string") === v }, t))),
+      /* This surface may have been handed the matcher that keys its domain, in
+         which case there is nothing to pick: a name cannot conjure a custom
+         matcher, and scoring under a different one answers the only question
+         Nestor is asked with a confidently wrong answer. Show which one is in
+         force instead of a select, and send no `matcher` field at all — the API
+         refuses a named one here, and it is this page's job not to ask. */
+      d.matcher_source === "app"
+        ? h("span", { class: "chip mono", title: "this surface was given its domain's matcher; it cannot score another",
+                      text: d.matcher })
+        : h("select", { id: "m-matcher" },
+            ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"],
+                ["semantic", "SemanticMatcher (optional extra)"]].map(([v, t]) =>
+              h("option", { value: v, selected: (q.matcher || "string") === v }, t))),
       h("button", { class: "primary", disabled: S.state.read_only, onclick: submitMatch }, "Look up")),
     h("p", { class: "small muted", style: "margin:8px 0 0" },
       "No engine, no queue, no recipe — normalize, score against the sealed pairs in this domain, ",
@@ -1681,8 +1701,9 @@ function matchForm() {
 async function submitMatch() {
   const text = $("m-text").value.trim();
   if (!text) return;
+  const picker = $("m-matcher");
   const body = { text, source_lang: $("m-sl").value.trim(), target_lang: $("m-tl").value.trim(),
-                 matcher: $("m-matcher").value };
+                 ...(picker ? { matcher: picker.value } : {}) };
   try { S.result = { recipe: "match", ...(await api("/api/match", body)), query: body }; render(); }
   catch (e) { toast(e.message, "err"); }
 }
