@@ -43,6 +43,17 @@ the serve decision is taken over embedding vectors, and a vector read back out
 of the store is an input to that decision. Signing the seal and not the vector
 would leave a store-writer able to change what a sealed row matches without
 forging anything — the same shape as Nestor#2, one object over.
+
+Client-produced signatures (Nestor#17)
+---------------------------------------
+Every signature above was, until now, both produced and checked inside this
+process. ``memory.add_pair(..., seal_sig=...)`` adds a path where a CLIENT —
+a browser doing WebCrypto ed25519, or any other out-of-process signer —
+produces the signature and this module only VERIFIES it via
+:func:`seal_is_valid`, never signs it. That is what lets an ed25519 keyring
+entry holding only the verifier's PUBLIC key seal a pair: the private key
+never has to be on this instance at all. See :func:`_message` for the exact,
+now-FROZEN, byte encoding a client signer must reproduce.
 """
 from __future__ import annotations
 
@@ -214,13 +225,42 @@ def signing_enabled(key: Optional[bytes] = None) -> bool:
 
 
 def _message(source_norm: str, target_text: str, verifier: str) -> bytes:
-    """The bytes an HMAC is taken over. JSON-encoded array — a *structured*
-    encoding so no combination of field values can collide by shifting a
-    delimiter. (The old ``"\\x1f".join(...)`` form was forgeable: ``target_text``
-    and ``verifier`` are not normalized and could contain the separator, so
-    ``("ok\\x1fadmin", "alice")`` and ``("ok", "admin\\x1falice")`` signed the
-    same bytes — Nestor#2 follow-up. Matches willow-mcp/session_binder's
-    canonical encoding.)"""
+    """The bytes a seal signature is taken over. JSON-encoded array — a
+    *structured* encoding so no combination of field values can collide by
+    shifting a delimiter. (The old ``"\\x1f".join(...)`` form was forgeable:
+    ``target_text`` and ``verifier`` are not normalized and could contain the
+    separator, so ``("ok\\x1fadmin", "alice")`` and ``("ok", "admin\\x1falice")``
+    signed the same bytes — Nestor#2 follow-up. Matches willow-mcp/session_binder's
+    canonical encoding.)
+
+    FROZEN — a wire contract, not an implementation detail (Nestor#17).
+    While every seal signature was produced *and* checked inside this module,
+    the exact encoding was free to change: any two calls in the same process
+    agreed with each other by construction. That stopped being true the
+    moment a signature can arrive from OUTSIDE this process — a browser doing
+    WebCrypto ed25519, or any other client-side signer — because that signer
+    reproduces these bytes independently, without importing this function.
+    ``memory.add_pair(..., seal_sig=...)`` is the server-side seam that
+    accepts such a signature and checks it with :func:`seal_is_valid`; the two
+    sides only agree if they compute *identical* bytes. So, pinned exactly,
+    for every field of the encoding:
+
+    * a JSON array, field order ``[source_norm, target_text, verifier]`` —
+      not an object (no key-name ambiguity), not the legacy ``\\x1f``-joined
+      string;
+    * ``json.dumps(..., separators=(",", ":"), ensure_ascii=False)`` — no
+      whitespace after ``,``/``:``, and non-ASCII characters are emitted
+      literally rather than as ``\\uXXXX`` escapes;
+    * ``.encode("utf-8")`` — the signature is over UTF-8 bytes, not ``str``;
+    * ``source_norm`` is the ALREADY-NORMALIZED source (whatever the domain's
+      ``Matcher.normalize`` produced), not the raw ``source_text``.
+
+    Do not change this encoding — a client signer that reproduces it
+    byte-for-byte is the entire contract. If it must ever change, that is a
+    protocol version bump communicated to every signer, not a refactor.
+    ``tests/test_client_signed_seals.py`` pins the exact output for a known
+    input for this reason.
+    """
     return json.dumps([source_norm, target_text, verifier],
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 

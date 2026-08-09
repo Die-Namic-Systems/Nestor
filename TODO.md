@@ -10,24 +10,47 @@ with one of those, they are right and this is stale.
 
 ## 1. The one that changes what can be claimed
 
-**Asymmetric seal signatures.** Per-verifier identity shipped: each verifier has
-their own key, a seal's signature verifies under the key of the verifier it
-*names*, and the UI is a sign-in rather than a text box (`nestor.keyring`,
-`QUESTIONS.md` §6). That closed "a seal proves the key was present but nothing
-about who used it."
+**Asymmetric seal signatures — shipped, corrected in place: this entry used to
+say Ed25519 was still future work. It landed** (`nestor.keyring`, `[keys]`
+extra, decision `0074`). Per-verifier identity shipped first: each verifier
+has their own key, a seal's signature verifies under the key of the verifier
+it *names*, and the UI is a sign-in rather than a text box. Ed25519 shipped on
+top of that: a keyring holding only a peer's **public** key can verify their
+seals while being structurally unable to sign as them — the property an HMAC
+shared secret can never have — closing the cross-instance/cross-organisation
+cell (`QUESTIONS.md` §6, Q2, Q8).
 
-What it did not close is that an HMAC is a **shared secret**. The process that
-verifies a seal holds the key that could have made it, so a seal is evidence
-against everyone except the deployment itself. An Ed25519 signature — or a
-Biscuit capability, which also gets attenuation — is evidence a server could not
-have manufactured, and it is the difference between "we can show you who sealed
-this" and "we can show a third party who sealed this." It goes through the seam
-that already exists: `signing.sign_seal(..., key=)`.
+What Ed25519 alone did not close is that the SIGNING instance still holds
+every one of its own verifiers' private keys, so its operator can forge as
+anyone whose key lives there. **The server-side half of that is now shipped
+too** (decision `0077`): `memory.add_pair(..., seal_sig=...)` accepts a
+signature a client already produced and only *verifies* it — never signs —
+so a public-only ed25519 entry can seal here without the private key ever
+touching this process. `signing._message` is now a documented, frozen wire
+contract for exactly this reason.
 
-Two things fall out of it and want deciding together: key distribution (an HMAC
-key can be handed over in a terminal; a keypair wants enrolment), and whether
-`verifying_key` becomes a public key in the keyring file, which would make the
-file no longer a secret and change the deployment story considerably.
+**Closed — corrected in place: this entry used to say the browser page was
+the real remaining piece.** It shipped (`nestor/ui_page.py`, decision `0078`):
+the "acting as" box's third mode generates a non-extractable Ed25519 key with
+WebCrypto directly in the browser (or imports one minted elsewhere, as raw
+hex), persists it in IndexedDB or only for the tab, and prints the exact
+`nestor keys add NAME --type ed25519 --public HEX` enrolment command for a
+human to run out of band — the private key never leaves the browser, and
+never touches this server. Sealing signs client-side against a message the
+human has seen (a new read-only `/api/normalize` endpoint supplies
+`source_norm`, displayed before signing, so a compromised server cannot steer
+a signature onto bytes nobody looked at), reproducing the frozen
+`signing._message` encoding in JavaScript and proven byte-identical to
+Python's against a live Chromium tab
+(`tests/test_client_signed_seals_browser.py`). Nestor#17's four-cell table
+(README/QUESTIONS §6) is now fully closed: an instance can hold, verify, and
+seal against a verifier's key it structurally never possesses.
+
+Deliberately still narrow: only `/api/seal`, `/api/seal-draft` and the edited
+path of `/api/queue/seal` accept a client signature, matching decision
+`0077`'s scope exactly — a browser-key verifier cannot yet unseal, reject,
+restore, or seal an entity/numeric answer from this UI, because those
+endpoints have no signature to authenticate against.
 
 ## 2. Bigger, and still not argued through
 
