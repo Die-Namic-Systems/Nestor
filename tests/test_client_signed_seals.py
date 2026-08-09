@@ -26,8 +26,18 @@ The acceptance property, extended from the issue's own bar:
   shared ``NESTOR_SEAL_KEY``) is byte-for-byte unchanged when ``seal_sig`` is
   omitted.
 
-The browser/agent-side signing UI itself is explicitly out of scope (a
-follow-up); this only proves the server-side contract it will talk to.
+The browser/agent-side signing UI itself now ships too (`nestor/ui_page.py`,
+decision `0078`) — the end-to-end proof that its JavaScript reproduces the
+frozen contract against a REAL browser lives in
+``tests/test_client_signed_seals_browser.py`` (Playwright), because nothing
+in this file can prove a JS encoder agrees with `_message` byte-for-byte; it
+can only prove what the server does once handed bytes that already agree.
+What this file adds beyond the acceptance property above is the wire-contract
+vector a client signer must reproduce: a hardcoded byte string for a
+non-ASCII, quote-bearing input (`TestMessageWireContractIsFrozen`), and a
+proof that signing exactly THOSE hardcoded bytes — not `_message`'s return
+value, which would make the test circular — verifies through
+``memory.add_pair`` end to end (`TestNonAsciiQuoteVectorEndToEnd`).
 """
 from __future__ import annotations
 
@@ -272,3 +282,70 @@ class TestMessageWireContractIsFrozen:
         assert msg == b'["h\xc3\xa9llo","quo\\"te","rita"]'
         assert b", " not in msg and b": " not in msg   # no separator whitespace
         assert b"\\u00e9" not in msg                    # utf-8 bytes, not \\uXXXX
+
+
+class TestNonAsciiQuoteVectorEndToEnd:
+    """(f) The exact non-ASCII + quote wire-contract vector, SIGNED and
+    VERIFIED through ``memory.add_pair`` -- the shape a real client signer
+    must meet, one level past the byte-string pin above (Nestor#17's browser
+    signer, decision 0078). ``ui_page.py``'s JS reproduces this identical
+    table (``pyJsonString``); this is the Python side of proving it, all the
+    way through the store rather than only at the byte level.
+    """
+
+    def test_hardcoded_bytes_sign_and_verify_through_add_pair(self, ring, store):
+        # The exact bytes pinned above -- hardcoded AGAIN here rather than
+        # imported from the other test, so this test does not depend on
+        # `_message` to describe its own input; it stands on its own if that
+        # test is ever deleted or reworded.
+        expected = b'["h\xc3\xa9llo","quo\\"te","rita"]'
+        assert signing._message("héllo", 'quo"te', "rita") == expected
+
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        private = Ed25519PrivateKey.generate()
+        priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
+                                           NoEncryption())
+        pub_bytes = private.public_key().public_bytes(Encoding.Raw,
+                                                       PublicFormat.Raw)
+        ring.add("rita", key=pub_bytes, kind="ed25519")   # public-only, as an
+                                                            # enrolled browser
+                                                            # key would be
+
+        # Sign the HARDCODED bytes directly, not `_message(...)`'s return
+        # value -- this is exactly what an independent encoder (JS or
+        # otherwise) that reproduced the table by hand, without importing
+        # this module, would sign.
+        sig = Ed25519PrivateKey.from_private_bytes(priv_bytes).sign(expected).hex()
+
+        pair = memory.add_pair("héllo", 'quo"te', "en", "es", status="sealed",
+                               verifier="rita", store=store, seal_sig=sig)
+        assert pair["status"] == "sealed"
+        assert pair["seal_sig"] == sig
+        row = store.memory_find("héllo", "en", "es")
+        assert row is not None and row["status"] == "sealed"
+        assert signing.seal_is_valid("héllo", 'quo"te', "rita", row["seal_sig"])
+        # Fails on the unfixed code exactly as (a) does: no `seal_sig`
+        # parameter on `add_pair` at all before this feature existed.
+
+    def test_a_signature_over_the_message_minus_one_byte_is_refused(self, ring, store):
+        """The hardcoded vector is load-bearing, not decorative -- a
+        signature over almost-the-same bytes (one byte short) must not
+        verify. Guards against a JS encoder that is byte-for-byte correct
+        except for, say, dropping the closing bracket."""
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        private = Ed25519PrivateKey.generate()
+        priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
+                                           NoEncryption())
+        pub_bytes = private.public_key().public_bytes(Encoding.Raw,
+                                                       PublicFormat.Raw)
+        ring.add("rita", key=pub_bytes, kind="ed25519")
+
+        truncated = b'["h\xc3\xa9llo","quo\\"te","rita"]'[:-1]
+        sig = Ed25519PrivateKey.from_private_bytes(priv_bytes).sign(truncated).hex()
+
+        with pytest.raises(memory.InvalidSealSignatureError):
+            memory.add_pair("héllo", 'quo"te', "en", "es", status="sealed",
+                            verifier="rita", store=store, seal_sig=sig)
+        assert store.memory_find("héllo", "en", "es") is None

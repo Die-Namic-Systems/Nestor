@@ -84,7 +84,7 @@ verify and will not be served. `Curator.unverifiable()` and the UI's
 `NESTOR_REQUIRE_SEAL_KEY=1` fails closed instead of degrading. For *who* signed
 it rather than merely *that it was signed*, see Q6.
 
-### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, now asymmetric behind `[keys]`, server seam for client signing shipped**
+### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, including the browser signer**
 
 Set `NESTOR_KEYRING` and yes. Each verifier has their own key
 (`nestor keys add rita`), a seal's signature verifies under the key of the
@@ -137,12 +137,51 @@ does not verify and `add_pair` refuses before writing anything —
 `InvalidSealSignatureError`, no row left behind. `nestor.ui`'s `/api/seal`,
 `/api/seal-draft` and `/api/queue/seal` all take the same optional field.
 
-What is *still* honestly missing is the other half: the browser or
-agent-side page that actually holds rita's private key and produces
-`seal_sig` with WebCrypto (or an equivalent client-side signer). That UI —
-key generation, storage, and the signing flow itself — is a deliberate
-follow-up; this round built the seam it will talk to and proved the seam's
-contract, not the page.
+**The browser page itself has now shipped too** (`nestor/ui_page.py`,
+decision `0078`), which closes the cell Nestor#17 opened: a verifier's key
+can now live ONLY in their own browser, never on this instance at all. The
+"acting as" box's third mode generates an Ed25519 keypair with
+`crypto.subtle.generateKey({name:"Ed25519"}, false, ...)` — the private half
+non-extractable, so it structurally cannot be exported even by this page's
+own JavaScript — stores it in IndexedDB (or only for the tab, if a verifier
+declines to persist it), and shows the public key plus the exact enrollment
+command, `nestor keys add NAME --type ed25519 --public HEX`, for a human to
+run themselves, out of band; the private key is never sent anywhere. A
+fallback IMPORT form accepts a raw 32-byte hex private key — the same form a
+keyring file's own `private` field stores — for a verifier bringing a key
+minted elsewhere, with an optional self-check (sign and verify a random
+challenge, entirely client-side) against a pasted public key before it is
+trusted.
+
+Sealing then reconstructs `signing._message(source_norm, target_text,
+verifier)` in JavaScript from three values: `target_text` and `verifier` are
+whatever the human is looking at on screen when they click Seal — never
+echoed back from some other server response — and `source_norm` comes from a
+new read-only `/api/normalize` endpoint (writes nothing, reachable even under
+`--read-only`) and is DISPLAYED to the human in a confirmation dialog before
+anything is signed, so a compromised or merely buggy server cannot steer a
+signature onto bytes nobody looked at. The JS reproduces `_message`'s frozen
+JSON encoding by hand rather than trusting `JSON.stringify` (proven
+byte-identical to Python's `json.dumps` for the accepted character set,
+including non-ASCII and an embedded quote, against a live browser — see
+`tests/test_client_signed_seals_browser.py`); an unpaired UTF-16 surrogate,
+the one case the two languages cannot agree on, is refused client-side with a
+clear message rather than silently mismatched.
+
+Two things this closes and one it does not, said plainly. It closes: the
+instance-holds-every-private-key gap Q6 named above — a public-only ed25519
+keyring entry can now be enrolled and sealed for without the private key ever
+touching this server, proven end to end against a real Chromium tab, not
+merely against a Python stand-in for one. It does not close: proof of WHICH
+HUMAN is at the keyboard — a browser key proves the browser that holds it
+signed, exactly the limit a password has, and the page says so where a
+verifier picks the mode. And it is deliberately narrow in scope: only
+`/api/seal`, `/api/seal-draft` and the edited path of `/api/queue/seal`
+accept a client signature (the same three decision `0077` extended); a
+browser-key-only verifier still cannot unseal, reject, restore, or seal an
+entity alias or numeric baseline from this UI, because those endpoints have
+no signature to check identity against and a session remains the only proof
+available for them — a stated gap, not a silent one.
 
 Revoking a key asks you one question, because Nestor cannot answer it: was the
 key **rotated** (its past seals stand — nobody else held it) or **taken**

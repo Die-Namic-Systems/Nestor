@@ -1417,18 +1417,23 @@ A rejection by an unregistered name is still recorded and honored, and reported
 as unsigned; refusing to record a "no" is the one direction rejection must not
 fail in, and it is the same asymmetry §1.2 already argues for signatures.
 
-Corrected in place: this used to say the asymmetric upgrade was still open.
-It shipped (Ed25519, `[keys]` extra, decision `0074`) — a keyring holding only
-a peer's **public** key can verify their seals while being structurally unable
-to sign as them, which a shared secret can never do. What Ed25519 alone left
-open was that the *signing* instance still holds every one of its verifiers'
-private keys, so its operator could still forge as anyone whose key lives
-there. The server-side half of closing that has shipped too (decision `0077`,
-Nestor#17): `memory.add_pair(..., seal_sig=...)` accepts a signature a client
-already produced and only verifies it, never signs it, so a public-only entry
-can still seal, given a valid signature. The remaining piece — a browser or
-agent-side page that actually holds a private key and produces that signature
-with WebCrypto — is still open and deliberately out of scope of both.
+Corrected in place, twice now. First: this used to say the asymmetric upgrade
+was still open. It shipped (Ed25519, `[keys]` extra, decision `0074`) — a
+keyring holding only a peer's **public** key can verify their seals while
+being structurally unable to sign as them, which a shared secret can never
+do. What Ed25519 alone left open was that the *signing* instance still holds
+every one of its verifiers' private keys, so its operator could still forge
+as anyone whose key lives there. The server-side half of closing that shipped
+next (decision `0077`, Nestor#17): `memory.add_pair(..., seal_sig=...)`
+accepts a signature a client already produced and only verifies it, never
+signs it, so a public-only entry can still seal, given a valid signature.
+
+Second: this then said the remaining piece was the browser page itself. It
+has shipped too (`nestor/ui_page.py`, decision `0078`, §6.93) — WebCrypto
+Ed25519 generated non-extractable in the browser, enrolled by printing the
+`nestor keys add ... --public HEX` command for a human to run, and a seal
+signed client-side against a message the human has actually seen before
+signing it. Nestor#17's four-cell table is now fully closed.
 
 ---
 
@@ -6969,3 +6974,65 @@ deletion — the PR merges, the prose stops being anybody's inbox, and the findi
 is gone from every surface a future session would search. The rule that follows:
 a finding deferred is a finding filed, in the queue this repo actually keeps, in
 the same change that defers it.
+
+### 6.93 The browser signer, and a same-day bug it was possible to write while wiring it — **shipped**
+
+*Proposed and implemented 2026-08-09, closing Nestor#17's last cell (decisions `0074`, `0077`, `0078`).*
+
+`nestor/ui_page.py` gained a third "acting as" mode: WebCrypto Ed25519,
+generated non-extractable directly in the browser (or imported, as raw
+32-byte hex, for a key minted elsewhere — a verifier's own migration path off
+a server-held key), persisted in IndexedDB or held only for the tab, enrolled
+by printing `nestor keys add NAME --type ed25519 --public HEX` for a human to
+run out of band. Sealing reconstructs the frozen `signing._message` in
+JavaScript from three human-approved values — target and verifier as shown on
+screen, and `source_norm` from a new read-only `/api/normalize` endpoint,
+DISPLAYED in a confirm dialog before signing rather than trusted blindly —
+and signs client-side. `tests/test_client_signed_seals_browser.py` proves it
+against a real Chromium tab (Playwright, `PLAYWRIGHT_BROWSERS_PATH`
+preconfigured, no `playwright install`): generate in-browser, enroll the
+exported public key exactly as printed, drive a real seal through the Ask
+view, and check the recorded row with `signing.seal_is_valid` — the actual
+verification function, not a special-cased one.
+
+**The JS/Python byte-encoding question, checked rather than assumed.**
+`JSON.stringify` is not relied on for the signed message: `pyJsonString` hand-
+encodes each string the way `json.dumps(..., separators=(",",":"),
+ensure_ascii=False)` does, verified side by side against live CPython 3.11
+and this Chromium build (six cases: ASCII, non-ASCII, an embedded quote, raw
+control bytes 0x00/0x1f/0x7f, a backslash, a non-BMP emoji — matching strings
+AND matching UTF-8 bytes in every case) before being relied on. The one case
+that cannot agree — an unpaired UTF-16 surrogate, which Python's
+`str.encode("utf-8")` refuses outright but `TextEncoder` silently mangles to
+U+FFFD — is detected and refused client-side with a clear message rather than
+silently signing bytes Python could never have produced from the same string.
+
+**A privilege-escalation bug, introduced and caught in the same session.**
+Wiring `_verifier_for_seal` (the session bypass a valid `seal_sig` earns) into
+`/api/queue/seal` at first resolved the verifier ONCE, before the endpoint's
+two branches split — but only the EDITED branch forwards `seal_sig` to
+`memory.add_pair`; the as-drafted branch calls `cascade.graduate_segment`,
+which signs SERVER-SIDE and checks no signature at all. The result, verified
+directly against that code before fixing it: `POST /api/queue/seal` with
+`verifier="sam"` (an ordinary HMAC keyring entry) and ANY non-empty
+`seal_sig` — a random Ed25519 keypair signing the literal bytes
+`b"anything"`, nothing to do with sam, the segment, or the wire contract at
+all — returned 200 and a genuinely, validly sealed row attributed to sam,
+server-signed with his real key, with no session ever presented. A full
+authentication bypass for every HMAC or private-half verifier in the
+keyring, from an endpoint that looks, on a shallow read, like it already
+checks a signature. Fixed by resolving the verifier PER BRANCH — `_verifier`
+(session required) for the as-drafted path, `_verifier_for_seal` only where
+the signature is actually forwarded and checked — and pinned by
+`tests/test_client_signed_seals_ui.py::test_queue_seal_as_drafted_still_needs_a_session_not_a_signature`,
+run against the vulnerable code first and confirmed to return 200 (forged
+seal accepted) before the fix, 401 after. Exactly the shape
+`docs/agent-guide.md` names: a condition checked in one place, a write it
+does not actually guard reachable from another branch of the same function.
+
+Scope stays exactly decision `0077`'s: `/api/seal`, `/api/seal-draft`, and
+the edited path of `/api/queue/seal`. A browser-key-only verifier cannot
+unseal, reject, restore, or seal an entity/numeric answer from this UI — those
+endpoints have no signature to authenticate against, and a session remains
+the only proof available for them. Stated in the page's own copy, not
+implied to be closed.

@@ -451,6 +451,16 @@ body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s;
     </div>
   </form>
 </dialog>
+<!-- The in-browser-key manager (Nestor#17): generate, import, unlock, forget.
+     Filled by renderKeyDialog() — a plain div, not a <form method=dialog>,
+     because it has several independent async steps (generate, sign a
+     self-check, enroll) rather than one field and an OK button. -->
+<dialog id="key-dialog"><div id="key-dialog-body"></div></dialog>
+<!-- Sign & Seal confirmation (Nestor#17): the human approves the EXACT bytes
+     about to be signed — server-computed source_norm, and the target/verifier
+     already on screen — before crypto.subtle ever touches them. This is the
+     one dialog in the page a client signature is never produced without. -->
+<dialog id="sign-dialog"><div id="sign-dialog-body"></div></dialog>
 
 <script>
 "use strict";
@@ -485,7 +495,14 @@ const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
             gateEcho: null,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
-                       source_lang: "", target_lang: "" } };
+                       source_lang: "", target_lang: "" },
+            // Nestor#17's browser signer: an in-browser Ed25519 identity, live
+            // only in this tab. `browserKey.privateKey` is a non-extractable
+            // CryptoKey handle (or a session-only imported one) — never a byte
+            // string, and never sent anywhere. `null` means no browser-key
+            // identity is unlocked; the typed/session identity is unaffected.
+            browserKey: null,
+            keyDialogMode: "menu" };
 
 /* ---------- tiny DOM helper: every value lands as text, never as markup ---- */
 function relativeAge(iso) {
@@ -528,19 +545,492 @@ function toast(message, kind) {
 }
 
 function verifier() {
+  // Browser-key identity wins when unlocked: it is the one that can actually
+  // seal without a session (see signSealFields / _verifier_for_seal), so it
+  // is also the one every "who are you" gate in the page should show.
+  if (S.browserKey) return S.browserKey.verifier;
   const box = $("verifier");
   return box ? box.value.trim() : (S.session ? S.session.verifier : "");
+}
+
+/* ---------- in-browser Ed25519 signing (Nestor#17) -------------------------
+ *
+ * The last open cell of #17: an instance that VERIFIES a seal it structurally
+ * cannot have signed, because the private key never touches it. Everything in
+ * this block runs entirely in the browser and never sends anything but a
+ * public key (at enrollment, printed for the human to run themselves — see
+ * enrollmentBlock) and, at seal time, a signature over fields the human has
+ * already seen (see confirmSign / signSealFields). See decision 0078.
+ *
+ * Key custody: `crypto.subtle.generateKey({name:"Ed25519"}, false, ...)` —
+ * extractable=false on the PRIVATE key. WebCrypto always returns the paired
+ * PUBLIC key extractable regardless of that flag (measured against this exact
+ * Chromium build before relying on it), which is the asymmetry this needs:
+ * the public half has to leave the browser, the private half structurally
+ * cannot. The non-extractable CryptoKey is then either kept only in memory
+ * for this tab (session-only) or written into IndexedDB as a structured-clone
+ * value — IndexedDB is the standard place an unexportable CryptoKey persists;
+ * nothing here ever asks WebCrypto to export the private key, so there is no
+ * raw-bytes form of it in this page to leak in the first place.
+ */
+const NESTOR_IDB_NAME = "nestor-keys", NESTOR_IDB_STORE = "identities";
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(NESTOR_IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(NESTOR_IDB_STORE)) {
+        req.result.createObjectStore(NESTOR_IDB_STORE, { keyPath: "verifier" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(record) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(NESTOR_IDB_STORE, "readwrite");
+    tx.objectStore(NESTOR_IDB_STORE).put(record);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(verifierName) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(NESTOR_IDB_STORE, "readonly");
+    const req = tx.objectStore(NESTOR_IDB_STORE).get(verifierName);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbList() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(NESTOR_IDB_STORE, "readonly");
+    const req = tx.objectStore(NESTOR_IDB_STORE).getAll();
+    req.onsuccess = () => resolve((req.result || []).sort((a, b) => a.verifier.localeCompare(b.verifier)));
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDelete(verifierName) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(NESTOR_IDB_STORE, "readwrite");
+    tx.objectStore(NESTOR_IDB_STORE).delete(verifierName);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Cached after the first check — generateKey is not free, and every render of
+// the "acting as" box would otherwise probe it again.
+let _ed25519Support = null;
+function ed25519Supported() {
+  if (_ed25519Support === null) {
+    _ed25519Support = (async () => {
+      try {
+        if (!window.isSecureContext || !window.crypto || !window.crypto.subtle) return false;
+        await crypto.subtle.generateKey({ name: "Ed25519" }, false, ["sign", "verify"]);
+        return true;
+      } catch (e) { return false; }
+    })();
+  }
+  return _ed25519Support;
+}
+
+function hex(buf) {
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexToBytes(s) {
+  const clean = (s || "").trim().replace(/\s+/g, "");
+  if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) {
+    throw new Error("expected hex (0-9, a-f, A-F), an even number of digits");
+  }
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+
+async function generateBrowserIdentity(verifierName, persist) {
+  const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, false, ["sign", "verify"]);
+  const publicHex = hex(await crypto.subtle.exportKey("raw", kp.publicKey));
+  const record = { verifier: verifierName, publicHex, privateKey: kp.privateKey,
+                    createdAt: new Date().toISOString(), imported: false };
+  if (persist) await idbPut(record);
+  return record;
+}
+
+// The fixed, parameter-free PKCS8 DER header WebCrypto needs to import a raw
+// 32-byte Ed25519 seed as a private key: `importKey("raw", ...)` is only
+// defined for the PUBLIC half (measured against this Chromium build: raw
+// PRIVATE import fails outright), so the seed is wrapped in the constant
+// prefix every unencrypted, parameter-free Ed25519 PKCS8 key shares — the
+// format differs from key to key only in its final 32 bytes. See decision
+// 0078 for the round-trip this was checked against before being relied on.
+const ED25519_PKCS8_PREFIX_HEX = "302e020100300506032b657004220420";
+
+async function importBrowserIdentity(verifierName, privHex, pubHexOrEmpty, persist) {
+  const raw = hexToBytes(privHex);
+  if (raw.length !== 32) {
+    throw new Error("an ed25519 private key is 32 raw bytes — 64 hex characters, the same form " +
+      "a Nestor keyring file's \"private\" field stores (not PEM, not PKCS8, not a passphrase-" +
+      "protected file)");
+  }
+  const prefix = hexToBytes(ED25519_PKCS8_PREFIX_HEX);
+  const pkcs8 = new Uint8Array(prefix.length + raw.length);
+  pkcs8.set(prefix, 0);
+  pkcs8.set(raw, prefix.length);
+  const privateKey = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "Ed25519" }, false, ["sign"]);
+
+  let publicHex = (pubHexOrEmpty || "").trim();
+  if (publicHex) {
+    const pubRaw = hexToBytes(publicHex);
+    if (pubRaw.length !== 32) throw new Error("an ed25519 public key is 32 raw bytes — 64 hex characters");
+    const publicKey = await crypto.subtle.importKey("raw", pubRaw, { name: "Ed25519" }, true, ["verify"]);
+    // Self-check: sign a random client-side challenge with the imported
+    // private key and verify it against the imported public key, both via
+    // crypto.subtle, before persisting anything — catches a copy-paste
+    // mismatch here instead of at seal time, where the failure would read
+    // as a forged signature rather than as a typo.
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const sig = await crypto.subtle.sign({ name: "Ed25519" }, privateKey, challenge);
+    const ok = await crypto.subtle.verify({ name: "Ed25519" }, publicKey, sig, challenge);
+    if (!ok) throw new Error("that private key and public key do not form a pair — check both values");
+    publicHex = hex(pubRaw);
+  }
+  const record = { verifier: verifierName, publicHex, privateKey,
+                    createdAt: new Date().toISOString(), imported: true };
+  if (persist) await idbPut(record);
+  return record;
+}
+
+/* ---------- the frozen wire contract, reproduced byte-for-byte ------------
+ *
+ * signing._message is FROZEN (nestor/signing.py):
+ *   json.dumps([source_norm, target_text, verifier],
+ *              separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+ *
+ * JSON.stringify is not relied on here — it is not proven byte-identical to
+ * json.dumps for arbitrary input, and Nestor accepts arbitrary human-typed
+ * target text, so there is no smaller "allowed" character set to restrict to
+ * instead. pyJsonString hand-encodes each string the way CPython's json.dumps
+ * does for exactly this call shape: escape `"`, `\`, and code points below
+ * 0x20 (`\b\t\n\f\r` where Python uses those, `\u00XX` otherwise), and emit
+ * every other code point literally (ensure_ascii=False — U+2028/U+2029, 0x7f,
+ * and non-ASCII letters all pass through unescaped, exactly as json.dumps
+ * leaves them). Checked, not assumed: this table was run against live
+ * CPython 3.11 and this Chromium build side by side — matching strings AND
+ * matching UTF-8 bytes — for a plain-ASCII case, a non-ASCII letter, an
+ * embedded quote, raw control bytes 0x00/0x1f/0x7f, a backslash, and a
+ * non-BMP emoji, before being relied on here. tests/test_client_signed_seals.py
+ * pins the same table from the Python side.
+ *
+ * The one case Python and a naive JS port CANNOT agree on: an unpaired UTF-16
+ * surrogate. Python's str.encode("utf-8") refuses one outright
+ * (UnicodeEncodeError, no surrogatepass); TextEncoder silently replaces it
+ * with U+FFFD. hasLoneSurrogate refuses it client-side, with a clear message,
+ * before any bytes are built — the mandated alternative to silently producing
+ * bytes Python could never have produced from the same string.
+ */
+function hasLoneSurrogate(s) {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {                 // high surrogate
+      const next = s.charCodeAt(i + 1);
+      if (Number.isNaN(next) || next < 0xdc00 || next > 0xdfff) return true;
+      i++;                                            // paired — skip the low half
+    } else if (c >= 0xdc00 && c <= 0xdfff) {           // unpaired low surrogate
+      return true;
+    }
+  }
+  return false;
+}
+
+function pyJsonString(s) {
+  let out = '"';
+  for (const ch of s) {          // iterates by CODE POINT (keeps a surrogate
+                                  // pair together), matching Python's str
+    const cp = ch.codePointAt(0);
+    if (ch === '"') out += '\\"';
+    else if (ch === '\\') out += '\\\\';
+    else if (cp === 0x08) out += '\\b';
+    else if (cp === 0x09) out += '\\t';
+    else if (cp === 0x0a) out += '\\n';
+    else if (cp === 0x0c) out += '\\f';
+    else if (cp === 0x0d) out += '\\r';
+    else if (cp < 0x20) out += '\\u' + cp.toString(16).padStart(4, '0');
+    else out += ch;
+  }
+  return out + '"';
+}
+function pyJsonArray(values) { return '[' + values.map(pyJsonString).join(',') + ']'; }
+
+function frozenMessageBytes(sourceNorm, targetText, verifierName) {
+  for (const [label, v] of [["the normalized source", sourceNorm], ["the target text", targetText],
+                             ["the verifier name", verifierName]]) {
+    if (hasLoneSurrogate(v)) {
+      throw new Error(label + " contains an unpaired UTF-16 surrogate. The frozen signing " +
+        "contract cannot represent that the same way in Python and in the browser (Python " +
+        "refuses to encode it at all) — remove or replace that character before sealing.");
+    }
+  }
+  return new TextEncoder().encode(pyJsonArray([sourceNorm, targetText, verifierName]));
+}
+
+async function signWithBrowserKey(sourceNorm, targetText, verifierName) {
+  if (!S.browserKey) throw new Error("no browser key is unlocked");
+  const message = frozenMessageBytes(sourceNorm, targetText, verifierName);
+  const sig = await crypto.subtle.sign({ name: "Ed25519" }, S.browserKey.privateKey, message);
+  return hex(sig);
+}
+
+/* ---------- Sign & seal: the human approves the exact bytes ---------------
+ *
+ * `target_text` and `verifier` here are the values already on screen and
+ * approved by the human clicking "Seal" — never echoed back from some OTHER
+ * server response the human did not look at. `source_norm` is the one field
+ * the client cannot compute alone (it is a domain Matcher method, not a pure
+ * function of the text), so it comes from the read-only /api/normalize
+ * endpoint — which writes nothing and is reachable even under --read-only —
+ * and is DISPLAYED, not trusted blindly, in confirmSign before anything is
+ * signed. This is the entire point: a compromised or merely buggy server
+ * could return a norm for different bytes than it will actually check the
+ * seal against, and showing it is what lets a human notice.
+ */
+async function signSealFields(sourceText, targetText, sourceLang, targetLang) {
+  if (!S.browserKey) return { verifier: verifier() };     // unchanged: server signs
+  const who = S.browserKey.verifier;
+  let norm;
+  try {
+    norm = (await api("/api/normalize",
+      { text: sourceText, source_lang: sourceLang, target_lang: targetLang })).source_norm;
+  } catch (e) { toast("Could not normalize the source text: " + e.message, "err"); return null; }
+  const approved = await confirmSign(norm, targetText, who);
+  if (!approved) return null;
+  try {
+    const seal_sig = await signWithBrowserKey(norm, targetText, who);
+    return { verifier: who, seal_sig };
+  } catch (e) { toast("Signing failed: " + e.message, "err"); return null; }
+}
+
+function confirmSign(norm, target, who) {
+  return new Promise((resolve) => {
+    const dlg = $("sign-dialog"), body = $("sign-dialog-body");
+    let settled = false;
+    const finish = (v) => { if (settled) return; settled = true; dlg.close(); resolve(v); };
+    body.replaceChildren(
+      h("h2", { style: "margin:0 0 10px;font-size:15px", text: "Sign & seal" }),
+      h("p", { class: "small muted", style: "margin:0 0 10px" },
+        "This is exactly what " + who + "'s browser key is about to sign — the server-computed, " +
+        "read-only normalized source, and the target and verifier as they appear below. Nothing " +
+        "is written until after you sign."),
+      h("div", { class: "context-panel small" },
+        h("div", {}, h("b", {}, "source_norm  "), h("span", { class: "mono", text: norm })),
+        h("div", { style: "margin-top:4px" }, h("b", {}, "target  "), h("span", { class: "mono", text: target })),
+        h("div", { style: "margin-top:4px" }, h("b", {}, "verifier  "), h("span", { class: "mono", text: who }))),
+      h("div", { class: "row", style: "justify-content:flex-end;margin-top:14px;gap:8px" },
+        h("button", { onclick: () => finish(false) }, "Cancel"),
+        h("button", { class: "primary", onclick: () => finish(true) }, "Sign & seal")));
+    dlg.onclose = () => finish(dlg.returnValue === "ok" ? true : false);
+    dlg.showModal();
+  });
+}
+
+/* ---------- the key manager dialog ------------------------------------------ */
+function keyDialogChrome(kids) {
+  return [
+    h("div", { class: "row", style: "justify-content:space-between;align-items:flex-start;margin-bottom:10px" },
+      h("h2", { style: "margin:0;font-size:15px", text: "In-browser signing key" }),
+      h("button", { class: "small", onclick: () => $("key-dialog").close() }, "Close")),
+    ...kids,
+  ];
+}
+
+async function openKeyDialog() {
+  S.keyDialogMode = "menu";
+  await renderKeyDialog();
+  $("key-dialog").showModal();
+}
+
+async function renderKeyDialog() {
+  const body = $("key-dialog-body");
+  const supported = await ed25519Supported();
+  if (!supported) {
+    body.replaceChildren(...keyDialogChrome([
+      h("p", {}, "This browser's WebCrypto does not implement Ed25519 " +
+        "(crypto.subtle.generateKey({name:\"Ed25519\"}) failed, or this page is not a secure " +
+        "context). Recent Chrome, Edge, Firefox and Safari support it; older ones do not. An " +
+        "in-browser key cannot be used here — sign in with a shared key instead.")]));
+    return;
+  }
+  const identities = await idbList().catch(() => []);
+  let content;
+  if (S.keyDialogMode === "generate") content = keyDialogGenerate();
+  else if (S.keyDialogMode === "import") content = keyDialogImport();
+  else content = keyDialogMenu(identities);
+  body.replaceChildren(...keyDialogChrome(content));
+}
+
+function keyDialogMenu(identities) {
+  const kids = [
+    h("p", { class: "small muted", style: "margin:0 0 12px" },
+      "The private key is generated by crypto.subtle, marked non-extractable, and kept in this " +
+      "browser (IndexedDB, or only this tab if you choose not to store it). It never leaves this " +
+      "page — sealing signs here and sends only the signature. It proves the browser that holds " +
+      "the key signed, not which human is at the keyboard — the same limit a password has."),
+  ];
+  if (identities.length) {
+    kids.push(h("div", { class: "small muted", style: "margin-bottom:4px", text: "stored on this device:" }));
+    for (const rec of identities) {
+      kids.push(h("div", { class: "row", style: "justify-content:space-between;margin:4px 0" },
+        h("span", {},
+          h("b", { text: rec.verifier }),
+          h("span", { class: "mono small muted", style: "margin-left:8px",
+                      text: (rec.publicHex || "(no public key recorded)").slice(0, 16) + "…" })),
+        h("span", { class: "row", style: "gap:6px" },
+          h("button", { class: "primary small", onclick: () => unlockStored(rec.verifier) }, "Use"),
+          h("button", { class: "small danger", onclick: () => forgetStored(rec.verifier) }, "Forget"))));
+    }
+  } else {
+    kids.push(h("p", { class: "empty small", text: "No browser key stored on this device yet." }));
+  }
+  kids.push(h("div", { class: "row", style: "margin-top:14px;gap:8px" },
+    h("button", { class: "primary small",
+      onclick: () => { S.keyDialogMode = "generate"; renderKeyDialog(); } }, "Generate a new identity"),
+    h("button", { class: "small",
+      onclick: () => { S.keyDialogMode = "import"; renderKeyDialog(); } }, "Import an existing key")));
+  kids.push(h("p", { class: "small muted", style: "margin-top:14px" },
+    "Can seal from Queue (once you edit the candidate text), Memory, and Ask → Translate. It " +
+    "cannot yet sign in for unseal, reject, restore, or the entity/numeric recipes — those need " +
+    "a shared-key sign-in above (decision 0078 says why)."));
+  return kids;
+}
+
+function enrollmentBlock(name, publicHex) {
+  const cmd = "nestor keys add " + name + " --type ed25519 --public " + publicHex;
+  return h("div", { class: "context-panel small", style: "margin-top:10px" },
+    h("p", { style: "margin:0 0 6px" }, h("b", {}, "Public key — nothing else was sent anywhere:")),
+    h("p", { class: "mono", style: "word-break:break-all;margin:0 0 8px", text: publicHex }),
+    h("p", { style: "margin:0 0 4px" }, h("b", {}, "Enroll it yourself, out of band:")),
+    h("p", { class: "mono", style: "word-break:break-all;margin:0", text: cmd }),
+    h("p", { class: "small muted", style: "margin-top:8px" },
+      "Run that on the machine that holds this instance's keyring. This page never runs it for " +
+      "you and never could — it only ever had the public half. Until it is enrolled, a seal " +
+      "signed with this key is refused as an unknown verifier."));
+}
+
+function keyDialogGenerate() {
+  return [
+    h("p", { class: "small muted", style: "margin:0 0 10px" },
+      "Names the verifier this key signs as. Generating changes nothing server-side by itself — " +
+      "the server only learns about this key once you run the enrollment command it prints, " +
+      "yourself, out of band."),
+    h("input", { id: "gen-name", placeholder: "verifier name", style: "width:100%;margin-bottom:8px",
+                 value: S.typedVerifier || (S.session ? S.session.verifier : "") }),
+    h("label", { class: "row small", style: "gap:6px;margin-bottom:10px" },
+      h("input", { type: "checkbox", id: "gen-persist", checked: true }),
+      "remember this key on this device (IndexedDB) — uncheck for a one-tab, this-session-only key"),
+    h("div", { class: "row" },
+      h("button", { class: "small", onclick: () => { S.keyDialogMode = "menu"; renderKeyDialog(); } }, "Back"),
+      h("button", { class: "primary small", onclick: doGenerate }, "Generate")),
+    h("div", { id: "gen-result" }),
+  ];
+}
+
+async function doGenerate() {
+  const name = $("gen-name").value.trim();
+  if (!name) return toast("Name the verifier this key signs as.", "err");
+  const persist = $("gen-persist").checked;
+  try {
+    const rec = await generateBrowserIdentity(name, persist);
+    S.browserKey = { verifier: name, privateKey: rec.privateKey, publicHex: rec.publicHex };
+    $("gen-result").replaceChildren(enrollmentBlock(name, rec.publicHex));
+    render();
+  } catch (e) { toast(e.message, "err"); }
+}
+
+function keyDialogImport() {
+  return [
+    h("p", { class: "small muted", style: "margin:0 0 10px" },
+      "Bring in an Ed25519 private key minted elsewhere — RAW 32-byte hex (64 hex characters), " +
+      "the same form a Nestor keyring file's \"private\" field stores. Not PEM, not PKCS8, not a " +
+      "passphrase-protected file."),
+    h("input", { id: "imp-name", placeholder: "verifier name", style: "width:100%;margin-bottom:8px",
+                 value: S.typedVerifier || (S.session ? S.session.verifier : "") }),
+    h("input", { id: "imp-priv", type: "password", placeholder: "private key — 64 hex characters",
+                 style: "width:100%;margin-bottom:8px;font-family:ui-monospace,monospace" }),
+    h("input", { id: "imp-pub", placeholder: "public key — 64 hex characters (optional, self-checked)",
+                 style: "width:100%;margin-bottom:8px;font-family:ui-monospace,monospace" }),
+    h("label", { class: "row small", style: "gap:6px;margin-bottom:10px" },
+      h("input", { type: "checkbox", id: "imp-persist", checked: true }),
+      "remember this key on this device (IndexedDB)"),
+    h("div", { class: "row" },
+      h("button", { class: "small", onclick: () => { S.keyDialogMode = "menu"; renderKeyDialog(); } }, "Back"),
+      h("button", { class: "primary small", onclick: doImport }, "Import")),
+    h("div", { id: "imp-result" }),
+  ];
+}
+
+async function doImport() {
+  const name = $("imp-name").value.trim();
+  const privHex = $("imp-priv").value.trim();
+  const pubHex = $("imp-pub").value.trim();
+  if (!name) return toast("Name the verifier this key signs as.", "err");
+  if (!privHex) return toast("Paste the private key.", "err");
+  try {
+    const rec = await importBrowserIdentity(name, privHex, pubHex, $("imp-persist").checked);
+    S.browserKey = { verifier: name, privateKey: rec.privateKey, publicHex: rec.publicHex };
+    $("imp-result").replaceChildren(rec.publicHex
+      ? enrollmentBlock(name, rec.publicHex)
+      : h("p", { class: "small muted", style: "margin-top:8px" },
+          "Imported — no public key was given to self-check against. Confirm with `nestor keys " +
+          "list` that this instance already holds the matching public key for " + name + "."));
+    render();
+    toast("Imported. Signing as " + name + " with the browser key.", "ok");
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function unlockStored(name) {
+  try {
+    const rec = await idbGet(name);
+    if (!rec) return toast("No stored key for " + name + ".", "err");
+    S.browserKey = { verifier: name, privateKey: rec.privateKey, publicHex: rec.publicHex };
+    $("key-dialog").close();
+    render();
+    toast("Signing as " + name + " with the browser key stored on this device.", "ok");
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function forgetStored(name) {
+  if (!confirm("Forget the browser key stored for " + name + " on this device? If it was never " +
+               "enrolled anywhere else, nothing will ever be able to sign as " + name + " again.")) {
+    return;
+  }
+  await idbDelete(name);
+  if (S.browserKey && S.browserKey.verifier === name) S.browserKey = null;
+  await renderKeyDialog();
+  render();
 }
 
 /* ---------- identity -------------------------------------------------------
  *
  * Without a keyring the "acting as" box is a text field, and the honest
  * description of that is: this UI seals as whatever you type. With one, the
- * same corner becomes a sign-in — a verifier presents their own seal key, and
- * every decision in the session is signed with it, so the name on a seal is
- * evidence about a person rather than evidence that somebody typed it.
+ * same corner offers two sign-ins. A shared-key one — a verifier presents
+ * their own seal key, and every decision in the session is signed with it
+ * server-side, so the name on a seal is evidence about a person rather than
+ * evidence that somebody typed it — and, now, an in-browser one: a verifier
+ * unlocks (or generates, or imports) an Ed25519 key that never leaves this
+ * page, and sealing signs client-side (see the block above). Both prove a
+ * key; neither proves a face. The shared-key form additionally requires the
+ * SERVER to hold that key, which a verifier who wants true client custody may
+ * not want — that is exactly the gap the browser-key form closes.
  *
- * The token is kept here and sent with every write; the key is not kept at all.
+ * The shared-key token is kept here and sent with every write; that key
+ * itself is never kept. The browser-key private CryptoKey is kept (in
+ * IndexedDB, or only in memory) but never sent anywhere at all.
  */
 function whoBox() {
   const box = $("who");
@@ -554,10 +1044,20 @@ function whoBox() {
                                       localStorage.setItem("nestor.verifier", S.typedVerifier); } }));
     return;
   }
+  if (S.browserKey) {
+    box.append(
+      h("label", { text: "browser key" }),
+      h("b", { title: "signing every seal client-side with this name's in-browser key",
+               text: S.browserKey.verifier }),
+      h("button", { class: "small", onclick: openKeyDialog }, "Switch"),
+      h("button", { class: "small", onclick: () => { S.browserKey = null; render(); } }, "Lock"));
+    return;
+  }
   if (S.session && S.session.verifier) {
     box.append(h("label", { text: "signed in as" }),
       h("b", { text: S.session.verifier }),
-      h("button", { class: "small", onclick: signOut }, "Sign out"));
+      h("button", { class: "small", onclick: signOut }, "Sign out"),
+      h("button", { class: "small", onclick: openKeyDialog }, "or use a browser key"));
     return;
   }
   const names = id.verifiers || [];
@@ -568,7 +1068,8 @@ function whoBox() {
     h("input", { id: "who-key", type: "password", placeholder: "seal key", size: 16,
                  autocomplete: "off",
                  onkeydown: (e) => { if (e.key === "Enter") signIn(); } }),
-    h("button", { class: "primary small", onclick: signIn }, "Sign in"));
+    h("button", { class: "primary small", onclick: signIn }, "Sign in"),
+    h("button", { class: "small", onclick: openKeyDialog }, "Browser key…"));
 }
 
 async function signIn() {
@@ -703,16 +1204,32 @@ function segmentRow(doc, seg) {
       seg.jeles_score ? h("span", { class: "chip mono", text: "engine " + Number(seg.jeles_score).toFixed(2) }) : null),
     h("div", { class: "row", style: "margin-top:8px" },
       h("button", { class: "primary small", disabled: ro,
-        onclick: () => sealSegment(seg, box.value) }, "Seal"),
+        onclick: () => sealSegment(doc, seg, box.value) }, "Seal"),
       h("button", { class: "small danger", disabled: ro || !seg.candidate,
         onclick: () => rejectSegment(seg) }, "Reject"),
       h("span", { class: "chip mono", text: (seg.id || "").slice(0, 8) })));
 }
 
-async function sealSegment(seg, target) {
+async function sealSegment(doc, seg, target) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
-  if (!target.trim()) return toast("Nothing to seal — type the verified text.", "err");
-  const body = { segment_id: seg.id, verifier: verifier(), target: target.trim() };
+  const trimmed = target.trim();
+  if (!trimmed) return toast("Nothing to seal — type the verified text.", "err");
+  // /api/queue/seal only accepts seal_sig on the EDITED branch (server-side,
+  // matching decision 0077's scope) — sealing an unedited candidate verbatim
+  // still goes through `graduate_segment`, which has no signature seam and
+  // needs a session. Checked here so a browser-key-only verifier gets a clear
+  // answer instead of a wasted sign-and-then-401 round trip.
+  const willEdit = trimmed !== (seg.candidate || "");
+  if (S.browserKey && !willEdit) {
+    return toast("Sealing this candidate as drafted (no edits) still needs a shared-key sign-in " +
+                 "— only an edited correction seals with a browser key here. Edit the text, or " +
+                 "sign in above.", "err");
+  }
+  const extra = await signSealFields(seg.source_text, trimmed,
+                                     doc.source_lang || (S.state && S.state.domain.source_lang),
+                                     doc.target_lang || (S.state && S.state.domain.target_lang));
+  if (!extra) return;
+  const body = { segment_id: seg.id, target: trimmed, ...extra };
   try {
     const out = await api("/api/queue/seal", body);
     toast(out.edited ? "Sealed your correction. It now serves as tier 1."
@@ -1098,8 +1615,10 @@ async function sealCommitment(p, pairId) {
   const letter = S.commitmentPickByPair[pairId || p.id] || choices[0]?.id;
   const pick = choices.find((c) => c.id === letter) || choices[0];
   if (!pick) return toast("No commitment options on this pair.", "err");
+  const extra = await signSealFields(p.source_text, pick.sealText, p.source_lang, p.target_lang);
+  if (!extra) return;
   const out = await sealWithOverride("/api/seal-draft",
-    { pair_id: p.id, target: pick.sealText, verifier: verifier() },
+    { pair_id: p.id, target: pick.sealText, ...extra },
     "Commitment sealed. If this is a fleet gap, willow should run apply_sealed_fleet_gaps.py.");
   if (out && out.pair) S.detail = out.pair;
   render();
@@ -1324,10 +1843,10 @@ async function submitSeal() {
     return toast("A new domain needs both tags — they are what keeps one graph out " +
                  "of another.", "err");
   }
-  const body = {
-    source: $("seal-source").value, target: $("seal-target").value,
-    ...tags, verifier: verifier(),
-  };
+  const source = $("seal-source").value, target = $("seal-target").value;
+  const extra = await signSealFields(source, target, tags.source_lang, tags.target_lang);
+  if (!extra) return;
+  const body = { source, target, ...tags, ...extra };
   await sealWithOverride("/api/seal", body, "Sealed into " + domainLabel(tags) + ".");
   // The new domain exists now, so select it instead of leaving the form on
   // "new domain…" with the tag boxes empty — the next seal would be refused.
@@ -1816,9 +2335,11 @@ async function sealFromAsk(r) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
   const target = $("ask-seal-target").value.trim();
   if (!target) return toast("Nothing to seal — type the verified text.", "err");
+  const extra = await signSealFields(r.query.text, target, r.query.source_lang, r.query.target_lang);
+  if (!extra) return;
   await sealWithOverride("/api/seal",
     { source: r.query.text, target, source_lang: r.query.source_lang,
-      target_lang: r.query.target_lang, verifier: verifier(), origin: "ui:ask" },
+      target_lang: r.query.target_lang, origin: "ui:ask", ...extra },
     "Sealed. Ask again and it serves as tier 1.");
 }
 

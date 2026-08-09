@@ -108,11 +108,23 @@ class Sessions:
     that session is signed with it — so a seal by ``rita`` is evidence about
     rita rather than evidence that somebody typed "rita".
 
-    What this is not: it is a shared secret, so it proves possession of a key
-    rather than the presence of a person, and the server necessarily holds the
-    keys it verifies against. The asymmetric upgrade — a signature the server
-    checks with a public key it could not have produced — is the follow-on, and
-    it is the same seam (``signing.sign_seal(..., key=)``) either way.
+    What this is: a shared secret, so it proves possession of a key rather than
+    the presence of a person, and the server necessarily holds the keys it
+    verifies against — for a verifier whose entry here is HMAC, or ed25519 with
+    the private half present. It proves nothing at all for a verifier whose
+    keyring entry holds only an ed25519 PUBLIC key: there is no server-held
+    secret for :meth:`~nestor.keyring.Keyring.signing_key` to check a typed one
+    against, so :meth:`Sessions.open` cannot authenticate them and never will —
+    by construction, per :meth:`nestor.keyring.Keyring.signing_entry`'s own
+    refusal. That verifier signs client-side instead (Nestor#17's browser
+    signer, now shipped): the "acting as" box's third mode unlocks, generates
+    or imports their key entirely in the browser via WebCrypto, and a seal they
+    make never reaches this class at all — it reaches ``/api/seal``,
+    ``/api/seal-draft`` or ``/api/queue/seal`` carrying ``seal_sig``, and
+    :func:`_verifier_for_seal` trusts the named verifier because the signature
+    the browser produced is the proof, checked by ``memory.add_pair`` exactly
+    as it checks a server-signed seal. See that function's docstring for why
+    that is not a weaker check than a session token, only a different one.
 
     Tokens live in memory only. Restarting the UI signs everyone out, which is
     also how a revocation takes effect.
@@ -308,6 +320,44 @@ def _verifier(app: App, payload: Mapping[str, Any]) -> str:
     return who
 
 
+def _verifier_for_seal(app: App, payload: Mapping[str, Any]) -> str:
+    """Like :func:`_verifier`, but for the three endpoints that accept
+    ``seal_sig`` (Nestor#17's browser signer): a caller supplying a signature
+    authenticates BY the signature, not by a :class:`Sessions` token.
+
+    ``Sessions.open`` checks a typed secret against one this server holds
+    (``Keyring.signing_key``) — which does not exist for a verifier whose
+    keyring entry is ed25519 PUBLIC-only, so that verifier can never sign in
+    through it, by the same refusal :meth:`~nestor.keyring.Keyring.signing_entry`
+    already makes at the library level. That verifier's browser holds the
+    private key instead and produces ``seal_sig`` itself; the signature IS the
+    proof of identity, checked exactly once, downstream, by
+    ``memory.add_pair``'s existing verify-only seam (decision 0077) — a typed
+    ``verifier`` this signature does not verify for is refused there,
+    ``InvalidSealSignatureError``, before any write, whether or not a session
+    ever existed. Requiring a session in ADDITION would not add safety, since
+    the check it would perform is the same fact the signature already proves;
+    it would only make this path impossible to use for exactly the verifiers
+    it exists to serve — see decision 0078.
+
+    Deliberately narrow: only the three ``seal_sig``-accepting endpoints call
+    this. Every other write (``unseal``, ``restore``, ``reject-pair``,
+    ``entity/seal``, ``reconcile/seal``, …) still calls :func:`_verifier` and
+    still requires a session — those endpoints have no signature to check
+    identity against, so a session token remains the only proof available for
+    them, and a browser-key-only verifier cannot make those calls from this UI
+    (a stated gap, not a silent one: see decision 0078).
+    """
+    if keyring.enabled() and _str(payload, "seal_sig"):
+        who = _str(payload, "verifier")
+        if not who:
+            raise ApiError(400, "seal_sig was supplied but no verifier was named — "
+                                "a signature has to be checked against somebody's key.",
+                           code="bad_request")
+        return who
+    return _verifier(app, payload)
+
+
 def _pair_id(payload: Mapping[str, Any]) -> str:
     pair_id = _str(payload, "pair_id")
     if not pair_id:
@@ -405,6 +455,37 @@ def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
         "summary": summary,
         "ledger": {"ok": ok, "detail": detail, "path": str(cascade._ledger_path())},
     }
+
+
+def _normalize(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Read-only: the canonical ``source_norm`` a seal for this text would
+    bind to (Nestor#17's browser signer).
+
+    A client-side signer needs ``source_norm`` to build the exact message
+    ``signing._message`` signs — it is the one field of that message the
+    client cannot compute alone, because normalization is a domain's
+    :class:`~nestor.matcher.Matcher` method, not a pure function of the text a
+    JS reimplementation could own without drifting from whatever matcher a
+    host actually installed (:class:`~nestor.semantic_matcher.SemanticMatcher`
+    included). This calls the identical ``matcher.normalize(text)``
+    ``memory.add_pair`` calls, so the value shown here is exactly the value a
+    seal for this text would be checked against, never an approximation of it.
+
+    Writes NOTHING — no store call beyond resolving which matcher this domain
+    uses, no ledger entry, no side effect of any kind — which is why it is
+    listed in ``_NO_DECISION`` and stays reachable under ``--read-only``: a
+    read-only page must still be able to show what a seal WOULD bind to, or it
+    cannot even preview one. It does not accept, or need, a session — knowing
+    a domain's normalization of a phrase is not a decision about anything.
+    """
+    text = _str(payload, "text") or _str(query, "text")
+    if not text:
+        raise ApiError(400, "nothing to normalize", code="bad_request")
+    source_lang = _str(payload, "source_lang") or _str(query, "source_lang") or app.source_lang
+    target_lang = _str(payload, "target_lang") or _str(query, "target_lang") or app.target_lang
+    matcher = memory.get_matcher(_domain_matcher(app, source_lang, target_lang))
+    return {"source_norm": matcher.normalize(text),
+            "source_lang": source_lang, "target_lang": target_lang}
 
 
 def _session_open(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -702,18 +783,19 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
 
     ``seal_sig`` (Nestor#17's client-signing seam) is optional and off by
     default: omit it and this instance signs exactly as it always has. A
-    caller that already holds a signature over this seal — most usefully, a
-    verifier whose keyring entry here is ed25519 PUBLIC-only, who could never
-    get a seal from this endpoint any other way — may pass it instead; this
-    server only VERIFIES it (``memory.add_pair`` refuses, before any write,
-    when it does not check out). No browser signing UI ships here yet; this
-    is the wire seam a future one talks to.
+    caller that already holds a signature over this seal — the browser signer
+    shipped alongside this endpoint, for a verifier whose keyring entry here
+    is ed25519 PUBLIC-only and could never get a seal from this endpoint any
+    other way — may pass it instead; this server only VERIFIES it
+    (``memory.add_pair`` refuses, before any write, when it does not check
+    out). ``verifier`` in that case comes straight from the payload, not a
+    session — see :func:`_verifier_for_seal`.
     """
     source = _str(payload, "source")
     target = _str(payload, "target")
     if not source or not target:
         raise ApiError(400, "a seal needs both a source and a target", code="bad_request")
-    who = _verifier(app, payload)
+    who = _verifier_for_seal(app, payload)
     source_lang = _str(payload, "source_lang") or app.source_lang
     target_lang = _str(payload, "target_lang") or app.target_lang
     override = bool(payload.get("override"))
@@ -745,7 +827,7 @@ def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     target = _str(payload, "target") or (row.get("target_text") or "")
     if not target.strip():
         raise ApiError(400, "a seal needs a target commitment", code="bad_request")
-    who = _verifier(app, payload)
+    who = _verifier_for_seal(app, payload)
     override = bool(payload.get("override"))
     pair = memory.add_pair(
         row["source_text"],
@@ -854,10 +936,21 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     the draft that was *not* sealed), so the trail distinguishes "a human
     accepted the machine's answer" from "a human wrote the answer" — two very
     different facts about a verification.
+
+    ``seal_sig`` reaches only the EDITED branch below, because only that
+    branch calls ``memory.add_pair`` directly — ``graduate_segment`` has no
+    ``seal_sig`` parameter and never will from here (out of this seam's scope,
+    same as decision 0077 left it). That is why verifier resolution happens
+    PER BRANCH rather than once at the top: :func:`_verifier_for_seal` trusts
+    a typed verifier name on the strength of ``seal_sig`` being checked
+    downstream, and the as-drafted branch has no downstream check to make that
+    trust good on — using it there would let a caller name any verifier by
+    attaching an unrelated ``seal_sig`` to a request that never verifies it. A
+    prior draft of this endpoint did exactly that; decision 0078 names it as
+    the fragile spot it was.
     """
     _require_queue(app)
     segment_id = _str(payload, "segment_id")
-    who = _verifier(app, payload)
     edited = _str(payload, "target")
     seg = app.store.get_segment(segment_id)
     if not seg or not (seg.get("candidate") or edited):
@@ -868,6 +961,9 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     seg_matcher = _domain_matcher(app, seg_doc.get("source_lang", app.source_lang),
                                   seg_doc.get("target_lang", app.target_lang))
     if not edited or edited == seg.get("candidate"):
+        # graduate_segment signs server-side and has no seal_sig seam — a
+        # session is the only proof of identity available on this branch.
+        who = _verifier(app, payload)
         pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store,
                                         matcher=seg_matcher)
         if pair is None:
@@ -875,6 +971,9 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
                            code="not_found")
         return {"pair": pair, "segment_id": segment_id, "edited": False}
 
+    # This branch calls add_pair directly and forwards seal_sig to it below,
+    # so a signature-backed verifier name is safe to trust here.
+    who = _verifier_for_seal(app, payload)
     doc = seg_doc
     pair = memory.add_pair(
         seg["source_text"], edited, doc.get("source_lang", app.source_lang),
@@ -913,7 +1012,7 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
 Handler = Callable[[App, Mapping[str, Any], Mapping[str, Any]], dict]
 
 # POSTs that record nothing, and so survive --read-only.
-_NO_DECISION = ("/api/session", "/api/session/end")
+_NO_DECISION = ("/api/session", "/api/session/end", "/api/normalize")
 
 _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/state"): _state,
@@ -929,6 +1028,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/gate-echo"): _gate_echo,
     ("POST", "/api/session"): _session_open,
     ("POST", "/api/session/end"): _session_end,
+    ("POST", "/api/normalize"): _normalize,
     ("POST", "/api/import"): _import,
     ("POST", "/api/ask"): _ask,
     ("POST", "/api/match"): _match,

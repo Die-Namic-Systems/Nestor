@@ -29,12 +29,28 @@ so a public-only ed25519 entry can seal here without the private key ever
 touching this process. `signing._message` is now a documented, frozen wire
 contract for exactly this reason.
 
-**Still open, and it is the real remaining piece:** the browser/agent-side
-page that actually holds a verifier's private key and produces `seal_sig`
-(WebCrypto ed25519, or an equivalent client-side signer), plus its enrolment
-story — handing the server a peer's public key in the first place. That is a
-UI architecture change with its own consequences and was deliberately left
-out of both `0074` and `0077`.
+**Closed — corrected in place: this entry used to say the browser page was
+the real remaining piece.** It shipped (`nestor/ui_page.py`, decision `0078`):
+the "acting as" box's third mode generates a non-extractable Ed25519 key with
+WebCrypto directly in the browser (or imports one minted elsewhere, as raw
+hex), persists it in IndexedDB or only for the tab, and prints the exact
+`nestor keys add NAME --type ed25519 --public HEX` enrolment command for a
+human to run out of band — the private key never leaves the browser, and
+never touches this server. Sealing signs client-side against a message the
+human has seen (a new read-only `/api/normalize` endpoint supplies
+`source_norm`, displayed before signing, so a compromised server cannot steer
+a signature onto bytes nobody looked at), reproducing the frozen
+`signing._message` encoding in JavaScript and proven byte-identical to
+Python's against a live Chromium tab
+(`tests/test_client_signed_seals_browser.py`). Nestor#17's four-cell table
+(README/QUESTIONS §6) is now fully closed: an instance can hold, verify, and
+seal against a verifier's key it structurally never possesses.
+
+Deliberately still narrow: only `/api/seal`, `/api/seal-draft` and the edited
+path of `/api/queue/seal` accept a client signature, matching decision
+`0077`'s scope exactly — a browser-key verifier cannot yet unseal, reject,
+restore, or seal an entity/numeric answer from this UI, because those
+endpoints have no signature to authenticate against.
 
 ## 2. Bigger, and still not argued through
 
