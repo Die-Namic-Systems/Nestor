@@ -12,11 +12,12 @@ before the fix is a description, not a gate.
 """
 from __future__ import annotations
 
+import json
 import os
 
 import pytest
 
-from nestor import cascade, memory, portable, storage
+from nestor import cascade, cli, memory, portable, storage, ui
 from nestor.matcher import NumericMatcher, StringMatcher
 from nestor.sqlite_store import SqliteStore
 
@@ -149,3 +150,73 @@ def test_a_legacy_bundle_without_a_matcher_label_does_not_false_alarm(signed, re
     assert report["source_matcher"] == ""
     assert report["matcher_mismatch"] is False
     assert not [w for w in recwarn.list if "keyed by" in str(w.message)]
+
+
+# --- Finding 1, the wiring an audit caught -------------------------------
+#
+# The portable mechanism above is only honest if the matcher LABEL reaches it
+# on the surfaces people actually use. An audit found it did not: the UI's
+# "Export bundle" button sends no domain tags, so `_domain_matcher("","")`
+# returned None and a custom-matcher surface relabelled its OWN rows with the
+# process default — the mislabel this finding closes, arriving on the export
+# side. The CLI export/import had no `--matcher` at all, so they always used the
+# process default. Both are gated below; each fails on the pre-wiring revision.
+
+
+def test_ui_export_button_labels_with_the_surface_matcher(signed, tmp_path):
+    """The bare button is a whole-store export with no tags. A surface keyed by
+    a custom matcher must label its own rows with THAT matcher, not the default."""
+    store = fresh(str(tmp_path / "num.db"))
+    storage.set_store(store)
+    memory.add_pair("pay 1000 USD", "x", "num", "num", status="sealed",
+                    verifier="rita", matcher=NumericMatcher(), store=store)
+    app = ui.App(store=store, source_lang="num", target_lang="num",
+                 matcher=NumericMatcher(), db_path=":memory:")
+    bundle = ui._bundle(app, {}, {})                 # the button: empty query
+    assert bundle["matcher"] == "NumericMatcher"
+
+
+def test_ui_export_scoped_to_a_foreign_domain_still_defers(signed, tmp_path):
+    """The fix must not lend the surface's matcher LABEL to a domain it does not
+    key — the §6.40 guard, on the label. A request explicitly about another
+    domain defers to the process default, exactly as `_domain_matcher` does."""
+    store = fresh(str(tmp_path / "f.db"))
+    storage.set_store(store)
+    app = ui.App(store=store, source_lang="en", target_lang="es",
+                 matcher=NumericMatcher(), db_path=":memory:")
+    bundle = ui._bundle(app, {"source_lang": "fr", "target_lang": "de"}, {})
+    assert bundle["matcher"] == "StringMatcher"
+
+
+def test_cli_export_matcher_flag_labels_the_bundle(signed, tmp_path):
+    db = tmp_path / "cli.db"
+    store = fresh(str(db))
+    memory.add_pair("pay 1000 USD", "x", "num", "num", status="sealed",
+                    verifier="rita", matcher=NumericMatcher(), store=store)
+    store.close()
+    out = tmp_path / "b.json"
+    cli.main(["--db", str(db), "--ledger", str(tmp_path / "ledger.jsonl"),
+              "export", "--matcher", "numeric", "--out", str(out)])
+    bundle = json.loads(out.read_text())
+    assert bundle["matcher"] == "NumericMatcher"
+
+
+def test_cli_import_matcher_flag_reports_a_mismatch(signed, tmp_path, capsys):
+    src = fresh()
+    storage.set_store(src)
+    memory.add_pair("hello", "hola", "en", "es", status="sealed",
+                    verifier="rita", store=src)
+    bundle = portable.export_bundle(src)                 # labelled StringMatcher
+    assert bundle["matcher"] == "StringMatcher"
+    path = tmp_path / "b.json"
+    path.write_text(json.dumps(bundle))
+
+    code = cli.main(["--db", str(tmp_path / "dst.db"),
+                     "--ledger", str(tmp_path / "led.jsonl"), "--json", "import",
+                     str(path), "--apply", "--verifier", "ops",
+                     "--matcher", "numeric"])
+    report = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_OK
+    assert report["matcher_mismatch"] is True
+    assert report["source_matcher"] == "StringMatcher"
+    assert report["dest_matcher"] == "NumericMatcher"

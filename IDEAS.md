@@ -6854,10 +6854,24 @@ only ever be a warning — the field is explicitly not a stable identifier, so i
 cannot bear a refusal, and two agreeing matchers that were renamed will trip it
 — but a warning beats silence. The label lives in the envelope and **not the
 digest**, for the same reason: an integrity check cannot rest on an unstable
-label. `ui`'s export/import thread the domain's matcher so `/api/import`, the
-path the finding names, is covered. Regressions in
-`tests/test_findings_2026_08_07_deferred.py`; the decision is
-`docs/dogfood/decisions/0073-a-bundle-carries-its-matcher-label.json`.
+label. Regressions in `tests/test_findings_2026_08_07_deferred.py`; the decision
+is `docs/dogfood/decisions/0073-a-bundle-carries-its-matcher-label.json`.
+
+*Wiring correction (same day, from an adversarial audit of the fix's own
+commit).* The first version threaded `_domain_matcher` on the UI **export** path
+and left the CLI on the bare process default, and both mislabelled: the "Export
+bundle" button sends no tags, so `_domain_matcher("","")` returned `None` and
+relabelled a custom surface's own rows with the process default — the mislabel
+this finding closes, on the export side — and `nestor export`/`import` had no
+`--matcher` at all. Fixed: `ui._bundle` labels an unscoped whole-store export
+with `app.matcher` (scoped requests still route through `_domain_matcher`, so the
+§6.40 guard holds), and the CLI grows `--matcher` on both subcommands
+(`answer.load_matcher`, default unchanged). The new tests drive the button and
+the CLI directly, because the original four exercised `export_bundle`/
+`import_bundle` with an explicit `matcher=` and so gated the mechanism but never
+the wiring. Decision `0075`. Residual: a multi-domain store behind a
+single-domain surface still cannot carry one label — the envelope field is
+singular — which is left open.
 
 Finding 2 remains **open** — its fix is a genuine semantics fork (case-fold the
 tags, or refuse a near-miss) that this entry declined to make and that was left

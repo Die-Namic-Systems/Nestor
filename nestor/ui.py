@@ -486,12 +486,21 @@ def _export(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
 def _bundle(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """The portable, re-importable form — signatures and all."""
     sl, tl = _str(query, "source_lang"), _str(query, "target_lang")
+    # The matcher label the bundle records (§6.92 finding 1), which an import
+    # elsewhere compares against its own. A DOMAIN-scoped request keys on that
+    # domain, so `_domain_matcher` is right: `app.matcher` for the App's own
+    # domain, defer for another. But the "Export bundle" button sends no tags —
+    # a WHOLE-STORE export — and `_domain_matcher("","")` returns None, which
+    # would relabel a custom-matcher surface's own rows with the process default
+    # and reintroduce the silent mislabel this finding closes. For the unscoped
+    # case the surface's own matcher is the honest label: it is what keyed the
+    # rows this surface manages. (A store holding a SECOND domain keyed
+    # differently cannot be captured by one label — the field is advisory and
+    # per-domain labels are a separate change; see decision 0073.)
+    matcher = _domain_matcher(app, sl, tl) if (sl or tl) else app.matcher
     return portable.export_bundle(app.store, source_lang=sl, target_lang=tl,
                                   include_ledger=_str(query, "ledger", "1") != "0",
-                                  # The matcher that keyed this domain, so the
-                                  # bundle records it and an import elsewhere can
-                                  # tell it apart from its own. §6.92 finding 1.
-                                  matcher=_domain_matcher(app, sl, tl))
+                                  matcher=matcher)
 
 
 def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
