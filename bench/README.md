@@ -185,6 +185,49 @@ function; and `autojunk` changes results past 200 elements. Either produces a
 plausible, slightly wrong benchmark rather than an obvious failure — hence the
 per-run check rather than a one-off proof.
 
+## `retrieval_quality.py` — the recall half `nestor.calibrate` doesn't measure
+
+`nestor.calibrate` answers one half of "is this memory trustworthy": sample
+sealed rows, sweep the seal threshold, count how often a *different* sealed row
+would serve as the wrong verified answer — the false-serve half. Its own
+docstring names what it cannot see: *"your memory contains no record of the
+paraphrases nobody asked yet."*
+
+`bench/retrieval_quality.py` is that record, corpus- and matcher-agnostic.
+Given `[{"source_text", "target_text"}, ...]`, a `(source_lang, target_lang)`
+domain and any `Matcher`, it seals a throwaway temp copy (the same technique
+`demo/the_dogfooding.py`'s `seal_a_copy` uses — never a real store) and reports
+three numbers:
+
+1. **Verbatim floor** — every row, queried in the exact words it was sealed
+   under. Should be ~100%; a miss means serving is broken, not that the corpus
+   is hard.
+2. **Recall under query compression** — every row, queried by a mechanically
+   shortened form of its source (first sentence, or the first N characters).
+   The authoring-free version of "a human asks the gist months later" —
+   `demo/the_dogfooding.py`'s first-sentence sweep, generalised past one corpus.
+3. **Collisions** — delegated whole to `nestor.calibrate.calibrate()` on the
+   same sealed store. This module does not scan for collisions itself; it
+   surfaces calibrate's numbers and its `summarize()` text.
+
+```bash
+python bench/retrieval_quality.py --demo                                   # zero-argument smoke run
+python bench/retrieval_quality.py --store PATH --from en --to es --matcher string
+python bench/retrieval_quality.py --store PATH --from en --to es --matcher defect \
+    --compression chars --chars 60 --json
+```
+
+`--matcher` resolves `string` -> `nestor.matcher.StringMatcher` and `defect` ->
+`recipes.patch_review.MATCHER` — the two matchers `demo/the_dogfooding.py`
+compares. `--store` reads sealed rows from an existing `.db` (a copy is opened,
+so the original is never written to); `--demo` seeds a tiny deterministic
+corpus so the tool runs with no arguments at all. `measure()` returns a
+structured dict and `summarize()` renders it; see `tests/test_retrieval_quality.py`
+for the claims this tool is held to, including that the collision numbers it
+prints are `calibrate.calibrate`'s own output, checked both by spying on the
+call and by matching it byte-for-byte against a direct call on an identically
+sealed reference store.
+
 ## The dashboard
 
 The results are the argument; the JSON is not the shape of it. After at least
