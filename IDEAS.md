@@ -7036,3 +7036,52 @@ unseal, reject, restore, or seal an entity/numeric answer from this UI — those
 endpoints have no signature to authenticate against, and a session remains
 the only proof available for them. Stated in the page's own copy, not
 implied to be closed.
+
+### 6.94 The decision store answers its own questions well, except where its matcher cannot tell two decisions apart — **measured**, fix **open**
+
+*Measured 2026-08-09 by `demo/the_dogfooding.py`; decision `0079`.*
+
+Pointing the retrieval question at Nestor's own decision memory — every row
+in `docs/dogfood/decisions/`, asked back — measured three ways on this
+checkout (a 216-decision corpus), each a `claim()` the demo fails the build
+on. The demo re-measures live, so the corpus-size counts grow with the store;
+the shapes below are what hold:
+
+- **Verbatim:** every decision queried in the words it was sealed under is
+  served back. 216/216, 0 wrong. The floor holds.
+- **Paraphrased:** ten short reworded queries — a person asking the gist
+  months later — return **2 served, 8 pending, 0 wrong**. Most come back
+  pending because nothing sealed matched closely enough to clear the 0.92
+  bar. That is the threshold refusing to serve a decision it is not sure it
+  was asked, not the memory failing.
+- **Authoring-free sweep:** every multi-sentence question queried by its
+  first sentence alone — 50 of them — returns **4 served, 46 pending, 0
+  wrong**. Recall falls off a cliff as the question is compressed, and it
+  falls toward *pending*, never toward *wrong*.
+
+So the store holds everything it was told, refuses most of what it is not
+asked in the same words, and — with one measured exception — never serves
+the wrong decision.
+
+**The exception, and the open question.** `scripts/dogfood_store.py` keys the
+decision store with the default `StringMatcher` (character difflib). Decision
+text is prose *about* code, which is the population `recipes/patch_review.py`
+built `DefectMatcher` for. Measured: StringMatcher admits **two serve-bar
+collisions** — `docs/dogfood/decisions/0051` and `0053`, whose questions
+differ by one word ("The **new** gap assertions pass" vs "The **eight** gap
+assertions pass") but carry different committed answers, scored **0.94** — so
+asking one would serve the other's answer as verified. `DefectMatcher`
+separates them (zero collisions). But it is **not a free win**: its
+identifier-weighted keying lowers paraphrase recall (2/10 → 1/10), and the
+shipped `SEAL_THRESHOLD` of 0.92 was calibrated for StringMatcher, not for a
+`score()`-based matcher (`nestor.memory` warns exactly this; the demo catches
+and narrates the warning). The choice is fewer-wrong-serves **or** more
+recall, and neither at the shipped bar without a per-matcher `nestor
+calibrate` run.
+
+**Open** because a machine may propose and may not confirm: the finding is
+filed as a draft on the review desk by the demo, re-measured on every run,
+for a human to weigh the three real options — the identifier-weighted matcher
+(fewer wrong serves, no better recall), semantic embeddings via the
+`[semantic]` extra (recall, at a dependency), or shorter canonical questions
+(recall, by hand).
