@@ -84,7 +84,7 @@ verify and will not be served. `Curator.unverifiable()` and the UI's
 `NESTOR_REQUIRE_SEAL_KEY=1` fails closed instead of degrading. For *who* signed
 it rather than merely *that it was signed*, see Q6.
 
-### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, symmetric**
+### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, now asymmetric behind `[keys]`**
 
 Set `NESTOR_KEYRING` and yes. Each verifier has their own key
 (`nestor keys add rita`), a seal's signature verifies under the key of the
@@ -98,11 +98,29 @@ verifier is **typed, not proven**, which is the same trust model as calling
 `memory.add_pair(verifier="rita")` yourself. Hence loopback by default,
 `--allow-remote` to leave it, `--read-only` to show without granting.
 
-What is honestly still missing is the *asymmetric* half. An HMAC is a shared
-secret, so it proves possession of a key rather than the presence of a person,
-and the process holds the keys it verifies against. Ed25519 or a Biscuit
-capability — a signature the server checks with a public key it could not have
-produced — goes through the same `signing.sign_seal(..., key=)` seam.
+The *asymmetric* half has now shipped, behind the `[keys]` extra (`pip install
+-e ".[keys]"`). An HMAC is a shared secret, so it proves possession of a key
+rather than the presence of a person, and the process holds the keys it verifies
+against. An ed25519 entry breaks that: `nestor keys add rita --type ed25519`
+generates a keypair, the seal is signed with the private half, and a keyring
+holding only rita's **public** key can verify her seals while being structurally
+unable to produce one. That is the property a shared secret can never have, and
+it is what lets two instances check each other's work without handing each other
+the ability to forge it — `nestor keys add peer --type ed25519 --public <hex>`,
+then `nestor import` verifies the peer's seals against a key it could not have
+signed with (the acceptance test in `test_asymmetric_seals.py`). It goes through
+the same `signing.sign_seal(..., key=)` seam, so the shared-key deployment is
+byte-for-byte unchanged and the core stays dependency-free.
+
+What is *still* honestly missing is closing the last cell: the instance that
+signs holds the private keys, so its operator can still forge as anyone whose
+key lives there. Removing that means signing where the key lives — in the
+browser (WebCrypto does ed25519) or a client-side agent — which is a UI
+architecture change with its own wire-contract consequences, and it is the one
+piece of Nestor#17 deliberately left open (see
+`docs/dogfood/decisions/0074-where-an-asymmetric-seal-is-signed.json`).
+Cross-instance and cross-organisation trust, which is what Q2 and Q8 actually
+need, does not wait on it.
 
 Revoking a key asks you one question, because Nestor cannot answer it: was the
 key **rotated** (its past seals stand — nobody else held it) or **taken**

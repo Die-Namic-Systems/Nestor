@@ -861,7 +861,7 @@ import applies the serve path's rule rather than a softer one:
 
 | Incoming row | What happens |
 |---|---|
-| sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you |
+| sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you, or, without sharing a secret at all, holding the signer's ed25519 **public** key (`[keys]` extra): the destination can verify the seal while being structurally unable to forge one |
 | sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, and never served |
 | sealed, and **this instance has no key configured** | imported sealed on stored status alone — the serve path would trust the same row for the same reason, so import does not pretend to a stricter rule than serving has. `NESTOR_REQUIRE_SEAL_KEY=1` refuses the import outright |
 | draft | imported as a draft |
