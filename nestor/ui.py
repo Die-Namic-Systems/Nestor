@@ -229,12 +229,32 @@ def _domain_matcher(app: "App", source_lang: str, target_lang: str) -> Optional[
 
     So: the App's matcher for the App's domain, and ``None`` — defer to the
     process-wide default, which is what every recipe with its own matcher was
-    already getting — for anything else.
+    already getting — for anything else. Except one case in between (§6.92
+    finding 2): tags that equal this App's under case-folding but not exactly
+    — ``Incident``/``Incident`` against a surface configured ``incident`` — are
+    a typo, not another domain. Deferring one of those to the process-wide
+    matcher is the same silent §6.40 failure back again, reachable this time by
+    a capitalisation mistake instead of a wiring one, so it is refused rather
+    than answered `pending`. Deliberately narrow: it takes BOTH tags matching
+    case-insensitively to trigger. One tag matching and the other genuinely
+    different is a different domain, and defers exactly as before — case-fold
+    the tags to decide "near-miss" and this repo would be one step from
+    case-folding them to decide identity, which a store holding two domains
+    that differ only in case cannot afford (see decision 0076).
     """
     if app.matcher is None:
         return None
     if source_lang == app.source_lang and target_lang == app.target_lang:
         return app.matcher
+    if (source_lang.casefold() == app.source_lang.casefold()
+            and target_lang.casefold() == app.target_lang.casefold()):
+        raise ApiError(
+            400,
+            f"{source_lang!r}/{target_lang!r} is not a domain this surface "
+            f"knows — it differs from {app.source_lang!r}/{app.target_lang!r} "
+            f"only in case. Did you mean {app.source_lang!r}/"
+            f"{app.target_lang!r}?",
+            code="domain_case_mismatch")
     return None
 
 

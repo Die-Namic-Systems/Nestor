@@ -6818,7 +6818,7 @@ by anybody being careful.
 
 ---
 
-### 6.92 Three findings from the §6.40/§6.41 audits that were deferred, and were living only in merged-PR prose — **measured**, fix **open**
+### 6.92 Three findings from the §6.40/§6.41 audits that were deferred, and were living only in merged-PR prose — **measured**, fix **shipped**
 
 *Recorded 2026-08-07 at the end of the session that produced them. Each was
 found by an adversarial audit of PR #60 or #61, judged out of scope for the PR
@@ -6873,11 +6873,7 @@ the wiring. Decision `0075`. Residual: a multi-domain store behind a
 single-domain surface still cannot carry one label — the envelope field is
 singular — which is left open.
 
-Finding 2 remains **open** — its fix is a genuine semantics fork (case-fold the
-tags, or refuse a near-miss) that this entry declined to make and that was left
-undecided when 1 and 3 shipped.
-
-**2. `_domain_matcher` compares domain tags with exact string equality.**
+**2. `_domain_matcher` compares domain tags with exact string equality. — shipped**
 
 `ui._domain_matcher` and `serve.Server.domain_matcher` both decide "is this
 request about my domain?" with `==`. A caller sending `Incident` against a
@@ -6889,6 +6885,52 @@ Not obviously a bug fix: case-folding tags is a behaviour change with its own
 consequences for a store that may hold two domains differing only in case. The
 alternative is to refuse a near-miss rather than fall back. Either is better than
 the current silence, and neither is free.
+
+Shipped the second alternative, not the first. Case-folding the tags stayed off
+the table for the reason above: two domains in one store differing only by case
+are a real possibility this entry cannot rule out, and folding would silently
+merge them into one key space, which is the exact failure shape this whole §6
+is about, one level up. Instead `_domain_matcher`/`domain_matcher` gained one
+more branch, ahead of the existing fall-through: tags equal to the surface's own
+under `.casefold()` but not exactly equal — both tags, not just one, because a
+request that agrees on one tag and genuinely differs on the other is a different
+domain, not a typo of this one — now raise rather than return `None`. `ui.py`
+raises `ApiError(400, ..., code="domain_case_mismatch")`, caught by `dispatch`'s
+existing handler exactly like every other refusal (a `ConflictingSealError`, an
+unknown pair), so it reaches the browser as a 400 with a message and never as a
+traceback. `serve.py` raises `ValueError`, mirroring `_resolve_matcher`'s own
+refusal on the same class of mistake; `Server.handle`'s `tools/call` branch
+already catches `(ValueError, PermissionError, RuntimeError)` and turns it into
+an `isError` tool result a model can read, rather than a JSON-RPC protocol
+error. Both messages name the tags received and the surface's real domain —
+"differs from 'incident'/'incident' only in case. Did you mean...?" — so the
+refusal is actionable rather than just a stop.
+
+The exact-match and genuinely-different-domain paths are unchanged: an exact
+match still returns the surface's own matcher, and a real other domain (one tag
+not even case-insensitively equal) still returns `None` and defers to the
+process-wide matcher, which is the §6.40 guard this fix must not break. Every
+call site threads the matcher as a call argument evaluated before the write it
+guards runs (`memory.add_pair`, `memory.reject_match`, `cascade.
+graduate_segment`, `cascade.reject_segment`), so a near-miss reject or seal
+raises before anything lands in the store — confirmed for `/api/seal` and
+`/api/reject-match` directly, not just inferred from argument order. Regressions
+in `tests/test_findings_2026_08_07_deferred.py`, run against the unfixed
+revision first and observed to fail (a near-miss returned 200 / did not raise);
+decision `0076`.
+
+*Residual, filed by an audit rather than left silent.* The refusal sits behind
+the pre-existing `if app.matcher is None: return None`, so it fires only on a
+surface that has its own matcher. A **default** surface (`matcher=None`, ordinary
+translation) still answers `pending` for the same case-only tag typo, because the
+store keys on the *exact* domain tag (`sqlite_store` `source_lang=?`) and a
+mis-cased tag misses regardless of matcher. That is scoped correctly to the §6.40
+failure — which needs a custom matcher to occur at all — but it leaves the same
+typo refused on a custom surface and silent on a default one, a consistency seam
+worth naming. Widening (moving the near-miss check ahead of the `matcher is None`
+return so it refuses everywhere) was declined: it changes behaviour for every
+default deployment, and the miss it would close is the exact-tag store key, which
+is a decision about tag identity, not this per-request guard. See decision `0076`.
 
 **3. `memory.add_pair`'s race retry drops `reason=`. — shipped**
 
@@ -6905,9 +6947,10 @@ lying to the first `memory_find` so the seal takes the insert path and collides
 with a draft already in the store — the exact window the retry exists for. On
 retry it upgrades that draft to a seal, and its `reason` must ride along. The
 test was run against the unfixed revision first and observed to fail (the sealed
-row came back with an empty `reason`). Findings 1 and 2 remain **open** — each
-carries a design choice this entry declined to make, and neither is a clean bug
-fix the way this one was.
+row came back with an empty `reason`). All three findings have since shipped —
+this one was the clean bug fix; 1 and 2 each carried a design choice this entry
+declined to make on 2026-08-07 and resolved later (decisions 0073/0075 and
+0076).
 
 ---
 

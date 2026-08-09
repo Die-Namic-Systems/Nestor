@@ -92,11 +92,26 @@ class Server:
         keys one domain, every tool below takes per-call domain tags, and lending
         this one to a call about some other domain is the category error §6.40
         was about. ``None`` defers to the process-wide matcher.
+
+        Same exception too (§6.92 finding 2): tags that agree with this
+        server's under case-folding but not exactly — a model sending
+        ``Incident`` against a server started ``--source-lang incident`` — are
+        a typo, not a different domain, and deferring one of those answers
+        `pending` for a phrase that may be sealed, silently. Refused instead.
+        Both tags have to match case-insensitively for that; one matching and
+        the other genuinely different is a different domain and still defers.
         """
         if self.matcher is None:
             return None
         if source_lang == self.source_lang and target_lang == self.target_lang:
             return self.matcher
+        if (source_lang.casefold() == self.source_lang.casefold()
+                and target_lang.casefold() == self.target_lang.casefold()):
+            raise ValueError(
+                f"{source_lang!r}/{target_lang!r} is not a domain this server "
+                f"knows — it differs from {self.source_lang!r}/"
+                f"{self.target_lang!r} only in case. Did you mean "
+                f"{self.source_lang!r}/{self.target_lang!r}?")
         return None
 
     def _resolve_matcher(self, source_lang: str, target_lang: str, named: str,
