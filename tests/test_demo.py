@@ -15,10 +15,16 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEMO = REPO / "demo" / "sixty_seconds.py"
+DOGFOODING = REPO / "demo" / "the_dogfooding.py"
 
 
 def run(*args):
     return subprocess.run([sys.executable, str(DEMO), "--fast", *args],
+                          capture_output=True, text=True, cwd=REPO, timeout=180)
+
+
+def run_dogfooding(*args):
+    return subprocess.run([sys.executable, str(DOGFOODING), *args],
                           capture_output=True, text=True, cwd=REPO, timeout=180)
 
 
@@ -46,6 +52,37 @@ def test_it_cleans_up_after_itself_unless_told_not_to(tmp_path):
     assert run().returncode == 0
     assert not (set(pathlib.Path("/tmp").glob("nestor-demo-*")) - before), \
         "the default run must not leave a store behind"
+
+
+def test_the_dogfooding_measures_and_every_claim_holds():
+    """The measurement of the decision store against itself has to stay true.
+
+    Like the sixty-second demo, it asserts each beat and exits non-zero if one
+    fails — so a change that quietly breaks retrieval on Nestor's own decisions
+    (the floor cracking, a paraphrase starting to serve the wrong decision, a new
+    collision appearing) fails the build here rather than misleading a viewer.
+    Run plain, not ``--fast``: this demo does not pace, it measures.
+    """
+    done = run_dogfooding()
+    assert done.returncode == 0, done.stdout + done.stderr
+    for beat in ("The corpus is real",
+                 "In the store that ships, nothing serves",
+                 "The floor",
+                 "asking in their own words",
+                 "authoring-free",
+                 "WOULD serve the wrong decision",
+                 "not a free win",
+                 "How well does Nestor do on its own code"):
+        assert beat in done.stdout, f"missing beat: {beat}"
+    assert "DEMO CLAIM FAILED" not in done.stdout
+
+
+def test_the_dogfooding_never_touches_the_committed_store():
+    """It reads docs/dogfood/nestor.db by copying it; the original must not move."""
+    committed = REPO / "docs" / "dogfood"
+    before = _snapshot(committed)
+    assert run_dogfooding().returncode == 0
+    assert _snapshot(committed) == before, "the demo wrote into docs/dogfood/"
 
 
 def _snapshot(directory):
