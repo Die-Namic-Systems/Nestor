@@ -266,6 +266,11 @@ def cmd_import(args) -> int:
             print(f"  REJECTED here by {r['rejected_by'] or 'a reviewer'}: "
                   f"{r['source_text']!r} — not imported "
                   f"(--override-rejections to revive it deliberately)")
+        if report.get("matcher_mismatch"):
+            print(f"  MATCHER: bundle keyed by {report['source_matcher']!r}, this "
+                  f"instance keys by {report['dest_matcher']!r} — imported rows may "
+                  f"key into a space this matcher never computes. Import under the "
+                  f"bundle's matcher, or expect to re-key.")
         if report["dry_run"]:
             print("\nnothing was written — re-run with --apply to commit.", file=sys.stderr)
     unsettled = ((report["conflicts"] and not args.override_conflicts)

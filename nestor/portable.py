@@ -44,6 +44,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from . import cascade, ledger as ledger_mod, memory, signing
+from .matcher import Matcher, matcher_audit_fields
 from .storage import (Storage, get_store, supports_curation, supports_rejection,
                       supports_rejection_listing)
 
@@ -153,7 +154,8 @@ def _row(raw: dict, fields: tuple) -> dict:
 def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                   target_lang: str = "", include_ledger: bool = True,
                   limit: int = 1_000_000,
-                  rejection_limit: Optional[int] = None) -> dict:
+                  rejection_limit: Optional[int] = None,
+                  matcher: Optional[Matcher] = None) -> dict:
     """The whole memory (or one domain) as a JSON-ready, re-importable bundle.
 
     Signatures travel with the rows. They are HMACs, not secrets: without the
@@ -166,6 +168,16 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
     cap sized for one is meaningless for the other. Hitting either warns, and
     the bundle records ``partial_rejections`` so a JSON caller that never sees a
     warning still knows the file is short.
+
+    ``matcher`` names — for the record only — the matcher that produced every
+    ``source_norm`` in this bundle. A domain is its tags **and** its matcher
+    (IDEAS §6.40): the ``source_norm`` the seals are signed over is that
+    matcher's output, so a destination keying the same tags with a *different*
+    matcher lands these rows in a key space it will never compute — sealed,
+    signed, and unreachable. The label is written into the envelope (not the
+    digest — ``matcher_audit_fields`` is explicitly not a stable identifier, so
+    it cannot be an integrity field) so :func:`import_bundle` can warn on a
+    mismatch that would otherwise be silent. Defaults to the process matcher.
     """
     store = get_store(store)
     store.memory_init()
@@ -272,6 +284,9 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
         "nestor_bundle": BUNDLE_VERSION,
         "created_at": _now(),
         "domain": {"source_lang": source_lang or "*", "target_lang": target_lang or "*"},
+        # The matcher that keyed these norms, for import to compare against its
+        # own. Advisory, and deliberately outside the digest — see the docstring.
+        "matcher": matcher_audit_fields(memory.get_matcher(matcher))["matcher"],
         "signing": {"enabled": signing.signing_enabled(), "algorithm": "hmac-sha256"},
         # In the bundle, not only in a warning. Python dedupes warnings by code
         # location, so a long-lived exporter (nestor.ui serves bundles from a
@@ -348,7 +363,8 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
 
 def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
                   verifier: str = "", override_conflicts: bool = False,
-                  override_rejections: bool = False) -> dict:
+                  override_rejections: bool = False,
+                  matcher: Optional[Matcher] = None) -> dict:
     """Bring a bundle into this instance. Reports first, writes only if told to.
 
     ``dry_run=True`` is the default deliberately: an import decides what this
@@ -364,6 +380,8 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
          "existing": n,      # same source, same target — nothing to do
          "conflicts": [...], # same source, DIFFERENT target — skipped, listed
          "rejected_here": [...],  # a human here rejected this pair — skipped, listed
+         "matcher_mismatch": bool,  # bundle keyed by a different matcher than this instance
+         "source_matcher": "...", "dest_matcher": "...",  # the two labels compared
          "rejections": n, "dry_run": bool, "digest": "..."}
 
     Conflicts are never resolved silently. A bundle asserting a different target
@@ -377,6 +395,19 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
     ``add_pair``, where ``override_conflict`` and ``override_rejection`` are two
     switches precisely because "their answer wins" and "revive the mapping a
     human called wrong" are not the same decision.
+
+    ``matcher`` names the matcher this instance keys with, to check against the
+    ``matcher`` label the bundle carries (see :func:`export_bundle`). A mismatch
+    is **warned, never refused** — the label is not a stable identifier, so it
+    cannot bear a refusal, and the rows still import correctly under a shared
+    matcher. But a bundle keyed by one matcher landing in a domain keyed by
+    another is IDEAS §6.40 arriving through a file: the ``source_norm`` a seal is
+    signed over is the *source's* matcher's output, so the destination will key
+    the same tags into a space it never computes and serve nothing. The warning
+    also rides in the report (``matcher_mismatch``, ``source_matcher``,
+    ``dest_matcher``) because Python dedupes warnings by code location and an
+    HTTP caller reading JSON never sees one — the same reason ``partial_pairs``
+    is a field and not only a warning. Defaults to the process matcher.
     """
     store = get_store(store)
     ok, detail = verify_bundle(bundle)
@@ -384,12 +415,33 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
         raise BundleError(detail)
     store.memory_init()
 
+    # Advisory, before the row loop: a whole-bundle property, not a per-row one.
+    # ``source_matcher`` is "" for a bundle written before this field existed —
+    # not a mismatch, just unknown, so a legacy bundle imports without a false
+    # alarm. Only two named-and-different labels warn.
+    dest_matcher = matcher_audit_fields(memory.get_matcher(matcher))["matcher"]
+    source_matcher = str(bundle.get("matcher") or "")
+    matcher_mismatch = bool(source_matcher and source_matcher != dest_matcher)
+    if matcher_mismatch:
+        warnings.warn(
+            f"this bundle was keyed by {source_matcher!r} and this instance keys "
+            f"by {dest_matcher!r}. A seal's source_norm is the source matcher's "
+            f"output, so rows imported here may key into a space this matcher "
+            f"never computes and serve nothing — even though the import reports "
+            f"success. Import under the matcher that keyed the bundle, or expect "
+            f"to re-key. (The label is advisory; matchers that agree but were "
+            f"renamed will also trip this.)",
+            RuntimeWarning, stacklevel=2)
+
     signing_on = signing.signing_enabled()
     report: dict[str, Any] = {"sealed": 0, "demoted": 0, "drafts": 0, "existing": 0,
                               "conflicts": [], "rejected_here": [], "rejections": 0,
                               "dangling_rejections": [],
                               "partial_source": bool(bundle.get("partial_rejections")
                                                      or bundle.get("partial_pairs")),
+                              "source_matcher": source_matcher,
+                              "dest_matcher": dest_matcher,
+                              "matcher_mismatch": matcher_mismatch,
                               "dry_run": dry_run, "digest": bundle.get("digest", ""),
                               "signing_enabled": signing_on}
     #: source pair id -> the id it is stored under HERE. See the rejection loop.

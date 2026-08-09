@@ -485,9 +485,13 @@ def _export(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
 
 def _bundle(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """The portable, re-importable form — signatures and all."""
-    return portable.export_bundle(app.store, source_lang=_str(query, "source_lang"),
-                                  target_lang=_str(query, "target_lang"),
-                                  include_ledger=_str(query, "ledger", "1") != "0")
+    sl, tl = _str(query, "source_lang"), _str(query, "target_lang")
+    return portable.export_bundle(app.store, source_lang=sl, target_lang=tl,
+                                  include_ledger=_str(query, "ledger", "1") != "0",
+                                  # The matcher that keyed this domain, so the
+                                  # bundle records it and an import elsewhere can
+                                  # tell it apart from its own. §6.92 finding 1.
+                                  matcher=_domain_matcher(app, sl, tl))
 
 
 def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -508,7 +512,10 @@ def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
     try:
         return portable.import_bundle(bundle, store=app.store, dry_run=dry_run,
                                       verifier=who,
-                                      override_conflicts=bool(payload.get("override_conflicts")))
+                                      override_conflicts=bool(payload.get("override_conflicts")),
+                                      # This surface's own matcher, to warn when
+                                      # the bundle was keyed by another. §6.92.
+                                      matcher=app.matcher)
     except portable.BundleError as exc:
         raise ApiError(400, str(exc), code="bad_bundle") from exc
 

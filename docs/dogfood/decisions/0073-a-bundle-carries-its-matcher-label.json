@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/ideas-and-issues-90jd02",
+  "date": "2026-08-09",
+  "note": "Closing IDEAS §6.92 finding 1 — the portable bundle carried a domain's tags but not the matcher that keyed them, so a StringMatcher bundle could land in a SerialMatcher domain with matching tags, seal and sign every row into a key space the destination never computes, and report {\"sealed\": n} with no warning. §6.40's symptom arriving through /api/import. The entry named the shape of the fix and left the two edges (warn vs refuse; where the label lives) to whoever picked it up. These are the decisions that produced. Findings 2 (exact-equality tag comparison) and 3 (add_pair retry dropping reason=) travelled in the same §6.92 entry; 3 shipped as a clean bug fix on this branch, 2 was deliberately left open as a semantics fork.",
+  "decisions": [
+    {
+      "question": "On a matcher mismatch at import, warn or refuse?",
+      "commitment": "Warn, and never refuse. The mismatch rides in the report (matcher_mismatch/source_matcher/dest_matcher) as well as a Python warning.",
+      "why": "The label comes from matcher_audit_fields, which documents itself as NOT a stable identifier: a matcher with no name is recorded by its class name, which a rename or a move changes without changing any behaviour, and two unrelated matchers may share one. A refusal resting on that would reject a correct import because someone renamed a class, and would still miss two genuinely different matchers that happen to share a class name. So the label can only ever be advisory. It is still worth carrying, because the alternative it replaces is silence: the rows import identically either way, and the warning is the only thing that tells a human the seals they just landed will never be found. The report field matters as much as the warning — Python dedupes warnings by code location, so a long-lived importer (nestor.ui serves from a thread pool) warns once and then never again, and an HTTP caller reading JSON never sees a warning at all. partial_pairs is a field for exactly this reason; the matcher mismatch is the same shape of fact and gets the same treatment."
+    },
+    {
+      "question": "Does the matcher label go in the digest?",
+      "commitment": "No. It lives in the bundle envelope, outside the payload the digest is taken over.",
+      "why": "The digest exists so a destination can tell the payload it holds is the one that was exported — an integrity check. An integrity check cannot rest on a value that changes when nothing about the payload changed, and the matcher label is precisely that: rename the matcher class and the label moves while every source_norm, every signature, and every row stays byte-identical. Putting it under the digest would make a lossless re-key or a refactor read as tampering. The same file already makes this argument for bundle version (a digest that depends on which build wrote it is not an integrity check); the matcher label is the case one notch weaker — not even build-stable — so it belongs even further from the digest, in the advisory envelope with domain and signing."
+    },
+    {
+      "question": "import_bundle must not re-normalize with the destination matcher. Does adding a matcher= argument threaten that?",
+      "commitment": "No, and the tests pin it. The matcher argument is read ONLY to compute the destination's label for the comparison; the row loop still keys on the bundle's own source_norm.",
+      "why": "The finding is explicit that trusting row[source_norm] verbatim is correct and must stay: signing.seal_is_valid verifies against that exact norm, so recomputing it under the destination's matcher would invalidate every seal signature in transit — turning a warning-worthy mismatch into outright data loss. So the matcher argument had to be inert with respect to the rows. The regression test imports a StringMatcher bundle under a NumericMatcher and asserts both that it warns AND that the sealed row lands and is findable by its carried norm, which is the assertion that would fail the instant someone wired the argument into normalization."
+    },
+    {
+      "question": "Where does the label get its value on the paths that matter?",
+      "commitment": "export_bundle and import_bundle default to the process matcher; nestor.ui threads the domain's own matcher (_domain_matcher for export, app.matcher for import).",
+      "why": "/api/import is the path the finding names, and a custom-matcher surface is exactly where the mismatch bites — so the label has to reflect the domain's matcher there, not a process default that a UI configured via App.matcher would otherwise report wrongly. Threading _domain_matcher on export means a bundle produced from a surface aimed at one domain records that domain's matcher; passing app.matcher on import means the surface compares against what it will actually key with. The CLI export/import keep the process default because they have no per-domain configuration to draw from, and the process matcher is the honest answer to what keyed those rows in that case."
+    }
+  ]
+}

@@ -6828,25 +6828,40 @@ the three appeared in `IDEAS.md`, `TODO.md` or `QUESTIONS.md`. Filing them here
 is the whole of this entry — the analysis below is the auditors', reproduced so
 it survives the branch.*
 
-**1. The portable bundle carries a domain's tags and not its matcher.**
+**1. The portable bundle carries a domain's tags and not its matcher. — shipped**
 
 `portable.import_bundle` trusts `row["source_norm"]` from the file and never
 renormalizes, which is **correct and must stay**: `signing.seal_is_valid`
 verifies against that norm, so recomputing it would invalidate every seal
-signature in transit. The gap is that nothing records or checks *which* matcher
-produced those norms. `export_bundle` filters on `source_lang`/`target_lang`
+signature in transit. The gap is that nothing recorded or checked *which* matcher
+produced those norms. `export_bundle` filtered on `source_lang`/`target_lang`
 only, `PAIR_FIELDS` has no matcher field, and `verify_bundle` requires
 `source_norm` without any provenance for it.
 
 So importing a `StringMatcher` bundle into a `SerialMatcher` domain with matching
-tags lands rows in a key space the destination will never compute, and reports
+tags landed rows in a key space the destination will never compute, and reported
 `{"sealed": n}` with no warning — §6.40's symptom arriving through `/api/import`.
 This PR pair's own thesis is that *a domain is its tags **and** its matcher*; the
-portable format still models a domain as its tags alone.
+portable format still modelled a domain as its tags alone.
 
-Shape of a fix: a bundle-level matcher label from `matcher_audit_fields`, plus
-warn-or-refuse on mismatch. It can only ever be a warning — that field is
-explicitly not a stable identifier — but a warning beats silence.
+Shipped as the entry framed it — a warning, not a refusal. `export_bundle`
+records a bundle-level `matcher` label from `matcher_audit_fields`; `import_bundle`
+compares it against the destination's matcher and, on a mismatch, warns and
+records `matcher_mismatch`/`source_matcher`/`dest_matcher` in the report (a field,
+not only a warning — Python dedupes warnings by code location and an HTTP caller
+reading JSON never sees one, the same reasoning `partial_pairs` follows). It can
+only ever be a warning — the field is explicitly not a stable identifier, so it
+cannot bear a refusal, and two agreeing matchers that were renamed will trip it
+— but a warning beats silence. The label lives in the envelope and **not the
+digest**, for the same reason: an integrity check cannot rest on an unstable
+label. `ui`'s export/import thread the domain's matcher so `/api/import`, the
+path the finding names, is covered. Regressions in
+`tests/test_findings_2026_08_07_deferred.py`; the decision is
+`docs/dogfood/decisions/0073-a-bundle-carries-its-matcher-label.json`.
+
+Finding 2 remains **open** — its fix is a genuine semantics fork (case-fold the
+tags, or refuse a near-miss) that this entry declined to make and that was left
+undecided when 1 and 3 shipped.
 
 **2. `_domain_matcher` compares domain tags with exact string equality.**
 
