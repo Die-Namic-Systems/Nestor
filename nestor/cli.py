@@ -222,7 +222,13 @@ def cmd_db(args) -> int:
 def cmd_export(args) -> int:
     bundle = portable.export_bundle(_store(args), source_lang=args.source_lang or "",
                                     target_lang=args.target_lang or "",
-                                    include_ledger=not args.no_ledger)
+                                    include_ledger=not args.no_ledger,
+                                    # The operator's assertion of the matcher that
+                                    # keyed these rows: the store records no
+                                    # per-domain matcher, so without this the
+                                    # bundle would be labelled with the process
+                                    # default and mislabel a custom domain. §6.92.
+                                    matcher=answer.load_matcher(args.matcher))
     text = (portable.pairs_csv(bundle) if args.format == "csv"
             else json.dumps(bundle, indent=2, ensure_ascii=False, default=str))
     if args.out:
@@ -250,7 +256,11 @@ def cmd_import(args) -> int:
     report = portable.import_bundle(bundle, store=store, dry_run=not args.apply,
                                     verifier=args.verifier,
                                     override_conflicts=args.override_conflicts,
-                                    override_rejections=args.override_rejections)
+                                    override_rejections=args.override_rejections,
+                                    # The matcher this instance keys with, so a
+                                    # bundle keyed by another is warned about
+                                    # rather than landing rows dead. §6.92.
+                                    matcher=answer.load_matcher(args.matcher))
     if args.json:
         _emit(report, True)
     else:
@@ -266,6 +276,11 @@ def cmd_import(args) -> int:
             print(f"  REJECTED here by {r['rejected_by'] or 'a reviewer'}: "
                   f"{r['source_text']!r} — not imported "
                   f"(--override-rejections to revive it deliberately)")
+        if report.get("matcher_mismatch"):
+            print(f"  MATCHER: bundle keyed by {report['source_matcher']!r}, this "
+                  f"instance keys by {report['dest_matcher']!r} — imported rows may "
+                  f"key into a space this matcher never computes. Import under the "
+                  f"bundle's matcher, or expect to re-key.")
         if report["dry_run"]:
             print("\nnothing was written — re-run with --apply to commit.", file=sys.stderr)
     unsettled = ((report["conflicts"] and not args.override_conflicts)
@@ -516,6 +531,7 @@ def build_parser() -> argparse.ArgumentParser:
                      help="limit to one domain (default: everything)")
     exp.add_argument("--target-lang", "--to", dest="target_lang", default="")
     exp.add_argument("--no-ledger", action="store_true", help="omit the source chain")
+    exp.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     exp.set_defaults(func=cmd_export)
 
     dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
@@ -539,6 +555,7 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--override-rejections", action="store_true",
                      help="revive pairs a human here rejected (separate on purpose: "
                           "--override-conflicts cannot reach them)")
+    imp.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     imp.set_defaults(func=cmd_import)
 
     led = sub.add_parser("ledger", help="verify or read the audit chain")

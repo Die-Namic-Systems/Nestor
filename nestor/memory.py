@@ -473,7 +473,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             raise
         return add_pair(source_text, target_text, source_lang, target_lang,
                         status=status, verifier=verifier, weight=weight,
-                        origin=origin, store=store, matcher=matcher,
+                        origin=origin, reason=reason, store=store, matcher=matcher,
                         override_rejection=override_rejection,
                         override_conflict=override_conflict, audit=audit,
                         _racing=True)

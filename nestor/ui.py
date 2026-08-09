@@ -229,12 +229,32 @@ def _domain_matcher(app: "App", source_lang: str, target_lang: str) -> Optional[
 
     So: the App's matcher for the App's domain, and ``None`` — defer to the
     process-wide default, which is what every recipe with its own matcher was
-    already getting — for anything else.
+    already getting — for anything else. Except one case in between (§6.92
+    finding 2): tags that equal this App's under case-folding but not exactly
+    — ``Incident``/``Incident`` against a surface configured ``incident`` — are
+    a typo, not another domain. Deferring one of those to the process-wide
+    matcher is the same silent §6.40 failure back again, reachable this time by
+    a capitalisation mistake instead of a wiring one, so it is refused rather
+    than answered `pending`. Deliberately narrow: it takes BOTH tags matching
+    case-insensitively to trigger. One tag matching and the other genuinely
+    different is a different domain, and defers exactly as before — case-fold
+    the tags to decide "near-miss" and this repo would be one step from
+    case-folding them to decide identity, which a store holding two domains
+    that differ only in case cannot afford (see decision 0076).
     """
     if app.matcher is None:
         return None
     if source_lang == app.source_lang and target_lang == app.target_lang:
         return app.matcher
+    if (source_lang.casefold() == app.source_lang.casefold()
+            and target_lang.casefold() == app.target_lang.casefold()):
+        raise ApiError(
+            400,
+            f"{source_lang!r}/{target_lang!r} is not a domain this surface "
+            f"knows — it differs from {app.source_lang!r}/{app.target_lang!r} "
+            f"only in case. Did you mean {app.source_lang!r}/"
+            f"{app.target_lang!r}?",
+            code="domain_case_mismatch")
     return None
 
 
@@ -485,9 +505,22 @@ def _export(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
 
 def _bundle(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """The portable, re-importable form — signatures and all."""
-    return portable.export_bundle(app.store, source_lang=_str(query, "source_lang"),
-                                  target_lang=_str(query, "target_lang"),
-                                  include_ledger=_str(query, "ledger", "1") != "0")
+    sl, tl = _str(query, "source_lang"), _str(query, "target_lang")
+    # The matcher label the bundle records (§6.92 finding 1), which an import
+    # elsewhere compares against its own. A DOMAIN-scoped request keys on that
+    # domain, so `_domain_matcher` is right: `app.matcher` for the App's own
+    # domain, defer for another. But the "Export bundle" button sends no tags —
+    # a WHOLE-STORE export — and `_domain_matcher("","")` returns None, which
+    # would relabel a custom-matcher surface's own rows with the process default
+    # and reintroduce the silent mislabel this finding closes. For the unscoped
+    # case the surface's own matcher is the honest label: it is what keyed the
+    # rows this surface manages. (A store holding a SECOND domain keyed
+    # differently cannot be captured by one label — the field is advisory and
+    # per-domain labels are a separate change; see decision 0073.)
+    matcher = _domain_matcher(app, sl, tl) if (sl or tl) else app.matcher
+    return portable.export_bundle(app.store, source_lang=sl, target_lang=tl,
+                                  include_ledger=_str(query, "ledger", "1") != "0",
+                                  matcher=matcher)
 
 
 def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -508,7 +541,10 @@ def _import(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
     try:
         return portable.import_bundle(bundle, store=app.store, dry_run=dry_run,
                                       verifier=who,
-                                      override_conflicts=bool(payload.get("override_conflicts")))
+                                      override_conflicts=bool(payload.get("override_conflicts")),
+                                      # This surface's own matcher, to warn when
+                                      # the bundle was keyed by another. §6.92.
+                                      matcher=app.matcher)
     except portable.BundleError as exc:
         raise ApiError(400, str(exc), code="bad_bundle") from exc
 

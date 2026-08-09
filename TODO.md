@@ -34,11 +34,16 @@ file no longer a secret and change the deployment story considerably.
 * **Sync between instances.** Export → import is a transfer: no continuous
   replication, no three-way merge, and pair ids are per-instance. A pull-based
   sync is `import` in a loop plus a conflict queue in the UI. `QUESTIONS.md` §8.
-* **Three deferred audit findings — §6.92.** A bundle carries a domain's tags and
-  not its matcher, so `/api/import` can land rows in a key space the destination
-  never computes; domain tags compare with exact string equality, so a
-  capitalisation typo silently falls back instead of refusing; and
-  `add_pair`'s race retry drops `reason=`. All measured, none fixed.
+* **Three deferred audit findings — §6.92.** All three now **shipped**: a
+  bundle records the matcher that keyed it and `/api/import` warns on a mismatch
+  instead of landing rows in a key space it never computes (decision 0073),
+  `add_pair`'s race retry forwards `reason=`, and `_domain_matcher`/
+  `domain_matcher` now refuse a case-only near-miss (`Incident` against a
+  surface keyed `incident`) instead of silently falling back to the
+  process-wide matcher — the tags are not folded, so a store holding two
+  domains that differ only in case is untouched, and a genuinely different
+  domain still defers exactly as before (decision 0076). Regressions for all
+  three in `test_findings_2026_08_07_deferred.py`.
 * **An erasure path.** There is no `memory_delete`, deliberately — deletion
   punches a hole in a hash chain by construction. It has to be *designed against*
   the ledger (tombstones plus documented re-anchoring, or key destruction for

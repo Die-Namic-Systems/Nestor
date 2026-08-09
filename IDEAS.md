@@ -6818,7 +6818,7 @@ by anybody being careful.
 
 ---
 
-### 6.92 Three findings from the §6.40/§6.41 audits that were deferred, and were living only in merged-PR prose — **measured**, fix **open**
+### 6.92 Three findings from the §6.40/§6.41 audits that were deferred, and were living only in merged-PR prose — **measured**, fix **shipped**
 
 *Recorded 2026-08-07 at the end of the session that produced them. Each was
 found by an adversarial audit of PR #60 or #61, judged out of scope for the PR
@@ -6828,27 +6828,52 @@ the three appeared in `IDEAS.md`, `TODO.md` or `QUESTIONS.md`. Filing them here
 is the whole of this entry — the analysis below is the auditors', reproduced so
 it survives the branch.*
 
-**1. The portable bundle carries a domain's tags and not its matcher.**
+**1. The portable bundle carries a domain's tags and not its matcher. — shipped**
 
 `portable.import_bundle` trusts `row["source_norm"]` from the file and never
 renormalizes, which is **correct and must stay**: `signing.seal_is_valid`
 verifies against that norm, so recomputing it would invalidate every seal
-signature in transit. The gap is that nothing records or checks *which* matcher
-produced those norms. `export_bundle` filters on `source_lang`/`target_lang`
+signature in transit. The gap is that nothing recorded or checked *which* matcher
+produced those norms. `export_bundle` filtered on `source_lang`/`target_lang`
 only, `PAIR_FIELDS` has no matcher field, and `verify_bundle` requires
 `source_norm` without any provenance for it.
 
 So importing a `StringMatcher` bundle into a `SerialMatcher` domain with matching
-tags lands rows in a key space the destination will never compute, and reports
+tags landed rows in a key space the destination will never compute, and reported
 `{"sealed": n}` with no warning — §6.40's symptom arriving through `/api/import`.
 This PR pair's own thesis is that *a domain is its tags **and** its matcher*; the
-portable format still models a domain as its tags alone.
+portable format still modelled a domain as its tags alone.
 
-Shape of a fix: a bundle-level matcher label from `matcher_audit_fields`, plus
-warn-or-refuse on mismatch. It can only ever be a warning — that field is
-explicitly not a stable identifier — but a warning beats silence.
+Shipped as the entry framed it — a warning, not a refusal. `export_bundle`
+records a bundle-level `matcher` label from `matcher_audit_fields`; `import_bundle`
+compares it against the destination's matcher and, on a mismatch, warns and
+records `matcher_mismatch`/`source_matcher`/`dest_matcher` in the report (a field,
+not only a warning — Python dedupes warnings by code location and an HTTP caller
+reading JSON never sees one, the same reasoning `partial_pairs` follows). It can
+only ever be a warning — the field is explicitly not a stable identifier, so it
+cannot bear a refusal, and two agreeing matchers that were renamed will trip it
+— but a warning beats silence. The label lives in the envelope and **not the
+digest**, for the same reason: an integrity check cannot rest on an unstable
+label. Regressions in `tests/test_findings_2026_08_07_deferred.py`; the decision
+is `docs/dogfood/decisions/0073-a-bundle-carries-its-matcher-label.json`.
 
-**2. `_domain_matcher` compares domain tags with exact string equality.**
+*Wiring correction (same day, from an adversarial audit of the fix's own
+commit).* The first version threaded `_domain_matcher` on the UI **export** path
+and left the CLI on the bare process default, and both mislabelled: the "Export
+bundle" button sends no tags, so `_domain_matcher("","")` returned `None` and
+relabelled a custom surface's own rows with the process default — the mislabel
+this finding closes, on the export side — and `nestor export`/`import` had no
+`--matcher` at all. Fixed: `ui._bundle` labels an unscoped whole-store export
+with `app.matcher` (scoped requests still route through `_domain_matcher`, so the
+§6.40 guard holds), and the CLI grows `--matcher` on both subcommands
+(`answer.load_matcher`, default unchanged). The new tests drive the button and
+the CLI directly, because the original four exercised `export_bundle`/
+`import_bundle` with an explicit `matcher=` and so gated the mechanism but never
+the wiring. Decision `0075`. Residual: a multi-domain store behind a
+single-domain surface still cannot carry one label — the envelope field is
+singular — which is left open.
+
+**2. `_domain_matcher` compares domain tags with exact string equality. — shipped**
 
 `ui._domain_matcher` and `serve.Server.domain_matcher` both decide "is this
 request about my domain?" with `==`. A caller sending `Incident` against a
@@ -6861,14 +6886,71 @@ consequences for a store that may hold two domains differing only in case. The
 alternative is to refuse a near-miss rather than fall back. Either is better than
 the current silence, and neither is free.
 
-**3. `memory.add_pair`'s race retry drops `reason=`.**
+Shipped the second alternative, not the first. Case-folding the tags stayed off
+the table for the reason above: two domains in one store differing only by case
+are a real possibility this entry cannot rule out, and folding would silently
+merge them into one key space, which is the exact failure shape this whole §6
+is about, one level up. Instead `_domain_matcher`/`domain_matcher` gained one
+more branch, ahead of the existing fall-through: tags equal to the surface's own
+under `.casefold()` but not exactly equal — both tags, not just one, because a
+request that agrees on one tag and genuinely differs on the other is a different
+domain, not a typo of this one — now raise rather than return `None`. `ui.py`
+raises `ApiError(400, ..., code="domain_case_mismatch")`, caught by `dispatch`'s
+existing handler exactly like every other refusal (a `ConflictingSealError`, an
+unknown pair), so it reaches the browser as a 400 with a message and never as a
+traceback. `serve.py` raises `ValueError`, mirroring `_resolve_matcher`'s own
+refusal on the same class of mistake; `Server.handle`'s `tools/call` branch
+already catches `(ValueError, PermissionError, RuntimeError)` and turns it into
+an `isError` tool result a model can read, rather than a JSON-RPC protocol
+error. Both messages name the tags received and the surface's real domain —
+"differs from 'incident'/'incident' only in case. Did you mean...?" — so the
+refusal is actionable rather than just a stop.
+
+The exact-match and genuinely-different-domain paths are unchanged: an exact
+match still returns the surface's own matcher, and a real other domain (one tag
+not even case-insensitively equal) still returns `None` and defers to the
+process-wide matcher, which is the §6.40 guard this fix must not break. Every
+call site threads the matcher as a call argument evaluated before the write it
+guards runs (`memory.add_pair`, `memory.reject_match`, `cascade.
+graduate_segment`, `cascade.reject_segment`), so a near-miss reject or seal
+raises before anything lands in the store — confirmed for `/api/seal` and
+`/api/reject-match` directly, not just inferred from argument order. Regressions
+in `tests/test_findings_2026_08_07_deferred.py`, run against the unfixed
+revision first and observed to fail (a near-miss returned 200 / did not raise);
+decision `0076`.
+
+*Residual, filed by an audit rather than left silent.* The refusal sits behind
+the pre-existing `if app.matcher is None: return None`, so it fires only on a
+surface that has its own matcher. A **default** surface (`matcher=None`, ordinary
+translation) still answers `pending` for the same case-only tag typo, because the
+store keys on the *exact* domain tag (`sqlite_store` `source_lang=?`) and a
+mis-cased tag misses regardless of matcher. That is scoped correctly to the §6.40
+failure — which needs a custom matcher to occur at all — but it leaves the same
+typo refused on a custom surface and silent on a default one, a consistency seam
+worth naming. Widening (moving the near-miss check ahead of the `matcher is None`
+return so it refuses everywhere) was declined: it changes behaviour for every
+default deployment, and the miss it would close is the exact-tag store key, which
+is a decision about tag identity, not this per-request guard. See decision `0076`.
+
+**3. `memory.add_pair`'s race retry drops `reason=`. — shipped**
 
 At `memory.py:475-480`, the retry taken when a concurrent insert wins the race
-re-calls itself without forwarding `reason`, so a seal that loses that race
-silently loses its recorded rationale and skips the `memory_set_reason` refusal
+re-called itself without forwarding `reason`, so a seal that lost that race
+silently lost its recorded rationale and skipped the `memory_set_reason` refusal
 path. Pre-existing and unrelated to the matcher work; noticed while reading that
 function because the §6.40 fix now depends on it forwarding `matcher=`, which it
 does correctly.
+
+Fixed by adding `reason=reason` to the retry call. The regression is in
+`tests/test_findings_2026_08_07_deferred.py`: the race is made deterministic by
+lying to the first `memory_find` so the seal takes the insert path and collides
+with a draft already in the store — the exact window the retry exists for. On
+retry it upgrades that draft to a seal, and its `reason` must ride along. The
+test was run against the unfixed revision first and observed to fail (the sealed
+row came back with an empty `reason`). All three findings have since shipped —
+this one was the clean bug fix; 1 and 2 each carried a design choice this entry
+declined to make on 2026-08-07 and resolved later (decisions 0073/0075 and
+0076).
 
 ---
 
