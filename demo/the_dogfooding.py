@@ -74,7 +74,7 @@ os.environ.setdefault("NESTOR_SEAL_KEY", "dogfooding-fixture-key-not-a-secret")
 from demo import desks                                          # noqa: E402
 from demo.desks import (AMBER, BOLD, DIM, GREEN, OFF, RED,       # noqa: E402
                         beat, claim, note, say, verdict)
-from nestor import cascade, memory                              # noqa: E402
+from nestor import memory                                        # noqa: E402
 from nestor.matcher import StringMatcher                        # noqa: E402
 from nestor.sqlite_store import SqliteStore                     # noqa: E402
 from recipes import patch_review                                # noqa: E402
@@ -123,24 +123,6 @@ def load_decisions() -> list[dict]:
             rows.append({"file": stem, "question": r["question"],
                          "commitment": r["commitment"]})
     return rows
-
-
-def seal_a_copy(root: pathlib.Path, decisions: list[dict], matcher) -> SqliteStore:
-    """A throwaway store with every decision sealed under ``matcher``.
-
-    The real store seals nothing (beat 2). To ask "what would it serve" at all,
-    something has to be sealed — so this seals a fresh copy with the fixture key,
-    which is a demonstration of the serve path and not a decision anybody made.
-    """
-    cascade.set_ledger_path(str(root / "ledger.jsonl"))
-    store = SqliteStore(str(root / "nestor.db"))
-    store.init_db()
-    store.memory_init()
-    for d in decisions:
-        memory.add_pair(d["question"], d["commitment"], DOMAIN, DOMAIN,
-                        status="sealed", verifier="dogfood-fixture", origin=ORIGIN,
-                        store=store, matcher=matcher)
-    return store
 
 
 def by_commitment(decisions: list[dict]) -> dict[str, str]:
@@ -280,7 +262,10 @@ def main() -> int:
          "copies with a fixture key.")
 
     # ---------------------------------------------------------------- 3
-    string_store = seal_a_copy(work / "string", decisions, StringMatcher())
+    string_store = desks.seal_measurable_copy(
+        work / "string", ((d["question"], d["commitment"]) for d in decisions),
+        DOMAIN, DOMAIN, matcher=StringMatcher(), verifier="dogfood-fixture",
+        origin=ORIGIN)
     beat(3, "The floor — asked in the words it was sealed under")
     hit, wrong, pending = exact_retrieval(string_store, StringMatcher(), decisions)
     claim(hit == len(decisions) and wrong == 0,
@@ -337,7 +322,10 @@ def main() -> int:
 
     # ---------------------------------------------------------------- 7
     beat(7, "A better matcher, and why it is not a free win")
-    defect_store = seal_a_copy(work / "defect", decisions, patch_review.MATCHER)
+    defect_store = desks.seal_measurable_copy(
+        work / "defect", ((d["question"], d["commitment"]) for d in decisions),
+        DOMAIN, DOMAIN, matcher=patch_review.MATCHER, verifier="dogfood-fixture",
+        origin=ORIGIN)
     s_para_hit, _, _ = paraphrase_eval(string_store, StringMatcher(), decisions)
     # The package itself warns that 0.92 was measured for StringMatcher, not for a
     # custom matcher's score() — so this whole column is at an uncalibrated bar,

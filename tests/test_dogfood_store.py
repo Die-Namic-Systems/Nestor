@@ -77,6 +77,38 @@ def test_every_row_is_traceable_to_a_decision_file():
     assert not orphans, f"rows whose origin matches no decision file: {orphans}"
 
 
+# --- the shared reader -------------------------------------------------------
+
+def test_dogfood_common_reads_the_real_corpus():
+    """`dogfood_common.load_decisions` is the one reader `dogfood_store.py` (and,
+    separately, `demo/the_dogfooding.py`) build on. Read here directly, not
+    through either caller, so this fails on the shared function itself rather
+    than on whichever caller happens to exercise it first."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_common
+
+    known = {p.name.split("-")[0] for p in DECISIONS.glob("*.json")}
+    rows = dogfood_common.load_decisions()
+
+    assert rows, "the shared reader found no rows in the real corpus"
+    for row in rows:
+        assert row.file in known, (
+            f"row {row.question[:40]!r} names file {row.file!r}, which matches "
+            f"no decision file in {DECISIONS}")
+        assert row.question and row.commitment and row.why, (
+            "a row with an empty field is not traceable to what the file said")
+        assert row.origin.startswith("pr:"), row.origin
+
+
+def test_dogfood_store_still_verifies_after_the_extraction():
+    """The refactor this test module was extended for: `dogfood_store.py` now
+    calls the shared reader instead of parsing the corpus itself. `--verify`
+    is the behavioral contract that must not move — same digest, same store."""
+    done = _run("--verify")
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert "matches the decision files, and seals nothing" in done.stdout
+
+
 # --- the direction ---------------------------------------------------------
 
 def test_a_local_store_cannot_reach_the_committed_one(tmp_path, monkeypatch):

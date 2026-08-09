@@ -54,19 +54,25 @@ DOMAIN = "decision"
 
 
 def decision_files() -> list[pathlib.Path]:
-    """Every decision file, in a stable order so the build is reproducible."""
-    return sorted(DECISIONS_DIR.glob("*.json"))
+    """Every decision file, in a stable order so the build is reproducible.
+
+    Thin wrapper over :func:`dogfood_common.decision_files`, pointed at this
+    checkout's ``DECISIONS_DIR`` — the reading itself lives there so this
+    script and ``demo/the_dogfooding.py`` read the corpus one way.
+    """
+    return dogfood_common.decision_files(DECISIONS_DIR)
 
 
 def load_decisions() -> list[tuple[str, str, str, str]]:
-    """``(question, commitment, why, origin)`` from the repository's files only."""
-    rows: list[tuple[str, str, str, str]] = []
-    for path in decision_files():
-        data = json.loads(path.read_text(encoding="utf-8"))
-        origin = f"pr:{data.get('pr', '?')}"
-        for row in data["decisions"]:
-            rows.append((row["question"], row["commitment"], row["why"], origin))
-    return rows
+    """``(question, commitment, why, origin)`` from the repository's files only.
+
+    Adapts :func:`dogfood_common.load_decisions` — the shared reader owns the
+    remote-to-local rule and returns :class:`dogfood_common.Decision` rows;
+    this unpacks them to the 4-tuple shape :func:`build` and this module's
+    tests already expect, so nothing downstream had to change.
+    """
+    return [(d.question, d.commitment, d.why, d.origin)
+            for d in dogfood_common.load_decisions(DECISIONS_DIR)]
 
 
 def build(store) -> dict:

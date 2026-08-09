@@ -14,11 +14,72 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
+import json
 import pathlib
 import tempfile
 
 from nestor import cascade, memory, storage
 from nestor.sqlite_store import SqliteStore
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+DECISIONS_DIR = ROOT / "docs" / "dogfood" / "decisions"
+
+
+@dataclasses.dataclass(frozen=True)
+class Decision:
+    """One row of the decision corpus, traceable back to the file it came from.
+
+    ``file`` is the decision file's stem (``"0079"`` for
+    ``0079-the-store-on-itself.json``) — not the whole filename, because that
+    stem is what origins and cross-references in this repo are written in.
+    ``origin`` is ``"pr:<pr>"``, read from the file's own ``pr`` field, so a row
+    served out of a built store still names the PR that added it.
+    """
+
+    file: str
+    question: str
+    commitment: str
+    why: str
+    origin: str
+
+
+def decision_files(decisions_dir: pathlib.Path | None = None) -> list[pathlib.Path]:
+    """Every ``*.json`` decision file, in a stable order so builds reproduce.
+
+    ``decisions_dir`` defaults to this checkout's ``docs/dogfood/decisions`` —
+    pass it only to point at a fixture in a test.
+    """
+    return sorted((decisions_dir or DECISIONS_DIR).glob("*.json"))
+
+
+def load_decisions(decisions_dir: pathlib.Path | None = None) -> list[Decision]:
+    """Read the decision corpus from the repository, and nowhere else.
+
+    **Direction: remote to local, never local to remote.** This reads the
+    committed ``*.json`` files under ``decisions_dir`` (default:
+    ``docs/dogfood/decisions`` in this checkout) and nothing besides — no
+    ``data/nestor.db``, no process-wide store from
+    :func:`nestor.storage.get_store`, no configured or ambient path. A memory
+    whose rows came from somewhere nobody can see in the diff is not an audit
+    trail, so every :class:`Decision` this returns is traceable to a file a
+    reviewer read in a merged PR.
+
+    One :class:`Decision` per entry in a file's ``"decisions"`` list, in the
+    stable file order :func:`decision_files` returns — the order both
+    ``scripts/dogfood_store.py`` and ``demo/the_dogfooding.py`` build and
+    measure against, so it must not depend on filesystem iteration order.
+    """
+    rows: list[Decision] = []
+    for path in decision_files(decisions_dir):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        stem = path.name.split("-")[0]
+        origin = f"pr:{data.get('pr', '?')}"
+        for row in data["decisions"]:
+            rows.append(Decision(file=stem, question=row["question"],
+                                 commitment=row["commitment"], why=row["why"],
+                                 origin=origin))
+    return rows
 
 
 def add_output_args(ap: argparse.ArgumentParser) -> argparse.ArgumentParser:

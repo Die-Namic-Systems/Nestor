@@ -271,3 +271,43 @@ class Workspace:
             print(f"\n   {DIM}kept: {self.root}{OFF}")
         else:
             shutil.rmtree(self.root, ignore_errors=True)
+
+
+# --------------------------------------------------------------------------
+# Measuring an all-draft store honestly
+# --------------------------------------------------------------------------
+
+def seal_measurable_copy(root: pathlib.Path, rows: Any, source_lang: str,
+                          target_lang: str, matcher: Any = None,
+                          verifier: str = "fixture", origin: str = "") -> SqliteStore:
+    """A throwaway store with every row of ``rows`` sealed under ``matcher``.
+
+    Every review backlog in this repo — the dogfood decision store chief among
+    them — is all-draft by covenant (``docs/agent-guide.md``: a machine may
+    propose and may not confirm). That is correct and it leaves a real question
+    unanswerable straight from the shipped store: asked its own questions back,
+    what would it actually *serve*? An all-draft store has no answer to that —
+    ``best_sealed`` returns ``None`` for everything, always, by construction.
+
+    So to measure serving at all, something has to be sealed. This seals a
+    **fresh copy**, in ``root``, with a fixture ``verifier`` — never the store a
+    fixture opened elsewhere, and never with a human's name. It is a
+    demonstration of the serve path, not a decision anybody made, and closing
+    it (or letting its ``Workspace``/temp dir go) discards it. The covenant
+    holds: nothing this seals is real, and nothing real is sealed by it.
+
+    ``rows`` is a generic iterable of ``(source_text, target_text)`` pairs —
+    this function knows nothing about decisions, translations, or any other
+    domain. A caller whose corpus is not already pairs (the dogfood decisions
+    are ``{question, commitment}`` dicts, say) adapts at the call site.
+    """
+    matcher = matcher if matcher is not None else DEFAULT_MATCHER
+    cascade.set_ledger_path(str(root / "ledger.jsonl"))
+    store = SqliteStore(str(root / "nestor.db"))
+    store.init_db()
+    store.memory_init()
+    for source_text, target_text in rows:
+        memory.add_pair(source_text, target_text, source_lang, target_lang,
+                        status="sealed", verifier=verifier, origin=origin,
+                        store=store, matcher=matcher)
+    return store
