@@ -1417,10 +1417,18 @@ A rejection by an unregistered name is still recorded and honored, and reported
 as unsigned; refusing to record a "no" is the one direction rejection must not
 fail in, and it is the same asymmetry §1.2 already argues for signatures.
 
-Still open, and the same follow-on Nestor#2 named: the asymmetric upgrade. A
-shared secret proves possession of a key, not the presence of a person, and the
-process necessarily holds the keys it verifies against. Ed25519 or a Biscuit
-capability goes through the same `signing.sign_seal(..., key=)` seam.
+Corrected in place: this used to say the asymmetric upgrade was still open.
+It shipped (Ed25519, `[keys]` extra, decision `0074`) — a keyring holding only
+a peer's **public** key can verify their seals while being structurally unable
+to sign as them, which a shared secret can never do. What Ed25519 alone left
+open was that the *signing* instance still holds every one of its verifiers'
+private keys, so its operator could still forge as anyone whose key lives
+there. The server-side half of closing that has shipped too (decision `0077`,
+Nestor#17): `memory.add_pair(..., seal_sig=...)` accepts a signature a client
+already produced and only verifies it, never signs it, so a public-only entry
+can still seal, given a valid signature. The remaining piece — a browser or
+agent-side page that actually holds a private key and produces that signature
+with WebCrypto — is still open and deliberately out of scope of both.
 
 ---
 

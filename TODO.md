@@ -10,24 +10,31 @@ with one of those, they are right and this is stale.
 
 ## 1. The one that changes what can be claimed
 
-**Asymmetric seal signatures.** Per-verifier identity shipped: each verifier has
-their own key, a seal's signature verifies under the key of the verifier it
-*names*, and the UI is a sign-in rather than a text box (`nestor.keyring`,
-`QUESTIONS.md` §6). That closed "a seal proves the key was present but nothing
-about who used it."
+**Asymmetric seal signatures — shipped, corrected in place: this entry used to
+say Ed25519 was still future work. It landed** (`nestor.keyring`, `[keys]`
+extra, decision `0074`). Per-verifier identity shipped first: each verifier
+has their own key, a seal's signature verifies under the key of the verifier
+it *names*, and the UI is a sign-in rather than a text box. Ed25519 shipped on
+top of that: a keyring holding only a peer's **public** key can verify their
+seals while being structurally unable to sign as them — the property an HMAC
+shared secret can never have — closing the cross-instance/cross-organisation
+cell (`QUESTIONS.md` §6, Q2, Q8).
 
-What it did not close is that an HMAC is a **shared secret**. The process that
-verifies a seal holds the key that could have made it, so a seal is evidence
-against everyone except the deployment itself. An Ed25519 signature — or a
-Biscuit capability, which also gets attenuation — is evidence a server could not
-have manufactured, and it is the difference between "we can show you who sealed
-this" and "we can show a third party who sealed this." It goes through the seam
-that already exists: `signing.sign_seal(..., key=)`.
+What Ed25519 alone did not close is that the SIGNING instance still holds
+every one of its own verifiers' private keys, so its operator can forge as
+anyone whose key lives there. **The server-side half of that is now shipped
+too** (decision `0077`): `memory.add_pair(..., seal_sig=...)` accepts a
+signature a client already produced and only *verifies* it — never signs —
+so a public-only ed25519 entry can seal here without the private key ever
+touching this process. `signing._message` is now a documented, frozen wire
+contract for exactly this reason.
 
-Two things fall out of it and want deciding together: key distribution (an HMAC
-key can be handed over in a terminal; a keypair wants enrolment), and whether
-`verifying_key` becomes a public key in the keyring file, which would make the
-file no longer a secret and change the deployment story considerably.
+**Still open, and it is the real remaining piece:** the browser/agent-side
+page that actually holds a verifier's private key and produces `seal_sig`
+(WebCrypto ed25519, or an equivalent client-side signer), plus its enrolment
+story — handing the server a peer's public key in the first place. That is a
+UI architecture change with its own consequences and was deliberately left
+out of both `0074` and `0077`.
 
 ## 2. Bigger, and still not argued through
 

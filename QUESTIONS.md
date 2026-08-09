@@ -84,7 +84,7 @@ verify and will not be served. `Curator.unverifiable()` and the UI's
 `NESTOR_REQUIRE_SEAL_KEY=1` fails closed instead of degrading. For *who* signed
 it rather than merely *that it was signed*, see Q6.
 
-### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, now asymmetric behind `[keys]`**
+### 6. Who is "rita"? Does the UI authenticate anyone? — **shipped, now asymmetric behind `[keys]`, server seam for client signing shipped**
 
 Set `NESTOR_KEYRING` and yes. Each verifier has their own key
 (`nestor keys add rita`), a seal's signature verifies under the key of the
@@ -112,15 +112,37 @@ signed with (the acceptance test in `test_asymmetric_seals.py`). It goes through
 the same `signing.sign_seal(..., key=)` seam, so the shared-key deployment is
 byte-for-byte unchanged and the core stays dependency-free.
 
-What is *still* honestly missing is closing the last cell: the instance that
+What was *still* honestly missing was closing the last cell: the instance that
 signs holds the private keys, so its operator can still forge as anyone whose
-key lives there. Removing that means signing where the key lives — in the
+key lives there. Closing it means signing where the key lives — in the
 browser (WebCrypto does ed25519) or a client-side agent — which is a UI
-architecture change with its own wire-contract consequences, and it is the one
+architecture change with its own wire-contract consequences, and was the one
 piece of Nestor#17 deliberately left open (see
 `docs/dogfood/decisions/0074-where-an-asymmetric-seal-is-signed.json`).
 Cross-instance and cross-organisation trust, which is what Q2 and Q8 actually
-need, does not wait on it.
+need, did not wait on it.
+
+**The server-side half of that last cell has now shipped too** (see
+`docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json`):
+`memory.add_pair(..., seal_sig=...)` accepts a signature the CALLER already
+produced and only *verifies* it (`signing.seal_is_valid`) — it never calls
+`sign_seal`, so it never needs the private key on this path. That is what
+lets a keyring entry holding only rita's **public** half — the one
+`Keyring.signing_entry` refuses to sign with — still produce a sealed row
+here, given a valid signature over `signing._message(source_norm,
+target_text, verifier)`, which is now documented and FROZEN as the wire
+contract a client signer must reproduce byte-for-byte. Omit `seal_sig` and
+the server signs exactly as before (unchanged, additive); supply one that
+does not verify and `add_pair` refuses before writing anything —
+`InvalidSealSignatureError`, no row left behind. `nestor.ui`'s `/api/seal`,
+`/api/seal-draft` and `/api/queue/seal` all take the same optional field.
+
+What is *still* honestly missing is the other half: the browser or
+agent-side page that actually holds rita's private key and produces
+`seal_sig` with WebCrypto (or an equivalent client-side signer). That UI —
+key generation, storage, and the signing flow itself — is a deliberate
+follow-up; this round built the seam it will talk to and proved the seam's
+contract, not the page.
 
 Revoking a key asks you one question, because Nestor cannot answer it: was the
 key **rotated** (its past seals stand — nobody else held it) or **taken**

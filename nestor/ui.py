@@ -699,6 +699,15 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
     the library's own message, and the page offers an explicit override. Both
     are moments where one human is contradicting another's recorded decision;
     the whole point of the guard is that it takes a second, deliberate click.
+
+    ``seal_sig`` (Nestor#17's client-signing seam) is optional and off by
+    default: omit it and this instance signs exactly as it always has. A
+    caller that already holds a signature over this seal — most usefully, a
+    verifier whose keyring entry here is ed25519 PUBLIC-only, who could never
+    get a seal from this endpoint any other way — may pass it instead; this
+    server only VERIFIES it (``memory.add_pair`` refuses, before any write,
+    when it does not check out). No browser signing UI ships here yet; this
+    is the wire seam a future one talks to.
     """
     source = _str(payload, "source")
     target = _str(payload, "target")
@@ -713,7 +722,8 @@ def _seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
                            store=app.store,
                            matcher=_domain_matcher(app, source_lang, target_lang),
                            override_conflict=override,
-                           override_rejection=override)
+                           override_rejection=override,
+                           seal_sig=_str(payload, "seal_sig"))
     # add_pair ledgers the seal itself. What it cannot know is that a human was
     # shown another human's decision and chose to overrule it anyway, so that —
     # and only that — is recorded here.
@@ -757,6 +767,8 @@ def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
                                 row.get("target_lang", app.target_lang)),
         override_conflict=override,
         override_rejection=override,
+        # See `_seal`'s docstring: optional, additive, verify-only.
+        seal_sig=_str(payload, "seal_sig"),
     )
     if override:
         cascade._ledger_append(
@@ -869,7 +881,9 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         doc.get("target_lang", app.target_lang), status="sealed", verifier=who,
         origin=f"doc:{seg['document_id'][:8]}", store=app.store, matcher=seg_matcher,
         override_conflict=bool(payload.get("override")),
-        override_rejection=bool(payload.get("override")))
+        override_rejection=bool(payload.get("override")),
+        # See `_seal`'s docstring: optional, additive, verify-only.
+        seal_sig=_str(payload, "seal_sig"))
     app.store.update_segment_status(segment_id, "verified")
     cascade._ledger_append({"kind": "segment_sealed", "segment_id": segment_id,
                             "document_id": seg["document_id"], "pair_id": pair["id"],
@@ -958,6 +972,8 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
         return 409, {"error": str(exc), "code": "conflicting_seal"}
     except memory.RejectedPairError as exc:
         return 409, {"error": str(exc), "code": "rejected_pair"}
+    except memory.InvalidSealSignatureError as exc:
+        return 400, {"error": str(exc), "code": "invalid_seal_signature"}
     except keyring.UnknownVerifierError as exc:
         return 403, {"error": str(exc), "code": "unknown_verifier"}
     except keyring.RevokedKeyError as exc:

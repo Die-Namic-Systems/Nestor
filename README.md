@@ -1106,6 +1106,21 @@ bundle's seals checkable without sharing a secret. HMAC entries and the
 single-`NESTOR_SEAL_KEY` deployment are unchanged, through the same
 `signing.sign_seal(..., key=)` seam.
 
+**The residual cell — the signing instance still holding the private key —
+is now closable.** `memory.add_pair(..., seal_sig=...)` accepts a signature a
+CLIENT already produced (a browser doing WebCrypto ed25519, or any other
+signer that never runs on this process) and only *verifies* it against
+`signing.seal_is_valid`; it never calls `sign_seal` on that path, so a
+public-only ed25519 keyring entry — the one `Keyring.signing_entry` refuses to
+sign with — can still seal a pair here. Supplying no `seal_sig` leaves the
+server auto-signing exactly as above; an invalid or forged `seal_sig` is
+refused before anything is written, so an unverified signature is never
+recorded as `status="sealed"`. `nestor.ui`'s `/api/seal`, `/api/seal-draft`
+and `/api/queue/seal` accept the same optional `seal_sig` field and pass it
+through unchanged. The browser/agent-side signing page that PRODUCES such a
+signature is deliberately not part of this — see
+`docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json`.
+
 ### FRANK — mirroring into shared provenance
 
 `nestor.frank` mirrors every ledger entry into **FRANK**, willow-mcp's

@@ -260,6 +260,29 @@ class ConflictingSealError(RuntimeError):
     """
 
 
+class InvalidSealSignatureError(RuntimeError):
+    """Refusing to record a seal under a CLIENT-PROVIDED signature that does
+    not verify (Nestor#17, the client-signing seam).
+
+    ``add_pair(..., seal_sig=...)`` is the path where the caller — not this
+    process — produced the signature, typically because the verifier's
+    keyring entry here holds only an ed25519 PUBLIC key (see
+    :meth:`nestor.keyring.Keyring.signing_entry`) and this instance could not
+    have signed on its behalf even if it wanted to. The server's only job on
+    that path is to check the signature against ``signing._message(norm,
+    target_text, verifier)`` with :func:`nestor.signing.seal_is_valid` — the
+    same check a peer instance makes on import.
+
+    Raised BEFORE ``store.memory_find``/``memory_insert``/``memory_seal`` ever
+    run, so a forged or mismatched ``seal_sig`` leaves no row, sealed or
+    otherwise — the load-bearing property this whole seam exists for. An
+    unverified signature must never reach the store as ``status="sealed"``,
+    which is the Nestor#2 forgery one call deeper: instead of the store
+    merely *saying* ``sealed``, this would be the store believing a signature
+    that never matched the fields it is bound to.
+    """
+
+
 def _same_verifier(a: str, b: str) -> bool:
     """Whether two verifier strings may be assumed to name the same actor.
 
@@ -281,7 +304,8 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
              matcher: Optional[Matcher] = None,
              override_rejection: bool = False,
              override_conflict: bool = False,
-             audit: bool = True, _racing: bool = False) -> dict:
+             audit: bool = True, seal_sig: str = "",
+             _racing: bool = False) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
     ``source_lang`` / ``target_lang`` are generic DOMAIN tags: for translation
@@ -310,6 +334,21 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     record their own aggregate entry instead; :func:`seed_from_corpus` is the
     only caller that uses it, so that a 10k-pair import writes one line rather
     than ten thousand.
+
+    ``seal_sig`` (Nestor#17, the client-signing seam): normally omitted, and
+    the server signs the seal itself via :func:`nestor.signing.sign_seal`
+    exactly as it always has — this parameter changes nothing for that,
+    default, path. Pass it when a CLIENT already produced the signature (for
+    instance, an ed25519 keyring entry here holds only the verifier's PUBLIC
+    key, so this instance never could have signed for them). When supplied,
+    ``add_pair`` never calls ``sign_seal`` — it only VERIFIES the given
+    signature with :func:`nestor.signing.seal_is_valid`, against the same
+    frozen wire message :func:`nestor.signing._message` documents, and raises
+    :class:`InvalidSealSignatureError` if it does not verify. That check runs
+    before any store read or write, so an invalid provided signature writes
+    nothing — no row, sealed or otherwise. This is the only way a keyring
+    entry holding just an ed25519 public key can produce a sealed row here:
+    the private key never has to touch this process.
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -319,9 +358,33 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     if status == "sealed" and audit:
         _ledger_preflight()
     norm = matcher.normalize(source_text)
-    # Bind the seal to a key the store does not hold (Nestor#2). Signing is
-    # opt-in: with no NESTOR_SEAL_KEY, sign_seal returns "" and nothing changes.
-    seal_sig = signing.sign_seal(norm, target_text, verifier) if status == "sealed" else ""
+    # Bind the seal to a key the store does not hold (Nestor#2). Two paths:
+    #
+    # 1. `seal_sig` NOT supplied (the default — everything before Nestor#17's
+    #    client-signing seam worked this way, and still does): the SERVER
+    #    signs, via `signing.sign_seal`. Returns "" when no key is configured
+    #    (signing off) — nothing about that changes here.
+    # 2. `seal_sig` supplied: a CLIENT signed it. The server MUST NOT call
+    #    `sign_seal` — it does not need the private key on this path, and for
+    #    an ed25519 keyring entry holding only the verifier's PUBLIC half it
+    #    does not HAVE one (`Keyring.signing_entry` refuses that entry for
+    #    exactly this reason). Instead the server only VERIFIES the supplied
+    #    signature with `signing.seal_is_valid`, against the verifier's own
+    #    key. An invalid signature raises `InvalidSealSignatureError` HERE —
+    #    before `store.memory_find` below, let alone any write — so a forged
+    #    or mismatched client signature leaves no row at all, sealed or not.
+    if status != "sealed":
+        seal_sig = ""
+    elif seal_sig:
+        if not signing.seal_is_valid(norm, target_text, verifier, seal_sig):
+            raise InvalidSealSignatureError(
+                f"the seal_sig provided for {verifier or 'an unknown verifier'!r} "
+                f"does not verify against (source_norm={norm!r}, "
+                f"target_text={target_text!r}, verifier={verifier!r}) — "
+                f"refusing to record it as sealed. Nothing was written.")
+        # Verified above: recorded as-is, exactly like a server-produced one.
+    else:
+        seal_sig = signing.sign_seal(norm, target_text, verifier)
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
         if (existing.get("source_text") or "") != source_text:
@@ -476,7 +539,14 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                         origin=origin, reason=reason, store=store, matcher=matcher,
                         override_rejection=override_rejection,
                         override_conflict=override_conflict, audit=audit,
-                        _racing=True)
+                        # Carry the ALREADY-RESOLVED signature into the retry —
+                        # not the original `seal_sig` argument. On a race the
+                        # existing-row branch above may resolve this call to a
+                        # no-op (draft already sealed by somebody else) rather
+                        # than a fresh write, so re-verifying a client
+                        # signature or re-signing here is a redundant check,
+                        # never a second act of signing/trust.
+                        seal_sig=seal_sig, _racing=True)
     if status == "sealed" and audit:
         _log_seal_event({
             "kind": "seal", "pair_id": pair["id"], "verifier": verifier,
