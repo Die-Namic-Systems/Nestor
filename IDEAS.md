@@ -7085,3 +7085,42 @@ for a human to weigh the three real options — the identifier-weighted matcher
 (fewer wrong serves, no better recall), semantic embeddings via the
 `[semantic]` extra (recall, at a dependency), or shorter canonical questions
 (recall, by hand).
+
+### 6.95 `nestor calibrate` warns about a too-small corpus in the README's prose, not in the output a parser reads — **measured**, fix **shipped**
+
+*Measured 2026-08-10 during the documentation refresh (`FINDINGS-2026-08-10-docs-refresh.md`).*
+
+Against a one-pair memory, `nestor calibrate --from en --to es --target 0.01`
+prints `threshold 0.80 — 0 collisions — 0.00% ←recommended`: fewer pairs means
+fewer collisions, so the *lowest* swept cutoff clears any target, and the
+command recommends it in a machine-parseable line. The README now documents the
+caveat — "a small memory recommends low, and means nothing by it … treat a
+recommendation from a few dozen pairs as noise" — and the *applying* half
+(`seal_threshold=` per call, or rebinding `memory.SEAL_THRESHOLD`) shipped. What
+did not ship is any floor in the **command's own output**: `grep` of
+`calibrate.py` for a corpus-size guard finds only threshold-floor references, no
+`sampled < N` minimum.
+
+**Where it bites:** an agent automating setup runs `calibrate` early — memory
+smallest, recommendation cheapest — parses `←recommended 0.80`, and sets the
+serving threshold below default with measured-looking justification. It read the
+output, not the prose two sections away. This is `FINDINGS-2026-08-05` §7,
+half-closed: the honesty is now in the docs but not where the parser looks.
+
+**Open, and deliberately not fixed in the docs pass that found it.** The fix is
+a change to `calibrate.py`'s output — one line when `sampled` is below a floor
+(a few dozen), *"N pairs is below what this measure stabilizes on; treat this as
+noise"* — which is a product change that carries its own test, run against the
+unfixed revision, not a sentence in the README. Filed here so it is not lost;
+`docs/agent-guide.md` says a follow-up not written down did not happen.
+
+**Shipped 2026-08-10 (same PR, once the operator asked for the code change).**
+`STABLE_SAMPLE_FLOOR = 30` in `nestor.calibrate`; `calibrate()` returns
+`stable`/`sample_floor`, and `summarize()` — where a parser reads — annotates the
+recommendation as `←recommended (unstable — too few pairs)` and prints an `!`
+caution line whenever `sampled` is below the floor. Deliberately narrow: the
+number itself is unchanged (a caller may still want it), only the honesty around
+it moved to where the output is read. `tests/test_calibrate.py` proves the split
+— both new tests fail on the unfixed revision (no `STABLE_SAMPLE_FLOOR`, no
+caution) — and the claim is about the *rule*, so the stable-corpus test confirms
+the caution vanishes once there are enough pairs. Decision `0080`.

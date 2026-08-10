@@ -67,6 +67,24 @@ def test_the_project_layout_lists_every_module_and_no_ghosts():
         f"{sorted(listed - actual)}")
 
 
+def test_the_project_layout_lists_every_doc_and_no_ghosts():
+    """The docs/ tree drifts where the package tree cannot: a doc absent from the
+    layout reads as nonexistent to anyone grepping it for what to read next.
+
+    `FINDINGS-2026-08-05-docs-standup.md` §8 named this class; five days later
+    `FINDINGS-2026-08-10-docs-refresh.md` found it had recurred — seven docs and a
+    new demo missing from the tree. The package tree has had a gate since IDEAS
+    §4.5 and stayed clean; the docs listing had none and drifted. So it gets the
+    same gate, over the whole layout block rather than the `nestor/` slice.
+    """
+    block = README.split("## Project layout", 1)[1].split("```")[1]
+    listed = set(re.findall(r"docs/([a-z-]+\.md)", block))
+    actual = {p.name for p in (ROOT / "docs").glob("*.md")}
+    assert listed == actual, (
+        f"undocumented docs: {sorted(actual - listed)}; documented but absent: "
+        f"{sorted(listed - actual)}")
+
+
 # --- the links -------------------------------------------------------------
 
 def test_every_in_page_link_resolves():

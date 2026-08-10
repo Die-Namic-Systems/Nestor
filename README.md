@@ -32,6 +32,11 @@ From then on a sealed answer is free, instant, and carries the provenance of
 whoever verified it. Every seal, rejection, serve and check is appended to a
 hash-chained ledger, so the trail is tamper-evident.
 
+In concrete terms it is a zero-dependency Python library, a `nestor` command
+line, and a stdlib browser UI, all over one SQLite-backed store —
+[Quick start](#quick-start) has the whole loop, machine draft to human seal to
+served answer, in five commands.
+
 **Contents** — [The mechanic](#the-mechanic) ·
 [The category](#the-category--verification-not-translation-memory) ·
 [Quick start](#quick-start) ·
@@ -231,6 +236,43 @@ the same three states, the review queue and the ledger in a browser — see
 > telling you seals are being trusted on stored status alone. See
 > [Seal signatures](#seal-signatures) before using it for anything real.
 
+**Run it end to end — the real surfaces**
+
+The snippets above seal in-process, in one script, so the whole loop fits on a
+screen. The *product* is three separate surfaces over one store — a machine
+drafts, a **human** seals, a model or a terminal serves — and the seal is a
+person sitting down, not a function call. Here is that loop across all three,
+against a file-backed store:
+
+```bash
+# 1. A machine draft enters the review queue (tier 2). Nobody has checked it yet.
+python - <<'EOF'
+from nestor import cascade, storage
+from nestor.sqlite_store import SqliteStore
+storage.set_store(SqliteStore("data/nestor.db"))   # the CLI's default store
+cascade.translate_text("Good evening.", "es", source_lang="en")   # drafts, and queues for review
+EOF
+
+# 2. Ask from the terminal — pending. A draft is not a verified answer.
+nestor ask "Good evening."                     # ! pending  —
+
+# 3. A human sits at the queue and seals it under their own name.
+python -m nestor.ui --db data/nestor.db        # open Queue → Seal (or correct-then-seal)
+
+# 4. Ask again — now served, verbatim, with who verified it.
+nestor ask "Good evening."                     # ✓ sealed  Buenas noches.  (verified by you)
+
+# 5. Every step is in the hash-chained ledger, and the chain verifies.
+nestor ledger verify                           # ✓ intact
+```
+
+Step 3 is the point, not an inconvenience. There is no `nestor seal` subcommand
+and no way to seal from a script, because a seal is a human's signature and
+`--verifier "$USER"` in a cron job is not a human checking anything. A model can
+draft (`nestor serve`), the terminal can serve, but only a person at `nestor.ui`
+turns a draft into a sealed answer. That boundary is the product — the rest of
+this README is the detail behind it.
+
 **Installation extras**
 
 ```bash
@@ -287,12 +329,14 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── corpora.py          seeded corpora at both ends of the diversity spectrum
 ├── corpus_terpsi.py    a real-prose corpus, with its span/split checks
 ├── token_matchers.py   token-weighted matchers tried against the identifier collisions
+├── retrieval_quality.py  recall/precision at a threshold — the half `nestor calibrate` does not measure
 ├── harness.py          timing, environment capture, JSON result recording
 ├── serve_ui.py         the threshold trade-off as a chart — read-only, stdlib (serves bench/ui/)
 └── results/            committed measurements — parameters, git rev, raw numbers
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
+├── the_dogfooding.py   Nestor's own decision store asked its own questions — retrieval measured three ways (IDEAS §6.94)
 ├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
 ├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
 ├── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
@@ -310,17 +354,27 @@ scripts/              dogfood, fleet-checkout, and two_instances.py — the expo
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
+CHANGELOG.md          releases, newest first — "Unreleased" until the first tag (docs/releasing.md)
 docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
+QUESTIONS.md          the questions this gets asked, answered or admitted
 FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
+docs/dogfood/         Nestor's own decisions, one file per merged PR; the .db is derived (docs/decision-memory.md)
 docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
+docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
+docs/releasing.md     the release runbook — the decisions before a first release, and the publish workflow
+docs/seal-staleness-and-quorum.md  design memo (§1.4): does a seal expire, and is one enough — an argument, unimplemented
+docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
+docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
+docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos (§6.50–§6.55)
+docs/live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
-docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
+docs/homestead-paths.md  ~/.homestead ledger/keep paths vs the repo's ./data/ (household hosts)
+docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.homestead household root — audience, not brand
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
-QUESTIONS.md          the questions this gets asked, answered or admitted
 ```
 
 ---
@@ -595,6 +649,7 @@ memory.reject_pair(pair_id, verifier="rita", reason="wrong time of day")
 # 2. This pair is the wrong answer FOR THIS QUERY — it stays valid for its own
 #    source text. This is what a false seal actually is. A hit from lookup()
 #    or best_sealed() is {"pair": {...the stored row...}, "similarity": float}.
+#    (best_sealed returns None when nothing matches; this assumes a sealed pair does.)
 hit = memory.best_sealed("the penalty under section 900026", "en", "es")
 memory.reject_match("the penalty under section 900026", "en", "es",
                     pair_id=hit["pair"]["id"], verifier="rita",
@@ -789,6 +844,36 @@ only reach this server) — an audit surface should not be able to ship the memo
 it is displaying anywhere. Seal
 *signatures* (`NESTOR_SEAL_KEY`) remain the thing that makes a seal unforgeable;
 nothing here weakens them, and the header badge tells you when they are off.
+
+### Holding your own key in the browser
+
+There is one way to make the verifier *proven* rather than typed, and it is the
+piece that closes [Nestor#17](#who-verified-it--per-verifier-keys): the "acting
+as" box's third mode generates a **non-extractable Ed25519 key with WebCrypto,
+in the browser**, or imports one minted elsewhere as raw hex. The private key is
+persisted in IndexedDB (or kept only for the tab) and **never leaves the page** —
+it never touches this server. Enrolment is out of band: the page prints the exact
+
+```bash
+nestor keys add NAME --type ed25519 --public HEX
+```
+
+for a human to run against the store's keyring, so the server learns the
+*public* key and nothing else. From then on a seal is signed **client-side**
+against a message the human actually saw — a read-only `/api/normalize` supplies
+the `source_norm` the browser displays before signing, so a compromised server
+cannot steer a signature onto bytes nobody looked at — reproducing the frozen
+`signing._message` encoding in JavaScript, proven byte-identical to Python's
+against a live browser (`tests/test_client_signed_seals_browser.py`). This is
+the property a shared `NESTOR_SEAL_KEY` can never have: the store can verify and
+seal under a verifier's key while being structurally unable to forge as them.
+
+Deliberately narrow, matching [decision 0077](docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json):
+only `/api/seal`, `/api/seal-draft`, and the edited path of `/api/queue/seal`
+accept a client signature. A browser-key verifier cannot yet unseal, reject,
+restore, or seal an entity or numeric answer from the UI — those endpoints have
+no signature to authenticate against. See [Seal signatures](#seal-signatures)
+for the key model this builds on.
 
 `--read-only` refuses every decision at the API layer, for showing the memory to
 someone without handing them the ability to change it. `--engine` defaults to
@@ -1308,7 +1393,10 @@ Two consequences of that, stated rather than implied. **A small memory
 recommends low, and means nothing by it** — fewer pairs means fewer collisions,
 so an early, near-empty memory clears any target at the lowest cutoff swept.
 Treat a recommendation from a few dozen pairs as noise and calibrate again once
-the memory has grown. And **applying the result is deliberately manual**: pass
+the memory has grown. You do not have to remember this: below ~30 sampled pairs
+the command flags its own recommendation `(unstable — too few pairs)` and prints
+a caution, so the warning rides the line a script parses, not only this prose.
+And **applying the result is deliberately manual**: pass
 `seal_threshold=` per call to `best_sealed`, or rebind
 `nestor.memory.SEAL_THRESHOLD` at process start. There is no env var, because
 moving the dial is a decision someone should be able to find in code review,

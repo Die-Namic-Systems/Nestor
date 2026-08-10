@@ -157,3 +157,33 @@ def test_the_cli_calibrate_accepts_matcher(store, tmp_path, capsys, seal_key):
     ]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["matcher"] == "StringMatcher"
+
+
+def test_a_small_corpus_flags_its_recommendation_as_noise(distinct):
+    """The failure IDEAS §6.95 named: five pairs recommend the loosest cutoff and
+    say nothing about how little that means. The number is unchanged; the output
+    now carries the floor where a parser reads it, not only in the README prose."""
+    out = calibrate.calibrate(distinct, "en", "es", sample=0)
+    assert out["sampled"] < calibrate.STABLE_SAMPLE_FLOOR
+    assert out["stable"] is False
+    assert out["sample_floor"] == calibrate.STABLE_SAMPLE_FLOOR
+    text = calibrate.summarize(out)
+    # the caution stands on its own line...
+    assert "too few possible collisions" in text and "noise" in text
+    # ...and rides the machine-parseable recommendation marker itself.
+    rec_line = next(line for line in text.splitlines() if "←recommended" in line)
+    assert "unstable" in rec_line
+
+
+def test_a_corpus_at_the_floor_is_not_flagged(distinct, monkeypatch):
+    """Above the floor the caution is gone and the marker is bare again — the
+    warning is about the rule (too few pairs), so it must vanish once there are
+    enough. Floor lowered here rather than authoring dozens of rows."""
+    monkeypatch.setattr(calibrate, "STABLE_SAMPLE_FLOOR", 3)
+    out = calibrate.calibrate(distinct, "en", "es", sample=0)
+    assert out["sampled"] >= calibrate.STABLE_SAMPLE_FLOOR
+    assert out["stable"] is True
+    text = calibrate.summarize(out)
+    assert "too few possible collisions" not in text
+    rec_line = next(line for line in text.splitlines() if "←recommended" in line)
+    assert "unstable" not in rec_line
