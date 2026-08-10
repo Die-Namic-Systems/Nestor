@@ -6,16 +6,18 @@ opening cross-repo PRs. Everything here is paths and commands; no cloud required
 
 ## Layout
 
-Assume a sibling checkout tree:
+After the 2026-08-10 org-folder layout, checkouts are one directory per GitHub
+org (not a flat `~/github/{nestor,jeles,willow-mcp}`). On this machine:
 
 ```text
 ~/github/
-  nestor/                 # this repo (editable: pip install -e .)
-  jeles/                  # verified-nugget corpus (recipes/jeles_bridge.py)
-  willow-mcp/             # FRANK, the gate, the shared SOIL store
-  terpsi-music/           # bench corpus + Nestor host app (coat-hat branch)
-  safe-app-store-public/  # promote_check, lineage doc, App Forge design
-  oakenscrolls-office/    # cite-and-grade → Nestor pairs
+  Die-Namic-Systems/nestor/          # this repo (editable: pip install -e .)
+  hornbook-knowledge/Jeles/          # verified-nugget corpus (recipes/jeles_bridge.py)
+  willow-memory/willow-mcp/          # FRANK, the gate, the shared SOIL store
+  willow-memory/.willow/             # WILLOW_HOME (fleet state; ~/.willow → here)
+  terpsi-programs/terpsi-music/      # bench corpus + Nestor host app
+  safe-app-store-public/             # promote_check, lineage doc, App Forge design
+    apps/oakenscrolls-office/        # cite-and-grade → Nestor pairs
 ```
 
 ## The three-repo stand-up (nestor + jeles + willow-mcp)
@@ -23,13 +25,25 @@ Assume a sibling checkout tree:
 Nestor, jeles and willow-mcp are the part of the tree that has to be **running**
 together, not just checked out together — one venv, one SOIL store, one gate,
 one hash chain. willow-mcp owns that script, because it is the hub the other two
-attach to:
+attach to. Pass the org-folder paths explicitly (the script's sibling defaults
+no longer resolve after the move). Point `WILLOW_HOME` at the live fleet home,
+not a fresh repo-local `.willow`:
 
 ```bash
-cd ~/github/willow-mcp
-NESTOR_REPO=~/github/nestor JELES_REPO=~/github/jeles bash scripts/fleet-standup.sh
+export WILLOW_HOME=~/github/willow-memory/.willow
+cd ~/github/willow-memory/willow-mcp
+NESTOR_REPO=~/github/Die-Namic-Systems/nestor \
+JELES_REPO=~/github/hornbook-knowledge/Jeles \
+bash scripts/fleet-standup.sh
 . "$WILLOW_HOME/fleet.env"        # the path it prints at the end
 ```
+
+If PGP enforcement is on (`WILLOW_PGP_FINGERPRINT` set), seat and sign the
+operator-local `nestor` manifest after stand-up
+(`willow-mcp sign-manifest nestor`), and refresh the jeles registry for
+`gap_write` when an older home lacks it (`WILLOW_FLEET_REFRESH_REGISTRY=1`).
+Unsigned manifests under `$WILLOW_HOME/mcp_apps/` refuse the server boot and
+every MCP seam fails as a closed connection.
 
 It is idempotent, and it ends by *checking* the seams rather than asserting
 them (`scripts/fleet_seams.py`, six of them). Two are Nestor's:
@@ -91,18 +105,18 @@ export NESTOR_SEAL_KEY=test-key   # dev only
 Other repos should resolve **this** checkout, not an old PyPI pin:
 
 ```bash
-pip install -e ~/github/nestor
+pip install -e ~/github/Die-Namic-Systems/nestor
 ```
 
 Refresh **terpsi** `docs/FLEET-READS.md` Nestor SHA after meaningful nestor
-changes (`git -C ~/github/nestor rev-parse HEAD`).
+changes (`git -C ~/github/Die-Namic-Systems/nestor rev-parse HEAD`).
 
 ## Bench ↔ terpsi
 
 Default bench pin (unchanged until you re-extract):
 
 ```bash
-export TERPSI_ROOT=~/github/terpsi-music
+export TERPSI_ROOT=~/github/terpsi-programs/terpsi-music
 # corpus_terpsi.py uses PINNED_REV=6ea9b89 inside the tree
 python -m bench.corpus_terpsi   # gate + smoke
 ```
@@ -111,8 +125,8 @@ To exercise the **coat-hat** product tree (store/records; prose paths may still
 match the pin):
 
 ```bash
-git -C ~/github/terpsi-music checkout local/fleet-integration
-export TERPSI_ROOT=~/github/terpsi-music
+git -C ~/github/terpsi-programs/terpsi-music checkout local/fleet-integration
+export TERPSI_ROOT=~/github/terpsi-programs/terpsi-music
 ```
 
 Re-run surface benches with an updated `corpus_revision` in results JSON when you
@@ -122,7 +136,7 @@ deliberately move the pin.
 
 ```bash
 cd ~/github/safe-app-store-public
-python stores/promote_check.py ~/github/nestor
+python stores/promote_check.py ~/github/Die-Namic-Systems/nestor
 # when ready: add --record to mint under stores/.../promoted/
 ```
 
@@ -137,8 +151,8 @@ less docs/design/app-forge.md
 ## Oakenscroll seam
 
 ```bash
-cd ~/github/oakenscrolls-office
-pip install -e ~/github/nestor
+cd ~/github/safe-app-store-public/apps/oakenscrolls-office
+pip install -e ~/github/Die-Namic-Systems/nestor
 pytest tests/test_almanac_seam_nestor.py -q
 ```
 

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """The top — run every repo feed, and be honest about the ones that found nothing.
 
-    python scripts/feed_all.py --willow-2 /path/to/willow-2.0 --jeles /path/to/jeles
+    python scripts/feed_all.py --willow-2 /path/to/willow --jeles /path/to/jeles
     python scripts/feed_all.py                       # no paths: every feed skipped
+
+``--willow-2`` names the *charter* checkout (cases under
+``governance/compliance/cases/``); the flag keeps its historical name. Pass the
+greenfield-archive willow-2.0 tree only for ``--willow-2-migrations``.
 
 One entry point over the individual feeders in this directory. It adds exactly
 one thing they cannot do alone: **a combined verdict that separates the three
@@ -44,11 +48,11 @@ BOLD, DIM, GREEN, AMBER, RED, OFF = (
 #: (flag, feeder, what it feeds). Order is the order they were built.
 FEEDS = (
     ("willow_2", "feed_willow_constitution.py",
-     "willow-2.0 constitution — clause → forbidden act"),
+     "charter constitution cards — clause → forbidden act"),
     ("jeles", "feed_jeles_sources.py",
      "jeles registry — source → subjects claimed"),
     ("willow_2_migrations", "feed_willow_migrations.py",
-     "willow-2.0 migrations — change → stated intent"),
+     "archived willow-2.0 migrations — change → stated intent"),
     ("willow_19", "feed_willow19_plans.py",
      "willow-1.9 plans — plan → what it committed to (archived)"),
 )

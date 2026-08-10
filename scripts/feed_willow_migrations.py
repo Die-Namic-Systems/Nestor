@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-"""Feed willow-2.0's migrations in — a schema change, and what it said it was for.
+"""Feed archived willow-2.0 migrations in — a schema change, and what it said it was for.
 
-    python scripts/feed_willow_migrations.py --repo /path/to/willow-2.0
+    python scripts/feed_willow_migrations.py --repo /path/to/archived/willow-2.0
+
+**Historical tooling only.** ``willow-2.0`` is tier F (not cloned for live work).
+On this machine the tree still exists under the greenfield archive, e.g.::
+
+    ~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0
+
+or set ``WILLOW_20_REPO``. Origin label stays ``willow-2.0:migrations`` so rows
+do not pretend to come from the living charter.
 
 Third repo feed. Every file in ``migrations/`` opens with a ``--`` comment block
 stating what the change is for, then the DDL. The pair is **migration → its

@@ -1,5 +1,8 @@
 import json
 import os
+import builtins
+import importlib.util
+import sys
 
 import pytest
 
@@ -30,6 +33,34 @@ CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_K
 def seal_key():
     """A signing key for tests that seal or verify signatures."""
     os.environ["NESTOR_SEAL_KEY"] = "test-key"
+
+
+@pytest.fixture
+def without_fastembed(monkeypatch):
+    """Make ``import fastembed`` fail as if ``nestor[semantic]`` were absent.
+
+    Refusal-path tests for the semantic matcher must hold in a venv that also
+    has the extra installed — otherwise the suite can never be fully green on
+    a developer box that runs the embedding cases.
+    """
+    for name in list(sys.modules):
+        if name == "fastembed" or name.startswith("fastembed."):
+            monkeypatch.delitem(sys.modules, name, raising=False)
+    real_import = builtins.__import__
+    real_find_spec = importlib.util.find_spec
+
+    def blocked(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "fastembed" or name.startswith("fastembed."):
+            raise ImportError("No module named 'fastembed'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    def find_spec(name, package=None):
+        if name == "fastembed" or (isinstance(name, str) and name.startswith("fastembed.")):
+            return None
+        return real_find_spec(name, package)
+
+    monkeypatch.setattr(builtins, "__import__", blocked)
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
 
 
 @pytest.fixture

@@ -2209,7 +2209,8 @@ function matchForm() {
                       text: d.matcher })
         : h("select", { id: "m-matcher" },
             ...[["string", "StringMatcher"], ["numeric", "NumericMatcher"],
-                ["semantic", "SemanticMatcher (optional extra)"]].map(([v, t]) =>
+                ["semantic", "SemanticMatcher (optional extra)"],
+                ["ollama", "Ollama nomic-embed-text (local daemon)"]].map(([v, t]) =>
               h("option", { value: v, selected: (q.matcher || "string") === v }, t))),
       h("button", { class: "primary", disabled: S.state.read_only, onclick: submitMatch }, "Look up")),
     h("p", { class: "small muted", style: "margin:8px 0 0" },

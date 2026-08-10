@@ -26,8 +26,9 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import feed_jeles_sources as FEED       # noqa: E402
+from tests._fleet_paths import jeles_checkout  # noqa: E402
 
-JELES = pathlib.Path("/workspace/jeles")
+JELES = jeles_checkout()
 
 
 def registry(tmp_path, body: str) -> pathlib.Path:

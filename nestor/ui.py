@@ -1233,10 +1233,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "domain is the tags AND the matcher; aiming this surface "
                         "at a domain keyed by a different one files every seal "
                         "and rejection where that domain will never look. A "
-                        "shipped name (string, numeric, semantic), or a custom "
-                        "matcher as 'module:attribute' — the same spec `nestor "
-                        "serve` and `nestor ask` take. In-process hosts can still "
-                        "pass the object: ui.App(matcher=...)")
+                        "shipped name (string, numeric, semantic, ollama), or a "
+                        "custom matcher as 'module:attribute' — the same spec "
+                        "`nestor serve` and `nestor ask` take. In-process hosts "
+                        "can still pass the object: ui.App(matcher=...)")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
                    help="draft engine used by the Ask view (default: offline — a click "
                         "in a browser should not silently call a paid API)")

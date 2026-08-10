@@ -122,7 +122,7 @@ class Server:
         two of them wrong:
 
         * A name that **agrees** with what is in force is honoured. The tool
-          schema offers `string | numeric | semantic`, so on a server started
+          schema offers `string | numeric | semantic | ollama`, so on a server started
           with `--matcher numeric` those are the only values a conforming model
           can send — and comparing against the matcher's *class* name refused
           every one of them while accepting `NumericMatcher`, which is advertised

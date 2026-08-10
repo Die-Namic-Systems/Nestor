@@ -30,8 +30,9 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import audit_against_jeles as AUDIT           # noqa: E402
+from tests._fleet_paths import jeles_checkout  # noqa: E402
 
-JELES = pathlib.Path("/workspace/jeles")
+JELES = jeles_checkout()
 SCRIPT = REPO / "scripts" / "audit_against_jeles.py"
 
 

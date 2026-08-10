@@ -392,9 +392,7 @@ def test_an_unknown_matcher_is_refused_rather_than_defaulted(filled):
     assert status == 400 and "unknown matcher" in out["error"]
 
 
-def test_semantic_without_extra_is_refused_not_defaulted(filled):
-    if importlib.util.find_spec("fastembed"):
-        pytest.skip("fastembed installed — run test_semantic_match_when_extra_installed")
+def test_semantic_without_extra_is_refused_not_defaulted(filled, without_fastembed):
     status, out = post(filled, "/api/match", text="x", matcher="semantic")
     assert status == 400
     assert "semantic" in out["error"].lower()

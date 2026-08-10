@@ -1,10 +1,14 @@
-"""Embedding-based matcher — optional ``nestor[semantic]`` extra (IDEAS §3.3).
+"""Embedding-based matcher — ``fastembed`` extra or local Ollama (IDEAS §3.3 / §6.96).
 
 ``normalize`` stays a cheap lexical dedup key (:class:`~nestor.matcher.StringMatcher`);
 ``score`` compares raw surfaces with cosine similarity on embedding vectors.
-Core ``nestor`` has zero runtime dependencies; :mod:`fastembed` is required at
-construction time (``pip install nestor[semantic]``) and the model loads on the
-first embed call.
+
+Two backends:
+
+* ``fastembed`` (default for the ``semantic`` name) — optional pip extra
+  ``nestor[semantic]``; model loads on the first embed call.
+* ``ollama`` (the ``ollama`` shipped name) — stdlib HTTP to a local daemon;
+  default model ``nomic-embed-text``. No pip extra.
 
 A single :class:`SemanticMatcher` may be shared across threads (for example from
 :mod:`nestor.ui`'s pool): embedding and cache updates are serialized with a lock.
@@ -22,6 +26,7 @@ from .matcher import Matcher, StringMatcher
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
 _CACHE_MAX = 512
 INTEGRATION_TEST_ENV = "NESTOR_SEMANTIC_TEST"
+BACKENDS = ("fastembed", "ollama")
 
 
 def integration_tests_enabled() -> bool:
@@ -55,7 +60,10 @@ class SemanticMatcher:
     Parameters
     ----------
     model_name:
-        A `fastembed` text model (default is a small English bi-encoder).
+        Embedding model id. Defaults to the fastembed bi-encoder, or
+        ``nomic-embed-text`` when ``backend="ollama"``.
+    backend:
+        ``"fastembed"`` (pip extra) or ``"ollama"`` (local daemon, stdlib).
     dedup:
         Matcher used for ``normalize`` and for ``similarity`` when only norms
         are available. Defaults to :class:`StringMatcher`.
@@ -66,22 +74,47 @@ class SemanticMatcher:
         cache. ``False`` for a read-only surface: matching is a read, and a
         reader who passed ``--read-only`` did not agree to a write just because
         the matcher would like one. Reading the cache is unaffected.
+
+    Notes
+    -----
+    The default ``SEAL_THRESHOLD`` was measured for character-ratio /
+    fastembed space. Ollama ``nomic-embed-text`` bunches differently — measure
+    with ``nestor calibrate --matcher ollama`` before trusting serves.
     """
 
     name = "semantic"
 
-    def __init__(self, model_name: str = DEFAULT_MODEL,
+    def __init__(self, model_name: Optional[str] = None,
                  dedup: Optional[Matcher] = None,
                  cache_size: int = _CACHE_MAX,
-                 persist: bool = True) -> None:
-        self.model_name = model_name
+                 persist: bool = True,
+                 backend: str = "fastembed") -> None:
+        if backend not in BACKENDS:
+            raise ValueError(
+                f"unknown embedding backend {backend!r} — "
+                f"shipped backends are {', '.join(BACKENDS)}"
+            )
+        self.backend = backend
         self.persist = persist
         self._dedup = dedup or StringMatcher()
         self._cache_size = max(1, cache_size)
         self._cache: OrderedDict[str, tuple[float, ...]] = OrderedDict()
         self._model = None
         self._lock = threading.Lock()
-        _require_fastembed()
+        if backend == "ollama":
+            from . import ollama_embed
+            self.model_name = model_name or ollama_embed.DEFAULT_EMBED_MODEL
+            self.name = "ollama"
+            if not ollama_embed.available(self.model_name):
+                raise RuntimeError(
+                    f"ollama matcher needs Ollama reachable at {ollama_embed.host()} "
+                    f"with model {self.model_name!r} installed "
+                    f"(OLLAMA_HOST / NESTOR_OLLAMA_EMBED_MODEL)"
+                )
+        else:
+            self.model_name = model_name or DEFAULT_MODEL
+            self.name = "semantic"
+            _require_fastembed()
 
     def _load_model(self):
         if self._model is not None:
@@ -97,14 +130,31 @@ class SemanticMatcher:
             self._cache.popitem(last=False)
         return vec
 
+    def _embed_batch_unlocked(self, texts: list[str]) -> None:
+        need: list[str] = []
+        seen: set[str] = set()
+        for text in texts:
+            if text not in self._cache and text not in seen:
+                need.append(text)
+                seen.add(text)
+        if not need:
+            return
+        if self.backend == "ollama":
+            from . import ollama_embed
+            for text, vec in zip(need, ollama_embed.embed_many(need, model=self.model_name)):
+                self._remember(text, vec)
+            return
+        model = self._load_model()
+        for text, vec in zip(need, model.embed(need)):
+            self._remember(text, tuple(float(x) for x in vec))
+
     def _embed_unlocked(self, text: str) -> tuple[float, ...]:
         hit = self._cache.get(text)
         if hit is not None:
             self._cache.move_to_end(text)
             return hit
-        model = self._load_model()
-        vec = next(model.embed([text]))
-        return self._remember(text, tuple(float(x) for x in vec))
+        self._embed_batch_unlocked([text])
+        return self._cache[text]
 
     def _embed(self, text: str) -> tuple[float, ...]:
         with self._lock:
@@ -196,16 +246,7 @@ class SemanticMatcher:
             pending.append((i, b))
         if not pending:
             return out
-        need: list[str] = []
-        seen: set[str] = set()
-        for text in (q, *(b for _, b in pending)):
-            if text not in self._cache and text not in seen:
-                need.append(text)
-                seen.add(text)
-        if need:
-            model = self._load_model()
-            for text, vec in zip(need, model.embed(need)):
-                self._remember(text, tuple(float(x) for x in vec))
+        self._embed_batch_unlocked([q, *(b for _, b in pending)])
         for i, b in pending:
             out[i] = _cosine(self._embed_unlocked(q), self._embed_unlocked(b))
         return out

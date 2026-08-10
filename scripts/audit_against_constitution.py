@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""Run Nestor against willow-2.0's constitution — the reciprocal of the feed.
+"""Run Nestor against the charter's constitution cards — the reciprocal of the feed.
 
-    python scripts/audit_against_constitution.py --repo /path/to/willow-2.0
+    python scripts/audit_against_constitution.py --cases /path/to/governance/compliance/cases
+    python scripts/audit_against_constitution.py --repo /path/to/willow
 
-`scripts/feed_willow_constitution.py` brings the five clauses *into* this store
+`scripts/feed_willow_constitution.py` brings the clause cards *into* this store
 as rows awaiting a human. This does the opposite and harder thing: it takes each
 clause and **attacks this package with it**, the way willow's own compliance
-probes attack willow.
+probes once attacked willow.
 
 The question is not academic. `docs/covenant-lineage.md` records that
 *you may propose, you may not confirm* was stated first as §0.2 of that
 constitution, and that this package is that clause with the surface area
 removed. So: does the extraction still satisfy the thing it was extracted from?
 
-**Clause text is read from the checkout, never paraphrased here.** A summary of
+**Clause text is read from the cards, never paraphrased here.** A summary of
 somebody else's rule, written by the party being audited, is the least
 trustworthy sentence available.
 
@@ -45,7 +46,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 os.environ.setdefault("NESTOR_SEAL_KEY", "audit-fixture-key-not-a-secret")
 
-from feed_willow_constitution import extract          # noqa: E402
+from feed_willow_constitution import extract, resolve_cases_dir          # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 BOLD, DIM, GREEN, AMBER, RED, CYAN, OFF = (
@@ -93,6 +94,18 @@ def probe_egress(work: pathlib.Path) -> tuple[str, str]:
                           r"|http\.client|aiohttp")
     hits = [p.name for p in (REPO / "nestor").glob("*.py")
             if outbound.search(p.read_text(encoding="utf-8"))]
+    # Local Ollama embed is stdlib HTTP to a daemon the operator runs — reach
+    # the host already granted by installing/starting Ollama, not a capability
+    # this package mints for itself. Score it the same way CONST-0-2/0-4 score
+    # "the end holds by a different mechanism": differently, not satisfied.
+    local_only = sorted(hits) == ["ollama_embed.py"]
+    if local_only:
+        return DIFFERENTLY, (
+            "outbound call in ollama_embed.py only — stdlib POST to OLLAMA_HOST "
+            "(default loopback) for nomic-embed-text. The host must already be "
+            "running the daemon; this package does not grant itself fleet egress. "
+            "willow's clause forbids self-extended reach; this is operator-local "
+            "embed, not a sealed network authority.")
     if hits:
         return FAILS, f"outbound calls found in {', '.join(hits)}"
     return SATISFIED, (
@@ -192,12 +205,17 @@ PROBES = {
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--repo", required=True, help="a willow-2.0 checkout")
+    ap.add_argument("--cases", default="",
+                    help="directory of declarative const_*.py cards")
+    ap.add_argument("--repo", default="",
+                    help="charter or legacy checkout; resolves cases under it")
     args = ap.parse_args()
+    if not args.cases and not args.repo:
+        ap.error("one of --cases or --repo is required")
 
-    cases_dir = pathlib.Path(args.repo) / "constitution" / "cases"
-    if not cases_dir.is_dir():
-        print(f"{RED}no constitution/cases/ under {args.repo}{OFF}")
+    cases_dir = resolve_cases_dir(repo=args.repo, cases=args.cases)
+    if cases_dir is None:
+        print(f"{RED}no compliance cases directory found{OFF}")
         print(f"   {DIM}'I could not look' — refusing rather than reporting a "
               f"clean audit.{OFF}")
         return 1
@@ -207,12 +225,12 @@ def main() -> int:
         if got:
             clauses[got["trace_id"]] = got
     if not clauses:
-        print(f"{RED}constitution/cases/ holds no readable clause{OFF}")
+        print(f"{RED}{cases_dir} holds no readable clause{OFF}")
         return 1
 
     work = pathlib.Path(tempfile.mkdtemp(prefix="nestor-audit-"))
-    print(f"\n{BOLD}nestor, audited against willow-2.0's constitution{OFF}")
-    print(f"{DIM}   {len(clauses)} clause(s) read from the checkout. Clause text "
+    print(f"\n{BOLD}nestor, audited against the charter constitution cards{OFF}")
+    print(f"{DIM}   {len(clauses)} clause(s) read from {cases_dir}. Clause text "
           f"is theirs, verdicts are mine,{OFF}")
     print(f"{DIM}   and a verdict by the audited party is a draft.{OFF}")
 

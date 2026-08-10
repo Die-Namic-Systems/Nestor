@@ -295,7 +295,8 @@ nestor/
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
-├── semantic_matcher.py  optional SemanticMatcher (the [semantic] extra / fastembed)
+├── semantic_matcher.py  optional SemanticMatcher (fastembed extra or Ollama backend)
+├── ollama_embed.py   stdlib client for local Ollama embeddings (nomic-embed-text)
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface
@@ -414,6 +415,13 @@ Two core matchers ship with zero dependencies; a third is optional:
   `matcher=semantic` on `nestor match`, the UI Match view, or MCP
   `nestor_match`. Re-calibrate thresholds — they are not comparable to
   character-ratio scores.
+- **`ollama`** *(local daemon)* — same matcher seam as `semantic`, but
+  embeds over stdlib HTTP to Ollama (default model `nomic-embed-text`). No
+  pip extra; needs `OLLAMA_HOST` (default `http://localhost:11434`) and the
+  model pulled. Use `--matcher ollama`. Nomic cosine bunches differently from
+  character-ratio / fastembed space — measure with
+  `nestor calibrate --matcher ollama` before trusting serves. Env:
+  `NESTOR_OLLAMA_EMBED_MODEL`, `NESTOR_OLLAMA_EMBED_TIMEOUT`.
 
 Set `NESTOR_SEMANTIC_TEST=1` and install the `[semantic]` extra to run the optional
 integration test that checks the §3.1 acronym case (`AWS` vs `Amazon Web Services`).
@@ -476,7 +484,7 @@ app = ui.App(store=store, source_lang="incident", target_lang="incident",
 memory.set_matcher(SerialMatcher())          # or process-wide, for a single-domain host
 ```
 
-`nestor ui --matcher {string,numeric,semantic}` names a **shipped** matcher; a
+`nestor ui --matcher {string,numeric,semantic,ollama}` names a **shipped** matcher; a
 custom one cannot come off a wire, so it is passed in code. `ui.App(matcher=None)`
 — the default — defers to the process-wide matcher rather than forcing
 `StringMatcher`, so a host that called `set_matcher()` before launching the
