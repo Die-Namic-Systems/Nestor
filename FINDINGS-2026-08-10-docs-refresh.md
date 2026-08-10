@@ -59,8 +59,11 @@ standup; the residue after this pass:
    line carries no minimum-corpus warning, so an agent parsing that line — not
    the prose two sections away — still sets a threshold on noise. This is a
    **code** change to `calibrate.py`'s output, not a documentation fix, so it was
-   **not** made in this docs pass. Filed as `IDEAS.md` §6.95, **open**, for a
-   change that carries its own test.
+   **not** made in the docs pass. Filed as `IDEAS.md` §6.95 — then **shipped in
+   the same branch when the operator asked for it** (`STABLE_SAMPLE_FLOOR`; the
+   recommendation is annotated `(unstable — too few pairs)` and an `!` caution
+   prints below the floor; two tests that fail on the unfixed revision). The
+   number is unchanged; only the honesty around it moved to where a parser reads.
 2. **The rejection snippet is self-contained but `TypeError`s on an empty
    store** — `best_sealed` returns `None`, and the block dereferences `hit["pair"]`.
    The 08-05 §5 defects (undefined `hit`, undocumented shape) are fixed; this is

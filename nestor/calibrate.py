@@ -48,6 +48,13 @@ THRESHOLDS = (0.80, 0.85, 0.90, 0.92, 0.94, 0.96, 0.98)
 
 DEFAULT_TARGET = 0.01
 
+#: Below this many sampled pairs the collision measure cannot be trusted: too few
+#: pairs is too few possible collisions, so the lowest cutoff in the sweep clears
+#: any target and the recommendation is noise. "A few dozen", matching the README.
+#: The recommendation is still computed — the caller may want it — but summarize()
+#: marks it unstable so the honesty rides the line a parser actually reads.
+STABLE_SAMPLE_FLOOR = 30
+
 
 def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
               target_lang: str = "es", target_rate: float = DEFAULT_TARGET,
@@ -69,7 +76,12 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
          "sweep": [{"threshold", "collisions", "collision_rate"}, …],
          "current": 0.92, "current_rate": float,
          "target_rate": float, "recommended": float | None,
+         "sample_floor": int, "stable": bool,
          "examples": [{"score", "source", "target", "collides_with", …}]}
+
+    ``stable`` is ``sampled >= STABLE_SAMPLE_FLOOR``: below it the whole measure
+    is too small to mean anything and ``summarize`` says so, next to the
+    recommendation rather than in a caveat somewhere else.
 
     ``recommended`` is the **lowest** threshold in the sweep whose measured
     collision rate is at or below ``target_rate`` — lowest, because every point
@@ -145,6 +157,8 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
         "target_rate": target_rate, "recommended": recommended,
         "examples": worst[:examples],
         "floor": floor,
+        "sample_floor": STABLE_SAMPLE_FLOOR,
+        "stable": len(picked) >= STABLE_SAMPLE_FLOOR,
         **matcher_audit_fields(matcher),
     }
 
@@ -160,10 +174,21 @@ def summarize(result: dict) -> str:
     lines.append("  threshold   collisions   rate")
     for row in result["sweep"]:
         mark = " ←shipped" if row["threshold"] == result["current"] else ""
-        star = " ←recommended" if row["threshold"] == result["recommended"] else ""
+        star = ""
+        if row["threshold"] == result["recommended"]:
+            star = " ←recommended"
+            if not result["stable"]:
+                star += " (unstable — too few pairs)"
         lines.append(f"    {row['threshold']:.2f}      {row['collisions']:>6}   "
                      f"{row['collision_rate'] * 100:6.2f}%{mark}{star}")
     lines.append("")
+    if not result["stable"]:
+        lines.append(
+            f"  ! {result['sampled']} sampled pair(s) is below the ~{result['sample_floor']} "
+            f"this measure needs to mean anything: too few pairs is too few possible "
+            f"collisions, so an early memory clears any target at the lowest cutoff. Treat "
+            f"any recommendation here as noise and calibrate again once the memory has grown.")
+        lines.append("")
     if result["recommended"] is None:
         lines.append(f"  No threshold in the sweep reaches "
                      f"{result['target_rate'] * 100:.2f}%. This memory holds verified "

@@ -7086,7 +7086,7 @@ for a human to weigh the three real options — the identifier-weighted matcher
 `[semantic]` extra (recall, at a dependency), or shorter canonical questions
 (recall, by hand).
 
-### 6.95 `nestor calibrate` warns about a too-small corpus in the README's prose, not in the output a parser reads — **measured**, fix **open**
+### 6.95 `nestor calibrate` warns about a too-small corpus in the README's prose, not in the output a parser reads — **measured**, fix **shipped**
 
 *Measured 2026-08-10 during the documentation refresh (`FINDINGS-2026-08-10-docs-refresh.md`).*
 
@@ -7113,3 +7113,14 @@ a change to `calibrate.py`'s output — one line when `sampled` is below a floor
 noise"* — which is a product change that carries its own test, run against the
 unfixed revision, not a sentence in the README. Filed here so it is not lost;
 `docs/agent-guide.md` says a follow-up not written down did not happen.
+
+**Shipped 2026-08-10 (same PR, once the operator asked for the code change).**
+`STABLE_SAMPLE_FLOOR = 30` in `nestor.calibrate`; `calibrate()` returns
+`stable`/`sample_floor`, and `summarize()` — where a parser reads — annotates the
+recommendation as `←recommended (unstable — too few pairs)` and prints an `!`
+caution line whenever `sampled` is below the floor. Deliberately narrow: the
+number itself is unchanged (a caller may still want it), only the honesty around
+it moved to where the output is read. `tests/test_calibrate.py` proves the split
+— both new tests fail on the unfixed revision (no `STABLE_SAMPLE_FLOOR`, no
+caution) — and the claim is about the *rule*, so the stable-corpus test confirms
+the caution vanishes once there are enough pairs. Decision `0080`.

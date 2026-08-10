@@ -1393,7 +1393,10 @@ Two consequences of that, stated rather than implied. **A small memory
 recommends low, and means nothing by it** — fewer pairs means fewer collisions,
 so an early, near-empty memory clears any target at the lowest cutoff swept.
 Treat a recommendation from a few dozen pairs as noise and calibrate again once
-the memory has grown. And **applying the result is deliberately manual**: pass
+the memory has grown. You do not have to remember this: below ~30 sampled pairs
+the command flags its own recommendation `(unstable — too few pairs)` and prints
+a caution, so the warning rides the line a script parses, not only this prose.
+And **applying the result is deliberately manual**: pass
 `seal_threshold=` per call to `best_sealed`, or rebind
 `nestor.memory.SEAL_THRESHOLD` at process start. There is no env var, because
 moving the dial is a decision someone should be able to find in code review,
