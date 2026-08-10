@@ -7124,3 +7124,14 @@ it moved to where the output is read. `tests/test_calibrate.py` proves the split
 — both new tests fail on the unfixed revision (no `STABLE_SAMPLE_FLOOR`, no
 caution) — and the claim is about the *rule*, so the stable-corpus test confirms
 the caution vanishes once there are enough pairs. Decision `0080`.
+
+### 6.96 Local Ollama embeddings as a shipped matcher (`--matcher ollama`) — **shipped**
+
+*Shipped 2026-08-10.* The fleet already runs `nomic-embed-text` under Ollama
+(`willow-mcp` nest embed). Nestor's `semantic` path required `fastembed` and a
+HuggingFace model download — a different dependency shape from "daemon already
+on loopback." Added `nestor.ollama_embed` (stdlib `/api/embeddings`) and the
+shipped name `ollama` via `SemanticMatcher(backend="ollama")`. Embedding cache
+stays keyed by `model_name`, so nomic vectors never collide with
+`BAAI/bge-small-en-v1.5`. Document prefixes only (symmetric `score` / `scores_against`).
+Default `SEAL_THRESHOLD` is still character-ratio space — calibrate before serving.

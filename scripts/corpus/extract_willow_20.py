@@ -1,18 +1,18 @@
-#!/usr/bin/env python3
-"""Shapes declared by `rudi193-cmd/willow-2.0` — rung 18.
+"""Shapes declared by archived `rudi193-cmd/willow-2.0` — rung 18 (historical).
 
     python scripts/corpus/extract_willow_20.py \
-        --repo /workspace/rudi193-cmd/willow-2.0 --out data/corpus/willow-2.0.db
+        --repo ~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0 \
+        --out data/corpus/willow-2.0.db
+
+**Not a live join.** ``willow-2.0`` is tier F — not cloned for day-to-day work.
+Point ``--repo`` at the greenfield archive tree (or ``WILLOW_20_REPO``), never at
+the charter. Living constitution case cards are in
+``willow/governance/compliance/cases/``, not here.
 
 The largest checkout in the sequence: 558 markdown documents, 850 Python
-modules, 186 `SKILL.md`, 7,289 table rows. It is also the repository
+modules, 186 `SKILL.md`, 7,729 table rows. It is also the repository
 `willow-nest` (rung 7) was consolidated into, which makes it the first chance to
 ask whether a consolidation preserved what it absorbed.
-
-**Not archived.** Its head moved yesterday, so unlike rungs 6 and 7 the
-`repo@commit` pin in every row records a snapshot of one afternoon rather than a
-settled repository — the same objection that put `willow-mcp` on the held list.
-Read here on the operator's instruction, with the caveat carried into the rows.
 
 Beyond the shared shapes it declares two worth naming:
 

@@ -26,7 +26,7 @@ from .persona import Persona, get_persona
 from .reconcile import Reconciler
 from .storage import Storage
 
-MATCHERS = ("string", "numeric", "semantic")
+MATCHERS = ("string", "numeric", "semantic", "ollama")
 
 
 def build_matcher(name: str = "string", abs_tol: float = 0.0,
@@ -38,12 +38,13 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
     quietly resolved to the default — the default would score a completely
     different notion of similarity under a name the caller chose deliberately.
 
-    ``semantic`` needs ``pip install nestor[semantic]`` (fastembed). Thresholds
-    tuned for :class:`~nestor.matcher.StringMatcher` are not portable — measure
-    with ``nestor calibrate`` on your corpus.
+    ``semantic`` needs ``pip install nestor[semantic]`` (fastembed). ``ollama``
+    needs a reachable Ollama daemon with ``nomic-embed-text`` (stdlib HTTP; no
+    pip extra). Thresholds tuned for :class:`~nestor.matcher.StringMatcher` are
+    not portable — measure with ``nestor calibrate`` on your corpus.
 
-    ``persist=False`` stops the semantic matcher writing its embedding cache;
-    the other matchers never write anything and ignore it.
+    ``persist=False`` stops the semantic / ollama matcher writing its embedding
+    cache; the other matchers never write anything and ignore it.
     """
     if name == "string":
         return StringMatcher()
@@ -54,6 +55,12 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
         try:
             return SemanticMatcher(persist=persist)
         except ImportError as exc:
+            raise ValueError(str(exc)) from exc
+    if name == "ollama":
+        from .semantic_matcher import SemanticMatcher
+        try:
+            return SemanticMatcher(backend="ollama", persist=persist)
+        except (ImportError, RuntimeError) as exc:
             raise ValueError(str(exc)) from exc
     raise ValueError(f"unknown matcher {name!r} — the shipped matchers are "
                      f"{', '.join(MATCHERS)}; a custom one is named "

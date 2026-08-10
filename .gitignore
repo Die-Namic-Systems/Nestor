@@ -11,11 +11,11 @@ venv/
 build/
 dist/
 
-# Host-specific willow-mcp wiring — materialized by `willow-mcp project sync
-# nestor` from the fleet registry, not source.
+# Host-specific IDE / willow-mcp wiring — materialized by
+# `willow-mcp project sync nestor` from the fleet registry, not source.
+# Cursor hooks stay local until there is a template worth committing.
 .mcp.json
-.cursor/*
-!.cursor/hooks.json
+.cursor/
 .willow/
 .claude/settings.local.json
 

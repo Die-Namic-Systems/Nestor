@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Feed willow-2.0's constitution into Nestor — clause in, forbidden act out.
+"""Feed the charter's constitution case cards into Nestor — clause in, forbidden act out.
 
-    python scripts/feed_willow_constitution.py --repo /path/to/willow-2.0
-    python scripts/feed_willow_constitution.py --repo … --keep DIR
+    python scripts/feed_willow_constitution.py --cases /path/to/governance/compliance/cases
+    python scripts/feed_willow_constitution.py --repo /path/to/willow   # resolves …/governance/compliance/cases
+    python scripts/feed_willow_constitution.py --cases … --keep DIR
 
-The first repository fed into this store from outside the fleet's own decision
-files. `willow-2.0/constitution/cases/` holds five compliance probes, each
-declaring a ``TRACE_ID``, a ``CLAUSE`` naming what the constitution requires,
-and a docstring ending *"The forbidden act, in one line: …"*.
+Declarative cards live in the willow charter
+(``governance/compliance/cases/``): each ``const_*.py`` declares a ``TRACE_ID``,
+a ``CLAUSE``, and a docstring ending *"The forbidden act, in one line: …"*
+(or ``Forbidden act:``). Executable willow-2.0 probes are archived; these
+files are constants only.
 
 **The pair is clause → forbidden act**, and the question a seal would answer is
 the one nobody currently asks: *does the act this probe actually attacks match
@@ -15,9 +17,7 @@ the rule the clause states?* A compliance probe is worth its name only if those
 two agree, and they are prose on both sides — no test can check prose against
 prose, which is exactly the shape of thing this package is for.
 
-**Read by parsing, never by importing.** These modules import `core.pg_bridge`,
-`constitution.compliance` and friends; importing them would need willow's
-dependencies and would run willow's code. :func:`extract` uses `ast` and reads
+**Read by parsing, never by importing.** :func:`extract` uses `ast` and reads
 string literals only. That is the same remote-to-local rule
 ``scripts/dogfood_store.py`` states — every row traceable to a file somebody can
 open, and nothing executed to get it.
@@ -54,7 +54,7 @@ from recipes import patch_review                     # noqa: E402
 
 DOMAIN = "clause"
 TARGET = "forbids"
-ORIGIN = "willow-2.0:constitution"
+ORIGIN = "willow:constitution"
 MATCHER = patch_review.MATCHER
 
 BOLD, DIM, GREEN, AMBER, RED, OFF = (
@@ -113,26 +113,49 @@ def extract(path: pathlib.Path) -> dict | None:
     return found
 
 
+def resolve_cases_dir(repo: str = "", cases: str = "") -> pathlib.Path | None:
+    """Locate ``const_*.py`` cards under ``--cases`` or a charter / legacy ``--repo``."""
+    if cases:
+        path = pathlib.Path(cases)
+        return path if path.is_dir() else None
+    if not repo:
+        return None
+    root = pathlib.Path(repo)
+    for rel in (
+        "governance/compliance/cases",
+        "constitution/cases",
+    ):
+        candidate = root / rel
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--repo", required=True, help="a willow-2.0 checkout")
+    ap.add_argument("--cases", default="",
+                    help="directory of declarative const_*.py cards "
+                         "(charter governance/compliance/cases)")
+    ap.add_argument("--repo", default="",
+                    help="charter or legacy willow-2.0 checkout; resolves cases under it")
     ap.add_argument("--keep", default="", help="leave the store behind here")
     args = ap.parse_args()
+    if not args.cases and not args.repo:
+        ap.error("one of --cases or --repo is required")
 
     # Absent and empty are different facts. An earlier version printed one
     # message for both, which is the same conflation the jeles feeder had —
     # found by running these against an empty repository.
-    cases_dir = pathlib.Path(args.repo) / "constitution" / "cases"
-    if not cases_dir.is_dir():
-        print(f"{RED}no constitution/cases/ under {args.repo}{OFF}")
+    cases_dir = resolve_cases_dir(repo=args.repo, cases=args.cases)
+    if cases_dir is None:
+        print(f"{RED}no compliance cases directory found{OFF}")
         print(f"   {DIM}'I could not look' — refusing rather than reporting "
               f"zero cases.{OFF}")
         return 1
     cases = sorted(cases_dir.glob("const_*.py"))
     if not cases:
-        print(f"\n{BOLD}willow-2.0 constitution → nestor{OFF}")
-        print(f"   {AMBER}constitution/cases/ exists and holds 0 const_*.py "
-              f"files{OFF}")
+        print(f"\n{BOLD}charter constitution → nestor{OFF}")
+        print(f"   {AMBER}{cases_dir} exists and holds 0 const_*.py files{OFF}")
         print(f"   {DIM}A true empty, not a failure.{OFF}\n")
         return 0
 
@@ -145,8 +168,9 @@ def main() -> int:
     store.memory_init()
     storage.set_store(store)
 
-    print(f"\n{BOLD}willow-2.0 constitution → nestor{OFF}  "
+    print(f"\n{BOLD}charter constitution → nestor{OFF}  "
           f"{DIM}{DOMAIN}→{TARGET}, read by parsing{OFF}")
+    print(f"   {DIM}cases: {cases_dir}{OFF}")
 
     rows = [c for c in (extract(p) for p in cases) if c]
     skipped = len(cases) - len(rows)

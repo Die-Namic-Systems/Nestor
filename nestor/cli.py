@@ -50,7 +50,7 @@ EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
 #: a domain's own — see `answer.load_matcher`, and IDEAS §6.41 for why a name
 #: alone was not enough.
 _MATCHER_HELP = ("the matcher that keys this domain: a shipped name "
-                 "(string, numeric, semantic) or a custom one as "
+                 "(string, numeric, semantic, ollama) or a custom one as "
                  "'module:attribute', e.g. 'acme.incidents:SERIALS'")
 
 

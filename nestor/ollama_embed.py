@@ -1,0 +1,115 @@
+"""Local embeddings via Ollama (``nomic-embed-text``) — stdlib only.
+
+Mirrors the fleet's nest embed client: POST ``/api/embeddings`` on
+``OLLAMA_HOST`` (default ``http://localhost:11434``). No pip extra — the
+dependency is a running daemon and an installed model tag, not a wheel.
+
+``nomic-embed-text`` needs a task prefix or cosine scores bunch near chance.
+This module always uses the document prefix so :class:`~nestor.semantic_matcher.SemanticMatcher`
+keeps ``score(a, b) == score(b, a)`` and ``scores_against`` stays consistent
+with ``score`` (asymmetric query/document prefixes would break that seam).
+"""
+from __future__ import annotations
+
+import json
+import os
+import urllib.error
+import urllib.request
+
+DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+DEFAULT_EMBED_MODEL = os.environ.get("NESTOR_OLLAMA_EMBED_MODEL", "nomic-embed-text")
+
+DOC_PREFIX = "search_document: "
+
+_CAPS = (4000, 2000, 1000)
+_TIMEOUT = float(os.environ.get("NESTOR_OLLAMA_EMBED_TIMEOUT", "60"))
+
+_installed: set[str] | None = None
+
+
+def host() -> str:
+    """Resolved Ollama base URL (env wins over the shipped default)."""
+    return os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+
+
+def reset_cache() -> None:
+    """Drop the cached ``/api/tags`` set — for tests that flip reachability."""
+    global _installed
+    _installed = None
+
+
+def installed_models() -> set[str]:
+    global _installed
+    if _installed is not None:
+        return _installed
+    try:
+        with urllib.request.urlopen(f"{host()}/api/tags", timeout=5) as resp:
+            tags = json.loads(resp.read().decode("utf-8"))
+        _installed = {m.get("name", "") for m in tags.get("models", [])}
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        _installed = set()
+    return _installed
+
+
+def available(model: str = DEFAULT_EMBED_MODEL) -> bool:
+    """True when Ollama answers and ``model`` (or a ``model:tag``) is installed."""
+    models = installed_models()
+    if not models:
+        return False
+    base = model.split(":", 1)[0]
+    return model in models or any(m.split(":", 1)[0] == base for m in models)
+
+
+def _resolve(model: str) -> str | None:
+    models = installed_models()
+    if model in models:
+        return model
+    base = model.split(":", 1)[0]
+    for m in models:
+        if m.split(":", 1)[0] == base:
+            return m
+    return None
+
+
+def _post(prompt: str, model: str) -> list[float] | None:
+    data = json.dumps({"model": model, "prompt": prompt}).encode("utf-8")
+    req = urllib.request.Request(
+        f"{host()}/api/embeddings",
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+        return json.loads(resp.read().decode("utf-8")).get("embedding")
+
+
+def embed_one(text: str, model: str = DEFAULT_EMBED_MODEL) -> tuple[float, ...]:
+    """Embed one surface with the document prefix. Raises on failure."""
+    tag = _resolve(model)
+    if not tag:
+        raise RuntimeError(
+            f"Ollama model {model!r} is not installed at {host()} "
+            f"(pull it, or set NESTOR_OLLAMA_EMBED_MODEL)"
+        )
+    raw = "" if text is None else str(text)
+    if not raw.strip():
+        raise ValueError("cannot embed empty text")
+    last_exc: BaseException | None = None
+    for cap in _CAPS:
+        try:
+            vec = _post(f"{DOC_PREFIX}{raw[:cap]}", tag)
+            if vec:
+                return tuple(float(x) for x in vec)
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            continue
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+            raise RuntimeError(
+                f"Ollama embed failed at {host()}: {type(exc).__name__}: {exc}"
+            ) from exc
+    detail = f"{type(last_exc).__name__}: {last_exc}" if last_exc else "empty embedding"
+    raise RuntimeError(f"Ollama embed failed at {host()} for {tag!r}: {detail}")
+
+
+def embed_many(texts: list[str], model: str = DEFAULT_EMBED_MODEL) -> list[tuple[float, ...]]:
+    """Embed many surfaces; Ollama takes one prompt per request, so this loops."""
+    return [embed_one(t, model=model) for t in texts]

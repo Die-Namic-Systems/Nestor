@@ -27,8 +27,9 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import feed_willow_constitution as FEED     # noqa: E402
+from tests._fleet_paths import constitution_cases  # noqa: E402
 
-WILLOW = pathlib.Path("/workspace/rudi193-cmd/willow-2.0")
+CASES = constitution_cases()
 
 
 def case(tmp_path, doc: str, trace="CONST-9-9", clause="A clause.") -> pathlib.Path:
@@ -109,13 +110,14 @@ def test_it_never_imports_the_repo_it_reads():
     assert "ast.parse" in body
 
 
-@pytest.mark.skipif(not WILLOW.exists(), reason="no willow-2.0 checkout present")
+@pytest.mark.skipif(not CASES.exists() or not any(CASES.glob("const_*.py")),
+                    reason="no charter constitution cases present")
 def test_against_the_real_constitution():
-    cases = sorted((WILLOW / "constitution" / "cases").glob("const_*.py"))
-    assert cases, "expected compliance cases in the checkout"
+    cases = sorted(CASES.glob("const_*.py"))
+    assert cases, "expected compliance cases in the charter"
     rows = [r for r in (FEED.extract(p) for p in cases) if r]
     assert len(rows) == len(cases), "every case should yield a trace id and clause"
     assert all(r["forbidden"] for r in rows), (
         "every case states a forbidden act — if this fails, check the parser "
-        "before reporting a gap in willow: it has already been wrong twice")
+        "before reporting a gap in the charter: it has already been wrong twice")
     assert all(r["trace_id"].startswith("CONST-") for r in rows)

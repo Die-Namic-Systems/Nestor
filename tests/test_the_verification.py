@@ -32,8 +32,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from demo import the_verification as DEMO           # noqa: E402
+from tests._fleet_paths import jeles_checkout       # noqa: E402
 
-JELES = pathlib.Path("/workspace/jeles")
+JELES = jeles_checkout()
 SCRIPT = ROOT / "demo" / "the_verification.py"
 
 

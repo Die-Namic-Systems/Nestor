@@ -1,7 +1,7 @@
 """The audit — and the probe that has to actually do the thing it names.
 
-`scripts/audit_against_constitution.py` attacks this package with willow-2.0's
-five clauses. The test that matters is the tamper probe's, because that one
+`scripts/audit_against_constitution.py` attacks this package with the charter's
+five Trace-ID clause cards. The test that matters is the tamper probe's, because that one
 produced a **false FAIL against this package's headline claim**: it replaced the
 target text `"a0"` in a ledger line, the chain never stores target text (it
 keeps a `source_sha` digest), the replace was a no-op, `verify()` correctly
@@ -21,9 +21,11 @@ import sys
 
 import pytest
 
+from tests._fleet_paths import constitution_cases  # noqa: E402
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 AUDIT = REPO / "scripts" / "audit_against_constitution.py"
-WILLOW = pathlib.Path("/workspace/rudi193-cmd/willow-2.0")
+CASES = constitution_cases()
 
 
 def run(*args):
@@ -71,9 +73,10 @@ def test_a_probe_that_raises_is_a_failure_not_a_pass():
     assert "except Exception as exc:" in src
 
 
-@pytest.mark.skipif(not WILLOW.exists(), reason="no willow-2.0 checkout present")
+@pytest.mark.skipif(not CASES.exists() or not any(CASES.glob("const_*.py")),
+                    reason="no charter constitution cases present")
 def test_against_the_real_constitution():
-    done = run("--repo", str(WILLOW))
+    done = run("--cases", str(CASES))
     assert done.returncode == 0, done.stdout + done.stderr
     assert "0 failing" in done.stdout
     # The two that are honestly not clean passes must stay visible as such.
@@ -81,10 +84,11 @@ def test_against_the_real_constitution():
     assert "CONST-0-5" in done.stdout and "CONST-0-2" in done.stdout
 
 
-@pytest.mark.skipif(not WILLOW.exists(), reason="no willow-2.0 checkout present")
+@pytest.mark.skipif(not CASES.exists() or not any(CASES.glob("const_*.py")),
+                    reason="no charter constitution cases present")
 def test_the_ledger_clause_is_satisfied_by_a_probe_that_really_tampers():
     """Not just 'satisfied' — satisfied with evidence of a broken chain."""
-    out = run("--repo", str(WILLOW)).stdout
+    out = run("--cases", str(CASES)).stdout
     tail = out.split("CONST-0-5", 1)[-1]
     assert "broken chain" in tail, (
         "the ledger verdict must cite the chain breaking, not merely assert it — "

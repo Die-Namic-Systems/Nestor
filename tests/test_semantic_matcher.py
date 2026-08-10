@@ -6,6 +6,9 @@ the default-threshold warning, and the batch scoring path — are pinned in
 are properties of the seam and this file only runs where `fastembed` is
 installed, which CI is not. What is left here is what a fake cannot claim: that
 an embedding really does rank a paraphrase above a character ratio.
+
+Refusal-without-extra paths use the ``without_fastembed`` fixture so one venv
+can hold both the installed-extra and the missing-extra cases.
 """
 
 from __future__ import annotations
@@ -28,11 +31,6 @@ requires_semantic = pytest.mark.skipif(
     reason="pip install nestor[semantic]",
 )
 
-requires_no_semantic = pytest.mark.skipif(
-    _fastembed_installed(),
-    reason="fastembed is installed — refusal-path tests need a env without nestor[semantic]",
-)
-
 
 def test_cosine_clamps_to_unit_interval():
     assert _cosine((1.0, 0.0), (1.0, 0.0)) == 1.0
@@ -50,14 +48,12 @@ def test_build_matcher_semantic_returns_matcher():
     assert isinstance(answer.build_matcher("semantic"), SemanticMatcher)
 
 
-@requires_no_semantic
-def test_semantic_matcher_constructor_refuses_without_fastembed():
+def test_semantic_matcher_constructor_refuses_without_fastembed(without_fastembed):
     with pytest.raises(ImportError, match="nestor\\[semantic\\]"):
         SemanticMatcher()
 
 
-@requires_no_semantic
-def test_build_matcher_semantic_refuses_without_fastembed():
+def test_build_matcher_semantic_refuses_without_fastembed(without_fastembed):
     with pytest.raises(ValueError, match="semantic"):
         answer.build_matcher("semantic")
 
