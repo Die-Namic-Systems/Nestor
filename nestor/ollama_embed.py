@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 
 DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
@@ -23,13 +24,38 @@ DOC_PREFIX = "search_document: "
 
 _CAPS = (4000, 2000, 1000)
 _TIMEOUT = float(os.environ.get("NESTOR_OLLAMA_EMBED_TIMEOUT", "60"))
+_ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 _installed: set[str] | None = None
 
 
 def host() -> str:
-    """Resolved Ollama base URL (env wins over the shipped default)."""
-    return os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    """Resolved Ollama base URL (env wins over the shipped default).
+
+    Only ``http`` / ``https`` are accepted — Bandit B310 and accidental
+    ``file:`` / custom schemes both fail closed here, before any open.
+    """
+    raw = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    scheme = urllib.parse.urlsplit(raw).scheme.lower()
+    if scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(
+            f"OLLAMA_HOST must be http(s), got scheme {scheme!r} from {raw!r}"
+        )
+    return raw
+
+
+def _urlopen(url: str, data: bytes | None = None, timeout: float = _TIMEOUT):
+    """GET/POST ``url`` after re-checking the scheme (defense in depth for B310)."""
+    scheme = urllib.parse.urlsplit(url).scheme.lower()
+    if scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(f"refusing non-http(s) URL: {url!r}")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"} if data is not None else {},
+    )
+    # Scheme checked above; urlopen still flagged because the URL is dynamic.
+    return urllib.request.urlopen(req, timeout=timeout)  # nosec B310
 
 
 def reset_cache() -> None:
@@ -43,7 +69,7 @@ def installed_models() -> set[str]:
     if _installed is not None:
         return _installed
     try:
-        with urllib.request.urlopen(f"{host()}/api/tags", timeout=5) as resp:
+        with _urlopen(f"{host()}/api/tags", timeout=5) as resp:
             tags = json.loads(resp.read().decode("utf-8"))
         _installed = {m.get("name", "") for m in tags.get("models", [])}
     except (urllib.error.URLError, TimeoutError, OSError, ValueError):
@@ -73,12 +99,7 @@ def _resolve(model: str) -> str | None:
 
 def _post(prompt: str, model: str) -> list[float] | None:
     data = json.dumps({"model": model, "prompt": prompt}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{host()}/api/embeddings",
-        data=data,
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+    with _urlopen(f"{host()}/api/embeddings", data=data, timeout=_TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8")).get("embedding")
 
 

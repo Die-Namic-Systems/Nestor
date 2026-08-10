@@ -65,6 +65,12 @@ def test_constructor_refuses_when_ollama_unreachable(monkeypatch):
         answer.build_matcher("ollama")
 
 
+def test_host_refuses_non_http_schemes(monkeypatch):
+    monkeypatch.setenv("OLLAMA_HOST", "file:///tmp/evil")
+    with pytest.raises(ValueError, match="http"):
+        ollama_embed.host()
+
+
 def test_unknown_backend_refused():
     with pytest.raises(ValueError, match="backend"):
         SemanticMatcher(backend="not-a-backend")  # type: ignore[arg-type]
