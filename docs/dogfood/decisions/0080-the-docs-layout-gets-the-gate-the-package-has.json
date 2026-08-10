@@ -1,0 +1,23 @@
+{
+  "pr": null,
+  "branch": "claude/documentation-refresh-564mnt",
+  "date": "2026-08-10",
+  "note": "A documentation refresh run as two passes over the current tree — drift reconciliation (every checkable README/docs claim vs shipped code) and a fresh adversarial standup in the tradition of FINDINGS-2026-08-05-docs-standup.md, recorded in FINDINGS-2026-08-10-docs-refresh.md. The 08-05 audit's findings were all confirmed fixed by execution. What remained clustered in the one part of the project-layout tree that had no gate, plus a marquee feature (the browser-held key) and a new demo that shipped ahead of their README lines. The decisions below are the three worth keeping: how the recurring layout drift was closed for good, and two things deliberately NOT changed.",
+  "decisions": [
+    {
+      "question": "The nestor/*.py layout tree is gated exact and stayed clean; the docs/ and root portion had no gate and drifted twice (FINDINGS-2026-08-05 §8, again on 08-10 — seven docs, a subtree, and a new demo missing). Fix the tree, or gate it?",
+      "commitment": "Both. Every docs/*.md, the docs/dogfood/ subtree, CHANGELOG.md, bench/retrieval_quality.py and demo/the_dogfooding.py were added to the tree, and tests/test_docs.py gained test_the_project_layout_lists_every_doc_and_no_ghosts — every docs/*.md must appear in the layout block, symmetric with the nestor/*.py gate, no-ghosts included. Proven to fail by removing a doc's line. Editing the gated test went through demo/review_desk.py first, as hooks/before_write.py requires.",
+      "why": "A doc absent from the layout reads as nonexistent to anyone grepping the tree for what to read next — the exact small-model failure §8 named. Fixing the tree without gating it would have left the same class free to recur a third time; the package tree proves the gate is what keeps a layout honest, not diligence. The gate lives in the half of the tree that had none."
+    },
+    {
+      "question": "The standup found nestor calibrate still recommends a threshold from a corpus too small to mean anything, with no floor in the command's OWN output (only in README prose two sections away). Fix it in this pass?",
+      "commitment": "No. Filed as IDEAS.md §6.95, open. The fix is a change to calibrate.py's output — one line when sampled is below a floor — which is a product change that carries its own test, run against the unfixed revision, not a sentence in the README.",
+      "why": "A documentation refresh that quietly changed serving-adjacent output would be scope it could not see the edges of, and a code change smuggled into a docs pass gets none of the discipline the agent-guide requires of one (a test that fails on the unfixed revision, an adversarial read). Recording it as an open finding is the honest move; a follow-up not written down did not happen."
+    },
+    {
+      "question": "docs/releasing.md quotes 597 passed / 7 skipped, stale against today's 937/19. Update the number?",
+      "commitment": "No. That figure is an explicitly dated hand-run snapshot (2026-08-06, four interpreters). It was left as written, with a visible parenthetical noting the suite has since grown to 937/19 on 3.11.",
+      "why": "docs/agent-guide.md says to correct a wrong entry in place, visibly — a claim that was acted on is part of the record. Overwriting a dated measurement with a newer number falsifies what was true on the day it was taken; annotating it keeps both the record and the current truth."
+    }
+  ]
+}

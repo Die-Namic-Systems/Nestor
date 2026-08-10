@@ -217,7 +217,9 @@ happens before it, not after.**
   coverage` as CI installs: **3.10, 3.11, 3.12 and 3.13 all green**, 597 passed
   / 7 skipped on each. That is a snapshot, not a gate — it will not notice the
   day 3.11 breaks. It does mean the two interpolated claims were true once,
-  which is more than could be said for them before.
+  which is more than could be said for them before. (The suite has grown since:
+  a 2026-08-10 run on 3.11 reports 937 passed / 19 skipped. The 597/7 above is
+  left as the dated cross-version record it was, not edited to match.)
 
   This gap was not hypothetical for long: the first draft of
   `tests/test_version.py` imported `tomllib` (3.11+) and broke
