@@ -134,7 +134,12 @@ def main() -> int:
           f"and process.")
     a, b = Box(root, "a"), Box(root, "b")
     for box, rows in ((a, A_ROWS), (b, B_ROWS)):
-        box.cli("keys", "add", box.who, "--type", "ed25519")
+        added = box.cli("keys", "add", box.who, "--type", "ed25519")
+        # The whole demo is ed25519 cross-instance verification, so a failure
+        # here — usually a missing [keys] extra — has to stop at the cause. The
+        # keyring never gets written, so the next line would otherwise die in
+        # seed() with a bare "no keyring", three steps downstream of the reason.
+        assert added.returncode == 0, added.stdout + added.stderr
         box.seed(rows)
         print(f"   box {box.name.upper()}  verifier {box.who}  "
               f"{len(rows)} sealed  {DIM}{box.root}{OFF}")

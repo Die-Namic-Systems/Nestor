@@ -15,6 +15,15 @@ import pathlib
 import subprocess
 import sys
 
+import pytest
+
+# The demo's first step is `nestor keys add --type ed25519`, which needs the
+# [keys] extra (cryptography). Without it every test here is the same crash in
+# setup, three steps from the cause — so skip like the other asymmetric suites
+# (test_asymmetric_seals, test_client_signed_seals) rather than hard-fail for a
+# missing optional dependency. CI installs .[keys], so these run there.
+pytest.importorskip("cryptography")
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "two_instances.py"
 
