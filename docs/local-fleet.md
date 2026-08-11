@@ -16,8 +16,8 @@ org (not a flat `~/github/{nestor,jeles,willow-mcp}`). On this machine:
   willow-memory/willow-mcp/          # FRANK, the gate, the shared SOIL store
   willow-memory/.willow/             # WILLOW_HOME (fleet state; ~/.willow → here)
   terpsi-programs/terpsi-music/      # bench corpus + Nestor host app
+  hornbook-knowledge/oakenscrolls-office/  # cite-and-grade → Nestor pairs (own repo)
   safe-app-store-public/             # promote_check, lineage doc, App Forge design
-    apps/oakenscrolls-office/        # cite-and-grade → Nestor pairs
 ```
 
 ## The three-repo stand-up (nestor + jeles + willow-mcp)
@@ -173,12 +173,16 @@ less docs/design/app-forge.md
 
 ## Oakenscroll seam
 
+Canonical checkout is the **own repo** under hornbook (not the playground
+copy inside `safe-app-store-public/apps/`):
+
 ```bash
-cd ~/github/safe-app-store-public/apps/oakenscrolls-office
-# flat layout — put the app on PYTHONPATH; do not `pip install -e .` until
-# packaging is fixed. Nestor itself stays editable from its own checkout.
+gh repo clone rudi193-cmd/oakenscrolls-office \
+  ~/github/hornbook-knowledge/oakenscrolls-office
+
+cd ~/github/hornbook-knowledge/oakenscrolls-office
 pip install -e ~/github/Die-Namic-Systems/nestor
-PYTHONPATH=. pytest tests/test_almanac_seam.py -q
+PYTHONPATH=. pytest tests/test_almanac_seam.py tests/test_almanac_seam_nestor.py -q
 ```
 
 ## Operator checkpoints (§5.5)
