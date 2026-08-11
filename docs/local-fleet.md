@@ -99,7 +99,6 @@ From `nestor/`:
 
 ```bash
 pip install -e .
-export NESTOR_SEAL_KEY=test-key   # dev only
 ```
 
 Other repos should resolve **this** checkout, not an old PyPI pin:
@@ -107,6 +106,30 @@ Other repos should resolve **this** checkout, not an old PyPI pin:
 ```bash
 pip install -e ~/github/Die-Namic-Systems/nestor
 ```
+
+### Host seal wiring (not the stand-up script)
+
+The three-repo stand-up seats the MCP manifest and FRANK mirror. It does **not**
+mint a seal key. For a host that can seal and refuse forged rows:
+
+```bash
+export WILLOW_HOME=~/github/willow-memory/.willow
+. "$WILLOW_HOME/fleet.env"    # sources $WILLOW_HOME/env for NESTOR_SEAL_KEY
+
+# Runtime (all under $WILLOW_HOME/nestor/, machine-local):
+#   keyring.json   — nestor keys add <you> --keyring … --adopt-shared-key
+#   nestor.db      — working store
+#   STATUS.md      — last local checkpoint (not shipped)
+#
+# Secrets: NESTOR_SEAL_KEY lives only in $WILLOW_HOME/env (gitignored).
+# Never put it in a tracked file. Prefer NESTOR_REQUIRE_SEAL_KEY=1 once set.
+```
+
+Mint once with entropy (`secrets.token_hex(32)`), add yourself to the keyring,
+then calibrate on *your* sealed corpus (`nestor calibrate --matcher string|ollama`).
+A ten-pair seed only proves the dial moves — re-run at ~30+ sealed pairs before
+trusting a threshold change. Bridging a jeles nugget still lands as a **draft**;
+re-sealing under the keyring is the open half the stand-up asserts is absent.
 
 Refresh **terpsi** `docs/FLEET-READS.md` Nestor SHA after meaningful nestor
 changes (`git -C ~/github/Die-Namic-Systems/nestor rev-parse HEAD`).
@@ -152,8 +175,10 @@ less docs/design/app-forge.md
 
 ```bash
 cd ~/github/safe-app-store-public/apps/oakenscrolls-office
+# flat layout — put the app on PYTHONPATH; do not `pip install -e .` until
+# packaging is fixed. Nestor itself stays editable from its own checkout.
 pip install -e ~/github/Die-Namic-Systems/nestor
-pytest tests/test_almanac_seam_nestor.py -q
+PYTHONPATH=. pytest tests/test_almanac_seam.py -q
 ```
 
 ## Operator checkpoints (§5.5)
