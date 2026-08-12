@@ -1,0 +1,39 @@
+{
+  "bench": "decision_n1",
+  "question": "does the matcher recognize a re-worded decision?",
+  "corpus": "bench/corpus_decision_n1 (24 real Nestor decisions, 24 blind re-wordings)",
+  "bar": 0.92,
+  "arms": [
+    {
+      "label": "string",
+      "n": 24,
+      "decisions": 24,
+      "bar": 0.92,
+      "paraphrase_bite_identical": 0,
+      "rank1": 21,
+      "recall": 0,
+      "wrong_key": 0
+    },
+    {
+      "label": "token",
+      "n": 24,
+      "decisions": 24,
+      "bar": 0.92,
+      "paraphrase_bite_identical": 0,
+      "rank1": 23,
+      "recall": 0,
+      "wrong_key": 0
+    },
+    {
+      "label": "haiku semantic stand-in",
+      "n": 24,
+      "decisions": 24,
+      "bar": 0.92,
+      "paraphrase_bite_identical": 0,
+      "rank1": 24,
+      "recall": 24,
+      "wrong_key": 0
+    }
+  ],
+  "caveat": "The semantic arm is a Haiku embedder stand-in (docs/embedder-stand-in.md); fastembed/ollama are egress-blocked. Its recall/wrong-key is an OPTIMISTIC UPPER BOUND: the same model family authored the paraphrases and scored them (author=scorer, the \u00a73.4 stage-2 self-recognition confound), and it produced near-recognition (correct 0.95-1.0, others ~0.0) rather than a graded embedding distribution, so 0 wrong-key is not a trustworthy measure of false constraints. A real embedder, or an independent paraphrase author, is needed to settle the wrong-key cost."
+}
