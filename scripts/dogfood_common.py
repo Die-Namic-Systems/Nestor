@@ -42,6 +42,10 @@ class Decision:
     commitment: str
     why: str
     origin: str
+    #: The decision file's own ``date`` (``"2026-08-06"``), or ``""``. Used to
+    #: stamp the derived store's ``created_at`` deterministically, so a rebuild
+    #: does not churn a timestamp on every row.
+    date: str = ""
 
 
 def decision_files(decisions_dir: pathlib.Path | None = None) -> list[pathlib.Path]:
@@ -75,10 +79,11 @@ def load_decisions(decisions_dir: pathlib.Path | None = None) -> list[Decision]:
         data = json.loads(path.read_text(encoding="utf-8"))
         stem = path.name.split("-")[0]
         origin = f"pr:{data.get('pr', '?')}"
+        date = str(data.get("date", ""))
         for row in data["decisions"]:
             rows.append(Decision(file=stem, question=row["question"],
                                  commitment=row["commitment"], why=row["why"],
-                                 origin=origin))
+                                 origin=origin, date=date))
     return rows
 
 

@@ -305,6 +305,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
              override_rejection: bool = False,
              override_conflict: bool = False,
              audit: bool = True, seal_sig: str = "",
+             pair_id: str = "", created_at: str = "",
              _racing: bool = False) -> dict:
     """Insert or upgrade a pair. A sealed insert replaces a draft for the same source.
 
@@ -514,10 +515,15 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                     "sig": seal_sig,
                 })
         return existing
-    pair = dict(id=str(uuid.uuid4()), source_text=source_text, source_norm=norm,
+    # `pair_id`/`created_at` default to a fresh uuid4 and now(); a caller that
+    # rebuilds a derived, committed store from source (scripts/dogfood_store.py)
+    # passes deterministic values instead, so the artifact does not churn every
+    # rebuild. A seal signature covers (source_norm, target_text, verifier), never
+    # the id or timestamp, so pinning them cannot affect what verifies.
+    pair = dict(id=pair_id or str(uuid.uuid4()), source_text=source_text, source_norm=norm,
                 source_lang=source_lang, target_text=target_text, target_lang=target_lang,
                 status=status, verifier=verifier, weight=weight, origin=origin,
-                reason=reason, created_at=_now(), seal_sig=seal_sig)
+                reason=reason, created_at=created_at or _now(), seal_sig=seal_sig)
     try:
         store.memory_insert(pair)
     except Exception:

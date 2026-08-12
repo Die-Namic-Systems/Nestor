@@ -109,6 +109,51 @@ def test_dogfood_store_still_verifies_after_the_extraction():
     assert "matches the decision files, and seals nothing" in done.stdout
 
 
+# --- reproducibility -------------------------------------------------------
+
+def test_the_rebuild_is_deterministic(tmp_path):
+    """A rebuild that adds no decision must produce byte-identical output.
+
+    Before ids and timestamps were pinned, every rebuild minted fresh uuid4s and
+    a ``now()`` envelope, so a no-op run churned ~560 lines of ``decisions.json``
+    and the committed store re-dirtied on any process that merely opened it —
+    burying a real one-line change and tripping the git-clean hook.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_store
+    from nestor import portable
+
+    def build_bundle(path):
+        s = SqliteStore(str(path))
+        s.memory_init()
+        dogfood_store.build(s)
+        bundle = portable.export_bundle(s)
+        dogfood_store._pin_bundle_time(bundle)
+        s.close()
+        return json.dumps(bundle, ensure_ascii=False, indent=2, sort_keys=True)
+
+    assert build_bundle(tmp_path / "a.db") == build_bundle(tmp_path / "b.db"), (
+        "the rebuild is not reproducible — a row id or a timestamp still churns")
+
+
+def test_row_ids_and_timestamps_are_derived_from_the_decision(tmp_path):
+    """Determinism from the decision, not from luck: the id is uuid5 over
+    (file, question, commitment) and created_at is the file's own date."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_common
+    import dogfood_store
+    from nestor.matcher import StringMatcher
+
+    s = SqliteStore(str(tmp_path / "d.db"))
+    s.memory_init()
+    dogfood_store.build(s)
+    d = dogfood_common.load_decisions(dogfood_store.DECISIONS_DIR)[0]
+    row = s.memory_find(StringMatcher().normalize(d.question), "decision", "decision")
+    s.close()
+    assert row["id"] == dogfood_store._row_id(d)
+    assert row["created_at"] == f"{d.date}T00:00:00+00:00"
+
+
 # --- the direction ---------------------------------------------------------
 
 def test_a_local_store_cannot_reach_the_committed_one(tmp_path, monkeypatch):
