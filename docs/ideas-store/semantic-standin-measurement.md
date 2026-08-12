@@ -77,3 +77,10 @@ swap but **better source text** — the model-verify miss (finding 3) is a crypt
 *title* problem, not a matcher problem. Sealing a surface or two per entry
 (§3.4's authored-surfaces mechanic) would give the semantic seam something to
 match that the terse heading does not carry. Measured, not built.
+
+> **Now measured, and this paragraph was mostly wrong** —
+> [`authored-surfaces-measurement.md`](authored-surfaces-measurement.md).
+> Authored surfaces helped 1 of 5 probes, were neutral on 2, and *hurt* 2. The
+> model-verify miss got worse, because §5.7 is not a cryptic phrasing of the
+> probe — it is a different claim, and no honest surface makes an entry mean a
+> question it does not. Kept verbatim above so the overreach is checkable.

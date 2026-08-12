@@ -1,0 +1,118 @@
+{
+ "5": [
+  "How did yggdrasil differ from other training data sources?",
+  "What made yggdrasil unique in pair form?"
+ ],
+ "6": [
+  "When sealing pairs, why weren't ledger entries created?",
+  "How could sealed pairs exist without chain records?"
+ ],
+ "8": [
+  "Why does decision retrieval fail when similar decisions exist?",
+  "How well does the store retrieve its own past decisions?"
+ ],
+ "9": [
+  "How does decision memory track rejection and lineage?",
+  "What parts of decision history are still missing?"
+ ],
+ "13": [
+  "Why does schema initialize repeatedly during pair addition?",
+  "How can we avoid redundant schema setup per connection?"
+ ],
+ "16": [
+  "Why does one seal threshold fail for different data domains?",
+  "How should sealing thresholds vary by corpus type?"
+ ],
+ "17": [
+  "How can we detect false seals using ranking margin?",
+  "Why is gap-between-matches better than raw similarity score?"
+ ],
+ "18": [
+  "Does synonymizing decisions help retrieval more than matcher quality?",
+  "What impact do generated surfaces have on decision search?"
+ ],
+ "23": [
+  "How do we prevent bad matches from recurring in fuzzy search?",
+  "Why does rejecting matches matter as much as sealing them?"
+ ],
+ "28": [
+  "Can tampering be detected after the ledger is first verified?",
+  "Why is ledger verification cached per-process?"
+ ],
+ "35": [
+  "How much of willow-tech-manual could be paired successfully?",
+  "What bias emerged from the technical documentation corpus?"
+ ],
+ "41": [
+  "Which Matcher method controls whether seals are preserved?",
+  "Why did the bug stay hidden in two nearly identical implementations?"
+ ],
+ "42": [
+  "Does decision store verification check where rows came from?",
+  "How are decision file origins tracked and verified?"
+ ],
+ "55": [
+  "Why should guard conditions run inside write transactions?",
+  "What happens when guards are checked outside transactions?"
+ ],
+ "56": [
+  "How do agents access Nestor answers?",
+  "MCP stdio integration for agent systems"
+ ],
+ "61": [
+  "Testing verification against real-world examples",
+  "Can verification catch actual source errors?"
+ ],
+ "64": [
+  "Which exception types aren't exported from Nestor?",
+  "ConflictingDraftError missing from public API"
+ ],
+ "65": [
+  "Rejected pairs revived through import override",
+  "Import security hole in conflict handling"
+ ],
+ "67": [
+  "Token similarity matching in benchmark suite",
+  "Bench harness implementation with token scoring"
+ ],
+ "70": [
+  "Hash chain breaks on newest ledger entry",
+  "Last entry unverified in cryptographic chain"
+ ],
+ "71": [
+  "LLM embedder drifts between sessions",
+  "Embedding consistency when backends unavailable"
+ ],
+ "72": [
+  "Should seals decay based on age?",
+  "Multi-verifier requirements for high-stakes scenarios"
+ ],
+ "74": [
+  "Verifier names not authenticated cryptographically",
+  "Verifier impersonation through string identity"
+ ],
+ "76": [
+  "Race condition creates duplicate sealed entries",
+  "Concurrent seal creation safety issue"
+ ],
+ "89": [
+  "Fixture for single-operator verification workflow",
+  "Solo verifier with dual record-keeping"
+ ],
+ "95": [
+  "Tests fail when NESTOR_KEYRING is set",
+  "Audit scripts report false failures with keyring"
+ ],
+ "110": [
+  "Silent parameter discarding in proposals",
+  "nestor_propose ignores invalid arguments"
+ ],
+ "117": [
+  "Unverified phrases marked as verified",
+  "Serving wrong seal state as verified"
+ ],
+ "133": [
+  "Concurrent writer limits for SQLite backend",
+  "How many threads can update Nestor?"
+ ]
+}

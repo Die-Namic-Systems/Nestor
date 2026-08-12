@@ -1,0 +1,234 @@
+[
+ {
+  "idx": 0,
+  "text": "How did yggdrasil differ from other training data sources?"
+ },
+ {
+  "idx": 1,
+  "text": "What made yggdrasil unique in pair form?"
+ },
+ {
+  "idx": 2,
+  "text": "When sealing pairs, why weren't ledger entries created?"
+ },
+ {
+  "idx": 3,
+  "text": "How could sealed pairs exist without chain records?"
+ },
+ {
+  "idx": 4,
+  "text": "Why does decision retrieval fail when similar decisions exist?"
+ },
+ {
+  "idx": 5,
+  "text": "How well does the store retrieve its own past decisions?"
+ },
+ {
+  "idx": 6,
+  "text": "How does decision memory track rejection and lineage?"
+ },
+ {
+  "idx": 7,
+  "text": "What parts of decision history are still missing?"
+ },
+ {
+  "idx": 8,
+  "text": "Why does schema initialize repeatedly during pair addition?"
+ },
+ {
+  "idx": 9,
+  "text": "How can we avoid redundant schema setup per connection?"
+ },
+ {
+  "idx": 10,
+  "text": "Why does one seal threshold fail for different data domains?"
+ },
+ {
+  "idx": 11,
+  "text": "How should sealing thresholds vary by corpus type?"
+ },
+ {
+  "idx": 12,
+  "text": "How can we detect false seals using ranking margin?"
+ },
+ {
+  "idx": 13,
+  "text": "Why is gap-between-matches better than raw similarity score?"
+ },
+ {
+  "idx": 14,
+  "text": "Does synonymizing decisions help retrieval more than matcher quality?"
+ },
+ {
+  "idx": 15,
+  "text": "What impact do generated surfaces have on decision search?"
+ },
+ {
+  "idx": 16,
+  "text": "How do we prevent bad matches from recurring in fuzzy search?"
+ },
+ {
+  "idx": 17,
+  "text": "Why does rejecting matches matter as much as sealing them?"
+ },
+ {
+  "idx": 18,
+  "text": "Can tampering be detected after the ledger is first verified?"
+ },
+ {
+  "idx": 19,
+  "text": "Why is ledger verification cached per-process?"
+ },
+ {
+  "idx": 20,
+  "text": "How much of willow-tech-manual could be paired successfully?"
+ },
+ {
+  "idx": 21,
+  "text": "What bias emerged from the technical documentation corpus?"
+ },
+ {
+  "idx": 22,
+  "text": "Which Matcher method controls whether seals are preserved?"
+ },
+ {
+  "idx": 23,
+  "text": "Why did the bug stay hidden in two nearly identical implementations?"
+ },
+ {
+  "idx": 24,
+  "text": "Does decision store verification check where rows came from?"
+ },
+ {
+  "idx": 25,
+  "text": "How are decision file origins tracked and verified?"
+ },
+ {
+  "idx": 26,
+  "text": "Why should guard conditions run inside write transactions?"
+ },
+ {
+  "idx": 27,
+  "text": "What happens when guards are checked outside transactions?"
+ },
+ {
+  "idx": 28,
+  "text": "How do agents access Nestor answers?"
+ },
+ {
+  "idx": 29,
+  "text": "MCP stdio integration for agent systems"
+ },
+ {
+  "idx": 30,
+  "text": "Testing verification against real-world examples"
+ },
+ {
+  "idx": 31,
+  "text": "Can verification catch actual source errors?"
+ },
+ {
+  "idx": 32,
+  "text": "Which exception types aren't exported from Nestor?"
+ },
+ {
+  "idx": 33,
+  "text": "ConflictingDraftError missing from public API"
+ },
+ {
+  "idx": 34,
+  "text": "Rejected pairs revived through import override"
+ },
+ {
+  "idx": 35,
+  "text": "Import security hole in conflict handling"
+ },
+ {
+  "idx": 36,
+  "text": "Token similarity matching in benchmark suite"
+ },
+ {
+  "idx": 37,
+  "text": "Bench harness implementation with token scoring"
+ },
+ {
+  "idx": 38,
+  "text": "Hash chain breaks on newest ledger entry"
+ },
+ {
+  "idx": 39,
+  "text": "Last entry unverified in cryptographic chain"
+ },
+ {
+  "idx": 40,
+  "text": "LLM embedder drifts between sessions"
+ },
+ {
+  "idx": 41,
+  "text": "Embedding consistency when backends unavailable"
+ },
+ {
+  "idx": 42,
+  "text": "Should seals decay based on age?"
+ },
+ {
+  "idx": 43,
+  "text": "Multi-verifier requirements for high-stakes scenarios"
+ },
+ {
+  "idx": 44,
+  "text": "Verifier names not authenticated cryptographically"
+ },
+ {
+  "idx": 45,
+  "text": "Verifier impersonation through string identity"
+ },
+ {
+  "idx": 46,
+  "text": "Race condition creates duplicate sealed entries"
+ },
+ {
+  "idx": 47,
+  "text": "Concurrent seal creation safety issue"
+ },
+ {
+  "idx": 48,
+  "text": "Fixture for single-operator verification workflow"
+ },
+ {
+  "idx": 49,
+  "text": "Solo verifier with dual record-keeping"
+ },
+ {
+  "idx": 50,
+  "text": "Tests fail when NESTOR_KEYRING is set"
+ },
+ {
+  "idx": 51,
+  "text": "Audit scripts report false failures with keyring"
+ },
+ {
+  "idx": 52,
+  "text": "Silent parameter discarding in proposals"
+ },
+ {
+  "idx": 53,
+  "text": "nestor_propose ignores invalid arguments"
+ },
+ {
+  "idx": 54,
+  "text": "Unverified phrases marked as verified"
+ },
+ {
+  "idx": 55,
+  "text": "Serving wrong seal state as verified"
+ },
+ {
+  "idx": 56,
+  "text": "Concurrent writer limits for SQLite backend"
+ },
+ {
+  "idx": 57,
+  "text": "How many threads can update Nestor?"
+ }
+]
