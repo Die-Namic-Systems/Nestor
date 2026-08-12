@@ -7135,3 +7135,61 @@ shipped name `ollama` via `SemanticMatcher(backend="ollama")`. Embedding cache
 stays keyed by `model_name`, so nomic vectors never collide with
 `BAAI/bge-small-en-v1.5`. Document prefixes only (symmetric `score` / `scores_against`).
 Default `SEAL_THRESHOLD` is still character-ratio space — calibrate before serving.
+
+### 6.97 `detailPanel` renders two literal `null` text nodes into the provenance card — **verified**, fix **open**
+
+*Found 2026-08-12, by standing the UI up and looking at it.* The Provenance card
+in `nestor.ui` shows the string `nullnull` between the answer and the chip row,
+on ordinary rows.
+
+`h()` is careful about this — `ui_page.py:534` skips a child that is `null`,
+`undefined` or `false`, which is why the chip row's `p.status === "sealed" ? … :
+null` leaves no trace. `detailPanel` then builds its card with the **native**
+`card.append(...)`, which does not skip: DOM `append()` stringifies `null` to a
+text node. Two of its arguments return null for an ordinary row —
+`commitmentPanel(p)`, and the `(p.reason || origin.startsWith("willow:gap")) ? …
+: null` context panel — so the two land adjacent and read as one word.
+
+Verified in a real Chromium against a live server rather than by reading:
+querying the card's direct child text nodes returns `['null', 'null']`. It needs
+a row with no commitment choices and no reason, which is what an imported bundle
+produces — 221 of 221 rows in the dogfood store show it.
+
+Two shapes of fix, and they are not equal. Filtering at each call site is the
+one that will regress: the same mixed idiom (`h()` for some children, native
+`append` for others) is used in several panels, so the next null-returning
+helper reintroduces it. The mechanism-level fix is to stop having two append
+paths with different null semantics — route card assembly through the helper
+that already has the rule. This is `docs/agent-guide.md`'s "when a guard fails,
+remove the interaction — do not add a condition", and the guard here is `h()`'s
+line 534 being bypassed rather than being wrong.
+
+### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **open**
+
+*Found 2026-08-12, while standing up an instance with per-verifier keys on.*
+With `NESTOR_KEYRING` exported — which is the correct configuration for a real
+deployment — `scripts/audit_against_constitution.py --repo <charter>` reports
+**2 failing**. With it unset, the same command on the same tree reports
+**0 failing**. Both numbers were run; the second is the true one.
+
+The probes seal under synthetic verifiers (`someone` in the constitution audit,
+`bench` in `bench_accuracy.py`) that are deliberately not people and so are
+deliberately not in anybody's keyring. `keyring.signing_entry` raises
+`UnknownVerifierError`, the probe catches its own failure, and the harness
+reports the clause as failing. The failure is real and it is the harness's, not
+the clause's — but the verdict does not distinguish those, so an operator
+running the audit the documented way is told the constitution fails.
+
+This is a shape the repo already refuses elsewhere. `scripts/dogfood_store.py`
+has a gate for exactly it — `test_dogfood_store.py` installs a poisoned ambient
+store and proves none of it reaches the build, because "a memory whose rows came
+from somewhere nobody can see is not an audit trail". A measurement harness that
+reads ambient config is the same defect one layer over, and these two have no
+such guard.
+
+The fix is isolation, not a caveat in the docs: a harness that seals under a
+synthetic verifier should build its own keyring in its own temp root and ignore
+`NESTOR_KEYRING`, the way it already ignores the ambient store. Failing that,
+the probe should distinguish "the clause failed" from "the probe could not run"
+— they are printed identically today, and only one of them is about the subject.
+`docs/local-fleet.md` carries the workaround until one of those lands.
