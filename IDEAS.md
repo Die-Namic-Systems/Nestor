@@ -7816,3 +7816,36 @@ the needle sweeps, and the welcome screen gained a soft gold halo (atomic-age
 warmth without tipping antique). All motion is gated behind
 `prefers-reduced-motion`. None of it changes the port work above; it is the
 prototype earning the right to be shown.
+
+**The port shipped — and was audited (closing the entry).** What every note above
+called "the single open step" is done, in the real page, under stdlib + strict
+CSP, across five merged PRs: **#78** the design record (this entry); **#80** the
+vanilla port — `nestor demo` / `nestor ui --demo` seeding a live store, the
+reacting Nestor in the header (mood a pure function of the on-screen verdict),
+and the cold-open front door with three tribe-framed doors; **#81** the Memory
+status **lamps** and served/not-served **flags**, and a non-empty review Queue;
+**#82** the forged-seal punchline live — `--demo` signs its own seals so a row
+that scores 1.000 with an empty signature is refused and *shown* refused; **#85**
+the audit follow-ups. A cold clone now runs one command and meets a live,
+reacting Nestor, which is what §6.107 set out to make.
+
+The build was **audited mid-flight by three independent reviewers** (signing,
+front-end, seed/CLI), deliberately even though most of it had merged. It earned
+its keep: two **criticals** were caught in the one PR still open (#82) and fixed
+before it merged — `--demo` minted an ephemeral signing key *before* its
+empty-check, so pointing it at a real store sealed with signing off silently
+stopped every one of those seals from verifying; and the demo's forged row, given
+fraud-shaped content, could ride `export_bundle` into a signing-off store and
+serve as verified. Ten lower findings (a `.sealkey` written world-readable, an
+`is_empty` blind to the Queue, per-recipe face-mood bugs where the robot
+celebrated a *failed* numeric check, a `cmd_demo` path-redirect bypassed by
+`./`, a brand unreachable by keyboard) were fixed across #82 and #85. The
+reviewers also *cleared* the load-bearing invariants — no CSP/injection hole, the
+forged row genuinely not-servable through normal paths, no color-only signal —
+which is the more valuable half of an audit. The lesson worth keeping: **auditing
+a still-open PR is where the audit pays; the two criticals were caught with hours
+to spare, not after they shipped.**
+
+Still open, and small: the front-end has no JS test harness, so `moodFromState`
+and its kin are verified live (Playwright) and by construction, not by a CI unit
+test. Standing that up is the only named follow-up this entry leaves.
