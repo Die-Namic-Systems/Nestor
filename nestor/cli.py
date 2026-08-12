@@ -192,13 +192,15 @@ def cmd_decision(args) -> int:
             # `constraints_on` matches the question by exact normalized form, so a
             # clear result means "clear at this wording", not "no such constraint
             # exists". Saying only the former would be the §6.14 hazard — silence
-            # read as a "no". N1 is now benched (docs/decision-rewording-bench.md):
-            # character/token matchers score a re-worded decision below the bar
-            # (0% recall), so no fuzzy character swap fixes this — a paraphrase of
-            # a rejected question is still NOT caught.
+            # read as a "no". N1 (docs/decision-rewording-bench.md) shows the fix
+            # is mostly a dial Nestor already owns: at the shipped 0.92 bar a
+            # re-worded decision scores 0% recall, but it is rank-1 88-96% of the
+            # time, and a CALIBRATED bar (~0.45) recovers ~60-75% with 0 false
+            # constraints. This surface still matches EXACTLY, so a paraphrase is
+            # not caught here yet — calibrate a fuzzy constraints_on to close it.
             print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}\n"
-                  f"  (exact-wording match only; a re-worded proposal is not caught — "
-                  f"N1: char/token can't fix it at the bar, docs/decision-rewording-bench.md)")
+                  f"  (exact-wording match only; a re-worded proposal is not caught here — "
+                  f"a calibrated fuzzy matcher recovers most, docs/decision-rewording-bench.md)")
         else:
             print(f"✗ BLOCKED — {question!r} carries a recorded constraint:")
             for r in result["rejected"]:
