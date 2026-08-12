@@ -7849,3 +7849,399 @@ to spare, not after they shipped.**
 Still open, and small: the front-end has no JS test harness, so `moodFromState`
 and its kin are verified live (Playwright) and by construction, not by a CI unit
 test. Standing that up is the only named follow-up this entry leaves.
+
+---
+
+## 7. Standard parts — five hundred components, one method
+
+**Status: open.** There are, on the order of, five hundred component-classes that
+run the same way as everything built in the session that opened this section:
+**skills**, **hooks**, **rubrics** — and the list goes on (output styles and
+personas, statuslines, MCP servers, evals and LLM-as-judge harnesses, prompt and
+template libraries, subagent orchestration, permission and sandbox policy,
+retrieval). Each is an industry-standard building block, which is the whole
+point: the fleet already holds a partial, drifting copy of it, the outside world
+holds a mature and often permissively-licensed one, and each yields to **one
+repeated method** — survey both ways (what's in the box, what's on the open
+internet), re-land the cream **clean-room** under a hard license gate, **prove it
+can fail** before trusting it, and record the choice as a **draft** for a human
+to seal. Skills and hooks have already been through it this session; the rest are
+a backlog.
+
+The method is not ad hoc. It is itself a rubric — a graph of criteria that
+constrain each other (§7.3 makes the case, because rubrics is the one entry whose
+shape *is* the method's) — which is why a single section can hold parts as
+different as a bash guard and a classroom assessment: they are rows scored
+against the same rubric. This section is that catalog, one sub-section per part,
+the shipped ones first.
+
+### 7.1 Skills — shipped (#83)
+
+The first run of the method. The dev-skills — `verification`, `testing`,
+`debugging`, `autonomous-work-boundaries`, `security-review` — were re-landed into
+`.claude/skills/` after a two-lens survey (the fleet's willow-mcp skill plugin;
+the open-internet `synapse` suite), clean-room in Nestor's own voice so no
+vendored pair could drift, with the held set (the `gh` / auto-PR skills) named
+rather than dropped. **Status: shipped.**
+
+### 7.2 Hooks — shipped (#87, #88)
+
+The same method, wider. The in-session hook surface — the MCP, write and bash
+gates, the self-grant tripwire, the Stop gate, the UserPromptSubmit/PreCompact
+re-injection, and the SessionEnd cleanup — was surveyed both ways (willow-mcp's
+seven-guard `pre_tool_use` and its `session_stop_hook`; the internet's
+cc-safety-net, vibeguard, retro-skill, and the official hooks docs), re-landed
+clean-room behind one CLI-agnostic runner, and each gate **proven to deny on the
+wire** by `scripts/hook_guard.py`. The self-grant guard shipped named honestly — a
+*tripwire, not a boundary* — because a project hook demonstrably cannot enforce
+against config edits (anthropics/claude-code#11226). **Status: shipped.**
+
+### 7.3 Rubrics — open (the criterion the brain scored against first)
+
+**Status: open.** A rubric is a set of named criteria, each resolving to a
+verdict — `check → status`, `criterion → score`. The operator's claim, worth
+testing rather than asserting: the whole decision loop started here. Scoring an
+input against fixed criteria to a verdict, and holding that verdict as a *draft
+until a human agrees*, is not adjacent to Nestor's seal-and-matcher machinery —
+it may be the same machine, met first in a different domain. This section opens
+that inquiry the way the dev-skills and the hook suite were opened — survey what
+the fleet already has, survey what the outside world has, re-land the cream
+clean-room — but first it has to settle whether a rubric is a *domain* the
+existing recipe already answers or a shape that needs its own.
+
+**The footprint inside the tree is already load-bearing.** The corpus extractors
+treat a rubric as a first-class document shape, not prose: the "standing security
+rubric" — one row per check, `# | check | status | notes` — is pulled out
+alongside `findings` and `rules` and counted as its own kind (§6.51 onward; 15
+rows, then 17, then 35 as the rungs grew). More telling than that it is *parsed*
+is that it can be *wrong in a checkable way*: a rubric that contradicted itself
+had its diagnosis survive a fresh-context read even where the surface scores did
+not (§6, ~§7253/§7275) — two clauses that both applied, resolved the same way
+both times. The fleet's embedder stand-in met the same defect from the other side
+(decision `0084`): a similarity rubric scored a look-alike-names pair 0.500/0.600
+where its own rule said ≤0.35, because a second clause ("same family, different
+subject") applied equally — a rubric defect, confirmed by a fresh control, not
+agent drift. And the seal covenant is itself rubric-shaped: *has a human checked
+this against the criteria* is one row of a rubric; the matcher's bar is a rubric
+threshold; a decision is a draft until it is scored and sealed. If that reading
+holds, Nestor has been building a rubric engine and calling it a decision store.
+
+**The footprint outside the tree is wide and, unusually, license-clean.** The
+assessment-visibility framework — `DispatchesFromReality/education/assessment-visibility-v1.1`,
+mirrored into `quiet-corner` and downstream of `terpsi-music` — is rubrics end to
+end: classroom-signals vocabularies, expressive-pathway rubrics, the E4 "explain
+this to your principal" translation, all CC BY 4.0 with the author named. That is
+a large, permissively-licensed corpus of *how humans build and defend rubrics*,
+sitting in the operator's own repos and pointed outward. Past it, the open world
+has two more bodies: the education-assessment literature (rubric design,
+inter-rater reliability — the exact precision/recall-of-a-human-judgment problems
+the matcher work keeps rediscovering), and the LLM-as-judge / scoring-rubric
+practice now standard in evaluation. Both are the "wide context in the outside
+world" the operator flagged; both want the same survey-and-re-land discipline the
+skills and hooks got, with the same license gate.
+
+**Open questions, before anything is built.**
+
+1. **Is a rubric a domain, or a new recipe?** A rubric row is `criterion →
+   verdict`, sealed — question → commitment with a threshold, which the decision
+   recipe may already answer, making a rubric a *view* rather than new machinery.
+   But if a rubric's rows constrain each other (the self-contradiction above), it
+   is a *graph* of criteria, closer to the decision-edge covenant than to a flat
+   key-value. **Status: open.** Settle this first; everything downstream forks on
+   it.
+2. **Should "a rubric contradicts itself" be a check Nestor runs?** The
+   contradiction reproduced across models and across two domains (the security
+   rungs, the embedder stand-in). A `conflict_scan` over a rubric's criteria — does
+   clause A ever fire where clause B forbids — is the same *search-for-what-refutes*
+   Jeles already does for prior art. **Status: hypothesis.**
+3. **Is assessment-visibility the first re-land target?** Widest, cleanest-licensed,
+   already in-repo — but also the most sensitive (minors' education records govern
+   `terpsi-music`), so re-landing its rubric *machinery* must not drag its *data*
+   or its domain nouns. **Status: open.**
+
+The one-line thesis to keep or kill: *the brain did not begin as retrieval; it
+began as scoring against a rubric, and retrieval was the part that came second.*
+Everything above is evidence for testing it, not yet for believing it.
+
+**The method this session ran is itself a rubric — which is the strongest
+evidence, and it settles question 1.** Everything built here — the dev-skills,
+the four decision gates, the five in-session hooks, the self-grant tripwire, the
+session-end cleanup — passed through the *same fixed criteria* before it was
+allowed to land, and nobody wrote those criteria down as a rubric; they emerged
+as one, which is the tell. Named after the fact, they were: **provenance** (in
+the box, in the wide world, or both — the two-lens survey run for every
+candidate); **license** (permissive → re-land the text, share-alike or none →
+idea-only, clean-room); **hardening** (official / adopted / tested, not a gist);
+**applicability** (a specific Nestor gap, not generic good practice);
+**already-have-it** (does the house already do this, better — the rediscovery
+tax); **falsifiability** (can it be shown to fail — a guard nobody watched fail
+is a description); **honest naming** (enforcement or ledger, boundary or
+tripwire, guarantee or best-effort); and the **confirmation boundary** (propose
+or confirm — everything lands draft, only a human seals).
+
+**Those criteria are not a checklist; they constrain each other, which makes the
+rubric a graph.** License gated re-landability no matter how hardened a source
+was (Trail of Bits' mutation-testing idea was excellent and CC-BY-SA, so it
+landed clean-room with none of its text, decision `0083`). Already-have-it vetoed
+candidates no matter their applicability (matcher precision was already measured
+four ways in the tree, so the "gap" shrank to one derived rate, `0104`;
+constant-time was already `compare_digest`, so the build became a guard to lock
+it in, not new code, `0103`). Falsifiability gated trust independent of
+everything else — nothing was believed until a test attempted the forbidden act
+and the block landed (the mutation guard, the hook-guard on the wire, every
+can-fail test). Honest naming overrode ambition (the self-grant guard is a
+*tripwire, not a boundary*; session-end is *best-effort, not a guarantee* —
+because a project hook demonstrably cannot enforce either). A criterion firing
+changed what the others were allowed to conclude. That is a graph of
+mutually-constraining criteria, not a flat scorecard.
+
+**Which answers question 1, against the flat reading.** A rubric whose rows
+constrain each other is not a *view* the decision key-value already covers; it is
+the decision **graph** — the sealed-edge covenant is a rubric's mutual-constraint
+structure, and `constraints_on(question)` is already "score this proposal against
+the criteria that touch it." So a rubric is not machinery bolted beside the
+decision store; it is the decision store *read as what it always was*. **Status:
+the graph claim moves from open to verified-by-construction** — this session is
+its worked example, more than twenty merged PRs deep. What stays **hypothesis**
+is the larger line, that this is where the brain *began*: the session shows the
+shape is the same, not the history.
+
+**The recursion the operator named is one shape at three scales.** A model scores
+tokens against learned patterns; Nestor scores a proposal against sealed
+decisions; this session scored candidates against the re-land rubric. A rubric is
+what a pattern-making machine's judgment looks like once the criteria are written
+down and a human is made to seal them — Nestor's whole thesis (*has a human
+checked this?*) met from the rubric side rather than the retrieval side. The
+checkable core, kept separate from the frame so it stays honest: the build
+criteria formed a constraint-graph, and that graph is isomorphic to the
+decision-edge covenant the store already enforces. The rest — that judgment, all
+the way down from the token to the seal, is one recurring rubric — is the frame
+this section exists to test, not a claim to bank.
+
+**What it opens.** If a rubric is the decision graph, the rubrics survey is not
+"what new thing do we build" but "which sealed-edge structures does the fleet
+already have, unrecognized" — and the assessment-visibility corpus stops being an
+external dataset and becomes a **library of human-built constraint-graphs**,
+rubrics authored and defended by teachers, waiting to be re-landed as decision
+graphs with their criteria as edges. That reframes question 3: the first re-land
+target is not the corpus's *content* (minors' records — refused) but its
+*structure*, the shape of a well-formed rubric. **Status: open**, and the
+sharpest single next bite the rubrics entry names.
+
+### 7.4 The list goes on — open (the loop is the catalog)
+
+The five hundred is not a number pulled from the air. Walk the wiring a proposal
+actually runs through in Nestor as it stands today, and every seam is a standard
+part with two copies — a drifting one in the fleet, a mature and usually
+permissively-licensed one in the world — each re-landable by the one method. The
+flat backlog (output styles and personas, statuslines, prompt and template
+libraries, subagent orchestration) is real but unordered; the *ordered* catalog
+is the loop itself, read in the order a proposal is processed:
+
+1. **In — the surface.** A proposal enters through a CLI verb, the `serve` MCP
+   seam, or the `ui` front door. Parts: CLI frameworks, the **MCP-server**
+   standard (`mcp-builder`), tool/agent interfaces. Box: `cli.py`'s sixteen verbs,
+   `serve`, `ui`.
+2. **Normalize and match — the matcher seam (§3).** Scored against a domain's
+   store by a pluggable matcher. Parts: **embeddings, rerankers, lexical search**
+   (sentence-transformers, cross-encoders, BM25). Box: `matcher.py`,
+   `semantic_matcher.py` / `ollama_embed.py` (the stub the box can't reach),
+   `bench/token_matchers.py`. The part §3 already circles.
+3. **Threshold — calibration.** The score meets a bar or abstains. Parts:
+   **calibration, conformal prediction, abstention**. Box: `calibrate.py`,
+   `SEAL_THRESHOLD`, the matcher-precision gate.
+4. **The recipe — a domain.** The match runs inside a recipe keyed by
+   `(from, to)`. Parts: **structured extraction, typed output, task templates**.
+   Box: `decision.py`, `entity.py`, `answer.py`, `glossary.py`, the numeric
+   check — *a domain is its matcher*.
+5. **The relations — the graph.** Decisions constrain each other through sealed
+   edges. Parts: **knowledge graphs, policy / constraint graphs**. Box:
+   `constraints_on`, the decision-edge covenant — where §7.3's rubric-as-graph
+   lands.
+6. **The store.** Rows persist. Parts: **embedded vector / kv stores** (sqlite-vec,
+   LanceDB, DuckDB). Box: `storage.py` / `sqlite_store.py`, WAL, `portable.py`
+   bundles.
+7. **The seal — a human confirms.** Ratified at the review desk. Parts:
+   **human-in-the-loop review, annotation, preference capture** (Label Studio and
+   kin). Box: `ui.py` / `ui_page.py`, the covenant, `before_authority` guarding
+   the mint.
+8. **Provenance — signing.** The seal is a signature. Parts: **signing,
+   attestation, supply-chain provenance** (sigstore, in-toto, SLSA). Box:
+   `signing.py` (HMAC / ed25519), `keyring.py`, `cloud_seal.py` provisional.
+9. **The ledger.** The act is appended, hash-chained, never overwritten. Parts:
+   **transparency logs, append-only audit, Merkle logs**. Box: `cascade.py` /
+   `ledger.py`.
+10. **Measure the loop — the bench.** All of the above is measured, not asserted.
+    Parts: **eval harnesses, LLM-as-judge** — which §7.3 argues *is* a rubric. Box:
+    `bench/retrieval_quality.py`, `bench_decision_n1.py`, `matcher_precision.py`.
+11. **Feed the loop — corpus.** The store is filled from real documents. Parts:
+    **document parsing, chunking, ETL, rubric extraction**. Box: `scripts/corpus/`
+    — already parsing the rubric shape §7.3 names.
+12. **Govern the loop — hooks.** Shipped, §7.2.
+13. **Record the loop — dogfood.** Every change is a reviewed file, then a
+    deterministic rebuild. Parts: **reproducible builds, provenance-from-source**.
+    Box: `scripts/dogfood_store.py`, `docs/dogfood/decisions/`.
+
+Two parts do not sit on the loop but cut across every seam of it, and both are
+already load-bearing — which is the tell that they belong on the list, not proof
+that they are too mundane for it. **Documentation** is a standard part whose box
+copy has teeth: the doc-consistency gate (`tests/test_docs.py`) that failed this
+entry's own first push and made these headings carry a status; `IDEAS.md`'s
+status vocabulary; the `AGENTS.md` / `CLAUDE.md` / `docs/agent-guide.md` seat; and
+the dogfood decision records as documentation-that-is-source. The world has doc
+generators, ADRs, docs-as-tests, doc linters. **Templates** is its sibling: the
+`.github` PR template filled on every PR here, the dogfood decision JSON shape,
+willow-mcp's `CLOSEOUT.template.md` and `handoff.schema.json`; the world has
+PR/issue templates, cookiecutter-style scaffolding, ADR templates. The flat
+backlog above says "prompt and template libraries" and step 4 says "task
+templates", but that undercounts both — documentation-as-a-tested-artifact and
+templates-as-scaffolding are parts in their own right, and the doc gate that just
+stopped this PR is the least deniable member of the whole catalog.
+
+So the catalog is not a wishlist bolted onto Nestor; it is Nestor **read as a
+chain of standard parts**, each with a fleet copy that drifts and a world standard
+that does not, each re-landable by the survey-both-ways method. The count stays
+the operator's estimate; the *ordering* is derived — it is the order a proposal is
+actually processed. And the loop closes on itself: step 10 measures with a rubric,
+step 5 stores relations as the graph a rubric is, step 11 feeds on rubrics pulled
+from documents — §7.3 is not one entry among thirteen, it is the shape the whole
+loop keeps returning to. **Status: open** — thirteen seams named, each a
+sub-section waiting for its turn, and the loop is the thing that says how many
+there are.
+
+### 7.5 The gaps — open (standard parts the loop doesn't have yet)
+
+§7.4 read the loop for what each seam already holds. This is the honest
+complement — the standard parts *absent* from it, verified by a sweep of the tree
+(2026-08-12), not guessed. Present, and therefore **not** gaps, so the list keeps
+its credibility: `CHANGELOG.md`, `.pre-commit-config.yaml`, the `.github` PR
+template, coverage with a floor, the CI matrix, and the local `http.server`
+behind `nestor ui`. Absent, each a part the same method would re-land:
+
+- **Type checking.** `scripts/ci-lint.sh` runs `ruff` and `bandit`; there is no
+  `mypy` or `pyright`. A typed decision store with no type gate leaves the seam
+  between recipes — the place most likely to drift — unguarded. **Status: open**,
+  and the cheapest of these to add.
+- **Dependency-vulnerability scanning.** `detect-secrets` guards the trust root;
+  nothing checks the *dependency set* for known CVEs (`pip-audit`, `osv`). A
+  dependency-light repo has the fewest deps to audit and the least excuse not to.
+  **Status: open.**
+- **Central configuration.** The sixteen `NESTOR_*` env vars the sweep found are
+  read ad hoc across `signing`, `keyring`, `frank`, `ollama_embed`, `ledger`,
+  `glossary` — no `config.py`, no schema, no validation, no one place that lists
+  them. The self-grant pin (`0110`) had to *rediscover* the key-material subset by
+  scanning source; a config schema is where that list should live.
+  **Status: open**, and the most in-grain.
+- **Structured logging / observability.** The loop speaks in `print` and
+  `warnings.warn`; no `logging`, no telemetry, no metric. Defensible for a local
+  CLI — but the bench and the hooks already emit findings a structured log would
+  make queryable. **Status: hypothesis** — worth it only once the loop runs
+  unattended (cron, CCR, the fleet).
+- **Schema migrations.** `memory_init` creates the schema; a store from before a
+  change is handled by ad-hoc "migration" prose (`keyring.py`, `curator.py`), not
+  a versioned path (`user_version`, an Alembic-shaped ladder). The portable bundle
+  is the current escape hatch. **Status: open** — it bites the day a store on disk
+  outlives a schema change.
+- **Property-based testing.** The suite is example-based; no `hypothesis`. The
+  matcher, the normalizer, and the frozen sign-message encoding are exactly the
+  surfaces where a property test (round-trips, invariants under permutation) earns
+  its keep. **Status: open.**
+- **Contributor onboarding.** A PR template and pre-commit exist; `CONTRIBUTING.md`
+  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status: open.**
+- **Reproducible dev environment.** No `Dockerfile`, no devcontainer; the venv is
+  the whole story. **Status: hypothesis** — the CCR session-start bootstrap already
+  does most of what a devcontainer would, so the fleet may answer this a different
+  way.
+- **Onboarding and install — the first five minutes.** Present as raw materials: a
+  `nestor` console entry point (`pyproject.toml` `[project.scripts]`), a `nestor
+  demo` that seeds a live store for `nestor ui`, and a tested README quick-start.
+  Absent is the thing those three gesture at and none delivers — an *actual*
+  first-run. No one-line install beyond `pip install -e .` (no `pipx` recipe, no
+  `curl | sh`, no Homebrew tap), and no playful, guided onboarding: a `nestor init`
+  that walks a newcomer through asking, resolving, and **sealing their first
+  decision**, rather than a seeded store they have to already know to open. This is
+  the *user's* on-ramp — distinct from the contributor row above, which is the
+  developer's. It is also the one gap on this list a user meets before any of the
+  others, and the industry standard for it is loud and well-loved (`create-*-app`
+  scaffolders, `gh auth login`, the deliberate delight of a good first-run).
+  **Status: open** for the install story — concrete, standard, cheap. **Status:
+  hypothesis** for *how playful* to make the onboarding: a propose-never-confirm
+  governance tool that greets a newcomer with a wizard is a real tonal question —
+  the seal is the one moment the tour cannot fake, since only a human may set it —
+  so this is built small and tested against the covenant, not assumed.
+
+None of these is a crisis: a store that refuses to serve a near-miss does not fall
+over for want of `mypy`. But each is a row the catalog was always going to reach,
+and naming them verified-absent — with the present ones named too, so the gap-list
+cannot be accused of padding — is the same discipline as the rest of §7: what is
+missing is derived from the tree, not asserted.
+
+## 8. The speculation — what the industry is building, and what this is
+
+**Status: hypothesis — and labeled so on purpose.** Everything above this line is
+held to the tree: a claim is `measured`, `shipped`, or `open` because someone can
+run the thing that settles it. This section is deliberately not that. It is the
+operator's read of where the field is going and where Nestor sits against it — a
+bet, not a finding. Every heading under it carries **hypothesis** because that is
+the honest status of a claim about the future, and putting it in its own numbered
+section keeps the speculation from leaking upward into the parts that earned their
+tags. Read §1–§7 for what is true. Read this for what is being wagered.
+
+### 8.1 What the industry is trying to build — hypothesis
+
+Three races are running at once, and only two of them are loud. The **loud** one
+is *agent memory* — persistent state so a model stops forgetting you between
+sessions. The frameworks converging on it (Letta out of MemGPT, Mem0, Zep, and the
+memory features baking into every agent platform) mostly take the unit of memory
+to be a **fact**, an **entity**, or a **summarized conversation**, and the pitch
+is continuity: the agent that remembers costs you fewer repetitions. The second
+loud race is *long-horizon autonomy* — agents that run unattended for hours on
+real coding, research, and ops work, self-correcting against a benchmark; the pitch
+there is leverage. The **quiet** third race is *provenance and oversight* — audit
+logs, human-in-the-loop approval, model cards, the regulatory pressure to say who
+decided what — and it is quiet because it is mostly sold as compliance, a cost
+center bolted to the side of the first two. **Status: hypothesis** — this is a read
+of the field as of early 2026, not a survey with a denominator; the shape is a
+claim, and the claim is that memory-plus-autonomy is where the noise and the money
+are, and accountability is the afterthought.
+
+### 8.2 What I'm trying to build — hypothesis
+
+An inversion of the loud race's unit. Nestor's memory is not a store of facts an
+agent recalls; it is a store of **decisions** — a question, the commitment made,
+the reasons, the doors that commitment closed, and the conditions under which to
+reopen them. That choice of unit changes what memory is *for*. The industry builds
+memory to make the agent do **more** on its own; the whole architecture here exists
+to make sure that when something is decided, a **human** decided it, and the
+decision is recoverable later with its reasoning intact — including the roads not
+taken. Hence the primitives are not a vector index and a summarizer but a covenant
+(*propose, never confirm*; only a human seals in `nestor ui`), an **append-only
+ledger**, a **cryptographic witness**, and a matcher tuned to *refuse a near-miss*
+rather than to retrieve the closest thing. Local-first and dependency-light is not
+a limitation to grow out of; it is the opposite shape to a cloud memory service on
+purpose. Memory here is a **brake and a record**, not an accelerator. **Status:
+hypothesis** — the covenant and the ledger are shipped and tested (that much is in
+§1), but the claim that *this is the right unit of memory* is a wager the tree
+cannot settle.
+
+### 8.3 Where the two cross — hypothesis
+
+The bet that makes this more than a contrarian preference: the two loud races
+**manufacture** the problem the quiet one is trying to solve, and they are mostly
+being built by different people. An agent that remembers more and acts longer makes
+"who decided this, why, and what had we already ruled out" the load-bearing
+question — exactly when the memory being accumulated is facts and conversations,
+which cannot answer it. A fact store can tell you what the agent knew; it cannot
+tell you what the agent *chose*, on whose authority, or which alternatives were
+foreclosed and are now quietly re-openable. So the speculation is narrow and
+falsifiable in principle: decision-memory-with-a-human-seal is the **missing
+middle** of the agent-memory race — not another retrieval store, not another eval
+harness, but the ledger of *choices* that both of those assume upstream and neither
+keeps. If the field goes the way of this bet, the primitives it will reach for are
+the ones §7 keeps re-landing — a hook that can be shown to fail, a seal only a human
+can set, a closed door that recall surfaces before the work re-proposes it.
+**Status: hypothesis, unfalsified because unshipped-at-scale.** Nestor is one local
+CLI on one branch; "the field will need this" is the wager, and naming it a wager —
+in its own section, under a status tag that says so — is the same refusal to
+overclaim that governs everything above it. The difference between this section and
+the rest of the file is not confidence. It is that the rest can be run.
