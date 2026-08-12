@@ -50,7 +50,10 @@ from nestor import memory                                 # noqa: E402
 from recipes import patch_review                          # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-IDEAS = REPO / "IDEAS.md"
+#: The §6 agent log moved out of IDEAS.md into its own file; the `### 6.N`
+#: headings this desk seeds from live here now. Fall back for old checkouts.
+LOG = REPO / "docs" / "agent-log.md"
+IDEAS = LOG if LOG.exists() else REPO / "IDEAS.md"
 ORIGIN = "fixture:review-desk"
 
 #: ``### 6.37 Some title — **measured**, fix **open**``
@@ -86,13 +89,13 @@ def cmd_load(desk: desks.Desk, args) -> int:
     for f in still_open:
         defect = f"§{f['num']} {f['title']}"
         try:
-            desk.propose(defect, f"open — see IDEAS.md §{f['num']}",
+            desk.propose(defect, f"open — see docs/agent-log.md §{f['num']}",
                          reason=f"Heading says: {f['status']}")
             added += 1
         except Exception as exc:                      # already held, or rival
             print(f"   {DIM}skipped §{f['num']}: {type(exc).__name__}{OFF}")
     record(REPO, f"load: {len(still_open)} open")
-    print(f"\n   parsed {len(rows)} entrie(s) from IDEAS.md, "
+    print(f"\n   parsed {len(rows)} entrie(s) from docs/agent-log.md, "
           f"{len(still_open)} still open")
     print(f"   {AMBER}~{OFF} queued {added} draft(s) — none sealed, because "
           f"nobody here has checked them")

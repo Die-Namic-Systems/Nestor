@@ -50,13 +50,20 @@ _IDEAS_OPEN = re.compile(r"^### (6\.\d+) (.+?) — (.+)$", re.M)
 
 
 def open_finding_count(root: pathlib.Path) -> int:
-    """How many `### 6.N` entries in IDEAS.md still say open. 0 if unreadable."""
-    try:
-        text = (pathlib.Path(root) / "IDEAS.md").read_text(encoding="utf-8")
-    except OSError:
-        return 0
-    return sum(1 for _, _, status in _IDEAS_OPEN.findall(text)
-               if "open" in status.lower())
+    """How many `### 6.N` entries still say open. 0 if unreadable.
+
+    The §6 agent log moved to `docs/agent-log.md`; the §6.N numbers are
+    unchanged. Fall back to `IDEAS.md` for a checkout from before the split.
+    """
+    for rel in ("docs/agent-log.md", "IDEAS.md"):
+        try:
+            text = (pathlib.Path(root) / rel).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        hits = _IDEAS_OPEN.findall(text)
+        if hits:
+            return sum(1 for _, _, status in hits if "open" in status.lower())
+    return 0
 
 
 def target_path(payload: dict[str, Any]) -> str:

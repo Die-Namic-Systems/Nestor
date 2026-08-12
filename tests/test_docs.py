@@ -199,18 +199,64 @@ def test_every_environment_variable_is_documented():
 
 # --- each document's own contract ------------------------------------------
 
+#: The §6 agent log lives in its own file since the split; its `### 6.N`
+#: headings carry the same status contract as the rest of IDEAS.md and are
+#: gated together with it.
+AGENT_LOG = (ROOT / "docs" / "agent-log.md").read_text(encoding="utf-8")
+
+
+def _subsection_status(body: str) -> str:
+    """The status clause of a `### N.N Title — **status**` heading body: the
+    text after the last em-dash, bold marks removed and whitespace collapsed.
+
+    This is the single definition the Map generator and the Map gate share, so
+    the index cannot disagree with a heading by construction.
+    """
+    clause = body.rsplit(" — ", 1)[-1] if " — " in body else ""
+    return " ".join(clause.replace("**", "").split())
+
+
 def test_every_ideas_entry_carries_a_status():
     """IDEAS.md's first table promises one, and the status is the whole point.
 
     An entry without one reads as fact when it may be a hypothesis — precisely
-    the confusion the vocabulary exists to prevent.
+    the confusion the vocabulary exists to prevent. Scans the agent log too,
+    since §6 moved there and its entries make the same promise.
     """
-    ideas = DOCS["IDEAS.md"]
     known = ("measured", "verified", "hypothesis", "open", "shipped", "partly",
              "falsified", "mitigated", "addressed")
-    bare = [h for h in re.findall(r"^### (.+)$", ideas, re.M)
+    bare = [h for text in (DOCS["IDEAS.md"], AGENT_LOG)
+            for h in re.findall(r"^### (.+)$", text, re.M)
             if not any(k in h.lower() for k in known)]
-    assert not bare, f"IDEAS entries with no status: {bare}"
+    assert not bare, f"IDEAS/agent-log entries with no status: {bare}"
+
+
+def test_the_map_indexes_every_subsection_and_no_ghosts():
+    """The Map in IDEAS.md must list every `### N.N` subsection across both
+    IDEAS.md and docs/agent-log.md, with a status that matches the heading.
+
+    This is the split's load-bearing gate and the recursive point of it: the
+    index is a derived artifact held to the tree exactly like the module list
+    and the docs list. If a subsection is added, renamed, retagged, or moved and
+    the Map is not updated to match, this fails — the Map cannot drift.
+    """
+    ideas = DOCS["IDEAS.md"]
+    heads = {num: _subsection_status(body)
+             for text in (ideas, AGENT_LOG)
+             for num, body in re.findall(r"^### (\d+\.\d+) (.+)$", text, re.M)}
+
+    # The Map is the table between "## Map" and the next "## " section.
+    map_block = ideas.split("## Map", 1)[1].split("\n## ", 1)[0]
+    indexed = dict(re.findall(
+        r"^\| \[(\d+\.\d+)\]\([^)]*\) \|.*\| ([^|]+?) \|\s*$", map_block, re.M))
+
+    missing = sorted(set(heads) - set(indexed), key=lambda n: tuple(map(int, n.split("."))))
+    ghosts = sorted(set(indexed) - set(heads), key=lambda n: tuple(map(int, n.split("."))))
+    assert not missing, f"subsections absent from the Map: {missing}"
+    assert not ghosts, f"Map rows pointing at no subsection: {ghosts}"
+    mismatched = {n: (heads[n], indexed[n]) for n in heads
+                  if indexed.get(n, "").strip() != heads[n]}
+    assert not mismatched, f"Map status disagrees with the heading: {mismatched}"
 
 
 def test_every_question_carries_a_status():
