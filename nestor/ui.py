@@ -1330,9 +1330,26 @@ def main(argv: Optional[list[str]] = None) -> int:
     demo_note = ""
     if args.demo:
         from . import seed
+        # Sign the demo's seals for real, so its forged row is refused by its
+        # signature rather than trusted on stored status. A shared key, not a
+        # keyring — the "acting as" box stays a typed name, no sign-in gate on a
+        # demo — kept in a file beside the store so a restart still verifies the
+        # seals it wrote. It is a throwaway demo key (a real deployment keeps
+        # NESTOR_SEAL_KEY out of the store's reach); persisting it here only lets
+        # `nestor ui --demo` be run twice and still tell a true story.
+        if not signing.signing_enabled():
+            keyfile = pathlib.Path(args.db + ".sealkey")
+            if keyfile.is_file():
+                os.environ["NESTOR_SEAL_KEY"] = keyfile.read_text(encoding="utf-8").strip()
+            else:
+                fresh = secrets.token_hex(32)
+                keyfile.write_text(fresh, encoding="utf-8")
+                os.environ["NESTOR_SEAL_KEY"] = fresh
         if seed.is_empty(store):
-            counts = seed.seed_store(store)
+            counts = seed.seed_store(store, include_forged=True)
             demo_note = f"seeded {sum(counts.values())} row(s) into an empty store"
+            if counts.get("forged"):
+                demo_note += " — including a forged seal, refused and shown as such"
         else:
             demo_note = "store already has content — not seeding"
 

@@ -11,8 +11,8 @@ from nestor import cascade, memory, seed
 from nestor.sqlite_store import SqliteStore
 
 
-def _fresh_store(tmp_path):
-    cascade.set_ledger_path(str(tmp_path / "ledger.jsonl"))
+def _fresh_store(tmp_path, ledger="ledger.jsonl"):
+    cascade.set_ledger_path(str(tmp_path / ledger))
     cascade._verified_ledgers.clear()
     cascade._checkpoints.clear()
     store = SqliteStore(":memory:")
@@ -55,6 +55,21 @@ def test_a_sealed_row_serves_and_the_draft_does_not(tmp_path):
     seed.seed_store(store)
     assert memory.best_sealed("Good night.", "en", "es", store=store) is not None
     assert memory.best_sealed("Ship it.", "en", "es", store=store) is None
+
+
+def test_forged_row_needs_signing_and_is_refused(tmp_path, monkeypatch):
+    # Signing OFF: the forged row is a no-op — with seal_is_valid trusting stored
+    # status, it would read as servable, which is the opposite of the lesson.
+    off = _fresh_store(tmp_path, "off.jsonl")
+    assert seed.seed_store(off, include_forged=True)["forged"] == 0
+
+    # Signing ON: the forged row is written, scores a perfect match, and is
+    # refused — while a genuine seal signed under the same key still serves.
+    monkeypatch.setenv("NESTOR_SEAL_KEY", "demo-seal-key-for-tests")
+    on = _fresh_store(tmp_path, "on.jsonl")
+    assert seed.seed_store(on, include_forged=True)["forged"] == 1
+    assert memory.best_sealed("Good night.", "en", "es", store=on) is not None
+    assert memory.best_sealed(seed._FORGED_SOURCE, "en", "es", store=on) is None
 
 
 def test_seed_is_rerunnable(tmp_path):

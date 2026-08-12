@@ -29,8 +29,12 @@ what moved.
   on a served seal, unconvinced on a draft, alarmed on a signature that does not
   verify). The **Memory** rows gained a status **lamp** and a bold
   **served / not-served flag**, so a row that says sealed but would be refused is
-  visible at a glance. Stdlib-only and CSP-clean, as the page has always been.
-  `IDEAS.md` §6.107.
+  visible at a glance. `nestor ui --demo` also **signs** the demo's seals (an
+  ephemeral key beside the store) and seeds one **forged seal** — a row written
+  straight in as sealed by a trusted name, with no signature that name could have
+  produced — so the "scores 1.000 and is refused anyway" story is live, not just
+  described: it shows `not servable` in Memory and comes back refused when asked.
+  Stdlib-only and CSP-clean, as the page has always been. `IDEAS.md` §6.107.
 - `nestor.__version__`, read from installed distribution metadata rather than
   written into the package. A tree with no install *and no `nestor.egg-info/`*
   reports `0+unknown` — a legal PEP 440 local version that sorts below every
