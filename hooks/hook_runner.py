@@ -8,6 +8,7 @@ import sys
 
 from hooks.before_authority import evaluate_authority
 from hooks.before_bash import evaluate_bash
+from hooks.before_build import for_prompt as before_build_for_prompt
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
 from hooks.before_stop import evaluate_stop
 from hooks.before_write import evaluate_write
@@ -17,9 +18,11 @@ from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo
 
 #: Modules the runner dispatches. The gate-proving harness
 #: (scripts/hook_guard.py) reads this so a newly-wired gate cannot ship without
-#: a proof-it-denies case.
+#: a proof-it-denies case; the advisory (context-injecting) modules are listed
+#: there as non-gates.
 MODULES = ("session_start", "session_end", "before_mcp", "before_write",
-           "before_bash", "before_authority", "before_stop", "reinject")
+           "before_bash", "before_authority", "before_stop", "reinject",
+           "before_build")
 
 
 def _read_stdin() -> dict:
@@ -179,6 +182,20 @@ def main() -> None:
         if event not in REINJECT_EVENTS:
             event = "UserPromptSubmit"          # default re-anchor shape
         _emit_reinject(args.format, event, reinject_for_event(event, root))
+        return
+
+    if args.module == "before_build":
+        # Advisory: on a build-shaped prompt, inject the anti-rediscovery
+        # reminder; on anything else, emit nothing at all (cost-free). Fail OPEN
+        # on our own bugs — a reminder that crashed a turn would be worse than a
+        # reminder that missed one.
+        try:
+            prompt = payload.get("prompt") or payload.get("user_prompt") or ""
+            context = before_build_for_prompt(prompt, root)
+        except Exception:          # noqa: BLE001
+            context = ""
+        if context:
+            _emit_reinject(args.format, "UserPromptSubmit", context)
         return
 
     if args.module == "before_write":
