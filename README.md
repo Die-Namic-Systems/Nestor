@@ -379,6 +379,8 @@ docs/covenant-lineage.md  where "you may propose, you may not confirm" came from
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
 docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
+docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
+docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
 ```
 
 ---
