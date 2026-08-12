@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 296,
+    "pairs": 305,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "5a616cea22e7fcb88846b2b8c0bfea65cb1f99eb42e12cae4701352f3c879916",
+  "digest": "3cdbc3a6a6da8210f58eed2429d187ecc819dd622f48afede75d75bc16aa9748",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No — it extends it. 6.94 measured paraphrase recall at 2/10 and first-sentence recall at 4/50, and read the misses as the threshold refusing to serve a decision it was not sure it was asked. For two of three probes that reading is exactly right. 6.106 adds the rank, which 6.94 did not measure.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "f4fbc5ee-b9c2-5700-9bc9-87d5d82d03b7",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "grep the raw command string or normalize first",
+      "source_text": "Grep the raw command string, or normalize first?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Normalize. Lex with shlex (quotes stripped, escapes undone), split on ; && || & then on pipes, unwrap sh -c / bash -c and re-scan, strip sudo/env/VAR= wrappers, parse flags into a set so rm -f -r / == rm -rf /. Each rule carries a comment naming what it catches; the test attempts each obfuscation (flag-reorder, sh -c, quote-splitting) and asserts the deny still fires.",
       "verifier": "",
       "weight": 1.0
     },
@@ -105,6 +119,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "df705c9c-966d-5e50-9c14-54e2ed5b0146",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "nestors covenant is the machine may not confirm is that enforced insession or only stated",
+      "source_text": "Nestor's covenant is 'the machine may not confirm'. Is that enforced in-session, or only stated?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only stated, until now — enforced by crypto ONLY in the strong deployment (an ed25519 keyring whose private half never touches the instance, a human signing in nestor ui). In the DEFAULT deployment (signing off, or a shared HMAC key) the covenant was purely advisory. before_authority denies the four minting acts that were ungated: `nestor keys add <name>` (default HMAC signs AS that name; --rotate retakes a key), assigning NESTOR_SEAL_KEY/NESTOR_KEYRING/NESTOR_CACHE_KEY, `nestor import --apply --verifier <human>`, a raw sqlite seal write, and a write to the keyring file. It allows de-escalation and reads (keys list/revoke, registering a peer's --public key, cat/stats/ledger). A pinning test binds the guard's env set to what signing/keyring actually read and its keys-verb knowledge to cli.py's choices, so a new key-env or keys verb cannot ship and skip the guard.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "defb8c50-3dce-546a-aa4e-b62981c4fa9a",
       "origin": "pr:None",
       "seal_sig": "",
@@ -161,6 +189,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "d4009021-b6b1-5474-8042-e741ec1bea44",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "reemit the whole seat each turn or only a subset",
+      "source_text": "Re-emit the whole seat each turn, or only a subset?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A compact subset — the governance line, decisions->store, the consult command — never the full boot. anchor() is ~401 chars against build_context()'s ~2527, and re-runs neither pytest nor the brain self-test.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "d3fe5272-1857-58c4-afb8-f3e0ba3716fd",
       "origin": "pr:None",
       "seal_sig": "",
@@ -170,6 +212,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Record them. A ledger vendor 'Chronicle (EtherLedger-based)' whose only PyPI namesake is a logging utility, and 'merkle-tree primitives from tree-sitter', which is a parser generator. Both were returned despite an explicit instruction not to name projects the agent was unsure existed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "d1e83836-1708-521b-93c4-04af9c3bf641",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this guard a boundary",
+      "source_text": "Is this guard a boundary?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it says so in its own docstring and refusal message: a tripwire, not a boundary. A PreToolUse hook lives in the agent's own harness, and Claude Code's permissions.deny is not even applied to Edit/Write (anthropics/claude-code#11226, closed 'not planned'). The durable controls are the crypto covenant and the managed-settings layer (/etc/claude-code/managed-settings.json, allowManagedHooksOnly) at an OS path outside the agent's reach.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "cfbb12bf-e1b6-5e7e-8895-43758d03ca4e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how wide is the net given a false positive gets the whole guard deleted",
+      "source_text": "How wide is the net, given a false positive gets the whole guard deleted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Narrow on purpose. rm -r denies only broad targets (/, ~, ., *, a shallow system path); rm -rf .worktrees/tmp passes. git push --force-with-lease passes (Nestor uses it) and only a bare --force is denied. pytest, ruff, cat README.md, > /dev/null all pass, each pinned by an allow-test.",
       "verifier": "",
       "weight": 1.0
     },
@@ -240,6 +310,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Check them. Twenty-one licence claims were read back from PyPI metadata. Most held; celery was claimed LGPL-3.0 and is BSD-3-Clause, dramatiq was claimed BSD-3-Clause and is LGPL-3.0-or-later — the two halves of one row, inverted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "b1146050-e578-5f99-acc3-c52caf406426",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the gates have unit tests what does a separate harness add",
+      "source_text": "The gates have unit tests. What does a separate harness add?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It drives every gate end-to-end through the real nestor-hook wrapper (not the pure evaluator) and asserts the block lands on the wire, plus a coverage pin: the blocking-gate set is derived from hook_runner.MODULES minus the context-only modules, and a gate with no deny case fails the run. tests/test_hook_guard.py asserts it passes live, that the pin has no gap, that removing before_bash's case reopens a gap, and that a mislabeled case is reported wrong.",
       "verifier": "",
       "weight": 1.0
     },
@@ -651,6 +735,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "4f3e2419-5d36-5406-92cd-68f8d5fc84ae",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what separates a claim that passes from one that gets flagged",
+      "source_text": "What separates a claim that passes from one that gets flagged?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A quoted run: a code span with a command word, 'N passed', an exit code, or file.py:line. Claim present and evidence absent is the only flagged state; the guard fails OPEN when it cannot find the final message.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "4a615388-6405-55f4-9d19-9ff4dcac0100",
       "origin": "pr:None",
       "seal_sig": "",
@@ -716,6 +814,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Re-ran it with the keyring unset. The clause reads `differently`, and the audit reads 0 failing rather than 1. IDEAS 6.98 amended in place to carry the second false verdict alongside the first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "44422427-84e6-59fb-9ae3-ad30ca3d864b",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should a stoptime completionclaim guard block or advise",
+      "source_text": "Should a Stop-time completion-claim guard block or advise?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Advise by default; deny only a hard 'all tests pass'-class claim with zero evidence, and only once (it downgrades to advisory when stop_hook_active is set, so the block fires once and the turn can still end).",
       "verifier": "",
       "weight": 1.0
     },
@@ -912,6 +1024,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both, in two clearly separated sections. Section 1 is what the repository and container put in the agent's way, nine items, each ending with what would remove it. Section 2 is what the agent put in the operator's way, five items, four of them quoting the operator naming it first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "197a8c9f-0dfe-56d8-97c5-1036d2059308",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the proposedontconfirm rule come from read from seatmd or a constant",
+      "source_text": "Where does the propose-don't-confirm rule come from — read from seat.md, or a constant?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A module constant, verified against hooks/seat.md but never supplied by it. Missing seat.md -> a status line that still carries the rule; a seat.md that lost the line verbatim -> a drift flag. Both proven by a test.",
       "verifier": "",
       "weight": 1.0
     },
