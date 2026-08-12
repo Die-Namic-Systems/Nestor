@@ -7852,7 +7852,51 @@ test. Standing that up is the only named follow-up this entry leaves.
 
 ---
 
-## 7. Rubrics — the criterion the brain scored against first
+## 7. Standard parts — five hundred components, one method
+
+**Status: open.** There are, on the order of, five hundred component-classes that
+run the same way as everything built in the session that opened this section:
+**skills**, **hooks**, **rubrics** — and the list goes on (output styles and
+personas, statuslines, MCP servers, evals and LLM-as-judge harnesses, prompt and
+template libraries, subagent orchestration, permission and sandbox policy,
+retrieval). Each is an industry-standard building block, which is the whole
+point: the fleet already holds a partial, drifting copy of it, the outside world
+holds a mature and often permissively-licensed one, and each yields to **one
+repeated method** — survey both ways (what's in the box, what's on the open
+internet), re-land the cream **clean-room** under a hard license gate, **prove it
+can fail** before trusting it, and record the choice as a **draft** for a human
+to seal. Skills and hooks have already been through it this session; the rest are
+a backlog.
+
+The method is not ad hoc. It is itself a rubric — a graph of criteria that
+constrain each other (§7.3 makes the case, because rubrics is the one entry whose
+shape *is* the method's) — which is why a single section can hold parts as
+different as a bash guard and a classroom assessment: they are rows scored
+against the same rubric. This section is that catalog, one sub-section per part,
+the shipped ones first.
+
+### 7.1 Skills — shipped (#83)
+
+The first run of the method. The dev-skills — `verification`, `testing`,
+`debugging`, `autonomous-work-boundaries`, `security-review` — were re-landed into
+`.claude/skills/` after a two-lens survey (the fleet's willow-mcp skill plugin;
+the open-internet `synapse` suite), clean-room in Nestor's own voice so no
+vendored pair could drift, with the held set (the `gh` / auto-PR skills) named
+rather than dropped. **Status: shipped.**
+
+### 7.2 Hooks — shipped (#87, #88)
+
+The same method, wider. The in-session hook surface — the MCP, write and bash
+gates, the self-grant tripwire, the Stop gate, the UserPromptSubmit/PreCompact
+re-injection, and the SessionEnd cleanup — was surveyed both ways (willow-mcp's
+seven-guard `pre_tool_use` and its `session_stop_hook`; the internet's
+cc-safety-net, vibeguard, retro-skill, and the official hooks docs), re-landed
+clean-room behind one CLI-agnostic runner, and each gate **proven to deny on the
+wire** by `scripts/hook_guard.py`. The self-grant guard shipped named honestly — a
+*tripwire, not a boundary* — because a project hook demonstrably cannot enforce
+against config edits (anthropics/claude-code#11226). **Status: shipped.**
+
+### 7.3 Rubrics — the criterion the brain scored against first
 
 **Status: open.** A rubric is a set of named criteria, each resolving to a
 verdict — `check → status`, `criterion → score`. The operator's claim, worth
@@ -7982,4 +8026,18 @@ rubrics authored and defended by teachers, waiting to be re-landed as decision
 graphs with their criteria as edges. That reframes question 3: the first re-land
 target is not the corpus's *content* (minors' records — refused) but its
 *structure*, the shape of a well-formed rubric. **Status: open**, and the
-sharpest single next bite this section names.
+sharpest single next bite the rubrics entry names.
+
+### 7.4 The list goes on
+
+The named three are the start, not the set. Each of these is the same shape —
+the fleet holds a drifting copy, the world holds a standard, the method re-lands
+it — and each earns its own sub-section when its turn comes: **output styles /
+personas** (voice as configuration), **statuslines**, **MCP servers** (the
+`mcp-builder` standard), **evals / LLM-as-judge** (which §7.3 argues *is* a
+rubric), **prompt and template libraries**, **subagent orchestration**,
+**permission and sandbox policy** (the enforceable managed-settings floor the
+self-grant look-see found lives here), **retrieval / RAG**. The number five
+hundred is not derived; it is the operator's estimate of how far the same shape
+reaches, recorded as an estimate, not a count. **Status: open** — the backlog
+this section exists to work down, one part at a time, by the one method.
