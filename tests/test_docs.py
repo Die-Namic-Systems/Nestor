@@ -148,8 +148,25 @@ def test_every_documented_flag_is_accepted():
 # --- the environment -------------------------------------------------------
 
 def _env_names_in_code() -> set[str]:
-    source = "\n".join(p.read_text(encoding="utf-8") for p in (ROOT / "nestor").glob("*.py"))
-    return set(re.findall(r"environ\.get\(\s*[\"']([A-Z][A-Z_]+)", source))
+    """Every environment variable the code reads.
+
+    ``tests/_fleet_paths.py`` is in scope alongside the package because it is
+    the only other place that reads a knob a *document* is entitled to name:
+    the sibling-checkout overrides (`JELES_REPO`, `WILLOW_CHARTER_REPO`, …)
+    that decide whether eight tests run or skip. Scanning `nestor/` alone made
+    this gate narrower than its own docstring — it fired on
+    `FINDINGS-2026-08-12-agent-friction.md` for naming two variables that exist,
+    work, and are read on every run, which is the false positive that sends a
+    writer to delete a true sentence.
+    """
+    paths = [*(ROOT / "nestor").glob("*.py"), ROOT / "tests" / "_fleet_paths.py"]
+    source = "\n".join(p.read_text(encoding="utf-8") for p in paths)
+    # `[A-Z0-9_]`, not `[A-Z_]`: the old class stopped at the first digit, so
+    # `WILLOW_20_REPO` was captured as `WILLOW_` — a prefix that appears in
+    # several documents, so it satisfied the reverse gate by accident and that
+    # variable was covered in neither direction. Found by widening the scan
+    # above and then checking which names it had actually gained.
+    return set(re.findall(r"environ\.get\(\s*[\"']([A-Z][A-Z0-9_]+)", source))
 
 
 def test_documented_environment_variables_exist():
