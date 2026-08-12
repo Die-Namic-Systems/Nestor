@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "Second corpus loop around Nestor, run incrementally from f1fea81 — the revision stamped into the first loop's origin strings — rather than from scratch. Three commits in between. The loop confirmed IDEAS 6.102's diagnosis exactly and corrected a statistic the first loop had published.",
+  "decisions": [
+    {
+      "question": "Re-running extract_standard against this checkout would re-contaminate the store with .venv, since 6.102's fix is unwritten. Move the venv aside, or extract from somewhere clean?",
+      "commitment": "Extracted from a `git worktree` at the same commit — no .venv, no code change, nothing else different. 19,804 rows became 1,139 with zero vendored; wall time went from over 300 seconds to 1.371.",
+      "why": "Moving the venv aside would have produced the same number while destroying the comparison, because the contaminated run and the clean one need to be the same extractor over the same commit for the difference to mean anything. The worktree also turns out to be a usable stand-in for the real fix until git ls-files lands, which is worth more than the measurement: it costs one command and no change to seventeen scripts."
+    },
+    {
+      "question": "The clean run's real key set is identical to the contaminated run's — 0 new, 0 gone. Is that worth recording, or is 'no difference' a non-result?",
+      "commitment": "Recorded, as the part that makes the diagnosis exact. Identical key sets mean the filesystem walk was adding rows and subtracting none, so nothing real was lost to the contamination and nothing real depended on it.",
+      "why": "The plausible alternative was that the walk both added junk and picked up something legitimate outside the git tree, which would have made the fix a trade rather than a repair. Checking cost one query and removed that possibility. A confirmed 'no difference' is the difference between 'the fix is safe' and 'the fix probably does not lose anything'."
+    },
+    {
+      "question": "The first loop published 'docstring coverage: 21065/59930 (35%)'. The clean run reads 1125/2238 (50%). Amend the entry, or leave the original figure standing with a note?",
+      "commitment": "Amended IDEAS 6.102 in place, visibly, with both columns side by side rather than replacing the old number.",
+      "why": "IDEAS 6's own rule is that a claim which was acted on is part of the record and gets corrected visibly rather than quietly edited. The direction matters here: 35% understated the package, so it would have been quoted as a fact about work still owed, and somebody would have gone and done it. A wrong number that flatters nobody is still a wrong number, and it is the kind that gets believed without argument."
+    },
+    {
+      "question": "extract_ideas found three new rows across the two refs; extract_standard found none. Does that mean the second loop found nothing new?",
+      "commitment": "No — the split is the answer. The three commits added IDEAS entries, which extract_ideas reads, and decision JSON files, which no corpus extractor reads at all. 129 rows became 132, with zero entry-number collisions across the two refs.",
+      "why": "Worth naming because it locates a real edge of the corpus: the fleet's own decision record — thirty-eight files, two hundred and forty-seven pairs — is invisible to scripts/corpus/ entirely. That may well be correct, since the dogfood store is its own store with its own gate, but nothing in either place says so, and an agent asking 'is the decision record in the corpus?' would have to run both to find out."
+    }
+  ]
+}

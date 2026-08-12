@@ -7385,6 +7385,25 @@ build artifact directory, and `.venv` was not the first and will not be the last
 allowlist naming directories that no longer exist, reporting 0 rows that read as
 an empty repository.
 
+**Confirmed by re-running the same extractor against a clean `git worktree`**
+(same commit, no `.venv`, nothing else changed):
+
+| | working tree | clean worktree |
+|---|---|---|
+| rows | 19,804 | **1,139** |
+| vendored | 18,665 | **0** |
+| real rows | 1,139 | 1,139 |
+| wall time | >300s (first attempt killed) | **1.371s** |
+| docstring coverage | 21065/59930 (35%) | **1125/2238 (50%)** |
+
+The real key sets are **identical** — 0 new, 0 gone — so the walk was adding
+noise and nothing else, and the diagnosis is exact rather than approximate. Two
+practical consequences. A `git worktree` is a working stand-in for the real fix
+and needs no code change, which is how the number above was obtained. And the
+**published coverage figure was not merely diluted but wrong in the direction
+that flatters nobody**: this package documents half its definitions, not a
+third, and the 35% would have been quoted as a fact about work still to do.
+
 ### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, fix **open**
 
 *Measured 2026-08-12.* Five small-model agents surveyed twenty-five repositories
