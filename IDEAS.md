@@ -8108,3 +8108,53 @@ from documents — §7.3 is not one entry among thirteen, it is the shape the wh
 loop keeps returning to. **Status: open** — thirteen seams named, each a
 sub-section waiting for its turn, and the loop is the thing that says how many
 there are.
+
+### 7.5 The gaps — open (standard parts the loop doesn't have yet)
+
+§7.4 read the loop for what each seam already holds. This is the honest
+complement — the standard parts *absent* from it, verified by a sweep of the tree
+(2026-08-12), not guessed. Present, and therefore **not** gaps, so the list keeps
+its credibility: `CHANGELOG.md`, `.pre-commit-config.yaml`, the `.github` PR
+template, coverage with a floor, the CI matrix, and the local `http.server`
+behind `nestor ui`. Absent, each a part the same method would re-land:
+
+- **Type checking.** `scripts/ci-lint.sh` runs `ruff` and `bandit`; there is no
+  `mypy` or `pyright`. A typed decision store with no type gate leaves the seam
+  between recipes — the place most likely to drift — unguarded. **Status: open**,
+  and the cheapest of these to add.
+- **Dependency-vulnerability scanning.** `detect-secrets` guards the trust root;
+  nothing checks the *dependency set* for known CVEs (`pip-audit`, `osv`). A
+  dependency-light repo has the fewest deps to audit and the least excuse not to.
+  **Status: open.**
+- **Central configuration.** The sixteen `NESTOR_*` env vars the sweep found are
+  read ad hoc across `signing`, `keyring`, `frank`, `ollama_embed`, `ledger`,
+  `glossary` — no `config.py`, no schema, no validation, no one place that lists
+  them. The self-grant pin (`0110`) had to *rediscover* the key-material subset by
+  scanning source; a config schema is where that list should live.
+  **Status: open**, and the most in-grain.
+- **Structured logging / observability.** The loop speaks in `print` and
+  `warnings.warn`; no `logging`, no telemetry, no metric. Defensible for a local
+  CLI — but the bench and the hooks already emit findings a structured log would
+  make queryable. **Status: hypothesis** — worth it only once the loop runs
+  unattended (cron, CCR, the fleet).
+- **Schema migrations.** `memory_init` creates the schema; a store from before a
+  change is handled by ad-hoc "migration" prose (`keyring.py`, `curator.py`), not
+  a versioned path (`user_version`, an Alembic-shaped ladder). The portable bundle
+  is the current escape hatch. **Status: open** — it bites the day a store on disk
+  outlives a schema change.
+- **Property-based testing.** The suite is example-based; no `hypothesis`. The
+  matcher, the normalizer, and the frozen sign-message encoding are exactly the
+  surfaces where a property test (round-trips, invariants under permutation) earns
+  its keep. **Status: open.**
+- **Contributor onboarding.** A PR template and pre-commit exist; `CONTRIBUTING.md`
+  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status: open.**
+- **Reproducible dev environment.** No `Dockerfile`, no devcontainer; the venv is
+  the whole story. **Status: hypothesis** — the CCR session-start bootstrap already
+  does most of what a devcontainer would, so the fleet may answer this a different
+  way.
+
+None of these is a crisis: a store that refuses to serve a near-miss does not fall
+over for want of `mypy`. But each is a row the catalog was always going to reach,
+and naming them verified-absent — with the present ones named too, so the gap-list
+cannot be accused of padding — is the same discipline as the rest of §7: what is
+missing is derived from the tree, not asserted.
