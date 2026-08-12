@@ -184,12 +184,19 @@ def cmd_decision(args) -> int:
     blocked = bool(result["rejected"]) or bool(contradicts)
     payload = {"question": question, "domain": args.source_lang, "blocked": blocked,
               "rejected": result["rejected"], "contradicts": contradicts,
-              "live": result["live"]}
+              "live": result["live"], "match": "exact"}
     if args.json:
         _emit(payload, True)
     else:
         if not blocked:
-            print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}")
+            # `constraints_on` matches the question by exact normalized form, so a
+            # clear result means "clear at this wording", not "no such constraint
+            # exists". Saying only the former would be the §6.14 hazard — silence
+            # read as a "no". N1 (does the matcher recognize a re-worded decision?)
+            # is unbenched, so a paraphrase of a rejected question is NOT caught.
+            print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}\n"
+                  f"  (exact-wording match only; a re-worded proposal is not caught — "
+                  f"N1 matcher recall is unbenched, docs/decision-memory.md)")
         else:
             print(f"✗ BLOCKED — {question!r} carries a recorded constraint:")
             for r in result["rejected"]:
