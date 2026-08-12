@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 293,
+    "pairs": 294,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "73b656f6a28352ed1ed2585b205ffccf58e6a88cbc5ffd4c8f9fcdda2249f702",
+  "digest": "bd3552605d9a0fac3df286ed83ffa978f2332e1e29a8085e32de0fb6970b159c",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -968,6 +968,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Amended 6.99 in place, visibly, with the third column beside the first two and the wrong claims named as wrong rather than deleted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "040e2c5d-200a-5cd3-bcf6-e4d781518237",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the matcher precisionrecall gap turned out to be mostly built already build a new harness or add the missing piece to what exists",
+      "source_text": "The matcher precision/recall 'gap' turned out to be mostly built already. Build a new harness, or add the missing piece to what exists?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Add the missing piece. bench/matcher_precision.py imports bench_decision_n1's corpus loader and scorer -- it re-scores nothing -- and derives the one metric the other benches leave implicit: precision as a rate (of the probes the matcher would serve at a bar, the fraction whose top candidate is the right decision), None when nothing is served. tests/test_matcher_precision.py gates precision 1.0 and recall >= 0.70 at the calibrated knee (bar 0.45), rank@1 >= 20/24, and asserts that below the knee (bar 0.30) the interrogative-stem confusables get served and precision drops under 1.0.",
       "verifier": "",
       "weight": 1.0
     },
