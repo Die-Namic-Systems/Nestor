@@ -7749,3 +7749,29 @@ enough for a v1 (artifact, this session:
 session reference, not a durable asset). **Still open:** turning the still into
 the real front door — wiring the eye, needle and lamps to live verdict state, and
 deciding how the character sits over (or in front of) the five-tab desk.
+
+**Interactive prototype (added later the same session).** The stills answered
+*how it looks*; a clickable prototype answered *how it moves* — the harder
+question, because a character is a gift at the door and a liability at the desk.
+Built as a React bundle for the prototype only (the real page stays vanilla;
+these are opposite-constraint tracks and the port back is a deliberate
+translation, not a copy). What it settled:
+
+* **The character-to-instrument spectrum holds across the whole app.** A single
+  reacting Nestor face lives permanently in the header and is wired to the actual
+  verdict — it settles *pleased* on a served seal, goes *politely unconvinced* on
+  a below-bar draft, and *alarms* on a forged 1.000 — so he is present on every
+  tab without ever standing in the dense work area. Down in Memory/Queue/Signals/
+  Ledger he recedes to his instruments (status lamps, served/not-served flags,
+  the amber `persona.py` readout, the hash-chain tape). Presence up top, honest
+  instruments below: the rule that keeps a cartoon from becoming a liability.
+* **Reactions are wired to state, not decoration.** The needle sweeps to the real
+  score, the lamp is the real verdict, the readout is the literal persona
+  sentence — the same discipline as the stills, now in motion. Facial expression
+  is the only added signal, and it rides the existing verdict, inventing nothing.
+* Accepted as the prototype direction (artifact, this session:
+  `claude.ai/code/artifact/112b7364-e36f-4704-9526-37a887071472`; session
+  reference, not a durable asset). **Still open, unchanged and now sharper:** the
+  vanilla port into `ui_page.py` — reproducing the reacting face and the
+  instrument treatment under stdlib + strict CSP, with a seeded non-empty first
+  run (§6.107 above) so a cold visitor meets a live Nestor, not an empty desk.
