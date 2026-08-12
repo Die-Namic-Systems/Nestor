@@ -1,0 +1,13 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "Reversal of 0084. The security-review action was wired as a CI gate (.github/workflows/security-review.yml), but it requires an ANTHROPIC_API_KEY secret the maintainer did not want to provision, so the gate would sit inert. Removed the workflow and re-landed the same idea keyless as .claude/skills/security-review/SKILL.md. 0084 is kept as the record that the keyed path was tried and why it was dropped, not deleted.",
+  "decisions": [
+    {
+      "question": "The security-review CI gate needs an API-key secret the maintainer won't set. Delete it, or replace it?",
+      "commitment": "Both: delete the keyed CI workflow AND replace it with a keyless in-session skill. .github/workflows/security-review.yml is removed. .claude/skills/security-review/SKILL.md re-lands the same diff-aware review pointed at Nestor's own surfaces (asymmetric seals, ledger, trust root, hook gates, external input), run by the session rather than an external action over an API key. Decision 0084 (which recorded wiring the keyed gate) is left in place as a tombstone; this decision supersedes it in prose.",
+      "why": "The action's whole value is a model reading the diff, and in a Claude Code session the model is already present -- so the key, the external action, and the secret are all avoidable while keeping the review. Same clean-room move as the mutation guard from Trail of Bits: take the idea, reimplement it as Nestor's own, owe the external artifact nothing at the file level. An advisory gate that is inert until a secret is set is worse than no gate -- it reads as coverage while covering nothing. Keeping 0084 rather than deleting it honors the repo's append-only discipline: a reversed decision is a tombstone with its successor named, not a silent removal."
+    }
+  ]
+}

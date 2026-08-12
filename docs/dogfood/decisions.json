@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 290,
+    "pairs": 291,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "f53fcbd4d4566166c01508b02df7a9b79973236975a9581dd4cdcbdc61164885",
+  "digest": "bfdc0eb9594ebf355fbde01979a6daabc1cd30563b9004a23c250d8295d50837",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -408,6 +408,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Not a single answer — it depends on the question's shape, which is what the measurement showed and the first answer missed. For a probe carrying distinctive vocabulary ('embedder', 'extractor', 'zero rows') the correct row already ranks 1 of 263 and is waiting only on a human signature and a calibrated bar. For a short generic question ('Should I trust a licence a model told me?') the correct row sits at rank 110 and no threshold rescues it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "77541902-128f-553b-adcf-dd8e1a032b1a",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the securityreview ci gate needs an apikey secret the maintainer wont set delete it or replace it",
+      "source_text": "The security-review CI gate needs an API-key secret the maintainer won't set. Delete it, or replace it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both: delete the keyed CI workflow AND replace it with a keyless in-session skill. .github/workflows/security-review.yml is removed. .claude/skills/security-review/SKILL.md re-lands the same diff-aware review pointed at Nestor's own surfaces (asymmetric seals, ledger, trust root, hook gates, external input), run by the session rather than an external action over an API key. Decision 0084 (which recorded wiring the keyed gate) is left in place as a tombstone; this decision supersedes it in prose.",
       "verifier": "",
       "weight": 1.0
     },

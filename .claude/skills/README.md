@@ -15,6 +15,7 @@ Nestor's own, not the fleet's.
 | `testing` | Every invariant gets a test that performs the forbidden act and asserts refusal — acceptance is mutation, not a green suite |
 | `debugging` | Hypothesis-first; search the decision store before reproducing; surgical fix with a test |
 | `autonomous-work-boundaries` | User owns intent, you own execution; the one line you never cross is confirming |
+| `security-review` | Keyless, in-session diff review of the seal/ledger/trust-root surfaces the automated gates can't judge |
 
 ## Provenance — re-landed, not vendored
 
@@ -31,6 +32,12 @@ stack-agnostic where the fleet's willow-mcp skills are wired to Postgres/Kart/
 `app_id`; the disciplines worth harvesting from willow-mcp (search prior context
 first, surgical fixes, `fix(<area>): what — why`, never mock the thing under
 test) were folded into `debugging`/`testing`.
+
+`security-review` has a separate source: Anthropic's `claude-code-security-review`
+action (MIT). It was first wired as a CI gate, but that action needs an
+`ANTHROPIC_API_KEY` secret to do anything — so it was re-landed keyless as this
+in-session skill instead, the same idea with no key, no external action, and no
+secret to configure (decision 0086).
 
 ## Deliberately not landed (yet)
 
