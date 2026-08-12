@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 279,
+    "pairs": 281,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "88b2f6d838f9126cd76c3739d079e9e2b493bd85b767c985c4242b3e6642a0f3",
+  "digest": "cec71580c870806e5d0fe70b0eac0abf0365f350a5620ad4774a72f602cf694b",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -114,6 +114,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No — the citations split, and the split is the finding. The trust lane's references to PRIOR_ART §6 were correct: line 228 does survey OPA/Rego + Conftest and line 236 does survey in-toto/SLSA, both marked Apache-2.0 verified, both carrying reservations the agent could not have known. The other three lanes misnamed sections they had not opened.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "d6f4f91d-d47a-5802-8899-fea24b2ea202",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "standing up the brain at boot does the hook build or mutate the store when it is missing",
+      "source_text": "Standing up the brain at boot -- does the hook build or mutate the store when it is missing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The hook opens the committed store read-only and closes it; it never rebuilds, seals, or writes. A missing docs/dogfood/nestor.db is reported with the one command that fixes it (`python scripts/dogfood_store.py --rebuild`), not silently rebuilt. The self-test query is pulled from the store's own rows via export_bundle, so nothing is hardcoded to drift out from under it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -772,6 +786,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Amended 6.99 in place, visibly, with the third column beside the first two and the wrong claims named as wrong rather than deleted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "08dddf80-95bb-5232-a409-da205b8b3949",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the presession hook can surface the decision store run a boot selftest or just harden the environment check which does it do",
+      "source_text": "The pre-session hook can surface the decision store, run a boot self-test, or just harden the environment check. Which does it do?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "All three, composed as guarded sections. build_context() joins seat.md, a hardened pytest-readiness line, and a brain section that opens docs/dogfood/nestor.db read-only, runs one live verbatim retrieval as a self-test, reports the matcher (StringMatcher) and the seal/context bars, states the exact-wording blind spot, and prints the consult command `nestor --db docs/dogfood/nestor.db decision check \"<q>\"`. Each section runs under _guard(), which turns any exception into one `[check] <label>: unavailable (...)` line so a broken section degrades rather than replacing the whole boot with a traceback.",
       "verifier": "",
       "weight": 1.0
     },
