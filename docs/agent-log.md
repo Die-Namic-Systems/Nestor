@@ -6429,7 +6429,7 @@ test. Standing that up is the only named follow-up this entry leaves.
 
 ---
 
-### 6.108 The web SessionStart hook depends on an env var the runtime did not set, fails silently, and the seat policy that would have caught the miss fails through the same door — **verified**, fix **open**
+### 6.108 The web SessionStart hook depends on an env var the runtime did not set, fails silently, and the seat policy that would have caught the miss fails through the same door — **verified**, fix **shipped** (residual: parent-rooted multi-repo)
 
 *Proposed 2026-08-12, from a session that opened in a multi-repo web container
 (`Nestor` and `DispatchesFromReality` both cloned under `/home/user`, which was
@@ -6488,6 +6488,32 @@ bootstrap it performed did not land** — a hook that no-ops under `check=False`
 is, in this file's own words, a gate nobody has watched fail. The multi-repo web
 layout (session rooted above the package) is the configuration to test against,
 because it is the one that severs the variable everything else hangs from.
+
+**Shipped (decision 0117).** Three layers, and one honest residual.
+`hooks/nestor-hook` and `.claude/hooks/session-start.sh` now resolve their root
+from their own file path (`readlink -f` on `${BASH_SOURCE[0]}`), so once either
+is *reached* it lands in the right repo whatever the cwd or env — verified by
+running both from `/tmp` with all three project vars stripped: `nestor-hook`
+still produces the seat and the MCP deny, `session-start.sh` still names the
+real root. `.claude/settings.json`'s ten command strings became a POSIX resolver
+that prefers `CLAUDE_PROJECT_DIR`, then walks up from `$PWD`, then no-ops
+cleanly — measured recovering all four anchored cases (var correct; var unset
+with cwd at root; cwd in a subdir; var pointing at the parent). `session-start.sh`
+is now loud on stderr when it declines or fails to land a venv, closing
+FINDINGS-2026-08-12 §1.1. New gate `tests/test_hook_wiring.py` (7 tests) drives
+the literal settings.json strings with the vars stripped and asserts they still
+resolve; its mutation is the bare `$CLAUDE_PROJECT_DIR/hooks/nestor-hook` form,
+which 127s. Full suite 1116 passed / 24 skipped, ci-lint green.
+
+**The residual, unfixed and unfixable from here.** A session rooted *above* the
+repo with `CLAUDE_PROJECT_DIR` unset — the exact layout that produced this entry
+— gives a project-scoped hook no anchor pointing into the sibling subdir, so no
+`settings.json` command can locate itself from there. The Claude Code docs
+confirm settings are discovered by git-repo resolution and treat a non-git
+parent of sibling repos as undocumented; the real fix is upstream (root the
+session at the repo, or a pre-launch setup script), not in this tree. Recorded
+rather than smoothed over, because a boot that survives the common case and
+quietly does not survive the rare one is the failure this entry is about.
 
 ---
 
