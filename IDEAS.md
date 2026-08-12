@@ -8185,6 +8185,21 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   governance tool that greets a newcomer with a wizard is a real tonal question —
   the seal is the one moment the tour cannot fake, since only a human may set it —
   so this is built small and tested against the covenant, not assumed.
+- **Tooling — the surface exists; its standard parts are half-finished.** Present:
+  a `nestor` CLI (sixteen verbs) and a `nestor serve` MCP server (`tools/list` +
+  `call`, seven tools), with `--json` on some verbs. Absent are the conventions
+  that make a CLI and an MCP server read as *finished*: no `--version`; no shell
+  completions (`argcomplete` / `shtab`); `--json` on some verbs but not all, so a
+  script cannot rely on machine-readable output. And on the MCP side the server
+  exposes **tools only** — no **resources** (the sealed store, the ledger, and the
+  decision graph are all natural read-only resources), no **prompts** (the
+  propose → resolve → seal flow is a natural one), and no published **manifest** for
+  discovery or packaging. The CLI/MCP split is itself the standard-parts method in
+  miniature — one core, two surfaces (§5.1, §5.7) — so the gap here is not a missing
+  surface but the missing *finish* on the two that exist. **Status: open** for the
+  mechanical parts (`--version`, completions, uniform `--json`); **hypothesis** for
+  MCP resources/prompts — worth adding only once a consumer needs the store *as a
+  resource* rather than through the tool verbs.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,
