@@ -172,6 +172,21 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
 .sealed { color: var(--sealed); } .draft { color: var(--draft); }
 .pending { color: var(--pending); } .rejected { color: var(--rejected); }
 .muted { color: var(--muted); }
+/* Memory instruments (IDEAS 6.107): a status LAMP is the one bold colour per
+   row (what it says), and a served/not-served FLAG is the second signal (what
+   it would actually do). The status text stays in the meta chip below, so the
+   lamp's colour is never the only carrier of the fact. */
+.lamp { width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  align-self: center; border: 1px solid rgba(0,0,0,.18); }
+.lamp.sealed { background: var(--sealed); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sealed) 16%, transparent); }
+.lamp.draft { background: var(--draft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--draft) 16%, transparent); }
+.lamp.pending { background: transparent; border: 1.5px solid var(--pending); box-shadow: none; }
+.lamp.rejected { background: var(--rejected); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rejected) 16%, transparent); }
+.flag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.flag.yes { color: var(--sealed); border: 1px solid color-mix(in srgb, var(--sealed) 40%, var(--line)); }
+.flag.no { color: var(--rejected); border: 1px solid color-mix(in srgb, var(--rejected) 45%, var(--line));
+  background: color-mix(in srgb, var(--rejected) 8%, transparent); }
 .small { font-size: 13px; }
 .pair { border-top: 1px solid var(--line); padding: 11px 2px; cursor: pointer; }
 .pair:first-of-type { border-top: none; }
@@ -1219,11 +1234,18 @@ function mark(state) {
   return h("span", { class: "mark " + (state || "pending"), text: m });
 }
 
+// The status lamp — the one bold colour on a Memory row. Its title carries the
+// word, and the status text is repeated in the meta chip below, so the colour
+// is a second encoding of the fact, never the only one.
+function statusLamp(state) {
+  return h("span", { class: "lamp " + (state || "pending"), title: state || "pending" });
+}
+
 function servableChip(pair) {
   if (pair.status !== "sealed") return null;
   return pair.servable
-    ? h("span", { class: "chip", text: "servable" })
-    : h("span", { class: "badge bad", title: "says sealed, but Nestor would refuse to serve it",
+    ? h("span", { class: "flag yes", text: "servable" })
+    : h("span", { class: "flag no", title: "says sealed, but Nestor would refuse to serve it",
                   text: "not servable" });
 }
 
@@ -1620,7 +1642,7 @@ function pairRow(p) {
     onclick: () => openPair(p.id),
   },
     h("div", { class: "texts" },
-      mark(p.status),
+      statusLamp(p.status),
       h("span", { class: "src", text: p.source_text }),
       h("span", { class: "arrow", text: "→" }),
       h("span", { text: commitmentSummary(p.target_text) })),
