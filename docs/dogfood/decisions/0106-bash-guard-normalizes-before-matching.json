@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "A PreToolUse Bash guard (hooks/before_bash.py) — sibling to the write gate, same evaluate_*/emit shape and fail-open-on-its-own-bugs posture. Nestor gated MCP and writes but nothing stopped rm -rf, a bare git push --force, or cat .env. The dangerous-command + secret-read taxonomy is clean-room from the MIT cc-safety-net (idea reused, no text copied); the secret patterns are this fleet's own (NESTOR_SEAL_KEY keystores, ~/.homestead). Built by a subagent, integrated and re-verified here.",
+  "decisions": [
+    {
+      "question": "Grep the raw command string, or normalize first?",
+      "commitment": "Normalize. Lex with shlex (quotes stripped, escapes undone), split on ; && || & then on pipes, unwrap sh -c / bash -c and re-scan, strip sudo/env/VAR= wrappers, parse flags into a set so rm -f -r / == rm -rf /. Each rule carries a comment naming what it catches; the test attempts each obfuscation (flag-reorder, sh -c, quote-splitting) and asserts the deny still fires.",
+      "why": "A guard that greps is defeated by the first quote or flag swap: sh -c \"rm -rf /\" hides the verb a level down, c\"\"at .env is cat .env. A guard nobody has watched fail is a description; the test file is the watching."
+    },
+    {
+      "question": "How wide is the net, given a false positive gets the whole guard deleted?",
+      "commitment": "Narrow on purpose. rm -r denies only broad targets (/, ~, ., *, a shallow system path); rm -rf .worktrees/tmp passes. git push --force-with-lease passes (Nestor uses it) and only a bare --force is denied. pytest, ruff, cat README.md, > /dev/null all pass, each pinned by an allow-test.",
+      "why": "false-negatives-are-worse, but only just: a guard that fires on ordinary work is a guard people delete, and a deleted guard protects nothing. The push-force split is the sharpest edge and is isolated in one block so the operator can flip it."
+    }
+  ]
+}
