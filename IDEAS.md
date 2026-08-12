@@ -7896,7 +7896,7 @@ wire** by `scripts/hook_guard.py`. The self-grant guard shipped named honestly �
 *tripwire, not a boundary* — because a project hook demonstrably cannot enforce
 against config edits (anthropics/claude-code#11226). **Status: shipped.**
 
-### 7.3 Rubrics — the criterion the brain scored against first
+### 7.3 Rubrics — open (the criterion the brain scored against first)
 
 **Status: open.** A rubric is a set of named criteria, each resolving to a
 verdict — `check → status`, `criterion → score`. The operator's claim, worth
@@ -8028,16 +8028,67 @@ target is not the corpus's *content* (minors' records — refused) but its
 *structure*, the shape of a well-formed rubric. **Status: open**, and the
 sharpest single next bite the rubrics entry names.
 
-### 7.4 The list goes on
+### 7.4 The list goes on — open (the loop is the catalog)
 
-The named three are the start, not the set. Each of these is the same shape —
-the fleet holds a drifting copy, the world holds a standard, the method re-lands
-it — and each earns its own sub-section when its turn comes: **output styles /
-personas** (voice as configuration), **statuslines**, **MCP servers** (the
-`mcp-builder` standard), **evals / LLM-as-judge** (which §7.3 argues *is* a
-rubric), **prompt and template libraries**, **subagent orchestration**,
-**permission and sandbox policy** (the enforceable managed-settings floor the
-self-grant look-see found lives here), **retrieval / RAG**. The number five
-hundred is not derived; it is the operator's estimate of how far the same shape
-reaches, recorded as an estimate, not a count. **Status: open** — the backlog
-this section exists to work down, one part at a time, by the one method.
+The five hundred is not a number pulled from the air. Walk the wiring a proposal
+actually runs through in Nestor as it stands today, and every seam is a standard
+part with two copies — a drifting one in the fleet, a mature and usually
+permissively-licensed one in the world — each re-landable by the one method. The
+flat backlog (output styles and personas, statuslines, prompt and template
+libraries, subagent orchestration) is real but unordered; the *ordered* catalog
+is the loop itself, read in the order a proposal is processed:
+
+1. **In — the surface.** A proposal enters through a CLI verb, the `serve` MCP
+   seam, or the `ui` front door. Parts: CLI frameworks, the **MCP-server**
+   standard (`mcp-builder`), tool/agent interfaces. Box: `cli.py`'s sixteen verbs,
+   `serve`, `ui`.
+2. **Normalize and match — the matcher seam (§3).** Scored against a domain's
+   store by a pluggable matcher. Parts: **embeddings, rerankers, lexical search**
+   (sentence-transformers, cross-encoders, BM25). Box: `matcher.py`,
+   `semantic_matcher.py` / `ollama_embed.py` (the stub the box can't reach),
+   `bench/token_matchers.py`. The part §3 already circles.
+3. **Threshold — calibration.** The score meets a bar or abstains. Parts:
+   **calibration, conformal prediction, abstention**. Box: `calibrate.py`,
+   `SEAL_THRESHOLD`, the matcher-precision gate.
+4. **The recipe — a domain.** The match runs inside a recipe keyed by
+   `(from, to)`. Parts: **structured extraction, typed output, task templates**.
+   Box: `decision.py`, `entity.py`, `answer.py`, `glossary.py`, the numeric
+   check — *a domain is its matcher*.
+5. **The relations — the graph.** Decisions constrain each other through sealed
+   edges. Parts: **knowledge graphs, policy / constraint graphs**. Box:
+   `constraints_on`, the decision-edge covenant — where §7.3's rubric-as-graph
+   lands.
+6. **The store.** Rows persist. Parts: **embedded vector / kv stores** (sqlite-vec,
+   LanceDB, DuckDB). Box: `storage.py` / `sqlite_store.py`, WAL, `portable.py`
+   bundles.
+7. **The seal — a human confirms.** Ratified at the review desk. Parts:
+   **human-in-the-loop review, annotation, preference capture** (Label Studio and
+   kin). Box: `ui.py` / `ui_page.py`, the covenant, `before_authority` guarding
+   the mint.
+8. **Provenance — signing.** The seal is a signature. Parts: **signing,
+   attestation, supply-chain provenance** (sigstore, in-toto, SLSA). Box:
+   `signing.py` (HMAC / ed25519), `keyring.py`, `cloud_seal.py` provisional.
+9. **The ledger.** The act is appended, hash-chained, never overwritten. Parts:
+   **transparency logs, append-only audit, Merkle logs**. Box: `cascade.py` /
+   `ledger.py`.
+10. **Measure the loop — the bench.** All of the above is measured, not asserted.
+    Parts: **eval harnesses, LLM-as-judge** — which §7.3 argues *is* a rubric. Box:
+    `bench/retrieval_quality.py`, `bench_decision_n1.py`, `matcher_precision.py`.
+11. **Feed the loop — corpus.** The store is filled from real documents. Parts:
+    **document parsing, chunking, ETL, rubric extraction**. Box: `scripts/corpus/`
+    — already parsing the rubric shape §7.3 names.
+12. **Govern the loop — hooks.** Shipped, §7.2.
+13. **Record the loop — dogfood.** Every change is a reviewed file, then a
+    deterministic rebuild. Parts: **reproducible builds, provenance-from-source**.
+    Box: `scripts/dogfood_store.py`, `docs/dogfood/decisions/`.
+
+So the catalog is not a wishlist bolted onto Nestor; it is Nestor **read as a
+chain of standard parts**, each with a fleet copy that drifts and a world standard
+that does not, each re-landable by the survey-both-ways method. The count stays
+the operator's estimate; the *ordering* is derived — it is the order a proposal is
+actually processed. And the loop closes on itself: step 10 measures with a rubric,
+step 5 stores relations as the graph a rubric is, step 11 feeds on rubrics pulled
+from documents — §7.3 is not one entry among thirteen, it is the shape the whole
+loop keeps returning to. **Status: open** — thirteen seams named, each a
+sub-section waiting for its turn, and the loop is the thing that says how many
+there are.
