@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 282,
+    "pairs": 284,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "10b13bfadcb7db58f43f14dd6e60060c0c19a17a8343033c39113aaa7185ca17",
+  "digest": "88843ecc28854f249c30bf11228588f0880e4605dc030fa7b1f2fad5449382ce",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -287,6 +287,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "a0e8dc0e-37fd-545b-bfe9-0e376d7dfe24",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "landing the best synapse dev skills into nestor copy synapses skillmd files or reland them native",
+      "source_text": "Landing the best synapse dev skills into Nestor -- copy synapse's SKILL.md files, or re-land them native?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Re-land, not copy. Each of the four skills under .claude/skills/ was authored in Nestor's voice against Nestor's own commands (bash scripts/ci-lint.sh, python -m pytest -q), docs (seat.md, agent-guide.md), the decision store, and the propose-not-confirm refusal -- keeping synapse's method (hypothesis-first debugging, test-the-forbidden-act, intent/execution boundary) while sharing no file with synapse. .claude/skills/README.md credits synapse as the source idea and records the diff that informed selection.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "9d92a859-eed9-5414-928d-c5eb04b0e3b3",
       "origin": "pr:None",
       "seal_sig": "",
@@ -548,6 +562,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Delegate it, cheaply, shallowly, but not without checking: 'send out a haiku agent. this doesn't need to be in depth, just look, summary, and a very very quick verification.' Three haiku subagents ran in parallel, each reading README plus tree shape plus stack, and each required to state what it actually looked at.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "4876fc9b-4cb9-57ab-84df-b24d41f0ce5a",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which synapse skills are landed now and which are held",
+      "source_text": "Which synapse skills are landed now, and which are held?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Landed four: verification, testing, debugging, autonomous-work-boundaries -- the ones that map 1:1 onto Nestor's load-bearing disciplines (don't overclaim, prove a guard can fail, fix surgically with evidence, know the propose/confirm line) and need the least adaptation. Held: finishing-branches, bug-capture, goal-oriented-development, worktree-cleanup -- they shell gh (this environment is GitHub-MCP only) and/or auto-open PRs (Nestor's standing rule is no PR unless asked), so they must be adapted before landing. Skipped: asset-churn-audit (game-asset tool, Nestor ships no binary art). thinking / writing-plans / executing-plans / code-review are a possible next tranche.",
       "verifier": "",
       "weight": 1.0
     },
