@@ -7801,3 +7801,18 @@ The open step is unchanged and now the only thing left before this stops being a
 mockup: the **vanilla port into `ui_page.py`** (stdlib + strict CSP, no build),
 carrying the reacting face, the instrument treatment, the front door, and the
 seeded non-empty first run.
+
+**Two polish passes (same session, same artifact URL).** Quality, not new
+surface. Round one made the character *alive*: his eyelid and iris now **ease**
+between moods instead of snapping, his antenna **pulses and his eye scans while
+he is thinking**, and a dark-mode bug was fixed — his outline ink was inverting
+with the theme and washing out against his cream body, so it is now pinned to a
+constant (a painted object does not repaint itself when the room dims; only the
+room's tokens flip). Round two made the front door **read visually** — each of
+the three doors carries its recipe's instrument (a gauge for numeric, a lens for
+the retrieval/AI case, linked nodes for entity) so a tribe recognises its door
+before reading a word — and made results *arrive*: the verdict card rises in as
+the needle sweeps, and the welcome screen gained a soft gold halo (atomic-age
+warmth without tipping antique). All motion is gated behind
+`prefers-reduced-motion`. None of it changes the port work above; it is the
+prototype earning the right to be shown.
