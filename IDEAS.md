@@ -7918,3 +7918,68 @@ skills and hooks got, with the same license gate.
 The one-line thesis to keep or kill: *the brain did not begin as retrieval; it
 began as scoring against a rubric, and retrieval was the part that came second.*
 Everything above is evidence for testing it, not yet for believing it.
+
+**The method this session ran is itself a rubric — which is the strongest
+evidence, and it settles question 1.** Everything built here — the dev-skills,
+the four decision gates, the five in-session hooks, the self-grant tripwire, the
+session-end cleanup — passed through the *same fixed criteria* before it was
+allowed to land, and nobody wrote those criteria down as a rubric; they emerged
+as one, which is the tell. Named after the fact, they were: **provenance** (in
+the box, in the wide world, or both — the two-lens survey run for every
+candidate); **license** (permissive → re-land the text, share-alike or none →
+idea-only, clean-room); **hardening** (official / adopted / tested, not a gist);
+**applicability** (a specific Nestor gap, not generic good practice);
+**already-have-it** (does the house already do this, better — the rediscovery
+tax); **falsifiability** (can it be shown to fail — a guard nobody watched fail
+is a description); **honest naming** (enforcement or ledger, boundary or
+tripwire, guarantee or best-effort); and the **confirmation boundary** (propose
+or confirm — everything lands draft, only a human seals).
+
+**Those criteria are not a checklist; they constrain each other, which makes the
+rubric a graph.** License gated re-landability no matter how hardened a source
+was (Trail of Bits' mutation-testing idea was excellent and CC-BY-SA, so it
+landed clean-room with none of its text, decision `0083`). Already-have-it vetoed
+candidates no matter their applicability (matcher precision was already measured
+four ways in the tree, so the "gap" shrank to one derived rate, `0104`;
+constant-time was already `compare_digest`, so the build became a guard to lock
+it in, not new code, `0103`). Falsifiability gated trust independent of
+everything else — nothing was believed until a test attempted the forbidden act
+and the block landed (the mutation guard, the hook-guard on the wire, every
+can-fail test). Honest naming overrode ambition (the self-grant guard is a
+*tripwire, not a boundary*; session-end is *best-effort, not a guarantee* —
+because a project hook demonstrably cannot enforce either). A criterion firing
+changed what the others were allowed to conclude. That is a graph of
+mutually-constraining criteria, not a flat scorecard.
+
+**Which answers question 1, against the flat reading.** A rubric whose rows
+constrain each other is not a *view* the decision key-value already covers; it is
+the decision **graph** — the sealed-edge covenant is a rubric's mutual-constraint
+structure, and `constraints_on(question)` is already "score this proposal against
+the criteria that touch it." So a rubric is not machinery bolted beside the
+decision store; it is the decision store *read as what it always was*. **Status:
+the graph claim moves from open to verified-by-construction** — this session is
+its worked example, more than twenty merged PRs deep. What stays **hypothesis**
+is the larger line, that this is where the brain *began*: the session shows the
+shape is the same, not the history.
+
+**The recursion the operator named is one shape at three scales.** A model scores
+tokens against learned patterns; Nestor scores a proposal against sealed
+decisions; this session scored candidates against the re-land rubric. A rubric is
+what a pattern-making machine's judgment looks like once the criteria are written
+down and a human is made to seal them — Nestor's whole thesis (*has a human
+checked this?*) met from the rubric side rather than the retrieval side. The
+checkable core, kept separate from the frame so it stays honest: the build
+criteria formed a constraint-graph, and that graph is isomorphic to the
+decision-edge covenant the store already enforces. The rest — that judgment, all
+the way down from the token to the seal, is one recurring rubric — is the frame
+this section exists to test, not a claim to bank.
+
+**What it opens.** If a rubric is the decision graph, the rubrics survey is not
+"what new thing do we build" but "which sealed-edge structures does the fleet
+already have, unrecognized" — and the assessment-visibility corpus stops being an
+external dataset and becomes a **library of human-built constraint-graphs**,
+rubrics authored and defended by teachers, waiting to be re-landed as decision
+graphs with their criteria as edges. That reframes question 3: the first re-land
+target is not the corpus's *content* (minors' records — refused) but its
+*structure*, the shape of a well-formed rubric. **Status: open**, and the
+sharpest single next bite this section names.
