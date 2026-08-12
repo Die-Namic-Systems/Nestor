@@ -8158,3 +8158,73 @@ over for want of `mypy`. But each is a row the catalog was always going to reach
 and naming them verified-absent — with the present ones named too, so the gap-list
 cannot be accused of padding — is the same discipline as the rest of §7: what is
 missing is derived from the tree, not asserted.
+
+## 8. The speculation — what the industry is building, and what this is
+
+**Status: hypothesis — and labeled so on purpose.** Everything above this line is
+held to the tree: a claim is `measured`, `shipped`, or `open` because someone can
+run the thing that settles it. This section is deliberately not that. It is the
+operator's read of where the field is going and where Nestor sits against it — a
+bet, not a finding. Every heading under it carries **hypothesis** because that is
+the honest status of a claim about the future, and putting it in its own numbered
+section keeps the speculation from leaking upward into the parts that earned their
+tags. Read §1–§7 for what is true. Read this for what is being wagered.
+
+### 8.1 What the industry is trying to build — hypothesis
+
+Three races are running at once, and only two of them are loud. The **loud** one
+is *agent memory* — persistent state so a model stops forgetting you between
+sessions. The frameworks converging on it (Letta out of MemGPT, Mem0, Zep, and the
+memory features baking into every agent platform) mostly take the unit of memory
+to be a **fact**, an **entity**, or a **summarized conversation**, and the pitch
+is continuity: the agent that remembers costs you fewer repetitions. The second
+loud race is *long-horizon autonomy* — agents that run unattended for hours on
+real coding, research, and ops work, self-correcting against a benchmark; the pitch
+there is leverage. The **quiet** third race is *provenance and oversight* — audit
+logs, human-in-the-loop approval, model cards, the regulatory pressure to say who
+decided what — and it is quiet because it is mostly sold as compliance, a cost
+center bolted to the side of the first two. **Status: hypothesis** — this is a read
+of the field as of early 2026, not a survey with a denominator; the shape is a
+claim, and the claim is that memory-plus-autonomy is where the noise and the money
+are, and accountability is the afterthought.
+
+### 8.2 What I'm trying to build — hypothesis
+
+An inversion of the loud race's unit. Nestor's memory is not a store of facts an
+agent recalls; it is a store of **decisions** — a question, the commitment made,
+the reasons, the doors that commitment closed, and the conditions under which to
+reopen them. That choice of unit changes what memory is *for*. The industry builds
+memory to make the agent do **more** on its own; the whole architecture here exists
+to make sure that when something is decided, a **human** decided it, and the
+decision is recoverable later with its reasoning intact — including the roads not
+taken. Hence the primitives are not a vector index and a summarizer but a covenant
+(*propose, never confirm*; only a human seals in `nestor ui`), an **append-only
+ledger**, a **cryptographic witness**, and a matcher tuned to *refuse a near-miss*
+rather than to retrieve the closest thing. Local-first and dependency-light is not
+a limitation to grow out of; it is the opposite shape to a cloud memory service on
+purpose. Memory here is a **brake and a record**, not an accelerator. **Status:
+hypothesis** — the covenant and the ledger are shipped and tested (that much is in
+§1), but the claim that *this is the right unit of memory* is a wager the tree
+cannot settle.
+
+### 8.3 Where the two cross — hypothesis
+
+The bet that makes this more than a contrarian preference: the two loud races
+**manufacture** the problem the quiet one is trying to solve, and they are mostly
+being built by different people. An agent that remembers more and acts longer makes
+"who decided this, why, and what had we already ruled out" the load-bearing
+question — exactly when the memory being accumulated is facts and conversations,
+which cannot answer it. A fact store can tell you what the agent knew; it cannot
+tell you what the agent *chose*, on whose authority, or which alternatives were
+foreclosed and are now quietly re-openable. So the speculation is narrow and
+falsifiable in principle: decision-memory-with-a-human-seal is the **missing
+middle** of the agent-memory race — not another retrieval store, not another eval
+harness, but the ledger of *choices* that both of those assume upstream and neither
+keeps. If the field goes the way of this bet, the primitives it will reach for are
+the ones §7 keeps re-landing — a hook that can be shown to fail, a seal only a human
+can set, a closed door that recall surfaces before the work re-proposes it.
+**Status: hypothesis, unfalsified because unshipped-at-scale.** Nestor is one local
+CLI on one branch; "the field will need this" is the wager, and naming it a wager —
+in its own section, under a status tag that says so — is the same refusal to
+overclaim that governs everything above it. The difference between this section and
+the rest of the file is not confidence. It is that the rest can be run.
