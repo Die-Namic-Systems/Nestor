@@ -7230,6 +7230,41 @@ survived: identical strings return exactly 1.000 in both, and a deliberate
 contradiction in the rubric reproduced identically in both, which is what
 identifies it as a prompt defect rather than agent drift.
 
+> **Amended after a third instantiation (2026-08-12, same session).** Two of the
+> three claims in the paragraph above are wrong, and both were wrong because they
+> were drawn from n=2.
+>
+> | pair | recalled ×3 | fresh #1 | fresh #2 | spread |
+> |---|---|---|---|---|
+> | `willow-gate` / `willow-config` | 0.500 | 0.450 | 0.300 | 0.200 |
+> | `homestead-law` / `homestead-ledger` | 0.600 | 0.550 | 0.300 | **0.300** |
+> | `quiet-corner` / `quick-stupids` | 0.175 | 0.150 | 0.150 | 0.025 |
+> | store brief / kartikeya brief | 0.475 | 0.400 | 0.450 | 0.075 |
+>
+> - **"Every one moved down" is false.** The store/kartikeya pair moved *up* in
+>   the third run. It is dispersion, not bias, and "bias rather than noise" was
+>   the more interesting of the two readings, which is presumably why it got
+>   written.
+> - **The spread is 3–4× larger than reported.** Mean 0.150 against 0.050, max
+>   0.300 against 0.075. One more sample quadrupled the measured instability, so
+>   the original figures were not a measurement with error bars, they were the
+>   smallest number two points can produce.
+> - **The rubric contradiction does not reproduce.** Fresh #2 scored both
+>   look-alike pairs at 0.300 — *obeying* the ≤0.35 clause the other two
+>   instantiations ignored, with notes reading "Shared prefix, different
+>   concepts". The diagnosis (the rubric contradicts itself) survives; the
+>   evidence offered for it does not. Two runs agreeing was reported as
+>   reproduction, and the third picked the other clause.
+>
+> What holds unchanged across all five passes: **identical strings return exactly
+> 1.000**, and **recall is exact** — the resumed agent returned the same floats
+> and the same note strings three times over many intervening turns.
+>
+> The consequence stated below needs restating with the real number. At a 0.92
+> threshold, a spread of 0.300 exposes roughly **0.62–1.00**, not 0.85–0.99 —
+> which is most of the range where a semantic matcher would ever be asked to
+> decide anything.
+
 **The consequence is in `embedding_store.py`.** The cache keys vectors by
 `model_name`, and a key is a promise that the function behind it is fixed. Keyed
 to a model that is re-instantiated per call, a cache hit and a fresh call are not
