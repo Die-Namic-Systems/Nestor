@@ -72,6 +72,8 @@ def main() -> int:
     ap.add_argument("--label", default="")
     ap.add_argument("--bar", type=float, default=BAR)
     ap.add_argument("--json", action="store_true", help="emit the metrics as JSON")
+    ap.add_argument("--sweep", action="store_true",
+                    help="report recall/wrong-key across a bar ladder, and the clean knee")
     args = ap.parse_args()
 
     corpus_dir = pathlib.Path(args.corpus)
@@ -94,13 +96,13 @@ def main() -> int:
     identical = sum(1 for k in probes
                     if sm.normalize(probes[k]) == sm.normalize(corpus[k]["question"]))
 
-    rank1 = recall = wrongkey = 0
-    n = 0
-    rows = []
+    # Score every probe ONCE; metrics at any bar derive from these, so the sweep
+    # is not 13 re-scans. rank@1 is bar-independent — the correct decision either
+    # is the top match or it is not.
+    probe_rows = []  # (k, own_score, top_id, top_score, rank)
     for k in ids:
         if k not in probes:
             continue
-        n += 1
         probe = probes[k]
         if precomputed is not None:
             scored = sorted(((precomputed[k].get(c, 0.0), c) for c in ids),
@@ -112,15 +114,46 @@ def main() -> int:
         top_score, top_id = scored[0]
         own = next(s for s, c in scored if c == k)
         pos = [c for _s, c in scored].index(k) + 1
-        if top_id == k:
-            rank1 += 1
-        if own >= args.bar:
-            recall += 1
-        wrong = top_id != k and top_score >= args.bar
-        if wrong:
-            wrongkey += 1
-        rows.append((k, pos, own, top_id, top_score, wrong))
+        probe_rows.append((k, own, top_id, top_score, pos))
+    n = len(probe_rows)
+    rank1 = sum(1 for k, _o, ti, _ts, _p in probe_rows if ti == k)
 
+    def metrics_at(bar):
+        rec = sum(1 for _k, own, _ti, _ts, _p in probe_rows if own >= bar)
+        wk = sum(1 for k, _o, ti, ts, _p in probe_rows if ti != k and ts >= bar)
+        return rec, wk
+
+    LADDER = [0.92, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40, 0.35, 0.30]
+
+    if args.sweep:
+        curve = [{"bar": b, "recall": metrics_at(b)[0], "wrong_key": metrics_at(b)[1]}
+                 for b in LADDER]
+        clean = [c for c in curve if c["wrong_key"] == 0 and c["recall"] > 0]
+        knee = max(clean, key=lambda c: c["recall"]) if clean else None
+        if args.json:
+            print(json.dumps({"label": label, "n": n, "decisions": len(ids),
+                              "rank1": rank1, "paraphrase_bite_identical": identical,
+                              "sweep": curve, "clean_knee": knee}))
+            return 0
+        print(f"\n{BOLD}N1 threshold sweep{OFF}  {DIM}{label}, {n} probes over "
+              f"{len(ids)} decisions, rank@1 {rank1}/{n} — the correct decision is "
+              f"(almost) always the top match{OFF}")
+        print(f"  {'bar':>5} {'recall':>13} {'wrong-key':>13}")
+        for c in curve:
+            col = GREEN if c["wrong_key"] == 0 else RED
+            print(f"  {c['bar']:>5} {c['recall']:>4}/{n} ({c['recall']/n:>3.0%}) "
+                  f"{col}{c['wrong_key']:>6}/{n} ({c['wrong_key']/n:>3.0%}){OFF}")
+        if knee:
+            print(f"  {GREEN}{BOLD}clean knee{OFF}: bar {knee['bar']} -> recall "
+                  f"{knee['recall']}/{n} ({knee['recall']/n:.0%}) at 0 false constraints  "
+                  f"{DIM}(this is what `nestor calibrate` finds){OFF}")
+        else:
+            print(f"  {RED}no clean bar: recall never rises without a false constraint{OFF}")
+        return 0
+
+    recall, wrongkey = metrics_at(args.bar)
+    rows = [(k, pos, own, ti, ts, ti != k and ts >= args.bar)
+            for k, own, ti, ts, pos in probe_rows]
     metrics = {"label": label, "n": n, "decisions": len(ids), "bar": args.bar,
                "paraphrase_bite_identical": identical, "rank1": rank1,
                "recall": recall, "wrong_key": wrongkey}
