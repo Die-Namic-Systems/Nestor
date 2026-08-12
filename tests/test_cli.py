@@ -19,7 +19,8 @@ import socket
 import pytest
 
 from conftest import CONFIGURED_BY_ENV
-from nestor import cli, memory, storage
+from nestor import cli, memory, signing, storage
+from nestor.decision import DecisionMemory
 from nestor.sqlite_store import SqliteStore
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -211,6 +212,146 @@ def test_stats_says_what_is_in_there_and_whether_signing_is_on(db, capsys):
     assert run(db, "stats") == cli.EXIT_OK
     out = capsys.readouterr().out
     assert "1 sealed" in out and "en→es" in out and "seal signatures: on" in out
+
+
+# --- decision: `nestor decision check`, the CI gate over the graph ---------
+#
+# docs/decision-memory.md N9(1): the same "exit code carries the answer"
+# pattern as `nestor ledger verify`, pointed at the decision graph instead of
+# the audit chain. 0 = clear to propose, 1 = BLOCKED, 2 = usage error. Every
+# BLOCKED case here is an adversarial guard: it sets up exactly the recorded
+# state the gate exists to catch and asserts the exit code refuses it, not
+# just that some text got printed.
+
+def test_decision_check_exits_zero_when_nothing_is_recorded(db, capsys):
+    assert run(db, "decision", "check", "may the mascot be retired?") == cli.EXIT_OK
+    assert "clear" in capsys.readouterr().out
+
+
+def test_decision_check_is_blocked_by_a_permanent_rejection(db, capsys):
+    memory.reject_match(
+        "may we ship on Fridays?", "decision", "decision",
+        target_text="yes", verifier="rita", reason="two prod incidents traced to it",
+        store=db["store"])
+
+    assert run(db, "decision", "check", "may we ship on Fridays?") == cli.EXIT_ANSWER_IS_NO
+    out = capsys.readouterr().out
+    assert "BLOCKED" in out
+    assert "two prod incidents traced to it" in out
+    assert "permanent" in out
+    assert "condition to re-check" not in out
+
+
+def test_decision_check_distinguishes_not_yet_from_never(db, capsys):
+    """A deferred rejection (reopen_when set) must be reported differently
+    from a permanent one — conflating them is the exact failure N5 exists to
+    close, and a CI gate that cannot tell them apart is worse than none: it
+    would enforce a stale 'no' as if it were still the operator's answer."""
+    memory.reject_match(
+        "may we skip the design review?", "decision", "decision",
+        target_text="yes", verifier="rita", reason="not while the team is this new",
+        reopen_when="after two more shipped features", store=db["store"])
+
+    assert run(db, "decision", "check", "may we skip the design review?") == cli.EXIT_ANSWER_IS_NO
+    out = capsys.readouterr().out
+    assert "BLOCKED" in out
+    assert "a condition to re-check" in out
+    assert "after two more shipped features" in out
+    assert "(permanent" not in out
+
+
+def _sealed_decision(store, question, commitment, verifier="rita"):
+    dm = DecisionMemory(store)
+    norm = dm.matcher.normalize(question)
+    sig = signing.sign_seal(norm, commitment, verifier)
+    pair = dm.seal(question, commitment, verifier, sig)
+    return dm, pair["id"]
+
+
+def test_decision_check_is_blocked_by_a_sealed_contradicts_edge(db, capsys):
+    dm, a = _sealed_decision(db["store"], "may the joke be authored cold?",
+                             "yes — witnessed")
+    _, b = _sealed_decision(db["store"], "may the machine seal its own work?",
+                            "no — author != witness")
+    dm.propose_edge(a, b, "contradicts", reason="A and B cannot both stand")
+    sig = signing.sign_edge(a, b, "contradicts", "rita")
+    dm.seal_edge(a, b, "contradicts", "rita", sig)
+
+    assert run(db, "decision", "check",
+              "may the joke be authored cold?") == cli.EXIT_ANSWER_IS_NO
+    out = capsys.readouterr().out
+    assert "BLOCKED" in out
+    assert "contradicts" in out
+    assert "no — author != witness" in out
+
+
+def test_decision_check_a_merely_proposed_contradicts_edge_does_not_block(db, capsys):
+    """The covenant, at the CLI layer: an edge nobody signed is surfaced to a
+    curator, never enforced as fact. If this ever blocked, an unsigned
+    machine assertion would gate CI the same as a human ratification."""
+    dm, a = _sealed_decision(db["store"], "may the joke be authored cold?",
+                             "yes — witnessed")
+    _, b = _sealed_decision(db["store"], "may the machine seal its own work?",
+                            "no — author != witness")
+    dm.propose_edge(a, b, "contradicts", reason="unratified — should not block")
+
+    assert run(db, "decision", "check",
+              "may the joke be authored cold?") == cli.EXIT_OK
+    assert "clear" in capsys.readouterr().out
+
+
+def test_decision_check_a_tampered_contradicts_edge_does_not_block(db, capsys):
+    """A row that merely SAYS sealed must not gate CI — same principle as
+    ``test_ledger_verify_is_a_ci_gate``, one object over. This also pins that
+    ``cmd_decision`` routes through ``constraints_on``'s own signature
+    verification rather than trusting the ``decision_edges`` table directly."""
+    dm, a = _sealed_decision(db["store"], "may the joke be authored cold?",
+                             "yes — witnessed")
+    _, b = _sealed_decision(db["store"], "may the machine seal its own work?",
+                            "no — author != witness")
+    dm.propose_edge(a, b, "contradicts")
+    sig = signing.sign_edge(a, b, "contradicts", "rita")
+    dm.seal_edge(a, b, "contradicts", "rita", sig)
+    with db["store"]._db() as conn:
+        conn.execute("UPDATE decision_edges SET edge_sig=? WHERE src_id=?",
+                     ("00" + sig[2:], a))
+
+    assert run(db, "decision", "check",
+              "may the joke be authored cold?") == cli.EXIT_OK
+    assert "clear" in capsys.readouterr().out
+
+
+def test_decision_check_usage_errors(db, capsys):
+    assert run(db, "decision", "check", "  ") == cli.EXIT_USAGE
+    assert "question is required" in capsys.readouterr().err
+
+    assert run(db, "decision", "check", "q", "--from", "architecture",
+              "--to", "governance") == cli.EXIT_USAGE
+    assert "must match" in capsys.readouterr().err
+
+
+def test_decision_check_honors_the_domain_flag(db, capsys):
+    """Two disjoint graphs (N8's ``decision:architecture`` /
+    ``decision:governance``) must not see each other's rejections."""
+    memory.reject_match("shared question text", "architecture", "architecture",
+                        target_text="x", verifier="rita", reason="architecture says no",
+                        store=db["store"])
+
+    assert run(db, "decision", "check", "shared question text",
+              "--from", "architecture", "--to", "architecture") == cli.EXIT_ANSWER_IS_NO
+    assert run(db, "decision", "check", "shared question text",
+              "--from", "governance", "--to", "governance") == cli.EXIT_OK
+
+
+def test_decision_check_json_output(db, capsys):
+    memory.reject_match("may we ship on Fridays?", "decision", "decision",
+                        target_text="yes", verifier="rita", reason="see incidents",
+                        store=db["store"])
+    assert run(db, "--json", "decision", "check",
+              "may we ship on Fridays?") == cli.EXIT_ANSWER_IS_NO
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["blocked"] is True
+    assert payload["rejected"][0]["reason"] == "see incidents"
 
 
 # --- delegation ------------------------------------------------------------
