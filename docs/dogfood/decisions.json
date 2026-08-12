@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 291,
+    "pairs": 293,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "96374cf8088ac4c1735bab79d406cbbc7b5fa41976aebea5f3e79bffd8b3bc86",
+  "digest": "73b656f6a28352ed1ed2585b205ffccf58e6a88cbc5ffd4c8f9fcdda2249f702",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -553,6 +553,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "62a4ccef-110b-5984-9204-eb2b6d95a6e3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "constanttime analysis of the seal path found no bug the comparison is already hmaccompare_digest land nothing or lock it in",
+      "source_text": "Constant-time analysis of the seal path found no bug -- the comparison is already hmac.compare_digest. Land nothing, or lock it in?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Lock it in. scripts/constant_time_guard.py parses nestor/signing.py as an AST and fails if a signature/MAC is compared with ==/!= instead of hmac.compare_digest -- flagging Name operands named like a secret (sig/digest/hmac/mac) and Calls that compute one (.hexdigest(), hmac.new(...)), never string literals, so entry_kind==\"ed25519\" and trust==\"unsigned\" do not trip it. tests/test_constant_time_guard.py asserts the real path is clean, that the guard flags a planted `mac == sig`, and that it does not false-positive on the kind/trust comparisons around it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "61de75c8-0b4c-5370-b6b4-3098cc52e89b",
       "origin": "pr:None",
       "seal_sig": "",
@@ -786,6 +800,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Ran a fresh-context control with the identical protocol, and every non-identical pair moved — mean absolute drift 0.050, max 0.075, all four downward. The first agent had been resumed from its own transcript and could read its previous answers, so the reproduction was recall rather than a stable function.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "21655957-00b5-52ac-b301-b233094328aa",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "trail of bits constanttimeanalysis skill is the source how is it used without a license breach",
+      "source_text": "Trail of Bits' constant-time-analysis skill is the source. How is it used without a license breach?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Clean-room, as with the mutation guard: the idea (verify the seal comparison is constant-time) is reused; none of ToB's CC-BY-SA text is copied, and the implementation is Nestor's own stdlib ast walk over its own module. ToB's version targets C/Rust binaries; this targets Python source, so there was nothing to lift even if the licence allowed it.",
       "verifier": "",
       "weight": 1.0
     },
