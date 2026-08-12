@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "An open-internet survey for hardened, license-clean skills surfaced Trail of Bits' mutation-testing skill as the most Nestor-shaped idea found -- but the ToB suite is CC-BY-SA-4.0, incompatible with Nestor's permissive licensing, so the text could not be lifted. Nestor's own testing rule ('a guard that cannot be shown to fail has not been shown to work') is mutation testing stated as a principle; scripts/mutation_guard.py makes it a mechanism. Clean-room, stdlib-only, curated to the security and covenant guards.",
+  "decisions": [
+    {
+      "question": "The testing skill asserts every invariant has a refusal test. What proves those refusal tests would actually fail if the guard broke?",
+      "commitment": "scripts/mutation_guard.py -- a curated mutation harness. For each of four guards (the MCP seat gate, the write-review gate, seal-signature verification, edge-signature verification) it copies the tree, disables the guard with one exact single-occurrence substitution, runs only that guard's refusal test, and asserts the test FAILS ('killed'). A test that passes with the guard broken is 'survived'; a substitution whose anchor no longer exists is 'stale'; both fail the run non-zero. tests/test_mutation_guard.py asserts all four are killed and that the harness itself reports a deliberately-planted survivor and stale mutation -- so the harness cannot silently become a no-op.",
+      "why": "A refusal test only verifies a guard if it goes red when the guard is removed; a test that passes either way asserts nothing, which is the exact false-green this package exists to refuse. Curated rather than blanket (not mutmut sweeping every operator) because the guards that matter are nameable -- security and the propose-not-confirm covenant -- and each deserves to be paired with the specific test that is its reason to exist. Stdlib-only and operating on a throwaway tree copy keeps it dependency-light and keeps the real working tree untouched."
+    },
+    {
+      "question": "The mutation-testing idea came from Trail of Bits' CC-BY-SA-4.0 skill suite. How is it used without a license breach?",
+      "commitment": "Clean-room reimplementation: the idea (break a guard, assert its test notices) is used; none of ToB's SKILL.md text is copied, and the implementation is Nestor's own -- its own mutation set, its own harness, its own tests. ShareAlike attaches to the expression, not the idea, so a from-scratch Python harness against Nestor's own guards carries no CC-BY-SA obligation. The provenance is recorded here and in the script's own docstring.",
+      "why": "CC-BY-SA is incompatible with Nestor's permissive licensing -- copying the text would force ShareAlike onto Nestor's docs. This is the same licence discipline quick-stupids/PRIOR_ART.md already keeps: reuse what an Apache-2.0 repo may depend on, reimplement the rest clean. Recording the source idea in the same commit keeps the borrowing honest and searchable rather than laundered."
+    }
+  ]
+}
