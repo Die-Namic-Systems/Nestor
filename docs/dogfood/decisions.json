@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 281,
+    "pairs": 282,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "cec71580c870806e5d0fe70b0eac0abf0365f350a5620ad4774a72f602cf694b",
+  "digest": "10b13bfadcb7db58f43f14dd6e60060c0c19a17a8343033c39113aaa7185ca17",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -576,6 +576,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Re-ran it with the keyring unset. The clause reads `differently`, and the audit reads 0 failing rather than 1. IDEAS 6.98 amended in place to carry the second false verdict alongside the first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "41d5dea0-a21e-5986-95d5-be2e09424780",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when the presession hook finds no stoodup nestor does it build one print a command or ask the user",
+      "source_text": "When the pre-session hook finds no stood-up Nestor, does it build one, print a command, or ask the user?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Ask. _brain_section() is an if/then: installed AND stored AND non-empty hands the live store to the agent with the query command and asks nothing; any of not-installed, no store file, or an empty store returns a single _stand_up_prompt() line telling the agent to ask the user whether to stand one up, with the exact command, and the hook builds nothing. A SessionStart hook cannot run a prompt, so it hands the agent the question rather than acting.",
       "verifier": "",
       "weight": 1.0
     },

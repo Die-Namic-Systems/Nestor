@@ -94,28 +94,47 @@ def _pytest_line(root: Path) -> str:
     return f"[check] pytest: installed venv but runner errored — {hint}"
 
 
-def _brain_section(root: Path) -> str:
-    """Stand up the decision store for this session and hand it to the agent.
+def _stand_up_prompt(condition: str, fix: str) -> str:
+    """The not-yet-stood-up branch: ask, do not act.
 
-    Opens the committed store read-only, proves it answers with one live
-    verbatim retrieval, reports the matcher and the calibration bar it keys on,
-    and surfaces the standing blind spot honestly: a re-worded proposal below the
-    bar reads as 'no decision', so the bar is a per-corpus `nestor calibrate`
-    question, not a fact. The point is that the agent boots knowing the brain is
-    live and how to ask it — ``nestor decision check`` — before it proposes.
+    A SessionStart hook cannot run a prompt itself, so it hands the agent the
+    question to put to the user. Standing up a store is new scope, and this
+    repo's rule is propose-before-acting — so the hook never quietly builds one or
+    nags on every boot; it surfaces the choice only when there is one to make.
     """
+    return (f"[brain] {condition}. Ask the user whether to stand one up before "
+            f"proposing — a session without it boots blind to what has already "
+            f"been decided. Stand up with: {fix} (docs/decision-memory.md).")
+
+
+def _brain_section(root: Path) -> str:
+    """If Nestor is installed and stood up, hand it over. If not, ask.
+
+    An easy if/then. Installed **and** stood up: the live store is handed to the
+    agent with the command to query it — nothing is asked, because there is no
+    choice to make. Not installed, or no store, or an empty one: a single 'ask
+    the user whether to stand one up' prompt, and the hook builds nothing —
+    standing up is the user's call, not the boot's.
+    """
+    # Installed? The import is the check — the hook itself relies on it. A failure
+    # is a *state* (not installed), not a crash, so it becomes an ask, not a
+    # traceback swallowed by _guard.
+    try:
+        from nestor import memory, portable
+        from nestor.decision import DecisionMemory
+        from nestor.sqlite_store import SqliteStore
+    except Exception as exc:  # noqa: BLE001 — 'not installed' is a state to report
+        return _stand_up_prompt(
+            f"Nestor is not installed here ({type(exc).__name__})",
+            "`pip install -e .` in the repo .venv, then "
+            "`python scripts/dogfood_store.py --rebuild`")
+
+    # Stood up? The committed store must exist and hold rows.
     db = root.joinpath(*BRAIN_DB)
     if not db.is_file():
-        return ("[brain] decision store not built — no closed doors surfaced this "
-                "session. Build it: `python scripts/dogfood_store.py --rebuild` "
-                "(docs/decision-memory.md).")
-
-    # In-process, not a subprocess: `nestor` is importable because nestor-hook
-    # runs `python -m hooks.hook_runner` from the repo root. Guarded by _guard,
-    # so an import failure degrades to a status line rather than a broken boot.
-    from nestor import memory, portable
-    from nestor.decision import DecisionMemory
-    from nestor.sqlite_store import SqliteStore
+        return _stand_up_prompt(
+            "Nestor is installed but no decision store is stood up",
+            "`python scripts/dogfood_store.py --rebuild`")
 
     store = SqliteStore(str(db))
     try:
@@ -129,6 +148,11 @@ def _brain_section(root: Path) -> str:
         served = bool(DecisionMemory(store).constraints_on(probe)["live"]) if probe else False
     finally:
         store.close()
+
+    if not stats["total"]:
+        return _stand_up_prompt(
+            "Nestor is installed but its decision store is empty",
+            "`python scripts/dogfood_store.py --rebuild`")
 
     doors = stats["sealed"] or stats["total"]
     kind = "sealed" if stats["sealed"] else "recorded (all draft — proposed, none human-sealed)"

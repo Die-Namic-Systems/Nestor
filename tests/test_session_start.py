@@ -33,16 +33,39 @@ def test_the_brain_is_stood_up_with_the_query_command():
     assert "re-worded proposal below the bar" in ctx
 
 
-def test_a_missing_store_points_at_rebuild_not_a_crash(tmp_path):
-    """No committed store (a cold checkout that never rebuilt) surfaces the one
-    command that fixes it — and does not raise, because the brain is optional
-    context, not a boot precondition."""
+def test_a_missing_store_asks_the_user_not_crashes(tmp_path):
+    """No committed store (a cold checkout that never rebuilt): the if/then asks
+    the user whether to stand one up rather than acting — and does not raise,
+    because the brain is optional context, not a boot precondition."""
     seat = tmp_path / "hooks"
     seat.mkdir()
     (seat / "seat.md").write_text("[seat]", encoding="utf-8")
     ctx = build_context(tmp_path)
-    assert "[brain] decision store not built" in ctx
+    assert "no decision store is stood up" in ctx
+    assert "Ask the user whether to stand one up" in ctx
     assert "dogfood_store.py --rebuild" in ctx
+
+
+def test_an_empty_store_asks_the_user(tmp_path):
+    """Installed but a store with no rows is 'not stood up' too — same ask, not a
+    false 'up' on an empty brain."""
+    from nestor.sqlite_store import SqliteStore
+    (tmp_path / "hooks").mkdir()
+    (tmp_path / "hooks" / "seat.md").write_text("[seat]", encoding="utf-8")
+    db = tmp_path / "docs" / "dogfood" / "nestor.db"
+    db.parent.mkdir(parents=True)
+    SqliteStore(str(db)).memory_init()  # a real, empty store
+    ctx = build_context(tmp_path)
+    assert "its decision store is empty" in ctx
+    assert "Ask the user whether to stand one up" in ctx
+
+
+def test_up_and_stood_up_does_not_ask(tmp_path):
+    """The do-nothing branch: with the real committed store present, the section
+    hands it over and asks nothing — no stand-up prompt when there is no choice."""
+    ctx = build_context(REPO)
+    assert "Ask the user whether to stand one up" not in ctx
+    assert "[brain] decision store up:" in ctx
 
 
 def test_a_broken_section_degrades_to_a_line(monkeypatch):
