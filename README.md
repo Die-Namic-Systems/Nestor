@@ -309,10 +309,11 @@ nestor/
 ├── portable.py       export/import a memory without laundering trust
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
+├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
-├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings
+├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
@@ -378,6 +379,7 @@ docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.homestead househo
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
+docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
 docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
 docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
 docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it

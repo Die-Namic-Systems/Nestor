@@ -424,7 +424,7 @@ def test_conn_declares_no_schema_ready_default():
 #: construction, which is the vacuity `test_ledger_kinds.py` set the precedent
 #: against. Stable across interpreters: identical under 3.10/sqlite 3.45.1 and
 #: 3.11, because sqlite_master stores the DDL as written.
-PINNED_SCHEMA_DIGEST = "f42f4ae579f0c8bd"
+PINNED_SCHEMA_DIGEST = "be3695d2824b2ab0"
 
 
 def test_a_schema_change_has_to_be_a_deliberate_release_decision(tmp_path):

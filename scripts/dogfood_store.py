@@ -37,6 +37,7 @@ import hashlib
 import json
 import pathlib
 import sys
+import uuid
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -51,6 +52,12 @@ STORE_PATH = ROOT / "docs" / "dogfood" / "nestor.db"
 BUNDLE_PATH = ROOT / "docs" / "dogfood" / "decisions.json"
 
 DOMAIN = "decision"
+
+#: Fixed namespace so a row's id is a pure function of the decision it came from
+#: — identical across every rebuild and every machine. Not a secret and not
+#: signed; it exists only to make ``uuid5`` deterministic, the way the file
+#: order and the rows digest already are.
+_ID_NS = uuid.UUID("b6f2d1e0-9c3a-4a7b-8e5f-2d1c0b9a8f7e")
 
 
 def decision_files() -> list[pathlib.Path]:
@@ -75,11 +82,28 @@ def load_decisions() -> list[tuple[str, str, str, str]]:
             for d in dogfood_common.load_decisions(DECISIONS_DIR)]
 
 
+def _row_id(d: "dogfood_common.Decision") -> str:
+    """A row's id, as a pure function of the decision — stable across rebuilds."""
+    return str(uuid.uuid5(_ID_NS, f"{d.file}\x1f{d.question}\x1f{d.commitment}"))
+
+
 def build(store) -> dict:
-    """Feed every decision in as a draft. Returns ``memory.stats``."""
-    for question, commitment, why, origin in load_decisions():
-        memory.add_pair(question, commitment, DOMAIN, DOMAIN, status="draft",
-                        reason=why, origin=origin, store=store)
+    """Feed every decision in as a draft, with a **deterministic** id and
+    ``created_at`` so the committed store and bundle are byte-identical on every
+    rebuild.
+
+    The id is ``uuid5`` over ``(file, question, commitment)`` and the timestamp is
+    the decision file's own ``date`` — both pure functions of reviewed source. The
+    rows digest never depended on either; pinning them stops the *artifact*
+    churning, which used to bury a one-line change under ~560 lines of fresh
+    uuids and rebuild timestamps and made the committed store re-dirty on any
+    process that merely opened it.
+    """
+    for d in dogfood_common.load_decisions(DECISIONS_DIR):
+        created_at = f"{d.date}T00:00:00+00:00" if d.date else ""
+        memory.add_pair(d.question, d.commitment, DOMAIN, DOMAIN, status="draft",
+                        reason=d.why, origin=d.origin, pair_id=_row_id(d),
+                        created_at=created_at, store=store)
     return dogfood_common.assert_nothing_sealed(store)
 
 
@@ -88,6 +112,14 @@ def _bundle_digest(bundle: dict) -> str:
     rows = sorted((p["source_text"], p["target_text"], p["status"])
                   for p in bundle["pairs"])
     return hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode()).hexdigest()[:16]
+
+
+def _pin_bundle_time(bundle: dict) -> None:
+    """Replace the export's ``_now()`` envelope timestamp with the latest decision
+    date, so the committed bundle is a pure function of the decision files."""
+    dates = [p.get("created_at", "") for p in bundle.get("pairs", [])
+             if p.get("created_at")]
+    bundle["created_at"] = max(dates) if dates else ""
 
 
 def main() -> int:
@@ -111,6 +143,11 @@ def main() -> int:
     with dogfood_common.opened(None) as (root, fresh):
         stats = build(fresh)
         bundle = portable.export_bundle(fresh)
+        # The rows are pinned in build(); export_bundle still stamps the ENVELOPE
+        # with _now(), which alone would churn the committed file on every rebuild.
+        # Pin it to the latest decision date — deterministic, and the digest is
+        # over the rows, not this, so nothing downstream shifts.
+        _pin_bundle_time(bundle)
         digest = _bundle_digest(bundle)
         built = pathlib.Path(root) / "nestor.db"
 

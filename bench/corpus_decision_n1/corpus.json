@@ -1,0 +1,122 @@
+{
+ "0": {
+  "pid": "01ed0183-8145-5775-8dc3-f5c3c36e0e75",
+  "question": "If only one thing changes as a result, what should it be?",
+  "commitment": "Not the suite runtime, which is bounded and already filed. The store has never once answered a question for the person w"
+ },
+ "1": {
+  "pid": "0a4778d4-21a5-59a4-aeb1-3c116c176ba3",
+  "question": "Import the feeders or run them as subprocesses?",
+  "commitment": "Subprocesses, and a test pins it."
+ },
+ "2": {
+  "pid": "1403a2dd-a95e-5058-bdf3-9d012d3915c2",
+  "question": "A surface was told how its domain is keyed. Which of its answers have to honour that?",
+  "commitment": "All of them, and 'every' has to be enumerated rather than asserted."
+ },
+ "3": {
+  "pid": "1c407753-1aec-5ff6-8809-4e881c7573f6",
+  "question": "'Friction from the agent side' — friction the agent experienced, or friction the agent caused?",
+  "commitment": "Both, in two clearly separated sections. Section 1 is what the repository and container put in the agent's way, nine ite"
+ },
+ "4": {
+  "pid": "2203401e-e442-5905-abff-7ab9bd075144",
+  "question": "A supplied `seal_sig` does not verify. Refuse the whole call, or fall back to auto-signing as if none was supplied?",
+  "commitment": "Refuse -- `InvalidSealSignatureError`, raised before `store.memory_find`/`memory_insert`/`memory_seal` ever run, so noth"
+ },
+ "5": {
+  "pid": "2aa45d12-ce68-5257-b588-ea0a17121e85",
+  "question": "When the agent log itself was fed to Nestor, what was the key?",
+  "commitment": "The claim, with the entry number in `origin` pinned to a commit."
+ },
+ "6": {
+  "pid": "34ab72e2-9738-57c1-8d0b-fa7c1440250e",
+  "question": "Where does the label get its value on the paths that matter?",
+  "commitment": "import_bundle everywhere and export_bundle default to the process matcher; nestor.ui passes app.matcher on import and, o"
+ },
+ "7": {
+  "pid": "3cfc4739-6da9-5542-9db6-14e7da2f2b67",
+  "question": "Measuring what the store would serve needs sealed rows. Does the demo seal anything in the store that ships?",
+  "commitment": "No. The committed docs/dogfood/nestor.db stays all-draft (dogfood_store.py seals nothing); the demo copies it to a temp "
+ },
+ "8": {
+  "pid": "4c598633-c6a6-567d-bfcb-264dbf6657a6",
+  "question": "Why use a stray magazine article as test material rather than a designed fixture?",
+  "commitment": "Because the answers were not known when it started, and three of the four claims turned out to be wrong."
+ },
+ "9": {
+  "pid": "526e0e92-e1d6-5596-8fb4-505537380f99",
+  "question": "My glossary fix and upstream's landed independently. Which survives?",
+  "commitment": "Upstream's, entirely. Mine was dropped on rebase along with its tests and its `nestor stats` line."
+ },
+ "10": {
+  "pid": "5e0979ff-78db-5402-8ce1-8c7abdce0a53",
+  "question": "Where does jeles do better than this package?",
+  "commitment": "Receipts. It tells a caller what actually happened in two places where nestor_propose does not."
+ },
+ "11": {
+  "pid": "646c8ac1-e7e9-51fc-96e5-c7d757fce67d",
+  "question": "What does it do with a chain that does not verify?",
+  "commitment": "Refuses. No count, exit 1, and it names the chain as the problem."
+ },
+ "12": {
+  "pid": "6fb9dd47-ff02-57d5-9aa8-89d9eeff62d0",
+  "question": "The eight gap assertions pass. Do they mean anything?",
+  "commitment": "Proven by mutation, twice, before commit."
+ },
+ "13": {
+  "pid": "7666f7d7-19b9-5c51-b3d3-9840fac677ad",
+  "question": "The semantic seam cannot run in this box at all. Leave it unmeasured, or stand up a language model as a stand-in for the embedder?",
+  "commitment": "Stand one up, and make it recallable so it can be called repeatedly with one protocol rather than re-specified per call."
+ },
+ "14": {
+  "pid": "810966cd-a524-5d06-a17b-eff201dfd275",
+  "question": "A ledger line that will not parse is a state that cannot happen. What does the code do when it happens?",
+  "commitment": "It ignored it. entries() walked past and returned a shorter chain in silence. Fixed with a second walk — ledger.unreadab"
+ },
+ "15": {
+  "pid": "881f6a61-6577-5c23-a455-06952167a218",
+  "question": "What is the module actually for, if the demo it came from is not here?",
+  "commitment": "The three process globals: the ledger path, the store and the matcher. Desk.activate sets all three together and every a"
+ },
+ "16": {
+  "pid": "96a65094-8b2c-5bef-8c5a-21ce56c97c84",
+  "question": "Where does the private key live — the server, or the verifier's own device?",
+  "commitment": "Server-side, for now. The instance that signs holds its verifiers' private keys; only public keys travel. Browser/client"
+ },
+ "17": {
+  "pid": "9d92a859-eed9-5414-928d-c5eb04b0e3b3",
+  "question": "Seven extractors aimed at absent checkouts exited 0 with '0 pair(s)'. Fix them here, or file it?",
+  "commitment": "Filed as IDEAS 6.101, not fixed in this pass. The finding includes that tests/test_corpus_readers_fail_closed.py — the f"
+ },
+ "18": {
+  "pid": "a76a106b-1bd8-5a93-9d77-7ecfbc43a05c",
+  "question": "Is a glossary identity lock a way to express the Nestor/nestor case?",
+  "commitment": "No. locks_in_text case-folds, so the lock fires on the common noun too."
+ },
+ "19": {
+  "pid": "b11c72bc-d381-5878-81ea-334026d4697b",
+  "question": "The survey agents cannot reach the network and must name licences from memory. Accept the rows as returned, or check them?",
+  "commitment": "Check them. Twenty-one licence claims were read back from PyPI metadata. Most held; celery was claimed LGPL-3.0 and is B"
+ },
+ "20": {
+  "pid": "b89abc99-e108-53a9-b6f8-829eb7eebeed",
+  "question": "The listing printed something untrue during testing. What?",
+  "commitment": "The per-row tail marker ignored --expected-head, so following the command's own advice changed nothing on screen."
+ },
+ "21": {
+  "pid": "c687c0bd-908e-566d-b72a-c70978a52f99",
+  "question": "Was anything filed on jeles' side?",
+  "commitment": "No. Nothing was filed, written, imported or executed there."
+ },
+ "22": {
+  "pid": "d5171add-1147-570f-a660-9fde6a1f3f19",
+  "question": "The clean run's real key set is identical to the contaminated run's — 0 new, 0 gone. Is that worth recording, or is 'no difference' a non-result?",
+  "commitment": "Recorded, as the part that makes the diagnosis exact. Identical key sets mean the filesystem walk was adding rows and su"
+ },
+ "23": {
+  "pid": "e6342404-82a1-5c8b-b8d1-54beaa7d8142",
+  "question": "The UI 'Export bundle' button sends no domain tags. What matcher label should its whole-store export carry?",
+  "commitment": "The surface's own app.matcher. A domain-SCOPED request still routes through _domain_matcher (app.matcher for the App's d"
+ }
+}

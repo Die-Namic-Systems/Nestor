@@ -15,6 +15,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor db checkpoint --out copy.db    # db + copy.ledger.jsonl (use --no-ledger to omit chain)
     nestor import memory.json             # DRY RUN by default; --apply commits
     nestor ledger verify                  # exit 1 on a broken chain, for CI
+    nestor decision check "may X?"        # exit 1 on a recorded rejection or
+                                           # contradicts edge, for CI (docs/decision-memory.md N9)
     nestor stats
     nestor calibrate --from en --to es    # where the threshold belongs for this corpus
     nestor rejections                     # what the recorded "no"s say in aggregate
@@ -144,6 +146,73 @@ def cmd_match(args) -> int:
            else f"! would not be served — {result['reason']}\n"
                 f"  normalized to {result['normalized']!r}"))
     return EXIT_OK if result["served"] else EXIT_ANSWER_IS_NO
+
+
+def cmd_decision(args) -> int:
+    """``nestor decision check`` — a CI gate over the decision graph
+    (docs/decision-memory.md N9(1)).
+
+    Mirrors ``nestor ledger verify``'s exit-code contract exactly: 0 means the
+    question is clear to propose against, 1 means something already committed
+    blocks it, 2 is a usage error. This is the one point in the whole document
+    that fires without anyone choosing to consult anything — it is meant to
+    sit in a required CI check, not to be run by hand.
+    """
+    if args.decision_command != "check":
+        return EXIT_USAGE
+    question = args.question
+    if not question or not question.strip():
+        print("a question is required: nestor decision check \"<question>\"",
+              file=sys.stderr)
+        return EXIT_USAGE
+    if args.source_lang != args.target_lang:
+        # DecisionMemory has exactly one domain, ridden in both language tags
+        # (N8, the same trick EntityResolver uses) — there is no such thing as
+        # a decision graph with a different --from and --to, so accepting one
+        # silently would mean the check ran against a domain the caller never
+        # meant to ask about.
+        print(f"--from and --to must match for a decision domain (got "
+              f"{args.source_lang!r} and {args.target_lang!r}) — a decision's "
+              f"domain rides in both tags identically, docs/decision-memory.md N8",
+              file=sys.stderr)
+        return EXIT_USAGE
+    store = _store(args)
+    from .decision import DecisionMemory
+    dm = DecisionMemory(store, domain=args.source_lang)
+    result = dm.constraints_on(question)
+    contradicts = [c for c in result["constraints"] if c["kind"] == "contradicts"]
+    blocked = bool(result["rejected"]) or bool(contradicts)
+    payload = {"question": question, "domain": args.source_lang, "blocked": blocked,
+              "rejected": result["rejected"], "contradicts": contradicts,
+              "live": result["live"], "match": "exact"}
+    if args.json:
+        _emit(payload, True)
+    else:
+        if not blocked:
+            # `constraints_on` matches the question by exact normalized form, so a
+            # clear result means "clear at this wording", not "no such constraint
+            # exists". Saying only the former would be the §6.14 hazard — silence
+            # read as a "no". N1 is now benched (docs/decision-rewording-bench.md):
+            # character/token matchers score a re-worded decision below the bar
+            # (0% recall), so no fuzzy character swap fixes this — a paraphrase of
+            # a rejected question is still NOT caught.
+            print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}\n"
+                  f"  (exact-wording match only; a re-worded proposal is not caught — "
+                  f"N1: char/token can't fix it at the bar, docs/decision-rewording-bench.md)")
+        else:
+            print(f"✗ BLOCKED — {question!r} carries a recorded constraint:")
+            for r in result["rejected"]:
+                reason = r["reason"] or "(no reason recorded)"
+                if r["reopen_when"]:
+                    print(f"  rejected — {reason}\n"
+                          f"    a condition to re-check: {r['reopen_when']}")
+                else:
+                    print(f"  rejected (permanent, no reopen_when) — {reason}")
+            for c in contradicts:
+                other = c["other_commitment"] or c["other_id"]
+                why = f" — {c['edge_reason']}" if c["edge_reason"] else ""
+                print(f"  contradicts {other!r}{why}   (sealed by {c['verifier']})")
+    return EXIT_ANSWER_IS_NO if blocked else EXIT_OK
 
 
 # --------------------------------------------------------------------------
@@ -522,6 +591,13 @@ def build_parser() -> argparse.ArgumentParser:
     mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
     mat.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
     mat.set_defaults(func=cmd_match)
+
+    dec = sub.add_parser("decision",
+                         help="the decision graph — a CI gate over recorded constraints")
+    dec.add_argument("decision_command", choices=("check",))
+    dec.add_argument("question", help="the question a proposal is about to answer")
+    domain_args(dec, source="decision", target="decision")
+    dec.set_defaults(func=cmd_decision)
 
     exp = sub.add_parser("export", help="write a portable, re-importable bundle")
     exp.add_argument("--out", default="", help="file to write (default: stdout)")
