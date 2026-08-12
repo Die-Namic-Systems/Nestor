@@ -7589,3 +7589,59 @@ subtract — which is how it was found. A boundary nobody wrote down is
 indistinguishable from a boundary nobody noticed, and the cost falls on whoever
 next asks "is the decision record in the corpus?" and has to spend the same
 minutes proving it is not.
+
+### 6.106 Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones — **measured**, fix **open**
+
+*Measured 2026-08-12 on a 263-decision corpus, extending §6.94 rather than
+contradicting it.* §6.94 measured paraphrase recall at 2/10 and first-sentence
+recall at 4/50, and read the misses generously: *"the threshold refusing to serve
+a decision it is not sure it was asked, not the memory failing."* This entry asks
+the question that reading depends on and §6.94 did not measure — **where is the
+correct row in the ranking?** — because "below the bar at rank 1" and "below the
+bar at rank 110" have opposite fixes and are indistinguishable from the served /
+pending counts alone.
+
+Three probes, each with a known correct row, against `StringMatcher`:
+
+| probe | rank of correct row | its score | top score |
+|---|---|---|---|
+| "Can a language model stand in for the embedder?" | **1 / 263** | 0.523 | 0.523 |
+| "An extractor reported zero rows. What does that mean?" | **1 / 263** | 0.458 | 0.458 |
+| "Should I trust a licence a model told me?" | **110 / 263** | 0.289 | 0.562 |
+
+**Two of three rank first.** For those, retrieval is already doing its job and
+only the 0.92 bar stands between the question and its answer — §6.94's reading is
+exactly right, and the memory is not failing.
+
+**The third collapses, and the reason is visible in the losers.** Its top five
+are `Should seal staleness be a decaying weight column?` (0.562), `Should the
+fixture stay one file…` (0.500), `Should the test suite depend on jeles…`
+(0.495) — every one sharing the `Should…` interrogative stem and nothing else.
+The probe carried almost no distinctive content words ("trust", "licence",
+"model"), so character ratio scored sentence *shape*. The two that ranked first
+both carried content the corpus does not repeat — "embedder", "extractor",
+"zero rows".
+
+So the failure is **not uniform and not a property of the corpus size**. It is a
+property of how much distinctive content the question carries, which means the
+two obvious fixes address different halves: calibrating the threshold down would
+serve the rank-1 cases correctly and would serve the rank-110 case *wrong*, which
+is worse than pending and is the outcome the bar exists to prevent. Only a
+matcher that discounts shared stems — `DefectMatcher`'s identifier weighting,
+`bench/token_matchers.py`'s token-weighted variants — moves the third case, and
+§6.94 already measured that DefectMatcher costs paraphrase recall (2/10 → 1/10)
+while removing collisions.
+
+**A correction to something asserted three messages earlier in this session.**
+Asked whether Nestor could yet help build the ideas in Nestor, I answered no, and
+said *"if you sealed all 263 rows tomorrow, retrieval would still hand back the
+wrong row."* That is false for two of the three probes, where the right row is
+already rank 1. The claim came from reading one probe's top-five, seeing
+unrelated rows, and generalising — the same error as §6.104's, three days'
+worth of lessons apart and about ninety minutes apart in fact. **The rank was one
+query away and I asserted the general case without running it.**
+
+The corrected answer is narrower and more useful: for a question carrying
+distinctive vocabulary, the store already finds its answer and is waiting on a
+human signature and a calibrated bar. For a short generic question, it does not,
+and no threshold rescues it.
