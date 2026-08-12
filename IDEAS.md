@@ -7193,3 +7193,52 @@ synthetic verifier should build its own keyring in its own temp root and ignore
 the probe should distinguish "the clause failed" from "the probe could not run"
 — they are printed identically today, and only one of them is about the subject.
 `docs/local-fleet.md` carries the workaround until one of those lands.
+
+### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
+
+*Measured 2026-08-12, because both real backends were unreachable.* `[semantic]`
+needs weights from `huggingface.co` and the `ollama` backend needs a daemon from
+`ollama.com`; egress policy denies both, so the semantic seam could not be
+exercised in this container at all. A small model was stood up as a scoring
+service in place of the embedder — not producing vectors, but answering the
+`score(raw_a, raw_b) -> float` half of the Matcher seam directly.
+
+**What it buys, and the number is large.** Asking for `willow-gate` and reaching
+its own one-line description scores **0.098** under `StringMatcher` — invisible,
+below every threshold, unreachable by character ratio — and **0.900** under the
+stand-in. The inverse holds too: `homestead-law` against `homestead-ledger`
+scores **0.741** on characters, the highest non-identical score in the sample,
+and drops to 0.600 on meaning. That pair of failures is the whole argument for a
+semantic matcher in this store, and neither was measurable here until now.
+
+**What it is not is deterministic, and the first measurement said it was.** The
+agent re-scored four pairs and reproduced all four exactly — same floats, same
+note strings verbatim. That looked like a stable function and was not: it had
+been resumed from its own transcript and could read its previous answers. A
+fresh instantiation of the identical protocol moved every non-identical pair:
+
+| pair | recalled | fresh | drift |
+|---|---|---|---|
+| `willow-gate` / `willow-config` | 0.500 | 0.450 | −0.050 |
+| `homestead-law` / `homestead-ledger` | 0.600 | 0.550 | −0.050 |
+| `quiet-corner` / `quick-stupids` | 0.175 | 0.150 | −0.025 |
+| store brief / kartikeya brief | 0.475 | 0.400 | −0.075 |
+
+Mean absolute drift 0.050, max 0.075, and **every one moved down** — a bias
+between instantiations rather than noise around a value. Two invariants
+survived: identical strings return exactly 1.000 in both, and a deliberate
+contradiction in the rubric reproduced identically in both, which is what
+identifies it as a prompt defect rather than agent drift.
+
+**The consequence is in `embedding_store.py`.** The cache keys vectors by
+`model_name`, and a key is a promise that the function behind it is fixed. Keyed
+to a model that is re-instantiated per call, a cache hit and a fresh call are not
+interchangeable, and the row that was cached is not the row a re-run produces.
+Nothing here flips a seal at the shipped 0.92 — all observed drift is far below
+it — but a pair scoring inside roughly 0.85–0.99 could land on either side
+depending on which instantiation scored it. Six pairs is too few to put a rate
+on that, and saying which pairs sit in that band needs a corpus, not a sample.
+
+The honest reading is that this is a **measuring instrument, not a backend**: it
+makes the seam's value visible where nothing else could, and it must not key a
+cache or key a seal.
