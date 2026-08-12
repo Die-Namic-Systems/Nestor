@@ -7849,3 +7849,72 @@ to spare, not after they shipped.**
 Still open, and small: the front-end has no JS test harness, so `moodFromState`
 and its kin are verified live (Playwright) and by construction, not by a CI unit
 test. Standing that up is the only named follow-up this entry leaves.
+
+---
+
+## 7. Rubrics — the criterion the brain scored against first
+
+**Status: open.** A rubric is a set of named criteria, each resolving to a
+verdict — `check → status`, `criterion → score`. The operator's claim, worth
+testing rather than asserting: the whole decision loop started here. Scoring an
+input against fixed criteria to a verdict, and holding that verdict as a *draft
+until a human agrees*, is not adjacent to Nestor's seal-and-matcher machinery —
+it may be the same machine, met first in a different domain. This section opens
+that inquiry the way the dev-skills and the hook suite were opened — survey what
+the fleet already has, survey what the outside world has, re-land the cream
+clean-room — but first it has to settle whether a rubric is a *domain* the
+existing recipe already answers or a shape that needs its own.
+
+**The footprint inside the tree is already load-bearing.** The corpus extractors
+treat a rubric as a first-class document shape, not prose: the "standing security
+rubric" — one row per check, `# | check | status | notes` — is pulled out
+alongside `findings` and `rules` and counted as its own kind (§6.51 onward; 15
+rows, then 17, then 35 as the rungs grew). More telling than that it is *parsed*
+is that it can be *wrong in a checkable way*: a rubric that contradicted itself
+had its diagnosis survive a fresh-context read even where the surface scores did
+not (§6, ~§7253/§7275) — two clauses that both applied, resolved the same way
+both times. The fleet's embedder stand-in met the same defect from the other side
+(decision `0084`): a similarity rubric scored a look-alike-names pair 0.500/0.600
+where its own rule said ≤0.35, because a second clause ("same family, different
+subject") applied equally — a rubric defect, confirmed by a fresh control, not
+agent drift. And the seal covenant is itself rubric-shaped: *has a human checked
+this against the criteria* is one row of a rubric; the matcher's bar is a rubric
+threshold; a decision is a draft until it is scored and sealed. If that reading
+holds, Nestor has been building a rubric engine and calling it a decision store.
+
+**The footprint outside the tree is wide and, unusually, license-clean.** The
+assessment-visibility framework — `DispatchesFromReality/education/assessment-visibility-v1.1`,
+mirrored into `quiet-corner` and downstream of `terpsi-music` — is rubrics end to
+end: classroom-signals vocabularies, expressive-pathway rubrics, the E4 "explain
+this to your principal" translation, all CC BY 4.0 with the author named. That is
+a large, permissively-licensed corpus of *how humans build and defend rubrics*,
+sitting in the operator's own repos and pointed outward. Past it, the open world
+has two more bodies: the education-assessment literature (rubric design,
+inter-rater reliability — the exact precision/recall-of-a-human-judgment problems
+the matcher work keeps rediscovering), and the LLM-as-judge / scoring-rubric
+practice now standard in evaluation. Both are the "wide context in the outside
+world" the operator flagged; both want the same survey-and-re-land discipline the
+skills and hooks got, with the same license gate.
+
+**Open questions, before anything is built.**
+
+1. **Is a rubric a domain, or a new recipe?** A rubric row is `criterion →
+   verdict`, sealed — question → commitment with a threshold, which the decision
+   recipe may already answer, making a rubric a *view* rather than new machinery.
+   But if a rubric's rows constrain each other (the self-contradiction above), it
+   is a *graph* of criteria, closer to the decision-edge covenant than to a flat
+   key-value. **Status: open.** Settle this first; everything downstream forks on
+   it.
+2. **Should "a rubric contradicts itself" be a check Nestor runs?** The
+   contradiction reproduced across models and across two domains (the security
+   rungs, the embedder stand-in). A `conflict_scan` over a rubric's criteria — does
+   clause A ever fire where clause B forbids — is the same *search-for-what-refutes*
+   Jeles already does for prior art. **Status: hypothesis.**
+3. **Is assessment-visibility the first re-land target?** Widest, cleanest-licensed,
+   already in-repo — but also the most sensitive (minors' education records govern
+   `terpsi-music`), so re-landing its rubric *machinery* must not drag its *data*
+   or its domain nouns. **Status: open.**
+
+The one-line thesis to keep or kill: *the brain did not begin as retrieval; it
+began as scoring against a rubric, and retrieval was the part that came second.*
+Everything above is evidence for testing it, not yet for believing it.
