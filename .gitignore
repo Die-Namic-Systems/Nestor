@@ -45,3 +45,7 @@ bench/results/local/
 
 # scratch review desk — the path hooks/before_write.py tells you to use
 .review/
+
+# Keyrings hold verifier keys — runtime trust material, not source (like *.db
+# above). A local seal keyring must never be committed.
+keyring.json
