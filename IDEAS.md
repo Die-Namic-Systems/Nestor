@@ -7333,3 +7333,54 @@ repository that declares nothing.
 The fix is the one the feed family already took — refuse before reading, in
 words that name which of the two happened — plus rows in the existing table so
 the seventeen are covered by the gate that claims their name.
+
+### 6.102 The extractors walk the working tree, so following this repo's own setup instructions poisons its corpus — **verified**, fix **open**
+
+*Found 2026-08-12, in the same sweep as §6.101.* `extract_standard.py` against
+this repository produced 19,804 rows. **18,665 of them — 94% — came from
+`.venv/lib/python3.11/site-packages/`**: Pillow, numpy and httpx docstrings,
+filed with origins reading
+
+```
+Nestor@f1fea81:.venv/lib/python3.11/site-packages/PIL/BlpImagePlugin.py#decode_dxt1
+```
+
+The real count for this repository is **1,139**.
+
+**The provenance is not noisy, it is wrong.** `Nestor@f1fea81:` asserts that a
+row is a shape declared by this repository at that commit. None of those 18,665
+files are in that commit, or in any commit — `.venv/` is gitignored. A corpus
+whose whole purpose is to carry where a claim came from filed eighteen thousand
+claims under a repository and a revision that never contained them. Everything
+downstream inherits it: `compare.py` classifies agreement *between* repositories,
+and two repos with the same dependency installed would now "agree" on numpy's
+docstrings, attributed to both.
+
+**The reason it only bit here is the sharp part.** Of twenty-six stores built in
+this sweep, exactly one is contaminated, and it is contaminated because
+`AGENTS.md` and `docs/agent-guide.md` instruct every agent to run `python -m venv
+.venv` **at the repo root** before doing anything else. The other twenty-five
+repositories were never set up that way in this box, so they are clean. Following
+this repository's documented setup is the thing that breaks this repository's
+extractor, which is why a clean checkout can never reproduce it and why it
+survived seventeen scripts and a documented corpus-order exercise.
+
+Two further consequences, both already visible in the run:
+
+- **It is why the run timed out.** The first attempt was killed at 300s having
+  written 11,105 rows — a prefix silently presented as a store. Walking
+  site-packages is the cost; `bench/README.md` already warns *"check `complete`
+  before citing a number"*, and this family has no such flag at all.
+- **The summary statistic is about the wrong software.** The run reports
+  *"docstring coverage: 21065/59930 (35%) definition(s) carry one"*. Nestor's
+  package is roughly thirty modules; 59,930 definitions is Pillow and numpy. The
+  number reads as a fact about this codebase and is a fact about its
+  dependencies.
+
+The fix is to take the file list from `git ls-files` rather than from a
+filesystem walk — the tree the origin string already claims to be quoting. A path
+allow/deny list would also work and is weaker: it needs updating for every new
+build artifact directory, and `.venv` was not the first and will not be the last.
+`extract_data_vault.py` (§6.101) shows the other end of the same class — an
+allowlist naming directories that no longer exist, reporting 0 rows that read as
+an empty repository.
