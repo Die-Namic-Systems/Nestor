@@ -104,6 +104,31 @@ CREATE TABLE IF NOT EXISTS tm_embeddings (
     sig         TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (pair_id, model_name)
 );
+
+-- Decision graph (docs/decision-memory.md N6). The one genuinely new table:
+-- an edge relating one decision to another, which turns a memory of verified
+-- answers into a memory of how they constrain each other. `src_id` is the
+-- later decision, `dst_id` the one it relates to; `kind` is one of
+-- supersedes | refines | depends_on | contradicts.
+--
+-- `edge_sig` is not decoration. An edge is a ratifiable claim of the same
+-- weight as a seal -- "this depends on that" is a human judgment -- so under
+-- the covenant the machine may PROPOSE an edge (edge_sig='') and may not
+-- confirm it. Only a signed edge is ever traversed as fact; a proposed one
+-- waits in the graph for a human's key, exactly as a draft pair waits for a
+-- seal.
+CREATE TABLE IF NOT EXISTS decision_edges (
+    id         TEXT PRIMARY KEY,
+    src_id     TEXT NOT NULL,
+    dst_id     TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    reason     TEXT NOT NULL DEFAULT '',
+    verifier   TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    edge_sig   TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_decision_edges_dst ON decision_edges(dst_id, kind);
+CREATE INDEX IF NOT EXISTS idx_decision_edges_src ON decision_edges(src_id, kind);
 """
 
 
@@ -670,6 +695,63 @@ class SqliteStore:
                 row = dict(r)
                 chain.append(row)
                 current = row["id"]
+
+    # --- decision graph (optional; docs/decision-memory.md N6) ------------
+
+    def memory_add_edge(self, edge: dict) -> None:
+        """Insert one decision edge verbatim.
+
+        The recipe (:class:`nestor.decision.DecisionMemory`) owns the ceremony —
+        which kinds are legal, signing, the ledger entry — exactly as
+        ``memory.supersede_pair`` owns it for ``memory_mark_superseded``. This
+        just persists the row it is handed.
+        """
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO decision_edges (id, src_id, dst_id, kind, reason, "
+                "verifier, created_at, edge_sig) VALUES (?,?,?,?,?,?,?,?)",
+                (edge["id"], edge["src_id"], edge["dst_id"], edge["kind"],
+                 edge.get("reason", ""), edge.get("verifier", ""),
+                 edge["created_at"], edge.get("edge_sig", "")))
+
+    def memory_edges_to(self, dst_id: str, kind: str = "") -> list[dict]:
+        """Every edge pointing AT ``dst_id`` (optionally one ``kind``), newest
+        first. Whether each is a sealed fact or a mere proposal is the caller's
+        call, over ``edge_sig`` — the store returns both."""
+        q = "SELECT * FROM decision_edges WHERE dst_id=?"
+        args: tuple = (dst_id,)
+        if kind:
+            q += " AND kind=?"
+            args += (kind,)
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                q + " ORDER BY created_at DESC, id", args)]
+
+    def memory_edges_from(self, src_id: str, kind: str = "") -> list[dict]:
+        """Every edge OUT of ``src_id`` (optionally one ``kind``), newest first."""
+        q = "SELECT * FROM decision_edges WHERE src_id=?"
+        args: tuple = (src_id,)
+        if kind:
+            q += " AND kind=?"
+            args += (kind,)
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                q + " ORDER BY created_at DESC, id", args)]
+
+    def memory_seal_edge(self, edge_id: str, verifier: str,
+                         edge_sig: str) -> bool:
+        """Ratify a proposed edge: attach a verifier and their signature.
+
+        The write half of an edge seal; :class:`nestor.decision.DecisionMemory`
+        owns the ceremony (verifies the signature first, ledgers it). Returns
+        whether a row moved, so a caller sealing an edge that was retired or
+        never existed hears about it rather than silently succeeding.
+        """
+        with self._db() as conn:
+            cur = conn.execute(
+                "UPDATE decision_edges SET verifier=?, edge_sig=? WHERE id=?",
+                (verifier, edge_sig, edge_id))
+            return cur.rowcount == 1
 
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 

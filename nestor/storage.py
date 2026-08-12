@@ -433,6 +433,25 @@ def supports_lineage(store: "Storage") -> bool:
     return all(callable(getattr(store, op, None)) for op in _LINEAGE_OPS)
 
 
+_EDGE_OPS = ("memory_add_edge", "memory_edges_to", "memory_edges_from",
+             "memory_seal_edge")
+
+
+def supports_edges(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional decision-graph capability
+    (docs/decision-memory.md N6).
+
+    Its own predicate rather than a fourth entry in :data:`_LINEAGE_OPS`, on
+    :func:`supports_atomic_supersede`'s precedent: that tuple is all-or-nothing,
+    so extending it would report every host store implementing the existing
+    lineage pair as having *no* lineage capability at all. Without this,
+    :class:`nestor.decision.DecisionMemory` still records and seals decisions —
+    it just cannot relate one to another, so ``constraints_on`` returns the
+    live decision and its rejected alternatives but no graph neighbours.
+    """
+    return all(callable(getattr(store, op, None)) for op in _EDGE_OPS)
+
+
 _store: "Optional[Storage]" = None
 
 

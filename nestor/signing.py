@@ -484,3 +484,60 @@ def seal_is_valid(source_norm: str, target_text: str, verifier: str,
         return False
     message = _message(source_norm, target_text, verifier)
     return any(_verifies_with(kind, k, message, seal_sig) for kind, k in refs)
+
+
+def _edge_message(src_id: str, dst_id: str, kind: str) -> bytes:
+    """The bytes a decision-edge signature is taken over (docs/decision-memory.md
+    N6).
+
+    Tagged with a literal ``"edge"`` as element 0 so an edge signature can never
+    be a seal or a rejection. A seal message is a 3-element array of field
+    values; a rejection is a 5-element array led by ``"rejection"``; an edge is a
+    4-element array led by ``"edge"`` — a constant no ``src_id`` produces. Same
+    ``json.dumps(separators=(",",":"), ensure_ascii=False)`` FROZEN encoding as
+    :func:`_message`, so an out-of-process signer (the openssl / WebCrypto flow a
+    human seals an edge with) reproduces it byte-for-byte.
+    """
+    return json.dumps(["edge", src_id, dst_id, kind],
+                      separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def sign_edge(src_id: str, dst_id: str, kind: str, verifier: str,
+              key: Optional[bytes] = None) -> str:
+    """Signature over an edge's bound fields. ``""`` when signing is off.
+
+    An edge — "this decision supersedes / refines / depends_on / contradicts
+    that one" — is a human judgment of the same weight as a seal, so it resolves
+    keys the seal way (:func:`_signing_ref`) and an unregistered verifier is
+    *refused*, not recorded unsigned as a rejection would be. The covenant reason
+    is the same as the seal's: a name on a ratification that nothing backs is the
+    forgery the signature exists to stop.
+    """
+    ref = _signing_ref(verifier, key)
+    if ref is None:
+        return ""
+    key_kind, secret = ref
+    return _sign_with(key_kind, secret, _edge_message(src_id, dst_id, kind))
+
+
+def edge_is_valid(src_id: str, dst_id: str, kind: str, verifier: str,
+                  edge_sig: str, key: Optional[bytes] = None) -> bool:
+    """Whether ``edge_sig`` verifies this edge under ``verifier``'s key.
+
+    Unlike a seal, an edge carries no ``status`` column — the signature *is* the
+    seal — so an edge with no signature is a **proposal**, never a fact, and this
+    returns ``False`` for an empty signature regardless of signing mode. That is
+    the covenant made mechanical: ``constraints_on`` traverses an edge only when
+    this returns ``True``, so a machine-proposed edge (``edge_sig=""``) cannot
+    constrain anything until a human signs it. With a present signature the rule
+    matches :func:`seal_is_valid` — under a keyring it must verify under the key
+    of the verifier named on it, and with signing off a present signature is
+    trusted (legacy).
+    """
+    if not edge_sig:
+        return False
+    refs = _verifying_refs(verifier, key)
+    if not refs and not keyring_mod.enabled():
+        return True  # signing disabled — a present signature is trusted (legacy)
+    message = _edge_message(src_id, dst_id, kind)
+    return any(_verifies_with(k, kb, message, edge_sig) for k, kb in refs)
