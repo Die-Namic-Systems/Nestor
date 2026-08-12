@@ -7242,3 +7242,45 @@ on that, and saying which pairs sit in that band needs a corpus, not a sample.
 The honest reading is that this is a **measuring instrument, not a backend**: it
 makes the seam's value visible where nothing else could, and it must not key a
 cache or key a seal.
+
+### 6.100 One gate for every change class, and what that costs a session with a human waiting in it — **measured**, fix **open**
+
+*Observed 2026-08-12, from the outside.* `AGENTS.md` prescribes one verification
+step and prescribes it unconditionally: `bash scripts/ci-lint.sh` and `python -m
+pytest -q` before you push. That is correct for a change to `nestor/`, and it is
+the only instruction offered, so a change touching nothing but `IDEAS.md` and
+`docs/dogfood/decisions/*.json` pays the identical price.
+
+Measured on this tree today:
+
+| gate | scope | cost |
+|---|---|---|
+| `python -m pytest -q` | 979 tests | 96.6–107.3s across four runs |
+| `test_docs` + `test_open_findings` + `test_dogfood_store` | 46 tests | 7.2s (16.0s wall) |
+| `dogfood_store.py --verify` | the digest gate | 0.6s |
+
+Those 46 are the tests a documentation or decision-file change can actually
+break — the README layout gates, the IDEAS status gate, and the store's own
+rebuild check. Nothing else in the suite reads those files. Three full runs were
+spent today on changes of exactly that shape, which is roughly five minutes
+bought nothing.
+
+**The second cost is the one that does not show up in a timing table.** In an
+interactive session the gate is not a background job; it is a wall between the
+operator's last instruction and their next one. A session running an ordered
+sequence of small steps pays it *per step*, and the agent — which experiences no
+duration — will keep choosing the maximal gate because the guidance says to and
+because it is never the party waiting. The operator here named it directly, and
+the agent had not noticed across four consecutive rounds of doing it.
+
+Both halves are the same defect: **the guidance names one gate and no change
+classes**, so there is no way to be correct and cheap at once, and the failure
+mode is silent because over-verifying always passes.
+
+What a fix looks like, none of it written: a change-class table in `AGENTS.md`
+mapping touched paths to the gate they owe; a `scripts/ci-lint.sh` sibling that
+runs the docs subset; and, for the interactive case, the standing default that
+anything over ~10s goes to the background rather than in front of the next
+prompt. The last one is a working agreement rather than code, which is exactly
+why it belongs written down where the next session reads it — nothing enforces
+it, and the agent that just learned it will not be the agent in the room.
