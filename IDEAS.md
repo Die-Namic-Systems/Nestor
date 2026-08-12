@@ -8152,6 +8152,23 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   the whole story. **Status: hypothesis** — the CCR session-start bootstrap already
   does most of what a devcontainer would, so the fleet may answer this a different
   way.
+- **Onboarding and install — the first five minutes.** Present as raw materials: a
+  `nestor` console entry point (`pyproject.toml` `[project.scripts]`), a `nestor
+  demo` that seeds a live store for `nestor ui`, and a tested README quick-start.
+  Absent is the thing those three gesture at and none delivers — an *actual*
+  first-run. No one-line install beyond `pip install -e .` (no `pipx` recipe, no
+  `curl | sh`, no Homebrew tap), and no playful, guided onboarding: a `nestor init`
+  that walks a newcomer through asking, resolving, and **sealing their first
+  decision**, rather than a seeded store they have to already know to open. This is
+  the *user's* on-ramp — distinct from the contributor row above, which is the
+  developer's. It is also the one gap on this list a user meets before any of the
+  others, and the industry standard for it is loud and well-loved (`create-*-app`
+  scaffolders, `gh auth login`, the deliberate delight of a good first-run).
+  **Status: open** for the install story — concrete, standard, cheap. **Status:
+  hypothesis** for *how playful* to make the onboarding: a propose-never-confirm
+  governance tool that greets a newcomer with a wizard is a real tonal question —
+  the seal is the one moment the tour cannot fake, since only a human may set it —
+  so this is built small and tested against the covenant, not assumed.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,
