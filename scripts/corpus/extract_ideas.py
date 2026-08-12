@@ -59,11 +59,18 @@ STATUS = re.compile(r"\*\*([a-z][a-z ]*)\*\*")
 
 
 def read_ref(ref: str, path: str = "IDEAS.md") -> tuple[str, str]:
-    """``(text, short commit)`` for a file at a git ref."""
-    def git(*args):
+    """``(text, short commit)`` for a file at a git ref.
+
+    ``text`` is ``""`` when ``path`` does not exist at ``ref`` — the §6 log
+    moved to ``docs/agent-log.md``, which is absent on refs from before the
+    split, so a caller reading both files must tolerate one being missing.
+    """
+    def git(*args, check=True):
         return subprocess.run(["git", *args], capture_output=True, text=True,
-                              timeout=120, check=True).stdout
-    return git("show", f"{ref}:{path}"), git("rev-parse", "--short", ref).strip()
+                              timeout=120, check=check)
+    commit = git("rev-parse", "--short", ref).stdout.strip()
+    show = git("show", f"{ref}:{path}", check=False)
+    return (show.stdout if show.returncode == 0 else ""), commit
 
 
 def entries(text: str) -> list[tuple[str, str, str, str]]:
@@ -91,7 +98,8 @@ def entries(text: str) -> list[tuple[str, str, str, str]]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--ref", action="append", required=True,
-                    help="git ref to read IDEAS.md from; repeat for each branch")
+                    help="git ref to read IDEAS.md and docs/agent-log.md from; "
+                         "repeat for each branch")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -104,12 +112,17 @@ def main() -> int:
     numbers: dict[str, set] = collections.defaultdict(set)
     root = pathlib.Path.cwd()
     for ref in args.ref:
-        text, commit = read_ref(ref)
-        for number, claim, verdict, prov in entries(text):
-            numbers[number].add(claim)
-            reason = f"§{number} @ {ref}" + (f" — {prov}" if prov else "")
-            rows.append((claim, verdict, reason, root / "IDEAS.md",
-                         f"{number}@{commit}"))
+        # §1–§5/§7/§8 live in IDEAS.md; §6 moved to docs/agent-log.md. Read both
+        # (the log is absent on pre-split refs, where read_ref returns "").
+        for rel in ("IDEAS.md", "docs/agent-log.md"):
+            text, commit = read_ref(ref, rel)
+            if not text:
+                continue
+            for number, claim, verdict, prov in entries(text):
+                numbers[number].add(claim)
+                reason = f"§{number} @ {ref}" + (f" — {prov}" if prov else "")
+                rows.append((claim, verdict, reason, root / rel,
+                             f"{number}@{commit}"))
 
     origin = provenance.Origin("ideas", root, __file__)
     store = SqliteStore(str(out))
