@@ -89,3 +89,11 @@ that some question-shaped probes have **no single right entry** and should retur
 several ranked drafts to a human rather than one served answer. That is the same
 place §3.4 landed: for prose-shaped retrieval the mechanic is queue ordering, not
 auto-serve — and this corpus agrees.
+
+> **Body-matching was then measured** —
+> [`body-matching-measurement.md`](body-matching-measurement.md). Scoring probes
+> against chunked entry *bodies* serves the correct referent on 5/5 probes and
+> fixes both misses surfaces could not (the model-verify answer was in §5.7's
+> body all along). The open problem moves from recall to **precision**: body
+> scores cluster high across the corpus, and the leave-one-out false-seal control
+> is not yet run.

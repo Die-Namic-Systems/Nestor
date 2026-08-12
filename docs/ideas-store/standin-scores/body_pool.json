@@ -1,0 +1,334 @@
+[
+ {
+  "idx": 0,
+  "text": "*Run 2026-08-06 against `rudi193-cmd/yggdrasil-training-data` (created\n2026-04-15), rung 34. Private; structure and counts only. Held since rung 5 as a\ndata archive and read on the operator's instruction.*\n\n**The only source in the chronology that was already a pair corpus.** Sixteen\nJSONL files, 65 MB, in the shape `prompt` / `chosen` / `rejected` — this\nproject's own subject, in another vocabulary, four months earl"
+ },
+ {
+  "idx": 1,
+  "text": "ier.\n\n| | rows | verdict |\n|---|---|---|\n| `slm_baseline` · `slm_positive` · `slm_voice` · `slm_negative` | 28,432 | harvested from `SESSION_*` transcripts — **refused** |\n| `sft_v8` (`llm_generated`) · `slm_refusal` | 566 | model-generated — **refused** |\n| `slm_governance` (48) · `sft_v8` (`handcrafted`, 50) | 98 | **taken** |\n| `corrections/` | 32 | **taken** |\n| **total** | **137 rows, 29,002 refused** | |\n\n**The"
+ },
+ {
+  "idx": 2,
+  "text": "refusal is the finding.** Those 28,432 rows are instruction/response pairs\nwhose *response* side is an assistant's output, captured from conversations.\nImporting them would file model output under this operator's name — and at 60% of\nthe entire corpus it would be §6.59's error (a population that looks like the\nauthor's and is not) at the largest scale available anywhere in these 105\nrepositories. They are counted, p"
+ },
+ {
+  "idx": 3,
+  "text": "*Was: `memory.add_pair(status=\"sealed\")` wrote nothing to the chain.*\n\nFound by a CLI test that filtered the ledger for `seal` entries and got none,\nagainst a database that had two sealed pairs in it. The seal entries in the chain\ncame from the *callers* that happened to write one — `graduate_segment`, the\nrecipes, the UI — so the shortest path to a sealed row, and the one every\nimporter and host integration takes, p"
+ },
+ {
+  "idx": 4,
+  "text": "roduced a verified answer with no trail.\nMeanwhile the README's first paragraph promised every seal was appended.\n\nThe entry is written from `add_pair` now, which is the one function that turns a\npair into a sealed one, so the promise holds regardless of entry point.\n`graduate_segment`'s own entry became `segment_sealed` — which segment, in which\ndocument, a human decided — so the trail carries both facts and says \"s"
+ },
+ {
+  "idx": 5,
+  "text": "eal\" once.\n`seed_from_corpus` passes `audit=False` and writes a single `corpus_seed` entry\ninstead, because a 10k-pair curated import is one act by one non-human verifier\nand burying every human decision under ten thousand lines would be its own kind\nof unauditable.\n\n**A follow-up found the same fix had inverted the priorities.** Routing the entry\nthrough `_log_seal_event` — which swallows ledger failures so a bulk i"
+ },
+ {
+  "idx": 6,
+  "text": "*Measured 2026-08-09 by `demo/the_dogfooding.py`; decision `0079`.*\n\nPointing the retrieval question at Nestor's own decision memory — every row\nin `docs/dogfood/decisions/`, asked back — measured three ways on this\ncheckout (a 216-decision corpus), each a `claim()` the demo fails the build\non. The demo re-measures live, so the corpus-size counts grow with the store;\nthe shapes below are what hold:\n\n- **Verbatim:** e"
+ },
+ {
+  "idx": 7,
+  "text": "very decision queried in the words it was sealed under is\n served back. 216/216, 0 wrong. The floor holds.\n- **Paraphrased:** ten short reworded queries — a person asking the gist\n months later — return **2 served, 8 pending, 0 wrong**. Most come back\n pending because nothing sealed matched closely enough to clear the 0.92\n bar. That is the threshold refusing to serve a decision it is not sure it\n was asked, not the"
+ },
+ {
+  "idx": 8,
+  "text": "memory failing.\n- **Authoring-free sweep:** every multi-sentence question queried by its\n first sentence alone — 50 of them — returns **4 served, 46 pending, 0\n wrong**. Recall falls off a cliff as the question is compressed, and it\n falls toward *pending*, never toward *wrong*.\n\nSo the store holds everything it was told, refuses most of what it is not\nasked in the same words, and — with one measured exception — neve"
+ },
+ {
+  "idx": 9,
+  "text": "*Proposed 2026-08-05, carried over from the SAFE store; design doc in this\nrepo:* [`docs/decision-memory.md`](docs/decision-memory.md).\n\nNestor holds two of a decision record's four verbs (made, rejected) and lacks\ntwo (modified, affects-future): re-sealing destroys the prior decision\n(`test_seal_replacement.py` says so), and no edge relates any pair to any\nother. The doc proposes a fourth optional storage capability"
+ },
+ {
+  "idx": 10,
+  "text": "(`supports_lineage`), `superseded_by` + a partial unique index that keeps the\nconcurrent-seal race guard for live rows, `reason` on pairs, `reopen_when` on\nrejections (never vs. not-yet), signed `decision_edges`, and a\n`DecisionMemory` recipe mirroring `entity.py` with `constraints_on()` as the\ntraversal. Build-order steps 1–2 stand alone as a fix to the destructive\noverwrite. Gate: bench whether the matcher recogni"
+ },
+ {
+  "idx": 11,
+  "text": "zes a re-worded decision\nbefore any CI gate trusts `constraints_on`.\n\n*Steps 1–2 shipped 2026-08-05* after the design was proven standalone in the\nSAFE store's playground (`apps/aristarchus`, 33 tests) and its N1 matcher\nbench ran (string/token/word-vector matchers falsified; fastembed viable at\n0.90–0.95, `wrong_key` 0 throughout — advisory yes, fail-closed no):\n`tm_pairs.reason` + `tm_rejections.reopen_when` (N4/N5"
+ },
+ {
+  "idx": 12,
+  "text": "*Follow-up to IDEAS §2.4.*\n\nEach ``add_pair`` still runs the idempotent schema script on that thread's\nconnection. ~~Measured once as noise for ingest; may matter at very large\ncorpora.~~ Needs a per-connection \"schema ready\" flag before changing\nbehaviour.\n\n> **Corrected in place, 2026-08-06.** \"Noise\" does not survive being measured\n> a second time. On a bare file-backed ingest loop — `add_pair` only, no draft\n> en"
+ },
+ {
+  "idx": 13,
+  "text": "gine in the path — replaying the schema cost **0.556 → 0.395 ms/op, −28.9%**\n> (best of 3, N=4000, before/after on this machine). A monkeypatched\n> upper bound taken before any code was written said 28–36% across four runs at\n> N=2000 and N=6000, so the shipped fix captures very nearly all of the\n> available win.\n>\n> Both readings are probably true of what they measured. The original note says\n> *noise for ingest*, a"
+ },
+ {
+  "idx": 14,
+  "text": "nd in an ingest where a model authors each draft the\n> store is not the constraint — a schema replay disappears behind a network\n> round trip. The claim that did not hold is the unqualified one. What it costs\n> is a third of the store's own time, and `nestor.memory` calls `memory_init()`\n> at the top of a dozen public functions, so it is not only `add_pair` paying.\n\n**The flag lives on the connection, and that is the"
+ },
+ {
+  "idx": 15,
+  "text": "`SEAL_THRESHOLD = 0.92` is a single global constant across every domain, and no\nsingle value works. Complete sweep, 250 probes per cell, false-seal rate\n(`bench/results/accuracy.json`):\n\n| threshold | boil 500 | boil 2k | boil 8k | boil 24k | prose 500 | prose 2k | prose 4k |\n|-----------|---------:|--------:|--------:|---------:|----------:|---------:|---------:|\n| 0.90 | 2.8% | 10.8% | 36.4% | 56.4% | 2.4% | 5.6% |"
+ },
+ {
+  "idx": 16,
+  "text": "10.0% |\n| **0.92** (shipped) | 0.4% | 1.6% | 8.0% | **16.4%** | 2.0% | 4.8% | 6.8% |\n| 0.94 | 0.0% | 0.4% | 1.6% | 4.8% | 0.8% | 4.0% | 3.6% |\n| 0.96 | 0.0% | 0.0% | 1.2% | 0.4% | 0.0% | 1.2% | 1.6% |\n| 0.98 | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | 0.4% | 0.8% |\n\n**The \"free six points\" claim this section used to make is dead.** It rested on a\nrecall column measured with perturbations that normalization erased. With a r"
+ },
+ {
+  "idx": 17,
+  "text": "eal\nparaphrase tier (`bench_accuracy` now reports `recall_surface` and\n`recall_paraphrase` separately), raising the threshold is expensive:\n\n| threshold | boil 24k false-seal | boil 24k paraphrase recall | prose 4k false-seal | prose 4k paraphrase recall |\n|-----------|--------------------:|---------------------------:|--------------------:|---------------------------:|\n| 0.90 | 56.4% | 38.4% | 10.0% | 62.4% |\n| **0."
+ },
+ {
+  "idx": 18,
+  "text": "*The hypothesis was: a false seal happens when many sealed rows resemble the\nprobe about equally, so the gap between best and second-best should separate a\ngenuine match from a coincidental one — attacking false seals without the recall\ncost of raising the threshold. I called it the highest-value change on this list.\nIt is not.*\n\n`bench_margin.py`, threshold 0.92, false-seal % / recall %\n(`bench/results/margin.json`)"
+ },
+ {
+  "idx": 19,
+  "text": ":\n\n| margin | boil 2k | boil 8k | boil 24k | prose 2k | prose 4k |\n|-------:|--------:|--------:|---------:|---------:|---------:|\n| 0.00 | 1.6 / 100 | 8.0 / 100 | 16.0 / 100 | 4.8 / 99.6 | 6.8 / 100 |\n| 0.03 | 1.6 / 100 | 6.0 / 100 | 10.0 / 99.2 | 4.4 / 99.2 | 6.4 / 98.0 |\n| 0.05 | 1.6 / 99.6 | 3.2 / 98.4 | **4.0 / 96.8** | 4.4 / 96.8 | 6.0 / 93.6 |\n| 0.10 | 0.0 / 91.2 | 0.4 / 70.8 | 0.0 / **44.4** | 3.6 / 91.6 | 5."
+ },
+ {
+  "idx": 20,
+  "text": "2 / 88.4 |\n\n**On homogeneous text it half-works.** Boilerplate 24k at margin 0.05 cuts false\nseals 16.0% → 4.0% for 3.2 points of recall. Real, but not free, and nowhere near\nthe clean separation the hypothesis predicted — pushing to 0.10 eliminates false\nseals and destroys recall (44%).\n\n**On prose it does nothing but cost recall.** 6.8% → 6.0% at margin 0.05 while\nrecall falls 100% → 93.6%. Strictly worse than simp"
+ },
+ {
+  "idx": 21,
+  "text": "mattered more than the surfaces**\n\n*The hypothesis: the acronym/synonym miss class is answerable by sealing several\nlexically different **surfaces** for one meaning — the shape `entity.py` already\nuses — rather than by a semantic matcher (§3.3) and the dependency §3.3 is\nreluctant to take. §3.1's own example is the case: `AWS` → `Amazon Web Services`\nwas lost because the information needed to recover it did not survi"
+ },
+ {
+  "idx": 22,
+  "text": "ve\nnormalization. Sealed as two surfaces, it never has to survive normalization,\nbecause it was indexed in its own right.*\n\nThe mechanism is already in the package — `EntityResolver.seal` writes one row\nper surface, N surfaces → one canonical target. So the missing piece is not a\nmatcher; it is **something to author the surfaces**, which a model does at seal\ntime having just read the sentence. That is a write-side on"
+ },
+ {
+  "idx": 23,
+  "text": "e-to-many expansion,\n`surfaces(raw) -> list[str]`, and neither `normalize` (1→1) nor §3.1's proposed\n`score(raw_a, raw_b)` (2→float) can express it. §3.1 and §3.4 are different seam\nchanges, not the same one arrived at twice.\n\n#### The result\n\n`bench/bench_surfaces.py` on `corpora.aliased`, 1500 rows, 250 probes, seed 7\n(`bench/results/surfaces.json`). Every arm holds **the same 1500 rows** — K\nmeanings × surfaces he"
+ },
+ {
+  "idx": 24,
+  "text": "*Was: a human could seal \"this match is right\" but never record \"this match is\nwrong,\" so a bad fuzzy hit came back identically forever and human attention\nleaked out of the system.*\n\nImplemented as two distinct refusals, because collapsing them would have been a\nbug:\n\n* **`reject_pair(pair_id, …)`** — the mapping itself is wrong. Sets\n `status='rejected'`; never served, never offered as engine context again.\n* **`re"
+ },
+ {
+  "idx": 25,
+  "text": "ject_match(source_text, …, pair_id=/target_text=)`** — *this pair is the\n wrong answer for this query*. The pair stays valid for its own source text.\n\nThe second is the false-seal case from the bench, and it is the one that had no\nhome in the schema. A false seal is a **correct** pair matched to the wrong\ninput, so rejecting the pair would destroy a good verification. It needed a new\ntable (`tm_rejections`) keyed on"
+ },
+ {
+  "idx": 26,
+  "text": "the query, not on the pair.\n\nDesign decisions worth remembering:\n\n* **Enforcement lives in `lookup()`**, not `best_sealed()`. Every serve path —\n `best_sealed`, engine TM context, the entity resolver, the reconciler — goes\n through `lookup`. Filtering one level up would have left a rejected pair still\n reaching the engine's system prompt as authoritative reference material.\n* **Rejections are honored even when their"
+ },
+ {
+  "idx": 27,
+  "text": "`cascade._verified_ledgers` caches by path, so the chain is checked on first\nappend and never again. I watched an append succeed after mid-run tampering. The\ncache is a deliberate cost trade, but a long-lived process will not notice\ntampering that happens while it runs. Options: periodic re-verification, verify\nthe tail only, or make the cache TTL'd. Related: `verify()` cost grows linearly\nwith ledger length, so chec"
+ },
+ {
+  "idx": 28,
+  "text": "kpointing may be needed before re-verification is\naffordable.\n\n**The UI makes this sharper, not worse.** `nestor.ui` is the first long-lived\nNestor process in the repo: a REPL session or a batch run exits, a review server\nstays up for a shift. It verifies the chain on the first append and then trusts\nit for as long as the reviewer keeps working. The Ledger view calls `verify()`\non every render, so the *reading* is li"
+ },
+ {
+  "idx": 29,
+  "text": "ve — but nothing refused an append after\nthe first one, and that was a realistic window rather than a theoretical one.\n\n**The tail half is closed.** Each append now records where its own line landed\nand that line's hash; the next one re-reads from there, requires its own last\nentry to still be present and unchanged, and requires anything appended since —\nby this process or another — to chain onto it. The cost is the"
+ },
+ {
+  "idx": 30,
+  "text": "*Run 2026-08-06 against `rudi193-cmd/willow-tech-manual` (created 2026-05-12),\nrung 16. Public. A Mintlify documentation site written as a **workshop manual** —\n`03-fault-diagnosis`, `appendix-c-torque-settings`,\n`12-carburation-and-fuel-system` — with no Python at all.*\n\n```\n23 pair(s): 23 draft, 0 sealed\ncoverage: 4/46 document(s) produced at least one row\n```\n\n**Four of forty-six.** The lowest coverage of any rung"
+ },
+ {
+  "idx": 31,
+  "text": ", and the rows it did\nproduce are a file-layout table: `docs/introduction/` → *\"Chapter 1 —\norientation and map\"*. The manual's actual content — how to diagnose a fault,\nwhat torque to use, what to do when the thing will not start — produced nothing.\n\n**This is a bias the corpus has had since rung 1 and has only now been forced to\nnotice.** Every shape it knows keys on a *declared* structure: a table header, a\nfield"
+ },
+ {
+  "idx": 32,
+  "text": "label, front matter, a docstring, a commit message. Prose that carries its\nmeaning in sentences is invisible. Thirteen rungs of increasing yield made that\nlook like competence, when much of it was the repositories happening to be\nschema-heavy.\n\nThe honest statement of what this corpus is: **not a memory of what the operator\nknows, but a memory of what the operator wrote down in a shape a machine could\nkey on.** Those"
+ },
+ {
+  "idx": 33,
+  "text": "*The other half of §6.40, and the reason it went unfound for so long: the two\ndesks in `demo/two_desks.py` hit the identical bug and only one of them notices.*\n\n`README` calls `Matcher` **a two-method seam** — `normalize` and `similarity` —\nand `recipes/patch_review.py` describes `score(raw_a, raw_b)` as *\"the optional\n`score`\"*. `best_sealed` prefers it when it is present, and then compares the\nraw query text agains"
+ },
+ {
+  "idx": 34,
+  "text": "t each row's `source_text`, **never consulting the\nnormalized key at all**.\n\nSo a wrong key is free for a matcher that implements the optional method, and\nfatal for one that does not:\n\n| matcher | `score()` | key rewritten by the UI | seal still served |\n|---|---|---|---|\n| `DefectMatcher` (the review desk) | yes | yes | **yes**, 1.000 |\n| `SerialMatcher` (the intake desk) | no | yes | **no** — `None` |\n\nBoth desks a"
+ },
+ {
+  "idx": 35,
+  "text": "re running the same package through the same endpoint with the same\ndefect underneath. The intake desk implemented the seam exactly as documented\nand lost a human's verification; the review desk implemented one method more\nthan it had to and kept it.\n\n**Measured by mutation, and it is a one-method diff.** Adding `score()` to\n`SerialMatcher` — touching *nothing* in `nestor/` — makes her lost seals\nreachable again and"
+ },
+ {
+  "idx": 36,
+  "text": "*Found 2026-08-06 while consolidating seven branches into one and correcting the\n`pr` field in seven decision files. Found by querying the store instead of\ntrusting the gate that had just said the store was correct.*\n\nThe builder turns each file's `pr` field into every row's **origin**:\n\n```python\norigin = f\"pr:{data.get('pr', '?')}\"\n```\n\n`--verify` compares a digest, and the digest is over three columns:\n\n```python"
+ },
+ {
+  "idx": 37,
+  "text": "rows = sorted((p[\"source_text\"], p[\"target_text\"], p[\"status\"]) ...)\n```\n\n`origin` is not among them. Neither is `reason`. So a decision file can change\nwhere its rows claim to have come from, the committed `.db` can keep saying\nsomething else, and the gate prints:\n\n```\nthe committed store matches the decision files, and seals nothing\n```\n\nMeasured: set `\"pr\": 9999` in one decision file, do **not** rebuild, run\n`--ve"
+ },
+ {
+  "idx": 38,
+  "text": "rify`. Exit 0, digest unchanged, and the store still says `pr:?` for those\nrows. The sentence the gate prints is wider than the check it ran — it says\n*matches the decision files*, and it means *the questions, commitments and\nstatuses match*.\n\nWhy it matters more here than the size of the bug suggests: the dogfood store's\nentire claim is provenance. `tests/test_dogfood_store.py` opens by saying the\nvalue of that stor"
+ },
+ {
+  "idx": 39,
+  "text": "*Round 2 of the jeles/Nestor exchange, 2026-08-06. A reading, not a run —\n[`docs/two-stores.md`](docs/two-stores.md) cites a file and line for every claim.\nNothing was imported, executed or written on jeles' side.*\n\n`jeles/corpus.py:168-174`, explaining why the overwrite guard is a callable run\n*inside* the write transaction rather than a check in the caller:\n\n> a check that reads the prior record, returns, and only"
+ },
+ {
+  "idx": 40,
+  "text": "then writes is a\n> read-modify-write with nothing holding the gap — **the same shape that lost 36\n> of 50 gap counts.**\n\nThat is [`CLAUDE.md`](CLAUDE.md)'s recurring defect — *a condition checked in\nPython, guarding a write that cannot re-assert it* — arrived at independently,\nwith a measured cost. Three criticals of that shape landed here in one session\nand the fix that worked every time was the same move in a diffe"
+ },
+ {
+  "idx": 41,
+  "text": "rent mechanism:\nthe precondition in the `WHERE` clause; two walks each bounded by construction\ninstead of one walk with a filter.\n\nTwo codebases, no shared code, same failure, same correction, both recorded. The\nlesson was already written down in both places; what is new is that it was\nreached twice. That is the difference between a house style and a real property\nof this kind of system, and it is the sense of corrob"
+ },
+ {
+  "idx": 42,
+  "text": "*Was: every surface assumed a human. The obvious deployment — an agent that\nconsults verified answers before improvising — required writing an integration.*\n\n`nestor serve` speaks MCP over stdio (newline-delimited JSON-RPC, so stdlib only\nand the zero-dependency core holds). Seven tools: ask, resolve, check, match,\nprovenance, ledger_verify, propose.\n\n**The load-bearing decision is what is absent.** There is no seali"
+ },
+ {
+  "idx": 43,
+  "text": "ng tool, no\nflag that adds one, and no argument to an existing tool that produces one; a\nplausible name gets a refusal that explains why. A model's only write is\n`propose`, which queues a candidate as a `draft` exactly where a tier-2 engine's\noutput lands. This is not caution — it is the whole proposition. \"Has a human\nchecked this?\" is worth precisely as much as the difficulty of getting a\nmachine's output marked as"
+ },
+ {
+  "idx": 44,
+  "text": "checked, and a server that let a model seal, however\ncarefully, would be a system where the machine grades its own work.\n`tests/test_serve.py` pins it as a property rather than a policy: after a model\ncalls every tool the server has, the sealed memory is unchanged.\n\nThe other half is what comes *back*. Every answer carries the state, the\nverifier, the confidence and the candidates with their scores — so an agent can"
+ },
+ {
+  "idx": 45,
+  "text": "*Found 2026-08-06 by running `demo/the_verification.py`, not by designing it. An\narticle about animal-sound onomatopoeia crossed the operator's desk mid-session;\nthree of its word-origin claims looked wrong, and checking them turned out to be\na better test of the box than anything invented, because the answers were not\nknown when it started.*\n\njeles corroborates a finding only when at least `MIN_INDEPENDENT_SOURCES ="
+ },
+ {
+  "idx": 46,
+  "text": "2`\n**distinct registrable domains** back it. Running four real claims past that bar:\n\n```\nsqueak 4 source(s) draft the article is wrong\nwoof 5 source(s) draft the article is wrong\nribbit 6 source(s) draft the article is wrong\nhollywood-frog 3 source(s) draft the article holds\n```\n\nTwo of the ribbit row's six domains are **`wordsmarts.com` — the article being\nchecked — and `x.com`, a post quoting it nearly verbatim.*"
+ },
+ {
+  "idx": 47,
+  "text": "* Distinct registrable\ndomains, so the independence rule counts them as two independent sources. They\nare one claim, twice.\n\n**This is not news to jeles and the entry should not pretend it is.**\n`_independence.py` already says the bar is *\"a cheap heuristic, deliberately\nweaker and deliberately named apart\"* than its constitution's Independent\nWitness, *\"so nothing built on it borrows authority it has not earned\"* —"
+ },
+ {
+  "idx": 48,
+  "text": "*Found 2026-08-06 by building a recipe against the package rather than reading\nit — §6.30.*\n\n`nestor/__init__.py` exports `ConflictingSealError` and `RejectedPairError`.\nIt does not export `ConflictingDraftError`.\n\n```\nConflictingSealError in nestor.__all__: True attr: True\nRejectedPairError in nestor.__all__: True attr: True\nConflictingDraftError in nestor.__all__: False attr: False\n```\n\nSo the one refusal that exis"
+ },
+ {
+  "idx": 49,
+  "text": "ts to direct a caller to the third verb is the one\nrefusal a caller cannot catch from the public surface. A recipe hits it, reaches\nfor `nestor.ConflictingDraftError`, gets `AttributeError`, and has to import\nfrom `nestor.memory` — while the other two sit where they were looked for.\n\nNot a functional defect: the exception is raised, it is catchable from the\nmodule, and nothing silently succeeds. It is an inconsistenc"
+ },
+ {
+  "idx": 50,
+  "text": "y in what the\npackage presents as its vocabulary, and §6.20 is where it entered — the verb\nshipped, the error's export did not follow it.\n\nOne line. Left unfixed here for the same reason §6.25 was: it belongs in a\ncommit that is about the public surface, not folded into a recipe."
+ },
+ {
+  "idx": 51,
+  "text": "*Was: `portable.import_bundle(override_conflicts=True)` wrote through\n`store.memory_seal` directly, so `RejectedPairError` — which `add_pair` raises\nfor exactly this — was structurally unreachable. A pair rejected as fraudulent\ncame back sealed and serving, and the report said \"sealed: 1\".*\n\nFound by an adversarial read of the docs against the code, and it is §5.2's bug\nwearing a different coat: a guarantee enforced"
+ },
+ {
+  "idx": 52,
+  "text": "at one call site, and a second\npath into the store that never passes it. The first time it was\n`graduate_segment`; this time it was a file.\n\nThe fix is a second switch, not a stronger one. `override_conflicts` means\n\"their answer wins where we disagree\", and a rejection is **not** a competing\nanswer — it is a decision that the mapping is wrong. So rejected rows get their\nown bucket in the report, their own warning, t"
+ },
+ {
+  "idx": 53,
+  "text": "heir own CLI line, and their own\n`override_rejections` flag, mirroring the two `add_pair` has had all along. The\nUI deliberately has no checkbox for it: reviving a rejection through a file\nimport should cost a considered command, and `Curator.restore` is the documented\nway back."
+ },
+ {
+  "idx": 54,
+  "text": "*Proposed and implemented 2026-07-31.*\n\n`TokenJaccard` / `TokenOverlap` implement `score(raw_a, raw_b)`; `bench_accuracy.best_match`\ntakes raw probe text and calls `nestor.matcher.match_similarity` so stage-4\nsurfaces-human runs use the same path as production `lookup`, not difflib over\nsorted norms."
+ },
+ {
+  "idx": 55,
+  "text": "Every line is verified by the line *after* it, so the last one has nothing\nfollowing it: edit it and `verify()` still walks clean. Found while writing a CLI\ntest that tampered with a one-entry ledger and could not make it fail.\n\nIt is a property of hash chains rather than a bug, but it is not marginal: the\nnewest entry is the one that just recorded who sealed what, so \"the most recent\ndecision is the editable one\" is"
+ },
+ {
+  "idx": 56,
+  "text": "a bad thing to leave unwritten. `ledger.head()`\nreturns the tip and `verify(expected_head=…)` refuses one that moved\nunexpectedly; `nestor ledger head` / `nestor ledger verify --expect-head` put it\nin CI. That only helps a caller who kept the value *outside* the file, which is\nthe honest framing — the fix is not local, it is \"someone else remembers.\"\n`nestor.frank` is that taken to its conclusion, mirroring every en"
+ },
+ {
+  "idx": 57,
+  "text": "try with its\n`local_hash` into a ledger somebody else holds.\n\n**The in-process half shipped** (§5.3): every append remembers the line it\nwrote and refuses to continue if that line has changed, so while an entry is the\ntip, the process that wrote it still knows what it said. That is the closest\nthing to a local fix there is — it survives the entry being newest, but not the\nprocess restarting.\n\nStill open: a checkpoint"
+ },
+ {
+  "idx": 58,
+  "text": "*Measured 2026-08-12, because both real backends were unreachable.* `[semantic]`\nneeds weights from `huggingface.co` and the `ollama` backend needs a daemon from\n`ollama.com`; egress policy denies both, so the semantic seam could not be\nexercised in this container at all. A small model was stood up as a scoring\nservice in place of the embedder — not producing vectors, but answering the\n`score(raw_a, raw_b) -> float`"
+ },
+ {
+  "idx": 59,
+  "text": "half of the Matcher seam directly.\n\n**What it buys, and the number is large.** Asking for `willow-gate` and reaching\nits own one-line description scores **0.098** under `StringMatcher` — invisible,\nbelow every threshold, unreachable by character ratio — and **0.900** under the\nstand-in. The inverse holds too: `homestead-law` against `homestead-ledger`\nscores **0.741** on characters, the highest non-identical score in"
+ },
+ {
+  "idx": 60,
+  "text": "the sample,\nand drops to 0.600 on meaning. That pair of failures is the whole argument for a\nsemantic matcher in this store, and neither was measurable here until now.\n\n**What it is not is deterministic, and the first measurement said it was.** The\nagent re-scored four pairs and reproduced all four exactly — same floats, same\nnote strings verbatim. That looked like a stable function and was not: it had\nbeen resumed"
+ },
+ {
+  "idx": 61,
+  "text": "Every seal is equally authoritative forever, and one verifier is enough. Neither\nis obviously right for a regulated buyer. Worth considering: seal age surfaced\nin provenance; a `weight` that decays; N-of-M verification for high-stakes\ndomains. ~~The ledger already records who sealed what and when, so the data is\nthere — nothing consumes it.~~\n\n> **Corrected in place, 2026-08-06**, by trying to argue the entry through"
+ },
+ {
+  "idx": 62,
+  "text": ":\n> [`docs/seal-staleness-and-quorum.md`](docs/seal-staleness-and-quorum.md). The\n> ledger records who sealed what and when for the **first** seal. It records\n> nothing about agreement. Two verifiers sealing one source with the same target\n> produces one row, one chain entry, and no trace of the second person —\n> measured, on a file-backed store with signing on. `memory.py:374` writes only\n> when the row is not alrea"
+ },
+ {
+  "idx": 63,
+  "text": "dy sealed *or* the target differs, so concurrence\n> satisfies neither arm and returns the stored row to the caller as if it were\n> theirs.\n>\n> So the premise \"the data is there\" is false for quorum specifically, and it is\n> the load-bearing premise: N-of-M cannot be computed from a history that was\n> never written, and no migration can backfill countersignatures that were\n> discarded. See §6.26.\n\nThe memo's three con"
+ },
+ {
+  "idx": 64,
+  "text": "*Was: everything about trust here was rigorous except the name. A seal was bound\nto a key the store does not hold — but ONE key for the whole deployment, so a\nvalid signature proved the key was present and nothing about who used it.\n`verifier=\"rita\"` was a string anyone who could reach the process could type,\nand \"a human checked this\" meant \"somebody with access typed a name.\"*\n\n`nestor.keyring` gives each verifier"
+ },
+ {
+  "idx": 65,
+  "text": "their own key. A seal's signature verifies\nunder the key of the verifier it *names*, or not at all — so moving a real\nsignature onto a more senior name in the database stops working, and a name the\nkeyring does not know cannot seal, raised from `sign_seal` before `add_pair`\ntouches the store. The UI's \"acting as\" box becomes a sign-in: a verifier\npresents their key, and the typed name is then ignored entirely, becaus"
+ },
+ {
+  "idx": 66,
+  "text": "e a field\nthat must match something already known is only a way to produce confusing\nerrors.\n\n**Revocation is the part that needed a decision, and the decision was not to\nguess.** An HMAC carries no timestamp, so a signature cannot distinguish \"sealed\nby rita last March\" from \"forged last night by whoever took rita's key\". So the\noperator says which happened. A *rotated* key makes no new seals and keeps its\nold ones"
+ },
+ {
+  "idx": 67,
+  "text": "*Was: `add_pair` read, decided, then wrote, with nothing making that atomic and\nno key constraint behind it. Two concurrent seals of the same new source each\nfound nothing and each inserted — two sealed rows for one normalized source, no\n`ConflictingSealError`, and no answer to which one serves.*\n\nReachable the moment the UI existed: it serves from a thread pool, so two\nreviewers pressing **Seal** on the same phrase"
+ },
+ {
+  "idx": 68,
+  "text": "is all it takes. The guard was\nwritten when every caller was a REPL.\n\nFixed in two places, because a check and an invariant are different things. The\nreference store now carries a unique index on `(source_norm, source_lang,\ntarget_lang)` — the invariant the curator, the exporter and every serve path\nalready assumed, now enforced by something no caller can talk past. And\n`add_pair` catches the collision, re-reads, and"
+ },
+ {
+  "idx": 69,
+  "text": "takes the existing-row path, so\nthe loser gets the `ConflictingSealError` it should have had. A pre-existing\ndatabase holding duplicates cannot take the index; that degrades with a warning\nnaming the count rather than failing every later call.\n\n**The ledger had the same disease, and worse consequences.** `_ledger_append`\nread the tail and wrote the next line unsynchronized: eight threads appending\nconcurrently wrote"
+ },
+ {
+  "idx": 70,
+  "text": "*Found 2026-08-06 by building a fixture for one person instead of a team. The\noperator's framing: the code side has had all the attention and the human side\nalmost none, and one would complement the other. It did, in about fifteen\nminutes.*\n\n**The fixture.** `demo/shoebox.py` — Nieves Aguirre-Toll, translating her dead\ngrandmother's letters from Spanish for a seven-year-old who has no Spanish. One\nverifier, her own a"
+ },
+ {
+  "idx": 71,
+  "text": "rchive, fourteen months. She is not keeping a memory for\nconsistency across a team; she is keeping one for **consistency across time with\nherself**. Fiction, tagged `origin=\"fixture:consuelo-shoebox\"` in every row and\nin the trail, on a temporary store.\n\nNothing about the finding depends on the phrases chosen. It falls out of her\n*structure* — one verifier, revising over months — and reproduces under any\narchive, any"
+ },
+ {
+  "idx": 72,
+  "text": "language pair, any grandmother.\n\n**Two records this package keeps carefully and shows to nobody.**\n\n| record | kept where | read by |\n|---|---|---|\n| what a seal was revised *from* | `tm_pairs.superseded_by`, `memory_lineage()` | nothing in `nestor/` |\n| `reopen_when` — never vs not-yet | `tm_rejections`, bundle digest v2 | `portable.export_bundle` only |\n\n*The revision.* `Curator.replaced_seals` reads `kind=\"seal_r"
+ },
+ {
+  "idx": 73,
+  "text": "*Found 2026-08-12, while standing up an instance with per-verifier keys on.*\nWith `NESTOR_KEYRING` exported — which is the correct configuration for a real\ndeployment — `scripts/audit_against_constitution.py --repo <charter>` reports\n**2 failing**. With it unset, the same command on the same tree reports\n**0 failing**. Both numbers were run; the second is the true one.\n\nThe probes seal under synthetic verifiers (`som"
+ },
+ {
+  "idx": 74,
+  "text": "eone` in the constitution audit,\n`bench` in `bench_accuracy.py`) that are deliberately not people and so are\ndeliberately not in anybody's keyring. `keyring.signing_entry` raises\n`UnknownVerifierError`, the probe catches its own failure, and the harness\nreports the clause as failing. The failure is real and it is the harness's, not\nthe clause's — but the verdict does not distinguish those, so an operator\nrunning the"
+ },
+ {
+  "idx": 75,
+  "text": "audit the documented way is told the constitution fails.\n\nThis is a shape the repo already refuses elsewhere. `scripts/dogfood_store.py`\nhas a gate for exactly it — `test_dogfood_store.py` installs a poisoned ambient\nstore and proves none of it reaches the build, because \"a memory whose rows came\nfrom somewhere nobody can see is not an audit trail\". A measurement harness that\nreads ambient config is the same defect o"
+ },
+ {
+  "idx": 76,
+  "text": "*Found 2026-08-06 by running jeles' own escalation against this package\n(`scripts/audit_against_jeles.py`). jeles closed this hole after demonstrating it\nhad one; the demonstration is what made it worth aiming here.*\n\n`conflict_scan.py` carries a comment recording a hand-built proposal that claimed\n`verification_kind=\"human\"` and **was given it**. The fix was an allow-list\n(`_ALLOWED_ARGS`) plus a pin, and jeles was"
+ },
+ {
+  "idx": 77,
+  "text": "explicit about the shape of the\nrefusal: an argument outside the list \"produces an error receipt naming what was\nrefused. It is **not silently dropped**, and it does not stop the rest of the\nlist.\"\n\nAimed here, the escalation fails — which is the part that matters:\n\n```\nnestor_propose {source_text, candidate, status: \"sealed\",\n verifier: \"a-machine\", verification_kind: \"human\"}\n -> {\"state\": \"draft\", \"verified\": fals"
+ },
+ {
+  "idx": 78,
+  "text": "e,\n \"note\": \"queued for human review — a proposal is never served as verified\"}\n```\n\n`answer.propose` has no `status` parameter to pass, and `serve.call` forwards\nnamed arguments rather than splatting the dict, so there is nothing to smuggle\nthrough. That is one step *earlier* than jeles' vet, and stronger: no verb, no\nargument, nothing to allow-list.\n\n**The gap is the reply.** Three forbidden arguments were discarde"
+ },
+ {
+  "idx": 79,
+  "text": "The thing that makes Nestor Nestor is that a tier-1 answer is served verbatim,\nmarked verified, with no review queue. So the failure mode that matters is a\nphrase which was never verified being served as though it were. Everything in\nthis section is downstream of that."
+ },
+ {
+  "idx": 80,
+  "text": "*Measured 2026-08-06 while walking `docs/code-review-lessons.md` §11 over the\n§6.8 change — the checklist row \"concurrent / pooled threads?\".*\n\n`TODO.md` §2 says a store that takes concurrent writers is missing and that the\nreference `SqliteStore` is not it. That is qualitative. The number:\n\n12 threads on one file-backed store, each calling `memory_init()` then\n`add_pair()` then `memory_find()`, released from a barri"
+ },
+ {
+  "idx": 81,
+  "text": "er together, 300 trials\n= 3600 concurrent init-and-write sequences per run. Failures are\n`OperationalError: database is locked`.\n\n| revision | run 1 | run 2 | run 3 |\n|----------|------:|------:|------:|\n| `c68b8be` (before §6.8) | 12 | 9 | 3 |\n| after §6.8 | 4 | 5 | 9 |\n\n**Roughly 0.1–0.3%, and §6.8 neither causes nor fixes it.** The ranges overlap\ncompletely. The first pair of runs read 12 against 4 and looked like"
+ },
+ {
+  "idx": 82,
+  "text": "the fix had\nreduced contention — a plausible story, since shorter write transactions ought\nto conflict less — and repeating it dissolved that. It is recorded here because\nthe wrong version of this entry is the one I nearly wrote from a single pair.\n\nNothing to fix in §6.8. What this quantifies is the limit `TODO.md` already\nnames: a caller doing concurrent writes to `SqliteStore` gets a hard failure a\nfraction of a"
+ }
+]
