@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 286,
+    "pairs": 288,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "f1b5183eb2d2f7d8754e4bd10fd2018ea5ea963725379463bb80903ca55f21af",
+  "digest": "0d93cae90101bdc2c8c2be7b0991be303a46484e725589292c86f70529d0f09b",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -170,6 +170,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Record them. A ledger vendor 'Chronicle (EtherLedger-based)' whose only PyPI namesake is a logging utility, and 'merkle-tree primitives from tree-sitter', which is a parser generator. Both were returned despite an explicit instruction not to name projects the agent was unsure existed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "cf8b5f1a-b829-51fd-a663-62ec323d59a0",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the action publishes no release tags pin it how",
+      "source_text": "The action publishes no release tags. Pin it how?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Referenced at @main, with a comment in the workflow stating the residual risk and that it should be pinned to a reviewed commit SHA once one is chosen. actions/checkout is pinned at @v7 to match the existing tests.yml rather than introduce a second version.",
       "verifier": "",
       "weight": 1.0
     },
@@ -688,6 +702,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Recorded in 6.106 in place, naming it as a correction to something asserted three messages earlier in the same session.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "27306ed8-271b-5767-9181-871bdcb4c428",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the securityreview action wired so it helps without breaking ci for forks and unconfigured checkouts",
+      "source_text": "How is the security-review action wired so it helps without breaking CI for forks and un-configured checkouts?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A separate workflow (security-review.yml) on pull_request, NOT wired into the required 'test' aggregate gate, so it advises and never blocks a merge. A first step checks whether secrets.ANTHROPIC_API_KEY is set and gates the checkout + review steps on it; without the key the job prints a ::notice:: and succeeds, so fork PRs and key-less checkouts stay green. Permissions are the minimum the action needs (contents: read, pull-requests: write). docs/dogfood and bench/results are excluded from the scan as derived artifacts.",
       "verifier": "",
       "weight": 1.0
     },

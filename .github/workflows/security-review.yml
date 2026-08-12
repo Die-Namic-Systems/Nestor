@@ -1,0 +1,58 @@
+# Security review — an advisory, diff-aware gate over each PR.
+#
+# Runs Anthropic's claude-code-security-review action on the pull-request diff,
+# aimed at the code Nestor's own tests can't fully cover from the outside: the
+# asymmetric-seal / ledger crypto paths, deserialization, and injection surfaces.
+# It is DELIBERATELY not part of the required `test` aggregate gate — it advises,
+# it does not block, and it degrades to a no-op when unconfigured (below).
+#
+# Setup: add repository secret ANTHROPIC_API_KEY. Without it the job skips with a
+# notice instead of failing, so forks and un-configured checkouts stay green.
+#
+# Supply chain: the action is referenced at @main because the upstream publishes
+# no release tags. A moving ref on a third-party action is the exact risk this
+# review exists to catch — pin it to a reviewed commit SHA once one is chosen.
+name: Security review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: security-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check for API key
+        id: gate
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "have_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_key=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ANTHROPIC_API_KEY not set — skipping the security review (advisory only)."
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.have_key == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Claude security review
+        if: steps.gate.outputs.have_key == 'true'
+        uses: anthropics/claude-code-security-review@main
+        with:
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          comment-pr: true
+          # Derived / large artifacts nothing is authored in — no signal there.
+          exclude-directories: 'docs/dogfood,bench/results'
