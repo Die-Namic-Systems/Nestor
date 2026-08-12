@@ -574,7 +574,8 @@ def cmd_demo(args) -> int:
     human = (
         f"seeded {args.db} with {total} row(s): "
         f"{counts['sealed']} sealed + {counts['draft']} draft translation, "
-        f"{counts['aliases']} entity alias(es), {counts['baselines']} numeric baseline(s).\n"
+        f"{counts['aliases']} entity alias(es), {counts['baselines']} numeric baseline(s), "
+        f"{counts['queued']} segment(s) awaiting review.\n"
         f"  view it:  nestor ui --db {args.db}"
     )
     _emit({"db": args.db, "ledger": args.ledger, "counts": counts}, args.json, human)

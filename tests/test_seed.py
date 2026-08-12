@@ -26,7 +26,17 @@ def test_is_empty_then_seeded(tmp_path):
     assert seed.is_empty(store)
     counts = seed.seed_store(store)
     assert not seed.is_empty(store)
-    assert counts == {"sealed": 4, "draft": 1, "aliases": 2, "baselines": 2}
+    assert counts["sealed"] == 4 and counts["draft"] == 1
+    assert counts["aliases"] == 2 and counts["baselines"] == 2
+    assert counts["queued"] >= 1
+
+
+def test_seed_leaves_a_review_queue(tmp_path):
+    store = _fresh_store(tmp_path)
+    seed.seed_store(store)
+    # The Queue tab reads pending segments; a cold demo must not open it empty.
+    pending = store.list_segments(status="pending")
+    assert len(pending) >= 1
 
 
 def test_seed_covers_all_three_recipes(tmp_path):
