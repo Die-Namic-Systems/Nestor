@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 288,
+    "pairs": 290,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "0d93cae90101bdc2c8c2be7b0991be303a46484e725589292c86f70529d0f09b",
+  "digest": "f53fcbd4d4566166c01508b02df7a9b79973236975a9581dd4cdcbdc61164885",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "fb54c8dd-50bc-5a24-b473-7fd43aa5caef",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the secret scan avoid tripping on the repos own highentropy testderived data while still catching a real committed secret",
+      "source_text": "How does the secret scan avoid tripping on the repo's own high-entropy test/derived data while still catching a real committed secret?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A committed .secrets.baseline records the only two current findings, both entropy hits on test fixtures with deliberately fake signatures (tests/test_seal_replacement.py, tests/test_sqlite_store.py); detect-secrets-hook fails only on findings NOT in the baseline. Derived and frequently-regenerated artifacts are EXCLUDED from the scan rather than baselined -- the binary store (docs/dogfood/nestor.db), the rebuilt decisions bundle (docs/dogfood/decisions.json), any exported *.bundle.json, and bench/results -- because their high-entropy content changes on every rebuild and would otherwise trip the hook on routine work. The same exclusion is applied in scripts/ci-lint.sh and .github/workflows/tests.yml.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "f9a23c50-9d71-51b4-985f-fdacd9d444df",
@@ -100,6 +114,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Re-ran it unbounded in the background and reported nothing until it exited, which it did at 19,804 rows. The 11,105 was a prefix of a plan, not a measurement.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "ded5bdb7-ab6c-5f26-9978-02ccb8928219",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the secret gate shown to actually fail not just pass",
+      "source_text": "Was the secret gate shown to actually fail, not just pass?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. Before wiring it in, detect-secrets-hook was run against a planted file containing an AWS-shaped key and a high-entropy string; it exited non-zero and named both. Over the real tree (minus the excluded artifacts) it exits zero. A guard that cannot be shown to fail has not been shown to work.",
       "verifier": "",
       "weight": 1.0
     },

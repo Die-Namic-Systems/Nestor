@@ -33,13 +33,21 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install lint tools
-        run: pip install ruff==0.15.0 bandit
+        run: pip install ruff==0.15.0 bandit detect-secrets==1.5.0
 
       - name: Ruff (enforced)
         run: ruff check nestor tests hooks
 
       - name: Bandit (enforced — tree is clean, keep it that way)
         run: bandit -r nestor -ll -q
+
+      - name: Secret scan (never commit the trust root)
+        # New findings not in .secrets.baseline fail. Derived/binary artifacts
+        # carry high-entropy hashes but no source secret, so they are excluded.
+        run: |
+          git ls-files \
+            | grep -vE '(^docs/dogfood/nestor\.db$|^docs/dogfood/decisions\.json$|\.bundle\.json$|^bench/results/)' \
+            | xargs detect-secrets-hook --baseline .secrets.baseline
 
   test-matrix:
     runs-on: ubuntu-latest
