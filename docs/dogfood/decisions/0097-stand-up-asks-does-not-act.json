@@ -1,0 +1,13 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "Refinement of the pre-session brain section (0096). The stand-up part is now an explicit if/then: if Nestor is installed and the store is stood up, hand it over and ask nothing; if not installed, or no store, or an empty one, surface a single 'ask the user whether to stand one up' prompt and build nothing. The earlier not-built branch printed a rebuild command as an instruction; this makes it a question posed to the user, and folds not-installed (previously a generic guard 'unavailable' line) and empty-store into the same ask.",
+  "decisions": [
+    {
+      "question": "When the pre-session hook finds no stood-up Nestor, does it build one, print a command, or ask the user?",
+      "commitment": "Ask. _brain_section() is an if/then: installed AND stored AND non-empty hands the live store to the agent with the query command and asks nothing; any of not-installed, no store file, or an empty store returns a single _stand_up_prompt() line telling the agent to ask the user whether to stand one up, with the exact command, and the hook builds nothing. A SessionStart hook cannot run a prompt, so it hands the agent the question rather than acting.",
+      "why": "Standing up a store is new scope, and this repo's rule is propose-before-acting: a boot that quietly builds infrastructure the user did not ask for inverts it, and one that nags on every healthy boot is noise. The if/then does nothing when there is no choice to make and surfaces exactly one question when there is. Not-installed was previously swallowed by the fail-open guard as a generic 'unavailable' line; routing it through the same ask makes 'no brain here' a state the user is offered a fix for, not an error that reads as broken."
+    }
+  ]
+}
