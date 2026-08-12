@@ -7645,3 +7645,174 @@ The corrected answer is narrower and more useful: for a question carrying
 distinctive vocabulary, the store already finds its answer and is waiting on a
 human signature and a calibrated bar. For a short generic question, it does not,
 and no threshold rescues it.
+
+### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **open**
+
+*Proposed 2026-08-12, from a conversation about opening `nestor ui` to a mixed,
+non-expert audience: a Discord group — physicists, artists, people who build
+with AI — reached by `git clone` now and `pip install` eventually. No code
+changed; this records the design direction so it outlives the chat, per §6's
+own rule.*
+
+The surface §5.4 shipped is a **reviewer's desk**: Queue / Memory / Ask /
+Signals / Ledger, keyed to "seal a pair, don't serve what wasn't verified," and
+legible to someone who already has a queue and has read the module docstrings.
+The distribution decision (clone-and-run, each person their own single operator
+on loopback) is a gift — it is the exact model §5.4 and §5.8 were built for, so
+the full writable desk ships to everyone with **no `--read-only` compromise and
+no shared-instance foot-gun**. But it moves the entire burden onto the *cold
+landing*, and the desk does nothing to teach a stranger why they are standing at
+it.
+
+The design that holds all of §6's depth without drowning a newcomer is **three
+floors of disclosure**, the "Ask is the demo" move (§5.4) grown one storey:
+
+- **Floor 0 — "oh, I get it."** One live example, one sentence. The core idea —
+  *a machine said "verified"; who actually checked?* — has a native translation
+  in each tribe, so the entry offers **three doors in their own languages**:
+  Numeric for the physicist (a figure against a sealed baseline, tolerance and
+  variation, §1.5/§1.9), the decision/idea-store retrieval for the AI builder
+  (the RAG question of §6.106, with §6.103's licence-backwards row as a plausible
+  1.000 that must not serve), and Entity plus the forged-seal screen for everyone
+  (mallory scores 1.000 and comes back `! pending`, no domain knowledge required).
+- **Floor 1 — "let me try."** Their own query → the verdict glyph, ✓ / ~ / ! ,
+  which reads the same to a painter and a physicist. This is the spine and it
+  never gets more complex.
+- **Floor 2 — "wait, why?"** Rank of the correct row, the losing top-five, and
+  the matcher/threshold tradeoff §6.94/§6.106 frame — surfaced as an *opt-in
+  diagnostics disclosure on the rows that already exist*, not a sixth tab. The
+  broad audience sees fewer words than the operator does today; the depth is real
+  and reached only by pulling on it.
+
+The governing rule that keeps this from dying of instrumentation creep: **a
+readout earns chrome only if it changes a decision made at this desk.** §6.106's
+rank earns it (it is the difference between "calibrate down" and "change the
+matcher"); the corpus-coverage numbers of §6.50–§6.91 do not — their home is this
+file and the bench.
+
+Three prerequisites are load-bearing, not decoration, and two are outside the UI:
+
+1. **A guaranteed-non-empty first run.** `nestor ui` on a fresh clone must open
+   onto the seeded three-door store, or the curious visitor has already left.
+   Raw material exists (`demo/two_desks.py`, `demo/the_dogfooding.py`,
+   `docs/dogfood/nestor.db`) — this is assembly.
+2. **A clean front door.** A quickstart that gets a non-dev from clone to open
+   browser in three commands without wading through `AGENTS.md`, `CLAUDE.md`, a
+   7,600-line `IDEAS.md`, and the dogfood scaffolding. The current path
+   (`.venv`, `pip install -e ".[dev,keys]"`) is a contributor's, not a curious
+   artist's.
+3. **A one-touch jargon gloss.** "seal / verifier / servable / matcher" defined
+   *on contact* in the page, so Floor 0 teaches itself. This is the single
+   biggest readability debt for this audience.
+
+**The pip-install future forces one decision now:** `pip install nestor; nestor
+ui` has no repo to seed from, so the demo store must travel *inside the wheel* as
+package data or be built on demand by a command (`nestor demo`, or `nestor ui
+--demo` that materializes a throwaway store). Left as a tracked file in the tree,
+the pip path lands every new user on the empty store this entry exists to
+prevent — the clone and pip experiences diverge exactly where it hurts most.
+
+**First domino:** the guaranteed-non-empty, three-door first run (#1), because
+the verdict spine, the gloss, and the Floor-2 diagnostics all need a live surface
+to attach to. Everything else here is a proposal a human has not yet weighed —
+open by construction.
+
+**Visual direction, v1 (added after a design conversation, 2026-08-12).** The
+framing above answers *what the first screen must do*; this answers *what it looks
+like*, and the two are the same decision. The desk's two existing skins were both
+wrong for a cold, mixed audience — the default desk reads as under-dressed
+("drab"), and the `fleet-review` editorial skin (warm parchment, Palatino, gold,
+drift/pulse) reads as antique and a little precious. The resolution is neither
+re-skin but a **reframe: Nestor is a character, not a console.** `persona.py`
+already wrote him — the junior party who may propose and may not confirm, deadpan
+about his own shortfall, grave about a human's, and *constitutionally unable to
+overclaim* — so the front door should be that presence, met by doing the
+punchline (§5.4's forged 1.000 → not served), not a tab bar.
+
+The agreed look is a **big clunky mid-century box robot, rendered flat /
+graphic-novel** (the *spirit* of Shawn Harris's LOZ 4000, Rosie, B-9 — an
+original Nestor, not a trace of any of them), explicitly **not** chrome
+skeuomorphism and **not** the antique parchment register. He is the **anti-HAL**:
+one expressive single eye, politely unconvinced rather than menacing. The
+governing discipline is the same value the product already holds — **every
+instrument must mean something real**: the score needle shows the true score, the
+dark VERIFIED lamp is the true verdict, the CRT speaks the literal `persona.py`
+sentence. Mid-century instrument design (form follows function; the meter never
+lies about the signal) *is* Nestor's honesty ethos, which is why the aesthetic
+fits rather than decorates. Nestor's own palette (forest green, gold, rust)
+translates to flat poster color; a warm cream enamel body carries it.
+
+A static v1 "meet Nestor" still — the robot refusing a perfect score, needle
+pegged, VERIFIED lamp dark, FORGED lamp lit — was built and accepted as good
+enough for a v1 (artifact, this session:
+`claude.ai/code/artifact/0da0decf-ab2a-494a-ac86-ac2010389d12`; the URL is a
+session reference, not a durable asset). **Still open:** turning the still into
+the real front door — wiring the eye, needle and lamps to live verdict state, and
+deciding how the character sits over (or in front of) the five-tab desk.
+
+**Interactive prototype (added later the same session).** The stills answered
+*how it looks*; a clickable prototype answered *how it moves* — the harder
+question, because a character is a gift at the door and a liability at the desk.
+Built as a React bundle for the prototype only (the real page stays vanilla;
+these are opposite-constraint tracks and the port back is a deliberate
+translation, not a copy). What it settled:
+
+* **The character-to-instrument spectrum holds across the whole app.** A single
+  reacting Nestor face lives permanently in the header and is wired to the actual
+  verdict — it settles *pleased* on a served seal, goes *politely unconvinced* on
+  a below-bar draft, and *alarms* on a forged 1.000 — so he is present on every
+  tab without ever standing in the dense work area. Down in Memory/Queue/Signals/
+  Ledger he recedes to his instruments (status lamps, served/not-served flags,
+  the amber `persona.py` readout, the hash-chain tape). Presence up top, honest
+  instruments below: the rule that keeps a cartoon from becoming a liability.
+* **Reactions are wired to state, not decoration.** The needle sweeps to the real
+  score, the lamp is the real verdict, the readout is the literal persona
+  sentence — the same discipline as the stills, now in motion. Facial expression
+  is the only added signal, and it rides the existing verdict, inventing nothing.
+* Accepted as the prototype direction (artifact, this session:
+  `claude.ai/code/artifact/112b7364-e36f-4704-9526-37a887071472`; session
+  reference, not a durable asset). **Still open, unchanged and now sharper:** the
+  vanilla port into `ui_page.py` — reproducing the reacting face and the
+  instrument treatment under stdlib + strict CSP, with a seeded non-empty first
+  run (§6.107 above) so a cold visitor meets a live Nestor, not an empty desk.
+
+**The front door and the three recipes (added, same session, same artifact URL
+above — the prototype was extended in place).** Two gaps in the prototype were
+the centre of the framing yet had only ever been *talked about*; both are now
+built:
+
+* **The cold-open front door.** The app no longer starts on a tab — it starts on
+  a welcome screen where Nestor greets a stranger with one line ("the machine
+  that won't overclaim") and **three doors framed in each tribe's own language**:
+  *for the physicist* — "does this figure match the trusted value?"; *for the AI
+  builder* — "did a human ever actually confirm this?"; *for everyone* — "is it
+  really the same thing?". Each door drops into a live demo of that tribe's
+  recipe. This is §6.107's "three doors" made concrete: the framing device is the
+  entry, not a recipe picker buried inside a desk. The header face doubles as a
+  home button back to it.
+* **The prototype stopped being translation-only.** It now demonstrates all three
+  recipes — a **numeric** check (a figure flagged for drifting off its sealed
+  baseline) and an **entity** resolve (an alias verified to its canonical)
+  alongside translation — so §4.1's "lead with the mechanic, not translation" is
+  visible in the product surface, not just asserted in the docs. The reacting
+  face rides every recipe's real verdict unchanged.
+
+The open step is unchanged and now the only thing left before this stops being a
+mockup: the **vanilla port into `ui_page.py`** (stdlib + strict CSP, no build),
+carrying the reacting face, the instrument treatment, the front door, and the
+seeded non-empty first run.
+
+**Two polish passes (same session, same artifact URL).** Quality, not new
+surface. Round one made the character *alive*: his eyelid and iris now **ease**
+between moods instead of snapping, his antenna **pulses and his eye scans while
+he is thinking**, and a dark-mode bug was fixed — his outline ink was inverting
+with the theme and washing out against his cream body, so it is now pinned to a
+constant (a painted object does not repaint itself when the room dims; only the
+room's tokens flip). Round two made the front door **read visually** — each of
+the three doors carries its recipe's instrument (a gauge for numeric, a lens for
+the retrieval/AI case, linked nodes for entity) so a tribe recognises its door
+before reading a word — and made results *arrive*: the verdict card rises in as
+the needle sweeps, and the welcome screen gained a soft gold halo (atomic-age
+warmth without tipping antique). All motion is gated behind
+`prefers-reduced-motion`. None of it changes the port work above; it is the
+prototype earning the right to be shown.
