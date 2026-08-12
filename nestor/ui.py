@@ -1249,6 +1249,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "by the verifier it names")
     p.add_argument("--session-hours", dest="session_hours", type=float, default=8.0,
                    help="how long a sign-in lasts (default: 8 — a shift)")
+    p.add_argument("--demo", action="store_true",
+                   help="seed a small demo store if it is empty, so a cold open "
+                        "lands on a live Nestor rather than an empty desk (IDEAS 6.107)")
     p.add_argument("--read-only", action="store_true",
                    help="refuse every decision; browse and audit only")
     p.add_argument("--allow-remote", action="store_true",
@@ -1322,6 +1325,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     store.memory_init()
     storage.set_store(store)
 
+    # A cold open lands on an empty desk otherwise (IDEAS 6.107). Only an empty
+    # store is seeded, so `--demo` against a real memory is a no-op, not a write.
+    demo_note = ""
+    if args.demo:
+        from . import seed
+        if seed.is_empty(store):
+            counts = seed.seed_store(store)
+            demo_note = f"seeded {sum(counts.values())} row(s) into an empty store"
+        else:
+            demo_note = "store already has content — not seeding"
+
     gate_rollup = (args.gate_rollup or os.environ.get("NESTOR_GATE_ROLLUP", "")).strip()
     if not gate_rollup:
         candidate = pathlib.Path(
@@ -1342,6 +1356,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"  store    {args.db}")
     print(f"  ledger   {cascade._ledger_path()}")
     print(f"  engine   {args.engine}")
+    if demo_note:
+        print(f"  demo     {demo_note}")
     if args.read_only:
         print("  mode     read-only — no decision can be recorded")
     ring = keyring.get_keyring()

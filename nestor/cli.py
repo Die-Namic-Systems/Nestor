@@ -42,7 +42,7 @@ import sys
 from typing import Optional
 
 from . import (answer, cascade, keyring as keyring_mod, ledger as ledger_mod, memory,
-               portable, serve, signing, storage, ui)
+               portable, seed as seed_mod, serve, signing, storage, ui)
 from .sqlite_store import SqliteStore
 
 EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
@@ -547,6 +547,38 @@ def cmd_stats(args) -> int:
     return EXIT_OK
 
 
+def cmd_demo(args) -> int:
+    """Build a small seeded store so ``nestor ui`` opens onto a live Nestor.
+
+    IDEAS §6.107: a cold clone / ``pip install`` opens onto an empty desk, and a
+    curious visitor who lands on nothing has already left. This writes a tiny,
+    honest store across all three recipes — sealed by :mod:`nestor.seed` through
+    the ordinary seal path — and prints the one command to view it.
+    """
+    # Keep the demo out of a real store's way: if the caller left --db at its
+    # default, write a demo-specific file rather than seeding data/nestor.db.
+    if args.db == "data/nestor.db":
+        args.db = "data/nestor-demo.db"
+    if not getattr(args, "ledger", ""):
+        # A self-contained ledger beside the demo db, so the chain these seals
+        # write travels with the store instead of landing in data/ledger.jsonl.
+        args.ledger = os.path.splitext(args.db)[0] + ".ledger.jsonl"
+    store = _store(args)
+    try:
+        counts = seed_mod.seed_store(store)
+    finally:
+        store.close()
+    total = sum(counts.values())
+    human = (
+        f"seeded {args.db} with {total} row(s): "
+        f"{counts['sealed']} sealed + {counts['draft']} draft translation, "
+        f"{counts['aliases']} entity alias(es), {counts['baselines']} numeric baseline(s).\n"
+        f"  view it:  nestor ui --db {args.db}"
+    )
+    _emit({"db": args.db, "ledger": args.ledger, "counts": counts}, args.json, human)
+    return EXIT_OK
+
+
 # --------------------------------------------------------------------------
 # parser
 # --------------------------------------------------------------------------
@@ -693,6 +725,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     st = sub.add_parser("stats", help="what is in the memory, and is the chain intact")
     st.set_defaults(func=cmd_stats)
+
+    dem = sub.add_parser("demo", help="build a small seeded store so `nestor ui` opens live")
+    dem.set_defaults(func=cmd_demo)
 
     # These two own their own flags; hand the rest of argv straight over.
     sub.add_parser("ui", help="the browser surface (see: nestor ui --help)", add_help=False)
