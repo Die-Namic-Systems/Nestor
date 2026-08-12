@@ -49,3 +49,7 @@ bench/results/local/
 # Keyrings hold verifier keys — runtime trust material, not source (like *.db
 # above). A local seal keyring must never be committed.
 keyring.json
+
+# Session-local seal ledger for the joke store (audit chain, runtime like *.db).
+# Targeted so the docs/dogfood/**/ledger.jsonl exception above is untouched.
+docs/llm-only-joke/ledger.jsonl
