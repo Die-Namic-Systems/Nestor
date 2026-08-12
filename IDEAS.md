@@ -176,7 +176,7 @@ this map is not, CI fails. It cannot drift.
 | [6.106](docs/agent-log.md#6106-where-the-decision-stores-retrieval-actually-fails-rank-is-fine-for-content-bearing-questions-and-collapses-for-question-shaped-ones--measured-fix-open) | Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones | measured, fix open |
 | [6.107](docs/agent-log.md#6107-the-ui-was-built-for-an-operator-who-read-the-docstrings-the-audience-it-is-about-to-meet-has-not--shipped-one-follow-up-open-js-test-harness) | The UI was built for an operator who read the docstrings; the audience it is about to meet has not | shipped, one follow-up open (JS test harness) |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
-| [7.2](#72-hooks--shipped-87-88) | Hooks | shipped (#87, #88) |
+| [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
 | [7.4](#74-the-list-goes-on--open-the-loop-is-the-catalog) | The list goes on | open (the loop is the catalog) |
 | [7.5](#75-the-gaps--open-standard-parts-the-loop-doesnt-have-yet) | The gaps | open (standard parts the loop doesn't have yet) |
@@ -1645,7 +1645,7 @@ the open-internet `synapse` suite), clean-room in Nestor's own voice so no
 vendored pair could drift, with the held set (the `gh` / auto-PR skills) named
 rather than dropped. **Status: shipped.**
 
-### 7.2 Hooks — shipped (#87, #88)
+### 7.2 Hooks — shipped (#87, #88, #105)
 
 The same method, wider. The in-session hook surface — the MCP, write and bash
 gates, the self-grant tripwire, the Stop gate, the UserPromptSubmit/PreCompact
@@ -1655,7 +1655,17 @@ cc-safety-net, vibeguard, retro-skill, and the official hooks docs), re-landed
 clean-room behind one CLI-agnostic runner, and each gate **proven to deny on the
 wire** by `scripts/hook_guard.py`. The self-grant guard shipped named honestly — a
 *tripwire, not a boundary* — because a project hook demonstrably cannot enforce
-against config edits (anthropics/claude-code#11226). **Status: shipped.**
+against config edits (anthropics/claude-code#11226).
+
+The newest is **`before_build`** (#105), the sibling of the write gate: where
+`before_write` makes an agent consult before *editing*, `before_build` fires on a
+build-shaped `UserPromptSubmit` and injects the anti-rediscovery reminder — *check
+the box, then the web, before writing* — because this fleet's largest tax is
+rebuilding an organ that already existed (`the-house-already-knew.md`). It is
+advisory, silent on non-build turns, its one count derived from the tree, and — a
+worked instance of its own rule — it was written only after two look-sees
+confirmed no such hook existed. Named honestly (a tripwire, so it sits in
+`hook_guard`'s non-gates, not its blocking proof). **Status: shipped.**
 
 ### 7.3 Rubrics — open (the criterion the brain scored against first)
 

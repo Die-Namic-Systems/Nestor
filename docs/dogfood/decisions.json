@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 314,
+    "pairs": 316,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "e2a5a1d4c7ba2a148c9f9ea50558470f87098063f5c96cf68513c1e0b6b25817",
+  "digest": "7dfcd628c085dd8a7c25a36cbd019e455da75ee98d2312fcf3eff70b6db63896",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -679,6 +679,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "63d38c8b-c0df-50c3-8a3b-d60aff89b188",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this a gate",
+      "source_text": "Is this a gate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — advisory, and it says so in its own text: a tripwire, not a boundary. A hook cannot run the survey for an agent or stop it from building; it can only name where to look. So it is excluded from scripts/hook_guard.py's blocking-gate proof (it injects context, it never denies), listed there among the non-gates with reinject and session_end.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "638dd48b-3a41-5ef1-a079-34821d33e140",
       "origin": "pr:None",
       "seal_sig": "",
@@ -1234,6 +1248,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Effectively never — anything over about ten seconds goes to the background, and commits batch to a boundary the operator marks rather than landing after each step.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "0e5b3467-77e7-59fb-8037-7f7d92f23153",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the write gate makes an agent consult before editing what makes an agent consult before building a new thing",
+      "source_text": "The write gate makes an agent consult before editing. What makes an agent consult before *building* a new thing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "before_build, an advisory UserPromptSubmit hook. On a build-shaped prompt (a strong construction verb, or write/add/make/wire next to a construct noun) it injects the anti-rediscovery reminder and stays silent otherwise, so a status question or a seal costs nothing. Its one number — the count of recorded decisions — is globbed from the tree at emit time, never hardcoded. It is wired into the CLI-agnostic runner and .claude/settings.json alongside reinject, and pinned by a prove-it-can-fail test that asserts both directions (fires on a build prompt, silent on a question) plus the on-the-wire contract.",
       "verifier": "",
       "weight": 1.0
     },
