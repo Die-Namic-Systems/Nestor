@@ -7775,3 +7775,29 @@ translation, not a copy). What it settled:
   vanilla port into `ui_page.py` — reproducing the reacting face and the
   instrument treatment under stdlib + strict CSP, with a seeded non-empty first
   run (§6.107 above) so a cold visitor meets a live Nestor, not an empty desk.
+
+**The front door and the three recipes (added, same session, same artifact URL
+above — the prototype was extended in place).** Two gaps in the prototype were
+the centre of the framing yet had only ever been *talked about*; both are now
+built:
+
+* **The cold-open front door.** The app no longer starts on a tab — it starts on
+  a welcome screen where Nestor greets a stranger with one line ("the machine
+  that won't overclaim") and **three doors framed in each tribe's own language**:
+  *for the physicist* — "does this figure match the trusted value?"; *for the AI
+  builder* — "did a human ever actually confirm this?"; *for everyone* — "is it
+  really the same thing?". Each door drops into a live demo of that tribe's
+  recipe. This is §6.107's "three doors" made concrete: the framing device is the
+  entry, not a recipe picker buried inside a desk. The header face doubles as a
+  home button back to it.
+* **The prototype stopped being translation-only.** It now demonstrates all three
+  recipes — a **numeric** check (a figure flagged for drifting off its sealed
+  baseline) and an **entity** resolve (an alias verified to its canonical)
+  alongside translation — so §4.1's "lead with the mechanic, not translation" is
+  visible in the product surface, not just asserted in the docs. The reacting
+  face rides every recipe's real verdict unchanged.
+
+The open step is unchanged and now the only thing left before this stops being a
+mockup: the **vanilla port into `ui_page.py`** (stdlib + strict CSP, no build),
+carrying the reacting face, the instrument treatment, the front door, and the
+seeded non-empty first run.
