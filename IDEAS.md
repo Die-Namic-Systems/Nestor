@@ -7194,6 +7194,29 @@ the probe should distinguish "the clause failed" from "the probe could not run"
 — they are printed identically today, and only one of them is about the subject.
 `docs/local-fleet.md` carries the workaround until one of those lands.
 
+**A second false verdict, found later, and the reason it was still standing.**
+The session that recorded this entry re-ran the *constitution* audit clean and
+corrected it from 2 failing to 0. It did not re-run `audit_against_jeles.py`,
+which had been run in the same shell, under the same exported keyring, and had
+reported:
+
+```
+FAILS  JELES-INDEPENDENCE          2 satisfied · 2 differently · 1 failing
+```
+
+Re-run with the keyring unset, that clause reads **`differently`**, and the
+audit reads **0 failing**. So a second cross-repository verdict — that jeles
+fails an independence clause — was published from a false positive and left
+uncorrected through several rounds, in the same session that had already
+diagnosed the cause.
+
+That is the part worth generalising past this defect. Finding an environmental
+fault that falsifies a result creates an obligation to **re-run everything that
+ran under it**, not only the case that surfaced it. The instinct is to fix the
+example in front of you, and the example is the one you already know about.
+Nothing here flagged the second audit: it had completed, exit 0, with a verdict
+formatted exactly like a true one.
+
 ### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
 
 *Measured 2026-08-12, because both real backends were unreachable.* `[semantic]`
