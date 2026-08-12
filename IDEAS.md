@@ -8082,6 +8082,22 @@ is the loop itself, read in the order a proposal is processed:
     deterministic rebuild. Parts: **reproducible builds, provenance-from-source**.
     Box: `scripts/dogfood_store.py`, `docs/dogfood/decisions/`.
 
+Two parts do not sit on the loop but cut across every seam of it, and both are
+already load-bearing — which is the tell that they belong on the list, not proof
+that they are too mundane for it. **Documentation** is a standard part whose box
+copy has teeth: the doc-consistency gate (`tests/test_docs.py`) that failed this
+entry's own first push and made these headings carry a status; `IDEAS.md`'s
+status vocabulary; the `AGENTS.md` / `CLAUDE.md` / `docs/agent-guide.md` seat; and
+the dogfood decision records as documentation-that-is-source. The world has doc
+generators, ADRs, docs-as-tests, doc linters. **Templates** is its sibling: the
+`.github` PR template filled on every PR here, the dogfood decision JSON shape,
+willow-mcp's `CLOSEOUT.template.md` and `handoff.schema.json`; the world has
+PR/issue templates, cookiecutter-style scaffolding, ADR templates. The flat
+backlog above says "prompt and template libraries" and step 4 says "task
+templates", but that undercounts both — documentation-as-a-tested-artifact and
+templates-as-scaffolding are parts in their own right, and the doc gate that just
+stopped this PR is the least deniable member of the whole catalog.
+
 So the catalog is not a wishlist bolted onto Nestor; it is Nestor **read as a
 chain of standard parts**, each with a fleet copy that drifts and a world standard
 that does not, each re-landable by the survey-both-ways method. The count stays
