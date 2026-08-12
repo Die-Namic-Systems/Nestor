@@ -309,10 +309,11 @@ nestor/
 ├── portable.py       export/import a memory without laundering trust
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
+├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
-├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings
+├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
