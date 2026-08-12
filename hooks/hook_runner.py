@@ -18,8 +18,8 @@ from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo
 #: Modules the runner dispatches. The gate-proving harness
 #: (scripts/hook_guard.py) reads this so a newly-wired gate cannot ship without
 #: a proof-it-denies case.
-MODULES = ("session_start", "before_mcp", "before_write", "before_bash",
-           "before_authority", "before_stop", "reinject")
+MODULES = ("session_start", "session_end", "before_mcp", "before_write",
+           "before_bash", "before_authority", "before_stop", "reinject")
 
 
 def _read_stdin() -> dict:
@@ -164,6 +164,14 @@ def main() -> None:
         if args.format == "claude":
             maybe_bootstrap_claude_venv(root)
         _emit_session_start(args.format, build_context(root))
+        return
+
+    if args.module == "session_end":
+        # Cleanup-only: SessionEnd cannot block or inject, so any warning goes to
+        # stderr (the one channel it has) and the hook always exits 0.
+        from hooks.session_end import run as session_end_run
+        for line in session_end_run(root, payload).get("warnings", []):
+            print(line, file=sys.stderr)
         return
 
     if args.module == "reinject":
