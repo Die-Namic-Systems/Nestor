@@ -7284,3 +7284,52 @@ anything over ~10s goes to the background rather than in front of the next
 prompt. The last one is a working agreement rather than code, which is exactly
 why it belongs written down where the next session reads it — nothing enforces
 it, and the agent that just learned it will not be the agent in the room.
+
+### 6.101 The corpus extractors do not fail closed, and the test named for them covers a different family — **verified**, fix **open**
+
+*Found 2026-08-12, by running all seventeen of them for the first time in one
+session.* Point any `scripts/corpus/extract_*.py` at a repository that does not
+exist and it reports:
+
+```
+  0 pair(s): 0 draft, 0 sealed
+  store: /tmp/…db
+```
+
+and exits **0**. That is byte-identical to what it prints for a checkout that is
+present and declares nothing. Seven of the eight extractors aimed at absent
+checkouts behaved this way; the eighth (`extract_fork.py`) exited 2 on a missing
+`--name`, which is argparse refusing an argument rather than the reader refusing
+a corpus.
+
+**This exact defect was already found, argued and fixed one directory up.**
+`scripts/feed_jeles_sources.py` carries the fix in its docstring — an unreadable
+registry and an empty one used to print the same words — and
+`scripts/feed_all.py` exists to keep the distinction across several feeds at
+once, stating it plainly: *"nothing matched and I could not look are different
+sentences."* `tests/test_corpus_readers_fail_closed.py` is the gate.
+
+That gate covers four scripts: `feed_willow_constitution.py`,
+`feed_willow_migrations.py`, `feed_willow19_plans.py`, `feed_jeles_sources.py`.
+All four are `feed_*`. **`grep` finds no test anywhere in `tests/` that mentions
+`scripts/corpus/` at all** — seventeen extractors, zero coverage — and the file
+that would obviously be the place to add it is *already named*
+`test_corpus_readers_fail_closed.py`, which reads like the job is done.
+
+The name is the trap. A gate named for corpus readers, which does not cover the
+directory called `corpus/`, is worse than no gate: it answers the question "is
+this covered?" wrongly and cheaply.
+
+**Why it went unnoticed until now.** The extractors were written against a
+`/workspace/...` layout that no longer exists, and each was run once, by hand,
+against a path its author had just confirmed. A reader is only asked to
+distinguish absent from empty when somebody runs it against something that is
+not there — which is what a sweep does and a single authoring session never
+does. The same sweep found `extract_data_vault.py` reporting 0 rows against
+`willow-data-vault` because its allowlist names `sean-data-vault`'s
+directories: a wrong-target run that is indistinguishable, in the output, from a
+repository that declares nothing.
+
+The fix is the one the feed family already took — refuse before reading, in
+words that name which of the two happened — plus rows in the existing table so
+the seventeen are covered by the gate that claims their name.
