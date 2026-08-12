@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 305,
+    "pairs": 307,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "3cdbc3a6a6da8210f58eed2429d187ecc819dd622f48afede75d75bc16aa9748",
+  "digest": "87c8f8740bdd5c4940283d9375456bbd1bcd54eac192d55bd7547f1ef90fa5ed",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -427,6 +427,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "92a7ccc4-192d-5322-b577-9ae3c6b709f0",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "if sessionend is unreliable is the drift check worth having",
+      "source_text": "If SessionEnd is unreliable, is the drift check worth having?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, as a best-effort local reminder, not a guarantee. SessionEnd does not fire on Ctrl+C (suspend, not exit) and is unreliable on /clear (anthropics/claude-code#6428). CI's test_dogfood_store remains the real drift gate; this hook only turns a post-push CI failure into an earlier end-of-session notice for the sessions where it does fire.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "9151099b-ea58-51ac-bc70-c28036f42a63",
       "origin": "pr:None",
       "seal_sig": "",
@@ -744,6 +758,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A quoted run: a code span with a command word, 'N passed', an exit code, or file.py:line. Claim present and evidence absent is the only flagged state; the guard fails OPEN when it cannot find the final message.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "4eb307eb-438d-52d1-9a8d-6587ac7800e3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what can a nestor sessionend hook actually do",
+      "source_text": "What can a Nestor SessionEnd hook actually do?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Warn and flush, never gate. Confirmed from the Claude Code hooks docs and the fleet's own code: SessionEnd cannot block termination and cannot inject context (exit 2 only shows stderr to the user; there is no next turn). So session_end.py does two side-effect/advisory jobs: `dogfood_store.py --verify` and, on drift, a stderr reminder to rebuild before pushing (which also fails on a sealed row, doubling as a covenant check); and a WAL checkpoint of the gitignored dev store (never the committed dogfood store, whose checkpoint the rebuild script owns). It always exits 0, warnings to stderr. Anything that must block stays on the Stop turn-gate (before_stop.py). It is excluded from the gate-proving harness's coverage pin because it is not a gate.",
       "verifier": "",
       "weight": 1.0
     },
