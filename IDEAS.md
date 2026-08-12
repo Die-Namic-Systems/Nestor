@@ -7716,3 +7716,36 @@ prevent — the clone and pip experiences diverge exactly where it hurts most.
 the verdict spine, the gloss, and the Floor-2 diagnostics all need a live surface
 to attach to. Everything else here is a proposal a human has not yet weighed —
 open by construction.
+
+**Visual direction, v1 (added after a design conversation, 2026-08-12).** The
+framing above answers *what the first screen must do*; this answers *what it looks
+like*, and the two are the same decision. The desk's two existing skins were both
+wrong for a cold, mixed audience — the default desk reads as under-dressed
+("drab"), and the `fleet-review` editorial skin (warm parchment, Palatino, gold,
+drift/pulse) reads as antique and a little precious. The resolution is neither
+re-skin but a **reframe: Nestor is a character, not a console.** `persona.py`
+already wrote him — the junior party who may propose and may not confirm, deadpan
+about his own shortfall, grave about a human's, and *constitutionally unable to
+overclaim* — so the front door should be that presence, met by doing the
+punchline (§5.4's forged 1.000 → not served), not a tab bar.
+
+The agreed look is a **big clunky mid-century box robot, rendered flat /
+graphic-novel** (the *spirit* of Shawn Harris's LOZ 4000, Rosie, B-9 — an
+original Nestor, not a trace of any of them), explicitly **not** chrome
+skeuomorphism and **not** the antique parchment register. He is the **anti-HAL**:
+one expressive single eye, politely unconvinced rather than menacing. The
+governing discipline is the same value the product already holds — **every
+instrument must mean something real**: the score needle shows the true score, the
+dark VERIFIED lamp is the true verdict, the CRT speaks the literal `persona.py`
+sentence. Mid-century instrument design (form follows function; the meter never
+lies about the signal) *is* Nestor's honesty ethos, which is why the aesthetic
+fits rather than decorates. Nestor's own palette (forest green, gold, rust)
+translates to flat poster color; a warm cream enamel body carries it.
+
+A static v1 "meet Nestor" still — the robot refusing a perfect score, needle
+pegged, VERIFIED lamp dark, FORGED lamp lit — was built and accepted as good
+enough for a v1 (artifact, this session:
+`claude.ai/code/artifact/0da0decf-ab2a-494a-ac86-ac2010389d12`; the URL is a
+session reference, not a durable asset). **Still open:** turning the still into
+the real front door — wiring the eye, needle and lamps to live verdict state, and
+deciding how the character sits over (or in front of) the five-tab desk.
