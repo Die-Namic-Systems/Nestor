@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "All seventeen scripts/corpus/extract_*.py run in one sweep, which appears to be the first time they have been run together rather than one at a time by their author. 28,584 rows across 26 stores; 18,665 of them vendored contamination in a single store; 9,919 real. The sweep found two defects that no single-extractor run could have surfaced (IDEAS 6.101 and 6.102), and the operator's instruction was simply 'run the corpus extractors' — the findings are what running them produced, not what was asked for.",
+  "decisions": [
+    {
+      "question": "Nestor's own extraction was killed by a 300s timeout having written 11,105 rows. Report that figure?",
+      "commitment": "No. Re-ran it unbounded in the background and reported nothing until it exited, which it did at 19,804 rows. The 11,105 was a prefix of a plan, not a measurement.",
+      "why": "bench/README.md already states the rule for this repository's other measurement family — 'check `complete` before citing a number' — and the corpus extractors have no such flag, so the only protection is not quoting an interrupted run. Quoting it would have been the cheaper and more natural thing to do: it was a real number, written by a real run, sitting in a real store."
+    },
+    {
+      "question": "94% of that 19,804 came from .venv/site-packages. Is that a bad run to redo, or a defect to record?",
+      "commitment": "A defect, recorded as IDEAS 6.102. The extractors take their file list from a filesystem walk while their origin strings assert a git revision, so a gitignored virtualenv is filed as 'Nestor@f1fea81:' — a provenance claim for files that are in no commit at all.",
+      "why": "Redoing the run with the venv moved aside would have produced a clean store and left the defect in place for the next person, who would hit it the same way. The condition is not exotic: AGENTS.md instructs every agent to create .venv at the repo root before doing anything, so following this repository's own setup is what breaks this repository's extractor. That also explains why a clean checkout can never reproduce it — of twenty-six stores in this sweep exactly one is contaminated, and it is the only repo set up as documented."
+    },
+    {
+      "question": "Seven extractors aimed at absent checkouts exited 0 with '0 pair(s)'. Fix them here, or file it?",
+      "commitment": "Filed as IDEAS 6.101, not fixed in this pass. The finding includes that tests/test_corpus_readers_fail_closed.py — the file whose name claims this exact coverage — covers four feed_* scripts and no scripts/corpus/ script at all.",
+      "why": "The fix is seventeen scripts plus rows in an existing test table, which is its own change with its own mutation testing, and the operator's instruction was to run the extractors. What made it worth stopping to write down rather than mentioning in passing is that the lesson is already in this repository, argued at length, one directory up: feed_all.py says 'nothing matched and I could not look are different sentences'. A defect that recurs next to its own fix is a fact about where the gate was placed, not about whether anyone understood it."
+    },
+    {
+      "question": "extract_data_vault.py reported 0 rows against willow-data-vault. Empty repository, or wrong target?",
+      "commitment": "Wrong target, established by reading its own output rather than the row count: 'allowlist: 6 directories, 0 file(s)'. Its allowlist names sean-data-vault's directory layout, and the repository in this box is willow-data-vault.",
+      "why": "The row count alone said 0 and would have been recorded as 'that corpus declares nothing', which is the same conflation 6.101 is about, reached by a different route — there the reader could not look, here it looked in the wrong place. Both print a zero that reads as a fact about the corpus. The allowlist line is the only thing in the output that distinguishes them, and it is one line above the total."
+    }
+  ]
+}

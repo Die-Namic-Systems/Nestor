@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "Five small-model agents surveyed twenty-five repositories, shallow and broad, for machinery built in-house where an Apache-2.0-compatible vendor would do better — explicitly not limited to software engineering. About forty capability rows came back. The findings about the box were sound and immediately useful; the claims about the outside world needed checking, and roughly one in ten was wrong, including two licences inverted inside a single row. Recorded in IDEAS 6.103.",
+  "decisions": [
+    {
+      "question": "The survey agents cannot reach the network and must name licences from memory. Accept the rows as returned, or check them?",
+      "commitment": "Check them. Twenty-one licence claims were read back from PyPI metadata. Most held; celery was claimed LGPL-3.0 and is BSD-3-Clause, dramatiq was claimed BSD-3-Clause and is LGPL-3.0-or-later — the two halves of one row, inverted.",
+      "why": "The whole request was filtered on Apache-2.0 compatibility, so the licence was the load-bearing field rather than a footnote, and it was the one field the agents were structurally unable to verify. The direction of the error decides the cost: a vendor wrongly excluded loses an option, while a vendor wrongly included puts an LGPL dependency in an Apache-2.0 tree — and dramatiq was recommended precisely because it appeared to pass the filter. A licence filter applied by a model is a list of candidates for a filter, not the filter."
+    },
+    {
+      "question": "Two rows named vendors that do not exist as described. Quietly drop them, or record that they were returned?",
+      "commitment": "Record them. A ledger vendor 'Chronicle (EtherLedger-based)' whose only PyPI namesake is a logging utility, and 'merkle-tree primitives from tree-sitter', which is a parser generator. Both were returned despite an explicit instruction not to name projects the agent was unsure existed.",
+      "why": "Dropping them would leave the impression that the instruction worked, and the next survey would be commissioned with the same wording and the same confidence. What the instruction actually bought is unknown — possibly nothing. Two fabrications in forty rows is the number to design around, not the zero the instruction asked for."
+    },
+    {
+      "question": "Three of five lanes cited PRIOR_ART.md sections for content those sections do not contain. Is the document's prior art therefore unusable from a survey?",
+      "commitment": "No — the citations split, and the split is the finding. The trust lane's references to PRIOR_ART §6 were correct: line 228 does survey OPA/Rego + Conftest and line 236 does survey in-toto/SLSA, both marked Apache-2.0 verified, both carrying reservations the agent could not have known. The other three lanes misnamed sections they had not opened.",
+      "why": "A wrong citation and a right one arrive in identical confident prose, and only opening the file separates them — which means a survey's citations are pointers to check rather than evidence, uniformly, regardless of how many turn out correct. It also corrects something asserted earlier in the same session: PRIOR_ART was described as covering only the marching-arts slice, and its §6 is a general survey that reaches the fleet's core infrastructure vendors. The house knew more than the agent surveying it did."
+    },
+    {
+      "question": "What is a fan-out survey actually good for, given the error rate?",
+      "commitment": "Finding, not asserting. The claims about this box — hash-chained ledgers implemented four to six times, three mutually incompatible trust-tier models, persona definitions scattered across three repositories, calibration scoring in three places — were sound and cost minutes to confirm because the evidence is on disk. Every claim about the outside world needed independent checking.",
+      "why": "The split runs exactly along the line of what the agent could see. Inside the box it was reading files and reporting them; outside it was reciting from training with no way to be corrected. Worth writing down as the shape of the tool rather than as a complaint about it: the same five agents that got two licences backwards also found duplication across twenty-five repositories in a few minutes, which nothing else in this session did as cheaply."
+    }
+  ]
+}

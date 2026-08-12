@@ -93,6 +93,64 @@ merged locally — resolve or delete the branch to recreate). The branch you wer
 remote branch has been deleted after merge, the script skips that repo and leaves
 your current branch as-is.
 
+## Standing one Nestor with every seam attached (no fleet hub)
+
+The section above stands up three repos that have to be *running* together. This
+one is the smaller case and the one a cloud container actually gets: a single
+checkout where every optional seam is attached, nothing needs Postgres, and the
+measure of "attached" is the skip count rather than a claim.
+
+**The skip list is the map.** `python -m pytest -q -rs` on a `.[dev,keys]`
+install reports the unattached seams by name, and every skip reason is a thing
+that can be wired:
+
+```bash
+JELES_REPO=~/github/hornbook-knowledge/Jeles \
+WILLOW_CHARTER_REPO=~/github/willow-memory/willow \
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
+python -m pytest -q -rs
+```
+
+`tests/_fleet_paths.py` resolves the first two; both accept an env override
+ahead of the org-folder defaults, which is what makes a flat container layout
+(`/home/user/Jeles`) work without moving anything. `pip install -e <path>` for
+jeles and willow-gate attaches the rest: jeles clears eight skips (border,
+bridge, verification, two audits), the charter three, willow-gate one
+(`nestor.cloud_seal` fail-closes on import without it).
+
+Measured on a 2026-08-12 container, same tree: **944 passed / 24 skipped** at the
+`.[dev,keys]` baseline, **972 passed / 4 skipped** with the seams above attached.
+
+**Playwright: match the version to the image, never download.** The browser
+suite asks Playwright where Chromium is and skips if that path is empty
+(`tests/test_client_signed_seals_browser.py`), so a version mismatch reads as a
+missing browser. An image shipping `chromium-1194` (Chromium 141.0.7390.37,
+older `chrome-linux/` layout) is served by `playwright==1.56.0`; 1.62 looks for
+`chromium-1234/chrome-linux64/chrome` and finds nothing. Pin to the image:
+
+```bash
+pip install "playwright==1.56.0"      # never `playwright install`
+python -c "from playwright.sync_api import sync_playwright as s
+with s() as p: print(p.chromium.executable_path)"   # must exist
+```
+
+**`[semantic]` and `--matcher ollama` need egress that a locked-down container
+does not have.** Both fetch model weights — fastembed from `huggingface.co`,
+the Ollama backend from a daemon that has to be installed first. Where policy
+denies those hosts they are the two seams that stay unattached, and installing
+fastembed anyway converts three skips into three `httpx.ProxyError: 403`
+failures. That is an egress denial wearing a test failure's clothes; read the
+proxy's own status endpoint before believing the code broke.
+
+**Do not export `NESTOR_KEYRING` into a bench or audit run.** See IDEAS §6.98:
+`bench/` and `scripts/audit_*.py` seal under synthetic verifiers that are not in
+a real keyring, and inherit one from the environment. Scope it instead:
+
+```bash
+( unset NESTOR_KEYRING NESTOR_REQUIRE_SEAL_KEY
+  python scripts/audit_against_constitution.py --repo ~/github/willow-memory/willow )
+```
+
 ## Nestor on PATH
 
 From `nestor/`:

@@ -377,6 +377,8 @@ docs/homestead-paths.md  ~/.homestead ledger/keep paths vs the repo's ./data/ (h
 docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.homestead household root — audience, not brand
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
+docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
+docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
 ```
 
 ---

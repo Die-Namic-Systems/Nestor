@@ -7135,3 +7135,513 @@ shipped name `ollama` via `SemanticMatcher(backend="ollama")`. Embedding cache
 stays keyed by `model_name`, so nomic vectors never collide with
 `BAAI/bge-small-en-v1.5`. Document prefixes only (symmetric `score` / `scores_against`).
 Default `SEAL_THRESHOLD` is still character-ratio space — calibrate before serving.
+
+### 6.97 `detailPanel` renders two literal `null` text nodes into the provenance card — **verified**, fix **open**
+
+*Found 2026-08-12, by standing the UI up and looking at it.* The Provenance card
+in `nestor.ui` shows the string `nullnull` between the answer and the chip row,
+on ordinary rows.
+
+`h()` is careful about this — `ui_page.py:534` skips a child that is `null`,
+`undefined` or `false`, which is why the chip row's `p.status === "sealed" ? … :
+null` leaves no trace. `detailPanel` then builds its card with the **native**
+`card.append(...)`, which does not skip: DOM `append()` stringifies `null` to a
+text node. Two of its arguments return null for an ordinary row —
+`commitmentPanel(p)`, and the `(p.reason || origin.startsWith("willow:gap")) ? …
+: null` context panel — so the two land adjacent and read as one word.
+
+Verified in a real Chromium against a live server rather than by reading:
+querying the card's direct child text nodes returns `['null', 'null']`. It needs
+a row with no commitment choices and no reason, which is what an imported bundle
+produces — 221 of 221 rows in the dogfood store show it.
+
+Two shapes of fix, and they are not equal. Filtering at each call site is the
+one that will regress: the same mixed idiom (`h()` for some children, native
+`append` for others) is used in several panels, so the next null-returning
+helper reintroduces it. The mechanism-level fix is to stop having two append
+paths with different null semantics — route card assembly through the helper
+that already has the rule. This is `docs/agent-guide.md`'s "when a guard fails,
+remove the interaction — do not add a condition", and the guard here is `h()`'s
+line 534 being bypassed rather than being wrong.
+
+### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **open**
+
+*Found 2026-08-12, while standing up an instance with per-verifier keys on.*
+With `NESTOR_KEYRING` exported — which is the correct configuration for a real
+deployment — `scripts/audit_against_constitution.py --repo <charter>` reports
+**2 failing**. With it unset, the same command on the same tree reports
+**0 failing**. Both numbers were run; the second is the true one.
+
+The probes seal under synthetic verifiers (`someone` in the constitution audit,
+`bench` in `bench_accuracy.py`) that are deliberately not people and so are
+deliberately not in anybody's keyring. `keyring.signing_entry` raises
+`UnknownVerifierError`, the probe catches its own failure, and the harness
+reports the clause as failing. The failure is real and it is the harness's, not
+the clause's — but the verdict does not distinguish those, so an operator
+running the audit the documented way is told the constitution fails.
+
+This is a shape the repo already refuses elsewhere. `scripts/dogfood_store.py`
+has a gate for exactly it — `test_dogfood_store.py` installs a poisoned ambient
+store and proves none of it reaches the build, because "a memory whose rows came
+from somewhere nobody can see is not an audit trail". A measurement harness that
+reads ambient config is the same defect one layer over, and these two have no
+such guard.
+
+The fix is isolation, not a caveat in the docs: a harness that seals under a
+synthetic verifier should build its own keyring in its own temp root and ignore
+`NESTOR_KEYRING`, the way it already ignores the ambient store. Failing that,
+the probe should distinguish "the clause failed" from "the probe could not run"
+— they are printed identically today, and only one of them is about the subject.
+`docs/local-fleet.md` carries the workaround until one of those lands.
+
+**A second false verdict, found later, and the reason it was still standing.**
+The session that recorded this entry re-ran the *constitution* audit clean and
+corrected it from 2 failing to 0. It did not re-run `audit_against_jeles.py`,
+which had been run in the same shell, under the same exported keyring, and had
+reported:
+
+```
+FAILS  JELES-INDEPENDENCE          2 satisfied · 2 differently · 1 failing
+```
+
+Re-run with the keyring unset, that clause reads **`differently`**, and the
+audit reads **0 failing**. So a second cross-repository verdict — that jeles
+fails an independence clause — was published from a false positive and left
+uncorrected through several rounds, in the same session that had already
+diagnosed the cause.
+
+That is the part worth generalising past this defect. Finding an environmental
+fault that falsifies a result creates an obligation to **re-run everything that
+ran under it**, not only the case that surfaced it. The instinct is to fix the
+example in front of you, and the example is the one you already know about.
+Nothing here flagged the second audit: it had completed, exit 0, with a verdict
+formatted exactly like a true one.
+
+### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
+
+*Measured 2026-08-12, because both real backends were unreachable.* `[semantic]`
+needs weights from `huggingface.co` and the `ollama` backend needs a daemon from
+`ollama.com`; egress policy denies both, so the semantic seam could not be
+exercised in this container at all. A small model was stood up as a scoring
+service in place of the embedder — not producing vectors, but answering the
+`score(raw_a, raw_b) -> float` half of the Matcher seam directly.
+
+**What it buys, and the number is large.** Asking for `willow-gate` and reaching
+its own one-line description scores **0.098** under `StringMatcher` — invisible,
+below every threshold, unreachable by character ratio — and **0.900** under the
+stand-in. The inverse holds too: `homestead-law` against `homestead-ledger`
+scores **0.741** on characters, the highest non-identical score in the sample,
+and drops to 0.600 on meaning. That pair of failures is the whole argument for a
+semantic matcher in this store, and neither was measurable here until now.
+
+**What it is not is deterministic, and the first measurement said it was.** The
+agent re-scored four pairs and reproduced all four exactly — same floats, same
+note strings verbatim. That looked like a stable function and was not: it had
+been resumed from its own transcript and could read its previous answers. A
+fresh instantiation of the identical protocol moved every non-identical pair:
+
+| pair | recalled | fresh | drift |
+|---|---|---|---|
+| `willow-gate` / `willow-config` | 0.500 | 0.450 | −0.050 |
+| `homestead-law` / `homestead-ledger` | 0.600 | 0.550 | −0.050 |
+| `quiet-corner` / `quick-stupids` | 0.175 | 0.150 | −0.025 |
+| store brief / kartikeya brief | 0.475 | 0.400 | −0.075 |
+
+Mean absolute drift 0.050, max 0.075, and **every one moved down** — a bias
+between instantiations rather than noise around a value. Two invariants
+survived: identical strings return exactly 1.000 in both, and a deliberate
+contradiction in the rubric reproduced identically in both, which is what
+identifies it as a prompt defect rather than agent drift.
+
+> **Amended after a third instantiation (2026-08-12, same session).** Two of the
+> three claims in the paragraph above are wrong, and both were wrong because they
+> were drawn from n=2.
+>
+> | pair | recalled ×3 | fresh #1 | fresh #2 | spread |
+> |---|---|---|---|---|
+> | `willow-gate` / `willow-config` | 0.500 | 0.450 | 0.300 | 0.200 |
+> | `homestead-law` / `homestead-ledger` | 0.600 | 0.550 | 0.300 | **0.300** |
+> | `quiet-corner` / `quick-stupids` | 0.175 | 0.150 | 0.150 | 0.025 |
+> | store brief / kartikeya brief | 0.475 | 0.400 | 0.450 | 0.075 |
+>
+> - **"Every one moved down" is false.** The store/kartikeya pair moved *up* in
+>   the third run. It is dispersion, not bias, and "bias rather than noise" was
+>   the more interesting of the two readings, which is presumably why it got
+>   written.
+> - **The spread is 3–4× larger than reported.** Mean 0.150 against 0.050, max
+>   0.300 against 0.075. One more sample quadrupled the measured instability, so
+>   the original figures were not a measurement with error bars, they were the
+>   smallest number two points can produce.
+> - **The rubric contradiction does not reproduce.** Fresh #2 scored both
+>   look-alike pairs at 0.300 — *obeying* the ≤0.35 clause the other two
+>   instantiations ignored, with notes reading "Shared prefix, different
+>   concepts". The diagnosis (the rubric contradicts itself) survives; the
+>   evidence offered for it does not. Two runs agreeing was reported as
+>   reproduction, and the third picked the other clause.
+>
+> What holds unchanged across all five passes: **identical strings return exactly
+> 1.000**, and **recall is exact** — the resumed agent returned the same floats
+> and the same note strings three times over many intervening turns.
+>
+> The consequence stated below needs restating with the real number. At a 0.92
+> threshold, a spread of 0.300 exposes roughly **0.62–1.00**, not 0.85–0.99 —
+> which is most of the range where a semantic matcher would ever be asked to
+> decide anything.
+
+**The consequence is in `embedding_store.py`.** The cache keys vectors by
+`model_name`, and a key is a promise that the function behind it is fixed. Keyed
+to a model that is re-instantiated per call, a cache hit and a fresh call are not
+interchangeable, and the row that was cached is not the row a re-run produces.
+Nothing here flips a seal at the shipped 0.92 — all observed drift is far below
+it — but a pair scoring inside roughly 0.85–0.99 could land on either side
+depending on which instantiation scored it. Six pairs is too few to put a rate
+on that, and saying which pairs sit in that band needs a corpus, not a sample.
+
+The honest reading is that this is a **measuring instrument, not a backend**: it
+makes the seam's value visible where nothing else could, and it must not key a
+cache or key a seal.
+
+### 6.100 One gate for every change class, and what that costs a session with a human waiting in it — **measured**, fix **open**
+
+*Observed 2026-08-12, from the outside.* `AGENTS.md` prescribes one verification
+step and prescribes it unconditionally: `bash scripts/ci-lint.sh` and `python -m
+pytest -q` before you push. That is correct for a change to `nestor/`, and it is
+the only instruction offered, so a change touching nothing but `IDEAS.md` and
+`docs/dogfood/decisions/*.json` pays the identical price.
+
+Measured on this tree today:
+
+| gate | scope | cost |
+|---|---|---|
+| `python -m pytest -q` | 979 tests | 96.6–107.3s across four runs |
+| `test_docs` + `test_open_findings` + `test_dogfood_store` | 46 tests | 7.2s (16.0s wall) |
+| `dogfood_store.py --verify` | the digest gate | 0.6s |
+
+Those 46 are the tests a documentation or decision-file change can actually
+break — the README layout gates, the IDEAS status gate, and the store's own
+rebuild check. Nothing else in the suite reads those files. Three full runs were
+spent today on changes of exactly that shape, which is roughly five minutes
+bought nothing.
+
+**The second cost is the one that does not show up in a timing table.** In an
+interactive session the gate is not a background job; it is a wall between the
+operator's last instruction and their next one. A session running an ordered
+sequence of small steps pays it *per step*, and the agent — which experiences no
+duration — will keep choosing the maximal gate because the guidance says to and
+because it is never the party waiting. The operator here named it directly, and
+the agent had not noticed across four consecutive rounds of doing it.
+
+Both halves are the same defect: **the guidance names one gate and no change
+classes**, so there is no way to be correct and cheap at once, and the failure
+mode is silent because over-verifying always passes.
+
+What a fix looks like, none of it written: a change-class table in `AGENTS.md`
+mapping touched paths to the gate they owe; a `scripts/ci-lint.sh` sibling that
+runs the docs subset; and, for the interactive case, the standing default that
+anything over ~10s goes to the background rather than in front of the next
+prompt. The last one is a working agreement rather than code, which is exactly
+why it belongs written down where the next session reads it — nothing enforces
+it, and the agent that just learned it will not be the agent in the room.
+
+### 6.101 The corpus extractors do not fail closed, and the test named for them covers a different family — **verified**, fix **open**
+
+*Found 2026-08-12, by running all seventeen of them for the first time in one
+session.* Point any `scripts/corpus/extract_*.py` at a repository that does not
+exist and it reports:
+
+```
+  0 pair(s): 0 draft, 0 sealed
+  store: /tmp/…db
+```
+
+and exits **0**. That is byte-identical to what it prints for a checkout that is
+present and declares nothing. Seven of the eight extractors aimed at absent
+checkouts behaved this way; the eighth (`extract_fork.py`) exited 2 on a missing
+`--name`, which is argparse refusing an argument rather than the reader refusing
+a corpus.
+
+**This exact defect was already found, argued and fixed one directory up.**
+`scripts/feed_jeles_sources.py` carries the fix in its docstring — an unreadable
+registry and an empty one used to print the same words — and
+`scripts/feed_all.py` exists to keep the distinction across several feeds at
+once, stating it plainly: *"nothing matched and I could not look are different
+sentences."* `tests/test_corpus_readers_fail_closed.py` is the gate.
+
+That gate covers four scripts: `feed_willow_constitution.py`,
+`feed_willow_migrations.py`, `feed_willow19_plans.py`, `feed_jeles_sources.py`.
+All four are `feed_*`. **`grep` finds no test anywhere in `tests/` that mentions
+`scripts/corpus/` at all** — seventeen extractors, zero coverage — and the file
+that would obviously be the place to add it is *already named*
+`test_corpus_readers_fail_closed.py`, which reads like the job is done.
+
+The name is the trap. A gate named for corpus readers, which does not cover the
+directory called `corpus/`, is worse than no gate: it answers the question "is
+this covered?" wrongly and cheaply.
+
+**Why it went unnoticed until now.** The extractors were written against a
+`/workspace/...` layout that no longer exists, and each was run once, by hand,
+against a path its author had just confirmed. A reader is only asked to
+distinguish absent from empty when somebody runs it against something that is
+not there — which is what a sweep does and a single authoring session never
+does. The same sweep found `extract_data_vault.py` reporting 0 rows against
+`willow-data-vault` because its allowlist names `sean-data-vault`'s
+directories: a wrong-target run that is indistinguishable, in the output, from a
+repository that declares nothing.
+
+The fix is the one the feed family already took — refuse before reading, in
+words that name which of the two happened — plus rows in the existing table so
+the seventeen are covered by the gate that claims their name.
+
+### 6.102 The extractors walk the working tree, so following this repo's own setup instructions poisons its corpus — **verified**, fix **open**
+
+*Found 2026-08-12, in the same sweep as §6.101.* `extract_standard.py` against
+this repository produced 19,804 rows. **18,665 of them — 94% — came from
+`.venv/lib/python3.11/site-packages/`**: Pillow, numpy and httpx docstrings,
+filed with origins reading
+
+```
+Nestor@f1fea81:.venv/lib/python3.11/site-packages/PIL/BlpImagePlugin.py#decode_dxt1
+```
+
+The real count for this repository is **1,139**.
+
+**The provenance is not noisy, it is wrong.** `Nestor@f1fea81:` asserts that a
+row is a shape declared by this repository at that commit. None of those 18,665
+files are in that commit, or in any commit — `.venv/` is gitignored. A corpus
+whose whole purpose is to carry where a claim came from filed eighteen thousand
+claims under a repository and a revision that never contained them. Everything
+downstream inherits it: `compare.py` classifies agreement *between* repositories,
+and two repos with the same dependency installed would now "agree" on numpy's
+docstrings, attributed to both.
+
+**The reason it only bit here is the sharp part.** Of twenty-six stores built in
+this sweep, exactly one is contaminated, and it is contaminated because
+`AGENTS.md` and `docs/agent-guide.md` instruct every agent to run `python -m venv
+.venv` **at the repo root** before doing anything else. The other twenty-five
+repositories were never set up that way in this box, so they are clean. Following
+this repository's documented setup is the thing that breaks this repository's
+extractor, which is why a clean checkout can never reproduce it and why it
+survived seventeen scripts and a documented corpus-order exercise.
+
+Two further consequences, both already visible in the run:
+
+- **It is why the run timed out.** The first attempt was killed at 300s having
+  written 11,105 rows — a prefix silently presented as a store. Walking
+  site-packages is the cost; `bench/README.md` already warns *"check `complete`
+  before citing a number"*, and this family has no such flag at all.
+- **The summary statistic is about the wrong software.** The run reports
+  *"docstring coverage: 21065/59930 (35%) definition(s) carry one"*. Nestor's
+  package is roughly thirty modules; 59,930 definitions is Pillow and numpy. The
+  number reads as a fact about this codebase and is a fact about its
+  dependencies.
+
+The fix is to take the file list from `git ls-files` rather than from a
+filesystem walk — the tree the origin string already claims to be quoting. A path
+allow/deny list would also work and is weaker: it needs updating for every new
+build artifact directory, and `.venv` was not the first and will not be the last.
+`extract_data_vault.py` (§6.101) shows the other end of the same class — an
+allowlist naming directories that no longer exist, reporting 0 rows that read as
+an empty repository.
+
+**Confirmed by re-running the same extractor against a clean `git worktree`**
+(same commit, no `.venv`, nothing else changed):
+
+| | working tree | clean worktree |
+|---|---|---|
+| rows | 19,804 | **1,139** |
+| vendored | 18,665 | **0** |
+| real rows | 1,139 | 1,139 |
+| wall time | >300s (first attempt killed) | **1.371s** |
+| docstring coverage | 21065/59930 (35%) | **1125/2238 (50%)** |
+
+The real key sets are **identical** — 0 new, 0 gone — so the walk was adding
+noise and nothing else, and the diagnosis is exact rather than approximate. Two
+practical consequences. A `git worktree` is a working stand-in for the real fix
+and needs no code change, which is how the number above was obtained. And the
+**published coverage figure was not merely diluted but wrong in the direction
+that flatters nobody**: this package documents half its definitions, not a
+third, and the 35% would have been quoted as a fact about work still to do.
+
+### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, fix **open**
+
+*Measured 2026-08-12.* Five small-model agents surveyed twenty-five repositories
+for machinery built in-house where an Apache-2.0-compatible vendor exists. They
+returned roughly forty capability rows, each naming a licence they were told —
+and repeatedly reminded — they could not verify. Twenty-one of those claims were
+then checked against the PyPI metadata.
+
+Most were right. The two that were wrong were in **the same row, and inverted**:
+
+| vendor | claimed | actual |
+|---|---|---|
+| celery | LGPL-3.0 | **BSD-3-Clause** |
+| dramatiq | BSD-3-Clause | **LGPL-3.0-or-later** |
+
+One error in each direction, which is what makes it worth an entry. The
+false-restrictive half only costs an option: Celery is excluded from
+consideration and nobody is harmed. The false-permissive half is the one that
+ships — dramatiq was offered as the recommended alternative *because* it appeared
+to pass an Apache-2.0 filter, and adopting it on that basis puts an LGPL
+dependency in an Apache-2.0 tree. **A licence filter applied by a model is not a
+licence filter; it is a list of candidates for one.**
+
+Two rows named projects that do not exist as described — a ledger vendor
+"Chronicle (EtherLedger-based)" whose only PyPI namesake is a logging utility,
+and "merkle-tree primitives from tree-sitter", which is a parser generator. Both
+survived an instruction not to invent projects. One row was correct and stale:
+`whoosh` is BSD-2 as claimed and its last release is v2.7.4, which no reader of
+the row would guess.
+
+**The citation errors are not uniform, which is the useful part.** Three lanes
+cited `quick-stupids/PRIOR_ART.md` sections for content those sections do not
+contain (§5 called "embedding tooling" is rasterisation; §3 called clustering is
+property-based testing). The trust lane's citations to §6 were **correct** —
+PRIOR_ART line 228 does survey OPA/Rego + Conftest and line 236 does survey
+in-toto/SLSA, both marked *Apache-2.0 (verified)*, and both with recorded
+reservations the surveying agent could not have known. So the failure is not "the
+model cannot cite"; it is that a wrong citation and a right one are written in
+identical confident prose, and only opening the file separates them.
+
+That last point generalises past licences. The survey's value was real — it found
+hash-chained ledgers implemented four to six times across the fleet, three
+mutually incompatible trust-tier models, and persona definitions scattered across
+three repositories. None of those needed verifying to be useful, because they are
+claims about *this* box, checkable in minutes. Every claim about the *outside
+world* needed checking and roughly one in ten was wrong. **Fan-out is cheap for
+finding things and unreliable for asserting them**, and the split runs exactly
+along that line.
+
+Standing consequence: the fleet already has a vendor survey with a
+*"what to adopt, what stays ours"* conclusion (PRIOR_ART.md line 328). Any
+adoption argument starts there, not from a fresh model survey — and no licence
+reaches a dependency file without the registry metadata read by a human or a
+script.
+
+### 6.104 The jeles source registry's gaps live in a feeder's stdout, and I misreported one by reading the top of it — **measured**, fix **open**
+
+*Surfaced 2026-08-12 by re-running `scripts/feed_jeles_sources.py` in the jeles
+loop.* The registry declares **65 institutions across 71 subjects**. What the
+feeder prints about them is not a summary; it is a set of measured findings, and
+they are only in that output.
+
+**Routing breadth.** *43 of 71 subjects have exactly one source* — a query tagged
+to one of them fans out to a single institution, which cannot clear a two-source
+corroboration bar by construction. Separately, **four pairs declare byte-identical
+subject tuples** — `met`/`europeana`, `eol`/`inaturalist`, `loc`/`dpla`,
+`wikidata`/`wikipedia` — and `route_sources()` has no basis to prefer one over
+the other. Nothing in either repository acts on either fact.
+
+**Corroboration is miscounted in both directions.** The feeder carries two
+hypotheses and has now resolved both, and neither resolved the way it was
+written:
+
+- *Confirmed, for the wrong stated reason.* A single-sourced subject does
+  struggle to clear the bar — but not because coverage is narrow.
+  `jeles.verify._identity` reads `citation['source']` **first**, and
+  `sources._result` puts the **registry key** there across all 69 call sites. The
+  per-record institution each adapter assembles is therefore never counted: one
+  adapter returning five different institutions counts as **one**. Filed as
+  jeles#53. This *understates* corroboration.
+- *Falsified, and wrong in the opposite direction.* The concern was that nine
+  sources list `doi.org` and `registrable_domain()` would collapse them, letting
+  nine institutions corroborate as one. That cannot happen — the site is only a
+  fallback for a citation with no label, and `_result` always sets one. The real
+  error runs the other way: **two adapters carrying the same institution read as
+  corroborated.** This *overstates* it.
+
+**And I reported the falsified one as a live gap.** In the loop above I quoted
+the host-overlap table — *"`doi.org` named by 9 sources against a per-source
+egress allow-list"* — and offered it as a finding. The script's own analysis,
+about fifteen lines further down the same output, had already measured that
+hypothesis and falsified it. I read the table and stopped before the paragraph
+that said the table did not mean what it looks like it means.
+
+That is the gap worth naming above the others. **A feeder that prints its
+findings only to stdout will be quoted from wherever the reader stopped**, and
+the parts most likely to be quoted are the tables near the top, which are the raw
+counts rather than the conclusions. The same output has been correct and complete
+this whole time. Nothing about it is broken; it simply has no destination, so
+every reader re-derives — or misreads — it privately. `IDEAS.md` §6's own rule is
+that a finding not written down did not happen, and this is the case where the
+finding *was* made, twice, and still has nowhere to live but a terminal.
+
+### 6.105 The fleet's own decision record is invisible to every corpus extractor — **verified**, fix **open**
+
+*Found 2026-08-12, in the second Nestor loop.* Three commits landed between loops
+and `extract_standard` reported **0 new rows** while `extract_ideas` reported 3.
+The split is not a defect in either: the commits added `IDEAS.md` entries, which
+`extract_ideas` reads, and JSON decision files, which **no extractor in
+`scripts/corpus/` reads at all**.
+
+So `docs/dogfood/decisions/` — 41 files and 259 pairs at the time of writing, the
+most deliberately curated body of text in the repository, one file per merged PR
+with a question, a commitment and a reason — is absent from the corpus entirely.
+
+This is probably correct. The dogfood store is its own store with its own
+builder, its own digest gate and its own rule that the direction runs remote to
+local. Pulling the same rows into a corpus store would create the second copy
+that `docs/two-stores.md` exists to reason about.
+
+**What is missing is anybody saying so.** Neither `scripts/corpus/README`-shaped
+documentation nor `docs/decision-memory.md` states that the decision record is
+out of corpus scope by design, so the only way to learn it is to run both and
+subtract — which is how it was found. A boundary nobody wrote down is
+indistinguishable from a boundary nobody noticed, and the cost falls on whoever
+next asks "is the decision record in the corpus?" and has to spend the same
+minutes proving it is not.
+
+### 6.106 Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones — **measured**, fix **open**
+
+*Measured 2026-08-12 on a 263-decision corpus, extending §6.94 rather than
+contradicting it.* §6.94 measured paraphrase recall at 2/10 and first-sentence
+recall at 4/50, and read the misses generously: *"the threshold refusing to serve
+a decision it is not sure it was asked, not the memory failing."* This entry asks
+the question that reading depends on and §6.94 did not measure — **where is the
+correct row in the ranking?** — because "below the bar at rank 1" and "below the
+bar at rank 110" have opposite fixes and are indistinguishable from the served /
+pending counts alone.
+
+Three probes, each with a known correct row, against `StringMatcher`:
+
+| probe | rank of correct row | its score | top score |
+|---|---|---|---|
+| "Can a language model stand in for the embedder?" | **1 / 263** | 0.523 | 0.523 |
+| "An extractor reported zero rows. What does that mean?" | **1 / 263** | 0.458 | 0.458 |
+| "Should I trust a licence a model told me?" | **110 / 263** | 0.289 | 0.562 |
+
+**Two of three rank first.** For those, retrieval is already doing its job and
+only the 0.92 bar stands between the question and its answer — §6.94's reading is
+exactly right, and the memory is not failing.
+
+**The third collapses, and the reason is visible in the losers.** Its top five
+are `Should seal staleness be a decaying weight column?` (0.562), `Should the
+fixture stay one file…` (0.500), `Should the test suite depend on jeles…`
+(0.495) — every one sharing the `Should…` interrogative stem and nothing else.
+The probe carried almost no distinctive content words ("trust", "licence",
+"model"), so character ratio scored sentence *shape*. The two that ranked first
+both carried content the corpus does not repeat — "embedder", "extractor",
+"zero rows".
+
+So the failure is **not uniform and not a property of the corpus size**. It is a
+property of how much distinctive content the question carries, which means the
+two obvious fixes address different halves: calibrating the threshold down would
+serve the rank-1 cases correctly and would serve the rank-110 case *wrong*, which
+is worse than pending and is the outcome the bar exists to prevent. Only a
+matcher that discounts shared stems — `DefectMatcher`'s identifier weighting,
+`bench/token_matchers.py`'s token-weighted variants — moves the third case, and
+§6.94 already measured that DefectMatcher costs paraphrase recall (2/10 → 1/10)
+while removing collisions.
+
+**A correction to something asserted three messages earlier in this session.**
+Asked whether Nestor could yet help build the ideas in Nestor, I answered no, and
+said *"if you sealed all 263 rows tomorrow, retrieval would still hand back the
+wrong row."* That is false for two of the three probes, where the right row is
+already rank 1. The claim came from reading one probe's top-five, seeing
+unrelated rows, and generalising — the same error as §6.104's, three days'
+worth of lessons apart and about ninety minutes apart in fact. **The rank was one
+query away and I asserted the general case without running it.**
+
+The corrected answer is narrower and more useful: for a question carrying
+distinctive vocabulary, the store already finds its answer and is waiting on a
+human signature and a calibrated bar. For a short generic question, it does not,
+and no threshold rescues it.

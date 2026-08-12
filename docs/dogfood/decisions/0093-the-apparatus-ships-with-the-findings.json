@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "Asked to commit everything that needs to survive the container, including anything reusable. The findings were already committed; their apparatus was not — it existed as bash heredocs in a chat transcript, which is exactly what docs/agent-guide.md's 'tooling you built to answer a question ships with the answer' section forbids. Two harnesses and one protocol document, each carrying a finding that cannot otherwise be re-checked.",
+  "decisions": [
+    {
+      "question": "The measurements behind IDEAS 6.102 and 6.106 were made with throwaway inline scripts. Ship them, or leave the findings standing on prose?",
+      "commitment": "Shipped as scripts/retrieval_rank.py and scripts/corpus_contamination.py, with tests/test_measurement_harnesses.py holding both to their claims. The agent guide's bar is 'would somebody have to rebuild this to check my claim', and for both the answer was yes.",
+      "why": "6.106's entire content is a rank — 1 of 263 against 110 of 263 — and nothing in the repository could produce that number again. 6.102's is a ratio of vendored to real rows across twenty-six stores. Both were computed in a shell that dies with the container, which is the specific failure the guide names and which IDEAS §6.37-6.39 already paid for once."
+    },
+    {
+      "question": "What should the harnesses gate, given the guide's rule that a test which cannot fail is a description?",
+      "commitment": "The distinction each exists to draw, and seven mutations were run to prove the gates fire: unfindable reported as rank 0, a missing store treated as an empty one, the beaten-by explanation dropped, the probe/expect length check removed, .venv struck from the vendored markers, an unreadable store counted as clean, and the fail-on-contamination gate made unfailable. Each turned exactly one test red; both files restored byte-identical.",
+      "why": "Two of the first mutations caught nothing and were the more useful ones. Removing the 'no store' message left a second print carrying the same phrase, so the assertion still passed — the mutation was too shallow to be evidence, and reporting it as a caught gate would have been false. A mutation that catches nothing is either a missing test or a bad mutation, and telling those apart is the work."
+    },
+    {
+      "question": "The embedder stand-in is a prompt, not code. Where does it live so it survives?",
+      "commitment": "docs/embedder-stand-in.md, listed in the README project layout so test_docs.py holds it there. It carries the rubric, the measured behaviour, and — deliberately — the instruction that its own <=0.35 clause contradicts its 0.500 anchor and should not be copied as written.",
+      "why": "Shipping a protocol without its defect would hand the next reader a rubric that produces a 0.300 spread and looks like model noise. The document is more useful carrying the flaw than it would be silently corrected, because the flaw is the transferable lesson: two clauses that both apply to the same input will be resolved differently by different instantiations, and nothing in the output says which one was picked."
+    },
+    {
+      "question": "data/env.sh, data/nestor.db and the twenty-six corpus stores are all gitignored and die with the box. Commit them?",
+      "commitment": "No. Every one is derivable from something now committed — env.sh from the docs/local-fleet.md stand-up section, the live store from docs/dogfood/decisions plus scripts/feed_fleet_repos.py, the corpus stores from scripts/corpus/. What was missing was never the artefacts; it was the instructions and the apparatus, and those are in.",
+      "why": "Committing a derived .db would make the tree carry a second copy of something the builder already regenerates, which is the pair docs/two-stores.md exists to reason about and which .gitignore already refuses on purpose — the two `!docs/dogfood/**` exceptions are written as deliberate exceptions for exactly this reason. The test of whether the work survives is not whether the files do; it is whether a cold container can rebuild them from the repository, which it now can."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "The operator stopped the session to name a cost the agent had not noticed across four consecutive rounds: every step of an ordered, human-paced experiment was being serialized behind a full 979-test suite run, including three runs on changes that touched only IDEAS.md and docs/dogfood/*. Measured afterwards: the full suite is 96.6-107.3s; the 46 tests a docs change can actually break are 7.2s. Recorded in IDEAS 6.100. Written down at the operator's instruction — 'write that down please, as an observed gap.'",
+  "decisions": [
+    {
+      "question": "The full suite ran after every step of an interactive sequence, three times on documentation-only changes. Is that the agent applying the guidance badly, or the guidance being incomplete?",
+      "commitment": "The guidance being incomplete, and recorded as a gap in AGENTS.md rather than only as a lesson for one session. AGENTS.md prescribes `ci-lint.sh` and `python -m pytest -q` unconditionally, names no change classes, and offers no cheaper correct option — so an agent following it exactly produces this behaviour.",
+      "why": "Filing it as agent error would have fixed nothing: the next cold session reads the same file and does the same thing. The tell that it is a guidance defect rather than a judgment defect is that over-verification always passes, so nothing ever surfaces it — no gate fires, no test goes red, and the only party who can observe the cost is the human waiting. A defect whose sole detector is somebody's patience is the kind that has to be written down to exist at all."
+    },
+    {
+      "question": "What should actually run for a change that touches only docs and decision files?",
+      "commitment": "test_docs.py, test_open_findings.py and test_dogfood_store.py, plus dogfood_store.py --verify. Measured: 46 tests in 7.2s against 979 in roughly 100s, with the digest gate at 0.6s. Those are the only tests that read the files such a change touches.",
+      "why": "Derived by asking which tests can see the changed paths rather than by picking a subset that felt safe — the README layout gates, the IDEAS status gate and the store's rebuild check are the whole set. Stated as a measurement so the next session can check it went stale rather than inherit a number: a new test that reads IDEAS.md or docs/ would belong in this list, and nothing currently notices when one is added."
+    },
+    {
+      "question": "In an interactive session, when should a long check run in front of the operator's next prompt?",
+      "commitment": "Effectively never — anything over about ten seconds goes to the background, and commits batch to a boundary the operator marks rather than landing after each step.",
+      "why": "The agent experiences no duration and is never the party waiting, so it will keep choosing the maximal gate indefinitely without a rule; this went four rounds unnoticed. It is a working agreement rather than code, which is the weakest kind of fix and the reason it needs to be in the record — the agent that learned it will not be the agent in the room next time, and nothing enforces it."
+    }
+  ]
+}
