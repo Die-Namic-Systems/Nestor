@@ -20,6 +20,17 @@ what moved.
 
 ### Added
 
+- **A cold open for `nestor ui`.** `nestor demo` (and `nestor ui --demo`) seed a
+  small live store across all three recipes plus a short review queue, so a
+  freshly cloned or `pip install`ed Nestor opens onto real content, not an empty
+  desk. The browser page now greets a newcomer with a **front door** — a
+  three-door welcome framed by audience — and carries **Nestor himself** in the
+  header as a small robot whose expression tracks the verdict on screen (settled
+  on a served seal, unconvinced on a draft, alarmed on a signature that does not
+  verify). The **Memory** rows gained a status **lamp** and a bold
+  **served / not-served flag**, so a row that says sealed but would be refused is
+  visible at a glance. Stdlib-only and CSP-clean, as the page has always been.
+  `IDEAS.md` §6.107.
 - `nestor.__version__`, read from installed distribution metadata rather than
   written into the package. A tree with no install *and no `nestor.egg-info/`*
   reports `0+unknown` — a legal PEP 440 local version that sorts below every

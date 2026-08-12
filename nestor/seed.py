@@ -17,10 +17,10 @@ so it also seeds a *draft* the cascade would leave for review.
 """
 from __future__ import annotations
 
-from . import memory
+from . import cascade, memory
 from .entity import EntityResolver
 from .reconcile import Reconciler
-from .storage import Storage
+from .storage import Storage, supports_queue
 
 #: The name every demo seal is recorded under. A person, not a deployment — the
 #: whole point of a seal is that it carries who stood behind it.
@@ -52,6 +52,17 @@ _BASELINES = [
     ("headcount", "412"),
 ]
 
+#: A short document whose lines are NOT in the sealed memory, so the cascade
+#: leaves them as review drafts — the Queue is the one tab a seeded store would
+#: otherwise open empty, and an empty Queue reads as "nothing to review" rather
+#: than "this is a demo". Deliberately different sentences from the sealed pairs.
+_QUEUE_TITLE = "Q3 board minutes (excerpt)"
+_QUEUE_TEXT = (
+    "The motion carried unanimously.\n"
+    "The committee will reconvene in the spring.\n"
+    "Adjourned at four o'clock."
+)
+
 
 def seed_store(store: Storage, verifier: str = DEMO_VERIFIER) -> dict:
     """Fill ``store`` with a small live memory across all three recipes.
@@ -60,7 +71,7 @@ def seed_store(store: Storage, verifier: str = DEMO_VERIFIER) -> dict:
     ``verifier`` against the same source, which :func:`memory.add_pair` and the
     recipe seals treat as a same-actor correction rather than a conflict.
     """
-    counts = {"sealed": 0, "draft": 0, "aliases": 0, "baselines": 0}
+    counts = {"sealed": 0, "draft": 0, "aliases": 0, "baselines": 0, "queued": 0}
 
     for src, tgt in _TRANSLATIONS:
         memory.add_pair(src, tgt, "en", "es", status="sealed",
@@ -81,6 +92,15 @@ def seed_store(store: Storage, verifier: str = DEMO_VERIFIER) -> dict:
     for label, value in _BASELINES:
         rec.seal_baseline(label, value, verifier=verifier, origin="demo")
         counts["baselines"] += 1
+
+    # The Queue, if this store can hold one: run the offline cascade over a short
+    # document whose lines nothing has sealed, leaving a handful of drafts for a
+    # human to work — so the review desk opens on real work, not an empty page.
+    if supports_queue(store):
+        _doc, passages = cascade.translate_text(
+            _QUEUE_TEXT, "es", source_lang="en", engine_name="offline",
+            title=_QUEUE_TITLE, store=store)
+        counts["queued"] = sum(1 for p in passages if p.tier != 1)
 
     return counts
 
