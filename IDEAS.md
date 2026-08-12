@@ -7516,3 +7516,76 @@ Standing consequence: the fleet already has a vendor survey with a
 adoption argument starts there, not from a fresh model survey — and no licence
 reaches a dependency file without the registry metadata read by a human or a
 script.
+
+### 6.104 The jeles source registry's gaps live in a feeder's stdout, and I misreported one by reading the top of it — **measured**, fix **open**
+
+*Surfaced 2026-08-12 by re-running `scripts/feed_jeles_sources.py` in the jeles
+loop.* The registry declares **65 institutions across 71 subjects**. What the
+feeder prints about them is not a summary; it is a set of measured findings, and
+they are only in that output.
+
+**Routing breadth.** *43 of 71 subjects have exactly one source* — a query tagged
+to one of them fans out to a single institution, which cannot clear a two-source
+corroboration bar by construction. Separately, **four pairs declare byte-identical
+subject tuples** — `met`/`europeana`, `eol`/`inaturalist`, `loc`/`dpla`,
+`wikidata`/`wikipedia` — and `route_sources()` has no basis to prefer one over
+the other. Nothing in either repository acts on either fact.
+
+**Corroboration is miscounted in both directions.** The feeder carries two
+hypotheses and has now resolved both, and neither resolved the way it was
+written:
+
+- *Confirmed, for the wrong stated reason.* A single-sourced subject does
+  struggle to clear the bar — but not because coverage is narrow.
+  `jeles.verify._identity` reads `citation['source']` **first**, and
+  `sources._result` puts the **registry key** there across all 69 call sites. The
+  per-record institution each adapter assembles is therefore never counted: one
+  adapter returning five different institutions counts as **one**. Filed as
+  jeles#53. This *understates* corroboration.
+- *Falsified, and wrong in the opposite direction.* The concern was that nine
+  sources list `doi.org` and `registrable_domain()` would collapse them, letting
+  nine institutions corroborate as one. That cannot happen — the site is only a
+  fallback for a citation with no label, and `_result` always sets one. The real
+  error runs the other way: **two adapters carrying the same institution read as
+  corroborated.** This *overstates* it.
+
+**And I reported the falsified one as a live gap.** In the loop above I quoted
+the host-overlap table — *"`doi.org` named by 9 sources against a per-source
+egress allow-list"* — and offered it as a finding. The script's own analysis,
+about fifteen lines further down the same output, had already measured that
+hypothesis and falsified it. I read the table and stopped before the paragraph
+that said the table did not mean what it looks like it means.
+
+That is the gap worth naming above the others. **A feeder that prints its
+findings only to stdout will be quoted from wherever the reader stopped**, and
+the parts most likely to be quoted are the tables near the top, which are the raw
+counts rather than the conclusions. The same output has been correct and complete
+this whole time. Nothing about it is broken; it simply has no destination, so
+every reader re-derives — or misreads — it privately. `IDEAS.md` §6's own rule is
+that a finding not written down did not happen, and this is the case where the
+finding *was* made, twice, and still has nowhere to live but a terminal.
+
+### 6.105 The fleet's own decision record is invisible to every corpus extractor — **verified**, fix **open**
+
+*Found 2026-08-12, in the second Nestor loop.* Three commits landed between loops
+and `extract_standard` reported **0 new rows** while `extract_ideas` reported 3.
+The split is not a defect in either: the commits added `IDEAS.md` entries, which
+`extract_ideas` reads, and JSON decision files, which **no extractor in
+`scripts/corpus/` reads at all**.
+
+So `docs/dogfood/decisions/` — 41 files and 259 pairs at the time of writing, the
+most deliberately curated body of text in the repository, one file per merged PR
+with a question, a commitment and a reason — is absent from the corpus entirely.
+
+This is probably correct. The dogfood store is its own store with its own
+builder, its own digest gate and its own rule that the direction runs remote to
+local. Pulling the same rows into a corpus store would create the second copy
+that `docs/two-stores.md` exists to reason about.
+
+**What is missing is anybody saying so.** Neither `scripts/corpus/README`-shaped
+documentation nor `docs/decision-memory.md` states that the decision record is
+out of corpus scope by design, so the only way to learn it is to run both and
+subtract — which is how it was found. A boundary nobody wrote down is
+indistinguishable from a boundary nobody noticed, and the cost falls on whoever
+next asks "is the decision record in the corpus?" and has to spend the same
+minutes proving it is not.

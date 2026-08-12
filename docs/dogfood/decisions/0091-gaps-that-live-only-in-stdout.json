@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "The operator's instruction was that the items reported in passing from the jeles loop are themselves gaps and should be logged. Writing them down found that one of them was not a gap at all — it was a hypothesis the feeder had already falsified, in the same output I had quoted, about fifteen lines below the table I stopped at. Recorded as IDEAS 6.104 and 6.105.",
+  "decisions": [
+    {
+      "question": "Several observations from the jeles loop were reported in conversation and not written down. Log them?",
+      "commitment": "Logged, as IDEAS 6.104 and 6.105 — 43 of 71 subjects single-sourced, four source pairs with byte-identical subject tuples that route_sources() cannot choose between, corroboration miscounted in both directions, and the decision record being absent from every corpus extractor.",
+      "why": "IDEAS 6's own rule is that a follow-up raised in conversation and not written down did not happen, and every one of these was raised in a message and left there. The instruction to log them was the operator applying that rule to the agent that had just quoted it in a commit message two rounds earlier."
+    },
+    {
+      "question": "One of the items reported as a gap — nine sources naming doi.org against a per-source egress allow-list — turns out to be a hypothesis the feeder itself measured and falsified. Log it as reported, or correct it?",
+      "commitment": "Corrected, and the misreport recorded in 6.104 rather than quietly dropped. The concern cannot occur: the site is only a fallback for a citation with no label and `_result` always sets one. The real error runs the opposite way — two adapters carrying the same institution read as corroborated.",
+      "why": "The mistake has a shape worth keeping. The output leads with tables of raw counts and puts its conclusions below them, so a reader who stops early quotes numbers that are accurate and mean something other than what they appear to. I quoted the table and stopped. Recording that is more useful than recording the corrected fact, because the corrected fact was already in the output and the reading error is what stopped it from arriving."
+    },
+    {
+      "question": "These jeles findings are measured, resolved, and live only in a script's stdout. Is that a gap in jeles or in this repo?",
+      "commitment": "Named as a gap in the arrangement rather than assigned to either repository. The feeder is correct and complete; it simply has no destination, so every reader re-derives or misreads it privately.",
+      "why": "Assigning it to jeles would be wrong — jeles#53 already carries the identity defect, so their tracker did its job. Assigning it to this repo would be wrong too, since the feeder prints exactly what it should. What is missing is the step where a measured finding moves from an output stream into something with an address, which is the thing this package exists to provide and does not yet do for its own tooling."
+    },
+    {
+      "question": "The decision record is absent from the corpus. Fix, or document the boundary?",
+      "commitment": "Neither in this pass — recorded as 6.105 with the argument that the exclusion is probably correct and the omission is that nothing says so.",
+      "why": "Pulling docs/dogfood/decisions into a corpus store would create the second copy docs/two-stores.md exists to reason about, so the current behaviour is likely right on the merits. But it was discovered by running two extractors and subtracting, which is the expensive way to learn a design decision. A boundary nobody wrote down is indistinguishable from a boundary nobody noticed, and only one of those is safe to rely on."
+    }
+  ]
+}
