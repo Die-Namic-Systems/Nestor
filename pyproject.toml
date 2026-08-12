@@ -68,6 +68,15 @@ cloud = [
 semantic = [
     "fastembed>=0.4",
 ]
+# The optional cloud-path seam (nestor/cloud_seal.py): an agent provisionally
+# seals through willow-gate, under its own identity, at its earned rung. The
+# module fail-closes on import when the gate is absent — the rule is the gate
+# must be present at BOTH ends (this end binds the agent; the home end confers
+# canonical via custody.checkpoint()). willow-gate is a fleet sibling installed
+# alongside; a bare install fails closed when it is not.
+gate = [
+    "willow-gate",
+]
 # Kept out of [dev] on purpose: CI's dev install would carry a build backend and
 # an upload client it never uses, and a release toolchain is not a test
 # dependency. `pip install -e ".[publish]"` is step 1 of docs/releasing.md.
