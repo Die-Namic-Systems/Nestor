@@ -2,8 +2,7 @@
   "bench": "decision_n1",
   "question": "does the matcher recognize a re-worded decision?",
   "corpus": "bench/corpus_decision_n1 (24 real Nestor decisions, 24 blind re-wordings)",
-  "bar": 0.92,
-  "arms": [
+  "at_shipped_bar_0.92": [
     {
       "label": "string",
       "n": 24,
@@ -35,5 +34,165 @@
       "wrong_key": 0
     }
   ],
-  "caveat": "The semantic arm is a Haiku embedder stand-in (docs/embedder-stand-in.md); fastembed/ollama are egress-blocked. Its recall/wrong-key is an OPTIMISTIC UPPER BOUND: the same model family authored the paraphrases and scored them (author=scorer, the \u00a73.4 stage-2 self-recognition confound), and it produced near-recognition (correct 0.95-1.0, others ~0.0) rather than a graded embedding distribution, so 0 wrong-key is not a trustworthy measure of false constraints. A real embedder, or an independent paraphrase author, is needed to settle the wrong-key cost."
+  "threshold_sweep": [
+    {
+      "label": "string",
+      "n": 24,
+      "decisions": 24,
+      "rank1": 21,
+      "paraphrase_bite_identical": 0,
+      "sweep": [
+        {
+          "bar": 0.92,
+          "recall": 0,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.85,
+          "recall": 0,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.8,
+          "recall": 1,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.75,
+          "recall": 3,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.7,
+          "recall": 5,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.65,
+          "recall": 5,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.6,
+          "recall": 6,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.55,
+          "recall": 13,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.5,
+          "recall": 15,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.45,
+          "recall": 18,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.4,
+          "recall": 20,
+          "wrong_key": 1
+        },
+        {
+          "bar": 0.35,
+          "recall": 21,
+          "wrong_key": 3
+        },
+        {
+          "bar": 0.3,
+          "recall": 23,
+          "wrong_key": 3
+        }
+      ],
+      "clean_knee": {
+        "bar": 0.45,
+        "recall": 18,
+        "wrong_key": 0
+      }
+    },
+    {
+      "label": "token",
+      "n": 24,
+      "decisions": 24,
+      "rank1": 23,
+      "paraphrase_bite_identical": 0,
+      "sweep": [
+        {
+          "bar": 0.92,
+          "recall": 0,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.85,
+          "recall": 0,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.8,
+          "recall": 0,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.75,
+          "recall": 3,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.7,
+          "recall": 5,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.65,
+          "recall": 5,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.6,
+          "recall": 7,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.55,
+          "recall": 10,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.5,
+          "recall": 14,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.45,
+          "recall": 15,
+          "wrong_key": 0
+        },
+        {
+          "bar": 0.4,
+          "recall": 16,
+          "wrong_key": 1
+        },
+        {
+          "bar": 0.35,
+          "recall": 18,
+          "wrong_key": 1
+        },
+        {
+          "bar": 0.3,
+          "recall": 21,
+          "wrong_key": 1
+        }
+      ],
+      "clean_knee": {
+        "bar": 0.45,
+        "recall": 15,
+        "wrong_key": 0
+      }
+    }
+  ],
+  "finding": "At the shipped 0.92 bar all character/token recall is 0 \u2014 but rank@1 is 88-96%, so the correct decision is the top match; the failure is the BAR, not the matcher. Swept, StringMatcher's clean knee is bar 0.45 -> 75% recall at 0 wrong-key; TokenOverlap ~62% at 0.45. Calibrating the bar (nestor calibrate) recovers most re-wordings with no false constraints on this corpus. Below ~0.40 the wrong-key (false-constraint) cost begins (the S1.1 near-duplicate inversion), and on a corpus of genuine near-duplicate decisions the clean window shrinks. The residual ~25% that score under the knee even for the correct decision are the tail a semantic matcher would address. The semantic stand-in's 100%/0 remains an optimistic upper bound (author=scorer, recognition not graded similarity)."
 }
