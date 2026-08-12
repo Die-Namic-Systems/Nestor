@@ -1,0 +1,28 @@
+{
+  "pr": null,
+  "branch": "claude/nestor-full-setup-gsym0v",
+  "date": "2026-08-12",
+  "note": "Last document of the session. The operator asked what could be inferred, from the single friction statement they made during it, about how the user experience of Nestor feels to them right now. Written as docs/felt-cost.md. The sentence was about the agent's behaviour; every inference about the product is the agent's extension of it, and the memo says so in a section of its own.",
+  "decisions": [
+    {
+      "question": "One sentence, said once, in irritation, about the agent rather than about Nestor. Is that enough to write a memo about the product's felt experience from?",
+      "commitment": "Written, with a section naming what cannot be concluded and why — including that this same session logged two findings (6.104, 6.106) about asserting the general case from one example, and that this memo is the same move a third time.",
+      "why": "Declining would have been the safer and less useful answer: it is the only observation of its kind there is, and refusing to read it leaves it unread rather than making it larger. The honest form is to do the reading and mark the join — inference labelled as inference, with the counter-evidence given equal weight. The alternative failure was worse than silence: a memo that reads one irritated sentence as a verdict, in a repository whose whole subject is the difference between a claim and a checked one."
+    },
+    {
+      "question": "The operator said five minutes; the suite measures 96-114 seconds. Which number goes in?",
+      "commitment": "Both, with the aggregation stated. The suite is not what they waited through — a turn was thinking, four to eight tool calls, a rebuild, a re-import, a commit, a push and a written reply, with the suite somewhere inside it. Three to five minutes is a fair account of that.",
+      "why": "Correcting the operator's figure against an instrument that measures something else would have been the obvious move and the wrong one. quick-stupids already carries this as a rule after a rank correlation travelled through four documents without its aggregation and a reviewer reproduced a different number: both figures were right and the omission was the defect. The gap between 100 seconds and five minutes is the finding, not an error to reconcile."
+    },
+    {
+      "question": "What does the sentence say about the product rather than about the agent?",
+      "commitment": "That the ceremony is fully priced and the payout has not started. 300 pairs, 0 sealed, 0 served. The phrase 'a test on a test' describes a recursion that is genuinely shipped — a ledger that verifies itself, a gate over the write gate, a --verify over the builder — and a user waiting on that recursion without yet receiving an answer from it is describing it accurately.",
+      "why": "The comfortable reading is that this was only about the agent choosing the maximal gate, which is true and is 6.100. But the operator did not say 'run fewer tests', they said 'a test on a test', and the second is a description of the product's shape rather than of one agent's habit. Recording the uncomfortable half is the point of having the record."
+    },
+    {
+      "question": "If only one thing changes as a result, what should it be?",
+      "commitment": "Not the suite runtime, which is bounded and already filed. The store has never once answered a question for the person who filled it — three hundred rows, none sealed, none served — and the shortest path to a first served answer is one human sealing one row whose right answer already ranks 1, against a bar calibrated for the matcher that keyed it.",
+      "why": "Naming the smallest thing rather than a roadmap, because the agent may not confirm and a roadmap here would be the agent deciding what the product owes its operator. The sealing is theirs to do and cannot be proposed away. What the agent can say is which single act would turn the sentence from a description of cost into a description of price, and 6.106 already measured that the retrieval is in place for it."
+    }
+  ]
+}
