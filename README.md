@@ -303,6 +303,7 @@ nestor/
 ├── persona.py        how Nestor speaks when Nestor is the speaker (never the translation)
 ├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
+├── seed.py           a small demo store across all three recipes, so a cold `ui --demo` lands live
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
 ├── cloud_seal.py     optional cloud-path seam — an agent provisionally seals through willow-gate (nestor[gate]); never canonical

@@ -19,10 +19,10 @@ PAGE = r"""<!doctype html>
 <title>Nestor</title>
 <style>
 :root {
-  --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1a17; --muted: #6b6862;
+  --bg: #f1ece1; --panel: #ffffff; --ink: #1b1a17; --muted: #6b6862;
   --line: #e4e0d9; --accent: #3b5f4a; --sealed: #2f6f4e; --draft: #9a6b16;
   --pending: #6b6862; --rejected: #a33a2f; --shadow: 0 1px 2px rgba(0,0,0,.05);
-  --glow: #9a7830; --band: #ebe6dc; --warm: #5a5040;
+  --glow: #9a7830; --band: #e6ddcc; --warm: #5a5040;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -49,9 +49,59 @@ header {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel);
 }
-.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 11px; }
 .brand b { font-size: 19px; letter-spacing: .02em; }
 .brand span { color: var(--muted); font-style: italic; font-size: 13px; }
+
+/* Nestor's face — the character, present in the header (IDEAS 6.107). His ink
+   is a constant, not a token: a painted robot does not repaint himself when the
+   room dims. Mood is driven by data-mood, set from state in render(). */
+#nestor-face { width: 42px; height: 49px; display: block; flex-shrink: 0; }
+#nestor-face .n-iris { fill: #3c5148; transition: fill .35s ease; }
+#nestor-face .n-bulb { fill: #c9a94f; transition: fill .3s ease; }
+#nestor-face .n-lid { transform: translateY(-8px); transition: transform .45s cubic-bezier(.34,1.3,.5,1); }
+#nestor-face .n-brow { transform: translateY(0); transition: transform .4s cubic-bezier(.34,1.3,.5,1); }
+#nestor-face .n-smile { opacity: 0; transition: opacity .35s ease; }
+#nestor-face .n-eye { transform-box: fill-box; transform-origin: center; animation: n-blink 7s ease-in-out 2s infinite; }
+#nestor-face[data-mood="thinking"] .n-iris { fill: #a9781a; }
+#nestor-face[data-mood="thinking"] .n-bulb { fill: #e7b23a; animation: n-pulse .95s ease-in-out infinite; }
+#nestor-face[data-mood="thinking"] .n-lid { transform: translateY(-9px); }
+#nestor-face[data-mood="pleased"] .n-iris { fill: #2f6f4e; }
+#nestor-face[data-mood="pleased"] .n-bulb { fill: #4a9c6d; }
+#nestor-face[data-mood="pleased"] .n-lid { transform: translateY(-6px); }
+#nestor-face[data-mood="pleased"] .n-brow { transform: translateY(-3px); }
+#nestor-face[data-mood="pleased"] .n-smile { opacity: 1; }
+#nestor-face[data-mood="unconvinced"] .n-iris { fill: #4a5a52; }
+#nestor-face[data-mood="unconvinced"] .n-lid { transform: translateY(3px); }
+#nestor-face[data-mood="unconvinced"] .n-brow { transform: translateY(2px); }
+#nestor-face[data-mood="alert"] .n-iris { fill: #c0402f; }
+#nestor-face[data-mood="alert"] .n-bulb { fill: #e2513f; }
+#nestor-face[data-mood="alert"] .n-lid { transform: translateY(-13px); }
+#nestor-face[data-mood="alert"] .n-brow { transform: translateY(-3px); }
+@keyframes n-blink { 0%,92%,100% { transform: scaleY(1); } 96% { transform: scaleY(.12); } }
+@keyframes n-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
+/* The cold-open front door (IDEAS 6.107) */
+#brand { cursor: pointer; }
+.welcome { max-width: 760px; margin: 0 auto; text-align: center; padding-top: 10px; }
+.welcome-eyebrow { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--glow); font-weight: 700; margin: 0; }
+.welcome-h1 { font-size: clamp(24px, 5vw, 34px); line-height: 1.14; margin: 14px 0 0; letter-spacing: -.01em; }
+.welcome-lede { color: var(--muted); max-width: 46ch; margin: 12px auto 0; }
+.welcome-foot { margin-top: 22px; }
+.doors { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 26px; text-align: left; }
+@media (min-width: 760px) { .doors { grid-template-columns: repeat(3, 1fr); } }
+.door { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; box-shadow: var(--shadow);
+  transition: border-color .15s, transform .15s; text-align: left; }
+.door:hover { transform: translateY(-2px); }
+.door-who { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--glow); font-weight: 700; }
+.door-q { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.door-what { font-size: 13px; color: var(--muted); flex: 1; }
+.door-try { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--sealed); font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  #nestor-face .n-eye, #nestor-face .n-bulb { animation: none; }
+  #nestor-face .n-iris, #nestor-face .n-lid, #nestor-face .n-brow, #nestor-face .n-smile { transition: none; }
+}
 .spacer { flex: 1; }
 .who { display: flex; align-items: center; gap: 8px; }
 .who label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
@@ -430,7 +480,29 @@ body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s;
 </head>
 <body>
 <header>
-  <div class="brand"><b>Nestor</b> <span>In medio, fides</span></div>
+  <div class="brand" id="brand" title="Back to the front door">
+    <svg id="nestor-face" data-mood="idle" viewBox="0 0 120 140" role="img" aria-label="Nestor">
+      <defs><clipPath id="n-lens"><circle cx="60" cy="64" r="22"/></clipPath></defs>
+      <line x1="60" y1="22" x2="60" y2="9" stroke="#241f17" stroke-width="4" stroke-linecap="round"/>
+      <circle class="n-bulb" cx="60" cy="6" r="5.5" stroke="#241f17" stroke-width="3"/>
+      <rect x="16" y="22" width="88" height="82" rx="16" fill="#e4d9bd" stroke="#241f17" stroke-width="4.5"/>
+      <circle cx="14" cy="66" r="8.5" fill="#c9a94f" stroke="#241f17" stroke-width="4"/>
+      <circle cx="106" cy="66" r="8.5" fill="#c9a94f" stroke="#241f17" stroke-width="4"/>
+      <g class="n-brow" stroke="#241f17" stroke-width="4" stroke-linecap="round">
+        <line x1="42" y1="34" x2="55" y2="34"/><line x1="65" y1="34" x2="78" y2="34"/>
+      </g>
+      <g class="n-eye">
+        <circle cx="60" cy="64" r="27" fill="#c9a94f" stroke="#241f17" stroke-width="4.5"/>
+        <circle cx="60" cy="64" r="22" fill="#141d18"/>
+        <circle class="n-iris" cx="60" cy="64" r="12"/>
+        <circle cx="65" cy="59" r="3.4" fill="#cfe6d8" opacity="0.9"/>
+        <g class="n-lid" clip-path="url(#n-lens)"><circle cx="60" cy="42" r="22" fill="#e4d9bd"/></g>
+        <circle class="n-smile" cx="60" cy="90" r="22" fill="#e4d9bd" clip-path="url(#n-lens)"/>
+      </g>
+      <rect x="34" y="106" width="52" height="18" rx="7" fill="#ccbf9f" stroke="#241f17" stroke-width="4.5"/>
+    </svg>
+    <b>Nestor</b> <span>In medio, fides</span>
+  </div>
   <div class="spacer"></div>
   <div class="who" id="who">
     <label for="verifier">acting as</label>
@@ -488,7 +560,7 @@ const RECIPES = [
   ["match",     "Match",     "the bare seam: any domain, either shipped matcher"],
 ];
 
-const S = { tab: "queue", state: null, pairs: [], detail: null, queue: null,
+const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             ledger: null, result: null, domains: [], signals: null,
             offset: 0, more: false, session: null, typedVerifier: "",
             commitmentPickByPair: {},
@@ -2003,6 +2075,7 @@ async function submitAsk() {
   const text = $("ask-text").value.trim();
   if (!text) return;
   const body = { text, source_lang: $("ask-sl").value, target_lang: $("ask-tl").value };
+  nestorMood("thinking");   // he is checking — the verdict overwrites this on render
   try { S.result = { recipe: "translate", ...(await api("/api/ask", body)), query: body }; render(); }
   catch (e) { toast(e.message, "err"); }
 }
@@ -2565,7 +2638,76 @@ function applyFilters() {
   refresh();
 }
 
+// The cold-open front door (IDEAS 6.107). A stranger meets Nestor here — not a
+// five-tab desk that assumes they already have a store and a job — and picks a
+// door framed in their own language. Each drops into that recipe's Ask.
+const DOORS = [
+  ["translate", "For everyone", "Is it really verified?",
+   "Ask him to translate a phrase — and watch a forged answer that scores a perfect 1.000 refused anyway."],
+  ["numeric", "For the physicist", "Does this figure match the trusted value?",
+   "Check a number against a sealed baseline: within tolerance, flagged, or nothing."],
+  ["entity", "For the AI builder", "Did a human ever actually confirm this?",
+   "Resolve one name to another — and see who put their name on the mapping."],
+];
+
+function enterDoor(recipe) {
+  S.recipe = recipe;
+  try { localStorage.setItem("nestor.recipe", recipe); } catch (_e) { /* private mode */ }
+  S.result = null;
+  S.tab = "ask";
+  render();
+}
+
+function viewWelcome() {
+  const view = $("view");
+  const doors = h("div", { class: "doors" },
+    ...DOORS.map(([recipe, who, q, what]) =>
+      h("button", { class: "door", onclick: () => enterDoor(recipe) },
+        h("span", { class: "door-who", text: who }),
+        h("span", { class: "door-q", text: q }),
+        h("span", { class: "door-what", text: what }),
+        h("span", { class: "door-try", text: "Try it →" }))));
+  view.append(h("div", { class: "welcome" },
+    h("p", { class: "welcome-eyebrow", text: "Meet Nestor" }),
+    h("h1", { class: "welcome-h1", text: "The machine that won't overclaim." }),
+    h("p", { class: "welcome-lede",
+      text: "Ask him anything. Mostly he'll tell you, politely, what he cannot "
+          + "vouch for — because he only serves an answer a real person signed. "
+          + "Pick a door." }),
+    doors,
+    h("p", { class: "welcome-foot muted small",
+      text: "…or use the desk up top — Queue, Memory, Ask, Signals, Ledger." })));
+}
+
+function nestorMood(m) {
+  const f = document.getElementById("nestor-face");
+  if (f) f.setAttribute("data-mood", m || "idle");
+}
+
+// Nestor's expression is a function of the verdict on screen, never decoration:
+// he settles when a person vouched, goes politely blank on a refusal, and
+// alarms at a seal whose signature does not check out. Recomputed each render,
+// so the face can never disagree with the row it sits above.
+function moodFromState() {
+  if (S.tab === "ask" && S.result) {
+    const r = S.result;
+    if (r.verified) return "pleased";
+    const st = (r.passage && r.passage.state) || "";
+    if (st === "pending") return "alert";
+    if (st === "draft" || (r.matches && r.matches.length)) return "unconvinced";
+    return "idle";
+  }
+  if (S.tab === "memory" && S.detail) {
+    const d = S.detail;
+    if (d.status === "sealed" && d.signature_valid === false) return "alert";
+    if (d.status === "sealed") return "pleased";
+    if (d.status) return "unconvinced";
+  }
+  return "idle";
+}
+
 function render() {
+  nestorMood(moodFromState());
   tabs(); badges(); whoBox();
   document.body.classList.toggle("shell-memory", S.tab === "memory");
   document.body.classList.toggle("fleet-review", S.tab === "memory" && fleetGapReviewMode());
@@ -2574,7 +2716,8 @@ function render() {
     S.tab === "memory" && fleetGapReviewMode() && (c.draft ?? 0) === 0 && (c.sealed ?? 0) > 0);
   const view = $("view");
   view.replaceChildren();
-  if (S.tab === "queue") viewQueue();
+  if (S.tab === "welcome") viewWelcome();
+  else if (S.tab === "queue") viewQueue();
   else if (S.tab === "memory") viewMemory();
   else if (S.tab === "ask") viewAsk();
   else if (S.tab === "signals") viewSignals();
@@ -2638,6 +2781,7 @@ async function refresh() {
 }
 
 S.typedVerifier = localStorage.getItem("nestor.verifier") || "";
+$("brand").addEventListener("click", () => { S.tab = "welcome"; S.result = null; render(); });
 const savedToken = localStorage.getItem("nestor.session");
 api("/api/state?session=" + encodeURIComponent(savedToken || "")).then((s) => {
   if (!S.typedVerifier && s.verifier_hint) S.typedVerifier = s.verifier_hint;
