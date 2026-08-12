@@ -100,7 +100,9 @@ header {
 .door-try { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--sealed); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   #nestor-face .n-eye, #nestor-face .n-bulb { animation: none; }
-  #nestor-face .n-iris, #nestor-face .n-lid, #nestor-face .n-brow, #nestor-face .n-smile { transition: none; }
+  #nestor-face .n-iris, #nestor-face .n-lid, #nestor-face .n-brow, #nestor-face .n-smile, #nestor-face .n-bulb { transition: none; }
+  .door { transition: border-color .15s; }
+  .door:hover { transform: none; }
 }
 .spacer { flex: 1; }
 .who { display: flex; align-items: center; gap: 8px; }
@@ -495,7 +497,7 @@ body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s;
 </head>
 <body>
 <header>
-  <div class="brand" id="brand" title="Back to the front door">
+  <div class="brand" id="brand" title="Back to the front door" role="button" tabindex="0">
     <svg id="nestor-face" data-mood="idle" viewBox="0 0 120 140" role="img" aria-label="Nestor">
       <defs><clipPath id="n-lens"><circle cx="60" cy="64" r="22"/></clipPath></defs>
       <line x1="60" y1="22" x2="60" y2="9" stroke="#241f17" stroke-width="4" stroke-linecap="round"/>
@@ -2707,23 +2709,39 @@ function nestorMood(m) {
 }
 
 // Nestor's expression is a function of the verdict on screen, never decoration:
-// he settles when a person vouched, goes politely blank on a refusal, and
-// alarms at a seal whose signature does not check out. Recomputed each render,
-// so the face can never disagree with the row it sits above.
-function moodFromState() {
-  if (S.tab === "ask" && S.result) {
-    const r = S.result;
-    if (r.verified) return "pleased";
-    const st = (r.passage && r.passage.state) || "";
-    if (st === "pending") return "alert";
-    if (st === "draft" || (r.matches && r.matches.length)) return "unconvinced";
-    return "idle";
+// he settles when a person vouched, is unconvinced by his own draft or a figure
+// that will not reconcile, stays politely blank when there is simply nothing to
+// serve, and alarms only at a seal whose signature does not check out.
+// Recomputed each render, so the face can never disagree with the card it sits
+// above — which is why it derives each recipe's state exactly as that recipe's
+// result renderer does (translateResult / entityResult / numericResult), rather
+// than second-guessing from `verified` (which for numeric means only "a baseline
+// exists," not "the figure is within tolerance").
+const STATE_MOOD = { sealed: "pleased", draft: "unconvinced", rejected: "unconvinced", pending: "idle" };
+
+function askMood(r) {
+  // A forged seal — a candidate that says sealed but would not serve — is the
+  // one alarming case, and the only one worth interrupting a calm face for. A
+  // plain "nothing matched" is a refusal, not an alarm.
+  if ((r.matches || []).some((m) => m && m.status === "sealed" && m.servable === false)) return "alert";
+  let state;
+  if (r.recipe === "entity") {
+    state = r.sealed ? "sealed" : (r.provenance && r.provenance.suggestion ? "draft" : "pending");
+  } else if (r.recipe === "numeric") {
+    state = r.baseline == null ? "pending" : (r.within_tolerance ? "sealed" : "rejected");
+  } else {  // translate, match
+    state = (r.passage && r.passage.state) || (r.served ? "sealed" : "pending");
   }
+  return STATE_MOOD[state] || "idle";
+}
+
+function moodFromState() {
+  if (S.tab === "ask" && S.result) return askMood(S.result);
   if (S.tab === "memory" && S.detail) {
     const d = S.detail;
     if (d.status === "sealed" && d.signature_valid === false) return "alert";
     if (d.status === "sealed") return "pleased";
-    if (d.status) return "unconvinced";
+    if (d.status === "draft" || d.status === "rejected") return "unconvinced";
   }
   return "idle";
 }
@@ -2803,7 +2821,16 @@ async function refresh() {
 }
 
 S.typedVerifier = localStorage.getItem("nestor.verifier") || "";
-$("brand").addEventListener("click", () => { S.tab = "welcome"; S.result = null; render(); });
+(() => {
+  const home = () => { S.tab = "welcome"; S.result = null; render(); };
+  const b = $("brand");
+  b.addEventListener("click", home);
+  // welcome is the only front door and is not a nav tab, so the brand must be
+  // reachable without a mouse: Enter/Space activate it like a real button.
+  b.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); home(); }
+  });
+})();
 const savedToken = localStorage.getItem("nestor.session");
 api("/api/state?session=" + encodeURIComponent(savedToken || "")).then((s) => {
   if (!S.typedVerifier && s.verifier_hint) S.typedVerifier = s.verifier_hint;

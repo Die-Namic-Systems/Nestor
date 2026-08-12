@@ -94,6 +94,37 @@ def test_forged_row_needs_signing_and_is_refused(tmp_path, monkeypatch):
     assert memory.best_sealed(seed._FORGED_SOURCE, "en", "es", store=on) is None
 
 
+def test_cmd_demo_redirects_any_spelling_of_the_default(tmp_path, monkeypatch):
+    # `--db ./data/nestor.db` (or any path that resolves to the default) must be
+    # redirected to the demo store, never seed the real default.
+    from nestor import cascade, cli
+    monkeypatch.chdir(tmp_path)
+    cascade._verified_ledgers.clear()
+    cascade._checkpoints.clear()
+    assert cli.main(["--db", "./data/nestor.db", "--json", "demo"]) == 0
+    assert (tmp_path / "data" / "nestor-demo.db").exists()   # redirected here
+    assert not (tmp_path / "data" / "nestor.db").exists()    # real default untouched
+
+
+def test_cmd_demo_refuses_a_nonempty_store(tmp_path, monkeypatch, capsys):
+    # A second `nestor demo` must refuse rather than pile up a duplicate queue.
+    from nestor import cascade, cli
+    from nestor.sqlite_store import SqliteStore
+    monkeypatch.chdir(tmp_path)
+    cascade._verified_ledgers.clear()
+    cascade._checkpoints.clear()
+    db = str(tmp_path / "demo.db")
+    assert cli.main(["--db", db, "--json", "demo"]) == 0
+    capsys.readouterr()
+    assert cli.main(["--db", db, "--json", "demo"]) == 0
+    assert '"seeded": false' in capsys.readouterr().out
+    s = SqliteStore(db)
+    s.init_db()
+    s.memory_init()
+    assert len(s.list_documents()) == 1              # not doubled
+    assert len(s.list_segments(status="pending")) == 3
+
+
 def test_seed_is_rerunnable(tmp_path):
     store = _fresh_store(tmp_path)
     seed.seed_store(store)
