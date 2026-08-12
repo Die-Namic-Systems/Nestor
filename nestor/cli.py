@@ -557,9 +557,10 @@ def cmd_demo(args) -> int:
     honest store across all three recipes — sealed by :mod:`nestor.seed` through
     the ordinary seal path — and prints the one command to view it.
     """
-    # Keep the demo out of a real store's way: if the caller left --db at its
-    # default, write a demo-specific file rather than seeding data/nestor.db.
-    if args.db == "data/nestor.db":
+    # Keep the demo out of a real store's way. Compare RESOLVED paths, not the
+    # raw string: `--db ./data/nestor.db` (or any other spelling of the default)
+    # must not slip past and seed the real default store.
+    if pathlib.Path(args.db).resolve() == pathlib.Path("data/nestor.db").resolve():
         args.db = "data/nestor-demo.db"
     if not getattr(args, "ledger", ""):
         # A self-contained ledger beside the demo db, so the chain these seals
@@ -567,6 +568,15 @@ def cmd_demo(args) -> int:
         args.ledger = os.path.splitext(args.db)[0] + ".ledger.jsonl"
     store = _store(args)
     try:
+        # Never seed over an existing store — a filename heuristic is not a
+        # promise, so refuse any non-empty target (delete it to reseed). This is
+        # also what keeps a second `nestor demo` from piling up a duplicate
+        # review queue, since the queue seed is not idempotent on its own.
+        if not seed_mod.is_empty(store):
+            _emit({"db": args.db, "seeded": False, "reason": "not empty"}, args.json,
+                  f"{args.db} already has content — not seeding "
+                  f"(delete it to reseed).\n  view it:  nestor ui --db {args.db}")
+            return EXIT_OK
         counts = seed_mod.seed_store(store)
     finally:
         store.close()

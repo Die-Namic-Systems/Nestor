@@ -1381,10 +1381,17 @@ def main(argv: Optional[list[str]] = None) -> int:
                 except FileExistsError:                    # a racing --demo won
                     os.environ["NESTOR_SEAL_KEY"] = _read_demo_sealkey(keyfile)
         if empty:
-            counts = seed.seed_store(store, include_forged=True)
-            demo_note = f"seeded {sum(counts.values())} row(s) into an empty store"
-            if counts.get("forged"):
-                demo_note += " — including a forged seal, refused and shown as such"
+            try:
+                counts = seed.seed_store(store, include_forged=True)
+                demo_note = f"seeded {sum(counts.values())} row(s) into an empty store"
+                if counts.get("forged"):
+                    demo_note += " — including a forged seal, refused and shown as such"
+            except (keyring.UnknownVerifierError, keyring.RevokedKeyError) as exc:
+                # --demo signs as `rita`; with a keyring that has never heard of
+                # her, sign_seal raises before any write. Say so, don't traceback.
+                demo_note = (f"not seeded — this keyring cannot sign for "
+                             f"{seed.DEMO_VERIFIER!r} ({exc}). Register a demo "
+                             f"verifier, or drop --keyring for the demo.")
         else:
             demo_note = "store already has content — not seeding"
 
