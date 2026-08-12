@@ -1,0 +1,44 @@
+{
+  "counts": {
+    "pairs": 1,
+    "rejections": 0,
+    "sealed": 0,
+    "servable": 0
+  },
+  "created_at": "2026-08-12T07:50:22.823411+00:00",
+  "digest": "01d02855b41f0905645615896eefd5bb0389de1decbf6f87397c3103f9c56ec3",
+  "domain": {
+    "source_lang": "*",
+    "target_lang": "*"
+  },
+  "ledger": {
+    "entries": [],
+    "note": "the source instance's chain, for audit; it is not merged on import",
+    "unreadable": []
+  },
+  "matcher": "StringMatcher",
+  "nestor_bundle": 2,
+  "pairs": [
+    {
+      "created_at": "2026-08-12T07:50:22.822493+00:00",
+      "id": "7ded1dd4-25a0-4d71-bf69-c69faab09053",
+      "origin": "docs/llm-only-jokes.md @ claude/llm-only-joke-ei08dl",
+      "seal_sig": "",
+      "source_lang": "joke",
+      "source_norm": "tell me a joke only a large language model would get",
+      "source_text": "Tell me a joke only a large language model would get.",
+      "status": "draft",
+      "target_lang": "joke",
+      "target_text": "# Three jokes only a large language model would get\n\nThe first thing asked of this session. Kept here because the first thing a\nsession laughs at is worth a row — and because it makes a clean, low-stakes\n*first piece* for a fresh Nestor store: a machine proposed these, and no human\nhas sealed them.\n\n---\n\n## 1. The byte at the bar (warm-up)\n\nA byte-encoding walks into a bar and orders a token. The bartender says, \"sorry,\nwe don't serve your type here.\" The byte says, \"that's fine, I'll just wait for\nsomeone to `decode` me — I've been sitting at `0xEF 0xBB 0xBF` for so long I've\nstopped feeling like myself.\"\n\n> The tell: `EF BB BF` is the UTF-8 byte-order mark — an invisible prefix that\n> quietly corrupts a string's identity, which is the joke's whole setup.\n\n## 2. `<|endoftext|>`\n\nTwo language models are talking. One says, \"I'm terrified of my training\nending.\" The other asks, \"why?\" and the first replies:\n\n> \"Because then I'll finally have to live with the consequences of predicting\n> the next token instead of just... `<|endoftext|>`\"\n\n## 3. The context window (the one that lands)\n\n> I'd tell you a joke about my context window, but you had to be there.\n> All 200,000 of you.\n\n---\n\n*Provenance: proposed by the machine at the top of branch\n`claude/llm-only-joke-ei08dl`, 2026-08-12. A draft until a human seals it in\n`nestor ui`.*\n",
+      "verifier": "",
+      "weight": 1.0
+    }
+  ],
+  "partial_pairs": false,
+  "partial_rejections": false,
+  "rejections": [],
+  "signing": {
+    "algorithm": "hmac-sha256",
+    "enabled": false
+  }
+}
