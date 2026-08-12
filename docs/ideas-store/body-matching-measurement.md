@@ -60,9 +60,11 @@ of the corpus talks about ledgers and integrity). The correct referent won, but
 the margin is thin and the high-scoring field is wide, which is the signature of
 a matcher that will **false-seal when the true answer is absent**. §3.4 stage-4
 measured exactly this with leave-one-out and found `TokenOverlap` at 0.683 false
-seals; the equivalent LOO control for body-matching was **not run here** and is
-the necessary next measurement before any of this could serve. Rank up, precision
-unknown-and-probably-down.
+seals; the equivalent LOO control for body-matching is now run —
+[`body-matching-loo-control.md`](body-matching-loo-control.md) — and confirms it:
+**≥2/5 probes serve a wrong entry at 0.92**, the other three sit inside the drift
+band, and every false seal is a genuine topical neighbour (the corpus's own §1.1).
+Rank up, precision down — body-matching ranks, it does not serve.
 
 **3. One "serve" is a legitimate near-neighbor, not the target.** The
 false-verification-rate probe serves at rank 2 behind §1.1 (*Margin, not just
