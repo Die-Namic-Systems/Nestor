@@ -379,6 +379,7 @@ docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.homestead househo
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
+docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
 docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
 docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
 docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
