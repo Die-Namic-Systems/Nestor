@@ -7384,3 +7384,58 @@ build artifact directory, and `.venv` was not the first and will not be the last
 `extract_data_vault.py` (§6.101) shows the other end of the same class — an
 allowlist naming directories that no longer exist, reporting 0 rows that read as
 an empty repository.
+
+### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, fix **open**
+
+*Measured 2026-08-12.* Five small-model agents surveyed twenty-five repositories
+for machinery built in-house where an Apache-2.0-compatible vendor exists. They
+returned roughly forty capability rows, each naming a licence they were told —
+and repeatedly reminded — they could not verify. Twenty-one of those claims were
+then checked against the PyPI metadata.
+
+Most were right. The two that were wrong were in **the same row, and inverted**:
+
+| vendor | claimed | actual |
+|---|---|---|
+| celery | LGPL-3.0 | **BSD-3-Clause** |
+| dramatiq | BSD-3-Clause | **LGPL-3.0-or-later** |
+
+One error in each direction, which is what makes it worth an entry. The
+false-restrictive half only costs an option: Celery is excluded from
+consideration and nobody is harmed. The false-permissive half is the one that
+ships — dramatiq was offered as the recommended alternative *because* it appeared
+to pass an Apache-2.0 filter, and adopting it on that basis puts an LGPL
+dependency in an Apache-2.0 tree. **A licence filter applied by a model is not a
+licence filter; it is a list of candidates for one.**
+
+Two rows named projects that do not exist as described — a ledger vendor
+"Chronicle (EtherLedger-based)" whose only PyPI namesake is a logging utility,
+and "merkle-tree primitives from tree-sitter", which is a parser generator. Both
+survived an instruction not to invent projects. One row was correct and stale:
+`whoosh` is BSD-2 as claimed and its last release is v2.7.4, which no reader of
+the row would guess.
+
+**The citation errors are not uniform, which is the useful part.** Three lanes
+cited `quick-stupids/PRIOR_ART.md` sections for content those sections do not
+contain (§5 called "embedding tooling" is rasterisation; §3 called clustering is
+property-based testing). The trust lane's citations to §6 were **correct** —
+PRIOR_ART line 228 does survey OPA/Rego + Conftest and line 236 does survey
+in-toto/SLSA, both marked *Apache-2.0 (verified)*, and both with recorded
+reservations the surveying agent could not have known. So the failure is not "the
+model cannot cite"; it is that a wrong citation and a right one are written in
+identical confident prose, and only opening the file separates them.
+
+That last point generalises past licences. The survey's value was real — it found
+hash-chained ledgers implemented four to six times across the fleet, three
+mutually incompatible trust-tier models, and persona definitions scattered across
+three repositories. None of those needed verifying to be useful, because they are
+claims about *this* box, checkable in minutes. Every claim about the *outside
+world* needed checking and roughly one in ten was wrong. **Fan-out is cheap for
+finding things and unreliable for asserting them**, and the split runs exactly
+along that line.
+
+Standing consequence: the fleet already has a vendor survey with a
+*"what to adopt, what stays ours"* conclusion (PRIOR_ART.md line 328). Any
+adoption argument starts there, not from a fresh model survey — and no licence
+reaches a dependency file without the registry metadata read by a human or a
+script.

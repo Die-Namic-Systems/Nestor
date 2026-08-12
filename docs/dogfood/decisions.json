@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 243,
+    "pairs": 247,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-12T06:31:13.993702+00:00",
-  "digest": "7c178e1bd37b170014176f09f306d377d759de26530c3b3b026b0d63a6631105",
+  "created_at": "2026-08-12T06:40:25.030046+00:00",
+  "digest": "6134834d9883d311e179080397594e243d6cd4b50405be4a3242dbb8252d4033",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -20,8 +20,64 @@
   "nestor_bundle": 2,
   "pairs": [
     {
-      "created_at": "2026-08-12T06:31:13.978964+00:00",
-      "id": "066b4932-90fe-49ce-bf1e-b6b2f46a9691",
+      "created_at": "2026-08-12T06:40:25.023287+00:00",
+      "id": "cb15efc0-6743-4da2-9abc-5b46df075f95",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is a fanout survey actually good for given the error rate",
+      "source_text": "What is a fan-out survey actually good for, given the error rate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Finding, not asserting. The claims about this box — hash-chained ledgers implemented four to six times, three mutually incompatible trust-tier models, persona definitions scattered across three repositories, calibration scoring in three places — were sound and cost minutes to confirm because the evidence is on disk. Every claim about the outside world needed independent checking.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T06:40:25.022878+00:00",
+      "id": "a2b5cbb1-7fcc-4767-ae29-26a456786bf6",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "three of five lanes cited prior_artmd sections for content those sections do not contain is the documents prior art therefore unusable from a survey",
+      "source_text": "Three of five lanes cited PRIOR_ART.md sections for content those sections do not contain. Is the document's prior art therefore unusable from a survey?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — the citations split, and the split is the finding. The trust lane's references to PRIOR_ART §6 were correct: line 228 does survey OPA/Rego + Conftest and line 236 does survey in-toto/SLSA, both marked Apache-2.0 verified, both carrying reservations the agent could not have known. The other three lanes misnamed sections they had not opened.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T06:40:25.022571+00:00",
+      "id": "0a64aa04-4ef3-47f2-ad8e-6f1b5b061d5b",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "two rows named vendors that do not exist as described quietly drop them or record that they were returned",
+      "source_text": "Two rows named vendors that do not exist as described. Quietly drop them, or record that they were returned?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Record them. A ledger vendor 'Chronicle (EtherLedger-based)' whose only PyPI namesake is a logging utility, and 'merkle-tree primitives from tree-sitter', which is a parser generator. Both were returned despite an explicit instruction not to name projects the agent was unsure existed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T06:40:25.022243+00:00",
+      "id": "0abdd6fa-1156-4b0b-a5c7-7bcca67db771",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the survey agents cannot reach the network and must name licences from memory accept the rows as returned or check them",
+      "source_text": "The survey agents cannot reach the network and must name licences from memory. Accept the rows as returned, or check them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Check them. Twenty-one licence claims were read back from PyPI metadata. Most held; celery was claimed LGPL-3.0 and is BSD-3-Clause, dramatiq was claimed BSD-3-Clause and is LGPL-3.0-or-later — the two halves of one row, inverted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T06:40:25.021878+00:00",
+      "id": "bc86c740-bf6b-458e-87cb-0354ba9663c7",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -34,8 +90,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.978229+00:00",
-      "id": "eb17bbfd-d477-4d45-8db7-18289df3fc97",
+      "created_at": "2026-08-12T06:40:25.021543+00:00",
+      "id": "b217b0f1-83ea-402d-95ff-189fd5602b3e",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -48,8 +104,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.977637+00:00",
-      "id": "3611759a-8575-48fa-a9f4-e40a62923b37",
+      "created_at": "2026-08-12T06:40:25.021249+00:00",
+      "id": "c1dcbe5d-b5c8-4117-a0d8-50d30c550432",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -62,8 +118,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.976979+00:00",
-      "id": "a3c2ccd0-a356-4de3-bc08-291ee2b62210",
+      "created_at": "2026-08-12T06:40:25.020859+00:00",
+      "id": "5b8d5767-1ec0-4d50-a155-cf1195d3d0df",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -76,8 +132,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.976363+00:00",
-      "id": "a443b815-8d4d-4c56-b68b-3f65b27ba659",
+      "created_at": "2026-08-12T06:40:25.020506+00:00",
+      "id": "9c1b3f9f-0dd2-4f6c-b0e8-1f5d3a045c53",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -90,8 +146,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.975898+00:00",
-      "id": "b4d3e242-d169-4c29-836d-4a6d7bb8e31f",
+      "created_at": "2026-08-12T06:40:25.020190+00:00",
+      "id": "6d183a57-a715-4bc4-bee5-87feecc097db",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -104,8 +160,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.975237+00:00",
-      "id": "6839c017-baf1-44e7-af92-5359ff62777f",
+      "created_at": "2026-08-12T06:40:25.019831+00:00",
+      "id": "6c80ffac-c9f1-429d-acca-798deecc8582",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -118,8 +174,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.974757+00:00",
-      "id": "02744daa-4f17-416a-a8f9-89615b49c1f1",
+      "created_at": "2026-08-12T06:40:25.019506+00:00",
+      "id": "e35ccc6f-33c1-4ff6-816f-e9d332dd2743",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -132,8 +188,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.974216+00:00",
-      "id": "255f1c4b-2e8b-4039-aec2-5f08f1725721",
+      "created_at": "2026-08-12T06:40:25.019164+00:00",
+      "id": "86df2fe7-80a3-4237-8fe7-9c2c2948b96c",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -146,8 +202,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.973927+00:00",
-      "id": "3972adb3-5cf4-4e11-bb4a-c6c94ea7362c",
+      "created_at": "2026-08-12T06:40:25.018783+00:00",
+      "id": "303966a5-aacf-4c73-896f-19f1b50cb1ef",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -160,8 +216,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.973609+00:00",
-      "id": "857c9a5b-c743-4823-a399-1e92de078039",
+      "created_at": "2026-08-12T06:40:25.018404+00:00",
+      "id": "22c0a13a-d00e-410c-989a-01d4642d94df",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -174,8 +230,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.973263+00:00",
-      "id": "cb3fa349-9cfd-4daa-babc-b0b46e16dc12",
+      "created_at": "2026-08-12T06:40:25.018046+00:00",
+      "id": "33db1a23-885b-4c43-aad0-05b3497949a8",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -188,8 +244,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.972919+00:00",
-      "id": "386e787a-eb2e-4634-a459-fd916b564f2d",
+      "created_at": "2026-08-12T06:40:25.017646+00:00",
+      "id": "85fe783f-edbf-434d-ad2a-08339f9b153e",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -202,8 +258,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.972591+00:00",
-      "id": "3707092f-e415-440d-b681-70e3837945c9",
+      "created_at": "2026-08-12T06:40:25.017212+00:00",
+      "id": "44ff194c-37bf-4fd6-8e8b-2e7c5ffbca4a",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -216,8 +272,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.972224+00:00",
-      "id": "d7eb2cac-6c51-4173-a5d3-980f1e785776",
+      "created_at": "2026-08-12T06:40:25.016835+00:00",
+      "id": "68287552-fc4a-4870-98b6-0cfd009b30e6",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -230,8 +286,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.971951+00:00",
-      "id": "c5efeac0-66a0-426d-b5bc-5e9e703d442a",
+      "created_at": "2026-08-12T06:40:25.016446+00:00",
+      "id": "c12155ba-b423-4a61-b54a-8855f9bf38e3",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -244,8 +300,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.971631+00:00",
-      "id": "4e36dce9-008a-4f61-8ff9-d9459e32443f",
+      "created_at": "2026-08-12T06:40:25.016086+00:00",
+      "id": "f9c25780-b87a-4b6f-9ff3-2b89efbce56c",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -258,8 +314,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.971252+00:00",
-      "id": "566b7f9b-a27f-4430-9d46-9249e941de6c",
+      "created_at": "2026-08-12T06:40:25.015725+00:00",
+      "id": "4ddbaea0-359d-4c4f-8455-6b5fa2135d49",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -272,8 +328,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.970876+00:00",
-      "id": "8192d57e-d0dc-49ae-8fa2-6746e1f2eb45",
+      "created_at": "2026-08-12T06:40:25.015334+00:00",
+      "id": "d69eb37f-2ba8-4532-9011-f9fda303b74c",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -286,8 +342,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.970547+00:00",
-      "id": "cacc7772-7f33-4e16-a0de-cf8b82ce06c0",
+      "created_at": "2026-08-12T06:40:25.014888+00:00",
+      "id": "d55c0df1-e365-4311-80e0-6902360ebe09",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -300,8 +356,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.970173+00:00",
-      "id": "1762b534-1cf8-4ba7-bd8e-7647d9508465",
+      "created_at": "2026-08-12T06:40:25.014541+00:00",
+      "id": "2a21315c-e1fa-4d0f-967a-1b76bc2ee842",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -314,8 +370,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.969760+00:00",
-      "id": "fd642c4c-ceae-4a59-90d7-ad15fa4b25d1",
+      "created_at": "2026-08-12T06:40:25.014100+00:00",
+      "id": "b8ab628e-6113-4f8c-94e0-19496386df82",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -328,8 +384,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.969224+00:00",
-      "id": "29927f60-6c52-4113-af99-cf9d2e7115f5",
+      "created_at": "2026-08-12T06:40:25.013655+00:00",
+      "id": "d4f3fcfd-e173-4a59-9a4c-6c65f7125202",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -342,8 +398,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.968860+00:00",
-      "id": "108969fe-8c4d-497f-901f-6400c182ee19",
+      "created_at": "2026-08-12T06:40:25.013311+00:00",
+      "id": "16e6e162-3242-4fe6-8586-d4611483e861",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -356,8 +412,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.968343+00:00",
-      "id": "a43cf911-9a62-4fbb-913a-c6810981d97a",
+      "created_at": "2026-08-12T06:40:25.012851+00:00",
+      "id": "beae650a-0539-4286-9a52-08f6d325723a",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -370,8 +426,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.967899+00:00",
-      "id": "d59c96dc-6e23-42d7-be81-a440ac3d63dc",
+      "created_at": "2026-08-12T06:40:25.012398+00:00",
+      "id": "d15583e3-45e0-4056-baf0-1a7fac03f1e6",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -384,8 +440,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.967508+00:00",
-      "id": "b8b6b98d-a518-4680-8a59-1fac2185c326",
+      "created_at": "2026-08-12T06:40:25.012013+00:00",
+      "id": "69036609-f74f-4265-9fa7-c347c784033c",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -398,8 +454,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.967025+00:00",
-      "id": "5c61e95a-8d2a-449d-b465-780c574379e2",
+      "created_at": "2026-08-12T06:40:25.011623+00:00",
+      "id": "4d3a8392-c47a-4ea9-b1d7-f5fb5ab1eb29",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -412,8 +468,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.966634+00:00",
-      "id": "5c59517d-66f0-4c7e-af87-31cc2423a250",
+      "created_at": "2026-08-12T06:40:25.011294+00:00",
+      "id": "e50c2571-d2cd-43eb-bc8e-493e4d5c8e90",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -426,8 +482,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.966205+00:00",
-      "id": "dd5d2de7-512a-4aed-9345-44fc04cab776",
+      "created_at": "2026-08-12T06:40:25.010880+00:00",
+      "id": "c57dfab9-f21a-46f5-88bc-bf8a8fdbb61b",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -440,8 +496,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.965757+00:00",
-      "id": "a7ab6932-89d3-4293-93b4-4aa1406fe51e",
+      "created_at": "2026-08-12T06:40:25.010407+00:00",
+      "id": "3007f0a4-3cb9-408a-a960-5b9c4655689d",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -454,8 +510,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.965240+00:00",
-      "id": "746862ce-8ac7-4ae6-b6e5-0be3f6dd0e23",
+      "created_at": "2026-08-12T06:40:25.010020+00:00",
+      "id": "a3e60d12-9f5d-435b-b909-7dd0f90069fa",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -468,8 +524,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.964684+00:00",
-      "id": "ec44147e-bcf0-499a-a75f-183ff793955d",
+      "created_at": "2026-08-12T06:40:25.009651+00:00",
+      "id": "a06226e5-a6df-4fd0-928a-abfca21ec9b9",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -482,8 +538,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.964129+00:00",
-      "id": "569a7029-8206-49ba-9e8d-9c7fe9d7d480",
+      "created_at": "2026-08-12T06:40:25.009278+00:00",
+      "id": "cd9fd1e8-e21f-4e7a-ba9b-40eea922404d",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -496,8 +552,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.963608+00:00",
-      "id": "fc5b2ffb-36d9-461b-9569-88f4b0f0b562",
+      "created_at": "2026-08-12T06:40:25.008850+00:00",
+      "id": "b204b7eb-d8f6-4414-b364-21eeacb7c739",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -510,8 +566,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.963044+00:00",
-      "id": "743f2abc-7673-434e-9489-82d3983cea95",
+      "created_at": "2026-08-12T06:40:25.008479+00:00",
+      "id": "d1332a4f-27ff-44dc-a774-4a5e4a8c1a93",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -524,8 +580,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.962578+00:00",
-      "id": "bfc925c9-afba-47d6-886c-9595f0c7d74f",
+      "created_at": "2026-08-12T06:40:25.008113+00:00",
+      "id": "3439b7fb-1b42-4649-b479-979535bb6ac1",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -538,8 +594,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.961501+00:00",
-      "id": "3a2f505a-604f-4cb3-8b2c-19e08c9cf803",
+      "created_at": "2026-08-12T06:40:25.007459+00:00",
+      "id": "932e8ace-b7d8-4861-9aae-385f3b128071",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -552,8 +608,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.957086+00:00",
-      "id": "229104d1-7bb6-48ec-9cea-2ecb1ddfca46",
+      "created_at": "2026-08-12T06:40:25.004676+00:00",
+      "id": "f464cc43-9ec4-4763-994b-4b3581458df9",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -566,8 +622,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.954632+00:00",
-      "id": "5b285781-31a0-4524-9afa-3545c7fbf3dc",
+      "created_at": "2026-08-12T06:40:25.004010+00:00",
+      "id": "efd3a081-5418-4e10-8a31-af7dda746412",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -580,8 +636,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.953896+00:00",
-      "id": "45d97643-f8cc-4f96-9700-61ba27c32188",
+      "created_at": "2026-08-12T06:40:25.003552+00:00",
+      "id": "242caa6f-be76-4fa8-b1f6-11a330ce2719",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -594,8 +650,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.952329+00:00",
-      "id": "ca4027e9-347e-4822-8475-0d17f085b39c",
+      "created_at": "2026-08-12T06:40:25.002984+00:00",
+      "id": "da959ebc-5edc-41a3-a24d-60b0e39d10db",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -608,8 +664,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.951251+00:00",
-      "id": "59fb9c66-2909-4d8f-879f-184b2c3f1ecc",
+      "created_at": "2026-08-12T06:40:25.002483+00:00",
+      "id": "2a886a79-a514-4425-bf74-0138fc105fbd",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -622,8 +678,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.950249+00:00",
-      "id": "6f33d6bb-d29c-4963-89a1-4de1c791eb00",
+      "created_at": "2026-08-12T06:40:25.001699+00:00",
+      "id": "2232b8e3-eb4c-464b-a04f-17ba0307297e",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -636,8 +692,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.949443+00:00",
-      "id": "72dd42aa-5100-408a-8f31-46ede27f8ab9",
+      "created_at": "2026-08-12T06:40:25.001133+00:00",
+      "id": "6255a258-8d3d-490c-ab36-554a515e953a",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -650,8 +706,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.948807+00:00",
-      "id": "a3b85865-5b27-4243-8b25-a0021a355172",
+      "created_at": "2026-08-12T06:40:25.000596+00:00",
+      "id": "e9e0b963-ed7b-4f76-bd9e-af1307759dae",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -664,8 +720,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.948149+00:00",
-      "id": "fc99eff6-9808-47db-a4b8-41c7a2e5fb2e",
+      "created_at": "2026-08-12T06:40:25.000103+00:00",
+      "id": "d3629d36-630c-4682-a275-a7a7f10c4dde",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -678,8 +734,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.947331+00:00",
-      "id": "643fd0a6-570a-4728-8d92-8565333b7ea7",
+      "created_at": "2026-08-12T06:40:24.999488+00:00",
+      "id": "9a34657c-4829-43bb-bb9a-86d7a2163d87",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -692,8 +748,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.946616+00:00",
-      "id": "219713b3-e8f9-4597-9747-ec06e7f57296",
+      "created_at": "2026-08-12T06:40:24.998853+00:00",
+      "id": "5d02baf3-51fb-4114-96df-9fe4ccc21413",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -706,8 +762,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.945730+00:00",
-      "id": "d054e614-c2aa-4e8b-b23d-f25581d466fe",
+      "created_at": "2026-08-12T06:40:24.998307+00:00",
+      "id": "a628d867-2b37-47af-b775-fc2145bfb605",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -720,8 +776,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.945114+00:00",
-      "id": "de54f59b-eeca-436c-8394-17a5df5ef13a",
+      "created_at": "2026-08-12T06:40:24.997835+00:00",
+      "id": "632ec117-7ada-4d77-a6f2-ad748356a584",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -734,8 +790,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.944485+00:00",
-      "id": "f4d23c8a-a188-46e1-97ee-9e2851c27a9f",
+      "created_at": "2026-08-12T06:40:24.997311+00:00",
+      "id": "a6228073-d264-4cb0-8677-e756c8a504e9",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -748,8 +804,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.943940+00:00",
-      "id": "875e92f3-8525-4c84-8715-ebde46f9a116",
+      "created_at": "2026-08-12T06:40:24.996716+00:00",
+      "id": "36d19ea6-cc06-4616-a511-1f0a49d6a6f3",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -762,8 +818,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.943301+00:00",
-      "id": "1f5ada02-455d-42ea-a4dd-bef0d8b63dee",
+      "created_at": "2026-08-12T06:40:24.996217+00:00",
+      "id": "4afd58af-9fda-4b1f-9991-944517171932",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -776,8 +832,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.942739+00:00",
-      "id": "f32a296a-d603-44f3-93f6-93492c72fdbc",
+      "created_at": "2026-08-12T06:40:24.995773+00:00",
+      "id": "eb4a02f6-3c02-4ea4-8903-c9e632a5b976",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -790,8 +846,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.942096+00:00",
-      "id": "054682d9-1b9c-48f8-b18a-311fe6a5112f",
+      "created_at": "2026-08-12T06:40:24.995364+00:00",
+      "id": "1133724c-a156-40e2-b67e-f97ca7caca07",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -804,8 +860,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.941339+00:00",
-      "id": "b51792be-1f31-4d76-9c41-080d9f893c21",
+      "created_at": "2026-08-12T06:40:24.994891+00:00",
+      "id": "c9f43a75-4b74-4def-a78e-41f1b4fb0d2a",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -818,8 +874,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.940673+00:00",
-      "id": "e8652938-5f23-4233-a0a3-6ed81e2cd0fe",
+      "created_at": "2026-08-12T06:40:24.994422+00:00",
+      "id": "6b3cce32-cf33-4545-b791-313848a3f76b",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -832,8 +888,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.940096+00:00",
-      "id": "6ef103cb-b8ce-4d87-ae4c-36152ac7536d",
+      "created_at": "2026-08-12T06:40:24.993973+00:00",
+      "id": "78f50b82-93b9-42f8-9efa-568621290a0f",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -846,8 +902,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.939362+00:00",
-      "id": "a3a59088-3dec-4a35-bf36-fec29be3e55d",
+      "created_at": "2026-08-12T06:40:24.993557+00:00",
+      "id": "13b7a1a2-2d33-49a5-8600-50f26e33ae4d",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -860,8 +916,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.938220+00:00",
-      "id": "8e8fe5af-4ae7-4695-a982-26b4529b68dd",
+      "created_at": "2026-08-12T06:40:24.993014+00:00",
+      "id": "34d99571-ed4a-459a-aa80-0b91b5c6c8f7",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -874,8 +930,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.937389+00:00",
-      "id": "107e977d-17ca-4ab6-9274-0f17adc97b4c",
+      "created_at": "2026-08-12T06:40:24.992571+00:00",
+      "id": "8c5b7037-cd32-451c-92b5-2c5a029ec400",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -888,8 +944,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.936371+00:00",
-      "id": "e678723a-912e-4f34-9b63-2942cee969ab",
+      "created_at": "2026-08-12T06:40:24.992148+00:00",
+      "id": "dee91d24-6551-4790-846a-bbcd136ac7d6",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -902,8 +958,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.935398+00:00",
-      "id": "c2669247-18f6-409d-a00e-c89eb73b3761",
+      "created_at": "2026-08-12T06:40:24.991600+00:00",
+      "id": "d92ff961-e604-42d8-bf4b-b6a795daf9b9",
       "origin": "pr:61",
       "seal_sig": "",
       "source_lang": "decision",
@@ -916,8 +972,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.934608+00:00",
-      "id": "c8f80db7-b978-45fa-991f-45b445a4154f",
+      "created_at": "2026-08-12T06:40:24.990779+00:00",
+      "id": "53c72ed6-6b32-4143-ba7a-9b3ff2093499",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -930,8 +986,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.933858+00:00",
-      "id": "42e6a2c5-ed5d-40ba-8e85-9ae4155ef213",
+      "created_at": "2026-08-12T06:40:24.990391+00:00",
+      "id": "6a73fd98-05c6-4450-abeb-d1497bec180f",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -944,8 +1000,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.932951+00:00",
-      "id": "2cb8d5fb-c70b-4d5a-8b73-49d6414bf6db",
+      "created_at": "2026-08-12T06:40:24.989783+00:00",
+      "id": "aed07885-1f13-4a30-8411-5a65087a82a8",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -958,8 +1014,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.931991+00:00",
-      "id": "94d80733-ac9a-456d-a074-a55e105159e7",
+      "created_at": "2026-08-12T06:40:24.989161+00:00",
+      "id": "29012d06-69e9-485f-8bb4-710ee9aca337",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -972,8 +1028,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.931176+00:00",
-      "id": "56dc73e9-15d3-44eb-a478-4aa4cb724210",
+      "created_at": "2026-08-12T06:40:24.988595+00:00",
+      "id": "fd951725-92a2-44ea-9c65-4871efb3fbd6",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -986,8 +1042,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.930462+00:00",
-      "id": "62aeeb5f-1b2f-4217-899a-ea0b5ae84211",
+      "created_at": "2026-08-12T06:40:24.987984+00:00",
+      "id": "8a575bb7-b773-4f37-bd94-1dcdc1ea514d",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1000,8 +1056,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.929655+00:00",
-      "id": "0af1df7d-27bb-4756-a210-31b7674934d8",
+      "created_at": "2026-08-12T06:40:24.987474+00:00",
+      "id": "93ede63f-52d1-487b-a7d2-37d6f05644a1",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1014,8 +1070,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.928672+00:00",
-      "id": "b3e5541d-d269-46c6-9c57-68c3dea9c422",
+      "created_at": "2026-08-12T06:40:24.986951+00:00",
+      "id": "783c5484-5688-401e-a2d2-418c2c17ed53",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1028,8 +1084,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.927781+00:00",
-      "id": "db3d39b1-98c2-43b7-bc26-41e6ff765858",
+      "created_at": "2026-08-12T06:40:24.986427+00:00",
+      "id": "a4dd26e3-c28c-4d68-8480-5aae917c1171",
       "origin": "pr:60",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1042,8 +1098,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.926853+00:00",
-      "id": "f5ad6191-a00d-4ce7-aa32-0fb8b035ddde",
+      "created_at": "2026-08-12T06:40:24.985766+00:00",
+      "id": "76534051-6301-4589-85f4-758f7d801c48",
       "origin": "pr:59",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1056,8 +1112,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.925915+00:00",
-      "id": "ca8e5621-c6d6-4981-94a5-b31026a457f5",
+      "created_at": "2026-08-12T06:40:24.985389+00:00",
+      "id": "9b5f8db9-a08a-44df-b472-0dfb98727aed",
       "origin": "pr:59",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1070,8 +1126,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.924837+00:00",
-      "id": "c7008269-b429-4e1f-8b74-76a8af511909",
+      "created_at": "2026-08-12T06:40:24.984892+00:00",
+      "id": "3f92cbf7-b3b5-4710-a7f2-e65cde7dc243",
       "origin": "pr:59",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1084,8 +1140,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.924111+00:00",
-      "id": "58f9feed-144a-4c06-b9fe-6cdf8ec44030",
+      "created_at": "2026-08-12T06:40:24.984510+00:00",
+      "id": "652ef6ff-0d81-4e32-8cf9-fbd04efcfbfe",
       "origin": "pr:59",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1098,8 +1154,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.923230+00:00",
-      "id": "66430258-08e3-4d09-b3f7-6ca5eb8bff12",
+      "created_at": "2026-08-12T06:40:24.984101+00:00",
+      "id": "5abcbc2f-256b-43c9-a7cb-3155bded0cf2",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1112,8 +1168,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.922396+00:00",
-      "id": "7840b3b3-0ef4-42e3-9eba-a04ab2c3de1f",
+      "created_at": "2026-08-12T06:40:24.983600+00:00",
+      "id": "ca8f471c-67b6-4ad4-8950-bd1a47a26b09",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1126,8 +1182,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.921688+00:00",
-      "id": "f008bc36-4ae8-4031-b90f-b2fd7cd0b18b",
+      "created_at": "2026-08-12T06:40:24.983160+00:00",
+      "id": "5e481853-1c97-48ef-ab98-c7cd65b90487",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1140,8 +1196,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.920988+00:00",
-      "id": "41e59f8d-70ec-4827-9b06-79c654199652",
+      "created_at": "2026-08-12T06:40:24.982658+00:00",
+      "id": "9f6f95a1-0ec4-4443-9bc8-d0407d46994c",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1154,8 +1210,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.919949+00:00",
-      "id": "366cc896-3124-46fa-aec1-abfcfafde5be",
+      "created_at": "2026-08-12T06:40:24.982173+00:00",
+      "id": "fb7d1379-be34-4283-8fea-fb14c4dc8edd",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1168,8 +1224,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.919252+00:00",
-      "id": "24fed89a-ab7f-43d0-8916-095d30e9a52e",
+      "created_at": "2026-08-12T06:40:24.981579+00:00",
+      "id": "fa19441e-a782-4f76-b7f7-c4876420699e",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1182,8 +1238,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.918539+00:00",
-      "id": "44728e97-7be9-4226-b2a0-843068b758c9",
+      "created_at": "2026-08-12T06:40:24.980847+00:00",
+      "id": "bfef7814-94e0-4249-8d1e-88bc36c75e9b",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1196,8 +1252,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.917730+00:00",
-      "id": "314c698f-5b38-42d7-8f46-30f414c567be",
+      "created_at": "2026-08-12T06:40:24.980430+00:00",
+      "id": "2fa02f20-a368-408f-83fe-5969dae8ed55",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1210,8 +1266,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.916884+00:00",
-      "id": "2db6ce0f-9441-4ec2-ade8-1c563ec679b8",
+      "created_at": "2026-08-12T06:40:24.979996+00:00",
+      "id": "9a9af780-d2e5-4aac-9912-325f61f6ee39",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1224,8 +1280,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.915977+00:00",
-      "id": "2d6a2bad-d9c4-4bde-b7e1-ec5c77ed23d9",
+      "created_at": "2026-08-12T06:40:24.978460+00:00",
+      "id": "678dd7ff-4548-446c-9da9-bfc827668321",
       "origin": "pr:58",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1238,8 +1294,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.915258+00:00",
-      "id": "1c19d883-ffc0-40ca-8fca-15c50b32f215",
+      "created_at": "2026-08-12T06:40:24.978051+00:00",
+      "id": "e1013d3e-7d1f-46eb-8b1c-260802468085",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1252,8 +1308,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.914552+00:00",
-      "id": "fb2547a6-5359-4da4-b5ef-465413960a6c",
+      "created_at": "2026-08-12T06:40:24.977452+00:00",
+      "id": "adeef0ee-dd1b-4cf1-8a10-60ad3d55e8e2",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1266,8 +1322,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.913914+00:00",
-      "id": "425dc904-dbf6-493e-9239-8712e5f3b54e",
+      "created_at": "2026-08-12T06:40:24.976902+00:00",
+      "id": "02c8c06b-a4ba-4aa0-8b78-d124ccf47c09",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1280,8 +1336,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.913134+00:00",
-      "id": "c8692a57-c0a8-47af-806d-d74a12232d9a",
+      "created_at": "2026-08-12T06:40:24.976239+00:00",
+      "id": "14815561-5508-4ec1-af4a-eb704cad4c93",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1294,8 +1350,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.912003+00:00",
-      "id": "3302799d-ea6d-48f0-9daa-9f64f7d80fcd",
+      "created_at": "2026-08-12T06:40:24.975518+00:00",
+      "id": "dfc72ea3-2c29-4624-8d62-705e202abce4",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1308,8 +1364,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.911059+00:00",
-      "id": "e0b448da-bc29-432b-a940-34a7e70b0d1b",
+      "created_at": "2026-08-12T06:40:24.975004+00:00",
+      "id": "a4494ef2-d01f-4da1-84e9-b688d95a45a1",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1322,8 +1378,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.910240+00:00",
-      "id": "349a8011-208a-44d2-bd64-8a4669a03fb5",
+      "created_at": "2026-08-12T06:40:24.974522+00:00",
+      "id": "9f2be460-b8aa-4b4d-b14b-d6827d9fea37",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1336,8 +1392,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.909518+00:00",
-      "id": "d575461a-faf7-46e4-b67f-6164aecc720f",
+      "created_at": "2026-08-12T06:40:24.974055+00:00",
+      "id": "fafa28ab-959e-4086-9bc9-abaec3d21abf",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1350,8 +1406,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.908615+00:00",
-      "id": "8f12399d-34ac-45d3-99ce-cbd93389d147",
+      "created_at": "2026-08-12T06:40:24.973432+00:00",
+      "id": "2d01ff71-6e22-474e-9b82-922b4186babe",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1364,8 +1420,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.907693+00:00",
-      "id": "624838d4-4237-4cc0-b08e-0245869b2ed9",
+      "created_at": "2026-08-12T06:40:24.972635+00:00",
+      "id": "30fa811f-4a64-42cc-9d3c-d92d99b1c7de",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1378,8 +1434,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.906434+00:00",
-      "id": "3e567d31-4702-46b4-b8db-c423ab69d837",
+      "created_at": "2026-08-12T06:40:24.971587+00:00",
+      "id": "89fd4373-aaf7-4852-bbc3-cfc28e6a879a",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1392,8 +1448,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.905687+00:00",
-      "id": "17268e44-d491-4c0e-b004-2d235ff69524",
+      "created_at": "2026-08-12T06:40:24.970876+00:00",
+      "id": "8258e502-2e73-4b59-980c-55d81f1b3331",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1406,8 +1462,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.905014+00:00",
-      "id": "12ad6583-f947-4297-a184-4bf9edf2145e",
+      "created_at": "2026-08-12T06:40:24.969859+00:00",
+      "id": "831bb912-7f32-43ef-9fe9-1244b33242cc",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1420,8 +1476,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.904366+00:00",
-      "id": "2e55a2b4-7548-4de8-a604-b6e6a7be984e",
+      "created_at": "2026-08-12T06:40:24.969100+00:00",
+      "id": "4aaf8d32-1bc2-47bb-9cef-1f27c7228404",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1434,8 +1490,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.903744+00:00",
-      "id": "43d9ab1c-7bb1-4d6b-9bc8-9dca285b3de6",
+      "created_at": "2026-08-12T06:40:24.968385+00:00",
+      "id": "1979241b-eab4-49da-a9c9-e44d36f1bca6",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1448,8 +1504,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.903008+00:00",
-      "id": "ac8da578-8a29-41c9-8024-c9084147d350",
+      "created_at": "2026-08-12T06:40:24.967765+00:00",
+      "id": "e17926e3-5470-4745-ab10-5c791ab358c5",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1462,8 +1518,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.902380+00:00",
-      "id": "1ee119a8-44be-49b2-ba59-65e7c71a05b0",
+      "created_at": "2026-08-12T06:40:24.966982+00:00",
+      "id": "5403b97f-5d85-4bfb-aa80-03c1e2862eae",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1476,8 +1532,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.901706+00:00",
-      "id": "e4f61272-3676-45a8-9bde-c359f800bfd7",
+      "created_at": "2026-08-12T06:40:24.966319+00:00",
+      "id": "30e9b7cc-3280-4445-80c4-6794087a48b8",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1490,8 +1546,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.900988+00:00",
-      "id": "b9924bd9-5a38-4484-9979-4a71ffcc8cf0",
+      "created_at": "2026-08-12T06:40:24.965438+00:00",
+      "id": "28025ced-b8c3-40d1-a225-e34ff3260a18",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1504,8 +1560,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.900152+00:00",
-      "id": "b2c2d6d6-5840-48a9-a4c4-e26c98cf7bb0",
+      "created_at": "2026-08-12T06:40:24.964288+00:00",
+      "id": "0197e98a-66e1-43a6-8fdb-7a8e9c87cb80",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1518,8 +1574,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.899402+00:00",
-      "id": "efd43d36-498d-4a91-a19c-b9e74a9be3ff",
+      "created_at": "2026-08-12T06:40:24.963527+00:00",
+      "id": "b9933a34-17eb-463a-8ec7-3129cd2cd59d",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1532,8 +1588,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.898633+00:00",
-      "id": "07756e35-917a-4789-942d-7a7dcbaa6b18",
+      "created_at": "2026-08-12T06:40:24.962719+00:00",
+      "id": "cf423310-7549-4cf6-b4fd-afda28a0a8b5",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1546,8 +1602,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.897729+00:00",
-      "id": "03f3d112-59f3-4dca-a89b-d7ec9e5554ec",
+      "created_at": "2026-08-12T06:40:24.961887+00:00",
+      "id": "1db7f139-8501-465e-9217-35e1e3fb3302",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1560,8 +1616,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.896885+00:00",
-      "id": "60171be4-914c-47ca-85c4-476bbb741a77",
+      "created_at": "2026-08-12T06:40:24.961346+00:00",
+      "id": "48e07981-0e21-4985-a58f-e21c155363fb",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1574,8 +1630,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.896125+00:00",
-      "id": "04d4412b-e093-42ad-9cb4-b8a281bb0501",
+      "created_at": "2026-08-12T06:40:24.960840+00:00",
+      "id": "3465e814-9054-42fb-b1e8-d3c8431937c5",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1588,8 +1644,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.895458+00:00",
-      "id": "3f113342-3cb9-4115-9c1b-4d88cf6445af",
+      "created_at": "2026-08-12T06:40:24.960338+00:00",
+      "id": "bf4bcbac-e28e-49a0-b5f1-5bf7033c472c",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1602,8 +1658,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.894754+00:00",
-      "id": "1ca9079a-e654-4603-8806-4bcfc6ef8518",
+      "created_at": "2026-08-12T06:40:24.959857+00:00",
+      "id": "1af0320b-2967-4bc0-8871-85142f416839",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1616,8 +1672,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.893904+00:00",
-      "id": "b59afd63-11c7-4aa9-a3c4-6f3b920317ba",
+      "created_at": "2026-08-12T06:40:24.959375+00:00",
+      "id": "f422104a-77c4-47d3-868b-d341be46a40e",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1630,8 +1686,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.893107+00:00",
-      "id": "d1603d81-a654-48f7-bd9b-6e1060ef4814",
+      "created_at": "2026-08-12T06:40:24.958680+00:00",
+      "id": "a3dcdf45-2620-403e-aee5-34ac27179f46",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1644,8 +1700,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.892306+00:00",
-      "id": "55dc342c-31cf-4d54-9f7e-e885b6cade3c",
+      "created_at": "2026-08-12T06:40:24.957976+00:00",
+      "id": "2b96b82c-2c61-4eb1-8f8b-e83aa6054e39",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1658,8 +1714,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.891491+00:00",
-      "id": "28b637bb-e359-4d5a-9b84-c55f84f2910e",
+      "created_at": "2026-08-12T06:40:24.957505+00:00",
+      "id": "9b643870-9b23-44bf-9255-340b433a66ec",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1672,8 +1728,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.890773+00:00",
-      "id": "65da0fbf-a3ae-4199-9efe-fd168737ac88",
+      "created_at": "2026-08-12T06:40:24.957084+00:00",
+      "id": "9d264ac0-6179-4c01-8444-7e88a452e174",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1686,8 +1742,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.890088+00:00",
-      "id": "b55db6e3-dbf5-4a71-b372-89ffaa4dfe2d",
+      "created_at": "2026-08-12T06:40:24.956657+00:00",
+      "id": "27c09f58-156c-4941-a0fa-a99d29570495",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1700,8 +1756,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.889375+00:00",
-      "id": "a0fc7045-6ac9-4897-903a-bdeccf8d3250",
+      "created_at": "2026-08-12T06:40:24.956021+00:00",
+      "id": "02493ad5-c38e-4d78-b90d-d10bc9bf26bc",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1714,8 +1770,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.888313+00:00",
-      "id": "135a6bc1-6a11-48d4-9886-544389c8ddd3",
+      "created_at": "2026-08-12T06:40:24.955602+00:00",
+      "id": "3981a1fa-0550-45dd-a13a-0f9b9dcfdae4",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1728,8 +1784,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.878891+00:00",
-      "id": "76758aa7-d636-4df7-947e-c7c5d6524415",
+      "created_at": "2026-08-12T06:40:24.955174+00:00",
+      "id": "a4814cb8-e709-4b35-bc59-d0522f7eb84f",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1742,8 +1798,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.876924+00:00",
-      "id": "26f43f87-e463-4c3d-ba2a-c2fb27050a27",
+      "created_at": "2026-08-12T06:40:24.954587+00:00",
+      "id": "be409a87-cce0-4680-ba54-391060553b4b",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1756,8 +1812,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.875941+00:00",
-      "id": "06fa9946-95ba-4a6e-80a7-3e53f068455f",
+      "created_at": "2026-08-12T06:40:24.954089+00:00",
+      "id": "f02f7e50-a3d4-49ea-870f-e298d327ca6d",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1770,8 +1826,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.875191+00:00",
-      "id": "fbda9027-8062-4e51-a236-31f7878ea86d",
+      "created_at": "2026-08-12T06:40:24.953664+00:00",
+      "id": "571cdeb7-dadf-45b6-955d-a5279963f058",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1784,8 +1840,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.874435+00:00",
-      "id": "72aac838-d3c7-4a9e-91f7-f78a640f5659",
+      "created_at": "2026-08-12T06:40:24.953259+00:00",
+      "id": "0a125dd2-05a2-4283-a51d-b340cf833455",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1798,8 +1854,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.873827+00:00",
-      "id": "c852c79f-f603-4799-8bb7-407b94f1911e",
+      "created_at": "2026-08-12T06:40:24.952728+00:00",
+      "id": "8ea97961-b90c-4041-9c70-ee590f438ecc",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1812,8 +1868,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.873001+00:00",
-      "id": "9db8f236-efe4-4802-9b7a-76bcfbf528e9",
+      "created_at": "2026-08-12T06:40:24.952269+00:00",
+      "id": "f5dbed2e-c5ff-42fc-98c8-2e1ad43309e3",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1826,8 +1882,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.872270+00:00",
-      "id": "fe4ad868-476c-4701-a88b-21d6d0c0b21e",
+      "created_at": "2026-08-12T06:40:24.951822+00:00",
+      "id": "a58e10df-6af6-4544-9fa5-55fd62f84bf2",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1840,8 +1896,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.871691+00:00",
-      "id": "75e1c9f5-9e8d-4196-a2d0-e241ee4b414a",
+      "created_at": "2026-08-12T06:40:24.951354+00:00",
+      "id": "b68cbaec-6da1-4b2b-9826-6242f7afaf88",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1854,8 +1910,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.870517+00:00",
-      "id": "6cec413a-ae3d-4ab0-a9d6-009c12f9a846",
+      "created_at": "2026-08-12T06:40:24.950763+00:00",
+      "id": "f7398666-4051-4c7e-b8ca-ddd5d6afd6cc",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1868,8 +1924,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.870020+00:00",
-      "id": "552bc471-57c9-4229-a181-efe143613b5a",
+      "created_at": "2026-08-12T06:40:24.950101+00:00",
+      "id": "4c9363c2-2ca9-4f78-bc41-059b793aca96",
       "origin": "pr:57",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1882,8 +1938,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.869531+00:00",
-      "id": "50f0ef3f-5ff8-4240-9f7c-99a3c4fbf18e",
+      "created_at": "2026-08-12T06:40:24.949570+00:00",
+      "id": "9189601e-fc81-465f-9c16-1d2cd73a9cda",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1896,8 +1952,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.868859+00:00",
-      "id": "6619dbe9-028c-4ba0-9a86-55c445099bd0",
+      "created_at": "2026-08-12T06:40:24.949051+00:00",
+      "id": "a233d6e2-5313-45ec-905f-852642fccff8",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1910,8 +1966,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.868107+00:00",
-      "id": "22a18253-b493-4507-ac04-327924c2a069",
+      "created_at": "2026-08-12T06:40:24.948261+00:00",
+      "id": "e2f0b2d0-cdc6-4d72-bf04-080d61d01f67",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1924,8 +1980,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.867485+00:00",
-      "id": "16e65b34-8fa3-4ab2-886f-9c616ee0abf7",
+      "created_at": "2026-08-12T06:40:24.947593+00:00",
+      "id": "27833a1c-27c0-47cd-8a58-160bf517ceae",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1938,8 +1994,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.866324+00:00",
-      "id": "d27b1bf2-fa86-43ed-978c-6fbb0a89697b",
+      "created_at": "2026-08-12T06:40:24.946665+00:00",
+      "id": "8858afd4-514d-4fe3-a787-7ff6fe66786d",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1952,8 +2008,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.865357+00:00",
-      "id": "c5074079-a602-4ca8-9a82-a3389aeff45f",
+      "created_at": "2026-08-12T06:40:24.945912+00:00",
+      "id": "5955cdee-e2c5-4b08-b5a3-4858480b8ac7",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1966,8 +2022,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.864429+00:00",
-      "id": "819bc2ce-2520-4b4e-a5b6-739e1fcb643b",
+      "created_at": "2026-08-12T06:40:24.944563+00:00",
+      "id": "a4945d7b-17cd-4b94-bb18-fc8c292b41ba",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1980,8 +2036,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.863692+00:00",
-      "id": "75fb3b3e-ce3c-4a63-bcd2-3eb5a98e20f6",
+      "created_at": "2026-08-12T06:40:24.943826+00:00",
+      "id": "c0b060ca-a4d5-4eee-a2e3-1715d5773743",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -1994,8 +2050,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.863108+00:00",
-      "id": "b2499294-ec32-44aa-bee0-378edaaa71d6",
+      "created_at": "2026-08-12T06:40:24.942904+00:00",
+      "id": "671ca0b8-73e6-406f-9ebb-39685147eb1c",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2008,8 +2064,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.862107+00:00",
-      "id": "ad3905fb-95a3-42ae-b410-0a34d1ee0a3b",
+      "created_at": "2026-08-12T06:40:24.942229+00:00",
+      "id": "4465a0dc-ddd5-4168-91ef-177c5b821016",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2022,8 +2078,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.861026+00:00",
-      "id": "82283181-0865-4246-8fc6-ac9510136949",
+      "created_at": "2026-08-12T06:40:24.941559+00:00",
+      "id": "4a7780c8-7593-4184-a1aa-226928e8378b",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2036,8 +2092,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.860349+00:00",
-      "id": "125ae9ae-8d79-44cb-9c34-f15442f1b892",
+      "created_at": "2026-08-12T06:40:24.940886+00:00",
+      "id": "d9fffae3-5fd2-4adb-98d6-87278e9c54bd",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2050,8 +2106,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.859358+00:00",
-      "id": "3934793d-e16d-40a0-b506-794aa9f0175d",
+      "created_at": "2026-08-12T06:40:24.940331+00:00",
+      "id": "8cbc2b81-8cae-48f2-9bfe-4e907632ec19",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2064,8 +2120,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.858462+00:00",
-      "id": "47373dea-88cf-4001-af1a-2ef21b6fdce1",
+      "created_at": "2026-08-12T06:40:24.939728+00:00",
+      "id": "86cc8679-7000-46ad-b4a6-01fcb35e0c1b",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2078,8 +2134,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.857602+00:00",
-      "id": "e69665d6-d36c-4d83-b2c3-3e05aee6ac88",
+      "created_at": "2026-08-12T06:40:24.938653+00:00",
+      "id": "a0107997-cf77-4d89-96f9-9f3c14103c3d",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2092,8 +2148,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.856919+00:00",
-      "id": "4172c9bf-0568-4fe7-be1e-c45f9aa6c608",
+      "created_at": "2026-08-12T06:40:24.938048+00:00",
+      "id": "62f03a41-bcd7-4748-9cc0-fb823cafd472",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2106,8 +2162,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.856268+00:00",
-      "id": "e335061f-5b10-47bd-b486-5d49f71059a9",
+      "created_at": "2026-08-12T06:40:24.937397+00:00",
+      "id": "59bedb41-cf2f-4642-984f-4883db695413",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2120,8 +2176,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.855639+00:00",
-      "id": "9ff4561a-9050-43d5-b956-e9088a8c638d",
+      "created_at": "2026-08-12T06:40:24.936838+00:00",
+      "id": "f4e22c15-373f-42b0-a8b5-ed98755f8559",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2134,8 +2190,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.854974+00:00",
-      "id": "b311a473-a0aa-4879-9d17-e4c409c3fa07",
+      "created_at": "2026-08-12T06:40:24.936148+00:00",
+      "id": "7a1ed31e-c038-450c-a8a2-2e59f65c9a52",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2148,8 +2204,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.854036+00:00",
-      "id": "fbd347fd-ed68-4b30-aa97-7f714b5dee89",
+      "created_at": "2026-08-12T06:40:24.935250+00:00",
+      "id": "3b5bc937-6762-47c4-9060-627c74381503",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2162,8 +2218,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.853244+00:00",
-      "id": "e259914c-0b64-4dc9-9e5b-863fe946c29b",
+      "created_at": "2026-08-12T06:40:24.934480+00:00",
+      "id": "630b68c0-ede9-4c00-9c41-9d47c3031d53",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2176,8 +2232,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.852320+00:00",
-      "id": "d6ccd772-91e4-44c5-8895-1af79e61aa5e",
+      "created_at": "2026-08-12T06:40:24.933519+00:00",
+      "id": "2c43ee15-06a0-4672-8d95-bf184ba5c33e",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2190,8 +2246,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.851243+00:00",
-      "id": "19e76cfa-a43e-4b63-9664-ba2b3bb946d4",
+      "created_at": "2026-08-12T06:40:24.932593+00:00",
+      "id": "a03ef61c-7a08-42ce-8f3f-0a5c163e48ee",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2204,8 +2260,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.850151+00:00",
-      "id": "6e9a11f4-383f-4db4-8240-94e39f3eab72",
+      "created_at": "2026-08-12T06:40:24.931329+00:00",
+      "id": "e375d28d-b0e3-45a9-bce5-549df598b3d7",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2218,8 +2274,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.849240+00:00",
-      "id": "be1caed5-bf4d-48f6-b364-70f22b8f0e87",
+      "created_at": "2026-08-12T06:40:24.930520+00:00",
+      "id": "b61a244f-279b-4b03-90c8-2d9cdd1ea9f4",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2232,8 +2288,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.848429+00:00",
-      "id": "4264725b-2643-4a18-81b9-3f65611997fb",
+      "created_at": "2026-08-12T06:40:24.929806+00:00",
+      "id": "f1a6d272-0d37-4051-89a3-9ee37ea76203",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2246,8 +2302,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.847671+00:00",
-      "id": "d12cc1e2-6cff-4a27-98a4-13dff7b64239",
+      "created_at": "2026-08-12T06:40:24.928977+00:00",
+      "id": "a80d1704-c722-433c-a994-63536e8cc970",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2260,8 +2316,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.847003+00:00",
-      "id": "247a3ac4-2382-408c-85d3-2dba2b494ea1",
+      "created_at": "2026-08-12T06:40:24.928072+00:00",
+      "id": "a27a8a70-90b6-4457-9f09-4ef93ced51b9",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2274,8 +2330,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.846313+00:00",
-      "id": "1c9060fe-5383-47fc-8c31-1b5c154bc89f",
+      "created_at": "2026-08-12T06:40:24.927095+00:00",
+      "id": "4848f4fc-0dd9-493f-b358-ef2349109c08",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2288,8 +2344,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.845659+00:00",
-      "id": "8c826091-27c1-4f1a-974a-e3a19b8b8208",
+      "created_at": "2026-08-12T06:40:24.926518+00:00",
+      "id": "ec7a96d9-28f5-42d9-b774-06b10c8dcd69",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2302,8 +2358,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.844860+00:00",
-      "id": "483488ad-b547-481e-8195-eaadfa66a136",
+      "created_at": "2026-08-12T06:40:24.925743+00:00",
+      "id": "489160ef-85d6-44df-92b3-33dda83ddf12",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2316,8 +2372,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.843591+00:00",
-      "id": "03093597-270f-43c8-905c-cb7d3a588d9a",
+      "created_at": "2026-08-12T06:40:24.925020+00:00",
+      "id": "0f99d319-91c7-4a87-8bc0-49610fbdf845",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2330,8 +2386,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.842972+00:00",
-      "id": "1152d463-27bb-4b3b-a26c-d8232886cbdc",
+      "created_at": "2026-08-12T06:40:24.924176+00:00",
+      "id": "db79d060-7a7c-4bd2-a72f-9ec3c2b18ac9",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2344,8 +2400,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.842137+00:00",
-      "id": "bea8826c-874a-437c-85e8-507dabfa4cec",
+      "created_at": "2026-08-12T06:40:24.923347+00:00",
+      "id": "9c3b80a2-5d94-4b40-ba28-f27059cadc67",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2358,8 +2414,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.841119+00:00",
-      "id": "fcef1524-f6c1-416e-a31c-060b16de4810",
+      "created_at": "2026-08-12T06:40:24.922338+00:00",
+      "id": "eb895fb6-0a85-4c1c-9d20-c69dd897cd7d",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2372,8 +2428,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.840265+00:00",
-      "id": "c690e8c7-dc75-43ce-a3f6-235cdc7d89a4",
+      "created_at": "2026-08-12T06:40:24.921051+00:00",
+      "id": "6c62fc11-c444-45d4-94ee-f38e347b2022",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2386,8 +2442,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.839748+00:00",
-      "id": "aa297af6-5077-4f0f-b3ba-4e84662bd65f",
+      "created_at": "2026-08-12T06:40:24.920195+00:00",
+      "id": "e0bc57c3-82a2-4cec-9b87-88f8853e5d90",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2400,8 +2456,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.839015+00:00",
-      "id": "71e578aa-0b52-443c-a300-c2f909f1f4b4",
+      "created_at": "2026-08-12T06:40:24.919372+00:00",
+      "id": "ac3e62aa-1d55-47bc-98e3-67dcee8227f3",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2414,8 +2470,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.838453+00:00",
-      "id": "46dc11e9-b07b-4039-bcfb-a0d8e1a273d6",
+      "created_at": "2026-08-12T06:40:24.918507+00:00",
+      "id": "969dcfbf-77e0-486e-ad30-f4165cbae17c",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2428,8 +2484,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.837769+00:00",
-      "id": "d7f905f9-f94e-40a3-ad15-97be761d1004",
+      "created_at": "2026-08-12T06:40:24.917612+00:00",
+      "id": "be6b3ec8-ed8f-4752-8e5e-a7c76264442c",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2442,8 +2498,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.837058+00:00",
-      "id": "6ff470a5-8f4d-4c61-b654-4e6bd1008848",
+      "created_at": "2026-08-12T06:40:24.916643+00:00",
+      "id": "3d57f369-e1eb-46af-9149-4bcd6355b505",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2456,8 +2512,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.835852+00:00",
-      "id": "a6d46340-409d-4b4c-9254-952fb37dd50a",
+      "created_at": "2026-08-12T06:40:24.915724+00:00",
+      "id": "68a4383f-a1cd-4d22-b93a-dcce4d4417a8",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2470,8 +2526,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.835081+00:00",
-      "id": "8afa4239-b405-4f2a-915f-3651bed2a76a",
+      "created_at": "2026-08-12T06:40:24.914462+00:00",
+      "id": "21d7f14b-3c51-402d-8be8-7a5cf265a06f",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2484,8 +2540,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.834355+00:00",
-      "id": "08100119-f047-4bf5-9a4a-2c61971d0d4e",
+      "created_at": "2026-08-12T06:40:24.913734+00:00",
+      "id": "839fbfb3-bcc5-4f80-b12a-2690e4db1d9f",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2498,8 +2554,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.833345+00:00",
-      "id": "7a45f2c2-9572-4fe0-9f7e-40c68824c3bd",
+      "created_at": "2026-08-12T06:40:24.912903+00:00",
+      "id": "e6dfb158-e8fe-412b-8bcc-471df81cd6a3",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2512,8 +2568,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.832328+00:00",
-      "id": "442f4d66-5c1c-4700-8263-a6b5bf760552",
+      "created_at": "2026-08-12T06:40:24.912028+00:00",
+      "id": "cd78fad9-904d-4f11-b8e5-d74a91affb6a",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2526,8 +2582,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.831578+00:00",
-      "id": "47279f79-736f-44cc-8581-f69870fde24d",
+      "created_at": "2026-08-12T06:40:24.911371+00:00",
+      "id": "bac8b349-3113-4b93-afc5-f2e6046da32a",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2540,8 +2596,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.830789+00:00",
-      "id": "bb0e326e-bbe9-46fe-8710-c99062956489",
+      "created_at": "2026-08-12T06:40:24.910501+00:00",
+      "id": "6688974d-9b1e-4241-bfba-df79f1056ff7",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2554,8 +2610,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.829782+00:00",
-      "id": "a1346648-a889-4928-99ea-5b90464cfea6",
+      "created_at": "2026-08-12T06:40:24.909744+00:00",
+      "id": "caf5e4e1-68af-4e67-98f8-84e37db1cc5a",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2568,8 +2624,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.829035+00:00",
-      "id": "9e253f27-477e-439f-b082-e13cc7456680",
+      "created_at": "2026-08-12T06:40:24.909095+00:00",
+      "id": "c5a0b1ad-7042-43dc-b0ad-36143e76691a",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2582,8 +2638,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.828347+00:00",
-      "id": "dbb39032-2140-466c-9015-c6717eb4193c",
+      "created_at": "2026-08-12T06:40:24.908360+00:00",
+      "id": "f5194ce9-311c-4dc3-9f4c-9a5552fb5405",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2596,8 +2652,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.827687+00:00",
-      "id": "29861f29-12fa-4e25-b749-117bcad6fbef",
+      "created_at": "2026-08-12T06:40:24.907610+00:00",
+      "id": "0bc87dff-79aa-47bc-acde-91ac959cc5f2",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2610,8 +2666,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.826775+00:00",
-      "id": "a4ebf6f8-b281-4b75-85c4-35ca2665c87d",
+      "created_at": "2026-08-12T06:40:24.906736+00:00",
+      "id": "f241695f-21d3-41f1-91b2-b5929a1254d2",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2624,8 +2680,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.826042+00:00",
-      "id": "2d991a1d-59b3-4513-a95f-fe2ebb291058",
+      "created_at": "2026-08-12T06:40:24.906015+00:00",
+      "id": "11f452c3-88fd-42e2-862d-e1a2c8e4ce2c",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2638,8 +2694,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.825378+00:00",
-      "id": "1e60e403-5414-4f26-ae24-37f73f72d559",
+      "created_at": "2026-08-12T06:40:24.905294+00:00",
+      "id": "e6f1ee10-fa43-49a0-b0d9-60e703f2632d",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2652,8 +2708,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.824658+00:00",
-      "id": "3d642499-61cd-48ce-badb-2beaee141fbe",
+      "created_at": "2026-08-12T06:40:24.904653+00:00",
+      "id": "80bcb44d-7d31-4c2b-976b-0b403b978e05",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2666,8 +2722,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.823693+00:00",
-      "id": "b8345d1f-78da-4885-a1c6-59b517b0d27a",
+      "created_at": "2026-08-12T06:40:24.904061+00:00",
+      "id": "801bd34c-4361-4936-bdba-6e84d159883e",
       "origin": "pr:56",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2680,8 +2736,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.822836+00:00",
-      "id": "b50b7e76-89ab-4c5a-9c99-2b5882f62a2f",
+      "created_at": "2026-08-12T06:40:24.903346+00:00",
+      "id": "5306dc21-e003-4e22-b97a-58b1e9332f88",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2694,8 +2750,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.822076+00:00",
-      "id": "344dfa9c-cea4-4fd7-8c98-e80c4c0994c8",
+      "created_at": "2026-08-12T06:40:24.902669+00:00",
+      "id": "f802488e-5eac-4d96-a81c-41076e2caf84",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2708,8 +2764,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.821166+00:00",
-      "id": "f6cc81fb-e155-4fa7-a5bf-4a27981d91cb",
+      "created_at": "2026-08-12T06:40:24.902200+00:00",
+      "id": "6c3ebfd3-2628-4900-ba14-3c1d0034f215",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2722,8 +2778,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.820481+00:00",
-      "id": "601749dc-5a99-462d-954a-d9db225bc535",
+      "created_at": "2026-08-12T06:40:24.901692+00:00",
+      "id": "3784c69b-8c11-42bd-aeda-1f2cc1487cc8",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2736,8 +2792,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.819814+00:00",
-      "id": "d9a79a33-3440-4a77-b8a9-dde80e062307",
+      "created_at": "2026-08-12T06:40:24.901161+00:00",
+      "id": "8e9be671-bc62-46f8-b8e6-bbc83faa1d22",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2750,8 +2806,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.818854+00:00",
-      "id": "d349766c-1b71-416b-bb52-6da82d860116",
+      "created_at": "2026-08-12T06:40:24.899785+00:00",
+      "id": "6be7e557-f86a-436f-9bf1-98f85b9acb32",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2764,8 +2820,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.817867+00:00",
-      "id": "147841e7-7537-4672-a79b-c39b51e3b122",
+      "created_at": "2026-08-12T06:40:24.898898+00:00",
+      "id": "d22712e8-e3dc-49f6-adc7-87b7329b0f49",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2778,8 +2834,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.817350+00:00",
-      "id": "36b9da71-a7e3-426f-a566-5a871581b757",
+      "created_at": "2026-08-12T06:40:24.898262+00:00",
+      "id": "b1670ecc-70ff-4283-8881-f8ef535afef8",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2792,8 +2848,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.816844+00:00",
-      "id": "fd9f15aa-0ddb-4265-b06d-4406d7bd5ef3",
+      "created_at": "2026-08-12T06:40:24.897519+00:00",
+      "id": "faa3bca5-1a17-4827-99ca-29e6444b481e",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2806,8 +2862,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.816277+00:00",
-      "id": "4bf6fd76-dbcd-4a45-a2c6-efd97bfdc376",
+      "created_at": "2026-08-12T06:40:24.896319+00:00",
+      "id": "cf668b20-577f-47b1-a1e3-f14ea614da2b",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2820,8 +2876,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.815809+00:00",
-      "id": "17e6dcf0-0f69-423b-a6ea-ff8f4ac7c976",
+      "created_at": "2026-08-12T06:40:24.895542+00:00",
+      "id": "b68f8424-b31f-4efd-80e4-565b912f240f",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2834,8 +2890,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.815204+00:00",
-      "id": "0ff3fdca-c1d1-4769-9a78-a9c0aad9d36d",
+      "created_at": "2026-08-12T06:40:24.894792+00:00",
+      "id": "25772ff7-3daf-4d56-bdbb-45e3eaf98aa8",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2848,8 +2904,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.814749+00:00",
-      "id": "ff68592f-47bc-48bf-867a-765c8ce01b92",
+      "created_at": "2026-08-12T06:40:24.893965+00:00",
+      "id": "495be09c-eedc-4bab-ae75-a956957b7c7a",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2862,8 +2918,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.813948+00:00",
-      "id": "7e98b52e-6941-4fe4-af80-9a65e60ba413",
+      "created_at": "2026-08-12T06:40:24.892852+00:00",
+      "id": "11c4c4b4-0a7d-4745-bd63-17e7c353ff45",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2876,8 +2932,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.813407+00:00",
-      "id": "169b9a4f-e7ef-4aa3-980b-d7e443693813",
+      "created_at": "2026-08-12T06:40:24.892066+00:00",
+      "id": "b6e2e26f-6036-475d-8c38-3b2be7e23d94",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2890,8 +2946,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.812917+00:00",
-      "id": "06727dc8-75b7-4d5e-97ac-a6944c5826a4",
+      "created_at": "2026-08-12T06:40:24.891302+00:00",
+      "id": "5e76c766-743c-4821-a63a-acd98c9a9c56",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2904,8 +2960,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.812353+00:00",
-      "id": "a620553f-3000-45a4-90be-ae7c8a55a8ed",
+      "created_at": "2026-08-12T06:40:24.890385+00:00",
+      "id": "c52b8aab-dda0-42cb-9748-59901c5c16e3",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2918,8 +2974,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.811798+00:00",
-      "id": "14cecda2-be7c-401e-b9d5-68043f5a0fb0",
+      "created_at": "2026-08-12T06:40:24.889377+00:00",
+      "id": "f2b30a06-9f24-4851-9e91-c84c7542870c",
       "origin": "pr:54",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2932,8 +2988,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.811172+00:00",
-      "id": "468c270b-cac0-4405-8ec5-bf1a0e2d0918",
+      "created_at": "2026-08-12T06:40:24.888435+00:00",
+      "id": "1fe88ef1-f173-4241-969c-c7a88a1592b5",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2946,8 +3002,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.810612+00:00",
-      "id": "d6401b8e-9e96-4e38-8017-5b15a4d516b9",
+      "created_at": "2026-08-12T06:40:24.886899+00:00",
+      "id": "60d2d0bb-7f97-428d-b389-2e727102f481",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2960,8 +3016,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.809934+00:00",
-      "id": "be25b694-99b6-4d7b-8956-7bc6f446349d",
+      "created_at": "2026-08-12T06:40:24.885976+00:00",
+      "id": "a7604946-9e67-46a4-95ad-1f6ed21cf536",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2974,8 +3030,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.809381+00:00",
-      "id": "2c19eac4-291a-4f31-aa01-31d0e31cf14c",
+      "created_at": "2026-08-12T06:40:24.885135+00:00",
+      "id": "f711c1e0-f2e0-4454-af9a-ebc453e0f8f1",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -2988,8 +3044,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.808852+00:00",
-      "id": "3077b69f-fdc5-457d-b50d-d7be09121ac5",
+      "created_at": "2026-08-12T06:40:24.884066+00:00",
+      "id": "5da03f97-88bc-4079-840d-750209b7f3c9",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3002,8 +3058,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.808236+00:00",
-      "id": "e18f78b4-4a09-4da8-9c2f-3167001d9e9f",
+      "created_at": "2026-08-12T06:40:24.882766+00:00",
+      "id": "fd4b634b-aefb-4e6d-bafa-f6cfd9d395d1",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3016,8 +3072,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.807588+00:00",
-      "id": "1ad675dd-1cc4-481b-b640-ec7da294bc87",
+      "created_at": "2026-08-12T06:40:24.881823+00:00",
+      "id": "d3fb038e-b05f-4f17-b937-20944c510111",
       "origin": "pr:53",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3030,8 +3086,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.807039+00:00",
-      "id": "1c0340c4-1fa7-4997-82f0-80d3e2e38d18",
+      "created_at": "2026-08-12T06:40:24.880850+00:00",
+      "id": "838ea62f-dcf5-4807-9403-f8d85b701369",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3044,8 +3100,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.806211+00:00",
-      "id": "5be5a10a-e78c-4f2e-b906-f69f58524c73",
+      "created_at": "2026-08-12T06:40:24.879662+00:00",
+      "id": "522f3262-732a-4e6b-86e9-8927a13d0c42",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3058,8 +3114,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.805584+00:00",
-      "id": "66d102f1-c2ce-4739-a428-9716b62cebe8",
+      "created_at": "2026-08-12T06:40:24.878767+00:00",
+      "id": "bf111c19-94e2-4733-ac47-ab2d438459d7",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3072,8 +3128,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.805058+00:00",
-      "id": "6c2290fd-d839-4358-8d29-61555fb7575b",
+      "created_at": "2026-08-12T06:40:24.878140+00:00",
+      "id": "7d400e59-7e97-4cb2-9fac-0c250ce3350f",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3086,8 +3142,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.804457+00:00",
-      "id": "874a0702-a90c-4c2c-a680-d0a6a2bcc163",
+      "created_at": "2026-08-12T06:40:24.877338+00:00",
+      "id": "bd38471e-c50c-4414-b5e9-59a3e26475ef",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3100,8 +3156,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.803785+00:00",
-      "id": "b7c558a2-2241-482e-893a-834341dc79b3",
+      "created_at": "2026-08-12T06:40:24.876119+00:00",
+      "id": "d65da0dd-1411-4b27-b148-dbd1e3cf7933",
       "origin": "pr:51",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3114,8 +3170,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.803245+00:00",
-      "id": "ffaf2fae-480a-4899-8d28-35b06572b552",
+      "created_at": "2026-08-12T06:40:24.875459+00:00",
+      "id": "3e97f4cb-0c40-4ca0-8146-475d7f3e1ee4",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3128,8 +3184,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.802724+00:00",
-      "id": "97705cd0-c587-4ceb-90b1-fb7c05d50026",
+      "created_at": "2026-08-12T06:40:24.874662+00:00",
+      "id": "daf63bad-3f9d-42af-a490-7db873547e33",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3142,8 +3198,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.801935+00:00",
-      "id": "69217855-595d-47f9-bf68-a8e094cc6008",
+      "created_at": "2026-08-12T06:40:24.873908+00:00",
+      "id": "d4edd95d-10b6-43b0-bd71-e4dbb93b4a61",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3156,8 +3212,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.801000+00:00",
-      "id": "1a945e07-2571-45ca-98d5-fa414a65f8d1",
+      "created_at": "2026-08-12T06:40:24.873210+00:00",
+      "id": "e6e90a8b-54eb-4f46-a96d-bbc2e47b69a8",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3170,8 +3226,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.800262+00:00",
-      "id": "fd5493d4-b477-4478-bc6c-f917149a46bb",
+      "created_at": "2026-08-12T06:40:24.872395+00:00",
+      "id": "a15a543c-1829-4334-8074-d3832b91a3dd",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3184,8 +3240,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.799618+00:00",
-      "id": "c816642c-83f1-43db-98f1-c08c8518b216",
+      "created_at": "2026-08-12T06:40:24.870851+00:00",
+      "id": "5daa975d-cad3-492d-9eca-19612243450a",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3198,8 +3254,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.798974+00:00",
-      "id": "dfe84811-452e-4d9a-9272-1d8d8a30c961",
+      "created_at": "2026-08-12T06:40:24.870279+00:00",
+      "id": "4e18e5fb-6d0f-4d2a-aace-8a38875cc0c4",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3212,8 +3268,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.798471+00:00",
-      "id": "bdcc3df6-76fe-4fe9-8bef-e03c63dfc2be",
+      "created_at": "2026-08-12T06:40:24.869618+00:00",
+      "id": "b3a599b8-0852-47a2-9b7d-c681a768dbbc",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3226,8 +3282,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.797906+00:00",
-      "id": "5e3cf65b-d7ee-4bda-8e82-1548e6768ca5",
+      "created_at": "2026-08-12T06:40:24.868888+00:00",
+      "id": "703a7a7b-8f66-4db3-8c73-756f7c80b72f",
       "origin": "pr:50",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3240,8 +3296,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.797248+00:00",
-      "id": "8c3fba13-c301-461e-8b29-62d4e5ca77d7",
+      "created_at": "2026-08-12T06:40:24.867645+00:00",
+      "id": "358c6914-2b39-4117-a07f-aada41ea0ad2",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3254,8 +3310,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.796602+00:00",
-      "id": "5db40142-1f1c-44f9-a42d-15f28e0c630f",
+      "created_at": "2026-08-12T06:40:24.866951+00:00",
+      "id": "c2610a6b-b69d-4ac1-a9b0-10e9df0400a7",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3268,8 +3324,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.795822+00:00",
-      "id": "2391c9a2-bc8d-4ed9-8bf8-87aaf71345f7",
+      "created_at": "2026-08-12T06:40:24.866135+00:00",
+      "id": "7aac0567-a15f-4893-998a-9d05ca975cf6",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3282,8 +3338,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.795404+00:00",
-      "id": "f9e6d883-1818-4f97-b167-a04d89831807",
+      "created_at": "2026-08-12T06:40:24.865152+00:00",
+      "id": "74cf029e-c706-421b-a3c8-22aba5f6b6e4",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3296,8 +3352,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.794842+00:00",
-      "id": "ca233af4-3dda-4eb2-8800-c3dc78a9ed11",
+      "created_at": "2026-08-12T06:40:24.863874+00:00",
+      "id": "34e959e4-f7f3-4b1f-9f8d-fab06608b5ea",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3310,8 +3366,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.794059+00:00",
-      "id": "26760c7a-25c4-40e0-88dd-0eae16ac2087",
+      "created_at": "2026-08-12T06:40:24.862982+00:00",
+      "id": "fbf93d2c-0d29-43e5-9619-3f6f678aff51",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3324,8 +3380,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.793373+00:00",
-      "id": "88e7808a-89df-440d-b319-784ec599398a",
+      "created_at": "2026-08-12T06:40:24.860903+00:00",
+      "id": "f583598c-3bca-410b-8005-ee5d090c1214",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3338,8 +3394,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.792879+00:00",
-      "id": "260fa77c-8851-48c2-8e3b-86f4af199f84",
+      "created_at": "2026-08-12T06:40:24.860138+00:00",
+      "id": "295b2d92-9070-49fb-a583-7da3e04b39cd",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3352,8 +3408,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.792221+00:00",
-      "id": "0e8925d1-d181-411f-aed3-817ae79e9e17",
+      "created_at": "2026-08-12T06:40:24.858296+00:00",
+      "id": "7cf14ab9-a0ab-46df-9682-d4b1d93ac8ea",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3366,8 +3422,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.791779+00:00",
-      "id": "a6d156a7-6bc5-4441-97f9-a54245c8e6a1",
+      "created_at": "2026-08-12T06:40:24.857612+00:00",
+      "id": "57672111-ac97-4a83-a813-7f5403b0c96f",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3380,8 +3436,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.791244+00:00",
-      "id": "ff4645a7-196e-4687-8256-bb58652e45e1",
+      "created_at": "2026-08-12T06:40:24.856946+00:00",
+      "id": "d4b20754-3035-4d47-933b-d4e6d376e270",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3394,8 +3450,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.790559+00:00",
-      "id": "c382f841-02f5-4227-9bf6-96ca4d144b67",
+      "created_at": "2026-08-12T06:40:24.856011+00:00",
+      "id": "67afdf70-48b1-440b-a4a8-5433a84d8800",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
@@ -3408,8 +3464,8 @@
       "weight": 1.0
     },
     {
-      "created_at": "2026-08-12T06:31:13.788986+00:00",
-      "id": "d007e38e-1b87-4a92-9e0f-60e75a592b34",
+      "created_at": "2026-08-12T06:40:24.854792+00:00",
+      "id": "23eb1795-4cfb-4c0f-9d99-cc8b75cb356b",
       "origin": "pr:46",
       "seal_sig": "",
       "source_lang": "decision",
