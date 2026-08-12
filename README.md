@@ -305,6 +305,7 @@ nestor/
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
+├── cloud_seal.py     optional cloud-path seam — an agent provisionally seals through willow-gate (nestor[gate]); never canonical
 ├── portable.py       export/import a memory without laundering trust
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
