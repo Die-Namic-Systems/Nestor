@@ -2,7 +2,7 @@
   "pr": null,
   "branch": "claude/llm-only-joke-ei08dl",
   "date": "2026-08-12",
-  "note": "Refinement of the pre-session brain section (0080). The stand-up part is now an explicit if/then: if Nestor is installed and the store is stood up, hand it over and ask nothing; if not installed, or no store, or an empty one, surface a single 'ask the user whether to stand one up' prompt and build nothing. The earlier not-built branch printed a rebuild command as an instruction; this makes it a question posed to the user, and folds not-installed (previously a generic guard 'unavailable' line) and empty-store into the same ask.",
+  "note": "Refinement of the pre-session brain section (0096). The stand-up part is now an explicit if/then: if Nestor is installed and the store is stood up, hand it over and ask nothing; if not installed, or no store, or an empty one, surface a single 'ask the user whether to stand one up' prompt and build nothing. The earlier not-built branch printed a rebuild command as an instruction; this makes it a question posed to the user, and folds not-installed (previously a generic guard 'unavailable' line) and empty-store into the same ask.",
   "decisions": [
     {
       "question": "When the pre-session hook finds no stood-up Nestor, does it build one, print a command, or ask the user?",

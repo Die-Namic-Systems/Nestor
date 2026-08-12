@@ -37,7 +37,7 @@ test) were folded into `debugging`/`testing`.
 action (MIT). It was first wired as a CI gate, but that action needs an
 `ANTHROPIC_API_KEY` secret to do anything — so it was re-landed keyless as this
 in-session skill instead, the same idea with no key, no external action, and no
-secret to configure (decision 0086).
+secret to configure (decision 0102).
 
 ## Deliberately not landed (yet)
 
