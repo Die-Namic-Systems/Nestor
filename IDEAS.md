@@ -280,9 +280,14 @@ The memo's three conclusions, in brief:
   the one place a row becomes sealed rather than in every serving path, and
   avoids inventing a "70% sealed".
 
-Still open, and named as open in the memo: how old is too old, whether any buyer
-actually asks for either, and the fact that a quorum of HMACs is a quorum only
-against outsiders until `TODO.md` §1 lands.
+Still open, and named as open in the memo: how old is too old, and whether any
+buyer actually asks for either. The third item this once named — that a quorum of
+HMACs is a quorum only against outsiders — has since closed: per-verifier Ed25519
+signing landed (decisions `0074`/`0077`/`0078`, `signing.py`), so a
+countersignature can no longer be forged by anyone holding a shared key. What
+stays open is deeper and unchanged by that: a quorum is still not *recorded* at
+all (§6.26), so N-of-M has no history to compute from regardless of the signature
+scheme.
 
 ### 1.5 A numeric label could hold several baselines — **shipped**
 
@@ -529,9 +534,11 @@ and that is worth measuring before judging the idea. Lossy, unlike §2.1.
 ### 2.3 Index `source_norm` — **shipped**
 
 `memory_find` runs on every `add_pair`. Fresh reference databases get
-``idx_tm_pairs_key`` on ``(source_norm, source_lang, target_lang)`` — the same
-unique index §1.8 added for concurrent seals, which also satisfies the measured
-~2.3× ingest win (bench session 2026-07-25). If duplicates already exist and the
+``idx_tm_pairs_key_live`` on ``(source_norm, source_lang, target_lang)`` — a
+**partial** unique index (``WHERE superseded_by = ''``, live rows only; the old
+full ``idx_tm_pairs_key`` is dropped, since a full one could never keep a
+superseded predecessor) — the same unique index §1.8 added for concurrent seals,
+which also satisfies the measured ~2.3× ingest win (bench session 2026-07-25). If duplicates already exist and the
 unique index cannot be created, ``idx_tm_pairs_find`` on the same columns is
 installed so lookups stay indexed while the operator resolves the dupes.
 
@@ -572,8 +579,11 @@ closed on return, not accumulated.
 one afterwards raises ``StoreClosedError`` rather than quietly reopening, which
 for ``:memory:`` used to mean answering "0 sealed" from a fresh empty database.
 
-Still open: skipping redundant ``memory_init`` schema replay per connection
-(measured as noise for ingest; may matter only at huge table counts).
+~~Still open: skipping redundant ``memory_init`` schema replay per connection
+(measured as noise for ingest; may matter only at huge table counts).~~
+**Shipped (§6.8).** Measured a second time, the replay was *not* noise: a
+``schema_ready`` latch on the connection (``sqlite_store.py``) cut 0.556 → 0.395
+ms/op, −28.9%. "Noise does not survive being measured a second time."
 
 ---
 
@@ -1629,7 +1639,7 @@ sides and are named as guards above.
 Memory list chips show **relative age**; full ISO timestamp on hover (``title``).
 Decay/quorum policy remains §1.4.
 
-### 6.11 Decision memory — lineage joined to rejection — **partly** (steps 1–2 shipped)
+### 6.11 Decision memory — lineage joined to rejection — **shipped** (all steps landed; see trailer)
 
 *Proposed 2026-08-05, carried over from the SAFE store; design doc in this
 repo:* [`docs/decision-memory.md`](docs/decision-memory.md).
@@ -1654,9 +1664,13 @@ bench ran (string/token/word-vector matchers falsified; fastembed viable at
 `supports_lineage` + `tm_pairs.superseded_by` + the partial unique index +
 `memory.supersede_pair` (N2/N3), ledgered as `supersede`, with pre-lineage
 databases migrating in `memory_init` and superseded rows excluded from
-bundles. Still open: N6–N9 (edges, DecisionMemory recipe, the gate) and
+bundles. ~~Still open: N6–N9 (edges, DecisionMemory recipe, the gate) and
 carrying `reopen_when` in bundles (needs a BUNDLE_VERSION bump — it is not
-in REJECTION_FIELDS, so it does not travel yet).
+in REJECTION_FIELDS, so it does not travel yet).~~ **All shipped since
+(corrected 2026-08-12):** signed `decision_edges` (N6, `sqlite_store.py`), the
+`DecisionMemory` recipe with `constraints_on()` (N7, `decision.py`), and the
+`nestor decision check` gate (N9); and `reopen_when` now travels — it is in
+`REJECTION_FIELDS` with `BUNDLE_VERSION = 2` (`portable.py`).
 
 ### 6.12 The detection kit as gates, not advice — **measured**, build **open**
 
@@ -7646,7 +7660,7 @@ distinctive vocabulary, the store already finds its answer and is waiting on a
 human signature and a calibrated bar. For a short generic question, it does not,
 and no threshold rescues it.
 
-### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **open**
+### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **shipped**, one follow-up **open** (JS test harness)
 
 *Proposed 2026-08-12, from a conversation about opening `nestor ui` to a mixed,
 non-expert audience: a Discord group — physicists, artists, people who build
@@ -7912,8 +7926,10 @@ existing recipe already answers or a shape that needs its own.
 **The footprint inside the tree is already load-bearing.** The corpus extractors
 treat a rubric as a first-class document shape, not prose: the "standing security
 rubric" — one row per check, `# | check | status | notes` — is pulled out
-alongside `findings` and `rules` and counted as its own kind (§6.51 onward; 15
-rows, then 17, then 35 as the rungs grew). More telling than that it is *parsed*
+alongside `findings` and `rules` and counted as its own kind (§6.51 onward: the
+standing security rubric holds at 15 rows, while other repos surfaced
+rubric-shaped draft counts of 35 and then 17 as the corpus widened — a spread
+across repos, not one rubric growing). More telling than that it is *parsed*
 is that it can be *wrong in a checkable way*: a rubric that contradicted itself
 had its diagnosis survive a fresh-context read even where the surface scores did
 not (§6, ~§7253/§7275) — two clauses that both applied, resolved the same way
@@ -7982,7 +7998,7 @@ or confirm — everything lands draft, only a human seals).
 **Those criteria are not a checklist; they constrain each other, which makes the
 rubric a graph.** License gated re-landability no matter how hardened a source
 was (Trail of Bits' mutation-testing idea was excellent and CC-BY-SA, so it
-landed clean-room with none of its text, decision `0083`). Already-have-it vetoed
+landed clean-room with none of its text, decision `0099`). Already-have-it vetoed
 candidates no matter their applicability (matcher precision was already measured
 four ways in the tree, so the "gap" shrank to one derived rate, `0104`;
 constant-time was already `compare_digest`, so the build became a guard to lock
