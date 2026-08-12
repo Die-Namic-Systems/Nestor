@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 294,
+    "pairs": 296,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "bd3552605d9a0fac3df286ed83ffa978f2332e1e29a8085e32de0fb6970b159c",
+  "digest": "5a616cea22e7fcb88846b2b8c0bfea65cb1f99eb42e12cae4701352f3c879916",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -212,6 +212,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Created an ed25519 identity for `nestor-agent` only, and left the operator's enrolment to the browser flow, where WebCrypto generates the private half and only the public hex is registered (`nestor keys add NAME --type ed25519 --public HEX`). The store was seeded to 221 rows, every one a draft.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "b21363d4-c901-588c-8109-da036e057991",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "fed ping worlds ten claims through nestor on their own and against the boxs 294decision store to test a proposed crossdomain lineup what did nestor return",
+      "source_text": "Fed Ping World's ten claims through Nestor -- on their own and against the box's 294-decision store -- to test a proposed cross-domain line-up. What did Nestor return?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not served, and honestly so. Against the box store every claim scored 0.41-0.48 under the character StringMatcher -- below the 0.92 serve bar and mostly below the 0.45 calibrated knee -- and the top matches were function-word / question-shape noise, not concept: the 'faithful record is ordered, gap-free' claim's nearest was 'Why did Round 2 produce a document rather than a script?' at 0.412, not any ledger decision. On its own the paper's claims sat 0.32-0.42 apart, distinct to the matcher, the single strongest internal link riding only on the shared word 'absolute'. The semantic matcher that could cross vocabularies is unreachable in this box (SemanticMatcher needs the 'semantic' extra; the embedder backends are egress-blocked, decision 0084). So Nestor returned unknown, not 'no line-up', and the proposed correspondence stays an unsealed proposal.",
       "verifier": "",
       "weight": 1.0
     },
@@ -702,6 +716,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Re-ran it with the keyring unset. The clause reads `differently`, and the audit reads 0 failing rather than 1. IDEAS 6.98 amended in place to carry the second false verdict alongside the first.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "3d72f465-d3fb-55b5-9dc3-36c2720b3632",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the ping world fleet correspondence itself recorded here as a fact",
+      "source_text": "Is the Ping World / fleet correspondence itself recorded here as a fact?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No -- as a draft proposal with its measurement attached, unsealed. The machine proposed the line-up (faithful-record = ledger; received-signal epistemology = the seal covenant) and Nestor will not confirm it from character overlap. Only the semantic matcher (unavailable in this box) or a human sealing in nestor ui can adjudicate it.",
       "verifier": "",
       "weight": 1.0
     },
