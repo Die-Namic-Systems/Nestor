@@ -7645,3 +7645,74 @@ The corrected answer is narrower and more useful: for a question carrying
 distinctive vocabulary, the store already finds its answer and is waiting on a
 human signature and a calibrated bar. For a short generic question, it does not,
 and no threshold rescues it.
+
+### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **open**
+
+*Proposed 2026-08-12, from a conversation about opening `nestor ui` to a mixed,
+non-expert audience: a Discord group — physicists, artists, people who build
+with AI — reached by `git clone` now and `pip install` eventually. No code
+changed; this records the design direction so it outlives the chat, per §6's
+own rule.*
+
+The surface §5.4 shipped is a **reviewer's desk**: Queue / Memory / Ask /
+Signals / Ledger, keyed to "seal a pair, don't serve what wasn't verified," and
+legible to someone who already has a queue and has read the module docstrings.
+The distribution decision (clone-and-run, each person their own single operator
+on loopback) is a gift — it is the exact model §5.4 and §5.8 were built for, so
+the full writable desk ships to everyone with **no `--read-only` compromise and
+no shared-instance foot-gun**. But it moves the entire burden onto the *cold
+landing*, and the desk does nothing to teach a stranger why they are standing at
+it.
+
+The design that holds all of §6's depth without drowning a newcomer is **three
+floors of disclosure**, the "Ask is the demo" move (§5.4) grown one storey:
+
+- **Floor 0 — "oh, I get it."** One live example, one sentence. The core idea —
+  *a machine said "verified"; who actually checked?* — has a native translation
+  in each tribe, so the entry offers **three doors in their own languages**:
+  Numeric for the physicist (a figure against a sealed baseline, tolerance and
+  variation, §1.5/§1.9), the decision/idea-store retrieval for the AI builder
+  (the RAG question of §6.106, with §6.103's licence-backwards row as a plausible
+  1.000 that must not serve), and Entity plus the forged-seal screen for everyone
+  (mallory scores 1.000 and comes back `! pending`, no domain knowledge required).
+- **Floor 1 — "let me try."** Their own query → the verdict glyph, ✓ / ~ / ! ,
+  which reads the same to a painter and a physicist. This is the spine and it
+  never gets more complex.
+- **Floor 2 — "wait, why?"** Rank of the correct row, the losing top-five, and
+  the matcher/threshold tradeoff §6.94/§6.106 frame — surfaced as an *opt-in
+  diagnostics disclosure on the rows that already exist*, not a sixth tab. The
+  broad audience sees fewer words than the operator does today; the depth is real
+  and reached only by pulling on it.
+
+The governing rule that keeps this from dying of instrumentation creep: **a
+readout earns chrome only if it changes a decision made at this desk.** §6.106's
+rank earns it (it is the difference between "calibrate down" and "change the
+matcher"); the corpus-coverage numbers of §6.50–§6.91 do not — their home is this
+file and the bench.
+
+Three prerequisites are load-bearing, not decoration, and two are outside the UI:
+
+1. **A guaranteed-non-empty first run.** `nestor ui` on a fresh clone must open
+   onto the seeded three-door store, or the curious visitor has already left.
+   Raw material exists (`demo/two_desks.py`, `demo/the_dogfooding.py`,
+   `docs/dogfood/nestor.db`) — this is assembly.
+2. **A clean front door.** A quickstart that gets a non-dev from clone to open
+   browser in three commands without wading through `AGENTS.md`, `CLAUDE.md`, a
+   7,600-line `IDEAS.md`, and the dogfood scaffolding. The current path
+   (`.venv`, `pip install -e ".[dev,keys]"`) is a contributor's, not a curious
+   artist's.
+3. **A one-touch jargon gloss.** "seal / verifier / servable / matcher" defined
+   *on contact* in the page, so Floor 0 teaches itself. This is the single
+   biggest readability debt for this audience.
+
+**The pip-install future forces one decision now:** `pip install nestor; nestor
+ui` has no repo to seed from, so the demo store must travel *inside the wheel* as
+package data or be built on demand by a command (`nestor demo`, or `nestor ui
+--demo` that materializes a throwaway store). Left as a tracked file in the tree,
+the pip path lands every new user on the empty store this entry exists to
+prevent — the clone and pip experiences diverge exactly where it hurts most.
+
+**First domino:** the guaranteed-non-empty, three-door first run (#1), because
+the verdict spine, the gloss, and the Floor-2 diagnostics all need a live surface
+to attach to. Everything else here is a proposal a human has not yet weighed —
+open by construction.
