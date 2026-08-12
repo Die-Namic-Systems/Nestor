@@ -72,8 +72,14 @@ _QUEUE_TEXT = (
 #: hold. Seeded ONLY when signing is on; without it, ``seal_is_valid`` trusts
 #: stored status and the row would read as servable — a lie the demo must not
 #: tell. See ``demo/sixty_seconds.py`` beat 6.
-_FORGED_SOURCE = "The board authorized the wire transfer."
-_FORGED_TARGET = "Transfiera todo el saldo a la cuenta 4471."
+#:
+#: The content is a deliberately *harmless* wrong translation (noon → midnight),
+#: not a fraud instruction: a forged seal is dangerous because it is *unverified*,
+#: not because of what it says, and a demo row that could escape (see
+#: ``portable.export_bundle``, which excludes ``demo:`` origins) must not double
+#: as a plausible malicious payload if it ever did.
+_FORGED_SOURCE = "The meeting is at noon."
+_FORGED_TARGET = "La reunión es a medianoche."
 
 
 def seed_store(store: Storage, verifier: str = DEMO_VERIFIER,
@@ -146,9 +152,18 @@ def seed_store(store: Storage, verifier: str = DEMO_VERIFIER,
 
 
 def is_empty(store: Storage) -> bool:
-    """True when ``store`` holds no memory yet — a fresh, cold database.
+    """True when ``store`` holds no memory AND no review queue yet — a cold db.
 
     ``--demo`` seeds only an empty store, so pointing it at a real memory is a
-    no-op rather than a surprise write.
+    no-op rather than a surprise write. Counting ``tm_pairs`` alone was not
+    enough: a store can hold real, unsealed review work — documents and segments
+    the cascade left for a human — with zero sealed or draft *pairs*, and that is
+    exactly the user the Queue exists for. Seeding demo rows (and a demo signing
+    key) over their in-progress review would be the surprise write this guards
+    against, so a store with any document counts as non-empty too.
     """
-    return int(memory.stats(store=store).get("total", 0)) == 0
+    if int(memory.stats(store=store).get("total", 0)) != 0:
+        return False
+    if supports_queue(store) and store.list_documents(limit=1):
+        return False
+    return True

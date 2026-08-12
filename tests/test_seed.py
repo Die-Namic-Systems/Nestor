@@ -57,6 +57,28 @@ def test_a_sealed_row_serves_and_the_draft_does_not(tmp_path):
     assert memory.best_sealed("Ship it.", "en", "es", store=store) is None
 
 
+def test_is_empty_is_false_for_a_queue_only_store(tmp_path):
+    # A store with real, unsealed review work (a document the cascade left) but
+    # zero sealed/draft pairs must NOT read as empty — otherwise `--demo` seeds
+    # demo rows and a demo signing key over someone's in-progress review.
+    store = _fresh_store(tmp_path, "q.jsonl")
+    cascade.translate_text("A sentence nobody has sealed yet.", "es",
+                           source_lang="en", engine_name="offline", store=store)
+    assert memory.stats(store=store)["total"] == 0   # no pairs...
+    assert not seed.is_empty(store)                   # ...but not empty
+
+
+def test_forged_row_is_not_exported(tmp_path, monkeypatch):
+    from nestor import portable
+    monkeypatch.setenv("NESTOR_SEAL_KEY", "demo-seal-key-for-tests")
+    store = _fresh_store(tmp_path, "exp.jsonl")
+    seed.seed_store(store, include_forged=True)
+    bundle = portable.export_bundle(store=store)
+    sources = {p["source_text"] for p in bundle["pairs"]}
+    assert seed._FORGED_SOURCE not in sources   # the forged row does not travel
+    assert "Good night." in sources             # genuine rows still export
+
+
 def test_forged_row_needs_signing_and_is_refused(tmp_path, monkeypatch):
     # Signing OFF: the forged row is a no-op — with seal_is_valid trusting stored
     # status, it would read as servable, which is the opposite of the lesson.

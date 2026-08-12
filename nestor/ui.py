@@ -67,6 +67,7 @@ import json
 import os
 import pathlib
 import secrets
+import stat
 import sys
 import threading
 import urllib.parse
@@ -86,6 +87,32 @@ from .storage import Storage, supports_curation, supports_queue, supports_reject
 from .ui_page import PAGE
 
 MAX_BODY = 1 << 20          # 1 MiB — a review decision is never larger than this
+
+
+def _mint_demo_sealkey(path: pathlib.Path) -> str:
+    """Write a fresh throwaway demo seal key, owner-readable only (0600).
+
+    Created with ``O_EXCL`` so a racing second ``--demo`` cannot clobber it and
+    the key is never briefly world-readable — the same discipline
+    :meth:`nestor.keyring.Keyring.save` uses for the real thing.
+    """
+    key = secrets.token_hex(32)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(key)
+    return key
+
+
+def _read_demo_sealkey(path: pathlib.Path) -> str:
+    """Read the demo seal key, re-tightening its mode if it became readable.
+
+    It holds the HMAC secret that could forge any seal, so a group/other-readable
+    file is re-``chmod``ed to 0600 and the fix is announced, rather than silently
+    trusted (cf. :func:`nestor.keyring.load`, which refuses one outright)."""
+    if os.stat(path).st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+        os.chmod(path, 0o600)
+        print(f"  demo     tightened {path} to 0600 — it holds the demo seal key")
+    return path.read_text(encoding="utf-8").strip()
 
 
 class ApiError(Exception):
@@ -1330,22 +1357,30 @@ def main(argv: Optional[list[str]] = None) -> int:
     demo_note = ""
     if args.demo:
         from . import seed
+        empty = seed.is_empty(store)
         # Sign the demo's seals for real, so its forged row is refused by its
         # signature rather than trusted on stored status. A shared key, not a
         # keyring — the "acting as" box stays a typed name, no sign-in gate on a
-        # demo — kept in a file beside the store so a restart still verifies the
-        # seals it wrote. It is a throwaway demo key (a real deployment keeps
-        # NESTOR_SEAL_KEY out of the store's reach); persisting it here only lets
-        # `nestor ui --demo` be run twice and still tell a true story.
+        # demo — kept beside the store so a restart still verifies the seals it
+        # wrote. It is a throwaway demo key; a real deployment keeps
+        # NESTOR_SEAL_KEY out of the store's reach.
+        #
+        # NEVER mint a key for a store we are not seeding. A real store that was
+        # sealed with signing off (the legacy default, seal_sig="") would have
+        # every one of those seals stop verifying the instant a key appeared, so
+        # `--demo` pointed at someone's real memory must leave their signing
+        # exactly as it was: load an existing demo key always (so a reseeded
+        # demo store still verifies), mint one only for a store we will seed.
         if not signing.signing_enabled():
             keyfile = pathlib.Path(args.db + ".sealkey")
             if keyfile.is_file():
-                os.environ["NESTOR_SEAL_KEY"] = keyfile.read_text(encoding="utf-8").strip()
-            else:
-                fresh = secrets.token_hex(32)
-                keyfile.write_text(fresh, encoding="utf-8")
-                os.environ["NESTOR_SEAL_KEY"] = fresh
-        if seed.is_empty(store):
+                os.environ["NESTOR_SEAL_KEY"] = _read_demo_sealkey(keyfile)
+            elif empty:
+                try:
+                    os.environ["NESTOR_SEAL_KEY"] = _mint_demo_sealkey(keyfile)
+                except FileExistsError:                    # a racing --demo won
+                    os.environ["NESTOR_SEAL_KEY"] = _read_demo_sealkey(keyfile)
+        if empty:
             counts = seed.seed_store(store, include_forged=True)
             demo_note = f"seeded {sum(counts.values())} row(s) into an empty store"
             if counts.get("forged"):

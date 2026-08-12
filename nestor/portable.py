@@ -199,7 +199,15 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                                limit=limit + 1)
     pairs_truncated = len(listed) > limit
     listed = listed[:limit]
-    pairs = [_row(p, PAIR_FIELDS) for p in listed if not p.get("superseded_by")]
+    # `demo:`-origin rows never travel. The demo's forged seal (origin
+    # `demo:forged`, `seal_sig=""`) would, on import into a store with signing
+    # off, be trusted on stored status and served as a verified answer — a demo
+    # artifact escaping as a real seal. Excluding it at the source is the simplest
+    # guard; the seeded demo store is not a memory anyone should be exporting to
+    # begin with, so dropping its other `demo:` rows costs nothing.
+    pairs = [_row(p, PAIR_FIELDS) for p in listed
+             if not p.get("superseded_by")
+             and not str(p.get("origin") or "").startswith("demo:")]
     live_ids = {p["id"] for p in pairs}
 
     # TWO WALKS, each bounded by construction — not one walk with a filter.
