@@ -1,23 +1,23 @@
 {
-  "pr": null,
+  "pr": 114,
   "branch": "claude/dispatches-pending-prs-kw5m3n",
   "date": "2026-08-13",
-  "note": "demo/the_dispatches_audit.py + demo/dispatches_audit_corpus.json — Nestor's memory loop, proved on an EXTERNAL corpus for the first time. Every prior proof (demo/the_dogfooding.py, decision 0079) pointed the loop at Nestor's own decisions; this points it at real findings from auditing the companion writing repo rudi193-cmd/DispatchesFromReality (broken links, a mislabelled provenance table, a self-contradicting revenue figure, three clean pieces). Three ways, one honest ceiling. Ships with a test (tests/test_dispatches_audit.py) that runs the whole demo as one gate.",
+  "note": "demo/the_dispatches_audit.py + demo/dispatches_audit_corpus.json \u2014 Nestor's memory loop, proved on an EXTERNAL corpus for the first time. Every prior proof (demo/the_dogfooding.py, decision 0079) pointed the loop at Nestor's own decisions; this points it at real findings from auditing the companion writing repo rudi193-cmd/DispatchesFromReality (broken links, a mislabelled provenance table, a self-contradicting revenue figure, three clean pieces). Three ways, one honest ceiling. Ships with a test (tests/test_dispatches_audit.py) that runs the whole demo as one gate.",
   "decisions": [
     {
-      "question": "How do you prove the memory loop 'in another way' — beyond Nestor's memory of its own decisions?",
+      "question": "How do you prove the memory loop 'in another way' \u2014 beyond Nestor's memory of its own decisions?",
       "commitment": "A committed demo over a REAL external corpus: the findings from auditing another repo, hand-recorded in demo/dispatches_audit_corpus.json (each traceable to a commit there), sealed into a throwaway store, and asked back. The floor serves every finding verbatim; a question nobody audited returns pending, never an invented answer; and no query is ever served the WRONG finding.",
-      "why": "A memory tool earns the general claim — 'this remembers decisions' — only when it holds a project OTHER than itself. the_dogfooding is self-referential by construction; it cannot answer whether the loop is a property of Nestor or of Nestor-remembering-Nestor. Running it on an outside corpus and getting the same shape (verbatim serves, paraphrase falls to pending, zero wrong serves) is the missing half of the proof."
+      "why": "A memory tool earns the general claim \u2014 'this remembers decisions' \u2014 only when it holds a project OTHER than itself. the_dogfooding is self-referential by construction; it cannot answer whether the loop is a property of Nestor or of Nestor-remembering-Nestor. Running it on an outside corpus and getting the same shape (verbatim serves, paraphrase falls to pending, zero wrong serves) is the missing half of the proof."
     },
     {
       "question": "Can Nestor's matcher DETECT contradictions, or only remember them once found?",
-      "commitment": "Only align, not detect — recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
-      "why": "A retrieval matcher scores similarity between a query and stored rows; it has no notion of 'these two numbers should agree and do not.' The within-file contradiction (the sociotechnical $70B-vs-$130B figure) was found by a person reading one file — which rediscovers the ad-breaks paper's own thesis inside this demo: the `measured` tier does not automate. Filed as a finding about the tool's boundary, not a patch to erase the boundary."
+      "commitment": "Only align, not detect \u2014 recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
+      "why": "A retrieval matcher scores similarity between a query and stored rows; it has no notion of 'these two numbers should agree and do not.' The within-file contradiction (the sociotechnical $70B-vs-$130B figure) was found by a person reading one file \u2014 which rediscovers the ad-breaks paper's own thesis inside this demo: the `measured` tier does not automate. Filed as a finding about the tool's boundary, not a patch to erase the boundary."
     },
     {
       "question": "Why pool provenance by min() over assumed<fitted<measured rather than a score or average?",
       "commitment": "A pooled view is worth its weakest input. The ad-breaks evidence pools to `fitted` because its load-bearing verification row is `fitted`, no matter how many `measured` audit rows sit beside it; min() is monotone, so piling measured rows on never lifts it.",
-      "why": "Averaging would let a pile of measured rows hide the one fitted row and report the paper as better-sourced than it is — the exact conflation the ad-breaks piece is about, and the exact reason Nestor keeps min() (never mean) for its own combined views. Way 3 shows the paper's provenance rule and Nestor's are the same rule, demonstrated on the same corpus."
+      "why": "Averaging would let a pile of measured rows hide the one fitted row and report the paper as better-sourced than it is \u2014 the exact conflation the ad-breaks piece is about, and the exact reason Nestor keeps min() (never mean) for its own combined views. Way 3 shows the paper's provenance rule and Nestor's are the same rule, demonstrated on the same corpus."
     }
   ]
 }

@@ -6,7 +6,7 @@
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "ea226de47a093bdf0a137cb2465364fff089efddd9f77603141d1784091609a3",
+  "digest": "5e0ab16f0ce1c7789e18f07a0e887aefca12abcb604f85c2470e43215baec6bb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,7 +22,7 @@
     {
       "created_at": "2026-08-13T00:00:00+00:00",
       "id": "ebb57c4d-298b-5737-a6ad-1c60ac94cd35",
-      "origin": "pr:None",
+      "origin": "pr:114",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "can nestors matcher detect contradictions or only remember them once found",
@@ -36,7 +36,7 @@
     {
       "created_at": "2026-08-13T00:00:00+00:00",
       "id": "9fc5edde-614c-5200-babc-545502e31f57",
-      "origin": "pr:None",
+      "origin": "pr:114",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "why pool provenance by min over assumedfittedmeasured rather than a score or average",
@@ -64,7 +64,7 @@
     {
       "created_at": "2026-08-13T00:00:00+00:00",
       "id": "8b32ac6d-d223-5f97-b08a-362c2a48fef0",
-      "origin": "pr:None",
+      "origin": "pr:114",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "how do you prove the memory loop in another way beyond nestors memory of its own decisions",
