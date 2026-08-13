@@ -6,7 +6,7 @@
     "servable": 0
   },
   "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "9fab55cd0957e58ca1fdcd439c19ec3006e83c118da3ce2ef7cc45c7dfaec128",
+  "digest": "b47fdb1894460e772674167fb9d8d9737b79c61595cbe929c26a498ef3797bc8",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -36,7 +36,7 @@
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "f60ecef8-9d45-5905-b5a6-2b93aba8686c",
-      "origin": "pr:None",
+      "origin": "pr:108",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "does the resolver close the hole completely",
@@ -554,7 +554,7 @@
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "81514e83-354f-578e-bff6-4c76d773bd9e",
-      "origin": "pr:None",
+      "origin": "pr:108",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the bootstrap failed silently once already how does the next failure announce itself",
@@ -1002,7 +1002,7 @@
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "3d56645a-9600-5917-8a32-a64c149768c0",
-      "origin": "pr:None",
+      "origin": "pr:108",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "settingsjson still has to name nestorhook somehow and claude_project_dir may be unset what path does it use",
@@ -1044,7 +1044,7 @@
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "3a7f7d68-7a49-5b4b-aa33-cb656d0954b0",
-      "origin": "pr:None",
+      "origin": "pr:108",
       "seal_sig": "",
       "source_lang": "decision",
       "source_norm": "the boot depends on a runtime variable claude_project_dir that was unset fix by trusting it harder or by not trusting it at all",
