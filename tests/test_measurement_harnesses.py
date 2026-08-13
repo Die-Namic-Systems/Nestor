@@ -121,15 +121,18 @@ def test_a_vendored_origin_is_counted_and_named(tmp_path):
     assert "contaminated" in done.stdout
 
 
-def test_a_clean_store_claims_only_that_no_pattern_matched(tmp_path):
-    """The report must not overclaim: no known marker is weaker than 'every row
-    is in its commit', and the harness says so in words."""
+def test_a_clean_store_states_its_basis_in_words(tmp_path):
+    """A clean report must state the basis of its claim, not just say 'clean'.
+    The check is now git-ls-files-scoped (#96), a stronger claim than the old
+    build-artefact pattern stub: it says, in words, that every placeable origin
+    was verified against the commit it names."""
     db = tmp_path / "c.db"
     make_store(db, [("a", "Nestor@abc:nestor/memory.py#add_pair")])
     done = run(CONTAM, "--db", str(db))
     assert done.returncode == 0
-    assert "no known build-artefact path" in done.stdout
-    assert "not a proof" in done.stdout
+    assert "every origin names a git-tracked path" in done.stdout
+    assert "git ls-files" in done.stdout
+    assert "every placeable origin path is in the commit it claims" in done.stdout
 
 
 def test_an_unreadable_store_is_not_reported_as_clean(tmp_path):
