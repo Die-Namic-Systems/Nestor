@@ -320,6 +320,8 @@ nestor/
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── homestead_paths.py  ~/.homestead/keep paths for homestead hosts (see docs/homestead-paths.md)
+├── home_init.py      idempotent scaffolder for the homestead home — creates the keep tree if absent, never clobbers
+├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
 └── segment.py        sentence/segment splitting
