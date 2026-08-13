@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 328,
+    "pairs": 331,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "900122b5462672cbb1ece520e75ecc4d06317103cbcc39d24efad3bb3feba6e3",
+  "digest": "ccc007285dddc240803a9786dc213ad7dc0e82e44a1dfb62a68ccc4368a7244d",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two defects, both caught by running it rather than reading it. (1) The default bar was 0.45, inherited from the rewording rank@1 bench — a different task; on all-pairs triage it flooded with 674 skeleton false-contradicts because question-shaped decisions share a 'Should the X be Y?' skeleton that character difflib scores. A --calibrate sweep put the knee at 0.55 (269 groups / 62 edges; the supersedes there are genuine 0.92+ rewordings), so the default moved and the reasoning was written down. (2) The --propose path had never been run and crashed: add_pair dedups same-question decisions on source_norm, so an edge's endpoint went missing; fixed with id-prefixed ephemeral rows. The two agents also died before writing their test files, so the audit wrote test_triage_supersede.py and test_triage_report.py — including the seals-nothing proof.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "555cf475-e54f-51d2-9eca-7bf777424af8",
+      "origin": "pr:114",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why pool provenance by min over assumedfittedmeasured rather than a score or average",
+      "source_text": "Why pool provenance by min() over assumed<fitted<measured rather than a score or average?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A pooled view is worth its weakest input. The ad-breaks evidence pools to `fitted` because its load-bearing verification row is `fitted`, no matter how many `measured` audit rows sit beside it; min() is monotone, so piling measured rows on never lifts it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -77,6 +91,20 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "2c599981-bd8b-51a7-ae14-375c05d562e0",
+      "origin": "pr:114",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "can nestors matcher detect contradictions or only remember them once found",
+      "source_text": "Can Nestor's matcher DETECT contradictions, or only remember them once found?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only align, not detect — recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
       "origin": "pr:None",
       "seal_sig": "",
@@ -100,6 +128,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yield, don't fight for the number. #108 claimed 0118 first and was the older PR, so this session renumbered its own decision 0118 -> 0119, and #108 kept 0118. Merge order was #108 first (older, a boot fix that helps every session), then this branch rebased onto it and rebuilt the derived store from the union of decision files (0117 triage, 0118 boot, 0119 matcher) — the one honest way to resolve a decisions.json/nestor.db conflict, since they are derived, not authored. Both PRs' changes were verified to coexist (test_hook_wiring + before_build + triage all green) before either was trusted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "212665ff-2a1f-5076-8b27-587adb08f8f7",
+      "origin": "pr:114",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do you prove the memory loop in another way beyond nestors memory of its own decisions",
+      "source_text": "How do you prove the memory loop 'in another way' — beyond Nestor's memory of its own decisions?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A committed demo over a REAL external corpus: the findings from auditing another repo, hand-recorded in demo/dispatches_audit_corpus.json (each traceable to a commit there), sealed into a throwaway store, and asked back. The floor serves every finding verbatim; a question nobody audited returns pending, never an invented answer; and no query is ever served the WRONG finding.",
       "verifier": "",
       "weight": 1.0
     },
