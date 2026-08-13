@@ -582,6 +582,12 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             offset: 0, more: false, session: null, typedVerifier: "",
             commitmentPickByPair: {},
             gateEcho: null,
+            // Hand-seal form state. Kept in S so a domain re-render does not
+            // wipe what you typed, and so picking a draft can prefill both
+            // halves and then seal that row in place via /api/seal-draft.
+            sealDraftId: "",
+            sealSource: "",
+            sealTarget: "",
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -1720,9 +1726,20 @@ async function sealCommitment(p, pairId) {
   render();
 }
 
-async function openPair(id) {
-  try { S.detail = (await api("/api/pair?id=" + encodeURIComponent(id))).pair; render(); }
-  catch (e) { toast(e.message, "err"); }
+async function openPair(id, { fillSeal } = {}) {
+  try {
+    S.detail = (await api("/api/pair?id=" + encodeURIComponent(id))).pair;
+    // A plain draft (no A/B/C commitment panel) is what "Seal a pair by hand"
+    // is for when you are ratifying the store — fill the form from the row so
+    // the curator is not retyping 325 questions. Commitment-choice drafts keep
+    // their own panel; do not steal them into the blank form.
+    const sync = fillSeal !== false;
+    if (sync && S.detail && S.detail.status === "draft"
+        && !parseCommitmentChoices(S.detail.target_text).choices.length) {
+      pickSealDraft(S.detail, { open: false });
+    }
+    render();
+  } catch (e) { toast(e.message, "err"); }
 }
 
 function fleetDetailStage(p) {
@@ -1894,34 +1911,104 @@ function sealSelection(list) {
   return i >= 0 ? i : 0;
 }
 
+function sealDraftCandidates() {
+  // Visible Memory page first; if the open detail is a plain draft not on this
+  // page (filter/pager), still offer it so "I just clicked it" stays sealable.
+  const seen = new Set();
+  const out = [];
+  const push = (p) => {
+    if (!p || !p.id || seen.has(p.id) || p.status !== "draft") return;
+    if (parseCommitmentChoices(p.target_text).choices.length) return;
+    seen.add(p.id);
+    out.push(p);
+  };
+  for (const p of S.pairs || []) push(p);
+  push(S.detail);
+  return out;
+}
+
+function sealDraftLabel(p) {
+  const src = (p.source_text || "").replace(/\s+/g, " ").trim();
+  const short = src.length > 72 ? src.slice(0, 69) + "…" : src;
+  return short || p.id.slice(0, 8);
+}
+
+function pickSealDraft(p, { open } = {}) {
+  if (!p) {
+    S.sealDraftId = "";
+    return;
+  }
+  S.sealDraftId = p.id;
+  S.sealSource = p.source_text || "";
+  S.sealTarget = stripCommitmentMachine(p.target_text || "");
+  const list = sealDomains();
+  const i = list.findIndex((d) => d.source_lang === p.source_lang
+                               && d.target_lang === p.target_lang);
+  if (i >= 0) S.sealDomain = String(i);
+  if (open !== false && (!S.detail || S.detail.id !== p.id)) openPair(p.id, { fillSeal: false });
+}
+
+function clearSealDraftPick() {
+  S.sealDraftId = "";
+  S.sealSource = "";
+  S.sealTarget = "";
+}
+
 function sealForm() {
   const list = sealDomains();
   const picked = sealSelection(list);
   const custom = picked === "new";
+  const drafts = sealDraftCandidates();
+  const fromDraft = !!S.sealDraftId;
   const card = h("div", { class: "card" },
     h("h2", { text: "Seal a pair by hand" }),
+    // Ratification path: pick an existing draft instead of retyping it. New
+    // pairs still work via the blank fields + domain tags below.
+    h("select", { id: "seal-draft-pick", title: "pick a draft decision to seal in place",
+                  style: "width:100%;margin-bottom:8px",
+                  onchange: (e) => {
+                    const id = e.target.value;
+                    if (!id) { clearSealDraftPick(); render(); return; }
+                    const p = drafts.find((d) => d.id === id)
+                           || (S.detail && S.detail.id === id ? S.detail : null);
+                    if (p) pickSealDraft(p);
+                    else render();
+                  } },
+      h("option", { value: "", selected: !fromDraft },
+        drafts.length ? "pick a draft decision… (or type a new pair below)"
+                      : "no plain drafts on this page — type a new pair below"),
+      ...drafts.map((p) => h("option", { value: p.id, selected: S.sealDraftId === p.id },
+                             sealDraftLabel(p)))),
     // Wording stays domain-neutral: this card seals a phrase, an alias or any
     // other pair, and calling the halves "source text" and "translation" was the
     // form telling the user it only did one recipe.
     h("input", { id: "seal-source", placeholder: "source — the phrase, alias or value asked",
-                 style: "width:100%;margin-bottom:6px" }),
-    h("input", { id: "seal-target", placeholder: "verified target — the answer you stand behind",
-                 style: "width:100%;margin-bottom:6px" }),
+                 value: S.sealSource, disabled: fromDraft ? "" : undefined,
+                 title: fromDraft ? "source is fixed when sealing an existing draft" : "",
+                 style: "width:100%;margin-bottom:6px",
+                 oninput: (e) => { S.sealSource = e.target.value; } }),
+    h("textarea", { id: "seal-target", placeholder: "verified target — the answer you stand behind",
+                    style: "width:100%;margin-bottom:6px;min-height:96px",
+                    oninput: (e) => { S.sealTarget = e.target.value; } }, S.sealTarget),
     h("div", { class: "row" },
-      h("select", { id: "seal-domain", title: "which graph this pair belongs to",
+      fromDraft ? h("span", { class: "chip", title: "sealing the selected draft in place",
+                              text: "sealing existing draft" }) : null,
+      fromDraft ? null : h("select", { id: "seal-domain", title: "which graph this pair belongs to",
                     onchange: (e) => { S.sealDomain = e.target.value; render(); } },
         ...list.map((d, i) => h("option", { value: String(i), selected: picked === i },
                                 domainLabel(d))),
         h("option", { value: "new", selected: custom }, "new domain…")),
-      custom ? h("input", { id: "seal-sl", placeholder: "source tag", size: 8,
+      (!fromDraft && custom) ? h("input", { id: "seal-sl", placeholder: "source tag", size: 8,
                             title: "source domain tag" }) : null,
-      custom ? h("span", { class: "muted", text: "→" }) : null,
-      custom ? h("input", { id: "seal-tl", placeholder: "target tag", size: 8,
+      (!fromDraft && custom) ? h("span", { class: "muted", text: "→" }) : null,
+      (!fromDraft && custom) ? h("input", { id: "seal-tl", placeholder: "target tag", size: 8,
                             title: "target domain tag" }) : null,
       h("span", { class: "spacer" }),
-      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal }, "Seal")),
+      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal },
+        fromDraft ? "Seal this decision" : "Seal")),
     h("p", { class: "small muted", style: "margin:10px 0 0" },
-      "Tags are generic: languages for a translation, the entity type for a graph, " +
+      "Pick a draft above to ratify it in place, or type a new pair. Tags are " +
+      "generic: languages for a translation, the entity type for a graph, " +
       "label → domain for a figure. Scored with the string matcher — to seal a " +
       "numeric baseline, use ",
       h("b", { text: "Ask → Numeric" }), ", which keeps a label to one baseline."));
@@ -1940,16 +2027,40 @@ function sealTags() {
 
 async function submitSeal() {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const source = (S.sealSource || ($("seal-source") && $("seal-source").value) || "").trim();
+  const target = (S.sealTarget || ($("seal-target") && $("seal-target").value) || "").trim();
+  if (!target) return toast("A seal needs a verified target.", "err");
+
+  // Existing draft: seal in place. Source/tags come from the row; the curator
+  // may still edit the commitment text before signing.
+  if (S.sealDraftId) {
+    const row = (S.detail && S.detail.id === S.sealDraftId) ? S.detail
+              : (S.pairs || []).find((p) => p.id === S.sealDraftId);
+    const sl = row ? row.source_lang : (sealTags().source_lang);
+    const tl = row ? row.target_lang : (sealTags().target_lang);
+    const src = row ? row.source_text : source;
+    const extra = await signSealFields(src, target, sl, tl);
+    if (!extra) return;
+    const out = await sealWithOverride("/api/seal-draft",
+      { pair_id: S.sealDraftId, target, ...extra },
+      "Decision sealed.");
+    if (out && out.pair) S.detail = out.pair;
+    clearSealDraftPick();
+    render();
+    return;
+  }
+
+  if (!source) return toast("A new pair needs a source.", "err");
   const tags = sealTags();
   if (!tags.source_lang || !tags.target_lang) {
     return toast("A new domain needs both tags — they are what keeps one graph out " +
                  "of another.", "err");
   }
-  const source = $("seal-source").value, target = $("seal-target").value;
   const extra = await signSealFields(source, target, tags.source_lang, tags.target_lang);
   if (!extra) return;
   const body = { source, target, ...tags, ...extra };
   await sealWithOverride("/api/seal", body, "Sealed into " + domainLabel(tags) + ".");
+  clearSealDraftPick();
   // The new domain exists now, so select it instead of leaving the form on
   // "new domain…" with the tag boxes empty — the next seal would be refused.
   const i = sealDomains().findIndex((d) => d.source_lang === tags.source_lang
@@ -2391,13 +2502,14 @@ function candidates(rows, threshold, leftLabel, rightLabel, onReject, reason) {
 
 async function sealWithOverride(path, body, okMessage) {
   try {
-    await api(path, body);
+    const out = await api(path, body);
     toast(okMessage, "ok");
     await refresh();
+    return out;
   } catch (e) {
     if (e.data && (e.data.code === "conflicting_seal" || e.data.code === "rejected_pair")) {
       if (confirm(e.message + "\n\nOverride and seal anyway? This is recorded as a deliberate overrule.")) {
-        await act(path, { ...body, override: true }, "Sealed with an explicit override.");
+        return await act(path, { ...body, override: true }, "Sealed with an explicit override.");
       }
       return;
     }

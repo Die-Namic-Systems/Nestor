@@ -517,6 +517,27 @@ def test_the_page_is_self_contained():
     assert "innerHTML =" not in PAGE and "insertAdjacentHTML" not in PAGE
 
 
+def test_hand_seal_form_offers_a_draft_decision_picker():
+    """Ratifying dogfood drafts needs a selector, not a blank form.
+
+    The Memory card used to only create *new* pairs via ``/api/seal``. An
+    operator with hundreds of drafts had to retype the question — or worse,
+    seal a duplicate. The page must expose a draft picker and route that pick
+    through ``/api/seal-draft`` so the existing row is sealed in place.
+    """
+    from nestor.ui_page import PAGE
+
+    assert 'id: "seal-draft-pick"' in PAGE
+    assert "function sealDraftCandidates" in PAGE
+    assert "Seal this decision" in PAGE
+    # submitSeal's draft branch — not only sealCommitment's fleet-gap path.
+    hand = PAGE.split("async function submitSeal()", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert 'S.sealDraftId' in hand
+    assert '"/api/seal-draft"' in hand or "/api/seal-draft" in hand
+
+
 def test_main_refuses_a_non_loopback_bind_without_an_explicit_flag(capsys):
     assert ui.main(["--host", "0.0.0.0", "--db", ":memory:"]) == 2
     assert "no authentication" in capsys.readouterr().err
