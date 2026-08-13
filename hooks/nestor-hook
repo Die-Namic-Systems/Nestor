@@ -6,7 +6,16 @@ set -euo pipefail
 FMT="${1:?usage: nestor-hook <cursor|claude> <session_start|before_mcp>}"
 MODULE="${2:?usage: nestor-hook <cursor|claude> <session_start|before_mcp>}"
 
-ROOT="${NESTOR_PROJECT_ROOT:-${CLAUDE_PROJECT_DIR:-${CURSOR_PROJECT_DIR:-$(pwd)}}}"
+# Resolve the repo root from THIS SCRIPT's own location, not from cwd or a
+# runtime-supplied variable. nestor-hook lives at <root>/hooks/nestor-hook, so
+# its own path fixes the root even when the session is rooted above the repo (a
+# multi-repo web checkout) or CLAUDE_PROJECT_DIR is unset — the failure that let
+# a whole boot no-op (IDEAS §6.108). NESTOR_PROJECT_ROOT still wins as an
+# explicit override, because tests relocate the tree with it; nothing else is
+# more trustworthy than knowing where this file is.
+SELF="$(readlink -f -- "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+SELF_ROOT="$(cd -- "$(dirname -- "$SELF")/.." && pwd -P)"
+ROOT="${NESTOR_PROJECT_ROOT:-$SELF_ROOT}"
 cd "$ROOT"
 
 export NESTOR_PROJECT_ROOT="$ROOT"
