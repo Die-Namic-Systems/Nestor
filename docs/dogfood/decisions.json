@@ -6,7 +6,7 @@
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "1fb62a4172db08b39af0bf68ddbf45cf27d470d8bb616694d394063f3da7ffaa",
+  "digest": "e227e2795959d8e23c96598b6afdee245b7afad71e1673830613c7762eff0091",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -35,21 +35,21 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "6c3cc3ff-78e9-5539-b16d-8b07d17bc05c",
+      "id": "378a12ae-4b12-59a1-98c8-52cf14beda7d",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
-      "source_norm": "was the triage safe to run under an embedding matcher as built",
-      "source_text": "Was the triage safe to run under an embedding matcher as built?",
+      "source_norm": "before building the grouping was the box searched for what already exists",
+      "source_text": "Before building the grouping, was the box searched for what already exists?",
       "status": "draft",
       "target_lang": "decision",
-      "target_text": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
+      "target_text": "Yes — and only after the operator stopped a first attempt that jumped straight to building. Two look-sees (the fleet on disk; the open internet) ran first, exactly the discipline the before_build hook (#105) now enforces. They converged: grouping is an assembly of shipped parts (~100 lines), not a new capability, and building the clustering primitive fresh would have repeated the rediscovery `the-house-already-knew.md` documents. The triage re-lands the shapes over Nestor's own matchers rather than importing willow-mcp (unavailable, and heavy).",
       "verifier": "",
       "weight": 1.0
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "688fae19-f4e2-5771-a684-3707cd329b5a",
+      "id": "36e362b3-b4f4-5019-bedc-12ac22c28967",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -63,15 +63,15 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "378a12ae-4b12-59a1-98c8-52cf14beda7d",
+      "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
-      "source_norm": "before building the grouping was the box searched for what already exists",
-      "source_text": "Before building the grouping, was the box searched for what already exists?",
+      "source_norm": "was the triage safe to run under an embedding matcher as built",
+      "source_text": "Was the triage safe to run under an embedding matcher as built?",
       "status": "draft",
       "target_lang": "decision",
-      "target_text": "Yes — and only after the operator stopped a first attempt that jumped straight to building. Two look-sees (the fleet on disk; the open internet) ran first, exactly the discipline the before_build hook (#105) now enforces. They converged: grouping is an assembly of shipped parts (~100 lines), not a new capability, and building the clustering primitive fresh would have repeated the rediscovery `the-house-already-knew.md` documents. The triage re-lands the shapes over Nestor's own matchers rather than importing willow-mcp (unavailable, and heavy).",
+      "target_text": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
       "verifier": "",
       "weight": 1.0
     },
