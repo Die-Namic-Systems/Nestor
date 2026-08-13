@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 323,
+    "pairs": 325,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "9f97448fdfc77c68727ff9f5c0a54b8eb367e800d4eba9dc5bc6f7046f4f8512",
+  "digest": "376a8788bc60caf0bd410816cbfa30a28fed3d1cf64e6c8030742aee21d4e826",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -44,6 +44,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — and only after the operator stopped a first attempt that jumped straight to building. Two look-sees (the fleet on disk; the open internet) ran first, exactly the discipline the before_build hook (#105) now enforces. They converged: grouping is an assembly of shipped parts (~100 lines), not a new capability, and building the clustering primitive fresh would have repeated the rediscovery `the-house-already-knew.md` documents. The triage re-lands the shapes over Nestor's own matchers rather than importing willow-mcp (unavailable, and heavy).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "36e362b3-b4f4-5019-bedc-12ac22c28967",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does adding matcher change the string default or the bar",
+      "source_text": "Does adding --matcher change the string default or the bar?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `string` stays the offline default and 0.55 stays its measured knee. `semantic`/`ollama` are opt-in, load through the existing `nestor.answer.load_matcher` (persist=False, so a triage run never writes an embedding cache), and the CLI prints a stderr note that 0.55 is the string knee and their cosine bar must be re-found with --calibrate (unrelated text scores 0.7-0.8 on nomic, so the char bar is far too low). The build box cannot reach model weights, so the semantic path is wired and unit-tested for the prune gating but exercised on a host that has Ollama — build here, run there.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the triage safe to run under an embedding matcher as built",
+      "source_text": "Was the triage safe to run under an embedding matcher as built?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
       "verifier": "",
       "weight": 1.0
     },
