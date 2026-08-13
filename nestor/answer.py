@@ -451,14 +451,27 @@ def provenance(store: Storage, pair_id: str) -> Optional[dict]:
     return Curator(store).get(pair_id)
 
 
+# Fields a caller might send to try to seal its own proposal. They are refused
+# like any other unknown argument, but named apart so the reply can say *why* —
+# these are seal authority, and a machine may propose, not confirm.
+SEAL_AUTHORITY = ("status", "verifier", "verification_kind", "sealed", "seal_sig")
+
+
 def propose(store: Storage, source_text: str, candidate: str, source_lang: str = "en",
-            target_lang: str = "es", title: str = "", origin: str = "proposal") -> dict:
+            target_lang: str = "es", title: str = "", origin: str = "proposal",
+            ignored: Optional[list] = None) -> dict:
     """Queue a candidate for a human to review. The only write a machine gets.
 
     This is tier 2 reached by another road: a model that has produced an answer
     can put it where a reviewer will see it, and it lands as a ``draft`` like
     every other machine output. It cannot seal, and nothing here can be made to
     seal by passing a different argument — the parameter does not exist.
+
+    ``ignored`` is the list of wire keys the transport received but does not
+    read. They change nothing about the write, but a refusal has to *read* as
+    one: the reply names them, and calls out the seal-authority fields
+    (``status``, ``verifier``, ``verification_kind`` …) with the reason they
+    were dropped — a machine may propose, not confirm.
     """
     if not source_text.strip():
         raise ValueError("a proposal needs the source text it answers")
@@ -472,6 +485,21 @@ def propose(store: Storage, source_text: str, candidate: str, source_lang: str =
                             "segment_id": seg["id"], "origin": origin,
                             "source_lang": source_lang, "target_lang": target_lang,
                             "source_sha": memory._sha(source_text)})
-    return {"document_id": doc["id"], "segment_id": seg["id"], "state": "draft",
-            "verified": False,
-            "note": "queued for human review — a proposal is never served as verified"}
+    note = "queued for human review — a proposal is never served as verified"
+    result = {"document_id": doc["id"], "segment_id": seg["id"], "state": "draft",
+              "verified": False, "note": note}
+    ignored = [k for k in (ignored or [])]
+    if ignored:
+        seal_attempt = [k for k in ignored if k in SEAL_AUTHORITY]
+        result["ignored_fields"] = ignored
+        if seal_attempt:
+            result["seal_authority_refused"] = seal_attempt
+            result["note"] = (
+                f"{note}. Refused seal-authority fields {seal_attempt}: this row "
+                f"lands as a draft and stays unsealed — a machine may propose, not "
+                f"confirm; only a named human sealing in nestor ui can change that. "
+                f"Ignored fields (unread by nestor_propose): {ignored}.")
+        else:
+            result["note"] = (
+                f"{note}. Ignored fields (unread by nestor_propose): {ignored}.")
+    return result

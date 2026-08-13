@@ -465,16 +465,52 @@ def cmd_keys(args) -> int:
         entry = ring.add(args.name, key=peer_key, rotate=args.rotate,
                          kind=args.key_type)
         ring.save(path)
-        _emit({"keyring": path, "name": entry.name, "key": entry.key.hex(),
-               "rotated": args.rotate},
+        adopt_note = ("\n  Seals made under the old shared key will keep "
+                      "verifying, reported as 'legacy'."
+                      if args.adopt_shared_key else "")
+        # Print the half that actually opens a session (Nestor#99).
+        # ``Sessions.open`` (nestor.ui) authenticates the typed key against
+        # ``Keyring.signing_key``, which is the shared secret for an hmac entry
+        # but the PRIVATE half for an ed25519 one. Printing ``entry.key`` for
+        # ed25519 handed over the PUBLIC half — it verifies this verifier's
+        # seals yet can never sign in, so the enrolled verifier was told their
+        # sign-in key and got a 403. Branch on the kind.
+        if entry.kind == "ed25519" and not entry.private:
+            # A peer's PUBLIC key was registered (`--public`): this instance can
+            # verify their seals but holds no signing secret. There is no sign-in
+            # key to hand out, and nothing here is a one-time secret — the public
+            # half is deliberately distributable and the private half lives only
+            # with the signer, who signs client-side (Nestor#17).
+            _emit({"keyring": path, "name": entry.name, "kind": entry.kind,
+                   "public_key": entry.key.hex(), "rotated": args.rotate},
+                  args.json,
+                  f"added {entry.name} to {path} (ed25519, public key only)\n"
+                  f"  public  {entry.key.hex()}\n"
+                  f"  This is {entry.name}'s PUBLIC key: it verifies their seals "
+                  f"but cannot open a session. {entry.name} signs client-side "
+                  f"with the private half, which never reaches this instance; "
+                  f"the keyring file is 0600 and holds only this public copy."
+                  + adopt_note)
+            return EXIT_OK
+        # hmac: one shared secret, signed-with and verified-against.
+        # ed25519 with a local keypair: the PRIVATE half is what a sign-in is
+        # checked against, so it is the one the verifier presents.
+        sign_in_key = (entry.private if entry.kind == "ed25519"
+                       else entry.key).hex()
+        kind_note = " (ed25519)" if entry.kind == "ed25519" else ""
+        stored_note = (
+            "the file itself is 0600 and holds this signing key alongside the "
+            "public half Nestor verifies seals against."
+            if entry.kind == "ed25519" else
+            "the file itself is 0600 and holds the copy Nestor verifies against.")
+        _emit({"keyring": path, "name": entry.name, "kind": entry.kind,
+               "key": sign_in_key, "rotated": args.rotate},
               args.json,
-              f"added {entry.name} to {path}\n"
-              f"  key  {entry.key.hex()}\n"
-              f"  This is the only time it is printed. {entry.name} needs it to sign in "
-              f"to the UI; the file itself is 0600 and holds the copy Nestor verifies "
-              f"against."
-              + ("\n  Seals made under the old shared key will keep verifying, "
-                 "reported as 'legacy'." if args.adopt_shared_key else ""))
+              f"added {entry.name} to {path}{kind_note}\n"
+              f"  key  {sign_in_key}\n"
+              f"  This is the only time it is printed. {entry.name} needs it to "
+              f"sign in to the UI; {stored_note}"
+              + adopt_note)
         return EXIT_OK
 
     entry = ring.revoke(args.name, reason=args.reason, compromised=args.compromised)

@@ -1508,7 +1508,7 @@ a matcher.
 > nothing, so a query scoring 0.1975 under character difflib scores **0.0000**
 > here. The win was measured and the loss was never looked for.
 
-### 6.31 Nothing that persists carries a version — **measured**, fix **open**
+### 6.31 Nothing that persists carries a version — **measured**, store **addressed**, ledger **open**
 
 *Raised 2026-08-06 while wiring the package for PyPI. The packaging half
 shipped; this is the half that did not, because it should not be stamped
@@ -1531,7 +1531,7 @@ Four things could carry a version. Measured, as of `c68b8be`:
 |---|---|
 | the **package** | `0.1.0` in `pyproject.toml` since `7fb841e`, never moved; no `__version__`, no tags, no changelog |
 | the **bundle** (`portable.py`) | **yes** — `BUNDLE_VERSION = 2`, `SUPPORTED_BUNDLE_VERSIONS = (1, 2)`, a per-version field map, and an explicit refusal naming what it reads and writes |
-| the **store schema** | **no** — no `PRAGMA user_version`, no meta table |
+| the **store schema** | **yes, as of 0.2.0** — `PRAGMA user_version` = `SCHEMA_VERSION` (1), an ordered forward-migration ladder, and a fail-closed refusal of a newer-than-known file (#91, ratified deliberately — decision 0121; see the note below) |
 | the **ledger format** | **no** — entries carry `kind`, `at`, `prev`, `hash` and a payload, and nothing saying which format wrote them |
 
 The package half is now done: `__version__` from installed metadata, a
@@ -1610,6 +1610,19 @@ stop being deferred by not being written down.
 > be re-hashed under new rules, so the format is already frozen by its first
 > entry, and adding a version now leaves everything before it as an implicit
 > version 0. Nothing found in review moves that question either way.
+
+> **The store half is ratified, 2026-08-13.** #91 — a fleet give-back reland of
+> marching-arts' migration ladder and UTETY's `user_version` — stamped
+> `PRAGMA user_version` into the store, which is the "schema generation in the
+> database" this entry named as the strong fix, and did the thing this entry
+> refused: it stamped without arguing, inside another change, and left the
+> CHANGELOG's "no store schema version" line false. The operator ratified it
+> deliberately rather than revert tested work — the argument this entry said was
+> *small* (it touches no hash chain), now made and recorded as **decision 0121**.
+> What did *not* change: the ledger still carries no version, for the reason above.
+> The interim restart rule in `docs/releasing.md` stays — `user_version` gates the
+> forward ladder but the §6.8 warm-connection skip is per-process, so a schema
+> change still lands on restart, not on package upgrade.
 
 ### 6.32 The loop, fourth turn — and it found the recipe's caveat was right — **measured**
 

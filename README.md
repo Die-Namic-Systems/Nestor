@@ -130,6 +130,21 @@ target is decisions worth a person's attention, not throughput.
 
 ## Quick start
 
+Install a pinned release — Python 3.10+, no runtime dependencies:
+
+```bash
+pip install "nestor @ git+https://github.com/rudi193-cmd/Nestor@v0.2.0"
+```
+
+`nestor` is not on PyPI yet, so pin by git **tag** rather than `@master`: the
+pin is stable and `import nestor` reaches nothing but the standard library
+(enforced by `tests/test_import_purity.py`). This installs the library and the
+`nestor` CLI. Optional extras add capability without moving the core:
+`[keys]` (ed25519 per-verifier signing), `[cloud]` (the Anthropic draft
+engine), `[semantic]` (embedding matcher), `[gate]` (the willow-gate seam).
+
+Or work from source:
+
 ```bash
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
@@ -320,6 +335,8 @@ nestor/
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── homestead_paths.py  ~/.homestead/keep paths for homestead hosts (see docs/homestead-paths.md)
+├── home_init.py      idempotent scaffolder for the homestead home — creates the keep tree if absent, never clobbers
+├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
 └── segment.py        sentence/segment splitting

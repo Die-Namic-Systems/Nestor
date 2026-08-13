@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 325,
+    "pairs": 328,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "376a8788bc60caf0bd410816cbfa30a28fed3d1cf64e6c8030742aee21d4e826",
+  "digest": "900122b5462672cbb1ece520e75ecc4d06317103cbcc39d24efad3bb3feba6e3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -63,6 +63,20 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "30171704-fea2-5ec7-aebb-0587e726b0c3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the missing guard the 0118 collision exposed",
+      "source_text": "What is the missing guard the 0118 collision exposed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Cross-session collision awareness — the sibling of the anti-rediscovery hook (#105). #105 asks 'what already exists before you build'; this asks 'who else is building right now'. The signals were structural and present the whole time: another open PR on the same base branch, a duplicate decision number in flight (the number-before-PR hazard 0054 names), the same derived artifacts rebuilt on a sibling claude/* branch. A guard would surface those before a number is minted or a PR opened — advisory and best-effort (it cannot serialize two agents, only make the collision loud), part seat-reminder ('you may not be the only agent — read the meta-data') and part concrete scan (open PRs, next free decision number, overlapping changed files). Recorded in issue #111 and IDEAS §7.5; not built, by the operator's call.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
       "origin": "pr:None",
       "seal_sig": "",
@@ -77,6 +91,20 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "21599bde-dd91-5eed-bd51-16bf9c3221ec",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how was the collision resolved once it was noticed",
+      "source_text": "How was the collision resolved once it was noticed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yield, don't fight for the number. #108 claimed 0118 first and was the older PR, so this session renumbered its own decision 0118 -> 0119, and #108 kept 0118. Merge order was #108 first (older, a boot fix that helps every session), then this branch rebased onto it and rebuilt the derived store from the union of decision files (0117 triage, 0118 boot, 0119 matcher) — the one honest way to resolve a decisions.json/nestor.db conflict, since they are derived, not authored. Both PRs' changes were verified to coexist (test_hook_wiring + before_build + triage all green) before either was trusted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "1d6dc54f-a5ed-554a-88bc-2875fc5455c8",
       "origin": "pr:None",
       "seal_sig": "",
@@ -86,6 +114,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Every path proposes and only proposes. render() touches no store; emit_edges() calls DecisionMemory.propose_edge only, landing draft edges (edge_sig='', verifier=''); the CLI --propose ingests into a throwaway in-memory store and asserts 0 pairs and 0 edges sealed before it returns. Proven end-to-end on the real 316: 'proposed 62 edges; 0 sealed'. The groups and edges are a queue for a human at nestor ui, never a verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "00c58cb7-e12c-531e-8ecf-40ab85bbb24e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the store carry a schema version pragma user_version which 631 reserved as a decision to be argued not stamped inside another change",
+      "source_text": "Should the store carry a schema version (PRAGMA user_version), which §6.31 reserved as a decision to be argued, not stamped inside another change?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — ratified as of 0.2.0. The store now carries user_version = SCHEMA_VERSION (1), with an ordered forward-migration ladder (empty today) and a fail-closed refusal of a newer-than-known file (StoreSchemaTooNewError). This is exactly the 'schema generation in the database' §6.31 named as the STRONG fix for the §6.8 warm-connection hazard (a pooled connection skips a migration it did not have when opened). §6.31's own text said the store half 'touches no hash chain, so the argument it needs is small' — this record is that small argument, made. Not extended to the ledger: a hash chain cannot be re-hashed under new rules, so its format is already frozen by its first entry and versioning it is a separate, larger decision that stays open.",
       "verifier": "",
       "weight": 1.0
     },
