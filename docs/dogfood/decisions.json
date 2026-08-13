@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 316,
+    "pairs": 319,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "7dfcd628c085dd8a7c25a36cbd019e455da75ee98d2312fcf3eff70b6db63896",
+  "created_at": "2026-08-13T00:00:00+00:00",
+  "digest": "73e445ee951ac86c14611873b616957d404b6d1106a9de8194d5fae3eb645af1",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "94fb95ce-51a5-5202-9da9-b906f26ab043",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what did the audit change about what the agents built",
+      "source_text": "What did the audit change about what the agents built?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two defects, both caught by running it rather than reading it. (1) The default bar was 0.45, inherited from the rewording rank@1 bench — a different task; on all-pairs triage it flooded with 674 skeleton false-contradicts because question-shaped decisions share a 'Should the X be Y?' skeleton that character difflib scores. A --calibrate sweep put the knee at 0.55 (269 groups / 62 edges; the supersedes there are genuine 0.92+ rewordings), so the default moved and the reasoning was written down. (2) The --propose path had never been run and crashed: add_pair dedups same-question decisions on source_norm, so an edge's endpoint went missing; fixed with id-prefixed ephemeral rows. The two agents also died before writing their test files, so the audit wrote test_triage_supersede.py and test_triage_report.py — including the seals-nothing proof.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "378a12ae-4b12-59a1-98c8-52cf14beda7d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "before building the grouping was the box searched for what already exists",
+      "source_text": "Before building the grouping, was the box searched for what already exists?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — and only after the operator stopped a first attempt that jumped straight to building. Two look-sees (the fleet on disk; the open internet) ran first, exactly the discipline the before_build hook (#105) now enforces. They converged: grouping is an assembly of shipped parts (~100 lines), not a new capability, and building the clustering primitive fresh would have repeated the rediscovery `the-house-already-knew.md` documents. The triage re-lands the shapes over Nestor's own matchers rather than importing willow-mcp (unavailable, and heavy).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "1d6dc54f-a5ed-554a-88bc-2875fc5455c8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "can the triage seal anything",
+      "source_text": "Can the triage seal anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Every path proposes and only proposes. render() touches no store; emit_edges() calls DecisionMemory.propose_edge only, landing draft edges (edge_sig='', verifier=''); the CLI --propose ingests into a throwaway in-memory store and asserts 0 pairs and 0 edges sealed before it returns. Proven end-to-end on the real 316: 'proposed 62 edges; 0 sealed'. The groups and edges are a queue for a human at nestor ui, never a verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "f9a23c50-9d71-51b4-985f-fdacd9d444df",
