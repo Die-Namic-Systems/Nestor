@@ -63,6 +63,15 @@ MAX_MESSAGE = 1 << 20       # 1 MiB — a tool call is never larger than this
 WITHHELD = ("seal", "unseal", "reject", "override a conflicting seal",
             "import a bundle", "edit the ledger")
 
+# The only arguments nestor_propose reads. Anything else on the wire is
+# discarded — and a discarded seal-authority field (status=, verifier=,
+# verification_kind=, sealed=, seal_sig=) is exactly the covenant boundary a
+# model is not allowed to cross. It is not enough to drop those keys silently;
+# the reply has to name them, or a caller asking to seal reads an unqualified
+# success where it should read a refusal.
+PROPOSE_KEYS = frozenset({"source_text", "candidate", "source_lang",
+                          "target_lang", "title"})
+
 
 @dataclass
 class Server:
@@ -324,10 +333,12 @@ class Server:
             if self.read_only:
                 raise PermissionError("this server is running --read-only; even a "
                                       "proposal is refused.")
+            ignored = sorted(k for k in args if k not in PROPOSE_KEYS)
             return answer.propose(store, str(args.get("source_text", "")),
                                   str(args.get("candidate", "")), sl, tl,
                                   title=str(args.get("title") or ""),
-                                  origin=f"mcp:{self.client}")
+                                  origin=f"mcp:{self.client}",
+                                  ignored=ignored)
         if name.startswith("nestor_"):
             raise PermissionError(
                 f"{name!r} is not available to a model. This server deliberately "

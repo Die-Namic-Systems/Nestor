@@ -131,6 +131,63 @@ def resolve_cases_dir(repo: str = "", cases: str = "") -> pathlib.Path | None:
     return None
 
 
+class ConstitutionIngestMismatch(RuntimeError):
+    """The store holds something other than what was parsed — contamination,
+    surfaced as an error rather than swallowed as 'nothing found'."""
+
+
+def _target_for(row: dict) -> str:
+    """The exact target text a row is ingested under — the placeholder
+    substitution is part of the value, so verification must key off the same
+    string add_pair was handed, not the raw ``forbidden``."""
+    return row["forbidden"] or "(the docstring names no forbidden act)"
+
+
+def ingest_rows(rows: list[dict], store) -> None:
+    """Write each clause → forbidden-act pair as a draft. One place, so the
+    string add_pair receives and the string :func:`verify_ingested` re-hashes
+    are produced by the same code and cannot drift apart."""
+    for r in rows:
+        memory.add_pair(r["clause"], _target_for(r), DOMAIN, TARGET, status="draft",
+                        origin=f"{ORIGIN}:{r['file']}", store=store, matcher=MATCHER,
+                        reason=f"{r['trace_id']} — {r['doc_first']}")
+
+
+def verify_ingested(rows: list[dict], store) -> int:
+    """Hold what landed to the hash of what was parsed; raise on any mismatch.
+
+    This is the ``got != digest`` shape ``scripts/dogfood_store.py --verify``
+    uses on the committed store, per row: recompute the digest from the source
+    of truth (the parsed cards) and refuse when the store disagrees. It reuses
+    :func:`nestor.memory._sha` — the same digest the store itself writes — so
+    there is one hash definition, not a parallel one bolted on here.
+
+    A corrupted, partial, or mismatched ingest — a clause the store dropped, a
+    forbidden act it stored other than the one parsed — becomes a loud error,
+    never a silent pass that reads as "no findings". Returns the row count on a
+    clean match.
+    """
+    expected = {r["clause"]: memory._sha(_target_for(r)) for r in rows}
+    landed = {c["source_text"]: c["target_text"]
+              for c in store.memory_candidates(DOMAIN, TARGET)
+              if str(c.get("origin", "")).startswith(ORIGIN)}
+    problems = []
+    for clause, want_sha in expected.items():
+        if clause not in landed:
+            problems.append(f"clause never ingested: {clause[:64]}…")
+            continue
+        got_sha = memory._sha(landed[clause])
+        if got_sha != want_sha:
+            problems.append(
+                f"forbidden-act hash mismatch for clause '{clause[:48]}…' "
+                f"({got_sha} != {want_sha})")
+    if problems:
+        raise ConstitutionIngestMismatch(
+            f"{len(problems)} ingested row(s) do not match the parsed cards:\n  "
+            + "\n  ".join(problems))
+    return len(expected)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--cases", default="",
@@ -178,11 +235,21 @@ def main() -> int:
           + (f", {RED}{skipped} without TRACE_ID/CLAUSE{OFF}" if skipped else ""))
 
     no_act = [r for r in rows if not r["forbidden"]]
-    for r in rows:
-        target = r["forbidden"] or "(the docstring names no forbidden act)"
-        memory.add_pair(r["clause"], target, DOMAIN, TARGET, status="draft",
-                        origin=f"{ORIGIN}:{r['file']}", store=store, matcher=MATCHER,
-                        reason=f"{r['trace_id']} — {r['doc_first']}")
+    ingest_rows(rows, store)
+
+    # Verify what it ingested. A corrupted or partial ingest — a clause the
+    # store dropped, a forbidden act it stored other than the one parsed — is a
+    # loud error here, never a silent pass. Contamination surfaces as an error,
+    # not as "no findings".
+    try:
+        verified = verify_ingested(rows, store)
+    except ConstitutionIngestMismatch as exc:
+        print(f"\n{RED}ingest verification FAILED — refusing{OFF}")
+        print(f"   {DIM}{exc}{OFF}\n")
+        if not args.keep:
+            shutil.rmtree(work, ignore_errors=True)
+        raise
+    print(f"   {GREEN}{verified} row(s) verified against the parsed cards{OFF}")
     print()
     for r in rows:
         mark = AMBER if r["forbidden"] else RED

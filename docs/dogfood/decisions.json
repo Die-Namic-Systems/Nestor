@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 328,
+    "pairs": 331,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "5e0ab16f0ce1c7789e18f07a0e887aefca12abcb604f85c2470e43215baec6bb",
+  "digest": "ccc007285dddc240803a9786dc213ad7dc0e82e44a1dfb62a68ccc4368a7244d",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,34 +19,6 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
-    {
-      "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "ebb57c4d-298b-5737-a6ad-1c60ac94cd35",
-      "origin": "pr:114",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "can nestors matcher detect contradictions or only remember them once found",
-      "source_text": "Can Nestor's matcher DETECT contradictions, or only remember them once found?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "Only align, not detect — recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "9fc5edde-614c-5200-babc-545502e31f57",
-      "origin": "pr:114",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "why pool provenance by min over assumedfittedmeasured rather than a score or average",
-      "source_text": "Why pool provenance by min() over assumed<fitted<measured rather than a score or average?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "A pooled view is worth its weakest input. The ad-breaks evidence pools to `fitted` because its load-bearing verification row is `fitted`, no matter how many `measured` audit rows sit beside it; min() is monotone, so piling measured rows on never lifts it.",
-      "verifier": "",
-      "weight": 1.0
-    },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
       "id": "94fb95ce-51a5-5202-9da9-b906f26ab043",
@@ -63,15 +35,15 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
-      "id": "8b32ac6d-d223-5f97-b08a-362c2a48fef0",
+      "id": "555cf475-e54f-51d2-9eca-7bf777424af8",
       "origin": "pr:114",
       "seal_sig": "",
       "source_lang": "decision",
-      "source_norm": "how do you prove the memory loop in another way beyond nestors memory of its own decisions",
-      "source_text": "How do you prove the memory loop 'in another way' — beyond Nestor's memory of its own decisions?",
+      "source_norm": "why pool provenance by min over assumedfittedmeasured rather than a score or average",
+      "source_text": "Why pool provenance by min() over assumed<fitted<measured rather than a score or average?",
       "status": "draft",
       "target_lang": "decision",
-      "target_text": "A committed demo over a REAL external corpus: the findings from auditing another repo, hand-recorded in demo/dispatches_audit_corpus.json (each traceable to a commit there), sealed into a throwaway store, and asked back. The floor serves every finding verbatim; a question nobody audited returns pending, never an invented answer; and no query is ever served the WRONG finding.",
+      "target_text": "A pooled view is worth its weakest input. The ad-breaks evidence pools to `fitted` because its load-bearing verification row is `fitted`, no matter how many `measured` audit rows sit beside it; min() is monotone, so piling measured rows on never lifts it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -105,6 +77,34 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "30171704-fea2-5ec7-aebb-0587e726b0c3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the missing guard the 0118 collision exposed",
+      "source_text": "What is the missing guard the 0118 collision exposed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Cross-session collision awareness — the sibling of the anti-rediscovery hook (#105). #105 asks 'what already exists before you build'; this asks 'who else is building right now'. The signals were structural and present the whole time: another open PR on the same base branch, a duplicate decision number in flight (the number-before-PR hazard 0054 names), the same derived artifacts rebuilt on a sibling claude/* branch. A guard would surface those before a number is minted or a PR opened — advisory and best-effort (it cannot serialize two agents, only make the collision loud), part seat-reminder ('you may not be the only agent — read the meta-data') and part concrete scan (open PRs, next free decision number, overlapping changed files). Recorded in issue #111 and IDEAS §7.5; not built, by the operator's call.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "2c599981-bd8b-51a7-ae14-375c05d562e0",
+      "origin": "pr:114",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "can nestors matcher detect contradictions or only remember them once found",
+      "source_text": "Can Nestor's matcher DETECT contradictions, or only remember them once found?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only align, not detect — recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
       "origin": "pr:None",
       "seal_sig": "",
@@ -119,6 +119,34 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "21599bde-dd91-5eed-bd51-16bf9c3221ec",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how was the collision resolved once it was noticed",
+      "source_text": "How was the collision resolved once it was noticed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yield, don't fight for the number. #108 claimed 0118 first and was the older PR, so this session renumbered its own decision 0118 -> 0119, and #108 kept 0118. Merge order was #108 first (older, a boot fix that helps every session), then this branch rebased onto it and rebuilt the derived store from the union of decision files (0117 triage, 0118 boot, 0119 matcher) — the one honest way to resolve a decisions.json/nestor.db conflict, since they are derived, not authored. Both PRs' changes were verified to coexist (test_hook_wiring + before_build + triage all green) before either was trusted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "212665ff-2a1f-5076-8b27-587adb08f8f7",
+      "origin": "pr:114",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do you prove the memory loop in another way beyond nestors memory of its own decisions",
+      "source_text": "How do you prove the memory loop 'in another way' — beyond Nestor's memory of its own decisions?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A committed demo over a REAL external corpus: the findings from auditing another repo, hand-recorded in demo/dispatches_audit_corpus.json (each traceable to a commit there), sealed into a throwaway store, and asked back. The floor serves every finding verbatim; a question nobody audited returns pending, never an invented answer; and no query is ever served the WRONG finding.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "1d6dc54f-a5ed-554a-88bc-2875fc5455c8",
       "origin": "pr:None",
       "seal_sig": "",
@@ -128,6 +156,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Every path proposes and only proposes. render() touches no store; emit_edges() calls DecisionMemory.propose_edge only, landing draft edges (edge_sig='', verifier=''); the CLI --propose ingests into a throwaway in-memory store and asserts 0 pairs and 0 edges sealed before it returns. Proven end-to-end on the real 316: 'proposed 62 edges; 0 sealed'. The groups and edges are a queue for a human at nestor ui, never a verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "00c58cb7-e12c-531e-8ecf-40ab85bbb24e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the store carry a schema version pragma user_version which 631 reserved as a decision to be argued not stamped inside another change",
+      "source_text": "Should the store carry a schema version (PRAGMA user_version), which §6.31 reserved as a decision to be argued, not stamped inside another change?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — ratified as of 0.2.0. The store now carries user_version = SCHEMA_VERSION (1), with an ordered forward-migration ladder (empty today) and a fail-closed refusal of a newer-than-known file (StoreSchemaTooNewError). This is exactly the 'schema generation in the database' §6.31 named as the STRONG fix for the §6.8 warm-connection hazard (a pooled connection skips a migration it did not have when opened). §6.31's own text said the store half 'touches no hash chain, so the argument it needs is small' — this record is that small argument, made. Not extended to the ledger: a hash chain cannot be re-hashed under new rules, so its format is already frozen by its first entry and versioning it is a separate, larger decision that stays open.",
       "verifier": "",
       "weight": 1.0
     },

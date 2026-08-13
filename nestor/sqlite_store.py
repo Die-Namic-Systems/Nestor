@@ -151,6 +151,34 @@ _LOOKUP_KEY = ("CREATE INDEX IF NOT EXISTS idx_tm_pairs_find "
                "ON tm_pairs(source_norm, source_lang, target_lang)")
 
 
+# The schema GENERATION this build writes and knows how to read, recorded in the
+# database header via ``PRAGMA user_version`` (utety/core/store.py's newer-schema
+# refusal and safe-app-store's ordered-migration ladder, ported here).
+#
+# Why the header pragma and not a ``schema_migrations`` table
+# (safe-app-store/apps/marching-arts uses a named ledger): ``user_version`` lives
+# in the file header, invisible to ``sqlite_master``, so version tracking cannot
+# move ``test_a_schema_change_has_to_be_a_deliberate_release_decision``'s
+# effective-schema digest. A tracking table would.
+#
+# Two layers reconcile a database on open, and they are different in kind:
+#
+#   * The idempotent SELF-HEAL ladder — ``_SCHEMA`` plus ``_ensure_unique_key``
+#     and ``_ensure_embedding_schema`` — runs on every connection's first init
+#     and repairs WITHIN-generation drift: a table an older build left without a
+#     column, a cache table rebuilt without ``sig``. It is what brings a
+#     pre-versioning database (``user_version`` 0, written before this existed)
+#     up to the current shape, so a v0 file needs no dedicated migration step.
+#   * ``user_version`` records the GENERATION and gates the FORWARD ladder
+#     (``_FORWARD_MIGRATIONS``): ordered, run-once steps for a future schema
+#     change the self-heal cannot express idempotently. It also draws the line
+#     the self-heal cannot: a file from a NEWER build is refused, not read.
+#
+# Bump this only together with a new ``_FORWARD_MIGRATIONS`` entry (and the
+# release-notes restart line docs/releasing.md requires).
+SCHEMA_VERSION = 1
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -166,6 +194,24 @@ class StoreClosedError(RuntimeError):
     left to reopen *to*, so answering from a fresh empty database would report
     "no verified answers" — which is a sentence this package must never say by
     accident. Loud beats plausible.
+    """
+
+
+class StoreSchemaTooNewError(RuntimeError):
+    """The on-disk database was written by a newer build than this code knows.
+
+    ``PRAGMA user_version`` on the file is greater than :data:`SCHEMA_VERSION`,
+    so a newer generation of Nestor added a table, a column, or a constraint
+    meaning this build cannot see. Refuse to open rather than proceed: a blind
+    read could silently mis-interpret a shape it does not understand, and a
+    write — especially ``_ensure_embedding_schema``'s drop-and-rebuild — could
+    destroy rows a newer invariant depends on. The recovery is to upgrade
+    Nestor, not to downgrade the file.
+
+    Same stance as :class:`StoreClosedError`: on a package whose product is "has
+    a human checked this", a plausible answer from a schema it half-understands
+    is worse than a crash. A guard that cannot fail is not a gate — this one
+    fails loudly. (Ported from utety/core/store.py's newer-schema refusal.)
     """
 
 
@@ -232,6 +278,24 @@ class RowRetiredError(RuntimeError):
 
 class SqliteStore:
     """A minimal SQLite-backed store. Satisfies ``nestor.storage.Storage``."""
+
+    #: The ordered forward-migration ladder: ``(target_version, step)`` tuples,
+    #: strictly increasing, each ``step(conn)`` idempotent and run at most once
+    #: per database (only when the stored ``user_version`` is below its target),
+    #: in order, inside the same init transaction. This is the safe-app-store
+    #: ``apply``-shape: append a step for the NEXT schema generation, never edit
+    #: or renumber an existing one — a renumbered step re-runs on files that
+    #: already applied it, and an inserted-ahead step is silently skipped on
+    #: every file already past its position.
+    #:
+    #: Empty today, and honestly so: there has been exactly one schema
+    #: generation, and the idempotent self-heal ladder (``_ensure_*``) already
+    #: carries a pre-versioning ``user_version`` 0 file up to :data:`SCHEMA_VERSION`
+    #: without a dedicated step. The machinery is proven by the migratability
+    #: suite injecting a real step over a two-generation world, so the ladder is
+    #: wired rather than merely declared. A class attribute so a test can
+    #: override it per instance; the read below tolerates an instance override.
+    _FORWARD_MIGRATIONS: "list[tuple[int, object]]" = []
 
     def __init__(self, db_path: str = "data/nestor.db") -> None:
         self.db_path = db_path
@@ -362,12 +426,53 @@ class SqliteStore:
 
     # --- lifecycle -------------------------------------------------------
 
+    def _apply_schema(self, conn: sqlite3.Connection) -> None:
+        """Reconcile one connection's database to :data:`SCHEMA_VERSION`.
+
+        The single place both entry points build and version the schema, in a
+        fixed order that is load-bearing:
+
+        1. **Refuse a newer file first.** Read ``PRAGMA user_version`` and raise
+           :class:`StoreSchemaTooNewError` before touching anything if it is
+           ahead of this build. The refusal has to precede the self-heal
+           because ``_ensure_embedding_schema`` may DROP and rebuild a table —
+           on a newer file that would be data loss, not repair.
+        2. **Self-heal (idempotent, unconditional).** ``_SCHEMA`` plus
+           ``_ensure_unique_key`` (which owns ``_ensure_lineage_schema``, §6.25)
+           and ``_ensure_embedding_schema``. This runs on every fresh connection
+           exactly as it did before versioning existed, so a pre-versioning
+           ``user_version`` 0 file is carried up to the current shape with no
+           dedicated step, and within-generation drift is still repaired on a
+           file already at the current version.
+        3. **Forward ladder (ordered, run-once).** Each ``_FORWARD_MIGRATIONS``
+           step whose target the stored version has not yet reached, in order —
+           for a future generation the self-heal cannot express idempotently.
+        4. **Stamp.** Advance ``user_version`` to :data:`SCHEMA_VERSION` when the
+           file was behind, so the next open sees the generation this one left.
+        """
+        stored = conn.execute("PRAGMA user_version").fetchone()[0]
+        if stored > SCHEMA_VERSION:
+            raise StoreSchemaTooNewError(
+                f"{self.db_path}: on-disk schema is generation {stored}, but this "
+                f"build of Nestor knows only {SCHEMA_VERSION}. A newer build wrote "
+                f"this store; refusing to open it rather than read or rewrite a "
+                f"schema it does not understand. Upgrade Nestor and reopen.")
+        conn.executescript(_SCHEMA)
+        # No _ensure_lineage_schema here: _ensure_unique_key owns it, so both
+        # entry points get it and neither can forget (§6.25).
+        self._ensure_unique_key(conn)
+        self._ensure_embedding_schema(conn)
+        for target, step in self._FORWARD_MIGRATIONS:
+            if stored < target:
+                step(conn)
+        if stored < SCHEMA_VERSION:
+            # PRAGMA takes no bound parameter; SCHEMA_VERSION is an int constant
+            # under this module's control, so the interpolation carries no input.
+            conn.execute(f"PRAGMA user_version = {int(SCHEMA_VERSION)}")
+
     def init_db(self) -> None:
         with self._db() as conn:
-            conn.executescript(_SCHEMA)
-            self._ensure_lineage_schema(conn)
-            self._ensure_unique_key(conn)
-            self._ensure_embedding_schema(conn)
+            self._apply_schema(conn)
 
     def memory_init(self) -> None:
         # tm_pairs is created by the same schema script; keep it idempotent.
@@ -379,11 +484,7 @@ class SqliteStore:
             # answer for an instance. See _Conn.
             if conn.__dict__.get("schema_ready", False):
                 return
-            conn.executescript(_SCHEMA)
-            # No _ensure_lineage_schema here: _ensure_unique_key owns it, so
-            # both entry points get it and neither can forget (§6.25).
-            self._ensure_unique_key(conn)
-            self._ensure_embedding_schema(conn)
+            self._apply_schema(conn)
             conn.schema_ready = True
 
     def _ensure_lineage_schema(self, conn: sqlite3.Connection) -> None:
