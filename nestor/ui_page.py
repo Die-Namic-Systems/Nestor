@@ -1776,7 +1776,12 @@ function detailPanel() {
   const card = h("div", { class: "card" });
   card.append(h("h2", { text: "Provenance" }));
   const ro = S.state.read_only;
-  card.append(
+  // Native append() stringifies null/undefined/false to a text node, unlike
+  // h()'s kid loop which drops them. commitmentPanel(p) and the context panel
+  // both return null for an ordinary row (no commitment choices, no reason),
+  // so filter with h()'s own predicate before appending or the card renders
+  // the literal string "nullnull".
+  card.append(...[
     h("div", { class: "row" }, mark(p.status), h("b", { text: p.source_text })),
     h("div", { style: "margin:2px 0 10px" },
       h("span", { class: "muted", text: "→ " }),
@@ -1801,7 +1806,8 @@ function detailPanel() {
         text: relativeAge(p.created_at) || "—" }),
       h("span", { class: "chip mono", text: p.id.slice(0, 8) })),
     h("p", { class: "small muted", style: "margin:10px 0 4px",
-             text: (p.rejection_count || 0) + " rejection(s) recorded against this pair" }));
+             text: (p.rejection_count || 0) + " rejection(s) recorded against this pair" }),
+  ].filter((kid) => kid !== null && kid !== undefined && kid !== false));
   for (const r of p.rejections || []) {
     card.append(h("div", { class: "small", style: "border-top:1px solid var(--line);padding:6px 0" },
       h("div", { class: "mono", text: r.query_norm }),
