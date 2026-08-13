@@ -1,0 +1,86 @@
+{
+  "note": "A real corpus, not fiction: every finding below was produced and verified during an audit of the companion writing repo rudi193-cmd/DispatchesFromReality, and each is traceable to a commit or a file there. It is hand-recorded (this repo cannot see that one), which is why it reads like demo/filing_cabinet.py rather than demo/the_dogfooding.py — but no finding is invented and no state is asserted more strongly than it was earned. Used by demo/the_dispatches_audit.py to prove Nestor's loop on an external corpus.",
+  "domain": "audit",
+  "findings": [
+    {
+      "question": "Are there broken relative links across the Dispatches writing repo?",
+      "finding": "Yes. An audit of 254 relative links across 58 markdown files found 9 broken: 5 were path-depth errors to files that exist elsewhere in the repo (fixed), and 4 point at content absent from the repo entirely (no showcases/ directory; no scribe-talkthrough doc).",
+      "provenance": "measured",
+      "evidence": "link-audit script rerun; fix commit on claude/dispatches-pending-prs-kw5m3n"
+    },
+    {
+      "question": "Does the Nobody Counts the Ad Breaks Sources table use the measured/fitted/assumed model correctly?",
+      "finding": "Not originally. Nine rows read only in secondary summary were labelled `measured`, contradicting the paper's own definition and its own packet. Relabelled to `fitted`; only F-Droid and Exodus (primary docs read) remain `measured`. Distribution is now 9 fitted / 2 measured / 2 assumed.",
+      "provenance": "measured",
+      "evidence": "DispatchesFromReality commit de89513 on claude/paper-nobody-counts-the-ad-breaks"
+    },
+    {
+      "question": "Are the sociotechnical AI sovereignty draft's revenue figures internally consistent?",
+      "finding": "No. DRAFT.md:60 gave OpenAI plus Anthropic combined run-rate as ~$70B, then claimed the two labs 'already exceed $130 billion on paper' — $70B does not exceed $130B. Rewritten to 'more than halfway there — roughly $70 billion between them'.",
+      "provenance": "measured",
+      "evidence": "DispatchesFromReality commit ea50d5b"
+    },
+    {
+      "question": "Is the vintage mechanical restoration draft consistent with its packet?",
+      "finding": "Yes. A draft-versus-packet audit cross-matched every shared figure, caveat and table; no contradictions.",
+      "provenance": "measured",
+      "evidence": "draft-vs-packet audit, this session"
+    },
+    {
+      "question": "Is the tabletop mechanical engines draft consistent with its packet?",
+      "finding": "Yes, clean. Board dimensions, the seven method steps, proper nouns and claim boundaries all match across draft and packet.",
+      "provenance": "measured",
+      "evidence": "draft-vs-packet audit, this session"
+    },
+    {
+      "question": "Is the postwar institutional legacies draft consistent with its packet?",
+      "finding": "Yes, clean. The field-distribution table sums to 165, exactly equal to the scientist count, and every date in the two lineage diagrams matches.",
+      "provenance": "measured",
+      "evidence": "draft-vs-packet audit, this session"
+    },
+    {
+      "question": "Which files in the Dispatches repo are orphaned, with nothing linking to them?",
+      "finding": "Six non-README files: three creative/ pieces, drafts/applied-governance-of-autonomous-systems.md, lessons/socialstudies-6-8-teacher-overview.md, and professional/HANDOFF-2026-06-10.md.",
+      "provenance": "measured",
+      "evidence": "orphan scan over all 58 markdown files"
+    },
+    {
+      "question": "Have the ad breaks paper's cited figures been verified against the primary documents?",
+      "finding": "No. The primaries (FTC, PubMed Central, Common Sense) are unreachable under this environment's GitHub-only egress, so the load-bearing figures are corroborated across independent secondary sources only. They are `fitted`, not `measured`, and the verification debt is open.",
+      "provenance": "fitted",
+      "evidence": "DRAFT Sources table plus verification-debt note"
+    },
+    {
+      "question": "Does the measured/fitted/assumed provenance model appear anywhere in the Dispatches repo besides the ad breaks piece?",
+      "finding": "No. The scheme is unique to research/childrens-software-interruption; no other file in the repo uses or misuses it.",
+      "provenance": "measured",
+      "evidence": "repo-wide grep for the state words"
+    },
+    {
+      "question": "Is there overclaiming language such as peer-reviewed, verified against, or proven in the research or essays?",
+      "finding": "None found. A scan across research, education and essays turned up no peer-review, verification or proof claims that the pieces' own caveats contradict.",
+      "provenance": "measured",
+      "evidence": "repo-wide overclaim scan"
+    }
+  ],
+  "drift_probes": [
+    {
+      "label": "postwar scientist count",
+      "packet_claim": "Scientists 165, and the field distribution sums to 165",
+      "draft_claim": "Scientists 165 in the database table",
+      "numbers_match": true
+    },
+    {
+      "label": "tabletop board size",
+      "packet_claim": "an 8x8 board",
+      "draft_claim": "the board is 8x8",
+      "numbers_match": true
+    },
+    {
+      "label": "sociotechnical two-lab revenue (WITHIN one file, not cross-file)",
+      "packet_claim": "not repeated in the packet",
+      "draft_claim": "~$70B combined run-rate, yet 'already exceed $130 billion'",
+      "numbers_match": false
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 325,
+    "pairs": 328,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "376a8788bc60caf0bd410816cbfa30a28fed3d1cf64e6c8030742aee21d4e826",
+  "digest": "ea226de47a093bdf0a137cb2465364fff089efddd9f77603141d1784091609a3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,34 @@
   "pairs": [
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "ebb57c4d-298b-5737-a6ad-1c60ac94cd35",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "can nestors matcher detect contradictions or only remember them once found",
+      "source_text": "Can Nestor's matcher DETECT contradictions, or only remember them once found?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only align, not detect — recorded as the honest result of Way 2, not worked around. The matcher retrieves a packet claim's matching draft claim (2/2 cross-file probes aligned), but alignment is not a numbers check, and the one real contradiction lived INSIDE a single file, where there is no cross-file pair to retrieve. The matcher is blind to it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "9fc5edde-614c-5200-babc-545502e31f57",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why pool provenance by min over assumedfittedmeasured rather than a score or average",
+      "source_text": "Why pool provenance by min() over assumed<fitted<measured rather than a score or average?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A pooled view is worth its weakest input. The ad-breaks evidence pools to `fitted` because its load-bearing verification row is `fitted`, no matter how many `measured` audit rows sit beside it; min() is monotone, so piling measured rows on never lifts it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "94fb95ce-51a5-5202-9da9-b906f26ab043",
       "origin": "pr:None",
       "seal_sig": "",
@@ -30,6 +58,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two defects, both caught by running it rather than reading it. (1) The default bar was 0.45, inherited from the rewording rank@1 bench — a different task; on all-pairs triage it flooded with 674 skeleton false-contradicts because question-shaped decisions share a 'Should the X be Y?' skeleton that character difflib scores. A --calibrate sweep put the knee at 0.55 (269 groups / 62 edges; the supersedes there are genuine 0.92+ rewordings), so the default moved and the reasoning was written down. (2) The --propose path had never been run and crashed: add_pair dedups same-question decisions on source_norm, so an edge's endpoint went missing; fixed with id-prefixed ephemeral rows. The two agents also died before writing their test files, so the audit wrote test_triage_supersede.py and test_triage_report.py — including the seals-nothing proof.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "8b32ac6d-d223-5f97-b08a-362c2a48fef0",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do you prove the memory loop in another way beyond nestors memory of its own decisions",
+      "source_text": "How do you prove the memory loop 'in another way' — beyond Nestor's memory of its own decisions?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A committed demo over a REAL external corpus: the findings from auditing another repo, hand-recorded in demo/dispatches_audit_corpus.json (each traceable to a commit there), sealed into a throwaway store, and asked back. The floor serves every finding verbatim; a question nobody audited returns pending, never an invented answer; and no query is ever served the WRONG finding.",
       "verifier": "",
       "weight": 1.0
     },
