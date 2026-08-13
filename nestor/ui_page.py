@@ -582,12 +582,6 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             offset: 0, more: false, session: null, typedVerifier: "",
             commitmentPickByPair: {},
             gateEcho: null,
-            // Hand-seal form state. Kept in S so a domain re-render does not
-            // wipe what you typed, and so picking a draft can prefill both
-            // halves and then seal that row in place via /api/seal-draft.
-            sealDraftId: "",
-            sealSource: "",
-            sealTarget: "",
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -1726,20 +1720,9 @@ async function sealCommitment(p, pairId) {
   render();
 }
 
-async function openPair(id, { fillSeal } = {}) {
-  try {
-    S.detail = (await api("/api/pair?id=" + encodeURIComponent(id))).pair;
-    // A plain draft (no A/B/C commitment panel) is what "Seal a pair by hand"
-    // is for when you are ratifying the store — fill the form from the row so
-    // the curator is not retyping 325 questions. Commitment-choice drafts keep
-    // their own panel; do not steal them into the blank form.
-    const sync = fillSeal !== false;
-    if (sync && S.detail && S.detail.status === "draft"
-        && !parseCommitmentChoices(S.detail.target_text).choices.length) {
-      pickSealDraft(S.detail, { open: false });
-    }
-    render();
-  } catch (e) { toast(e.message, "err"); }
+async function openPair(id) {
+  try { S.detail = (await api("/api/pair?id=" + encodeURIComponent(id))).pair; render(); }
+  catch (e) { toast(e.message, "err"); }
 }
 
 function fleetDetailStage(p) {
@@ -1793,22 +1776,42 @@ function detailPanel() {
   const card = h("div", { class: "card" });
   card.append(h("h2", { text: "Provenance" }));
   const ro = S.state.read_only;
-  // Native append() stringifies null/undefined/false to a text node, unlike
-  // h()'s kid loop which drops them. commitmentPanel(p) and the context panel
-  // both return null for an ordinary row (no commitment choices, no reason),
-  // so filter with h()'s own predicate before appending or the card renders
-  // the literal string "nullnull".
+  // A plain draft (no A/B/C commitment panel) is ratified right here: its
+  // proposed answer is editable in place, so the curator seals what they are
+  // looking at instead of dropping to a separate "Seal a pair by hand" form.
+  const plainDraft = p.status === "draft"
+    && !parseCommitmentChoices(p.target_text).choices.length;
+
+  const answer = plainDraft
+    ? h("div", { style: "margin:6px 0 10px" },
+        h("p", { class: "small muted", style: "margin:0 0 4px",
+                 text: "Proposed answer — edit if needed, then seal:" }),
+        h("textarea", { id: "ratify-target", style: "width:100%;min-height:120px" },
+          stripCommitmentMachine(p.target_text)),
+        h("div", { class: "row", style: "margin-top:8px" },
+          h("button", { class: "primary small", disabled: ro,
+                        onclick: () => sealDraftInPlace(p) }, "Seal this decision"),
+          h("button", { class: "small danger", disabled: ro,
+                        onclick: () => rejectPair(p) }, "Reject")))
+    : h("div", { style: "margin:2px 0 10px" },
+        h("span", { class: "muted", text: "→ " }),
+        p.status === "draft" && parseCommitmentChoices(p.target_text).choices.length
+          ? commitmentSummary(p.target_text)
+          : p.target_text);
+
+  const context = (p.reason || (p.origin || "").startsWith("willow:gap"))
+    ? h("div", { class: "context-panel small" }, renderContextBody(p.reason))
+    : null;
+
+  // Filter kids with h()'s own predicate (kid !== null/undefined/false) before
+  // appending: a bare `card.append(null)` stringifies to the literal "null"
+  // (IDEAS §6.97 / #94). commitmentPanel(p) and the context block are null for
+  // a plain draft, and both used to print "null" on every dogfood decision row.
   card.append(...[
     h("div", { class: "row" }, mark(p.status), h("b", { text: p.source_text })),
-    h("div", { style: "margin:2px 0 10px" },
-      h("span", { class: "muted", text: "→ " }),
-      p.status === "draft" && parseCommitmentChoices(p.target_text).choices.length
-        ? commitmentSummary(p.target_text)
-        : p.target_text),
+    answer,
     commitmentPanel(p),
-    (p.reason || (p.origin || "").startsWith("willow:gap"))
-      ? h("div", { class: "context-panel small" }, renderContextBody(p.reason))
-      : null,
+    context,
     h("div", {},
       h("span", { class: "chip", text: p.status }),
       servableChip(p),
@@ -1831,17 +1834,41 @@ function detailPanel() {
       h("div", { class: "muted", text: (r.verifier || "—") + " · " + (r.reason || "no reason given") +
         (r.signature_valid ? "" : " · signature invalid") })));
   }
-  card.append(h("div", { class: "row", style: "margin-top:12px" },
-    h("button", { class: "small", disabled: ro || p.status !== "sealed",
-      title: "return to draft for re-verification", onclick: () => unseal(p) }, "Unseal"),
-    h("button", { class: "small danger", disabled: ro || p.status === "rejected",
-      title: "the mapping is wrong — retire it everywhere", onclick: () => rejectPair(p) }, "Reject pair"),
-    h("button", { class: "small", disabled: ro || p.status !== "rejected",
-      title: "undo a rejection — returns to draft, not to sealed", onclick: () => restore(p) }, "Restore")));
-  card.append(h("p", { class: "small muted", style: "margin-bottom:0",
-    text: "Unsealing is not rejecting: unseal returns a pair to draft for re-verification, " +
-          "rejecting retires it as wrong. Both are written to the ledger." }));
+  // Lifecycle actions for a settled row. A plain draft's actions (seal, reject)
+  // live in its ratify block above, so this row would only repeat Reject.
+  if (!plainDraft) {
+    card.append(h("div", { class: "row", style: "margin-top:12px" },
+      h("button", { class: "small", disabled: ro || p.status !== "sealed",
+        title: "return to draft for re-verification", onclick: () => unseal(p) }, "Unseal"),
+      h("button", { class: "small danger", disabled: ro || p.status === "rejected",
+        title: "the mapping is wrong — retire it everywhere", onclick: () => rejectPair(p) }, "Reject pair"),
+      h("button", { class: "small", disabled: ro || p.status !== "rejected",
+        title: "undo a rejection — returns to draft, not to sealed", onclick: () => restore(p) }, "Restore")));
+    card.append(h("p", { class: "small muted", style: "margin-bottom:0",
+      text: "Unsealing is not rejecting: unseal returns a pair to draft for re-verification, " +
+            "rejecting retires it as wrong. Both are written to the ledger." }));
+  }
   return card;
+}
+
+async function sealDraftInPlace(p) {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const target = (($("ratify-target") && $("ratify-target").value) || "").trim();
+  if (!target) return toast("A seal needs a verified answer.", "err");
+  // Remember the next plain draft on the page BEFORE sealing, so ratifying a
+  // stack of decisions is Seal → Seal → Seal without hunting for the next row.
+  const rows = S.pairs || [];
+  const idx = rows.findIndex((r) => r.id === p.id);
+  const nextDraft = rows.slice(idx + 1).find((r) => r.status === "draft"
+    && !parseCommitmentChoices(r.target_text).choices.length);
+  const extra = await signSealFields(p.source_text, target, p.source_lang, p.target_lang);
+  if (!extra) return;
+  const out = await sealWithOverride("/api/seal-draft",
+    { pair_id: p.id, target, ...extra }, "Decision sealed.");
+  if (!out) return;
+  if (nextDraft) { openPair(nextDraft.id); return; }
+  if (out.pair) S.detail = out.pair;
+  render();
 }
 
 async function unseal(p) {
@@ -1911,106 +1938,38 @@ function sealSelection(list) {
   return i >= 0 ? i : 0;
 }
 
-function sealDraftCandidates() {
-  // Visible Memory page first; if the open detail is a plain draft not on this
-  // page (filter/pager), still offer it so "I just clicked it" stays sealable.
-  const seen = new Set();
-  const out = [];
-  const push = (p) => {
-    if (!p || !p.id || seen.has(p.id) || p.status !== "draft") return;
-    if (parseCommitmentChoices(p.target_text).choices.length) return;
-    seen.add(p.id);
-    out.push(p);
-  };
-  for (const p of S.pairs || []) push(p);
-  push(S.detail);
-  return out;
-}
-
-function sealDraftLabel(p) {
-  const src = (p.source_text || "").replace(/\s+/g, " ").trim();
-  const short = src.length > 72 ? src.slice(0, 69) + "…" : src;
-  return short || p.id.slice(0, 8);
-}
-
-function pickSealDraft(p, { open } = {}) {
-  if (!p) {
-    S.sealDraftId = "";
-    return;
-  }
-  S.sealDraftId = p.id;
-  S.sealSource = p.source_text || "";
-  S.sealTarget = stripCommitmentMachine(p.target_text || "");
-  const list = sealDomains();
-  const i = list.findIndex((d) => d.source_lang === p.source_lang
-                               && d.target_lang === p.target_lang);
-  if (i >= 0) S.sealDomain = String(i);
-  if (open !== false && (!S.detail || S.detail.id !== p.id)) openPair(p.id, { fillSeal: false });
-}
-
-function clearSealDraftPick() {
-  S.sealDraftId = "";
-  S.sealSource = "";
-  S.sealTarget = "";
-}
-
 function sealForm() {
   const list = sealDomains();
   const picked = sealSelection(list);
   const custom = picked === "new";
-  const drafts = sealDraftCandidates();
-  const fromDraft = !!S.sealDraftId;
   const card = h("div", { class: "card" },
     h("h2", { text: "Seal a pair by hand" }),
-    // Ratification path: pick an existing draft instead of retyping it. New
-    // pairs still work via the blank fields + domain tags below.
-    h("select", { id: "seal-draft-pick", title: "pick a draft decision to seal in place",
-                  style: "width:100%;margin-bottom:8px",
-                  onchange: (e) => {
-                    const id = e.target.value;
-                    if (!id) { clearSealDraftPick(); render(); return; }
-                    const p = drafts.find((d) => d.id === id)
-                           || (S.detail && S.detail.id === id ? S.detail : null);
-                    if (p) pickSealDraft(p);
-                    else render();
-                  } },
-      h("option", { value: "", selected: !fromDraft },
-        drafts.length ? "pick a draft decision… (or type a new pair below)"
-                      : "no plain drafts on this page — type a new pair below"),
-      ...drafts.map((p) => h("option", { value: p.id, selected: S.sealDraftId === p.id },
-                             sealDraftLabel(p)))),
     // Wording stays domain-neutral: this card seals a phrase, an alias or any
     // other pair, and calling the halves "source text" and "translation" was the
-    // form telling the user it only did one recipe.
+    // form telling the user it only did one recipe. To ratify an existing draft,
+    // click it in the list — its detail panel seals it in place.
     h("input", { id: "seal-source", placeholder: "source — the phrase, alias or value asked",
-                 value: S.sealSource, disabled: fromDraft ? "" : undefined,
-                 title: fromDraft ? "source is fixed when sealing an existing draft" : "",
-                 style: "width:100%;margin-bottom:6px",
-                 oninput: (e) => { S.sealSource = e.target.value; } }),
-    h("textarea", { id: "seal-target", placeholder: "verified target — the answer you stand behind",
-                    style: "width:100%;margin-bottom:6px;min-height:96px",
-                    oninput: (e) => { S.sealTarget = e.target.value; } }, S.sealTarget),
+                 style: "width:100%;margin-bottom:6px" }),
+    h("input", { id: "seal-target", placeholder: "verified target — the answer you stand behind",
+                 style: "width:100%;margin-bottom:6px" }),
     h("div", { class: "row" },
-      fromDraft ? h("span", { class: "chip", title: "sealing the selected draft in place",
-                              text: "sealing existing draft" }) : null,
-      fromDraft ? null : h("select", { id: "seal-domain", title: "which graph this pair belongs to",
+      h("select", { id: "seal-domain", title: "which graph this pair belongs to",
                     onchange: (e) => { S.sealDomain = e.target.value; render(); } },
         ...list.map((d, i) => h("option", { value: String(i), selected: picked === i },
                                 domainLabel(d))),
         h("option", { value: "new", selected: custom }, "new domain…")),
-      (!fromDraft && custom) ? h("input", { id: "seal-sl", placeholder: "source tag", size: 8,
+      custom ? h("input", { id: "seal-sl", placeholder: "source tag", size: 8,
                             title: "source domain tag" }) : null,
-      (!fromDraft && custom) ? h("span", { class: "muted", text: "→" }) : null,
-      (!fromDraft && custom) ? h("input", { id: "seal-tl", placeholder: "target tag", size: 8,
+      custom ? h("span", { class: "muted", text: "→" }) : null,
+      custom ? h("input", { id: "seal-tl", placeholder: "target tag", size: 8,
                             title: "target domain tag" }) : null,
       h("span", { class: "spacer" }),
-      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal },
-        fromDraft ? "Seal this decision" : "Seal")),
+      h("button", { class: "primary small", disabled: S.state.read_only, onclick: submitSeal }, "Seal")),
     h("p", { class: "small muted", style: "margin:10px 0 0" },
-      "Pick a draft above to ratify it in place, or type a new pair. Tags are " +
-      "generic: languages for a translation, the entity type for a graph, " +
-      "label → domain for a figure. Scored with the string matcher — to seal a " +
-      "numeric baseline, use ",
+      "Creates a new pair. To ratify an existing draft, click it in the list and " +
+      "seal it in place. Tags are generic: languages for a translation, the entity " +
+      "type for a graph, label → domain for a figure. Scored with the string " +
+      "matcher — to seal a numeric baseline, use ",
       h("b", { text: "Ask → Numeric" }), ", which keeps a label to one baseline."));
   return card;
 }
@@ -2027,30 +1986,7 @@ function sealTags() {
 
 async function submitSeal() {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
-  const source = (S.sealSource || ($("seal-source") && $("seal-source").value) || "").trim();
-  const target = (S.sealTarget || ($("seal-target") && $("seal-target").value) || "").trim();
-  if (!target) return toast("A seal needs a verified target.", "err");
-
-  // Existing draft: seal in place. Source/tags come from the row; the curator
-  // may still edit the commitment text before signing.
-  if (S.sealDraftId) {
-    const row = (S.detail && S.detail.id === S.sealDraftId) ? S.detail
-              : (S.pairs || []).find((p) => p.id === S.sealDraftId);
-    const sl = row ? row.source_lang : (sealTags().source_lang);
-    const tl = row ? row.target_lang : (sealTags().target_lang);
-    const src = row ? row.source_text : source;
-    const extra = await signSealFields(src, target, sl, tl);
-    if (!extra) return;
-    const out = await sealWithOverride("/api/seal-draft",
-      { pair_id: S.sealDraftId, target, ...extra },
-      "Decision sealed.");
-    if (out && out.pair) S.detail = out.pair;
-    clearSealDraftPick();
-    render();
-    return;
-  }
-
-  if (!source) return toast("A new pair needs a source.", "err");
+  const source = $("seal-source").value, target = $("seal-target").value;
   const tags = sealTags();
   if (!tags.source_lang || !tags.target_lang) {
     return toast("A new domain needs both tags — they are what keeps one graph out " +
@@ -2060,7 +1996,6 @@ async function submitSeal() {
   if (!extra) return;
   const body = { source, target, ...tags, ...extra };
   await sealWithOverride("/api/seal", body, "Sealed into " + domainLabel(tags) + ".");
-  clearSealDraftPick();
   // The new domain exists now, so select it instead of leaving the form on
   // "new domain…" with the tag boxes empty — the next seal would be refused.
   const i = sealDomains().findIndex((d) => d.source_lang === tags.source_lang

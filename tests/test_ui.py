@@ -517,25 +517,29 @@ def test_the_page_is_self_contained():
     assert "innerHTML =" not in PAGE and "insertAdjacentHTML" not in PAGE
 
 
-def test_hand_seal_form_offers_a_draft_decision_picker():
-    """Ratifying dogfood drafts needs a selector, not a blank form.
+def test_a_draft_is_ratified_in_place_from_the_detail_panel():
+    """Ratifying a draft happens where the curator is looking.
 
-    The Memory card used to only create *new* pairs via ``/api/seal``. An
-    operator with hundreds of drafts had to retype the question — or worse,
-    seal a duplicate. The page must expose a draft picker and route that pick
-    through ``/api/seal-draft`` so the existing row is sealed in place.
+    The first cut bolted a draft picker onto "Seal a pair by hand" — a dropdown
+    plus a disabled copy of the question plus the answer, three views of one
+    decision on a form built to create *new* pairs. Instead the detail panel of
+    a plain draft edits the proposed answer and seals it in place via
+    ``/api/seal-draft``; the hand-seal card is new-pairs-only again.
     """
     from nestor.ui_page import PAGE
 
-    assert 'id: "seal-draft-pick"' in PAGE
-    assert "function sealDraftCandidates" in PAGE
+    assert "function sealDraftInPlace" in PAGE
     assert "Seal this decision" in PAGE
-    # submitSeal's draft branch — not only sealCommitment's fleet-gap path.
+    assert '"/api/seal-draft"' in PAGE
+    # the picker and its helpers are gone
+    assert "seal-draft-pick" not in PAGE
+    assert "sealDraftCandidates" not in PAGE
+    # submitSeal creates new pairs only — no draft branch
     hand = PAGE.split("async function submitSeal()", 1)[1].split(
         "\nasync function ", 1
     )[0]
-    assert 'S.sealDraftId' in hand
-    assert '"/api/seal-draft"' in hand or "/api/seal-draft" in hand
+    assert "sealDraftId" not in hand
+    assert '"/api/seal"' in hand
 
 
 def test_main_refuses_a_non_loopback_bind_without_an_explicit_flag(capsys):
