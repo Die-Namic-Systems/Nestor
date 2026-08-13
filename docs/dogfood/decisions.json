@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 325,
+    "pairs": 327,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "376a8788bc60caf0bd410816cbfa30a28fed3d1cf64e6c8030742aee21d4e826",
+  "digest": "273b62533562e5c98f11807a4fffad8f24a94ad0b49c9cfa26fb039859876466",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -63,6 +63,20 @@
     },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "30171704-fea2-5ec7-aebb-0587e726b0c3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the missing guard the 0118 collision exposed",
+      "source_text": "What is the missing guard the 0118 collision exposed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Cross-session collision awareness — the sibling of the anti-rediscovery hook (#105). #105 asks 'what already exists before you build'; this asks 'who else is building right now'. The signals were structural and present the whole time: another open PR on the same base branch, a duplicate decision number in flight (the number-before-PR hazard 0054 names), the same derived artifacts rebuilt on a sibling claude/* branch. A guard would surface those before a number is minted or a PR opened — advisory and best-effort (it cannot serialize two agents, only make the collision loud), part seat-reminder ('you may not be the only agent — read the meta-data') and part concrete scan (open PRs, next free decision number, overlapping changed files). Recorded in issue #111 and IDEAS §7.5; not built, by the operator's call.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
       "id": "2c3da7be-a6c0-58f4-ad00-d3bf12cabfe9",
       "origin": "pr:None",
       "seal_sig": "",
@@ -72,6 +86,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "21599bde-dd91-5eed-bd51-16bf9c3221ec",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how was the collision resolved once it was noticed",
+      "source_text": "How was the collision resolved once it was noticed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yield, don't fight for the number. #108 claimed 0118 first and was the older PR, so this session renumbered its own decision 0118 -> 0119, and #108 kept 0118. Merge order was #108 first (older, a boot fix that helps every session), then this branch rebased onto it and rebuilt the derived store from the union of decision files (0117 triage, 0118 boot, 0119 matcher) — the one honest way to resolve a decisions.json/nestor.db conflict, since they are derived, not authored. Both PRs' changes were verified to coexist (test_hook_wiring + before_build + triage all green) before either was trusted.",
       "verifier": "",
       "weight": 1.0
     },

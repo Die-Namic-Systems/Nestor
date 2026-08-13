@@ -1958,6 +1958,21 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   mechanical parts (`--version`, completions, uniform `--json`); **hypothesis** for
   MCP resources/prompts — worth adding only once a consumer needs the store *as a
   resource* rather than through the tool verbs.
+- **Cross-session collision awareness — notice another agent is in the room (#111).**
+  The sibling of the anti-rediscovery hook (#105): where that one asks *what
+  already exists* before you build, this one asks *who else is building right now*.
+  Both are reading the room; #105 looks at the past, this at the concurrent
+  present. It has a worked instance — two sessions ran this repo at once, both
+  minted decision `0118` off the same master, both rebuilt the derived store, and
+  the model read the other PR number as an opaque token until the operator pointed
+  at it. The signal was structural and present: another open PR on the same base,
+  a duplicate decision number in flight (the hazard `0054` names), the same
+  derived files rebuilt on a sibling branch. A guard would surface those before a
+  number is minted or a PR opened — advisory, best-effort, part seat-reminder
+  (*you may not be the only agent*), part concrete scan (open PRs, next-number,
+  changed files). The fleet already holds the stance (`safe-app-willow-grove`:
+  *another instance may have already designed it*); Nestor has no guard for it.
+  **Status: open** — recorded, not built, by the operator's call.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,
