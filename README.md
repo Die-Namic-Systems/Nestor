@@ -130,6 +130,21 @@ target is decisions worth a person's attention, not throughput.
 
 ## Quick start
 
+Install a pinned release — Python 3.10+, no runtime dependencies:
+
+```bash
+pip install "nestor @ git+https://github.com/rudi193-cmd/Nestor@v0.2.0"
+```
+
+`nestor` is not on PyPI yet, so pin by git **tag** rather than `@master`: the
+pin is stable and `import nestor` reaches nothing but the standard library
+(enforced by `tests/test_import_purity.py`). This installs the library and the
+`nestor` CLI. Optional extras add capability without moving the core:
+`[keys]` (ed25519 per-verifier signing), `[cloud]` (the Anthropic draft
+engine), `[semantic]` (embedding matcher), `[gate]` (the willow-gate seam).
+
+Or work from source:
+
 ```bash
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate

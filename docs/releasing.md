@@ -238,7 +238,10 @@ happens before it, not after.**
   package — which is the thing `tests/test_version.py` refuses. If a host that
   vendors rather than installs becomes a real deployment shape, ship the version
   in the artifact; do not hardcode it here.
-- **The store and the ledger carry no version at all** — `IDEAS.md` §6.31. That
-  is a bigger gap than this file covers, and it is the one that gets harder the
-  longer it waits: the ledger is hash-chained, so historical entries cannot be
-  re-hashed under new rules without breaking the chain they exist to protect.
+- **The ledger still carries no version** — `IDEAS.md` §6.31. The *store* now
+  carries a `user_version` as of 0.2.0 (#91, ratified as decision `0121`), which
+  is the strong fix the schema-restart section above pointed at. The ledger is
+  the half that did not move, and the one that gets harder the longer it waits:
+  it is hash-chained, so historical entries cannot be re-hashed under new rules
+  without breaking the chain they exist to protect. Versioning it is a separate,
+  deliberate argument that has not been made.

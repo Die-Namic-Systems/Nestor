@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 327,
+    "pairs": 328,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "273b62533562e5c98f11807a4fffad8f24a94ad0b49c9cfa26fb039859876466",
+  "digest": "900122b5462672cbb1ece520e75ecc4d06317103cbcc39d24efad3bb3feba6e3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -114,6 +114,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Every path proposes and only proposes. render() touches no store; emit_edges() calls DecisionMemory.propose_edge only, landing draft edges (edge_sig='', verifier=''); the CLI --propose ingests into a throwaway in-memory store and asserts 0 pairs and 0 edges sealed before it returns. Proven end-to-end on the real 316: 'proposed 62 edges; 0 sealed'. The groups and edges are a queue for a human at nestor ui, never a verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "00c58cb7-e12c-531e-8ecf-40ab85bbb24e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the store carry a schema version pragma user_version which 631 reserved as a decision to be argued not stamped inside another change",
+      "source_text": "Should the store carry a schema version (PRAGMA user_version), which §6.31 reserved as a decision to be argued, not stamped inside another change?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — ratified as of 0.2.0. The store now carries user_version = SCHEMA_VERSION (1), with an ordered forward-migration ladder (empty today) and a fail-closed refusal of a newer-than-known file (StoreSchemaTooNewError). This is exactly the 'schema generation in the database' §6.31 named as the STRONG fix for the §6.8 warm-connection hazard (a pooled connection skips a migration it did not have when opened). §6.31's own text said the store half 'touches no hash chain, so the argument it needs is small' — this record is that small argument, made. Not extended to the ledger: a hash chain cannot be re-hashed under new rules, so its format is already frozen by its first entry and versioning it is a separate, larger decision that stays open.",
       "verifier": "",
       "weight": 1.0
     },

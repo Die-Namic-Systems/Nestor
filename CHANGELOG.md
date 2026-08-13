@@ -4,10 +4,12 @@ Notable changes, newest first. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**Nothing has been released.** `pyproject.toml` has said `0.1.0` since
-`7fb841e`, the extraction commit, and there are no tags. So this file starts at
-`Unreleased` and the first entry below it will be the first release there has
-ever been — see [`docs/releasing.md`](docs/releasing.md).
+**The first release is `0.2.0`**, prepared in this section. `pyproject.toml`
+said `0.1.0` from the extraction commit `7fb841e` until here; `0.1.0` was never
+tagged and stands for "the unreleased extraction," so the first real release
+leaves it behind rather than reusing it (`docs/releasing.md` Decision 2). The
+tag is the trigger and is cut on merge to `master`, not by the branch that
+writes this — see [`docs/releasing.md`](docs/releasing.md).
 
 This file records *releases*, not commits. The argument for a change lives in
 [`IDEAS.md`](IDEAS.md), the queue in [`TODO.md`](TODO.md); a changelog entry is
@@ -16,10 +18,40 @@ what moved.
 
 ---
 
-## [Unreleased]
+## [0.2.0] - 2026-08-13
 
 ### Added
 
+- **The store schema now carries a version.** `sqlite_store.py` stamps
+  `PRAGMA user_version = SCHEMA_VERSION` (1), runs an ordered forward-migration
+  ladder (empty this release — there has been one generation), and **refuses a
+  file whose `user_version` is newer than it understands** (`StoreSchemaToo`
+  `NewError`) rather than reading a shape it half-knows. This is the "schema
+  generation in the database" `IDEAS.md` §6.31 named as the strong fix for the
+  §6.8 warm-connection hazard. §6.31 had reserved it as a decision to be argued
+  rather than stamped; it arrived inside a reland (#91) and was **ratified
+  deliberately** — decision `0121`, and the §6.31 note. The **ledger** is still
+  unversioned, by the same entry's still-open argument. No table/column/index
+  DDL changed, so the effective-schema digest is unmoved; the interim rule
+  holds — a schema change lands on process restart, not package upgrade.
+- **`nestor.config`** — one layered configuration resolver (env > file >
+  default) with typed accessors. A *missing* file is an empty layer that drops
+  to the default; a *malformed or unreadable* file raises `ConfigError` rather
+  than degrading to one — unknown, not a silent wrong value. Secrets resolve
+  env-only, never from the file layer.
+- **`nestor.home_init`** — an idempotent scaffolder for the homestead home
+  (`~/.homestead`), built on `homestead_paths`: it creates the keep/record/logs/
+  drafts tree if absent and never clobbers existing operator content. (It does
+  not pre-create `keep/ledger.jsonl`; `cascade` treats a missing ledger as a
+  fresh genesis chain.)
+- **A tested guarantee that `import nestor` is dependency-light.** The package
+  docstring has always promised the transports (`ui`/`cli`/`serve`) load on
+  demand "since a library import should not pull in an HTTP server," and core
+  `dependencies = []`. `tests/test_import_purity.py` now enforces it: a fresh
+  subprocess imports nestor and asserts nothing third-party entered `sys.modules`
+  and no transport or `cloud_seal` gate seam was pulled in eagerly, with a
+  mutation test proving the guard can fail. This is the contract a zero-egress
+  host (UTETY, terpsi-music) needs before it will vendor the seal/ledger organ.
 - **A cold open for `nestor ui`.** `nestor demo` (and `nestor ui --demo`) seed a
   small live store across all three recipes plus a short review queue, so a
   freshly cloned or `pip install`ed Nestor opens onto real content, not an empty
@@ -63,6 +95,24 @@ what moved.
 
 ### Fixed
 
+- **The provenance card no longer renders the literal string `null`.** The UI's
+  `detailPanel` built its card with native `card.append(...)`, which stringifies
+  a `null`/`undefined`/`false` child to a text node — unlike the page's `h()`
+  helper, whose kid loop drops them. An ordinary row with no commitment choices
+  and no reason rendered `nullnull`. Fixed by filtering with `h()`'s own
+  predicate at the one native-append site. (#94)
+- **`nestor_propose` names what it refused instead of dropping it silently.** A
+  forbidden wire key was discarded without a word; a caller passing
+  `status`/`verifier`/`sealed` read an unqualified success where it should read
+  a refusal. The reply now lists the ignored fields and calls out any
+  seal-authority field with the reason it was dropped — the row still lands as
+  an unsealed draft. A refusal has to read as one. (#98)
+- **`keys add` prints the key that actually opens a session for an ed25519
+  verifier.** It printed `entry.key`, which for ed25519 is the *public* half —
+  it verifies the verifier's seals but can never sign in, so an enrolled
+  verifier was handed a key that 403s. It now prints the private signing half
+  `Sessions.open` authenticates against, branching on kind, and handles a
+  public-key-only (`--public`) enrollment separately. (#99)
 - **`nestor serve` and `nestor ask` can be told a custom matcher too**, which
   closes the half of `IDEAS.md` §6.41 that §6.40's fix did not reach. Both are
   launched as *processes*, so there is no earlier moment at which a host could
@@ -187,13 +237,13 @@ what moved.
 
 ### Not changed, and named so nobody assumes otherwise
 
-- **No version bump.** `0.1.0` stands. What the first released version should be
-  is a decision for whoever releases it.
-- **No tag.** Creating one is the trigger, and pulling that trigger is not a
-  thing this branch should do on its own.
-- **No `pip install nestor` in the README.** It would be false today, and a
-  README that lies about how to install is worse than one that omits it. It goes
-  in with the first release, in the same commit.
-- **No store schema version and no ledger format version.** Both are real gaps —
-  `IDEAS.md` §6.31 — and both touch persistence and the audit chain, so they
-  want deciding rather than stamping.
+- **No PyPI publish.** This release is pinnable by git ref only (`git+…@v0.2.0`);
+  the distribution-name decision (`docs/releasing.md` Decision 1 — `nestor` is
+  free on PyPI but taken on TestPyPI) is deferred to a later, deliberate publish.
+- **No tag on this branch.** The version and changelog are prepared here, but the
+  tag is the trigger and is cut on merge to `master` — pulling that trigger is
+  not a thing a feature branch does on its own.
+- **No ledger format version.** The store now carries a `user_version` (above),
+  but the hash-chained ledger deliberately does not: it cannot be re-hashed under
+  new rules, so its format is frozen by its first entry and versioning it is a
+  larger, still-open argument — `IDEAS.md` §6.31.

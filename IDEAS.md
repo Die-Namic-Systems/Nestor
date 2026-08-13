@@ -98,7 +98,7 @@ this map is not, CI fails. It cannot drift.
 | [6.28](docs/agent-log.md#628-concurrent-writers-the-known-limit-quantified--measured-fix-open) | Concurrent writers: the known limit, quantified | measured, fix open |
 | [6.29](docs/agent-log.md#629-two-of-the-three-refusals-are-exported-the-third-is-not--shipped) | Two of the three refusals are exported; the third is not | shipped |
 | [6.30](docs/agent-log.md#630-a-recipe-for-patches--built-measured-and-it-does-not-serve--measured-and-qualified-by-632) | A recipe for patches — built, measured, and it does not serve | measured, and qualified by §6.32 |
-| [6.31](docs/agent-log.md#631-nothing-that-persists-carries-a-version--measured-fix-open) | Nothing that persists carries a version | measured, fix open |
+| [6.31](docs/agent-log.md#631-nothing-that-persists-carries-a-version--measured-store-addressed-ledger-open) | Nothing that persists carries a version | measured, store addressed, ledger open |
 | [6.32](docs/agent-log.md#632-the-loop-fourth-turn--and-it-found-the-recipes-caveat-was-right--measured) | The loop, fourth turn — and it found the recipe's caveat was right | measured |
 | [6.33](docs/agent-log.md#633-the-memory-has-never-been-given-the-projects-decisions--measured-fix-open) | The memory has never been given the project's decisions | measured, fix open |
 | [6.34](docs/agent-log.md#634-a-ledger-line-that-cannot-exist-was-ignored-by-every-reader--shipped) | A ledger line that cannot exist was ignored by every reader | shipped |
