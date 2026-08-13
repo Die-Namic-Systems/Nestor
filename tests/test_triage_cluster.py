@@ -142,3 +142,36 @@ def test_smoke_real_corpus_partitions_every_decision_quickly():
         assert c.member_ids
         assert c.representative_id in c.member_ids
         assert isinstance(c.label, str)
+
+
+def test_no_length_prune_for_a_matcher_without_similarity_bound():
+    """The audit fix: the char length-ratio prune is valid only for difflib. A
+    semantic-style matcher (no similarity_bound) must score every pair, so a
+    short question that a length prune would drop still clusters with a long one.
+
+    A fake matcher scores this exact long/short pair high and everything else
+    low. If cluster.py length-pruned it (2*min/(la+lb) is ~0.28 here, well under
+    the bar), the two would land in separate clusters — this asserts they don't.
+    """
+    from nestor.triage import Decision
+    from nestor.triage.cluster import group
+
+    long_q = "Should the store, under concurrent writers over the pooled connection, fail closed?"
+    short_q = "fail closed?"
+
+    class _FakeSemantic:
+        """Has similarity() and normalize() but NO similarity_bound — like the
+        embedding matchers."""
+        def normalize(self, v):
+            return " ".join(str(v).lower().split())
+        def similarity(self, a, b):
+            pair = {a, b}
+            return 0.9 if pair == {self.normalize(long_q), self.normalize(short_q)} else 0.0
+
+    ds = [Decision(id="0001#0", file="0001.json", question=long_q, commitment="", why="", consolidated_onto=None),
+          Decision(id="0002#0", file="0002.json", question=short_q, commitment="", why="", consolidated_onto=None),
+          Decision(id="0003#0", file="0003.json", question="An unrelated question entirely.", commitment="", why="", consolidated_onto=None)]
+    clusters = group(ds, _FakeSemantic(), bar=0.55)
+    # the long/short paraphrase must be one cluster; the unrelated one its own
+    members = {tuple(sorted(c.member_ids)) for c in clusters}
+    assert ("0001#0", "0002#0") in members, members

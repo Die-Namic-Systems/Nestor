@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-13",
+  "note": "Follow-on to 0117. The operator ran the triage on their own machine and got 259 'still open' of 319 — but 57 of the 60 'resolved' were their existing consolidated_onto hand-notes, so the automatic supersede pass barely beat what was already marked by hand. Diagnosis: the character matcher is at its #101 ceiling (difflib sees near-exact rewordings, not paraphrase), so 259 is a ceiling on 'open', not the truth. The lever the operator's box has that the build box did not is Ollama. This adds `--matcher {string,semantic,ollama}` to the triage so it can group with embeddings locally, and fixes a correctness bug wiring it up exposed.",
+  "decisions": [
+    {
+      "question": "Was the triage safe to run under an embedding matcher as built?",
+      "commitment": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
+      "why": "A performance prune that is only valid for one matcher, applied to all, is a silent-wrong-answer generator — the exact class the repo warns about (the failure is never in the step you are watching; it is in the transform you assumed was neutral). Wiring --matcher without auditing the prune would have shipped a semantic path that looked like it worked and quietly discarded its best finds."
+    },
+    {
+      "question": "Does adding --matcher change the string default or the bar?",
+      "commitment": "No. `string` stays the offline default and 0.55 stays its measured knee. `semantic`/`ollama` are opt-in, load through the existing `nestor.answer.load_matcher` (persist=False, so a triage run never writes an embedding cache), and the CLI prints a stderr note that 0.55 is the string knee and their cosine bar must be re-found with --calibrate (unrelated text scores 0.7-0.8 on nomic, so the char bar is far too low). The build box cannot reach model weights, so the semantic path is wired and unit-tested for the prune gating but exercised on a host that has Ollama — build here, run there.",
+      "why": "Thresholds are not portable across matchers (the shipped warning says so), and a default that silently changed scale would mislead. The honest shape is: string is the tested default; semantic is the #101 fix the operator's own machine can run, clearly flagged as needing its own calibration."
+    }
+  ]
+}

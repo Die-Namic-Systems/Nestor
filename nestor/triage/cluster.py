@@ -96,9 +96,13 @@ def _build_graph(norms: list[str], matcher: StringMatcher,
 
     An edge ``(i, j)`` with ``i < j`` exists when the two normalized questions
     score ``>= bar``. Two lossless filters keep full scoring off pairs that
-    cannot clear the bar: a length-ratio ceiling, then ``similarity_bound`` when
-    the matcher publishes one. Both are upper bounds, so dropping a pair below
-    them never discards a real edge.
+    cannot clear the bar — a length-ratio ceiling and ``similarity_bound`` — but
+    both are upper bounds on *difflib's* ratio only, not on an embedding matcher's
+    cosine (a short paraphrase of a long question is a real semantic edge with a
+    poor length ratio). So both are gated on ``has_bound``: the character matcher
+    that publishes ``similarity_bound`` gets the prunes; a semantic / ollama
+    matcher skips them and scores every pair, which is cheap because it caches
+    each question's embedding and the pairwise step is only a cosine.
     """
     n = len(norms)
     lengths = [len(x) for x in norms]
@@ -114,14 +118,15 @@ def _build_graph(norms: list[str], matcher: StringMatcher,
             lb = lengths[j]
             if not lb:
                 continue
-            # Length ceiling: the most two strings can share is the shorter one,
-            # so 2*min/(la+lb) is an upper bound on difflib's ratio. Cheap and
-            # kills most pairs before any sequence indexing happens.
-            if 2.0 * min(la, lb) / (la + lb) < bar:
-                continue
             b = norms[j]
-            if has_bound and matcher.similarity_bound(a, b, floor=bar) < bar:
-                continue
+            # Prunes valid only for a length-bounded (difflib) matcher — see the
+            # docstring. A matcher without similarity_bound (semantic/ollama)
+            # scores every pair rather than risk dropping a real paraphrase edge.
+            if has_bound:
+                if 2.0 * min(la, lb) / (la + lb) < bar:
+                    continue
+                if matcher.similarity_bound(a, b, floor=bar) < bar:
+                    continue
             score = matcher.similarity(a, b)
             if score >= bar:
                 adj[i].append(j)

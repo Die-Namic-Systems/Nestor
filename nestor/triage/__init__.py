@@ -40,7 +40,7 @@ import json
 import pathlib
 from dataclasses import dataclass
 
-from nestor.matcher import StringMatcher
+from nestor.matcher import Matcher, StringMatcher
 
 #: The triage bar, set by measuring this corpus — not inherited from the bench.
 #: ``docs/decision-rewording-bench.md`` measured ~0.45 for rank@1 *recall* (a
@@ -133,7 +133,7 @@ def load_decisions(root: pathlib.Path | None = None) -> list[Decision]:
 
 
 def triage(decisions: list[Decision] | None = None,
-           matcher: StringMatcher | None = None,
+           matcher: Matcher | None = None,
            bar: float = DEFAULT_BAR,
            root: pathlib.Path | None = None) -> Report:
     """Group the queue and find its supersessions — the whole assembly.

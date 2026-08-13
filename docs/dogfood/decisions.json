@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 319,
+    "pairs": 321,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "73e445ee951ac86c14611873b616957d404b6d1106a9de8194d5fae3eb645af1",
+  "digest": "1fb62a4172db08b39af0bf68ddbf45cf27d470d8bb616694d394063f3da7ffaa",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two defects, both caught by running it rather than reading it. (1) The default bar was 0.45, inherited from the rewording rank@1 bench — a different task; on all-pairs triage it flooded with 674 skeleton false-contradicts because question-shaped decisions share a 'Should the X be Y?' skeleton that character difflib scores. A --calibrate sweep put the knee at 0.55 (269 groups / 62 edges; the supersedes there are genuine 0.92+ rewordings), so the default moved and the reasoning was written down. (2) The --propose path had never been run and crashed: add_pair dedups same-question decisions on source_norm, so an edge's endpoint went missing; fixed with id-prefixed ephemeral rows. The two agents also died before writing their test files, so the audit wrote test_triage_supersede.py and test_triage_report.py — including the seals-nothing proof.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "6c3cc3ff-78e9-5539-b16d-8b07d17bc05c",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the triage safe to run under an embedding matcher as built",
+      "source_text": "Was the triage safe to run under an embedding matcher as built?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — cluster.py applied a character length-ratio prune (2*min/(la+lb) < bar) UNCONDITIONALLY as a cheap upper bound on difflib's ratio. That bound is real for difflib and false for cosine: a short paraphrase of a long question has a poor length ratio and a high semantic similarity, so the prune would have silently dropped exactly the re-worded edges the semantic matcher exists to find. Fixed by gating both the length prune and similarity_bound behind `has_bound` (true only for the character matcher that publishes similarity_bound); a semantic/ollama matcher skips both and scores every pair, which is cheap because SemanticMatcher caches each question's embedding (512 default, > the 319 here) so the O(n^2) sweep is only cosines. A test with a fake bound-less matcher that scores one long/short pair high asserts they still cluster — it fails if the prune comes back.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "688fae19-f4e2-5771-a684-3707cd329b5a",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does adding matcher change the string default or the bar",
+      "source_text": "Does adding --matcher change the string default or the bar?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `string` stays the offline default and 0.55 stays its measured knee. `semantic`/`ollama` are opt-in, load through the existing `nestor.answer.load_matcher` (persist=False, so a triage run never writes an embedding cache), and the CLI prints a stderr note that 0.55 is the string knee and their cosine bar must be re-found with --calibrate (unrelated text scores 0.7-0.8 on nomic, so the char bar is far too low). The build box cannot reach model weights, so the semantic path is wired and unit-tested for the prune gating but exercised on a host that has Ollama — build here, run there.",
       "verifier": "",
       "weight": 1.0
     },
