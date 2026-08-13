@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 321,
+    "pairs": 325,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "e227e2795959d8e23c96598b6afdee245b7afad71e1673830613c7762eff0091",
+  "digest": "376a8788bc60caf0bd410816cbfa30a28fed3d1cf64e6c8030742aee21d4e826",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -189,6 +189,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "e71c8717-83d8-5b11-80d9-425f601bdf44",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the boot depends on a runtime variable claude_project_dir that was unset fix by trusting it harder or by not trusting it at all",
+      "source_text": "The boot depends on a runtime variable (CLAUDE_PROJECT_DIR) that was unset. Fix by trusting it harder, or by not trusting it at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not at all. hooks/nestor-hook and .claude/hooks/session-start.sh now resolve their repo root from their own file location (readlink -f on ${BASH_SOURCE[0]}, then ../ or ../../), with NESTOR_PROJECT_ROOT kept only as an explicit test override. Neither script reads CLAUDE_PROJECT_DIR or $PWD to find the repo anymore.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "e3905559-15b1-50a4-90f8-fc648d961f81",
       "origin": "pr:None",
       "seal_sig": "",
@@ -226,6 +240,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A committed .secrets.baseline records the only two current findings, both entropy hits on test fixtures with deliberately fake signatures (tests/test_seal_replacement.py, tests/test_sqlite_store.py); detect-secrets-hook fails only on findings NOT in the baseline. Derived and frequently-regenerated artifacts are EXCLUDED from the scan rather than baselined -- the binary store (docs/dogfood/nestor.db), the rebuilt decisions bundle (docs/dogfood/decisions.json), any exported *.bundle.json, and bench/results -- because their high-entropy content changes on every rebuild and would otherwise trip the hook on routine work. The same exclusion is applied in scripts/ci-lint.sh and .github/workflows/tests.yml.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "dec34aca-bc60-5434-a333-1801cc1a5768",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "settingsjson still has to name nestorhook somehow and claude_project_dir may be unset what path does it use",
+      "source_text": "settings.json still has to name nestor-hook somehow, and CLAUDE_PROJECT_DIR may be unset. What path does it use?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A POSIX resolver, not a bare variable: `for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude <module>; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done`. It prefers the variable when set, else walks up from the working directory, and no-ops cleanly (exit 0) when it finds nothing.",
       "verifier": "",
       "weight": 1.0
     },
@@ -609,6 +637,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "87f777fe-8d66-58ce-a945-10bcd725f40d",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the bootstrap failed silently once already how does the next failure announce itself",
+      "source_text": "The bootstrap failed silently once already. How does the next failure announce itself?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "session-start.sh is loud on both non-outcomes: it prints to stderr (naming the resolved repo root) when it declines because CLAUDE_CODE_REMOTE != true, and exits non-zero after building if no interpreter landed at .venv/bin/python; it also warns when it built a venv but CLAUDE_ENV_FILE was unset so PATH could not be updated. The agent-facing signal is unchanged and independent: session_start's `[check] pytest:` line already reports a missing .venv.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "809f89a9-1469-52c4-b99b-8ca2102c8b16",
       "origin": "pr:None",
       "seal_sig": "",
@@ -842,6 +884,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. Before wiring it in, detect-secrets-hook was run against a planted file containing an AWS-shaped key and a high-entropy string; it exited non-zero and named both. Over the real tree (minus the excluded artifacts) it exits zero. A guard that cannot be shown to fail has not been shown to work.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "5a94b439-33b0-5ed9-b84c-95147106e53f",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the resolver close the hole completely",
+      "source_text": "Does the resolver close the hole completely?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it says so. A session rooted ABOVE the repo with CLAUDE_PROJECT_DIR unset (the exact multi-repo web layout that produced §6.108) has no anchor pointing into the sibling subdir, so no project-scoped hook command can locate itself from there. Recorded as the residual in §6.108 and left to the runtime, not papered over.",
       "verifier": "",
       "weight": 1.0
     },
