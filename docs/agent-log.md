@@ -6489,7 +6489,7 @@ is, in this file's own words, a gate nobody has watched fail. The multi-repo web
 layout (session rooted above the package) is the configuration to test against,
 because it is the one that severs the variable everything else hangs from.
 
-**Shipped (decision 0117).** Three layers, and one honest residual.
+**Shipped (decision 0118).** Three layers, and one honest residual.
 `hooks/nestor-hook` and `.claude/hooks/session-start.sh` now resolve their root
 from their own file path (`readlink -f` on `${BASH_SOURCE[0]}`), so once either
 is *reached* it lands in the right repo whatever the cwd or env — verified by

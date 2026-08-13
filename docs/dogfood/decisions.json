@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 320,
+    "pairs": 323,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-12T00:00:00+00:00",
-  "digest": "b47fdb1894460e772674167fb9d8d9737b79c61595cbe929c26a498ef3797bc8",
+  "created_at": "2026-08-13T00:00:00+00:00",
+  "digest": "9f97448fdfc77c68727ff9f5c0a54b8eb367e800d4eba9dc5bc6f7046f4f8512",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -20,6 +20,48 @@
   "nestor_bundle": 2,
   "pairs": [
     {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "94fb95ce-51a5-5202-9da9-b906f26ab043",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what did the audit change about what the agents built",
+      "source_text": "What did the audit change about what the agents built?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two defects, both caught by running it rather than reading it. (1) The default bar was 0.45, inherited from the rewording rank@1 bench — a different task; on all-pairs triage it flooded with 674 skeleton false-contradicts because question-shaped decisions share a 'Should the X be Y?' skeleton that character difflib scores. A --calibrate sweep put the knee at 0.55 (269 groups / 62 edges; the supersedes there are genuine 0.92+ rewordings), so the default moved and the reasoning was written down. (2) The --propose path had never been run and crashed: add_pair dedups same-question decisions on source_norm, so an edge's endpoint went missing; fixed with id-prefixed ephemeral rows. The two agents also died before writing their test files, so the audit wrote test_triage_supersede.py and test_triage_report.py — including the seals-nothing proof.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "378a12ae-4b12-59a1-98c8-52cf14beda7d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "before building the grouping was the box searched for what already exists",
+      "source_text": "Before building the grouping, was the box searched for what already exists?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — and only after the operator stopped a first attempt that jumped straight to building. Two look-sees (the fleet on disk; the open internet) ran first, exactly the discipline the before_build hook (#105) now enforces. They converged: grouping is an assembly of shipped parts (~100 lines), not a new capability, and building the clustering primitive fresh would have repeated the rediscovery `the-house-already-knew.md` documents. The triage re-lands the shapes over Nestor's own matchers rather than importing willow-mcp (unavailable, and heavy).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-13T00:00:00+00:00",
+      "id": "1d6dc54f-a5ed-554a-88bc-2875fc5455c8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "can the triage seal anything",
+      "source_text": "Can the triage seal anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Every path proposes and only proposes. render() touches no store; emit_edges() calls DecisionMemory.propose_edge only, landing draft edges (edge_sig='', verifier=''); the CLI --propose ingests into a throwaway in-memory store and asserts 0 pairs and 0 edges sealed before it returns. Proven end-to-end on the real 316: 'proposed 62 edges; 0 sealed'. The groups and edges are a queue for a human at nestor ui, never a verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
       "created_at": "2026-08-12T00:00:00+00:00",
       "id": "f9a23c50-9d71-51b4-985f-fdacd9d444df",
       "origin": "pr:None",
@@ -30,20 +72,6 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No — it extends it. 6.94 measured paraphrase recall at 2/10 and first-sentence recall at 4/50, and read the misses as the threshold refusing to serve a decision it was not sure it was asked. For two of three probes that reading is exactly right. 6.106 adds the rank, which 6.94 did not measure.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-12T00:00:00+00:00",
-      "id": "f60ecef8-9d45-5905-b5a6-2b93aba8686c",
-      "origin": "pr:108",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "does the resolver close the hole completely",
-      "source_text": "Does the resolver close the hole completely?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "No, and it says so. A session rooted ABOVE the repo with CLAUDE_PROJECT_DIR unset (the exact multi-repo web layout that produced §6.108) has no anchor pointing into the sibling subdir, so no project-scoped hook command can locate itself from there. Recorded as the residual in §6.108 and left to the runtime, not papered over.",
       "verifier": "",
       "weight": 1.0
     },
@@ -133,6 +161,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "e71c8717-83d8-5b11-80d9-425f601bdf44",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the boot depends on a runtime variable claude_project_dir that was unset fix by trusting it harder or by not trusting it at all",
+      "source_text": "The boot depends on a runtime variable (CLAUDE_PROJECT_DIR) that was unset. Fix by trusting it harder, or by not trusting it at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not at all. hooks/nestor-hook and .claude/hooks/session-start.sh now resolve their repo root from their own file location (readlink -f on ${BASH_SOURCE[0]}, then ../ or ../../), with NESTOR_PROJECT_ROOT kept only as an explicit test override. Neither script reads CLAUDE_PROJECT_DIR or $PWD to find the repo anymore.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "e3905559-15b1-50a4-90f8-fc648d961f81",
       "origin": "pr:None",
       "seal_sig": "",
@@ -170,6 +212,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A committed .secrets.baseline records the only two current findings, both entropy hits on test fixtures with deliberately fake signatures (tests/test_seal_replacement.py, tests/test_sqlite_store.py); detect-secrets-hook fails only on findings NOT in the baseline. Derived and frequently-regenerated artifacts are EXCLUDED from the scan rather than baselined -- the binary store (docs/dogfood/nestor.db), the rebuilt decisions bundle (docs/dogfood/decisions.json), any exported *.bundle.json, and bench/results -- because their high-entropy content changes on every rebuild and would otherwise trip the hook on routine work. The same exclusion is applied in scripts/ci-lint.sh and .github/workflows/tests.yml.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "dec34aca-bc60-5434-a333-1801cc1a5768",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "settingsjson still has to name nestorhook somehow and claude_project_dir may be unset what path does it use",
+      "source_text": "settings.json still has to name nestor-hook somehow, and CLAUDE_PROJECT_DIR may be unset. What path does it use?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A POSIX resolver, not a bare variable: `for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude <module>; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done`. It prefers the variable when set, else walks up from the working directory, and no-ops cleanly (exit 0) when it finds nothing.",
       "verifier": "",
       "weight": 1.0
     },
@@ -553,7 +609,7 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
-      "id": "81514e83-354f-578e-bff6-4c76d773bd9e",
+      "id": "87f777fe-8d66-58ce-a945-10bcd725f40d",
       "origin": "pr:108",
       "seal_sig": "",
       "source_lang": "decision",
@@ -805,6 +861,20 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
+      "id": "5a94b439-33b0-5ed9-b84c-95147106e53f",
+      "origin": "pr:108",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the resolver close the hole completely",
+      "source_text": "Does the resolver close the hole completely?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it says so. A session rooted ABOVE the repo with CLAUDE_PROJECT_DIR unset (the exact multi-repo web layout that produced §6.108) has no anchor pointing into the sibling subdir, so no project-scoped hook command can locate itself from there. Recorded as the residual in §6.108 and left to the runtime, not papered over.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "5a4fe4ca-2c8d-534d-964f-1a0b84b0f227",
       "origin": "pr:None",
       "seal_sig": "",
@@ -1001,20 +1071,6 @@
     },
     {
       "created_at": "2026-08-12T00:00:00+00:00",
-      "id": "3d56645a-9600-5917-8a32-a64c149768c0",
-      "origin": "pr:108",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "settingsjson still has to name nestorhook somehow and claude_project_dir may be unset what path does it use",
-      "source_text": "settings.json still has to name nestor-hook somehow, and CLAUDE_PROJECT_DIR may be unset. What path does it use?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "A POSIX resolver, not a bare variable: `for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude <module>; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done`. It prefers the variable when set, else walks up from the working directory, and no-ops cleanly (exit 0) when it finds nothing.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-12T00:00:00+00:00",
       "id": "3cf70863-0766-5247-b1fb-524f0bf87b18",
       "origin": "pr:None",
       "seal_sig": "",
@@ -1038,20 +1094,6 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A separate workflow (security-review.yml) on pull_request, NOT wired into the required 'test' aggregate gate, so it advises and never blocks a merge. A first step checks whether secrets.ANTHROPIC_API_KEY is set and gates the checkout + review steps on it; without the key the job prints a ::notice:: and succeeds, so fork PRs and key-less checkouts stay green. Permissions are the minimum the action needs (contents: read, pull-requests: write). docs/dogfood and bench/results are excluded from the scan as derived artifacts.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-12T00:00:00+00:00",
-      "id": "3a7f7d68-7a49-5b4b-aa33-cb656d0954b0",
-      "origin": "pr:108",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "the boot depends on a runtime variable claude_project_dir that was unset fix by trusting it harder or by not trusting it at all",
-      "source_text": "The boot depends on a runtime variable (CLAUDE_PROJECT_DIR) that was unset. Fix by trusting it harder, or by not trusting it at all?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "Not at all. hooks/nestor-hook and .claude/hooks/session-start.sh now resolve their repo root from their own file location (readlink -f on ${BASH_SOURCE[0]}, then ../ or ../../), with NESTOR_PROJECT_ROOT kept only as an explicit test override. Neither script reads CLAUDE_PROJECT_DIR or $PWD to find the repo anymore.",
       "verifier": "",
       "weight": 1.0
     },
