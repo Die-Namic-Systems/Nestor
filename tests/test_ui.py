@@ -517,6 +517,31 @@ def test_the_page_is_self_contained():
     assert "innerHTML =" not in PAGE and "insertAdjacentHTML" not in PAGE
 
 
+def test_a_draft_is_ratified_in_place_from_the_detail_panel():
+    """Ratifying a draft happens where the curator is looking.
+
+    The first cut bolted a draft picker onto "Seal a pair by hand" — a dropdown
+    plus a disabled copy of the question plus the answer, three views of one
+    decision on a form built to create *new* pairs. Instead the detail panel of
+    a plain draft edits the proposed answer and seals it in place via
+    ``/api/seal-draft``; the hand-seal card is new-pairs-only again.
+    """
+    from nestor.ui_page import PAGE
+
+    assert "function sealDraftInPlace" in PAGE
+    assert "Seal this decision" in PAGE
+    assert '"/api/seal-draft"' in PAGE
+    # the picker and its helpers are gone
+    assert "seal-draft-pick" not in PAGE
+    assert "sealDraftCandidates" not in PAGE
+    # submitSeal creates new pairs only — no draft branch
+    hand = PAGE.split("async function submitSeal()", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert "sealDraftId" not in hand
+    assert '"/api/seal"' in hand
+
+
 def test_main_refuses_a_non_loopback_bind_without_an_explicit_flag(capsys):
     assert ui.main(["--host", "0.0.0.0", "--db", ":memory:"]) == 2
     assert "no authentication" in capsys.readouterr().err
