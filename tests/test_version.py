@@ -67,7 +67,7 @@ def test_version_agrees_with_the_installed_distribution():
     """Or says plainly that there isn't one. Both are correct; a third answer
     would mean the package invented a number."""
     try:
-        installed = dist_version("nestor")
+        installed = dist_version("nestor-meaning")
     except PackageNotFoundError:
         assert nestor.__version__ == UNINSTALLED
     else:
