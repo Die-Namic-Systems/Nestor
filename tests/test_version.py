@@ -163,3 +163,63 @@ def test_the_publish_extra_is_not_folded_into_dev():
     assert re.search(r"^publish = \[", extras, re.M)
     dev = re.search(r"^dev = \[(.*?)\]", extras, re.M | re.S).group(1)
     assert "build" not in dev and "twine" not in dev
+
+
+#: Extras a shipped error message might tell a user to install.
+_EXTRAS = ("keys", "semantic", "gate", "cloud", "dev", "publish")
+
+
+def test_shipped_install_hints_name_the_distribution_that_exists():
+    """Every `pip install X[extra]` in shipped code must name the real dist.
+
+    0.3.0 renamed the distribution to `nestor-meaning` and the wheel went out
+    still telling users, at runtime, to run `pip install nestor[semantic]` —
+    `keyring.py`, `signing.py`, `semantic_matcher.py`, `answer.py` and
+    `cloud_seal.py` all carried the old name. That command now fails with
+    `No matching distribution found`, because `nestor` on PyPI is a reserved
+    project with no files. The rename touched pyproject, README and CHANGELOG;
+    it did not touch the strings a user only sees once something has already
+    gone wrong, which is the worst moment to be handed a command that does not
+    work.
+
+    Scoped to `nestor/` — what actually ships in the wheel. Docs quoting the old
+    name in a historical record (FINDINGS, agent-log) are describing the past
+    and are left alone."""
+    declared = re.search(r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+    pattern = re.compile(r"([A-Za-z0-9_.-]+)\[(" + "|".join(_EXTRAS) + r")\]")
+    wrong = []
+    for path in sorted((ROOT / "nestor").rglob("*.py")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for dist, extra in pattern.findall(line):
+                if dist != declared:
+                    wrong.append(f"{path.relative_to(ROOT)}:{lineno} {dist}[{extra}]")
+    assert not wrong, (
+        f"shipped code names a distribution that is not {declared!r}:\n  "
+        + "\n  ".join(wrong))
+
+
+def test_dev_installs_every_gate_ci_lint_runs():
+    """`[dev]` says it carries what the documented lint command runs. Check it.
+
+    Decision 0101 wired detect-secrets into `scripts/ci-lint.sh` and the tests.yml
+    lint job and stopped there, so `pip install -e ".[dev]"` — the install AGENTS.md
+    prescribes and the web SessionStart hook performs — built a venv that cleared
+    ruff and bandit and then died on `No module named detect_secrets`. The extra's
+    own comment already called that failure by name ("a dev install that cannot run
+    the documented lint commands is the docs lying by omission"); it just had no
+    gate under it. Read the modules back out of the script rather than listing them
+    here, so a fourth gate cannot land undeclared."""
+    script = (ROOT / "scripts" / "ci-lint.sh").read_text(encoding="utf-8")
+    modules = {m.split(".")[0] for m in re.findall(r"python -m ([\w.]+)", script)}
+    assert modules, "no `python -m` gates found — did ci-lint.sh change shape?"
+    dev = re.search(r"^dev = \[(.*?)^\]", table("project.optional-dependencies"),
+                    re.M | re.S).group(1)
+    # Requirement lines only: the block is half comment, and the prose names the
+    # very modules being looked for (the §6.13 trap test_no_license_classifier
+    # already records — a text check has to be told what it may look at).
+    declared = {re.split(r"[<>=!~\[]", line.strip().strip('",'))[0].replace("-", "_")
+                for line in dev.splitlines() if line.strip().startswith('"')}
+    missing = sorted(m for m in modules if m not in declared)
+    assert not missing, (
+        f"scripts/ci-lint.sh runs {sorted(modules)} but [dev] declares "
+        f"{sorted(declared)} — missing {missing}")

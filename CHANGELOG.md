@@ -18,6 +18,47 @@ what moved.
 
 ---
 
+## [0.3.1] - 2026-08-15
+
+A correctness patch for what 0.3.0's rename left behind. No schema, ledger or
+API change; the only shipped difference is that the install commands Nestor
+prints when it refuses now name a distribution that exists.
+
+### Fixed
+
+- **Runtime install hints named the old distribution.** Renaming to
+  `nestor-meaning` in 0.3.0 updated `pyproject.toml`, the README and this file,
+  but not the strings five modules print when an optional extra is missing —
+  `keyring.py`, `signing.py`, `semantic_matcher.py`, `answer.py` and
+  `cloud_seal.py` all still said `pip install nestor[keys]` / `[semantic]` /
+  `[gate]`. Those commands fail outright (`No matching distribution found`),
+  because `nestor` on PyPI is a reserved project with no files. A user only
+  reads those strings once something has already gone wrong, so the failure
+  handed them a second one. Recorded as dogfood decision `0129`.
+
+  `tests/test_version.py::test_shipped_install_hints_name_the_distribution_that_exists`
+  now reads `name` out of `pyproject.toml` and fails on any module under
+  `nestor/` that names a different distribution, so a future rename cannot leave
+  them behind again.
+
+### Changed
+
+- **`[dev]` installs every gate `scripts/ci-lint.sh` runs.** `detect-secrets`
+  was wired into the lint script and CI by decision `0101` but never declared,
+  so `pip install -e ".[dev]"` built an environment that cleared ruff and bandit
+  and then died on `No module named detect_secrets`. Pinned to `==1.5.0`, the
+  version CI installs, because the scan is judged against a committed
+  `.secrets.baseline`. Decision `0124`.
+
+- **The SessionStart seat context answers three more questions.** `[check]
+  lint:` reports whether every gate in `scripts/ci-lint.sh` can actually run;
+  `[nestor]` says whether a Nestor is stood up and, when none is, hands the
+  agent the question to put to the user rather than standing one up itself.
+  Neither modifies anything it inspects. Decisions `0126`, `0127`, `0128`.
+  Repository tooling only — `hooks/` is not part of the distribution.
+
+---
+
 ## [0.3.0] - 2026-08-15
 
 The first release published to PyPI, as `nestor-meaning` (`pip install

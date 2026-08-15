@@ -1,0 +1,23 @@
+{
+    "pr": null,
+    "branch": "claude/session-start-check-ta4sli",
+    "date": "2026-08-15",
+    "note": "Found while fixing the boot check (0124), on a clean tree with nothing stashed: `python -m pytest -q` failed test_hook_guard.py::test_every_wired_gate_denies_on_the_wire with `write-gated-py-blocked: expect deny, got allow`. scripts/hook_guard.py drove before_write with an env that did not name a receipt path, so hooks.review_receipt fell back to the shared per-checkout location and the harness inherited whatever the developer had recorded. Consulting the review desk -- which before_write REQUIRES before editing gated code -- therefore broke the test suite for the receipt's half-hour TTL. Every case now runs against a receipt this harness creates in a temp dir, and the write gate is pinned in both directions.",
+    "decisions": [
+        {
+            "question": "What receipt does scripts/hook_guard.py prove the write gate against?",
+            "commitment": "One it creates itself. Each Case carries a `receipt` field -- 'absent' or 'fresh' -- and run() builds both files in a TemporaryDirectory and passes the chosen path to the child through hooks.review_receipt._ENV_PATH. The fresh one is written by review_receipt.record() rather than hand-rolled JSON, and the harness references the module's own env-var name rather than repeating the literal, so neither the receipt format nor its location can drift away from the gate being proven. The real per-checkout receipt is never read and never written.",
+            "why": "A harness whose verdict depends on what the operator did in the last thirty minutes is not proving the gate, it is sampling the machine. Worse, the two states were coupled by the seat's own instructions: hooks/seat.md and AGENTS.md name both `bash scripts/ci-lint.sh` and `python -m pytest -q`, and before_write compels a desk consultation before any gated edit -- so an agent following the documented process turned a green suite red on a clean tree with no diff to blame, which is the hardest failure to attribute correctly."
+        },
+        {
+            "question": "Is the write gate proven to open, or only to shut?",
+            "commitment": "Both. A third before_write case, write-gated-py-allowed-after-consulting, runs the same forbidden payload against a fresh receipt and expects allow; the deny case now explicitly runs against an absent one. tests/test_hook_guard.py pins the pair, so removing either direction fails the suite. Isolating the receipt made this cheap -- both states are already constructed.",
+            "why": "The old harness inherited a receipt and so could not choose a state to test; with isolation it can test both, and a gate proven only to deny could have been wired permanently shut without anything noticing. The repo already holds the converse rule (0101, 0099: a guard that cannot be shown to fail is a ledger, not a gate); a gate that cannot be shown to open is the same error pointing the other way, and it is the direction that silently stops work rather than silently permitting it."
+        },
+        {
+            "question": "Was the isolation shown to be load-bearing?",
+            "commitment": "Yes. With the per-case receipt override removed and everything else unchanged, three tests fail -- test_every_wired_gate_denies_on_the_wire and both parametrisations of test_the_guard_ignores_whatever_receipt_the_developer_holds -- reporting the original `expect deny, got allow`. Restoring it returns all seven to green. The regression test drives scripts/hook_guard.py under both an absent and a deliberately fresh ambient receipt and requires exit 0 from each.",
+            "why": "The defect only appears when a receipt happens to be live, so a test that ran solely in the ambient state of a clean CI box would have passed without exercising anything -- exactly why CI never caught this. Constructing the fresh ambient state explicitly is what turns an environment-dependent flake into a pinned property."
+        }
+    ]
+}

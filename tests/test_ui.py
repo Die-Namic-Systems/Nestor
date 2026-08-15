@@ -396,12 +396,12 @@ def test_semantic_without_extra_is_refused_not_defaulted(filled, without_fastemb
     status, out = post(filled, "/api/match", text="x", matcher="semantic")
     assert status == 400
     assert "semantic" in out["error"].lower()
-    assert "nestor[semantic]" in out["error"] or "optional" in out["error"].lower()
+    assert "[semantic]" in out["error"] or "optional" in out["error"].lower()
 
 
 def test_semantic_match_when_extra_installed(filled):
     if not importlib.util.find_spec("fastembed"):
-        pytest.skip("pip install nestor[semantic]")
+        pytest.skip("pip install nestor-meaning[semantic]")
     status, out = post(filled, "/api/match", text="hello", matcher="semantic")
     assert status == 200
     assert out["matcher"] == "semantic"

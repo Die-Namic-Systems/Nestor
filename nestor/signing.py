@@ -87,7 +87,7 @@ def _load_ed25519():
     except ImportError as exc:
         raise SigningRequiredError(
             "this keyring holds ed25519 keys, which need the [keys] extra: "
-            "pip install 'nestor[keys]'. HMAC keyrings remain the "
+            "pip install 'nestor-meaning[keys]'. HMAC keyrings remain the "
             "dependency-free default.") from exc
 
 

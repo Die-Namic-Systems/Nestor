@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nestor-meaning"
-version = "0.3.0"
+version = "0.3.1"
 description = "Has a human checked this? A seal/serve/audit mechanic over a verified-match memory — translation, entity resolution and numeric reconciliation recipes, a hash-chained ledger, injected storage, and browser, terminal and MCP surfaces."
 readme = "README.md"
 license = "Apache-2.0"
@@ -61,6 +61,15 @@ dev = [
     # cannot run the documented lint commands is the docs lying by omission
     "ruff==0.15.0",
     "bandit",
+    # The third gate in scripts/ci-lint.sh. Decision 0101 wired the secret scan
+    # into that script and tests.yml but not into this extra, so every venv built
+    # from `.[dev]` — including the one the web SessionStart hook builds — passed
+    # ruff and bandit and then died on `No module named detect_secrets` at the
+    # gate nothing had reported on. Pinned to the version tests.yml installs:
+    # the gate is judged against a committed .secrets.baseline, and a scanner
+    # that finds a different set from CI's is a gate that disagrees with the one
+    # branch protection actually runs.
+    "detect-secrets==1.5.0",
 ]
 cloud = [
     "anthropic>=0.60",

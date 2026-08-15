@@ -40,8 +40,19 @@ exactly this the day this file was written.
 - **Claude Code on the web:** the SessionStart hook
   (`.claude/hooks/session-start.sh`) has already built `.venv`, installed
   `.[dev,keys]` into it, and put `.venv/bin` first on your `PATH` before
-  your first prompt. Trust it after one check: `python -m pytest --version`.
-  If that fails, run the hook yourself — do **not** `pip install` into
+  your first prompt. You do not have to check it by hand: the boot context
+  carries a `[check] pytest:` line and a `[check] lint:` line, and the lint
+  line names any module `scripts/ci-lint.sh` needs and cannot import. Read
+  them. `python -m pytest --version` alone is *not* the check — it passes on
+  a venv whose secret-scan gate is missing, which is how a broken pre-push
+  command survived a boot that looked green.
+  The boot also carries a `[nestor]` line saying whether a Nestor is stood
+  up. When it is not, that line is an **instruction to ask the user** whether
+  to stand one up — put the question, do not answer it by running the
+  command. Ask early: `nestor stats` on a tree with no store creates
+  `data/nestor.db` and prints `0 pair(s)`, so the first command you type makes
+  an absent Nestor indistinguishable from an empty one.
+  If either line is red, run the hook yourself — do **not** `pip install` into
   system python; this container carries a broken Debian `cryptography` on
   its path that satisfies the requirement without importing.
 - **Anywhere else:** the repo convention is a venv at `.venv`. Activation is
@@ -54,7 +65,8 @@ exactly this the day this file was written.
          && pip install -e ".[dev,keys]"; }
   ```
 
-- `[dev]` carries pytest, ruff and bandit; `[keys]` carries cryptography so
+- `[dev]` carries pytest and every gate `scripts/ci-lint.sh` runs — ruff, bandit
+  and detect-secrets; `[keys]` carries cryptography so
   the asymmetric suite runs instead of skipping. Do **not** add `[semantic]`
   unless the task needs it — see "Before you finish".
 

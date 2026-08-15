@@ -6,7 +6,7 @@
 Two backends:
 
 * ``fastembed`` (default for the ``semantic`` name) — optional pip extra
-  ``nestor[semantic]``; model loads on the first embed call.
+  ``nestor-meaning[semantic]``; model loads on the first embed call.
 * ``ollama`` (the ``ollama`` shipped name) — stdlib HTTP to a local daemon;
   default model ``nomic-embed-text``. No pip extra.
 
@@ -40,7 +40,7 @@ def _require_fastembed() -> None:
     except ImportError as exc:
         raise ImportError(
             "SemanticMatcher requires the optional 'semantic' extra: "
-            "pip install nestor[semantic]"
+            "pip install nestor-meaning[semantic]"
         ) from exc
 
 

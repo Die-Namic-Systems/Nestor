@@ -1,4 +1,4 @@
-"""Optional live check for nestor[semantic] — only when NESTOR_SEMANTIC_TEST=1."""
+"""Optional live check for nestor-meaning[semantic] — only when NESTOR_SEMANTIC_TEST=1."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def _fastembed_installed() -> bool:
 
 @pytest.mark.skipif(
     not integration_tests_enabled() or not _fastembed_installed(),
-    reason="set NESTOR_SEMANTIC_TEST=1 and pip install nestor[semantic]",
+    reason="set NESTOR_SEMANTIC_TEST=1 and pip install nestor-meaning[semantic]",
 )
 def test_aws_amazon_web_services_beats_string_matcher():
     """IDEAS §3.1 motivating case — character ratio ~0.273, semantic should win."""

@@ -192,7 +192,7 @@ class TestWithoutTheExtra:
         def _no_extra():
             raise signing.SigningRequiredError(
                 "this keyring holds ed25519 keys, which need the [keys] "
-                "extra: pip install 'nestor[keys]'.")
+                "extra: pip install 'nestor-meaning[keys]'.")
         monkeypatch.setattr(signing, "_load_ed25519", _no_extra)
         with pytest.raises(signing.SigningRequiredError, match=r"\[keys\]"):
             memory.add_pair("hello", "hola", "en", "es", status="sealed",

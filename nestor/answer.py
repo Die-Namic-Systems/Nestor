@@ -38,7 +38,7 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
     quietly resolved to the default — the default would score a completely
     different notion of similarity under a name the caller chose deliberately.
 
-    ``semantic`` needs ``pip install nestor[semantic]`` (fastembed). ``ollama``
+    ``semantic`` needs ``pip install nestor-meaning[semantic]`` (fastembed). ``ollama``
     needs a reachable Ollama daemon with ``nomic-embed-text`` (stdlib HTTP; no
     pip extra). Thresholds tuned for :class:`~nestor.matcher.StringMatcher` are
     not portable — measure with ``nestor calibrate`` on your corpus.
