@@ -380,6 +380,22 @@ class NumericMatcher:
 
     # -- scoring ----------------------------------------------------------
 
+    def tolerance_for(self, a: float, b: float) -> float:
+        """The absolute slack this matcher allows between ``a`` and ``b``.
+
+        ``max(abs_tol, pct_tol * max(|a|, |b|))`` — the one number the
+        comparison actually turns on, and the reason it is public: a caller
+        that reports a variation needs to report what the variation was
+        measured against, or the reader cannot check the verdict.
+
+        Note the proportional leg is a fraction of the **larger magnitude**,
+        which keeps the comparison symmetric (``a`` vs ``b`` scores the same as
+        ``b`` vs ``a``). A reconciliation reporting a *baseline*-relative
+        percentage is therefore quoting a different denominator; see
+        :meth:`nestor.reconcile.Reconciler.check`.
+        """
+        return max(self.abs_tol, self.pct_tol * max(abs(a), abs(b)))
+
     def similarity(self, a_norm: str, b_norm: str) -> float:
         if a_norm == _NAN_SENTINEL or b_norm == _NAN_SENTINEL:
             return 0.0
@@ -389,7 +405,7 @@ class NumericMatcher:
         except (TypeError, ValueError):
             return 0.0
         diff = abs(a - b)
-        tol = max(self.abs_tol, self.pct_tol * max(abs(a), abs(b)))
+        tol = self.tolerance_for(a, b)
         if diff <= tol:
             return 1.0
         if tol == 0:

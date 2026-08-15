@@ -185,3 +185,62 @@ def test_the_ledger_records_that_a_figure_was_half_read(store):
     # The raw strings stay out of the trail: nestor.frank mirrors entries
     # verbatim into somebody else's ledger.
     assert "1,00o,000" not in json.dumps(entry)
+
+
+# -- the two denominators, and the number that reconciles them ---------------
+#
+# `variation_pct` is baseline-relative; the verdict's proportional leg is a
+# fraction of the larger magnitude. Against a rising observation those differ,
+# so a passing check can print a percentage above `pct_tol`. That is not a bug
+# in either number — it is a bug in reporting only one of them.
+
+def test_a_passing_check_can_report_a_percentage_above_pct_tol(store):
+    r = Reconciler(store, domain="q", pct_tol=0.05)
+    r.seal_baseline("revenue", 3.9, verifier="auditor")
+
+    res = r.check("revenue", 4.1)
+    # Reads as over a 5% tolerance...
+    assert res["variation_pct"] == pytest.approx(0.051282, rel=1e-4)
+    assert res["variation_pct"] > 0.05
+    # ...and passes, because the slack is measured against the larger value.
+    assert res["within_tolerance"] is True
+    # The slack itself is what makes that legible rather than contradictory.
+    assert res["tolerance_abs"] == pytest.approx(0.205)
+    assert res["variation"] <= res["tolerance_abs"]
+
+
+def test_tolerance_abs_is_the_number_the_verdict_turns_on(store):
+    # The invariant that lets a reader check a verdict with one comparison and
+    # no knowledge of which denominator was used.
+    r = Reconciler(store, domain="q", pct_tol=0.05, abs_tol=0.01)
+    r.seal_baseline("revenue", 100.0, verifier="auditor")
+
+    for observed in (100.0, 101.0, 104.9, 105.0, 105.2, 105.3, 110.0, 0.0, 250.0):
+        res = r.check("revenue", observed)
+        assert res["within_tolerance"] == (res["variation"] <= res["tolerance_abs"]), observed
+
+
+def test_the_band_where_the_percentage_and_the_verdict_disagree_is_bounded(store):
+    # Ceiling is pct/(1-pct): above it, no passing check can print a percentage
+    # that high. Guards against the band silently widening.
+    pct = 0.05
+    r = Reconciler(store, domain="q", pct_tol=pct)
+    r.seal_baseline("revenue", 100.0, verifier="auditor")
+
+    ceiling = pct / (1 - pct)               # 0.052631...
+    assert r.check("revenue", 105.2)["within_tolerance"] is True
+    just_over = r.check("revenue", 105.5)
+    assert just_over["within_tolerance"] is False
+    assert just_over["variation_pct"] > ceiling
+
+
+def test_no_comparison_means_no_tolerance_rather_than_a_tolerance_of_zero(store):
+    # A tolerance of 0.0 would claim "zero slack was allowed" — a verdict about
+    # a comparison that never happened. The absence has to stay an absence.
+    r = Reconciler(store, domain="q", pct_tol=0.05)
+    r.seal_baseline("revenue", 100.0, verifier="auditor")
+
+    assert r.check("nothing-sealed-here", 5)["tolerance_abs"] is None
+    unreadable = r.check("revenue", "abc")
+    assert unreadable["observed"] is None
+    assert unreadable["tolerance_abs"] is None

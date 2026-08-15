@@ -2300,8 +2300,19 @@ function numericResult(r) {
         h("td", { class: "mono", text: num(r.observed) }),
         h("td", { class: "mono", text: num(r.variation) }),
         h("td", { class: "mono", text: pct(r.variation_pct) }),
+        // The EFFECTIVE slack, not the config that produced it. Showing
+        // "±0 or 5.00%" beside "as % = 5.13%" on a row marked within-tolerance
+        // is a table that contradicts itself: the percentage is
+        // baseline-relative, the config's percentage is a fraction of the
+        // larger magnitude. The absolute slack shares its units with the
+        // variation two cells left, so the verdict is one comparison to check.
+        // The config stays on hover, for the reader who wants the rule.
         h("td", { class: "mono small muted",
-                  text: "±" + num(r.tolerance.abs_tol) + " or " + pct(r.tolerance.pct_tol) }))),
+                  title: "configured: ±" + num(r.tolerance.abs_tol) + " or "
+                         + pct(r.tolerance.pct_tol) + " of the larger magnitude",
+                  text: r.tolerance_abs === null || r.tolerance_abs === undefined
+                        ? "±" + num(r.tolerance.abs_tol) + " or " + pct(r.tolerance.pct_tol)
+                        : "±" + num(r.tolerance_abs) }))),
     // The matcher SEARCHES for a number rather than requiring one, so
     // "1,00o,000" — one typo — is compared as 100. The failure direction is
     // safe, but "the number I compared was not the number you typed" is a bad
