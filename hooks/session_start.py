@@ -5,8 +5,11 @@ each produced by a guarded helper so a failure in one is a status line, never a
 traceback that takes the whole boot down:
 
 * **seat** — ``hooks/seat.md``, the rules of this repo.
-* **checks** — is the environment ready (``.venv`` + pytest), hardened so a
+* **pytest** — is the test runner ready (``.venv`` + pytest), hardened so a
   missing venv reads as a clear next step rather than an exception.
+* **lint** — can ``bash scripts/ci-lint.sh`` actually run — every gate, not just
+  the first. The seat tells each agent to run it before pushing, so a venv
+  missing one of its tools is a boot-time fact, not a push-time surprise.
 * **brain** — the decision store is *stood up* every session: the committed
   ``docs/dogfood/nestor.db`` is opened, self-tested with one live retrieval, and
   handed to the agent with the exact command to consult it. A cold agent that
@@ -28,6 +31,14 @@ from pathlib import Path
 #: The brain the session is handed. Derived, all-draft, rebuilt from the
 #: decision files by ``scripts/dogfood_store.py`` — see ``docs/decision-memory.md``.
 BRAIN_DB = ("docs", "dogfood", "nestor.db")
+
+#: Every module ``scripts/ci-lint.sh`` runs as ``python -m <module>``, in the
+#: order it runs them. Importability in the repo interpreter is exactly what
+#: "ready" means for that script, so this list is what the boot check probes.
+#: ``tests/test_session_start.py`` parses ci-lint.sh and fails if the two drift —
+#: a boot check that reports on two of three gates is how the third one stayed
+#: broken.
+LINT_MODULES = ("ruff", "bandit", "detect_secrets")
 
 
 def repo_root() -> Path:
@@ -92,6 +103,44 @@ def _pytest_line(root: Path) -> str:
     detail = (proc.stderr or proc.stdout).strip().splitlines()
     hint = detail[-1] if detail else f"exit {proc.returncode}"
     return f"[check] pytest: installed venv but runner errored — {hint}"
+
+
+def _lint_line(root: Path) -> str:
+    """Can the repo run ``bash scripts/ci-lint.sh`` — every gate, not just the first.
+
+    The pytest line alone let a half-installed venv boot green. ``[dev]`` shipped
+    ruff and bandit but not detect-secrets, and the secret scan is the *third*
+    gate — so the documented pre-push command cleared two checks and died on
+    ``No module named detect_secrets``, at push time, after the work was done.
+    Nothing at boot had looked at the gate that was missing.
+
+    One subprocess in the repo interpreter, importability only: this runs before
+    the first prompt, and three ``--version`` shell-outs to buy the same fact is
+    latency an agent pays on every session. ``find_spec`` is also the honest
+    question — ci-lint.sh invokes these as ``python -m``, so "does it import
+    here" is precisely what the script needs and no more.
+    """
+    py = _venv_python(root)
+    probe = ("import importlib.util;"
+             f"mods = {LINT_MODULES!r};"
+             "print(' '.join(m for m in mods if importlib.util.find_spec(m) is None))")
+    try:
+        proc = subprocess.run(
+            [str(py), "-c", probe],
+            capture_output=True, text=True, cwd=str(root), timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"[check] lint: not ready — {type(exc).__name__} launching {py.name}"
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip().splitlines()
+        hint = detail[-1] if detail else f"exit {proc.returncode}"
+        return f"[check] lint: could not probe {py.name} — {hint}"
+    missing = proc.stdout.split()
+    if not missing:
+        return ("[check] lint: ruff, bandit, detect_secrets ready — "
+                "`bash scripts/ci-lint.sh` before push")
+    return ("[check] lint: MISSING " + ", ".join(missing) +
+            " — `bash scripts/ci-lint.sh` will fail at that gate. Fix with: "
+            ".venv/bin/pip install -e '.[dev]'")
 
 
 def _stand_up_prompt(condition: str, fix: str) -> str:
@@ -185,6 +234,7 @@ def build_context(root: Path | None = None) -> str:
     sections = [
         path.read_text(encoding="utf-8").rstrip(),
         _guard("pytest", lambda: _pytest_line(root)),
+        _guard("lint", lambda: _lint_line(root)),
         _guard("brain", lambda: _brain_section(root)),
     ]
     return "\n\n".join(sections)

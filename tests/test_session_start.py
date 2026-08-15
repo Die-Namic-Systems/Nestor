@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
 
 from hooks import session_start
@@ -21,6 +22,55 @@ def test_seat_and_checks_are_always_present():
     ctx = build_context(REPO)
     assert "[NESTOR REPO — LOCAL-FIRST SEAT]" in ctx
     assert "[check] pytest:" in ctx
+    assert "[check] lint:" in ctx
+
+
+def test_the_boot_check_covers_every_gate_ci_lint_runs():
+    """The drift guard, and the reason the detect-secrets break survived.
+
+    ``scripts/ci-lint.sh`` is the command the seat, AGENTS.md and the agent guide
+    all name as the pre-push gate. A boot check that probes a *subset* of what it
+    runs reports a readiness the agent's command does not share — so the set is
+    read back out of the script rather than trusted to stay in sync by hand. Add
+    a fourth gate to ci-lint.sh and this fails until the boot check knows it."""
+    script = (REPO / "scripts" / "ci-lint.sh").read_text(encoding="utf-8")
+    run = {m.split(".")[0] for m in re.findall(r"python -m ([\w.]+)", script)}
+    assert run == set(session_start.LINT_MODULES), (
+        f"ci-lint.sh runs {sorted(run)}; the boot check probes "
+        f"{sorted(session_start.LINT_MODULES)}")
+
+
+def test_the_lint_line_names_every_gate_when_the_venv_is_ready():
+    line = session_start._lint_line(REPO)
+    assert line.startswith("[check] lint:")
+    for mod in session_start.LINT_MODULES:
+        assert mod in line
+
+
+def test_the_lint_line_goes_red_on_a_missing_gate(monkeypatch):
+    """Shown to fail before it is trusted — decision 0101's own rule, applied to
+    the check that would have caught 0101's omission.
+
+    A readiness line that cannot report *un*ready is a ledger, not a gate: it was
+    the silently-absent third gate that let ``bash scripts/ci-lint.sh`` boot green
+    and die at push. The line must name the missing module and the one command
+    that fixes it."""
+    monkeypatch.setattr(
+        session_start, "LINT_MODULES", ("ruff", "nestor_no_such_lint_module"))
+    line = session_start._lint_line(REPO)
+    assert "MISSING nestor_no_such_lint_module" in line
+    assert "ruff" not in line.split("—")[0]  # the installed one is not accused
+    assert "pip install -e '.[dev]'" in line
+
+
+def test_a_broken_lint_probe_degrades_to_a_line(monkeypatch):
+    """Same fail-open contract as every other section: the boot survives it."""
+    def boom(_root):
+        raise RuntimeError("simulated probe failure")
+    monkeypatch.setattr(session_start, "_lint_line", boom)
+    ctx = build_context(REPO)
+    assert "[check] lint: unavailable (RuntimeError" in ctx
+    assert "[brain] decision store up:" in ctx  # neighbors survive
 
 
 def test_the_brain_is_stood_up_with_the_query_command():

@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 335,
+    "pairs": 341,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "a457df757729152b9b3185b97c8e89e0950ddd33e5f4e7925a7f8058bf402674",
+  "digest": "6e63b06340a13c45c1c1386a984b9586065ab908cc7ae5fa40e686c1aa18bad3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "ea558f66-8f28-5924-8b51-8b42a33cbfd1",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the write gate proven to open or only to shut",
+      "source_text": "Is the write gate proven to open, or only to shut?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both. A third before_write case, write-gated-py-allowed-after-consulting, runs the same forbidden payload against a fresh receipt and expects allow; the deny case now explicitly runs against an absent one. tests/test_hook_guard.py pins the pair, so removing either direction fails the suite. Isolating the receipt made this cheap -- both states are already constructed.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
       "id": "c93bf1c9-2715-5f8d-9d9f-a46a8ffde7cc",
@@ -49,6 +63,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "bc1b9077-a715-559c-a31e-796223262e11",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the isolation shown to be loadbearing",
+      "source_text": "Was the isolation shown to be load-bearing?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. With the per-case receipt override removed and everything else unchanged, three tests fail -- test_every_wired_gate_denies_on_the_wire and both parametrisations of test_the_guard_ignores_whatever_receipt_the_developer_holds -- reporting the original `expect deny, got allow`. Restoring it returns all seven to green. The regression test drives scripts/hook_guard.py under both an absent and a deliberately fresh ambient receipt and requires exit 0 from each.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "aaf528e7-3cc2-5c44-9d16-4e60fa9e347c",
       "origin": "pr:115",
       "seal_sig": "",
@@ -63,6 +91,34 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "92f527fe-ae3d-5c20-9170-e9cea6cd8078",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what receipt does scriptshook_guardpy prove the write gate against",
+      "source_text": "What receipt does scripts/hook_guard.py prove the write gate against?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One it creates itself. Each Case carries a `receipt` field -- 'absent' or 'fresh' -- and run() builds both files in a TemporaryDirectory and passes the chosen path to the child through hooks.review_receipt._ENV_PATH. The fresh one is written by review_receipt.record() rather than hand-rolled JSON, and the harness references the module's own env-var name rather than repeating the literal, so neither the receipt format nor its location can drift away from the gate being proven. The real per-checkout receipt is never read and never written.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "7bfb0b30-ffeb-55c1-878a-79116b7990b4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the boot check stop reporting a readiness the agents commands do not share",
+      "source_text": "How does the boot check stop reporting a readiness the agent's commands do not share?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "hooks/session_start.py gains a `[check] lint:` section beside `[check] pytest:`. It runs one subprocess in the repo interpreter and reports which of hooks.session_start.LINT_MODULES cannot be imported, naming the missing module and the one command that fixes it. Two tests read the `python -m <module>` invocations back out of scripts/ci-lint.sh: one fails if LINT_MODULES drifts from what the script runs, the other fails if [dev] does not declare one of them. Neither test carries a hand-written list.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "723e64f2-e88e-5db2-9929-4ed63578cf27",
       "origin": "pr:115",
       "seal_sig": "",
@@ -72,6 +128,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "`None`, never `0.0`.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "1d52bdf1-1f4e-505b-b0df-261c76510dbf",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the new readiness line shown to go red not just green",
+      "source_text": "Was the new readiness line shown to go red, not just green?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, three ways. `_lint_line` was run with LINT_MODULES monkeypatched to name an absent module and emitted `MISSING nestor_no_such_lint_module` with the pip fix and without accusing the installed one. Both drift guards were run against the defect as it actually shipped -- detect-secrets deleted from [dev] and dropped from LINT_MODULES -- and both failed, naming detect_secrets; both pass with the fix restored. The `[check] lint:` section is also covered by the existing fail-open contract: a helper that raises degrades to one status line and its neighbours survive.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "01c50221-86c6-5557-9a5c-99449e91807b",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does a tool that scriptscilintsh runs get declared the dev extra or the web sessionstart hooks install line",
+      "source_text": "Where does a tool that scripts/ci-lint.sh runs get declared -- the [dev] extra, or the web SessionStart hook's install line?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The [dev] extra. `.claude/hooks/session-start.sh` keeps installing plain `.[dev,keys]` and gains no tool-specific knowledge; detect-secrets==1.5.0 joins pytest, ruff and bandit in [dev]. It is pinned to the version .github/workflows/tests.yml installs, because the gate is judged against a committed .secrets.baseline and a scanner finding a different set from CI's is a gate that disagrees with the one branch protection runs.",
       "verifier": "",
       "weight": 1.0
     },
