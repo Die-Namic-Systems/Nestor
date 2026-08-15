@@ -28,7 +28,7 @@ def _fastembed_installed() -> bool:
 
 requires_semantic = pytest.mark.skipif(
     not _fastembed_installed(),
-    reason="pip install nestor[semantic]",
+    reason="pip install nestor-meaning[semantic]",
 )
 
 
@@ -49,7 +49,7 @@ def test_build_matcher_semantic_returns_matcher():
 
 
 def test_semantic_matcher_constructor_refuses_without_fastembed(without_fastembed):
-    with pytest.raises(ImportError, match="nestor\\[semantic\\]"):
+    with pytest.raises(ImportError, match=r"pip install \S+\[semantic\]"):
         SemanticMatcher()
 
 

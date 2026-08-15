@@ -1,53 +1,68 @@
 # Releasing
 
-Nestor has never been released. `pyproject.toml` has said `0.1.0` since
-`7fb841e` — the extraction commit — there are no tags, and nothing has been
-uploaded anywhere. Everything below is set up and inert.
+**Nestor is released.** `nestor-meaning` **0.3.0** went to PyPI on 2026-08-15 at
+18:17Z, from tag `v0.3.0` through `publish.yml`'s Trusted Publishing path. `pip
+install nestor-meaning` gives you `import nestor`, unchanged. `0.2.0` was tagged
+but never uploaded and is pinnable by git ref only.
 
-This file is the runbook, and it opens with the two decisions that come before
-any of it, because neither is a mechanical step and neither is mine to take.
+Everything below is live, not a rehearsal. The two decisions this file used to
+open with are **both taken**; they are kept as records because the reasoning
+still governs the next release, and because how the name resolved is the part
+somebody will otherwise re-derive from scratch.
 
 ---
 
-## Decision 1 — the name is not free the way it looks free
+## Decision 1 — the name, and how it actually resolved
 
-Checked 2026-08-06:
+**Taken: the distribution is `nestor-meaning`; the import name stays `nestor`.**
 
-| index | `nestor` | what is there |
-|---|---|---|
-| pypi.org | **404 — available** | nothing |
-| test.pypi.org | **200 — taken** | `Nestor 0.2.dev2`, Thurston Sexton, `usnistgov/nestor` |
+Three checks, three different answers, and the middle one is the trap:
 
-The TestPyPI occupant is NIST's — *"Quantifying tacit human knowledge for Smart
-Manufacturing Maintenance"*, a real project with a real GitHub repository. So
-two things follow, and the second is the one that matters.
+| date | index | `nestor` | what was there |
+|---|---|---|---|
+| 2026-08-06 | pypi.org | **404 — available** | nothing |
+| 2026-08-06 | test.pypi.org | **200 — taken** | `Nestor 0.2.dev2`, Thurston Sexton, `usnistgov/nestor` |
+| 2026-08-15 | pypi.org | **200 — 0 files** | a *reserved* project, no releases |
 
-**The rehearsal step is blocked.** The normal move — upload to TestPyPI first
-and check the page renders — cannot be done under this name. Either rehearse
-under a different name (`nestor-<something>`, TestPyPI only, throwaway), or skip
-rehearsal and rely on `twine check --strict` plus the workflow's install-and-import
-step. Both are defensible; the first is closer to how a release should feel.
+**A 200 with zero files is not a published package — it is a claim on the
+name.** Registering a *pending* trusted publisher creates the project before
+anything is uploaded, which is what moved `nestor` from 404 to 200 in those nine
+days. Read as "somebody published here" it looks like a squatter; read correctly
+it is a reservation, and PyPI does not release one just because it holds no
+files. Either way `twine upload` under that name stops.
 
-**Publishing as `nestor` on PyPI would collide with an existing project in the
-same ecosystem.** Not legally — the production name is genuinely unclaimed, and
-first-come is how PyPI works. But somebody searching for Nestor and finding two
-unrelated projects is a cost this project pays, not NIST. The alternative costs
-one line: a distribution name that is not the import name.
+The 2026-08-13 attempt at `v0.2.0` reached PyPI and was rejected at the claim
+exchange — the run log shows `environment url: https://pypi.org/p/nestor` and no
+matching publisher. The rename followed, and `v0.3.0` published cleanly.
+
+So the cost this section originally weighed — *"somebody searching for Nestor and
+finding two unrelated projects"* — was paid the other way round, by renaming, and
+it cost one line:
 
 ```toml
 [project]
-name = "nestor-verify"        # or nestor-memory, nestor-tm, …
+name = "nestor-meaning"
 ```
 
-`pip install nestor-verify` then gives you `import nestor`, unchanged — the
-distribution name and the import name are independent, and nothing else in the
-tree moves. `[tool.setuptools.packages.find] include = ["nestor*"]` already does
-the right thing either way.
+The distribution name and the import name are independent;
+`[tool.setuptools.packages.find] include = ["nestor*"]` does the right thing
+either way, and nothing else in the tree had to move.
 
-**Not decided here.** Whoever releases picks. If the answer is plain `nestor`,
-nothing needs changing.
+**One thing the rename does not do by itself.** Extras hints live in shipped
+error messages — `keyring.py`, `signing.py`, `semantic_matcher.py`, `answer.py`,
+`cloud_seal.py` — and 0.3.0 went out still telling users `pip install
+nestor[semantic]`, which now fails with `No matching distribution found`. A user
+only sees those strings once something has already gone wrong. `tests/
+test_version.py::test_shipped_install_hints_name_the_distribution_that_exists`
+reads the name out of `pyproject.toml` and fails on any shipped file that names a
+different one, so the next rename cannot leave them behind.
 
 ## Decision 2 — what the first version number is
+
+**Taken: `0.2.0` was the first release prepared, and `0.3.0` is the first one
+published.** `0.1.0` was left behind meaning "the unreleased extraction", exactly
+as the last paragraph here proposed. The reasoning is kept because it is the
+argument the *next* bump has to answer, not because the question is still open.
 
 `0.1.0` is where the extraction landed and it has never moved, so it carries no
 information: it is not a considered *"this is early"*, it is a default nobody
@@ -86,6 +101,15 @@ The workflow filename is part of what PyPI checks. Renaming `publish.yml`
 without updating PyPI breaks uploads with an authentication error that does not
 mention the filename.
 
+**A pending publisher claims the name.** Registering one creates the PyPI
+project immediately, with zero release files — so the name stops being available
+to anyone else, including a later you under a different spelling. That is the
+point of it, but it means the registration is a decision about the name, not a
+preparatory step before one. See Decision 1: this is what put `nestor` at
+`200 / 0 files` and is worth checking at
+<https://pypi.org/manage/projects/> before assuming a name was taken by a
+stranger.
+
 **2. The `pypi` environment.** Repo → Settings → Environments → New environment
 → `pypi`. Add yourself as a **required reviewer** while you are here: that makes
 every upload wait for a human click, which is the same shape as everything else
@@ -106,9 +130,10 @@ $EDITOR pyproject.toml            # version = "X.Y.Z"
 # 2. Close the changelog section.
 $EDITOR CHANGELOG.md              # ## [Unreleased] -> ## [X.Y.Z] - YYYY-MM-DD
 
-# 3. Add the install line to the README. It is absent on purpose until now,
-#    because a README that lies about how to install is worse than one that
-#    omits it. Same commit as the bump.
+# 3. Check the README's install line still says the truth. It is present as of
+#    0.3.0 (`pip install nestor-meaning`); it was absent before that on
+#    purpose, because a README that lies about how to install is worse than one
+#    that omits it. That rule now applies to keeping it correct.
 $EDITOR README.md
 
 # 4. Gates, the same ones docs/code-review-lessons.md §11 asks for.
@@ -226,7 +251,12 @@ happens before it, not after.**
   `test-matrix (3.10)` — a release-readiness suite that would not run on the
   oldest version being released for. The matrix caught it, which is the
   argument for keeping a floor in it.
-- **No rehearsal target**, per Decision 1 above.
+- **No rehearsal target on TestPyPI**, per Decision 1: `nestor` there is NIST's.
+  `nestor-meaning` was never rehearsed on TestPyPI either — 0.3.0 went straight
+  to production on `twine check --strict` plus the workflow's install-and-import
+  step. That worked, and it is still the weaker of the two options the original
+  Decision 1 laid out; `nestor-meaning` is free on TestPyPI now, so the next
+  release can rehearse properly.
 - **`nestor.__version__` describes the installed distribution, not the file that
   is running.** Measured, and all three cases are documented at the definition:
   a clone with no install and no `nestor.egg-info/` reports `0+unknown`; a clone

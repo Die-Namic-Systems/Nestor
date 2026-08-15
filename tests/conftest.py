@@ -37,7 +37,7 @@ def seal_key():
 
 @pytest.fixture
 def without_fastembed(monkeypatch):
-    """Make ``import fastembed`` fail as if ``nestor[semantic]`` were absent.
+    """Make ``import fastembed`` fail as if ``nestor-meaning[semantic]`` were absent.
 
     Refusal-path tests for the semantic matcher must hold in a venv that also
     has the extra installed — otherwise the suite can never be fully green on

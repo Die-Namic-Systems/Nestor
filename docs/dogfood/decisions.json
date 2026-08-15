@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 350,
+    "pairs": 353,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "a33a8799d5cd738e8afd33de7a2562a7ab7c991ad71b2ef1dca0253111a57c53",
+  "digest": "0b0757bb0569924fa1738006c89e0eb0b21646861f9639c3cb10cfe9d3071ee2",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "ebcb99e6-7cd3-5b59-a9e1-a3a4d5690ab6",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what keeps an install hint in shipped code pointing at a distribution that exists",
+      "source_text": "What keeps an install hint in shipped code pointing at a distribution that exists?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A test, not a habit. test_shipped_install_hints_name_the_distribution_that_exists reads `name` out of pyproject.toml and scans every .py under nestor/ for `<dist>[<extra>]`, failing on any that names something else. Scoped to nestor/ because that is what ships in the wheel; historical records (FINDINGS, agent-log) quote the old name to describe the past and are left alone. Shown to fail: restoring one string in keyring.py reports `nestor/keyring.py:94 nestor[keys]`.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
       "id": "ea558f66-8f28-5924-8b51-8b42a33cbfd1",
@@ -147,6 +161,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "8e8538c6-30be-58a7-9a14-2317f9ca31fe",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should the runbook record a decision that has since been taken",
+      "source_text": "How should the runbook record a decision that has since been taken?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Keep the reasoning, state the outcome at the top, and add what was learned that the original could not know. Decision 1 now opens 'Taken: the distribution is nestor-meaning' and carries a three-row table showing `nestor` at 404 (08-06), then 200-with-zero-files (08-15), with the explanation that a *pending trusted publisher* creates a project before anything is uploaded. Decision 2 similarly records that 0.1.0 was left behind as 'the unreleased extraction', which is what its own last paragraph proposed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "8d374338-ed82-54d6-87cb-cef665bf1098",
       "origin": "pr:None",
       "seal_sig": "",
@@ -198,6 +226,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Every fixture created its store via `nestor demo` or SqliteStore.memory_init(), both of which set WAL at creation -- so re-opening it never changed anything and the assertion was true on the states it was given. test_a_non_wal_store_is_not_rewritten_by_the_probe now forces a store to `delete` mode, strips its sidecars, and requires the sha256 and the journal mode to survive the probe; run against the code as it shipped, it fails on the hash. test_the_read_only_summary_agrees_with_memory_stats pins the hand-written count query against memory.stats so the duplication that reading-without-writing forced cannot drift.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "64ee713f-e44b-5e2a-bd20-40b9cb297c24",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was the release rehearsed and is that still true",
+      "source_text": "Was the release rehearsed, and is that still true?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. 0.3.0 went straight to production PyPI on `twine check --strict` plus the workflow's install-and-import step, because TestPyPI's `nestor` is NIST's. That is the weaker of the two options the original Decision 1 laid out. Verified since: test.pypi.org/simple/nestor-meaning/ returns 404, so the name is free there and the next release can rehearse properly. The 'no rehearsal target' gap is rewritten to say this rather than to imply the blockage still stands.",
       "verifier": "",
       "weight": 1.0
     },

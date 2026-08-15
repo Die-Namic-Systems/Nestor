@@ -91,7 +91,7 @@ def _ed25519_generate() -> tuple[bytes, bytes]:
             Encoding, NoEncryption, PrivateFormat, PublicFormat)
     except ImportError as exc:
         raise KeyringError(
-            "ed25519 keys need the [keys] extra: pip install 'nestor[keys]'. "
+            "ed25519 keys need the [keys] extra: pip install 'nestor-meaning[keys]'. "
             "HMAC keys remain the dependency-free default.") from exc
     priv = Ed25519PrivateKey.generate()
     private = priv.private_bytes(Encoding.Raw, PrivateFormat.Raw,

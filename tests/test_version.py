@@ -165,6 +165,39 @@ def test_the_publish_extra_is_not_folded_into_dev():
     assert "build" not in dev and "twine" not in dev
 
 
+#: Extras a shipped error message might tell a user to install.
+_EXTRAS = ("keys", "semantic", "gate", "cloud", "dev", "publish")
+
+
+def test_shipped_install_hints_name_the_distribution_that_exists():
+    """Every `pip install X[extra]` in shipped code must name the real dist.
+
+    0.3.0 renamed the distribution to `nestor-meaning` and the wheel went out
+    still telling users, at runtime, to run `pip install nestor[semantic]` —
+    `keyring.py`, `signing.py`, `semantic_matcher.py`, `answer.py` and
+    `cloud_seal.py` all carried the old name. That command now fails with
+    `No matching distribution found`, because `nestor` on PyPI is a reserved
+    project with no files. The rename touched pyproject, README and CHANGELOG;
+    it did not touch the strings a user only sees once something has already
+    gone wrong, which is the worst moment to be handed a command that does not
+    work.
+
+    Scoped to `nestor/` — what actually ships in the wheel. Docs quoting the old
+    name in a historical record (FINDINGS, agent-log) are describing the past
+    and are left alone."""
+    declared = re.search(r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+    pattern = re.compile(r"([A-Za-z0-9_.-]+)\[(" + "|".join(_EXTRAS) + r")\]")
+    wrong = []
+    for path in sorted((ROOT / "nestor").rglob("*.py")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for dist, extra in pattern.findall(line):
+                if dist != declared:
+                    wrong.append(f"{path.relative_to(ROOT)}:{lineno} {dist}[{extra}]")
+    assert not wrong, (
+        f"shipped code names a distribution that is not {declared!r}:\n  "
+        + "\n  ".join(wrong))
+
+
 def test_dev_installs_every_gate_ci_lint_runs():
     """`[dev]` says it carries what the documented lint command runs. Check it.
 

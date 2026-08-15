@@ -20,7 +20,7 @@ Two things it is careful never to conflate:
     installed at this end → no cloud path — the rule is the gate must be present
     at BOTH ends (the cloud end binds the agent; the home end verifies and
     confers canonical). Nestor's core stays zero-dependency; this is the opt-in
-    `nestor[gate]` extra, and its absence is the off switch.
+    `nestor-meaning[gate]` extra, and its absence is the off switch.
 
 What "bound" buys, proven by willow-gate and re-exercised in this module's tests:
   * identity is bound by HMAC (a wrong secret is refused, not trusted),
@@ -44,7 +44,7 @@ except ImportError as e:  # pragma: no cover - exercised by the extra's absence
     raise ImportError(
         "nestor.cloud_seal is the OPTIONAL cloud path and requires willow-gate "
         "installed at THIS end — the gate must be present at both ends. "
-        "Install it (`pip install nestor[gate]`, or the willow-gate sibling)."
+        "Install it (`pip install nestor-meaning[gate]`, or the willow-gate sibling)."
     ) from e
 
 
