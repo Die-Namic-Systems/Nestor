@@ -49,6 +49,15 @@ LINT_MODULES = ("ruff", "bandit", "detect_secrets")
 #: (``hooks/review_receipt``) already creates paths under the same root.
 HOME_MARKER = "layout.json"
 
+#: Where ``nestor demo`` actually lands. It refuses to seed the default store —
+#: ``nestor/cli.py`` compares *resolved* paths and diverts here so a demo cannot
+#: clobber a real one — so a check that only ever looked at the default would
+#: tell an agent to run ``nestor demo`` and then report "no Nestor" forever. Both
+#: are a Nestor; the boot looks for either.
+#: ``test_the_stand_up_command_the_ask_names_actually_satisfies_the_check`` runs
+#: the real command and requires the check to notice, so this cannot drift.
+DEMO_DB = ("data", "nestor-demo.db")
+
 
 def repo_root() -> Path:
     env = os.environ.get("NESTOR_PROJECT_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR")
@@ -244,17 +253,25 @@ def _nestor_section(root: Path) -> str:
             + ", ".join(f"{d}/" for d in _SUBDIRS()) + f" and {HOME_MARKER}, clobbers nothing",
             "docs/homestead-paths.md")
 
-    db = _cli_default_db(root)
-    if not db.is_file():
-        return _ask_prompt(
-            "nestor", f"no Nestor is stood up in this tree — {db.relative_to(root)} does not exist",
-            "the next `nestor` command will create an empty one and report "
-            "`0 pair(s)`, which reads identically to a Nestor that was stood up "
-            "and holds nothing",
-            "`nestor demo` for a seeded store you can open in `nestor ui`, or "
-            "`python -m nestor.home_init` for a household home",
-            "docs/agent-guide.md")
-    return f"[nestor] stood up: {db.relative_to(root)}{_store_summary(db)}. Nothing to ask."
+    # Either store counts. `nestor demo` cannot create the default one by
+    # design, so looking only there would reject the very thing the ask asks for.
+    for db in (_cli_default_db(root), root.joinpath(*DEMO_DB)):
+        if db.is_file():
+            return (f"[nestor] stood up: {db.relative_to(root)}"
+                    f"{_store_summary(db)}. Nothing to ask.")
+    default = _cli_default_db(root)
+    return _ask_prompt(
+        "nestor",
+        f"no Nestor is stood up in this tree — neither {default.relative_to(root)} "
+        f"nor {'/'.join(DEMO_DB)} exists",
+        "the next `nestor` command will create an empty one and report "
+        "`0 pair(s)`, which reads identically to a Nestor that was stood up "
+        "and holds nothing",
+        "`nestor demo`, which seeds " + "/".join(DEMO_DB) + " (it refuses to "
+        "write the default store, so open it with `nestor ui --db "
+        + "/".join(DEMO_DB) + "`), or `python -m nestor.home_init` for a "
+        "household home",
+        "docs/agent-guide.md")
 
 
 def _SUBDIRS() -> tuple[str, ...]:

@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 347,
+    "pairs": 350,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "aaa4058b546970f40aa939415f66836ac3c2fb6611059687133deb718dc05fbb",
+  "digest": "a33a8799d5cd738e8afd33de7a2562a7ab7c991ad71b2ef1dca0253111a57c53",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both. A third before_write case, write-gated-py-allowed-after-consulting, runs the same forbidden payload against a fresh receipt and expects allow; the deny case now explicitly runs against an absent one. tests/test_hook_guard.py pins the pair, so removing either direction fails the suite. Isolating the receipt made this cheap -- both states are already constructed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "e6bb753b-0e14-593e-96af-3e9ab98aa8b8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why did this survive the guards written for exactly this class of defect",
+      "source_text": "Why did this survive the guards written for exactly this class of defect?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because 0124 and 0126 pinned the check against the CLI's declared *path* and never against the *outcome* of the command the check recommends. The tmp_path fixtures hid it further: `nestor demo --db <tmp>/data/nestor.db` does not resolve to the default store, so the diversion never triggered under test and the seeded file landed exactly where the assertions looked for it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -189,6 +203,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "393c3540-5e20-572d-82ef-dd281491a06e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what counts as a stoodup nestor in the product tree the default store or the demo store too",
+      "source_text": "What counts as a stood-up Nestor in the product tree -- the default store, or the demo store too?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Either. The probe now walks the CLI default (data/nestor.db) and then data/nestor-demo.db, and reports the first that exists. The ask names `nestor demo` and states where it lands, including that it refuses to write the default store and must be opened with `nestor ui --db data/nestor-demo.db`.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "29deb413-2d97-5d23-a36f-472e17eca437",
       "origin": "pr:None",
       "seal_sig": "",
@@ -212,6 +240,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, three ways. `_lint_line` was run with LINT_MODULES monkeypatched to name an absent module and emitted `MISSING nestor_no_such_lint_module` with the pip fix and without accusing the installed one. Both drift guards were run against the defect as it actually shipped -- detect-secrets deleted from [dev] and dropped from LINT_MODULES -- and both failed, naming detect_secrets; both pass with the fix restored. The `[check] lint:` section is also covered by the existing fail-open contract: a helper that raises degrades to one status line and its neighbours survive.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "19ef2e23-6f9a-51d5-987e-9ba80b468dcf",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what kind of test catches a fix command that does not fix anything",
+      "source_text": "What kind of test catches a fix command that does not fix anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One that runs it. test_the_stand_up_command_the_ask_names_actually_satisfies_the_check asserts the check is asking, executes `nestor demo` in the tree, and requires the check to stop asking. Run against the code as it shipped it fails, quoting the ask that survived its own remedy.",
       "verifier": "",
       "weight": 1.0
     },

@@ -123,6 +123,37 @@ def test_the_nestor_check_stands_nothing_up(bare_tree):
     assert not (bare_tree / "data").exists(), "the probe stood a Nestor up"
 
 
+def test_the_stand_up_command_the_ask_names_actually_satisfies_the_check(bare_tree):
+    """The guard that was missing, and the class of bug it catches.
+
+    The ask told the agent to run `nestor demo`. `nestor demo` compares *resolved*
+    paths and diverts to data/nestor-demo.db so a demo cannot clobber a real
+    store (nestor/cli.py) — so it can never create data/nestor.db, which was the
+    only path the check looked at. Follow the instruction and the very next boot
+    still says "no Nestor is stood up": a fix command that cannot satisfy the
+    condition it is offered for.
+
+    Asserting the *text* of the ask would not have caught it, and neither would
+    checking that the path matches the CLI — both were already true. Only running
+    the named command and re-asking the question closes it, so that is what this
+    does. It also means the pin survives the CLI moving the demo store."""
+    assert "Ask the user" in session_start._nestor_section(bare_tree)
+    subprocess.run(["nestor", "demo"], cwd=bare_tree,
+                   capture_output=True, check=True, timeout=120)
+    after = session_start._nestor_section(bare_tree)
+    assert "Ask the user" not in after, (
+        "`nestor demo` is named as the fix but leaves the check still asking:\n" + after)
+    assert "stood up:" in after
+
+
+def test_the_ask_names_where_the_demo_store_actually_lands(bare_tree):
+    """A correct check with a misleading fix line is still a trap: an agent told
+    to open the default store after `nestor demo` finds nothing there."""
+    ask = session_start._nestor_section(bare_tree)
+    assert "/".join(session_start.DEMO_DB) in ask
+    assert "refuses to write the default store" in ask
+
+
 def test_a_non_wal_store_is_not_rewritten_by_the_probe(bare_tree):
     """The regression, and the case the first version of this suite never covered.
 
