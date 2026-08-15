@@ -20,9 +20,10 @@ what moved.
 
 ## [0.3.0] - 2026-08-15
 
-The first release published to PyPI (`pip install nestor`); `0.2.0` was
-pinnable by git ref only. No schema or ledger change, so a warm process needs
-no restart to adopt it (`docs/releasing.md`).
+The first release published to PyPI, as `nestor-meaning` (`pip install
+nestor-meaning`; the import name stays `nestor`); `0.2.0` was pinnable by git
+ref only. No schema or ledger change, so a warm process needs no restart to
+adopt it (`docs/releasing.md`).
 
 ### Added
 

@@ -67,7 +67,7 @@ from importlib.metadata import PackageNotFoundError, version as _dist_version
 #: defect the paragraph above refuses. It is written down so nobody debugs it
 #: twice.
 try:
-    __version__ = _dist_version("nestor")
+    __version__ = _dist_version("nestor-meaning")
 except PackageNotFoundError:  # running from a source tree, uninstalled
     __version__ = "0+unknown"
 

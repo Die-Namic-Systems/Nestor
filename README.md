@@ -133,15 +133,16 @@ target is decisions worth a person's attention, not throughput.
 Install from PyPI — Python 3.10+, no runtime dependencies:
 
 ```bash
-pip install nestor
+pip install nestor-meaning
 ```
 
-`import nestor` reaches nothing but the standard library (enforced by
-`tests/test_import_purity.py`). This installs the library and the `nestor` CLI.
-For a byte-reproducible source pin, install by git **tag** instead:
+The distribution is `nestor-meaning`; the import name is unchanged, so
+`import nestor` still works and reaches nothing but the standard library
+(enforced by `tests/test_import_purity.py`). This installs the library and the
+`nestor` CLI. For a byte-reproducible source pin, install by git **tag** instead:
 
 ```bash
-pip install "nestor @ git+https://github.com/rudi193-cmd/Nestor@v0.3.0"
+pip install "nestor-meaning @ git+https://github.com/rudi193-cmd/Nestor@v0.3.0"
 ```
 
 Optional extras add capability without moving the core:
