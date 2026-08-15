@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 356,
+    "pairs": 359,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "2604527ebd18049ba537e66dba1a03ce3733e5bd84a215957aad98a152fbaf99",
+  "digest": "f4195752267cb8cf3bb5078dd0fc1b7daa0c70e3ef8ee9f2a5f87da3b3594284",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -161,6 +161,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "99ef1c30-9d91-5415-aa69-f1b5a92c9e8d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when would a required reviewer be right",
+      "source_text": "When would a required reviewer be right?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "When a *second* person should sign off on uploads. That is a real reason and the only one recorded here. It is never a substitute for the tag push, because nothing reaches the approval prompt without a tag, and the tag is the part an agent cannot do.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "92f527fe-ae3d-5c20-9170-e9cea6cd8078",
       "origin": "pr:None",
       "seal_sig": "",
@@ -231,6 +245,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "75abf4bc-662c-5e12-9dc7-82ea2fd34fdb",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why change the documents rather than just accept the setting asis",
+      "source_text": "Why change the documents rather than just accept the setting as-is?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because the documents produced the flag. docs/releasing.md said to add a required reviewer 'so every upload waits for a human click', and publish.yml's header said the same while also asserting 'nothing here can publish today ... there are no tags, and `git tag -l` is empty' -- describing a repository that had since published twice. Both now state that the tag push is the gate and that a reviewer is deliberately unused.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "723e64f2-e88e-5db2-9929-4ed63578cf27",
       "origin": "pr:115",
       "seal_sig": "",
@@ -282,6 +310,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. 0.3.0 went straight to production PyPI on `twine check --strict` plus the workflow's install-and-import step, because TestPyPI's `nestor` is NIST's. That is the weaker of the two options the original Decision 1 laid out. Verified since: test.pypi.org/simple/nestor-meaning/ returns 404, so the name is free there and the next release can rehearse properly. The 'no rehearsal target' gap is rewritten to say this rather than to imply the blockage still stands.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "5a04f07e-61c3-527f-a741-08dd60239501",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the human gate in the release path",
+      "source_text": "What is the human gate in the release path?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The tag push. It is the trigger -- no tag, no build, no upload -- and it is not an act an agent in this repo can perform: a session's git credentials carry `refs/heads/*` and refuse `refs/tags/*`. Confirmed the hard way while preparing v0.3.1: four `git push origin v0.3.1` attempts with exponential backoff, HTTP 403 every time, across two containers, until a human pushed it. A required reviewer on the `pypi` environment is deliberately not used; the environment itself must still exist because the publish job is gated on it.",
       "verifier": "",
       "weight": 1.0
     },

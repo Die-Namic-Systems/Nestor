@@ -111,9 +111,29 @@ preparatory step before one. See Decision 1: this is what put `nestor` at
 stranger.
 
 **2. The `pypi` environment.** Repo → Settings → Environments → New environment
-→ `pypi`. Add yourself as a **required reviewer** while you are here: that makes
-every upload wait for a human click, which is the same shape as everything else
-in this project — the machine may propose and may not confirm.
+→ `pypi`. The workflow's `publish` job is gated on it, so it must exist.
+
+**A required reviewer on it is deliberately not used.** The earlier version of
+this line said to add one so "every upload waits for a human click". That click
+is redundant, and asking for it a second time is worse than not asking.
+
+**The tag push is the human gate.** It is the trigger — no tag, no build, no
+upload — and it is not something an agent in this repo can do: a session's git
+credentials carry `refs/heads/*` and refuse `refs/tags/*`, which was confirmed
+the hard way when v0.3.1 was prepared (four `git push origin v0.3.1` attempts,
+HTTP 403 every time, until a human pushed it). So the machine may propose the
+whole release — bump, changelog, gates, artefact inspection, a merged PR — and
+still cannot confirm it. That is the same shape as everything else here; it is
+already enforced by the credential boundary rather than by a settings checkbox.
+
+By the time a tag exists, the reviewing has happened: the PR was reviewed and
+merged, CI ran the suite on 3.10 and 3.12, `twine check --strict` passed, and
+step 5 below opens the artefact. A reviewer prompt at the end asks the person
+who did all of that to approve their own work.
+
+Add one anyway if a *second* person should sign off on uploads — that is a real
+reason, and the only one. It is not a substitute for the tag push, because
+nothing reaches that prompt without one.
 
 ---
 

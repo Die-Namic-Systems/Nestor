@@ -1,17 +1,23 @@
 name: Publish
 
-# Nothing here can publish today, and that is deliberate. Three independent
-# things must be true first, and no two of them are in one person's hands by
-# accident:
+# This workflow publishes. It has done so twice — v0.3.0 and v0.3.1 — and the
+# comment that used to live here ("nothing can publish today ... there are no
+# tags, and `git tag -l` is empty") described a repository that no longer
+# exists. Three things must be true for an upload, and the first is the gate:
 #
-#   1. a `v*` tag must exist — there are none, and `git tag -l` is empty;
-#   2. the `pypi` environment must be created in repo settings (add a required
-#      reviewer there and a human approves every upload);
+#   1. a `v*` tag must exist, and pushing one is a human act — a session's git
+#      credentials carry `refs/heads/*` and refuse `refs/tags/*` (HTTP 403), so
+#      an agent can prepare an entire release and still not trigger it;
+#   2. the `pypi` environment must exist in repo settings. A *required reviewer*
+#      on it is deliberately not used: by the time a tag exists the PR has been
+#      reviewed and merged and CI has run, so the prompt would ask the person
+#      who pushed the tag to approve their own work. Add one only if a second
+#      person should sign off — see docs/releasing.md;
 #   3. Trusted Publishing must be configured on PyPI for this repo AND this
 #      workflow filename — see docs/releasing.md.
 #
-# Until all three hold, a tag push builds, checks and stops. That is the
-# intended resting state, not an unfinished one.
+# Without a tag, a run builds, checks and stops: `workflow_dispatch` is a dry
+# run anybody can trigger, and the publish job is gated on the ref being a tag.
 
 on:
   push:
