@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 331,
+    "pairs": 335,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-13T00:00:00+00:00",
-  "digest": "ccc007285dddc240803a9786dc213ad7dc0e82e44a1dfb62a68ccc4368a7244d",
+  "created_at": "2026-08-15T00:00:00+00:00",
+  "digest": "a457df757729152b9b3185b97c8e89e0950ddd33e5f4e7925a7f8058bf402674",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,62 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "c93bf1c9-2715-5f8d-9d9f-a46a8ffde7cc",
+      "origin": "pr:115",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how wide is the band where the printed percentage and the verdict disagree and is it narrow enough to ignore",
+      "source_text": "How wide is the band where the printed percentage and the verdict disagree, and is it narrow enough to ignore?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`pct/(1-pct)` — at the default pct_tol=0.05, displayed percentages from 5.0000% to 5.2632% read as over-tolerance while passing. Not ignored: locked with a test that asserts the bound, so the band cannot silently widen if the predicate is ever retuned.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "c1a74e1b-4e25-509a-b5e9-2a0320bcde1a",
+      "origin": "pr:115",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a passing check printed a percentage above its own tolerance fix the percentage fix the predicate or report the number that reconciles them",
+      "source_text": "A passing check printed a percentage above its own tolerance. Fix the percentage, fix the predicate, or report the number that reconciles them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Report the reconciling number. Neither denominator moves: `variation_pct` stays `variation / |baseline|` because that is what an auditor means by 'how far off was it', and the predicate stays symmetric on `max(|a|, |b|)` so that checking a against b scores the same as b against a. The effective slack now travels with the result as `tolerance_abs`, and `variation <= tolerance_abs` is the whole verdict in one comparison.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "aaf528e7-3cc2-5c44-9d16-4e60fa9e347c",
+      "origin": "pr:115",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the ui already had a tolerance column showing the configured abs or pct was that not enough",
+      "source_text": "The UI already had a tolerance column showing the configured `±abs or pct%`. Was that not enough?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — it was the worst instance of the defect, not an exception to it. The table put `as % = 5.13%` and `tolerance = ±0 or 5.00%` in adjacent cells on a row marked within-tolerance. It now shows the effective slack, which shares units with the variation two cells left; the configuration moves to the hover title for a reader who wants the rule rather than the verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "723e64f2-e88e-5db2-9929-4ed63578cf27",
+      "origin": "pr:115",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the tolerance field say when there was no baseline or the observation could not be read as a number",
+      "source_text": "What does the tolerance field say when there was no baseline, or the observation could not be read as a number?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`None`, never `0.0`.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-13T00:00:00+00:00",
       "id": "94fb95ce-51a5-5202-9da9-b906f26ab043",
