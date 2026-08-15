@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nestor"
-version = "0.2.0"
+version = "0.3.0"
 description = "Has a human checked this? A seal/serve/audit mechanic over a verified-match memory — translation, entity resolution and numeric reconciliation recipes, a hash-chained ledger, injected storage, and browser, terminal and MCP surfaces."
 readme = "README.md"
 license = "Apache-2.0"
