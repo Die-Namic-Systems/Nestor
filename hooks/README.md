@@ -18,6 +18,22 @@ One policy, one code path. IDEs only differ in **config shape** and **JSON diale
 
 Claude Code on the web still runs `.claude/hooks/session-start.sh` **inside** `session_start` when `CLAUDE_CODE_REMOTE=true` (venv bootstrap only).
 
+## What `session_start` hands the agent
+
+Five guarded sections; a broken one degrades to a status line rather than taking the boot down.
+
+| Section | Question | When it is quiet |
+|---------|----------|------------------|
+| seat | the rules of this repo (`hooks/seat.md`) | never — a missing seat is the one hard error |
+| `[check] pytest:` | is the test runner ready | reports either way |
+| `[check] lint:` | can `scripts/ci-lint.sh` run — **every** gate | reports either way |
+| `[nestor]` | is a Nestor stood up | one line when it is; **asks the user** when it is not |
+| `[brain]` | is the decision store stood up | hands it over when it is; asks when it is not |
+
+The last two **ask, they never act**. A SessionStart hook cannot put a question to the user itself, so it hands the agent the question — standing something up is the user's call, not the boot's. Neither probe writes: `[nestor]` in particular must not touch `data/nestor.db`, because `nestor stats` on a tree with no store *creates* one and reports `0 pair(s)`, so any probe that touched the path would destroy the answer before reporting it.
+
+`[nestor]` reads the store path off the CLI's own `--db` default, and switches to the household home (`$HOMESTEAD_HOME`, marker `layout.json`, scaffolded by `python -m nestor.home_init`) when that variable is set.
+
 Codex / other CLIs: point their hook command at the same `hooks/nestor-hook` line when the product supports project hooks.
 
 ## Env

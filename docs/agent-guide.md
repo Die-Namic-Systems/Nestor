@@ -46,6 +46,12 @@ exactly this the day this file was written.
   them. `python -m pytest --version` alone is *not* the check — it passes on
   a venv whose secret-scan gate is missing, which is how a broken pre-push
   command survived a boot that looked green.
+  The boot also carries a `[nestor]` line saying whether a Nestor is stood
+  up. When it is not, that line is an **instruction to ask the user** whether
+  to stand one up — put the question, do not answer it by running the
+  command. Ask early: `nestor stats` on a tree with no store creates
+  `data/nestor.db` and prints `0 pair(s)`, so the first command you type makes
+  an absent Nestor indistinguishable from an empty one.
   If either line is red, run the hook yourself — do **not** `pip install` into
   system python; this container carries a broken Debian `cryptography` on
   its path that satisfies the requirement without importing.

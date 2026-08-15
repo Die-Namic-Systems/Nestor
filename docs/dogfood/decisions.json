@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 341,
+    "pairs": 344,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "6e63b06340a13c45c1c1386a984b9586065ab908cc7ae5fa40e686c1aa18bad3",
+  "digest": "4cb2ed5ef8da2f39de67cd1e0221523561d0200ae61fca33ed94fc90e954949a",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both. A third before_write case, write-gated-py-allowed-after-consulting, runs the same forbidden payload against a fresh receipt and expects allow; the deny case now explicitly runs against an absent one. tests/test_hook_guard.py pins the pair, so removing either direction fails the suite. Isolating the receipt made this cheap -- both states are already constructed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "e586a9f1-b515-5cfe-82ad-33eb19c13ccf",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why must the probe create nothing and was that shown",
+      "source_text": "Why must the probe create nothing, and was that shown?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because `nestor stats` on a tree with no store does not report 'no Nestor' -- it creates data/nestor.db and prints `0 pair(s)`. An absent Nestor and an empty one are indistinguishable the moment anything runs, so boot is the only honest moment to ask, and a probe that touched the path would destroy the answer and then report it. _store_summary opens an existing store without memory_init for the same reason: schema creation to satisfy the check's own curiosity is writing to answer a question about whether to write. Shown: test_the_nestor_check_stands_nothing_up snapshots the tree before and after and requires it unchanged; with the probe altered to stand one up, it and two neighbours fail.",
       "verifier": "",
       "weight": 1.0
     },
@@ -133,6 +147,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "29deb413-2d97-5d23-a36f-472e17eca437",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the boot stand a nestor up when it finds none or ask",
+      "source_text": "Does the boot stand a Nestor up when it finds none, or ask?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It asks, and builds nothing on either branch. Present: one line naming the path and its counts, no prompt -- there is no choice to put to the user when the thing already exists. Absent: an _ask_prompt telling the agent to ask the user before proposing, naming the fix (`nestor demo`, or `python -m nestor.home_init` for a household seat). _stand_up_prompt was generalised into _ask_prompt so the brain's wording stays byte-identical while the tag, the reason it matters and the fix belong to each caller.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "1d52bdf1-1f4e-505b-b0df-261c76510dbf",
       "origin": "pr:None",
       "seal_sig": "",
@@ -142,6 +170,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, three ways. `_lint_line` was run with LINT_MODULES monkeypatched to name an absent module and emitted `MISSING nestor_no_such_lint_module` with the pip fix and without accusing the installed one. Both drift guards were run against the defect as it actually shipped -- detect-secrets deleted from [dev] and dropped from LINT_MODULES -- and both failed, naming detect_secrets; both pass with the fix restored. The `[check] lint:` section is also covered by the existing fail-open contract: a helper that raises degrades to one status line and its neighbours survive.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "02dd9d5e-8f38-583e-90fa-dc368b018a6b",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what counts as a nestor is stood up and where is that path resolved",
+      "source_text": "What counts as 'a Nestor is stood up', and where is that path resolved?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two seats, one question. With $HOMESTEAD_HOME set it is a household host: stood up when home_init's layout.json marker is present -- the directory alone does not count, because hooks/review_receipt already creates paths under that same root without any layout having been laid out. Otherwise it is this product tree: stood up when the store the CLI opens by default exists, and that path is read off nestor.cli.build_parser().get_default('db') rather than restated in the hook.",
       "verifier": "",
       "weight": 1.0
     },
