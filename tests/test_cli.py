@@ -534,3 +534,32 @@ def test_db_checkpoint_refuses_existing_out_without_force(db, tmp_path, capsys):
     out.write_text("taken", encoding="utf-8")
     assert run(db, "db", "checkpoint", "--out", str(out)) == cli.EXIT_USAGE
     assert "refusing to overwrite" in capsys.readouterr().err
+
+
+def test_check_prints_the_tolerance_its_verdict_turned_on(db, capsys):
+    from nestor.reconcile import Reconciler
+    Reconciler(db["store"], domain="q", pct_tol=0.05).seal_baseline(
+        "revenue", 3.9, verifier="auditor")
+
+    # 0.2/3.9 is 5.13% — printed against a 5% tolerance, a passing verdict is
+    # unreadable without the slack beside it. With it, `variation <= tolerance`
+    # is arithmetic the reader can do on the line as printed.
+    assert run(db, "check", "revenue", "4.1", "--domain", "q") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "within tolerance" in out
+    assert "(5.13%)" in out
+    assert "tolerance 0.205" in out
+
+
+def test_check_omits_the_tolerance_when_nothing_was_compared(db, capsys):
+    from nestor.reconcile import Reconciler
+    Reconciler(db["store"], domain="q", pct_tol=0.05).seal_baseline(
+        "revenue", 3.9, verifier="auditor")
+
+    assert run(db, "check", "revenue", "abc", "--domain", "q") == cli.EXIT_ANSWER_IS_NO
+    out = capsys.readouterr().out
+    assert "no number could be read" in out
+    assert "tolerance" not in out
+
+    assert run(db, "check", "never-sealed", "1", "--domain", "q") == cli.EXIT_ANSWER_IS_NO
+    assert "tolerance" not in capsys.readouterr().out

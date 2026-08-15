@@ -168,6 +168,7 @@ class Reconciler:
              "within_tolerance": bool,
              "variation": float,        # absolute |observed - baseline|
              "variation_pct": float,    # variation / |baseline| (a fraction)
+             "tolerance_abs": float,    # the slack the verdict turned on
              "flagged": bool,
              "ambiguous": bool,         # more than one baseline stands for this label
              "baseline_count": int,
@@ -180,6 +181,22 @@ class Reconciler:
         perfect ``1.0`` (i.e. ``|observed - baseline| <= max(abs_tol,
         pct_tol*max(|.|))``). Anything else with a known baseline is ``flagged``.
         Every check is appended to the ledger.
+
+        **``variation_pct`` and the verdict do not share a denominator, and
+        ``tolerance_abs`` is what reconciles them.** The percentage is
+        baseline-relative (``variation / |baseline|``) because that is the
+        figure an auditor means by "how far off was it." The verdict is
+        symmetric, so its proportional leg is a fraction of the *larger*
+        magnitude (:meth:`~nestor.matcher.NumericMatcher.tolerance_for`).
+        Against a rising observation the larger magnitude is the observation,
+        so a check can report a percentage above ``pct_tol`` and still pass —
+        at the default ``pct_tol=0.05`` anything up to ``pct/(1-pct)``, i.e.
+        ``5.2632%``, reads as over-tolerance while passing. Both numbers are
+        right; a reader given only one of them cannot see why. So the absolute
+        slack the comparison actually used travels with the result, and
+        ``variation <= tolerance_abs`` is checkable arithmetic that needs no
+        denominator convention at all. ``None`` when there is no baseline or no
+        readable observation — there is nothing to have measured against.
 
         **The two ``_text`` / ``_partial`` fields answer "is this figure the one
         I typed?"** ``NumericMatcher.parse`` searches for a number rather than
@@ -219,7 +236,7 @@ class Reconciler:
             result = {
                 "label": label, "baseline": None, "observed": obs_num,
                 "within_tolerance": False, "variation": None,
-                "variation_pct": None, "flagged": False,
+                "variation_pct": None, "tolerance_abs": None, "flagged": False,
                 "ambiguous": False, "baseline_count": 0,
                 "baseline_text": "", "baseline_partial": False,
             }
@@ -232,6 +249,11 @@ class Reconciler:
             variation = abs(obs_num - baseline) if obs_num is not None else None
             variation_pct = (variation / abs(baseline)
                              if variation is not None and baseline != 0 else None)
+            # Recomputed from the same method the score turned on, rather than
+            # inferred from the verdict — an unreadable observation has no
+            # tolerance because it was never compared, not a tolerance of zero.
+            tolerance_abs = (self.matcher.tolerance_for(baseline, obs_num)
+                             if obs_num is not None else None)
             # The baseline's own text is what a human sealed; source_norm is the
             # figure it was read as. They differ exactly when the seal was made
             # from a partially-parsed value, which is the case worth surfacing.
@@ -239,7 +261,8 @@ class Reconciler:
             result = {
                 "label": label, "baseline": baseline, "observed": obs_num,
                 "within_tolerance": within, "variation": variation,
-                "variation_pct": variation_pct, "flagged": not within,
+                "variation_pct": variation_pct, "tolerance_abs": tolerance_abs,
+                "flagged": not within,
                 "ambiguous": len(sealed) > 1, "baseline_count": len(sealed),
                 "baseline_text": base_text,
                 "baseline_partial": self.matcher.parse_detail(base_text)["partial"],

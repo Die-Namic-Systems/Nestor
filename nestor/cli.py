@@ -117,8 +117,14 @@ def cmd_check(args) -> int:
         mark = "✓ within tolerance" if result["within_tolerance"] else "✗ flagged"
         pct = ("" if result["variation_pct"] is None
                else f" ({result['variation_pct'] * 100:.2f}%)")
+        # The percentage is baseline-relative; the verdict turns on a slack
+        # measured against the larger magnitude. Printing only the first lets a
+        # 5.13% variation read as passing a 5% tolerance and look like a bug.
+        # The slack itself makes `variation <= tolerance` checkable on sight.
+        tol = ("" if result.get("tolerance_abs") is None
+               else f"  tolerance {result['tolerance_abs']:,}")
         human = (f"{mark}   baseline {result['baseline']:,}  observed "
-                 f"{result['observed']:,}  variation {result['variation']:,}{pct}")
+                 f"{result['observed']:,}  variation {result['variation']:,}{pct}{tol}")
         if result["ambiguous"]:
             human += f"\n  ! {result['baseline_count']} baselines stand for this label"
     _emit(result, args.json, human)
