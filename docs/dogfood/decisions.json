@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 353,
+    "pairs": 356,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "0b0757bb0569924fa1738006c89e0eb0b21646861f9639c3cb10cfe9d3071ee2",
+  "digest": "2604527ebd18049ba537e66dba1a03ce3733e5bd84a215957aad98a152fbaf99",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -105,6 +105,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "c039f210-242e-59bf-87bd-15af250db6a7",
+      "origin": "pr:118",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "did waiting for ci before merging the release earn its cost",
+      "source_text": "Did waiting for CI before merging the release earn its cost?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and not for the reason expected. The wait was justified on the 3.10 leg -- tests/test_version.py had broken that leg once before by importing tomllib, and this branch adds a test to that same file. 3.10 was fine. What actually failed was a test-job/dev-venv difference that both legs shared and that no amount of local running on 3.11 would have surfaced.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "bc1b9077-a715-559c-a31e-796223262e11",
       "origin": "pr:None",
       "seal_sig": "",
@@ -189,6 +203,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "8ab6a0fa-e4a5-5326-a969-27b6b64f2519",
+      "origin": "pr:118",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a test for a readiness check avoid depending on what happens to be ready",
+      "source_text": "How does a test for a readiness check avoid depending on what happens to be ready?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The present half of the pair is stdlib. LINT_MODULES is monkeypatched to ('json', 'nestor_no_such_lint_module'): json imports in any interpreter that can run the probe at all, so 'MISSING <fake>' is exact and 'the importable one is not accused' holds everywhere -- the repo venv, CI's test job, a bare checkout. Nothing about the assertion depends on an install.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "7bfb0b30-ffeb-55c1-878a-79116b7990b4",
       "origin": "pr:None",
       "seal_sig": "",
@@ -212,6 +240,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "`None`, never `0.0`.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "6c85d88e-0079-595c-ba00-ad63d529f4e6",
+      "origin": "pr:118",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this a oneoff or a pattern",
+      "source_text": "Is this a one-off, or a pattern?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A pattern, and this is its third instance on this branch. 0125: scripts/hook_guard.py inherited the developer's review receipt, so the write gate's deny case flipped depending on what the operator had done in the last thirty minutes. 0127: every store fixture was built by `nestor demo` or memory_init(), both of which set WAL at creation, so a read-only claim passed while being false for any store that was not already WAL. 0128: the fixtures passed an explicit --db outside the default path, so `nestor demo`'s diversion never triggered under test. Now this: the control module was one the local venv happened to carry.",
       "verifier": "",
       "weight": 1.0
     },

@@ -59,12 +59,20 @@ def test_the_lint_line_goes_red_on_a_missing_gate(monkeypatch):
     A readiness line that cannot report *un*ready is a ledger, not a gate: it was
     the silently-absent third gate that let ``bash scripts/ci-lint.sh`` boot green
     and die at push. The line must name the missing module and the one command
-    that fixes it."""
+    that fixes it.
+
+    The present-module half of the pair is stdlib on purpose. The first version
+    used ``ruff``, which is installed in the repo venv and *not* in CI's test job
+    (``tests.yml`` installs ``.[keys] pytest coverage``, deliberately — the lint
+    tools live in the lint job). So the probe correctly reported
+    ``MISSING ruff, nestor_no_such_lint_module`` and the assertion, which had my
+    venv's contents baked into it as a fact, failed on both matrix legs. A test
+    for a readiness check must not itself depend on what happens to be ready."""
     monkeypatch.setattr(
-        session_start, "LINT_MODULES", ("ruff", "nestor_no_such_lint_module"))
+        session_start, "LINT_MODULES", ("json", "nestor_no_such_lint_module"))
     line = session_start._lint_line(REPO)
     assert "MISSING nestor_no_such_lint_module" in line
-    assert "ruff" not in line.split("—")[0]  # the installed one is not accused
+    assert "json" not in line.split("—")[0]  # the importable one is not accused
     assert "pip install -e '.[dev]'" in line
 
 
