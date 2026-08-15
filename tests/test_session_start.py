@@ -7,9 +7,11 @@ keeps a bad section from taking the session down.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import re
+import sqlite3
 import subprocess
 
 import pytest
@@ -119,6 +121,59 @@ def test_the_nestor_check_stands_nothing_up(bare_tree):
     session_start._nestor_section(bare_tree)
     assert {p for p in bare_tree.rglob("*")} == before
     assert not (bare_tree / "data").exists(), "the probe stood a Nestor up"
+
+
+def test_a_non_wal_store_is_not_rewritten_by_the_probe(bare_tree):
+    """The regression, and the case the first version of this suite never covered.
+
+    `_store_summary` used to open the store through `SqliteStore`, whose
+    `_connect` runs `PRAGMA journal_mode=WAL` on every open — a write to the
+    file header. Every fixture here builds its store with `nestor demo` or
+    `memory_init()`, both of which set WAL at creation, so re-opening was a true
+    no-op and the read-only claim passed while being false. A store in SQLite's
+    default `delete` mode — restored from a backup, copied off another machine,
+    or set that way for a filesystem where WAL is unsafe — was silently
+    converted by the boot check, bytes and all."""
+    db = bare_tree / "data" / "nestor.db"
+    subprocess.run(["nestor", "--db", str(db), "demo"],
+                   capture_output=True, check=True, timeout=120)
+    con = sqlite3.connect(db)
+    con.execute("PRAGMA journal_mode=delete")
+    con.close()
+    for sidecar in db.parent.glob("nestor.db-*"):
+        sidecar.unlink()
+
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    line = session_start._nestor_section(bare_tree)
+    assert "pair(s)" in line, line
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before, (
+        "the boot probe rewrote the store it was only supposed to read")
+    con = sqlite3.connect(db)
+    assert con.execute("PRAGMA journal_mode").fetchone()[0] == "delete", (
+        "the boot probe changed the store's journal mode")
+    con.close()
+
+
+def test_the_read_only_summary_agrees_with_memory_stats(bare_tree):
+    """Pins the duplicated count query to the authority it had to stop calling.
+
+    Reading without writing costs a restatement of what `memory.stats` computes
+    (there is no read-only door into `SqliteStore`). Left unpinned that is a
+    drift waiting to happen, so the two are compared on a real store: change the
+    schema or the status vocabulary and this fails rather than the boot quietly
+    reporting a number nothing else agrees with."""
+    from nestor import memory
+    from nestor.sqlite_store import SqliteStore
+    db = bare_tree / "data" / "nestor.db"
+    subprocess.run(["nestor", "--db", str(db), "demo"],
+                   capture_output=True, check=True, timeout=120)
+    store = SqliteStore(str(db))
+    try:
+        stats = memory.stats(store=store)
+    finally:
+        store.close()
+    assert session_start._store_summary(db) == (
+        f" — {stats['total']} pair(s), {stats['sealed']} sealed")
 
 
 def test_a_household_seat_is_asked_about_on_its_own_terms(bare_tree, monkeypatch):

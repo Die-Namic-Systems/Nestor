@@ -208,9 +208,12 @@ def _nestor_section(root: Path) -> str:
     silently makes the answer yes. Boot is the only moment the question is still
     honest.
 
-    Read-only by construction: it resolves paths and reads what is already there,
-    and creates nothing on either branch. Standing one up stays the user's call,
-    the posture :func:`_ask_prompt` keeps.
+    Never modifies the store: it resolves paths and reads what is already there,
+    and neither branch creates or alters a Nestor. The one thing it can leave
+    behind is a WAL store's ``-wal``/``-shm`` sidecars, which SQLite requires to
+    read that journal mode at all — see :func:`_store_summary`, which states the
+    limit rather than claiming a cleanliness it cannot deliver. Standing one up
+    stays the user's call, the posture :func:`_ask_prompt` keeps.
     """
     try:
         from nestor import homestead_paths
@@ -263,21 +266,36 @@ def _SUBDIRS() -> tuple[str, ...]:
 def _store_summary(db: Path) -> str:
     """``' — N pair(s), M sealed'``, or a soft note when the file will not read.
 
-    Opened and closed without ``memory_init``: this is somebody's store, and a
-    boot check that ran schema creation over it to satisfy its own curiosity
-    would be writing to answer a question about whether it should write.
+    Opened through a raw ``mode=ro`` URI rather than :class:`SqliteStore`, which
+    cannot be asked for a read. ``SqliteStore._connect`` runs ``PRAGMA
+    journal_mode=WAL`` on *every* open and ``mkdir(parents=True)`` on the
+    store's parent — so the first version of this function, whose docstring
+    promised it did not write, silently converted any store not already in WAL
+    mode: its bytes changed and it gained ``-wal``/``-shm`` sidecars. The claim
+    was false one layer below where the code was looking.
+
+    The counts are restated as SQL here rather than borrowed from
+    ``memory.stats``, which is the honest cost of reading without writing.
+    ``test_the_read_only_summary_agrees_with_memory_stats`` pins the two
+    together so the duplication cannot drift — the same trade
+    :func:`_cli_default_db` avoids by introspection and this one cannot.
+
+    Reading a WAL store still creates ``-wal``/``-shm`` sidecars; SQLite needs
+    shared memory to read that journal mode at all, and no flag avoids it that
+    is safe on a store somebody may be writing to. So the promise this keeps is
+    the precise one: **the store's own bytes are never modified.**
     """
     try:
-        from nestor import memory
-        from nestor.sqlite_store import SqliteStore
-        store = SqliteStore(str(db))
+        import sqlite3
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         try:
-            stats = memory.stats(store=store)
+            counts = dict(conn.execute(
+                "SELECT status, count(*) FROM tm_pairs GROUP BY status").fetchall())
         finally:
-            store.close()
+            conn.close()
     except Exception as exc:  # noqa: BLE001 — a summary is a nicety, not the answer
         return f" (present; contents unreadable: {type(exc).__name__})"
-    return f" — {stats['total']} pair(s), {stats['sealed']} sealed"
+    return f" — {sum(counts.values())} pair(s), {counts.get('sealed', 0)} sealed"
 
 
 def _brain_section(root: Path) -> str:

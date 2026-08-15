@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 344,
+    "pairs": 347,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "4cb2ed5ef8da2f39de67cd1e0221523561d0200ae61fca33ed94fc90e954949a",
+  "digest": "aaa4058b546970f40aa939415f66836ac3c2fb6611059687133deb718dc05fbb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -35,15 +35,15 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
-      "id": "e586a9f1-b515-5cfe-82ad-33eb19c13ccf",
+      "id": "d854a994-fb0c-5559-a635-20c072acb3f2",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
-      "source_norm": "why must the probe create nothing and was that shown",
-      "source_text": "Why must the probe create nothing, and was that shown?",
+      "source_norm": "what is the promise now stated so it is actually true",
+      "source_text": "What is the promise now, stated so it is actually true?",
       "status": "draft",
       "target_lang": "decision",
-      "target_text": "Because `nestor stats` on a tree with no store does not report 'no Nestor' -- it creates data/nestor.db and prints `0 pair(s)`. An absent Nestor and an empty one are indistinguishable the moment anything runs, so boot is the only honest moment to ask, and a probe that touched the path would destroy the answer and then report it. _store_summary opens an existing store without memory_init for the same reason: schema creation to satisfy the check's own curiosity is writing to answer a question about whether to write. Shown: test_the_nestor_check_stands_nothing_up snapshots the tree before and after and requires it unchanged; with the probe altered to stand one up, it and two neighbours fail.",
+      "target_text": "The store's own bytes are never modified. That is narrower than the original 'creates nothing': reading a WAL-mode store still creates -wal and -shm sidecars, because SQLite requires shared memory to read that journal mode at all, and the only flag that avoids it (immutable=1) is unsafe on a store somebody may be writing to. The docstrings and 0126 now state the limit rather than a cleanliness the code cannot deliver.",
       "verifier": "",
       "weight": 1.0
     },
@@ -91,6 +91,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "b291f23a-25c0-5b64-9266-8df34af4858b",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why must the probe create nothing and was that shown",
+      "source_text": "Why must the probe create nothing, and was that shown?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because `nestor stats` on a tree with no store does not report 'no Nestor' -- it creates data/nestor.db and prints `0 pair(s)`. An absent Nestor and an empty one are indistinguishable the moment anything runs, so boot is the only honest moment to ask, and a probe that touched the path would destroy the answer and then report it. Shown: test_the_nestor_check_stands_nothing_up snapshots the tree before and after and requires it unchanged; with the probe altered to stand one up, it and two neighbours fail. CORRECTED by 0127: this commitment originally also claimed _store_summary read an existing store without writing to it, and that was false -- SqliteStore._connect runs PRAGMA journal_mode=WAL on every open, so the probe rewrote any store not already in WAL mode. The no-store branch was always clean; the has-store branch was not. See 0127 for the measurement and the read-only fix.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "aaf528e7-3cc2-5c44-9d16-4e60fa9e347c",
       "origin": "pr:115",
       "seal_sig": "",
@@ -119,6 +133,20 @@
     },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "8d374338-ed82-54d6-87cb-cef665bf1098",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a boot probe read a store without writing to it when sqlitestore cannot be asked for a read",
+      "source_text": "How does a boot probe read a store without writing to it, when SqliteStore cannot be asked for a read?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It bypasses SqliteStore and opens a raw `sqlite3.connect('file:<db>?mode=ro', uri=True)`. No read-only door exists on SqliteStore -- the constructor takes only a path, and _connect unconditionally sets WAL and mkdirs the parent -- and adding one is product surface this hook has no business growing on its own. Measured after the change: a `delete`-mode store reads correctly with its bytes and journal mode unchanged and no sidecars created.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
       "id": "7bfb0b30-ffeb-55c1-878a-79116b7990b4",
       "origin": "pr:None",
       "seal_sig": "",
@@ -142,6 +170,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "`None`, never `0.0`.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-15T00:00:00+00:00",
+      "id": "65c48b80-1245-5254-800d-e8fbb6f77e48",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why did the original tests pass and what stops that recurring",
+      "source_text": "Why did the original tests pass, and what stops that recurring?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Every fixture created its store via `nestor demo` or SqliteStore.memory_init(), both of which set WAL at creation -- so re-opening it never changed anything and the assertion was true on the states it was given. test_a_non_wal_store_is_not_rewritten_by_the_probe now forces a store to `delete` mode, strips its sidecars, and requires the sha256 and the journal mode to survive the probe; run against the code as it shipped, it fails on the hash. test_the_read_only_summary_agrees_with_memory_stats pins the hand-written count query against memory.stats so the duplication that reading-without-writing forced cannot drift.",
       "verifier": "",
       "weight": 1.0
     },
