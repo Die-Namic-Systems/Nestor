@@ -18,6 +18,43 @@ what moved.
 
 ---
 
+## [0.3.0] - 2026-08-15
+
+The first release published to PyPI (`pip install nestor`); `0.2.0` was
+pinnable by git ref only. No schema or ledger change, so a warm process needs
+no restart to adopt it (`docs/releasing.md`).
+
+### Added
+
+- **A worked proof that the loop runs on a corpus from outside this repo** —
+  `demo/the_dispatches_audit.py` over `demo/dispatches_audit_corpus.json`
+  (#114). It drives propose → review → seal end to end on external text and is
+  covered by `tests/test_dispatches_audit.py`, so the claim "Nestor works on
+  your corpus, not just its own dogfood" is a runnable demonstration rather than
+  an assertion. Recorded as dogfood decision `0122`.
+
+### Changed
+
+- **Ratify a draft where you read it.** In Memory, a plain draft's proposed
+  answer is now editable in the detail panel with a single **Seal this
+  decision** button (and Reject); sealing **auto-advances to the next plain
+  draft**, so a long review queue is a rhythm rather than a dropdown round-trip
+  each time. "Seal a pair by hand" reverts to new-pairs-only (#113). Governance
+  is unchanged: sealing still requires an acting verifier and, when signing is
+  on, a real signature.
+- **`reconcile` reports the tolerance a verdict turned on.** When a reconcile
+  verdict hinges on the match tolerance, that tolerance is now surfaced in the
+  CLI and page output instead of being left implicit, so a near-miss reads as a
+  near-miss (#115, `reconcile.py` / `matcher.py` / `cli.py`). Recorded as
+  dogfood decision `0123`.
+
+### Fixed
+
+- **The provenance detail panel no longer renders a literal `null`.** A bare
+  `card.append(null)` stringifies to the text `"null"`; children are now
+  filtered with `h()`'s own null/undefined/false predicate before appending
+  (IDEAS §6.97, part of #113).
+
 ## [0.2.0] - 2026-08-13
 
 ### Added
