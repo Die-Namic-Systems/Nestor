@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 370,
+    "pairs": 376,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-16T00:00:00+00:00",
-  "digest": "8bfc2b6e1d8c55f34ce3ef329e4921d864110de7d46e80edf974ee4b0efda17f",
+  "digest": "22c8282ff1d49a894e88d528aeb4251b277adaaf8ed98d5f24a25b18224bbbae",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -30,6 +30,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "It got stricter. Nothing tracked in this tree may carry the number, and the test now says so in three places.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "ef5d091b-4299-5387-afd0-2e85e59986cd",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "adopt a mypy type gate at what strictness over what scope",
+      "source_text": "Adopt a mypy type gate? At what strictness, over what scope?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes -- python -m mypy nestor wired into ci-lint.sh, a baseline of four checks (check_untyped_defs, warn_redundant_casts, warn_unused_ignores, no_implicit_optional), scoped to the nestor package only.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "e7c733b3-a15b-5302-851d-e7ae6a36d5f2",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the selfgrant tripwire denied a readonly decision check consult because its question quoted the mint phrase fix the regex how without breaking the guard",
+      "source_text": "The self-grant tripwire denied a read-only `decision check` consult because its question quoted the mint phrase. Fix the regex how, without breaking the guard?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Blank quoted spans before the three structural mint checks (enrol, seal-env assignment, import-apply), which are identified by the command's own tokens; keep the raw command for the sqlite seal-write check alone, whose signal legitimately lives inside quoted SQL.",
       "verifier": "",
       "weight": 1.0
     },
@@ -119,6 +147,20 @@
     },
     {
       "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "76811e32-4424-56f4-b469-eef5b1bb22b1",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a firstrun wizards natural finale is a completed decision the covenant says only a human seals how does the tour end",
+      "source_text": "A first-run wizard's natural finale is a completed decision. The covenant says only a human seals. How does the tour end?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It proposes a draft and stops at the review desk. onboarding.run() has no verifier/status/seal_sig parameter, its one write goes through propose() which hardcodes status='draft', and the finale points the newcomer at `nestor ui` to seal it themselves -- nowhere else.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
       "id": "5eb8bd01-2a4a-5819-b121-80cc752e34b5",
       "origin": "pr:None",
       "seal_sig": "",
@@ -161,6 +203,20 @@
     },
     {
       "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "3ac09818-5a5a-5c3c-aa3c-5989e6fe3801",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the idea list said 94 nullnull and 99 keys add were fix open the code had already shipped both was the fanout wasted and what should survive",
+      "source_text": "The idea list said #94 (nullnull) and #99 (keys add) were 'fix open'. The code had already shipped both. Was the fan-out wasted, and what should survive?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not wasted, but trimmed to what is additive: keep the five new key-enrol tests locking the peer and hmac facets the original fix left untested, and keep the mechanism-level appendKids refactor that the shipped null fix did not do. Treat the 'fix open' status as stale and correct it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
       "id": "2cd23da0-448c-5677-831d-3f1f66b711de",
       "origin": "pr:None",
       "seal_sig": "",
@@ -170,6 +226,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Test it. include-component-in-tag false is asserted against publish.yml's own `v*` trigger, read out of the workflow text.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "26556f0e-7039-504a-aadf-43c2b8d8aff0",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "crosssession collision awareness 111 where does it live and what happens when it cannot tell",
+      "source_text": "Cross-session collision awareness (#111) -- where does it live, and what happens when it cannot tell?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "An advisory UserPromptSubmit hook (hooks/before_propose.py), sibling to before_build (#105), fires only on a propose/mint/open-a-PR prompt, scans local git only, and fails CLOSED to UNKNOWN -- never a false 'clear'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "02ea9817-7109-5edb-bd03-0dddf09421e4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the 60second demo was shipped except the recording produce a gif or something honest a headless container can actually make",
+      "source_text": "The 60-second demo was 'shipped except the recording'. Produce a GIF, or something honest a headless container can actually make?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Ship a reproducible harness (demo/record_demo.py) that drives the flow and captures a deterministic terminal cast/transcript, committed as artifacts. The GIF stays an explicit human step, one printed command away, not claimed as done.",
       "verifier": "",
       "weight": 1.0
     },
