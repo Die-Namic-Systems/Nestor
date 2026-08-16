@@ -6614,3 +6614,33 @@ has a written reason to join the list rather than being discovered red on CI.
 
 ---
 
+### 6.111 The secret-scan exclusion lived in two copies and only one learned about the demo transcript — **measured**, fix **shipped**
+
+*Found 2026-08-16, one push after §6.110, on the same PR — the lint job's
+**next** red, and the same disease a layer over.*
+
+The secret scan's exclusion list existed twice: in `scripts/ci-lint.sh` and,
+copied, in the workflow's own "Secret scan" step. The demo harness (§4.3) added
+`^demo/recordings/` — its ledger-verify transcript prints real sha256 chain
+hashes, which are high-entropy and not secrets — to `ci-lint.sh` only. So the
+local gate passed and the CI step, still running its own copy without that
+exclusion, flagged `sixty_seconds.cast:58` and `sixty_seconds.txt:64` and failed
+with exit 123. `ci-lint.sh`'s own header said *"Match .github/workflows/
+tests.yml"* — the promise the two copies had already broken.
+
+**The fix is the guide's, not a third copy.** `docs/agent-guide.md`: *when a
+guard fails, remove the interaction — do not add a condition.* Syncing the
+missing pattern into the workflow would have left two lists to drift again on the
+next exclusion. Instead both callers now run one `scripts/secret-scan.sh` — the
+list is defined once, and neither `ci-lint.sh` nor the workflow keeps a copy that
+can disagree. Same shape as §1.6 and §5.2: a rule enforced by convention at two
+call sites is not enforced; move it into the single thing both must go through.
+
+**Measured.** `bash scripts/secret-scan.sh` — the exact command CI now runs — is
+clean over the full tree. Drop the `demo/recordings` line and it fails on the
+same two files CI named, so the scan still catches high-entropy strings; the
+exclusion is what spares the transcript, and it is now spared in both places or
+neither.
+
+---
+

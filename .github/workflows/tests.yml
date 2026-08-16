@@ -45,12 +45,9 @@ jobs:
         run: mypy nestor
 
       - name: Secret scan (never commit the trust root)
-        # New findings not in .secrets.baseline fail. Derived/binary artifacts
-        # carry high-entropy hashes but no source secret, so they are excluded.
-        run: |
-          git ls-files \
-            | grep -vE '(^docs/dogfood/nestor\.db$|^docs/dogfood/decisions\.json$|\.bundle\.json$|^bench/results/)' \
-            | xargs detect-secrets-hook --baseline .secrets.baseline
+        # Shared with scripts/ci-lint.sh so the exclusion list is defined once
+        # and local and CI cannot disagree (agent-log §6.111).
+        run: bash scripts/secret-scan.sh
 
   test-matrix:
     runs-on: ubuntu-latest
