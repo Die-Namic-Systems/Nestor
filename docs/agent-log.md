@@ -6580,3 +6580,37 @@ not substring presence.
 
 ---
 
+### 6.110 The mypy gate passed locally and failed CI, because its ignore-list was calibrated against a keys-present env — **measured**, fix **shipped**
+
+*Found 2026-08-16, minutes after the §7.5 type gate's own PR opened: `bash
+scripts/ci-lint.sh` was green locally and the **lint** job went red on the first
+push.*
+
+**What diverged.** The gate is `python -m mypy nestor`. The CI lint job installs
+only the lint tools — `pip install ruff bandit mypy detect-secrets`, no package
+and no extra. Nestor's core is stdlib-only, so the *only* third-party imports
+mypy meets are the optional integrations, and each must be in the
+`ignore_missing_imports` list or it reports a missing stub. The list named three
+— `willow_gate`, `fastembed`, `anthropic` — and missed the fourth: the
+`cryptography` imports behind the `[keys]` extra, used lazily and guarded in
+`keyring.py:88` and `signing.py:83`. A local `.venv` carrying `.[dev,keys]`
+resolved them, so mypy was clean locally and reported four `import-not-found`
+errors on CI, which carries no keys.
+
+**Measured, not reasoned.** A throwaway venv with *only* mypy installed
+reproduces the lint job exactly — same four errors, same "checked 39 source
+files" — because that env is keys-absent the same way CI is. Pre-fix: 4 errors.
+Post-fix (`cryptography.*` added to the list): `Success: no issues found in 39
+source files`, in both that keys-absent env and the keys-present `.venv`.
+
+**Why it is the same shape as everything else here.** A gate is only as honest as
+the environment it was proved in. `mypy nestor` on a developer box with every
+extra installed is a *different check* from `mypy nestor` on a lint runner that
+carries none — the same trap as running the suite with `[semantic]` present and
+diverging from CI's fastembed-absent baseline (`docs/agent-guide.md` → Before you
+finish). The list is now four, and the comment in `pyproject.toml` says plainly
+that the lint job carries no extras, so the next optional import added to the core
+has a written reason to join the list rather than being discovered red on CI.
+
+---
+

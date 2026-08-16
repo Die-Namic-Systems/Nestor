@@ -180,14 +180,21 @@ warn_unused_ignores = true
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
-# Three fleet-optional integrations, each behind its own extra (`gate`,
-# `semantic`, `cloud`) and each already fail-closed at import time when that
-# extra is not installed (cloud_seal.py's module docstring). `[dev]`
-# deliberately does not carry any of the three — that would make the type
-# gate a proxy for "did every optional extra happen to be installed" rather
-# than a check of nestor's own code, and CI's own install
-# (`pip install -e '.[keys]'`) does not carry them either. This only ignores
-# the *import* of each named module; the rest of cloud_seal.py,
-# semantic_matcher.py and engine.py is still fully type-checked.
-module = ["willow_gate", "willow_gate.*", "fastembed", "anthropic"]
+# Four optional integrations, each behind its own extra (`gate`, `semantic`,
+# `cloud`, `keys`) and each fail-closed at import time when that extra is not
+# installed — the cryptography imports in keyring.py/signing.py are lazy and
+# guarded, raising a loud "install [keys]" rather than degrading silently. The
+# lint job that runs `mypy nestor` installs ONLY the lint tools (ruff, bandit,
+# mypy, detect-secrets) — not the package and not any extra — so NONE of these
+# four is importable when the gate runs. Nestor's core is stdlib-only, so these
+# are the *only* third-party imports mypy meets, and each must be ignored or the
+# gate reports a missing stub for a dependency it deliberately does not carry.
+# `[keys]`'s cryptography was the one this list first missed: a local `.[keys]`
+# env resolved it and hid the gap until CI, where the lint job is keys-absent,
+# turned red (agent-log §6.110). Requiring the extras would make the gate a
+# proxy for "did every extra happen to be installed" rather than a check of
+# nestor's own code. This ignores only the *import*; the rest of cloud_seal.py,
+# semantic_matcher.py, engine.py, keyring.py and signing.py stays type-checked.
+module = ["willow_gate", "willow_gate.*", "fastembed", "anthropic",
+          "cryptography.*"]
 ignore_missing_imports = true
