@@ -398,7 +398,35 @@ def supports_queue(store: "Storage") -> bool:
 _LINEAGE_OPS = ("memory_mark_superseded", "memory_lineage")
 
 
+class LineageStorage(Storage, Protocol):
+    """``Storage`` plus the lineage capability (see :func:`supports_lineage`).
+
+    Exists only as a ``cast`` target: a caller that already ran
+    :func:`supports_lineage` (or the ``_require_lineage`` raise-if-not
+    wrapper in :mod:`nestor.memory`) knows the two methods below are present,
+    but that runtime check does not by itself tell the type checker so —
+    a store predating this capability legitimately has no
+    ``memory_mark_superseded`` on its plain ``Storage`` type. The predicate
+    stays the single source of truth for *whether* a store qualifies; this
+    class only names *what* it gains once it does.
+    """
+
+    def memory_mark_superseded(self, pair_id: str, successor_id: str) -> None: ...
+
+    def memory_lineage(self, pair_id: str) -> list[dict]: ...
+
+
 _ATOMIC_SUPERSEDE_OPS = ("memory_mark_superseded_if",)
+
+
+class AtomicSupersedeStorage(Storage, Protocol):
+    """``Storage`` plus the atomic-supersede capability — a ``cast`` target
+    on the same terms as :class:`LineageStorage`; see
+    :func:`supports_atomic_supersede`."""
+
+    def memory_mark_superseded_if(self, pair_id: str, successor_id: str,
+                                  expected_status: str,
+                                  expected_superseded_by: str = "") -> bool: ...
 
 
 def supports_atomic_supersede(store: "Storage") -> bool:
@@ -435,6 +463,20 @@ def supports_lineage(store: "Storage") -> bool:
 
 _EDGE_OPS = ("memory_add_edge", "memory_edges_to", "memory_edges_from",
              "memory_seal_edge")
+
+
+class EdgeStorage(Storage, Protocol):
+    """``Storage`` plus the decision-graph capability — a ``cast`` target on
+    the same terms as :class:`LineageStorage`; see :func:`supports_edges`."""
+
+    def memory_add_edge(self, edge: dict) -> None: ...
+
+    def memory_edges_to(self, dst_id: str, kind: str = "") -> list[dict]: ...
+
+    def memory_edges_from(self, src_id: str, kind: str = "") -> list[dict]: ...
+
+    def memory_seal_edge(self, edge_id: str, verifier: str,
+                         edge_sig: str) -> bool: ...
 
 
 def supports_edges(store: "Storage") -> bool:

@@ -10,6 +10,7 @@ from hooks.before_authority import evaluate_authority
 from hooks.before_bash import evaluate_bash
 from hooks.before_build import for_prompt as before_build_for_prompt
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
+from hooks.before_propose import for_prompt as before_propose_for_prompt
 from hooks.before_stop import evaluate_stop
 from hooks.before_write import evaluate_write
 from hooks.reinject import EVENTS as REINJECT_EVENTS
@@ -22,7 +23,7 @@ from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo
 #: there as non-gates.
 MODULES = ("session_start", "session_end", "before_mcp", "before_write",
            "before_bash", "before_authority", "before_stop", "reinject",
-           "before_build")
+           "before_build", "before_propose")
 
 
 def _read_stdin() -> dict:
@@ -192,6 +193,21 @@ def main() -> None:
         try:
             prompt = payload.get("prompt") or payload.get("user_prompt") or ""
             context = before_build_for_prompt(prompt, root)
+        except Exception:          # noqa: BLE001
+            context = ""
+        if context:
+            _emit_reinject(args.format, "UserPromptSubmit", context)
+        return
+
+    if args.module == "before_propose":
+        # Advisory, same posture as before_build: on a propose/mint/open-a-PR
+        # prompt, inject the collision-scan reminder; on anything else, emit
+        # nothing. Fail OPEN on our own bugs — advisory.py already turns a scan
+        # failure into an honest "UNKNOWN" line rather than a false-clear, so
+        # the only thing caught here is a bug in this dispatch itself.
+        try:
+            prompt = payload.get("prompt") or payload.get("user_prompt") or ""
+            context = before_propose_for_prompt(prompt, root)
         except Exception:          # noqa: BLE001
             context = ""
         if context:

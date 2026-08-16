@@ -18,6 +18,7 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor decision check "may X?"        # exit 1 on a recorded rejection or
                                            # contradicts edge, for CI (docs/decision-memory.md N9)
     nestor stats
+    nestor init                           # a guided first run — ask, resolve, propose a draft
     nestor calibrate --from en --to es    # where the threshold belongs for this corpus
     nestor rejections                     # what the recorded "no"s say in aggregate
     nestor keys add rita                  # a key per verifier (list / add / revoke)
@@ -34,6 +35,7 @@ served as verified.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import pathlib
@@ -591,6 +593,47 @@ def cmd_stats(args) -> int:
     return EXIT_OK
 
 
+def cmd_init(args) -> int:
+    """``nestor init`` — the guided, honest first run (IDEAS.md §7.5).
+
+    Walks a newcomer through asking, watching the matcher say nothing is
+    verified yet, and proposing their first decision as a draft — see
+    :mod:`nestor.onboarding` for the walk itself and the reason it can only
+    ever write a draft. Refuses to re-run the walk over a store that already
+    holds real content: this is a first-run tour, not a seed script, and the
+    check is the same non-destructive one ``nestor demo`` makes before it
+    writes anything (:func:`nestor.onboarding.already_initialized`).
+    """
+    from . import onboarding
+    store = _store(args)
+    try:
+        if onboarding.already_initialized(store):
+            stats = memory.stats(store=store)
+            human = (
+                f"{args.db} already has {stats['total']} pair(s) on record "
+                f"({stats['sealed']} sealed, {stats['draft']} draft) — nestor init "
+                f"is a first-run tour, and this store has already had its first "
+                f"run.\n"
+                f"  see what's there:  nestor stats --db {args.db}\n"
+                f"  seal what's queued:  nestor ui --db {args.db}")
+            _emit({"db": args.db, "initialized": False, "reason": "not empty",
+                  "stats": stats}, args.json, human)
+            return EXIT_OK
+        # --json is machine-facing: run the walk against a buffer instead of
+        # stdout (still --yes'd, so there is nothing to prompt for) and print
+        # only the report, exactly like every other verb's --json path.
+        out = io.StringIO() if args.json else sys.stdout
+        report = onboarding.run(
+            store, db_path=args.db, out=out, yes=args.yes or args.json,
+            question=args.question or None, commitment=args.commitment or None,
+            rationale=args.rationale or None)
+    finally:
+        store.close()
+    if args.json:
+        _emit({"db": args.db, "initialized": True, **report}, True)
+    return EXIT_OK
+
+
 def cmd_demo(args) -> int:
     """Build a small seeded store so ``nestor ui`` opens onto a live Nestor.
 
@@ -783,6 +826,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     dem = sub.add_parser("demo", help="build a small seeded store so `nestor ui` opens live")
     dem.set_defaults(func=cmd_demo)
+
+    ini = sub.add_parser("init", help="a guided first run: ask, watch it resolve, propose a draft")
+    ini.add_argument("--yes", action="store_true",
+                     help="skip the prompts and use the built-in example — for CI, "
+                          "a script, or anywhere without a TTY")
+    ini.add_argument("--question", default="", help="skip that prompt: the question to propose")
+    ini.add_argument("--commitment", default="", help="skip that prompt: the answer to propose")
+    ini.add_argument("--rationale", default="", help="skip that prompt: why, one line")
+    ini.set_defaults(func=cmd_init)
 
     # These two own their own flags; hand the rest of argv straight over.
     sub.add_parser("ui", help="the browser surface (see: nestor ui --help)", add_help=False)

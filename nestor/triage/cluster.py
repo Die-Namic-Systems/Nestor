@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from nestor.matcher import StringMatcher
+from nestor.matcher import Matcher
 from nestor.triage import Cluster, Decision
 
 #: Tokens too common to name a theme. Kept small and generic on purpose — the
@@ -90,7 +90,7 @@ def _label(member_norms: list[str], fallback: str) -> str:
     return " ".join(tok for tok, _ in ranked[:_LABEL_TOKENS])
 
 
-def _build_graph(norms: list[str], matcher: StringMatcher,
+def _build_graph(norms: list[str], matcher: Matcher,
                  bar: float) -> tuple[list[list[int]], dict[tuple[int, int], float]]:
     """Adjacency lists and edge weights for the similarity graph.
 
@@ -106,7 +106,12 @@ def _build_graph(norms: list[str], matcher: StringMatcher,
     """
     n = len(norms)
     lengths = [len(x) for x in norms]
-    has_bound = callable(getattr(matcher, "similarity_bound", None))
+    # Fetched once via getattr (Matcher — the generic Protocol — does not
+    # declare this method; only StringMatcher's cheap-bound optimization
+    # does) and called through the same reference below, rather than
+    # re-accessing `matcher.similarity_bound` directly, so a type checker
+    # sees one dynamic lookup instead of an attribute Matcher doesn't have.
+    similarity_bound = getattr(matcher, "similarity_bound", None)
     adj: list[list[int]] = [[] for _ in range(n)]
     weights: dict[tuple[int, int], float] = {}
     for i in range(n):
@@ -122,10 +127,13 @@ def _build_graph(norms: list[str], matcher: StringMatcher,
             # Prunes valid only for a length-bounded (difflib) matcher — see the
             # docstring. A matcher without similarity_bound (semantic/ollama)
             # scores every pair rather than risk dropping a real paraphrase edge.
-            if has_bound:
+            # Checked with `is not None` (not a separate `has_bound` flag) so
+            # the call below narrows away the "callable or None" type instead
+            # of relying on a bool alias a type checker cannot trace back.
+            if similarity_bound is not None:
                 if 2.0 * min(la, lb) / (la + lb) < bar:
                     continue
-                if matcher.similarity_bound(a, b, floor=bar) < bar:
+                if similarity_bound(a, b, floor=bar) < bar:
                     continue
             score = matcher.similarity(a, b)
             if score >= bar:
@@ -171,7 +179,7 @@ def _label_propagation(adj: list[list[int]]) -> list[int]:
     return labels
 
 
-def group(decisions: list[Decision], matcher: StringMatcher, bar: float) -> list[Cluster]:
+def group(decisions: list[Decision], matcher: Matcher, bar: float) -> list[Cluster]:
     """Group ``decisions`` into themed clusters on their ``question`` text.
 
     Returns a list of :class:`Cluster`, sorted so the output is stable: largest

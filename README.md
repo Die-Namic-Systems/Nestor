@@ -145,6 +145,22 @@ The distribution is `nestor-meaning`; the import name is unchanged, so
 pip install "nestor-meaning @ git+https://github.com/rudi193-cmd/Nestor@v0.3.0"
 ```
 
+**Then, the actual first run:**
+
+```bash
+nestor init                # a guided walk: ask, watch nothing verify it yet, propose a draft
+```
+
+Three steps, in Nestor's own voice: ask something, watch the matcher say
+truthfully that nothing has verified it yet, and propose your first decision
+as a **draft**. That is where the wizard stops — sealing is a human's
+signature, made by hand, in `nestor ui`, so `nestor init` ends by pointing
+you there rather than pretending to finish the job itself. `--yes` skips the
+prompts and uses a small built-in example, for a script or a container with
+no TTY. (`nestor demo` is the *other* first look — it seeds a store with
+someone else's already-sealed memory so `nestor ui` has something to show;
+`nestor init` gives you your own, one step at a time.)
+
 Optional extras add capability without moving the core:
 `[keys]` (ed25519 per-verifier signing), `[cloud]` (the Anthropic draft
 engine), `[semantic]` (embedding matcher), `[gate]` (the willow-gate seam).
@@ -180,6 +196,23 @@ forged straight into the database and refused; then one field edited in one past
 ledger entry, and the chain refusing both to verify and to accept the next
 decision. Every beat asserts its own claim — the script exits non-zero rather
 than narrate something that did not happen, and a test runs it.
+
+**The recording is reproducible, not just the demo.** `demo/record_demo.py`
+runs the script above under `script(1)` — no new dependency, no TTY required —
+and turns the captured pty output into a real asciicast (`demo/recordings/`):
+
+```bash
+python demo/record_demo.py              # writes demo/recordings/sixty_seconds.{cast,txt}
+```
+
+`sixty_seconds.cast` replays with the original color and pacing in any
+asciinema-compatible player; `sixty_seconds.txt` is the same run with the
+escape codes stripped, for reading without one. What it does **not** do is
+render a GIF — that needs a renderer (`agg` or similar) this dependency-light
+core does not carry, so the one command that finishes the job is printed at
+the end of a capture run for a human to run where that tool is installed.
+`tests/test_record_demo.py` runs the harness and checks the cast is valid and
+every beat is in the transcript.
 
 Save this as `demo.py` and run it — the whole loop, in the translation recipe:
 
@@ -325,6 +358,7 @@ nestor/
 ├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── seed.py           a small demo store across all three recipes, so a cold `ui --demo` lands live
+├── onboarding.py     `nestor init` — ask, watch the matcher refuse, propose a first draft; never seals
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
 ├── cloud_seal.py     optional cloud-path seam — an agent provisionally seals through willow-gate (nestor[gate]); never canonical
@@ -363,6 +397,8 @@ bench/                measuring where the seal threshold stops holding — see b
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
+├── record_demo.py      captures sixty_seconds.py as an asciicast — see 60-second demo below
+├── recordings/          the captured .cast and .txt from the last record_demo.py run
 ├── the_dogfooding.py   Nestor's own decision store asked its own questions — retrieval measured three ways (IDEAS §6.94)
 ├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
 ├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
@@ -955,6 +991,7 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
+nestor init                              # the guided first run — see Quick start; --yes for CI
 nestor calibrate --from en --to es       # where the threshold belongs for this corpus (--matcher too)
 nestor rejections                        # what the recorded "no"s say in aggregate
 nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke

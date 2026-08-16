@@ -73,6 +73,11 @@ dev = [
     # cannot run the documented lint commands is the docs lying by omission
     "ruff==0.15.0",
     "bandit",
+    # The fourth gate in scripts/ci-lint.sh (IDEAS §7.5). Unpinned like bandit —
+    # nothing here is judged against a committed baseline the way ruff's rule
+    # set or detect-secrets' findings are, so there is no version this gate
+    # must agree with CI about.
+    "mypy",
     # The third gate in scripts/ci-lint.sh. Decision 0101 wired the secret scan
     # into that script and tests.yml but not into this extra, so every venv built
     # from `.[dev]` — including the one the web SessionStart hook builds — passed
@@ -148,3 +153,48 @@ line-length = 120
 [tool.ruff.lint.per-file-ignores]
 # Compact one-line test setup is house style; don't fight it.
 "tests/*" = ["E702", "E741"]
+
+[tool.mypy]
+# The type-checking gate IDEAS §7.5 named as absent and "the cheapest of
+# these to add" — wired into scripts/ci-lint.sh alongside ruff and bandit.
+#
+# Scoped to the `nestor` package, matching what ruff/bandit already treat as
+# the gated surface for correctness (ruff also covers `tests` and `hooks`,
+# but those are fixtures and CLI-agnostic shell glue, not the typed seam this
+# gate exists for — see IDEAS §7.5).
+#
+# Baseline, not `--strict`, on purpose: this is meant to be a gate that
+# passes today and tightens later, not one maximal on day one that fails on
+# a backlog nobody asked for. `mypy nestor` with no config at all reported 35
+# errors before this file existed; the four enabled below are the ones that
+# caught real bugs during that first pass (a migration step typed `object`
+# so it could not be called, SQL param lists whose declared type silently
+# excluded the `int` limit/offset actually appended to them, a row indexed
+# after a re-fetch that could return `None`) rather than noise, so they stay
+# on rather than being the reason the gate was scoped down instead.
+python_version = "3.10"
+files = ["nestor"]
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+# Four optional integrations, each behind its own extra (`gate`, `semantic`,
+# `cloud`, `keys`) and each fail-closed at import time when that extra is not
+# installed — the cryptography imports in keyring.py/signing.py are lazy and
+# guarded, raising a loud "install [keys]" rather than degrading silently. The
+# lint job that runs `mypy nestor` installs ONLY the lint tools (ruff, bandit,
+# mypy, detect-secrets) — not the package and not any extra — so NONE of these
+# four is importable when the gate runs. Nestor's core is stdlib-only, so these
+# are the *only* third-party imports mypy meets, and each must be ignored or the
+# gate reports a missing stub for a dependency it deliberately does not carry.
+# `[keys]`'s cryptography was the one this list first missed: a local `.[keys]`
+# env resolved it and hid the gap until CI, where the lint job is keys-absent,
+# turned red (agent-log §6.110). Requiring the extras would make the gate a
+# proxy for "did every extra happen to be installed" rather than a check of
+# nestor's own code. This ignores only the *import*; the rest of cloud_seal.py,
+# semantic_matcher.py, engine.py, keyring.py and signing.py stays type-checked.
+module = ["willow_gate", "willow_gate.*", "fastembed", "anthropic",
+          "cryptography.*"]
+ignore_missing_imports = true

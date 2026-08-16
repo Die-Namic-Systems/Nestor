@@ -25,6 +25,19 @@ fix they are empty and it passes.
 Guarded exactly like the browser signer test: ``importorskip("playwright")``
 first, then a collection-time skip if no Chromium binary is reachable, so a
 checkout without the optional browser dependency still runs everything else.
+
+IDEAS §6.97 reopened this after the #94 fix above shipped, because that fix
+filtered nulls at the ONE call site (``card.append(...[...].filter(...))``)
+instead of fixing the mechanism — the same mixed idiom (``h()`` for some
+children, native ``.append()`` for others) is used in several panels, so the
+next null-returning helper would reintroduce the bug elsewhere. The
+mechanism-level fix extracts ``h()``'s null-skipping kid loop into a shared
+``appendKids(el, ...kids)`` helper that both ``h()`` and ``detailPanel``'s
+card assembly now route through, in place of the per-call-site filter.
+``test_detail_panel_source_routes_through_append_kids`` locks that shape
+directly (no Chromium needed) and ``test_append_kids_skips_null_generically``
+proves the helper's null-skipping behaves correctly for ANY caller, not just
+the two known-null values in an ordinary row.
 """
 from __future__ import annotations
 
@@ -163,3 +176,86 @@ def test_ordinary_row_detail_card_has_no_null_text_nodes(app):
     assert direct_text == [], (
         f"unexpected stray text among the card's direct children: {direct_text!r}"
     )
+
+
+def test_detail_panel_source_routes_through_append_kids():
+    """Locks the SHAPE of the mechanism-level fix (IDEAS §6.97), independent
+    of Chromium: ``detailPanel``'s card assembly must call the shared
+    ``appendKids`` helper — the same null-skip rule ``h()`` applies to its own
+    children — instead of re-deriving the predicate as a bespoke
+    ``.filter(...)`` at this one call site, which is the shape that regresses
+    the moment another panel mixes ``h()`` output with a native ``.append()``
+    of a nullable expression.
+
+    Runs against the pre-mechanism-fix code (the #94 fix that shipped in
+    ``ea316ee``/``0f7d1a1``) and fails: that code has no ``appendKids`` at all,
+    and assembles the card with
+    ``card.append(...[...].filter((kid) => kid !== null ...))``.
+    """
+    src = pathlib.Path(__file__).resolve().parents[1].joinpath("nestor", "ui_page.py").read_text()
+
+    assert "function appendKids(" in src, (
+        "no shared appendKids helper defined — the null-skip rule is not "
+        "factored out of h() into something other call sites can reuse"
+    )
+
+    start = src.index("\nfunction detailPanel()")
+    end = src.index("\nfunction ", start + 10)
+    body = src[start:end]
+
+    assert "appendKids(card" in body, (
+        "detailPanel does not route its card assembly through the shared "
+        "appendKids helper"
+    )
+    assert ".filter((kid)" not in body and ".filter(kid " not in body, (
+        "detailPanel is back to filtering nulls at this one call site instead "
+        "of using the shared appendKids helper — the per-call-site shape "
+        "IDEAS §6.97 warned would regress"
+    )
+
+
+def test_append_kids_skips_null_generically(app):
+    """The mechanism, not just the symptom: call the shared ``appendKids``
+    helper directly with null/undefined/false interleaved among real
+    children, the way any FUTURE panel might, and confirm none of them leave
+    a stray text node. This is what makes the fix mechanism-level rather than
+    a fix for detailPanel's two specific null cases — it protects the next
+    null-returning helper too, wherever it is added.
+
+    Fails on the pre-mechanism-fix code with a ReferenceError (``appendKids``
+    does not exist yet).
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        errors: list[str] = []
+        page.on("pageerror", lambda exc: errors.append(str(exc)))
+        try:
+            page.goto(app.base_url + "/")
+            page.wait_for_selector("nav#tabs button")
+            result = page.evaluate(
+                """() => {
+                    const el = document.createElement("div");
+                    appendKids(el, "a", null, "b", undefined, false, "c",
+                               h("span", { text: "d" }));
+                    return {
+                        text: [...el.childNodes]
+                            .filter((n) => n.nodeType === Node.TEXT_NODE)
+                            .map((n) => n.textContent).join(""),
+                        childCount: el.childNodes.length,
+                        spanText: el.querySelector("span") ? el.querySelector("span").textContent : null,
+                    };
+                }"""
+            )
+        finally:
+            browser.close()
+
+    assert not errors, f"the page threw: {errors}"
+    assert result["text"] == "abc", (
+        f"appendKids let a null/undefined/false argument leak into a text "
+        f"node: {result!r}"
+    )
+    assert result["childCount"] == 4, (
+        f"expected exactly 4 child nodes (3 text + 1 span), got {result!r}"
+    )
+    assert result["spanText"] == "d", f"real element child was dropped: {result!r}"

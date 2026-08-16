@@ -29,11 +29,28 @@ from __future__ import annotations
 import hashlib
 import struct
 import warnings
-from typing import Optional
+from typing import Optional, Protocol
 
 from . import signing
 
 _warned_unavailable = False
+
+
+class EmbeddingCapableStorage(Protocol):
+    """The three embedding-cache methods, as a ``cast`` target for a caller
+    that already checked :func:`supports_embedding_store` — the same
+    check-then-cast shape as :class:`nestor.storage.LineageStorage`, kept
+    here rather than in ``storage.py`` because this capability was
+    deliberately never folded into the core ``Storage`` Protocol (see the
+    module docstring)."""
+
+    def embedding_load(self, pair_id: str,
+                       model_name: str) -> Optional[tuple[str, bytes, str]]: ...
+
+    def embedding_save(self, pair_id: str, model_name: str, source_sha: str,
+                       blob: bytes, sig: str = "") -> None: ...
+
+    def embedding_drop(self, pair_id: str) -> None: ...
 
 
 def supports_embedding_store(store) -> bool:

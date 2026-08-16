@@ -58,7 +58,7 @@ this map is not, CI fails. It cannot drift.
 | [3.4](#34-model-authored-surfaces--measured-four-stages-and-the-matcher) | Model-authored surfaces | measured; four stages, and the matcher |
 | [4.1](#41-lead-with-the-mechanic-not-translation--shipped) | Lead with the mechanic, not translation | shipped |
 | [4.2](#42-the-category-is-ai-verification-not-translation-memory--shipped) | The category is AI verification, not translation memory | shipped |
-| [4.3](#43-the-60-second-demo--shipped-except-the-recording) | The 60-second demo | shipped, except the recording |
+| [4.3](#43-the-60-second-demo--shipped-the-recording-is-reproducible-the-gif-still-needs-a-human-on-a-tty) | The 60-second demo | shipped: the recording is reproducible, the GIF still needs a human on a TTY |
 | [4.4](#44-the-bench-is-a-marketing-asset--shipped) | The bench is a marketing asset | shipped |
 | [5.1](#51-there-is-no-cli--shipped) | There is no CLI | shipped |
 | [5.2](#52-the-memory-is-write-only--shipped) | The memory is write-only | shipped |
@@ -176,6 +176,9 @@ this map is not, CI fails. It cannot drift.
 | [6.106](docs/agent-log.md#6106-where-the-decision-stores-retrieval-actually-fails-rank-is-fine-for-content-bearing-questions-and-collapses-for-question-shaped-ones--measured-fix-open) | Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones | measured, fix open |
 | [6.107](docs/agent-log.md#6107-the-ui-was-built-for-an-operator-who-read-the-docstrings-the-audience-it-is-about-to-meet-has-not--shipped-one-follow-up-open-js-test-harness) | The UI was built for an operator who read the docstrings; the audience it is about to meet has not | shipped, one follow-up open (JS test harness) |
 | [6.108](docs/agent-log.md#6108-the-web-sessionstart-hook-depends-on-an-env-var-the-runtime-did-not-set-fails-silently-and-the-seat-policy-that-would-have-caught-the-miss-fails-through-the-same-door--verified-fix-shipped-residual-parent-rooted-multi-repo) | The web SessionStart hook depends on an env var the runtime did not set, fails silently, and the seat policy that would have caught the miss fails through the same door | verified, fix shipped (residual: parent-rooted multi-repo) |
+| [6.109](docs/agent-log.md#6109-the-self-grant-tripwire-denied-the-read-only-consult-the-seat-tells-every-agent-to-run--measured-fix-shipped) | The self-grant tripwire denied the read-only consult the seat tells every agent to run | measured, fix shipped |
+| [6.110](docs/agent-log.md#6110-the-mypy-gate-passed-locally-and-failed-ci-because-its-ignore-list-was-calibrated-against-a-keys-present-env--measured-fix-shipped) | The mypy gate passed locally and failed CI, because its ignore-list was calibrated against a keys-present env | measured, fix shipped |
+| [6.111](docs/agent-log.md#6111-the-secret-scan-exclusion-lived-in-two-copies-and-only-one-learned-about-the-demo-transcript--measured-fix-shipped) | The secret-scan exclusion lived in two copies and only one learned about the demo transcript | measured, fix shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -1222,7 +1225,7 @@ the checkable claim instead: that this is a question regulated buyers are being
 asked. What Nestor answers is a fact about Nestor; what everyone else has failed
 to answer is not.
 
-### 4.3 The 60-second demo — **shipped, except the recording**
+### 4.3 The 60-second demo — **shipped: the recording is reproducible, the GIF still needs a human on a TTY**
 
 Highest-leverage missing artifact. An AI gets something wrong; a human corrects
 it **once**; it is right forever after, with a receipt that cannot be forged.
@@ -1236,8 +1239,23 @@ exist, and two screens carry the loop with no explaining: a near-match returning
 returning `! pending`.
 
 `demo/sixty_seconds.py` is the script: eight beats, the exact phrases that
-produce each outcome, paced for a recording and `--fast` for CI. What is left is
-literally the screen capture.
+produce each outcome, paced for a recording and `--fast` for CI.
+
+The screen capture is no longer manual. `demo/record_demo.py` runs the script
+under `script(1)` — util-linux, already on every Linux box this project's CI
+runs on, not a new dependency — which allocates a pty for the *child* process
+whether or not the capturing process has a controlling terminal of its own, so
+it works headlessly. It reassembles `script`'s raw output and timing logs into
+a real asciicast v2 file (`demo/recordings/sixty_seconds.cast`, replayable with
+the original color and pacing by any asciinema-compatible player) plus a
+plain-text transcript (`sixty_seconds.txt`) for reading without one.
+`tests/test_record_demo.py` runs it and checks the cast is well-formed and
+every beat landed. What that harness does *not* do, on principle, is render a
+GIF — that needs `agg` or an equivalent this dependency-light core does not
+carry, so the harness prints the one command
+(`agg demo/recordings/sixty_seconds.cast demo/recordings/sixty_seconds.gif`)
+for a human to run on a machine that has it, and stops there rather than
+pretending a text transcript is the video.
 
 One beat is worth defending, because it is the one a demo usually leaves out.
 Between the near miss and the forgery, the script asks for "sixty days" against
@@ -1892,10 +1910,23 @@ its credibility: `CHANGELOG.md`, `.pre-commit-config.yaml`, the `.github` PR
 template, coverage with a floor, the CI matrix, and the local `http.server`
 behind `nestor ui`. Absent, each a part the same method would re-land:
 
-- **Type checking.** `scripts/ci-lint.sh` runs `ruff` and `bandit`; there is no
-  `mypy` or `pyright`. A typed decision store with no type gate leaves the seam
-  between recipes — the place most likely to drift — unguarded. **Status: open**,
-  and the cheapest of these to add.
+- **Type checking.** `scripts/ci-lint.sh` now runs `mypy nestor` alongside
+  `ruff` and `bandit` (`[tool.mypy]` in `pyproject.toml`). Scope is the whole
+  `nestor` package at a pragmatic baseline — `check_untyped_defs`,
+  `warn_redundant_casts`, `warn_unused_ignores`, `no_implicit_optional` — not
+  `--strict`; three modules (`cloud_seal.py`, `semantic_matcher.py`,
+  `engine.py`) get `ignore_missing_imports` for their optional-extra imports
+  (`willow_gate`, `fastembed`, `anthropic`), which are not in `[dev]`, so
+  those specific imports type as `Any` rather than being stub-checked — the
+  rest of every module, including those three, is. The optional-capability
+  seam (`Storage`'s six predicates) is now typed too: `LineageStorage`,
+  `AtomicSupersedeStorage`, `EdgeStorage` (`nestor/storage.py`) and
+  `EmbeddingCapableStorage` (`nestor/embedding_store.py`) are `cast()`
+  targets for the call sites a `supports_*` check already guards, so the
+  seam between recipes this entry named is guarded rather than papered over
+  with a blanket ignore. **Status: shipped**, at that baseline — tightening
+  it (`disallow_untyped_defs`, dropping the three overrides once their
+  extras are typed upstream) is future work, not done here.
 - **Dependency-vulnerability scanning.** `detect-secrets` guards the trust root;
   nothing checks the *dependency set* for known CVEs (`pip-audit`, `osv`). A
   dependency-light repo has the fewest deps to audit and the least excuse not to.
@@ -1929,20 +1960,35 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
 - **Onboarding and install — the first five minutes.** Present as raw materials: a
   `nestor` console entry point (`pyproject.toml` `[project.scripts]`), a `nestor
   demo` that seeds a live store for `nestor ui`, and a tested README quick-start.
-  Absent is the thing those three gesture at and none delivers — an *actual*
-  first-run. No one-line install beyond `pip install -e .` (no `pipx` recipe, no
-  `curl | sh`, no Homebrew tap), and no playful, guided onboarding: a `nestor init`
-  that walks a newcomer through asking, resolving, and **sealing their first
-  decision**, rather than a seeded store they have to already know to open. This is
-  the *user's* on-ramp — distinct from the contributor row above, which is the
-  developer's. It is also the one gap on this list a user meets before any of the
-  others, and the industry standard for it is loud and well-loved (`create-*-app`
-  scaffolders, `gh auth login`, the deliberate delight of a good first-run).
-  **Status: open** for the install story — concrete, standard, cheap. **Status:
-  hypothesis** for *how playful* to make the onboarding: a propose-never-confirm
-  governance tool that greets a newcomer with a wizard is a real tonal question —
-  the seal is the one moment the tour cannot fake, since only a human may set it —
-  so this is built small and tested against the covenant, not assumed.
+  Absent was the thing those three gesture at and none delivered — an *actual*
+  first-run. This is the *user's* on-ramp — distinct from the contributor row
+  above, which is the developer's — and the one gap on this list a user meets
+  before any of the others; the industry standard for it is loud and well-loved
+  (`create-*-app` scaffolders, `gh auth login`, the deliberate delight of a good
+  first-run). Two halves, **now split**:
+  - The wizard — **status: partly addressed.** `nestor init`
+    (`nestor/onboarding.py`) walks a newcomer through asking, watching the
+    matcher say honestly that nothing is verified yet, and proposing a first
+    decision as a **draft**. It does *not* walk them through sealing one — the
+    original framing above claimed that, and it was wrong to: only a human, at
+    `nestor ui`, may seal, so a wizard that ended by "sealing their first
+    decision" is exactly the fake ending the tonal-question sentence below
+    warned against. The corrected shape is propose-then-point: the wizard's own
+    finale names `nestor ui` and hands the reader there, on purpose, without
+    writing `status="sealed"` or a `verifier=` anywhere it can reach —
+    `tests/test_onboarding.py::TestNeverSeals` pins that structurally, not just
+    by example. What is still open under this half: no `pipx` recipe, no
+    `curl | sh`, no Homebrew tap — the actual one-line **install** story is
+    unchanged by this and stays **open**, concrete and cheap.
+  - The tonal question — **resolved by the build, not by argument.**
+    *"How playful should a propose-never-confirm tool's first run be"* turned
+    out to have a mechanical answer once tried: as playful as the ask-and-draft
+    steps want to be, and completely un-playful at the one moment authority
+    actually changes hands. The seal was the one beat a tour could not fake,
+    and the fix was not a softer sentence about it — it was to make faking one
+    structurally unavailable (`onboarding.run` takes no `verifier=`, no
+    `status=`, no `seal_sig=`; there is nowhere on the call path to hand it
+    one) and to say what that means in Nestor's own voice at the finale, plainly.
 - **Tooling — the surface exists; its standard parts are half-finished.** Present:
   a `nestor` CLI (sixteen verbs) and a `nestor serve` MCP server (`tools/list` +
   `call`, seven tools), with `--json` on some verbs. Absent are the conventions
@@ -1972,7 +2018,22 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   (*you may not be the only agent*), part concrete scan (open PRs, next-number,
   changed files). The fleet already holds the stance (`safe-app-willow-grove`:
   *another instance may have already designed it*); Nestor has no guard for it.
-  **Status: open** — recorded, not built, by the operator's call.
+  **Status: shipped** — `hooks/before_propose.py`, riding `UserPromptSubmit`
+  exactly like `before_build`, fires only on a propose/mint/open-a-PR-shaped
+  prompt. It scans entirely with local git (`git branch -a --no-merged`, no
+  GitHub API, no fetch performed): the next decision number this checkout would
+  mint against every other locally-known branch's own decision files, and
+  whether a sibling branch has also touched the derived store
+  (`docs/dogfood/nestor.db`, `docs/dogfood/decisions.json`). Advisory, not a
+  boundary — it is in `hook_runner.MODULES` and `hook_guard`'s non-gates, same
+  as `before_build`. Its one hard requirement, tested directly
+  (`tests/test_before_propose.py`): when the scan cannot determine collision
+  state (no resolvable base, not a git repo), it says *UNKNOWN*, never folds
+  that into a false "no collision found" — the failure mode `silence from the
+  store means nothing` already cost this repo once (decision `0127`). What it
+  still cannot see, named in its own docstring: a sibling session's uncommitted
+  work, or a branch pushed since the last local fetch — it cannot serialize two
+  agents, only make a visible collision loud.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,

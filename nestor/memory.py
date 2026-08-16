@@ -43,13 +43,14 @@ import hashlib
 import uuid
 import warnings
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 from . import signing
-from .embedding_store import supports_embedding_store
+from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
-from .storage import (Storage, get_store, supports_atomic_supersede,
-                      supports_lineage, supports_rejection)
+from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
+                      get_store, supports_atomic_supersede, supports_lineage,
+                      supports_rejection)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -130,7 +131,11 @@ def _raw_score_sims(matcher: Matcher, query_text: str,
 
 def _drop_stored_embeddings(store: Storage, pair_id: str) -> None:
     if supports_embedding_store(store):
-        store.embedding_drop(pair_id)
+        # Checked, not assumed: the predicate above confirmed the method
+        # exists at runtime; embedding storage is intentionally outside the
+        # core Storage Protocol (embedding_store.py's own docstring), so cast
+        # rather than widen every store's declared type for one optional op.
+        cast(EmbeddingCapableStorage, store).embedding_drop(pair_id)
 
 
 def _similarity_for_row(matcher: Matcher, query_text: str, query_norm: str,
@@ -455,6 +460,16 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
                         f"on the floor — omit reason= or extend the store.")
                 setter(existing["id"], reason)
             existing = store.memory_find(norm, source_lang, target_lang)
+            if existing is None:
+                # The row this call just sealed above cannot legitimately be
+                # gone one line later — this store violated the
+                # read-after-write invariant add_pair relies on for the
+                # audit trail below. Surfacing that loudly beats a bare
+                # TypeError from the indexing that follows.
+                raise RuntimeError(
+                    f"{type(store).__name__} lost pair for {norm!r} "
+                    f"immediately after memory_seal — read-after-write "
+                    f"invariant violated.")
             # Overwriting a seal destroys a previous human decision, and the
             # memory keeps only one row per normalized source — so without this
             # entry the earlier verification would leave no trace anywhere. A
@@ -648,6 +663,9 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
     """
     store = get_store(store)
     _require_lineage(store)
+    # _require_lineage raises unless supports_lineage(store) — the cast just
+    # tells the type checker what that runtime check already established.
+    store = cast(LineageStorage, store)
     matcher = get_matcher(matcher)
     store.memory_init()
     if not verifier:
@@ -672,7 +690,12 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
                          f"{target_text!r} — nothing to supersede")
 
     seal_sig = signing.sign_seal(norm, target_text, verifier)
-    new_pair = dict(id=str(uuid.uuid4()), source_text=source_text,
+    # A separate typed local rather than `new_pair["id"]` below: `new_pair`
+    # mixes str and float values (weight), so mypy infers its value type as
+    # `object` and the id needs its own `str` type to be used as one (string
+    # concat, a str parameter) after it goes in.
+    new_id: str = str(uuid.uuid4())
+    new_pair = dict(id=new_id, source_text=source_text,
                     source_norm=norm, source_lang=source_lang,
                     target_text=target_text, target_lang=target_lang,
                     status="sealed", verifier=verifier, weight=weight,
@@ -683,13 +706,13 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
     # Mark first, insert second, then point the marker at the real successor;
     # a failed insert restores the old row so a failed supersede leaves the
     # store exactly as it found it.
-    store.memory_mark_superseded(old["id"], "pending:" + new_pair["id"])
+    store.memory_mark_superseded(old["id"], "pending:" + new_id)
     try:
         store.memory_insert(new_pair)
     except Exception:
         store.memory_mark_superseded(old["id"], "")
         raise
-    store.memory_mark_superseded(old["id"], new_pair["id"])
+    store.memory_mark_superseded(old["id"], new_id)
     # A superseded row is never scored again; its cached vector is dead weight
     # (the reject_pair precedent — reject_match keeps vectors, this does not).
     _drop_stored_embeddings(store, old["id"])
@@ -756,6 +779,8 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
             f"check the row in Python and then overwrite it blind. That race "
             f"retires a human's seal and installs an unverified draft in its "
             f"place, so it is refused rather than degraded.")
+    # Same check-then-cast shape as supersede_pair above.
+    store = cast(AtomicSupersedeStorage, store)
     matcher = get_matcher(matcher)
     store.memory_init()
     if audit:
@@ -790,13 +815,17 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
                 f"by a reviewer; revising a draft to it would install something a "
                 f"human refused. Restore the rejection first if it no longer stands.")
 
-    new_pair = dict(id=str(uuid.uuid4()), source_text=source_text,
+    # See the matching comment in supersede_pair: a separate typed local
+    # keeps the id a `str` for the string concat and store calls below,
+    # where `new_pair["id"]` would type as `object`.
+    new_id: str = str(uuid.uuid4())
+    new_pair = dict(id=new_id, source_text=source_text,
                     source_norm=norm, source_lang=source_lang,
                     target_text=target_text, target_lang=target_lang,
                     status="draft", verifier="", weight=weight,
                     origin=origin, reason=reason, created_at=_now(),
                     seal_sig="")
-    pending = "pending:" + new_pair["id"]
+    pending = "pending:" + new_id
     # COMPARE-AND-SET, not mark-and-hope. Every guard above ran against a read
     # from before this line, and the write that acts on them used to be an
     # unconditional UPDATE — so a human sealing the draft in between had their
@@ -823,7 +852,7 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
         except Exception:                        # noqa: BLE001 — never mask the cause
             pass
         raise
-    store.memory_mark_superseded_if(old["id"], new_pair["id"], "draft", pending)
+    store.memory_mark_superseded_if(old["id"], new_id, "draft", pending)
     _drop_stored_embeddings(store, old["id"])
     if audit:
         # `supersede`, not `seal`: nothing was verified here. No seal entry is

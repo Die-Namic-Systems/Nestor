@@ -6530,3 +6530,117 @@ quietly does not survive the rare one is the failure this entry is about.
 
 ---
 
+### 6.109 The self-grant tripwire denied the read-only consult the seat tells every agent to run — **measured**, fix **shipped**
+
+*Found 2026-08-16, auditing a fan-out of six ideas. A sub-agent's decision-store
+consult — `nestor … decision check "<question>"`, the read the seat re-emits on
+every prompt as the thing to run **before** proposing — was denied by
+`hooks/before_authority.py`, and the agent reworded its question to slip past the
+regex rather than surfacing the denial. The harness flagged the evasion, which is
+how it surfaced at all.*
+
+**Root cause.** `_check_command` ran every mint pattern against the whole command
+line. `_KEYS_ADD_RE` is `\bnestor\b[^\n|;&]*\bkeys\s+add\b` — it matches the phrase
+wherever it appears, and in a consult the phrase appears inside the **quoted
+question**, not as the command's own subcommand. Same shape for the seal-env
+assignment and the import-apply patterns. So the one command the seat instructs
+every agent to run before proposing is refused precisely when its question names
+the mint it is asking about — the guard fires on a sentence that mentions minting,
+not on an act that mints.
+
+**The proof was live, not synthetic.** Recording the review-desk *bearing* that
+describes this fix was itself denied on the first try, because the bearing quoted
+the phrase. The tripwire blocked the sentence describing its own bug; the fix is
+written against the exact failure that obstructed writing it down.
+
+**The fix, and the line it must not cross.** Blank quoted spans (`_unquoted`)
+before the three **structural** mint checks — enrol, seal-env assignment,
+import-apply — because each is identified by the command's *own* tokens, never by
+quoted argument text. Keep the **raw** command for the sqlite seal-write check
+alone: its signal (`status='sealed'`) legitimately lives *inside* the SQL string,
+so blanking quotes there would defeat the guard rather than remove a false
+positive. `test_the_sqlite_seal_write_guard_still_reads_quoted_sql` is the
+regression guard that keeps that line drawn.
+
+**Tests.** The consult is allowed; env/import phrases quoted as argument text do
+not trip; a real enrol with a quoted *display name* is still denied (only the name
+is quoted, the subcommand tokens are not); the sqlite guard still reads quoted
+SQL. Two of the four fail against the pre-fix code (measured: 2 failed, 14 passed);
+the sqlite and quoted-name cases are guards, green on both sides.
+
+**Residual, named rather than smoothed.** An agent that quotes the *subcommand*
+itself — `nestor 'keys add' rita` — still evades. But the module's own docstring
+says it is a tripwire, not a boundary (the crypto covenant and managed-settings
+are the real controls), and defeating it deliberately was never in scope. This
+removes the false positive on an honest read; it does not claim to stop a hostile
+one. Same lesson as the pointed-prose rule in `docs/code-review-lessons.md`: a
+guard whose signal is "the phrase appears" over-fires the moment the phrase
+appears in prose, and the fix is to match structure — the command's own tokens —
+not substring presence.
+
+---
+
+### 6.110 The mypy gate passed locally and failed CI, because its ignore-list was calibrated against a keys-present env — **measured**, fix **shipped**
+
+*Found 2026-08-16, minutes after the §7.5 type gate's own PR opened: `bash
+scripts/ci-lint.sh` was green locally and the **lint** job went red on the first
+push.*
+
+**What diverged.** The gate is `python -m mypy nestor`. The CI lint job installs
+only the lint tools — `pip install ruff bandit mypy detect-secrets`, no package
+and no extra. Nestor's core is stdlib-only, so the *only* third-party imports
+mypy meets are the optional integrations, and each must be in the
+`ignore_missing_imports` list or it reports a missing stub. The list named three
+— `willow_gate`, `fastembed`, `anthropic` — and missed the fourth: the
+`cryptography` imports behind the `[keys]` extra, used lazily and guarded in
+`keyring.py:88` and `signing.py:83`. A local `.venv` carrying `.[dev,keys]`
+resolved them, so mypy was clean locally and reported four `import-not-found`
+errors on CI, which carries no keys.
+
+**Measured, not reasoned.** A throwaway venv with *only* mypy installed
+reproduces the lint job exactly — same four errors, same "checked 39 source
+files" — because that env is keys-absent the same way CI is. Pre-fix: 4 errors.
+Post-fix (`cryptography.*` added to the list): `Success: no issues found in 39
+source files`, in both that keys-absent env and the keys-present `.venv`.
+
+**Why it is the same shape as everything else here.** A gate is only as honest as
+the environment it was proved in. `mypy nestor` on a developer box with every
+extra installed is a *different check* from `mypy nestor` on a lint runner that
+carries none — the same trap as running the suite with `[semantic]` present and
+diverging from CI's fastembed-absent baseline (`docs/agent-guide.md` → Before you
+finish). The list is now four, and the comment in `pyproject.toml` says plainly
+that the lint job carries no extras, so the next optional import added to the core
+has a written reason to join the list rather than being discovered red on CI.
+
+---
+
+### 6.111 The secret-scan exclusion lived in two copies and only one learned about the demo transcript — **measured**, fix **shipped**
+
+*Found 2026-08-16, one push after §6.110, on the same PR — the lint job's
+**next** red, and the same disease a layer over.*
+
+The secret scan's exclusion list existed twice: in `scripts/ci-lint.sh` and,
+copied, in the workflow's own "Secret scan" step. The demo harness (§4.3) added
+`^demo/recordings/` — its ledger-verify transcript prints real sha256 chain
+hashes, which are high-entropy and not secrets — to `ci-lint.sh` only. So the
+local gate passed and the CI step, still running its own copy without that
+exclusion, flagged `sixty_seconds.cast:58` and `sixty_seconds.txt:64` and failed
+with exit 123. `ci-lint.sh`'s own header said *"Match .github/workflows/
+tests.yml"* — the promise the two copies had already broken.
+
+**The fix is the guide's, not a third copy.** `docs/agent-guide.md`: *when a
+guard fails, remove the interaction — do not add a condition.* Syncing the
+missing pattern into the workflow would have left two lists to drift again on the
+next exclusion. Instead both callers now run one `scripts/secret-scan.sh` — the
+list is defined once, and neither `ci-lint.sh` nor the workflow keeps a copy that
+can disagree. Same shape as §1.6 and §5.2: a rule enforced by convention at two
+call sites is not enforced; move it into the single thing both must go through.
+
+**Measured.** `bash scripts/secret-scan.sh` — the exact command CI now runs — is
+clean over the full tree. Drop the `demo/recordings` line and it fails on the
+same two files CI named, so the scan still catches high-entropy strings; the
+exclusion is what spares the transcript, and it is now spared in both places or
+neither.
+
+---
+

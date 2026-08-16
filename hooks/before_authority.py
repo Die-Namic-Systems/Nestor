@@ -53,6 +53,20 @@ _VERIFIER_RE = re.compile(r"--verifier\b", re.IGNORECASE)
 _SQLITE_RE = re.compile(r"\bsqlite3\b", re.IGNORECASE)
 _SEAL_WRITE_RE = re.compile(r"seal_sig|status\s*=?\s*['\"]?sealed|['\"]sealed['\"]",
                             re.IGNORECASE)
+# A quoted span in the command line. Blanked before the *structural* mint
+# checks below, so a mint pattern matches the command's own tokens and not a
+# phrase quoted as an argument — e.g. the read-only decision-store consult the
+# seat tells every agent to run before proposing, which used to be denied when
+# its question text quoted the mint phrase (docs/agent-log.md §6.109). The
+# sqlite seal-write check deliberately keeps the raw command: its signal
+# (`status='sealed'`) legitimately lives *inside* the SQL string, so blanking
+# quotes there would defeat the guard rather than fix a false positive.
+_QUOTED_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
+
+
+def _unquoted(command: str) -> str:
+    """``command`` with quoted spans blanked to spaces (see ``_QUOTED_RE``)."""
+    return _QUOTED_RE.sub(" ", command)
 
 _USER = ("Minting sealing authority is disabled in this seat. You may propose, "
          "not confirm.")
@@ -81,12 +95,20 @@ def _keyring_basenames() -> set[str]:
 def _check_command(command: str) -> tuple[bool, str, str]:
     if not command:
         return True, "", ""
-    if _KEYS_ADD_RE.search(command) and not _PUBLIC_RE.search(command):
+    # The three structural mints are identified by the command's own tokens
+    # (an enrol subcommand, an env assignment, an import with a chosen
+    # verifier) — never by a phrase inside a quoted argument. Match them
+    # against the quote-blanked command so a consult that merely *names* one
+    # in its question text is not denied (§6.109).
+    structural = _unquoted(command)
+    if _KEYS_ADD_RE.search(structural) and not _PUBLIC_RE.search(structural):
         return _deny()
-    if _ENV_ASSIGN_RE.search(command):
+    if _ENV_ASSIGN_RE.search(structural):
         return _deny()
-    if _IMPORT_APPLY_RE.search(command) and _APPLY_RE.search(command) and _VERIFIER_RE.search(command):
+    if _IMPORT_APPLY_RE.search(structural) and _APPLY_RE.search(structural) and _VERIFIER_RE.search(structural):
         return _deny()
+    # The raw command on purpose: a hand-written seal lives *inside* the SQL
+    # string, so this is the one check whose signal is quoted content.
     if _SQLITE_RE.search(command) and _SEAL_WRITE_RE.search(command):
         return _deny()
     return True, "", ""

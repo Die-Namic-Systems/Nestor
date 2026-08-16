@@ -38,8 +38,19 @@ def test_the_boot_check_covers_every_gate_ci_lint_runs():
     runs reports a readiness the agent's command does not share — so the set is
     read back out of the script rather than trusted to stay in sync by hand. Add
     a fourth gate to ci-lint.sh and this fails until the boot check knows it."""
-    script = (REPO / "scripts" / "ci-lint.sh").read_text(encoding="utf-8")
-    run = {m.split(".")[0] for m in re.findall(r"python -m ([\w.]+)", script)}
+    # ci-lint.sh runs three gates inline (`python -m ruff/bandit/mypy`) and
+    # delegates the secret scan to scripts/secret-scan.sh, so its exclusion list
+    # is defined once and cannot drift from the workflow (agent-log §6.111).
+    # Follow that delegation: a gate the boot check must know about may live in
+    # ci-lint.sh or in any scripts/*.sh it calls.
+    scripts_dir = REPO / "scripts"
+    texts = [(scripts_dir / "ci-lint.sh").read_text(encoding="utf-8")]
+    for name in re.findall(r"[\w-]+\.sh", texts[0]):
+        sub = scripts_dir / name
+        if sub.exists():
+            texts.append(sub.read_text(encoding="utf-8"))
+    run = {m.split(".")[0] for t in texts
+           for m in re.findall(r"python -m ([\w.]+)", t)}
     assert run == set(session_start.LINT_MODULES), (
         f"ci-lint.sh runs {sorted(run)}; the boot check probes "
         f"{sorted(session_start.LINT_MODULES)}")
