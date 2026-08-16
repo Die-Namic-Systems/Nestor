@@ -38,6 +38,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          # hatch-vcs derives the version from the git tag, so the tags must be
+          # here. The default shallow checkout fetches none of them, and the
+          # build would not fail — it would quietly produce a `0.1.dev…`
+          # version and the guard below would reject a tag that is perfectly
+          # fine. Both flags: `fetch-depth: 0` alone does not guarantee tags on
+          # every checkout action version.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-python@v7
         with:
@@ -48,23 +57,30 @@ jobs:
       - name: Install the release toolchain
         run: pip install -e ".[publish]"
 
-      # The gate that matters. A tag saying v0.2.0 over a pyproject saying
-      # 0.1.0 would upload a file whose name disagrees with the thing that was
-      # tagged, and PyPI keeps it forever — a version number is the one claim
-      # in a release nobody can correct afterwards.
-      - name: Refuse a tag that disagrees with the package version
+      - name: Build
+        run: python -m build
+
+      # The gate that matters, and it now runs AFTER the build rather than
+      # before it. The version is derived from the tag (hatch-vcs), so there is
+      # no longer a pyproject literal to disagree with — the thing that can go
+      # wrong is the build not seeing the tag at all, which yields a `.devN`
+      # version that is not what was tagged. Reading the built filename catches
+      # that; reading pyproject could not, because pyproject no longer says.
+      #
+      # A version number is the one claim in a release nobody can correct
+      # afterwards: PyPI filenames cannot be renamed, reassigned, or deleted and
+      # replaced. kartikeya's v0.0.8 built 0.0.7 and only PyPI's duplicate
+      # refusal noticed.
+      - name: Refuse a tag that disagrees with the built version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           tag="${GITHUB_REF_NAME#v}"
-          pkg="$(python -c 'import tomllib,pathlib;print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
-          echo "tag=$tag  pyproject=$pkg"
-          if [ "$tag" != "$pkg" ]; then
-            echo "::error::tag v$tag does not match pyproject version $pkg"
+          built="$(ls dist/*.tar.gz | sed -E 's|.*/nestor_meaning-(.+)\.tar\.gz|\1|')"
+          echo "tag=$tag  built=$built"
+          if [ "$tag" != "$built" ]; then
+            echo "::error::tag v$tag builds version $built — refusing to publish"
             exit 1
           fi
-
-      - name: Build
-        run: python -m build
 
       - name: Check the metadata PyPI will render
         run: python -m twine check --strict dist/*
@@ -95,7 +111,15 @@ jobs:
     timeout-minutes: 10
     environment:
       name: pypi
-      url: https://pypi.org/p/nestor
+      # nestor-meaning, not nestor. `nestor` on PyPI is this project's own
+      # reserved-and-empty name from before the 0.3.0 rename, and this URL still
+      # pointed at it — the same rename fallout decision 0129 recorded for the
+      # install hints. Cosmetic (the OIDC claim exchange matches on owner,
+      # repository, workflow filename and environment, never on this URL) but it
+      # is the link a reviewer follows from the run, and it went to the wrong
+      # project. docs/releasing.md quotes this exact string out of the failed
+      # v0.2.0 run log.
+      url: https://pypi.org/p/nestor-meaning
     permissions:
       # Trusted Publishing (OIDC). No API token is stored in this repository,
       # so there is no long-lived credential to leak or rotate.

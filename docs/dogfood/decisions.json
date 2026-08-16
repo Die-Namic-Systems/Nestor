@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 366,
+    "pairs": 370,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-16T00:00:00+00:00",
-  "digest": "3595912411161eeef28feaadb187769d2c19f916be1e519d58a3b5d151342dbd",
+  "digest": "8bfc2b6e1d8c55f34ce3ef329e4921d864110de7d46e80edf974ee4b0efda17f",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "f4c5b097-1372-53b6-8096-e73030fc25d3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the writtenonce test compared nestor__init__py against the pyproject literal with no literal does the test die",
+      "source_text": "The written-once test compared nestor/__init__.py against the pyproject literal. With no literal, does the test die?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It got stricter. Nothing tracked in this tree may carry the number, and the test now says so in three places.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-16T00:00:00+00:00",
       "id": "deee6af5-7e7b-51ab-8f8f-d4a3f8a7a0fd",
@@ -44,6 +58,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Record the wrong prediction alongside the measurement, and correct it to the user in the same breath rather than quietly shipping the right answer.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "b3614ea7-f6c8-55e6-be72-667c1eb853ba",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "docsreleasingmd argued against tagderived versions git state makes the number a function of the tree so a dirty tree or shallow clone produces something other than what you meant was that wrong",
+      "source_text": "docs/releasing.md argued against tag-derived versions: git state makes the number a function of the tree, so a dirty tree or shallow clone produces something other than what you meant. Was that wrong?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it was reproduced rather than dismissed. Adopted anyway, because both halves fail closed and the literal's failure does not.",
       "verifier": "",
       "weight": 1.0
     },
@@ -114,6 +142,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "An application. docs/roots-willow-and-homestead.md now derives ~/.nestor from its own audience test rather than treating it as an exception to one.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "54b3f769-6187-50e5-b2c1-708443c9cc2e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "arming automerge on the release pr removes the last human act before an irreversible publish keep the gate",
+      "source_text": "Arming auto-merge on the release PR removes the last human act before an irreversible publish. Keep the gate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No -- auto-merge is armed, matching willow-mcp and kartikeya. Raised as a governance concern, overruled by the operator, and recorded as their call rather than as a defect.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "2cd23da0-448c-5677-831d-3f1f66b711de",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "releasepleases tag format is a config flag that looks like noise comment it or test it",
+      "source_text": "release-please's tag format is a config flag that looks like noise. Comment it or test it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Test it. include-component-in-tag false is asserted against publish.yml's own `v*` trigger, read out of the workflow text.",
       "verifier": "",
       "weight": 1.0
     },

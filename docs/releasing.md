@@ -113,23 +113,43 @@ stranger.
 **2. The `pypi` environment.** Repo → Settings → Environments → New environment
 → `pypi`. The workflow's `publish` job is gated on it, so it must exist.
 
+**3. `RELEASE_PLEASE_TOKEN`.** A fine-grained PAT scoped to this repo with
+**Contents: read/write** and **Pull requests: read/write**, stored as a
+repository secret. `release-please.yml` refuses to run without it rather than
+falling back to `GITHUB_TOKEN`, and that refusal is the point: GitHub suppresses
+workflow runs for events generated with `GITHUB_TOKEN`, so the fallback opens a
+healthy-looking release PR, cuts a tag, and starts no publish run — with no
+error anywhere. jeles spent three releases learning this (`v0.2.0` tagged,
+released, absent from PyPI).
+
+**4. Auto-merge and a required check.** Settings → General → *Allow auto-merge*,
+and the default branch's protection must require at least one status check.
+`release-please.yml` arms auto-merge on its release PR; with no required check
+there is nothing for it to wait on and GitHub declines to arm it at all. The
+workflow fails loudly and says so rather than merging directly.
+
 **A required reviewer on it is deliberately not used.** The earlier version of
 this line said to add one so "every upload waits for a human click". That click
 is redundant, and asking for it a second time is worse than not asking.
 
-**The tag push is the human gate.** It is the trigger — no tag, no build, no
-upload — and it is not something an agent in this repo can do: a session's git
-credentials carry `refs/heads/*` and refuse `refs/tags/*`, which was confirmed
-the hard way when v0.3.1 was prepared (four `git push origin v0.3.1` attempts,
-HTTP 403 every time, until a human pushed it). So the machine may propose the
-whole release — bump, changelog, gates, artefact inspection, a merged PR — and
-still cannot confirm it. That is the same shape as everything else here; it is
-already enforced by the credential boundary rather than by a settings checkbox.
+**The tag push was the human gate — corrected in place: it is not any more.**
+This section used to say that a tag is something an agent in this repo cannot
+do, and that was true and is still true of an *agent's* credentials: a session's
+git credentials carry `refs/heads/*` and refuse `refs/tags/*`, confirmed the
+hard way when v0.3.1 was prepared (four `git push origin v0.3.1` attempts, HTTP
+403 every time, until a human pushed it).
 
-By the time a tag exists, the reviewing has happened: the PR was reviewed and
-merged, CI ran the suite on 3.10 and 3.12, `twine check --strict` passed, and
-step 5 below opens the artefact. A reviewer prompt at the end asks the person
-who did all of that to approve their own work.
+What changed is that nobody is pushing tags by hand now. `release-please.yml`
+cuts the tag with `RELEASE_PLEASE_TOKEN`, and auto-merge decides when. So the
+guarantee had been resting on an accident of credentials rather than on a
+decision, and the accident no longer holds the line.
+
+The gate is now review of the feature PRs plus what CI proves before auto-merge
+can fire: the suite on 3.10 and 3.12, ruff, bandit, detect-secrets,
+`twine check --strict`, and `publish.yml` installing the built wheel into a clean
+venv to import it and run the console script. Deliberate — the same posture
+willow-mcp and kartikeya run, and the reason a required reviewer is still not
+used above.
 
 Add one anyway if a *second* person should sign off on uploads — that is a real
 reason, and the only one. It is not a substitute for the tag push, because
@@ -139,46 +159,64 @@ nothing reaches that prompt without one.
 
 ## Releasing
 
+**There is no manual release procedure any more.** Version numbers, the
+changelog entry and the tag are all produced by `release-please.yml` from the
+conventional-commit prefixes on what has merged. The steps below are what a
+person still does.
+
 ```bash
-# 0. Rehearse without publishing anything. Actions → Publish → Run workflow.
-#    Builds, checks, installs the wheel in a clean venv and asks its version.
-#    The publish job is skipped: it is gated on the ref being a tag.
+# 1. Type your commits, because they are the release input.
+#    feat / fix / security / perf / refactor / build / deps  -> cut a release
+#    docs / test / ci / chore                                -> do not
+#    A `!` or a BREAKING CHANGE footer goes to the next major.
+#    The set lives in release-please-config.json; pr-title.yml reads it from
+#    there rather than restating it, so hiding a type moves both at once.
 
-# 1. Decide the version, and move it in ONE place.
-$EDITOR pyproject.toml            # version = "X.Y.Z"
+# 2. Title the PR the same way. This repo merges with merge commits, so GitHub
+#    writes the PR TITLE into the merge commit body and release-please parses
+#    that too. pr-title.yml fails a title that would cut a release its commits
+#    would not — and the reverse, a release for a PR touching nothing under
+#    nestor/ or pyproject.toml.
 
-# 2. Close the changelog section.
-$EDITOR CHANGELOG.md              # ## [Unreleased] -> ## [X.Y.Z] - YYYY-MM-DD
+# 3. Merge the feature PR. release-please opens or updates a
+#    "chore(master): release X.Y.Z" PR showing the exact version and the exact
+#    changelog section that will ship. Nothing publishes while it sits there.
 
-# 3. Check the README's install line still says the truth. It is present as of
-#    0.3.0 (`pip install nestor-meaning`); it was absent before that on
-#    purpose, because a README that lies about how to install is worse than one
-#    that omits it. That rule now applies to keeping it correct.
-$EDITOR README.md
+# 4. Auto-merge is armed on that release PR: when CI is green it merges, the tag
+#    is cut, and the tag push starts publish.yml. Merge it by hand if auto-merge
+#    is not armed (see One-time setup 4).
 
-# 4. Gates, the same ones docs/code-review-lessons.md §11 asks for.
-python -m pytest -q
-python -m ruff check nestor tests
-bandit -r nestor -ll -q
-
-# 5. Build locally and look at what you are about to publish.
-pip install -e ".[publish]"
-rm -rf dist && python -m build
-python -m twine check --strict dist/*
-python -c "import zipfile;print(sorted({n.split('/')[0] for n in zipfile.ZipFile('dist/nestor-X.Y.Z-py3-none-any.whl').namelist()}))"
-
-# 6. Commit, then tag. The tag is the trigger — nothing before it can publish.
-git commit -am "release: X.Y.Z"
-git tag -a vX.Y.Z -m "X.Y.Z"
-git push origin master --follow-tags
-
-# 7. Approve the `pypi` environment when Actions asks.
+# Optional, any time: rehearse without publishing anything.
+#   Actions -> Publish -> Run workflow. Builds, checks, installs the wheel in a
+#   clean venv and asks its version. The publish job is skipped — it is gated on
+#   the ref being a tag.
 ```
 
-The workflow refuses a tag whose version disagrees with `pyproject.toml` before
-it builds anything. That check exists because a filename on PyPI is permanent:
-`nestor-0.1.0.tar.gz` uploaded from a tag saying `v0.2.0` cannot be renamed,
-reassigned or deleted-and-replaced.
+**Nothing in this tree carries a version number.** `pyproject.toml` declares
+`dynamic = ["version"]` and hatch-vcs derives it from the git tag, so there is
+no bump commit and no file to forget. Off a tag, a build produces a
+`X.Y.Z.devN+g<sha>` version that PyPI refuses outright — an accidental publish
+from an untagged commit fails loudly instead of shipping something mislabelled.
+
+`publish.yml` still refuses a tag whose version disagrees, but it now compares
+the tag against the **built artefact** rather than a `pyproject.toml` literal,
+because there is no literal. The failure it catches has changed shape with it:
+not "somebody forgot to bump" but "the checkout could not see the tags", which
+yields a development version off an otherwise perfectly correct tag. That check
+exists because a filename on PyPI is permanent — `nestor_meaning-0.1.0.tar.gz`
+uploaded from a tag saying `v0.2.0` cannot be renamed, reassigned or
+deleted-and-replaced.
+
+**Where the human gate sits now.** It used to be the tag push, and that was
+enforced by an accident rather than a decision: a session's git credentials
+carry `refs/heads/*` and refuse `refs/tags/*`, which is why preparing v0.3.1 took
+four `git push origin v0.3.1` attempts returning HTTP 403 until a human pushed
+it. release-please cuts the tag with the PAT, and auto-merge decides when, so
+that accident no longer holds the line. The gate is now review of the feature
+PRs plus what CI proves before auto-merge can fire: the suite on 3.10 and 3.12,
+ruff, bandit, detect-secrets, `twine check --strict`, and publish.yml installing
+the built wheel into a clean venv to import it and run the console script. That
+is the deliberate trade, and the same posture willow-mcp and kartikeya run.
 
 ---
 
@@ -236,15 +274,34 @@ happens before it, not after.**
 
 ## What is deliberately not automated
 
-- **No version bumping from tags** (`setuptools-scm` and friends). It makes the
-  version a function of git state, which means a dirty tree or a shallow clone
-  produces a different number than the one you meant. One literal in
-  `pyproject.toml`, read at runtime through `importlib.metadata`, is checkable by
-  reading two files — and the workflow checks it for you.
-- **No release-on-merge.** Publishing is irreversible in a way merging is not.
-- **No auto-generated changelog.** The commit log is already the record of what
-  changed; a changelog is the shorter, edited claim about what *matters*, and
-  generating it from commits produces neither.
+All three entries that used to live here have been reversed. They are kept with
+their original objections, because two of the three were correct about the
+failure mode and the answer is what was built to handle it, not that the
+objection was silly.
+
+- **~~No version bumping from tags~~ — now hatch-vcs.** The objection was that
+  it "makes the version a function of git state, which means a dirty tree or a
+  shallow clone produces a different number than the one you meant". Both halves
+  are real and both were reproduced while making this change: a dirty tree at
+  tag `v9.9.9` builds `9.9.10.dev0+g<sha>.d<date>`, and a shallow clone warns and
+  derives nothing usable. Neither can reach PyPI. A dev-suffixed version is
+  rejected by PyPI outright, `publish.yml` checks out with `fetch-depth: 0` and
+  `fetch-tags: true`, and its guard compares the tag against the **built**
+  artefact, so a checkout that could not see the tags fails the release instead
+  of shipping. What the literal cost in exchange was a number in a file that
+  somebody has to remember on release day — the failure kartikeya's v0.0.8 shipped.
+- **~~No release-on-merge~~ — now release-on-merge, via the release PR.**
+  Publishing is still irreversible in a way merging is not; what changed is that
+  the merge being acted on is a `chore(master): release X.Y.Z` PR whose entire
+  content is the version and the changelog section about to ship. That is a more
+  legible thing to approve than a `git tag` was.
+- **~~No auto-generated changelog~~ — now generated, and the objection stands.**
+  "A changelog is the shorter, edited claim about what *matters*, and generating
+  it from commits produces neither" is still true. The mitigation is that the
+  commit subjects **are** the changelog now, so they have to be written as such,
+  and the release PR is editable before it merges. `docs`, `test`, `ci` and
+  `chore` are hidden types, so noise stays out by construction rather than by
+  editing it back out afterwards.
 
 ---
 

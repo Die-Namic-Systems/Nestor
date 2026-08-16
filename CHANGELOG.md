@@ -20,6 +20,49 @@ what moved.
 
 ## [Unreleased]
 
+> From here on this section is written by `release-please` from
+> conventional-commit prefixes, not by hand. See `docs/releasing.md`.
+
+### Build
+
+- **The git tag is now the version.** `pyproject.toml` moves from setuptools
+  with a literal `version = "0.3.1"` to `hatchling` + `hatch-vcs` with
+  `dynamic = ["version"]`, matching willow-mcp, kartikeya and jeles. Nothing in
+  the tree carries a version number, so there is no bump commit and no second
+  copy to forget — the failure kartikeya's v0.0.8 shipped, where a tag built a
+  different version and only PyPI's duplicate-upload refusal noticed.
+
+  Off a tag, a build produces `X.Y.Z.devN+g<sha>`, which PyPI rejects outright.
+  `publish.yml` now checks out with `fetch-depth: 0` and `fetch-tags: true`, and
+  compares the tag against the **built artefact** rather than a pyproject
+  literal that no longer exists.
+
+- **Release automation: `release-please`.** `release-please.yml` keeps an open
+  release PR carrying the next version and its changelog section, cuts the tag
+  when it merges, and the tag push starts `publish.yml`. It refuses to run
+  without `RELEASE_PLEASE_TOKEN` rather than falling back to `GITHUB_TOKEN` —
+  that fallback opens a healthy-looking release PR and then silently publishes
+  nothing, because GitHub suppresses workflow runs for events generated with the
+  default token.
+
+- **`pr-title.yml`.** This repo merges with merge commits, so GitHub writes the
+  PR title into the merge commit body and release-please parses it. The gate
+  fails a title that would cut a release its commits would not, and the reverse:
+  a release for a PR that touches nothing under `nestor/` or `pyproject.toml`.
+  It reads the release-cutting types out of `release-please-config.json` rather
+  than restating them.
+
+### Fixed
+
+- **`publish.yml`'s environment URL named the wrong project.** It pointed at
+  `https://pypi.org/p/nestor` — this project's own reserved-and-empty name from
+  before the 0.3.0 rename — for two releases after the rename. The distribution
+  is `nestor-meaning`. Cosmetic (the OIDC claim exchange matches on owner,
+  repository, workflow filename and environment, never on this URL) but it is
+  the link a reviewer follows out of a release run. Same rename fallout as
+  decision `0129`; now covered by a test that derives the expected URL from
+  `pyproject.toml`.
+
 ### Changed
 
 - **BREAKING — Nestor's household root is now `~/.nestor` (`NESTOR_HOME`).**
