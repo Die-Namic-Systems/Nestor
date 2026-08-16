@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 363,
+    "pairs": 366,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-16T00:00:00+00:00",
-  "digest": "6239a50ef721aca9fa567c877ad84786097ab26e1b42c555f13b0634a86593db",
+  "digest": "3595912411161eeef28feaadb187769d2c19f916be1e519d58a3b5d151342dbd",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "deee6af5-7e7b-51ab-8f8f-d4a3f8a7a0fd",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "bump the pin so the face is on the renamed module",
+      "source_text": "Bump the pin so the face is on the renamed module?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. It stays at v0.2.0, and what changes at the bump is documented instead.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "dd26c9d5-63e7-5a4c-83ea-3097ac03727d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the session predicted the seam would break it did not what does that cost",
+      "source_text": "The session predicted the seam would break. It did not. What does that cost?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Record the wrong prediction alongside the measurement, and correct it to the user in the same breath rather than quietly shipping the right answer.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-16T00:00:00+00:00",
       "id": "9765ca26-f8f8-553a-a6c5-bcf2f7d52643",
@@ -58,6 +86,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No -- added, not replaced. Both roots stay guarded.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "5eb8bd01-2a4a-5819-b121-80cc752e34b5",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what made a breaking root rename cost the downstream face zero code",
+      "source_text": "What made a breaking root rename cost the downstream face zero code?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A rule the seam wrote down before it had a call site: one resolver on its side of the boundary, never Nestor's.",
       "verifier": "",
       "weight": 1.0
     },
