@@ -609,6 +609,23 @@ function relativeAge(iso) {
   return iso.slice(0, 10);
 }
 
+// Native Element.append() stringifies null/undefined/false arguments into a
+// literal text node ("null"/"false") instead of skipping them. h()'s kid loop
+// never had that problem because it filters first — but any OTHER code that
+// calls the native `.append()` directly on a mix of h() output and an
+// expression that can be null (a ternary, a helper like commitmentPanel that
+// returns null for an ordinary row) reintroduces it (IDEAS §6.97 / #94).
+// Filtering at each such call site is not a fix, it is the same bug waiting
+// for the next null-returning helper — so this is the ONE place the rule
+// lives, and both h() and any native-append call site with the same shape
+// route through it instead of re-deriving the predicate.
+function appendKids(e, ...kids) {
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+}
+
 function h(tag, props, ...kids) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -619,10 +636,7 @@ function h(tag, props, ...kids) {
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
     else e.setAttribute(k, v === true ? "" : v);
   }
-  for (const kid of kids.flat()) {
-    if (kid === null || kid === undefined || kid === false) continue;
-    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
-  }
+  appendKids(e, ...kids);
   return e;
 }
 const $ = (id) => document.getElementById(id);
@@ -1774,7 +1788,7 @@ function detailPanel() {
     return fleetDetailStage(p);
   }
   const card = h("div", { class: "card" });
-  card.append(h("h2", { text: "Provenance" }));
+  appendKids(card, h("h2", { text: "Provenance" }));
   const ro = S.state.read_only;
   // A plain draft (no A/B/C commitment panel) is ratified right here: its
   // proposed answer is editable in place, so the curator seals what they are
@@ -1803,11 +1817,13 @@ function detailPanel() {
     ? h("div", { class: "context-panel small" }, renderContextBody(p.reason))
     : null;
 
-  // Filter kids with h()'s own predicate (kid !== null/undefined/false) before
-  // appending: a bare `card.append(null)` stringifies to the literal "null"
-  // (IDEAS §6.97 / #94). commitmentPanel(p) and the context block are null for
-  // a plain draft, and both used to print "null" on every dogfood decision row.
-  card.append(...[
+  // commitmentPanel(p) and the context block are null for a plain draft (no
+  // commitment choices, no reason) — appendKids is the same null-skip rule
+  // h() applies to its own children, routed through the ONE place that rule
+  // lives (IDEAS §6.97 / #94) instead of a filter re-derived at this call
+  // site, which is what regresses the moment another panel mixes h() output
+  // with a native `.append()` of a nullable expression.
+  appendKids(card,
     h("div", { class: "row" }, mark(p.status), h("b", { text: p.source_text })),
     answer,
     commitmentPanel(p),
@@ -1826,10 +1842,9 @@ function detailPanel() {
         text: relativeAge(p.created_at) || "—" }),
       h("span", { class: "chip mono", text: p.id.slice(0, 8) })),
     h("p", { class: "small muted", style: "margin:10px 0 4px",
-             text: (p.rejection_count || 0) + " rejection(s) recorded against this pair" }),
-  ].filter((kid) => kid !== null && kid !== undefined && kid !== false));
+             text: (p.rejection_count || 0) + " rejection(s) recorded against this pair" }));
   for (const r of p.rejections || []) {
-    card.append(h("div", { class: "small", style: "border-top:1px solid var(--line);padding:6px 0" },
+    appendKids(card, h("div", { class: "small", style: "border-top:1px solid var(--line);padding:6px 0" },
       h("div", { class: "mono", text: r.query_norm }),
       h("div", { class: "muted", text: (r.verifier || "—") + " · " + (r.reason || "no reason given") +
         (r.signature_valid ? "" : " · signature invalid") })));
@@ -1837,14 +1852,14 @@ function detailPanel() {
   // Lifecycle actions for a settled row. A plain draft's actions (seal, reject)
   // live in its ratify block above, so this row would only repeat Reject.
   if (!plainDraft) {
-    card.append(h("div", { class: "row", style: "margin-top:12px" },
+    appendKids(card, h("div", { class: "row", style: "margin-top:12px" },
       h("button", { class: "small", disabled: ro || p.status !== "sealed",
         title: "return to draft for re-verification", onclick: () => unseal(p) }, "Unseal"),
       h("button", { class: "small danger", disabled: ro || p.status === "rejected",
         title: "the mapping is wrong — retire it everywhere", onclick: () => rejectPair(p) }, "Reject pair"),
       h("button", { class: "small", disabled: ro || p.status !== "rejected",
         title: "undo a rejection — returns to draft, not to sealed", onclick: () => restore(p) }, "Restore")));
-    card.append(h("p", { class: "small muted", style: "margin-bottom:0",
+    appendKids(card, h("p", { class: "small muted", style: "margin-bottom:0",
       text: "Unsealing is not rejecting: unseal returns a pair to draft for re-verification, " +
             "rejecting retires it as wrong. Both are written to the ledger." }));
   }
