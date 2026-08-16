@@ -1,0 +1,78 @@
+Nestor — has a human checked this?
+   a scratch store and ledger in /tmp/nestor-demo-q_u366gj
+
+1. Ask it something nobody has verified.
+
+   $ nestor ask "The supplier shall deliver within thirty day…"
+   ! pending   nothing verified matches this
+   It does not present a guess as an answer. Unverified is a state, not a
+   lower confidence score buried in a field nobody reads.
+
+2. A human verifies it. Once.
+
+   $ nestor ui   →   sign in as rita, correct it, seal
+   ✓ sealed by rita   El proveedor entregará en un plazo de treinta días d…
+   Signed with rita's own key, which the database does not hold.
+
+3. Ask again — retyped, different case, no punctuation.
+
+   $ nestor ask "the supplier shall deliver within thirty day…"
+   ✓ sealed   El proveedor entregará en un plazo de treinta días desde la fecha del pedido.
+              verified by rita, similarity 1.0
+   Right forever after, for anyone who asks — a person at the UI, the CLI,
+   or a model over MCP. One human, one time.
+
+4. A rewrite that means the same thing.
+
+   $ nestor ask "The vendor shall deliver within thirty days …"
+   ~ draft     nothing verified matches this — closest scores 0.812
+   Under the 0.92 cutoff, so it goes back to a human rather than
+   out as verified. Close is what a false verification is made of.
+
+5. And the part a demo usually leaves out.
+
+   $ nestor ask "The supplier shall deliver within sixty days…"
+   ✓ sealed   El proveedor entregará en un plazo de treinta días desde la …
+      …and thirty days is not sixty days.
+   It scores 0.96 because two characters changed. A character-ratio
+   matcher does not read; it measures. That failure mode is measured, not
+   hidden — bench/ sweeps it, `nestor calibrate` tells you where the cutoff
+   belongs for YOUR corpus, and a reviewer's rejection of this answer is
+   recorded and read back as evidence the dial is wrong here.
+
+6. Someone with database access forges a seal.
+
+   $ sqlite3 nestor.db "insert … status='sealed', verifier='rita'"
+   the row says sealed, by rita, and scores 1.000 — an exact match
+   ! pending   nothing verified matches this — closest scores 1.0
+   Writing the database is not enough. A seal is a signature over
+   (source, answer, verifier) under rita's key — and that key is not in
+   the database being written. It shows up in the curator's unverifiable
+   list instead: a row claiming a verification nobody made.
+
+7. Every decision above is in the ledger, and the chain holds.
+
+   $ nestor ledger verify
+   ✓ intact — 6 entries
+   kinds: passage, seal
+   head 3caa817e6133e31177318888461f6bcf…
+
+8. Now edit the trail. One field, in one past entry.
+   entry 1: verifier 'rita' → 'someone-else'
+
+   $ nestor ledger verify
+   ✗ broken chain at line 3: prev='ee34ee69492553d42e4bd6492a53cd127c5dafb88540f41714d027aaeb5c3c45' expected 'bdb4c46e32879d83eaab68ce750dac170e749732ce7a93446d12c47445b6db31'
+   Nothing else was touched. Each line carries the hash of the line before
+   it, so changing who sealed something breaks every link after it.
+
+   $ nestor ask …    # and the next decision is refused too
+   ✗ LedgerError: the entry this process last wrote to /tmp/nestor-demo-q_u366gj/ledger.jsonl …
+   It will not chain a new decision onto a history it cannot vouch for,
+   and it refuses before writing the row rather than after. The trail is
+   not evidence you have to trust — it is evidence that will not be
+   quietly rewritten.
+
+Sixty seconds. An answer nobody had checked; one human, one time;
+right forever after; a failure mode named out loud; a forgery refused;
+and a trail that indicts itself.
+

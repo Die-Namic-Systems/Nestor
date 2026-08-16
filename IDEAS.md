@@ -58,7 +58,7 @@ this map is not, CI fails. It cannot drift.
 | [3.4](#34-model-authored-surfaces--measured-four-stages-and-the-matcher) | Model-authored surfaces | measured; four stages, and the matcher |
 | [4.1](#41-lead-with-the-mechanic-not-translation--shipped) | Lead with the mechanic, not translation | shipped |
 | [4.2](#42-the-category-is-ai-verification-not-translation-memory--shipped) | The category is AI verification, not translation memory | shipped |
-| [4.3](#43-the-60-second-demo--shipped-except-the-recording) | The 60-second demo | shipped, except the recording |
+| [4.3](#43-the-60-second-demo--shipped-the-recording-is-reproducible-the-gif-still-needs-a-human-on-a-tty) | The 60-second demo | shipped: the recording is reproducible, the GIF still needs a human on a TTY |
 | [4.4](#44-the-bench-is-a-marketing-asset--shipped) | The bench is a marketing asset | shipped |
 | [5.1](#51-there-is-no-cli--shipped) | There is no CLI | shipped |
 | [5.2](#52-the-memory-is-write-only--shipped) | The memory is write-only | shipped |
@@ -1223,7 +1223,7 @@ the checkable claim instead: that this is a question regulated buyers are being
 asked. What Nestor answers is a fact about Nestor; what everyone else has failed
 to answer is not.
 
-### 4.3 The 60-second demo — **shipped, except the recording**
+### 4.3 The 60-second demo — **shipped: the recording is reproducible, the GIF still needs a human on a TTY**
 
 Highest-leverage missing artifact. An AI gets something wrong; a human corrects
 it **once**; it is right forever after, with a receipt that cannot be forged.
@@ -1237,8 +1237,23 @@ exist, and two screens carry the loop with no explaining: a near-match returning
 returning `! pending`.
 
 `demo/sixty_seconds.py` is the script: eight beats, the exact phrases that
-produce each outcome, paced for a recording and `--fast` for CI. What is left is
-literally the screen capture.
+produce each outcome, paced for a recording and `--fast` for CI.
+
+The screen capture is no longer manual. `demo/record_demo.py` runs the script
+under `script(1)` — util-linux, already on every Linux box this project's CI
+runs on, not a new dependency — which allocates a pty for the *child* process
+whether or not the capturing process has a controlling terminal of its own, so
+it works headlessly. It reassembles `script`'s raw output and timing logs into
+a real asciicast v2 file (`demo/recordings/sixty_seconds.cast`, replayable with
+the original color and pacing by any asciinema-compatible player) plus a
+plain-text transcript (`sixty_seconds.txt`) for reading without one.
+`tests/test_record_demo.py` runs it and checks the cast is well-formed and
+every beat landed. What that harness does *not* do, on principle, is render a
+GIF — that needs `agg` or an equivalent this dependency-light core does not
+carry, so the harness prints the one command
+(`agg demo/recordings/sixty_seconds.cast demo/recordings/sixty_seconds.gif`)
+for a human to run on a machine that has it, and stops there rather than
+pretending a text transcript is the video.
 
 One beat is worth defending, because it is the one a demo usually leaves out.
 Between the near miss and the forgery, the script asks for "sixty days" against

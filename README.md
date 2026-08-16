@@ -197,6 +197,23 @@ ledger entry, and the chain refusing both to verify and to accept the next
 decision. Every beat asserts its own claim — the script exits non-zero rather
 than narrate something that did not happen, and a test runs it.
 
+**The recording is reproducible, not just the demo.** `demo/record_demo.py`
+runs the script above under `script(1)` — no new dependency, no TTY required —
+and turns the captured pty output into a real asciicast (`demo/recordings/`):
+
+```bash
+python demo/record_demo.py              # writes demo/recordings/sixty_seconds.{cast,txt}
+```
+
+`sixty_seconds.cast` replays with the original color and pacing in any
+asciinema-compatible player; `sixty_seconds.txt` is the same run with the
+escape codes stripped, for reading without one. What it does **not** do is
+render a GIF — that needs a renderer (`agg` or similar) this dependency-light
+core does not carry, so the one command that finishes the job is printed at
+the end of a capture run for a human to run where that tool is installed.
+`tests/test_record_demo.py` runs the harness and checks the cast is valid and
+every beat is in the transcript.
+
 Save this as `demo.py` and run it — the whole loop, in the translation recipe:
 
 ```python
@@ -380,6 +397,8 @@ bench/                measuring where the seal threshold stops holding — see b
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
 ├── sixty_seconds.py    the whole loop in eight beats — see Quick start
+├── record_demo.py      captures sixty_seconds.py as an asciicast — see 60-second demo below
+├── recordings/          the captured .cast and .txt from the last record_demo.py run
 ├── the_dogfooding.py   Nestor's own decision store asked its own questions — retrieval measured three ways (IDEAS §6.94)
 ├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
 ├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
