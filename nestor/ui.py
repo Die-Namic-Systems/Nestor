@@ -74,8 +74,9 @@ import urllib.parse
 import webbrowser
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional, Union
 
 from . import answer, cascade, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
@@ -460,8 +461,8 @@ def _state(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
     # The verifier names are not a secret — they are printed on every seal the
     # memory holds. The keys are, and never leave the file.
     identity = {"required": ring is not None,
-                "verifiers": [n for n in (ring.names() if ring else [])
-                              if ring.status(n) == "active"],
+                "verifiers": ([n for n in ring.names() if ring.status(n) == "active"]
+                              if ring else []),
                 "signed_in": app.sessions.whois(_str(query, "session")) or ""}
     return {
         "read_only": app.read_only,
@@ -1113,8 +1114,13 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
 # Transport
 # --------------------------------------------------------------------------
 
-def csrf_reason(method: str, headers: Mapping[str, str], host: str) -> Optional[str]:
+def csrf_reason(method: str, headers: Union[Mapping[str, str], Message],
+                host: str) -> Optional[str]:
     """Why this mutating request must be refused, or ``None`` to allow it.
+
+    ``headers`` accepts a plain mapping (tests) or the
+    ``email.message.Message`` ``BaseHTTPRequestHandler.headers`` actually is
+    at the real call site — only ``.get`` is used below, which both provide.
 
     No cookies are involved, but the UI is reachable at a predictable localhost
     address, so a page in another tab could otherwise POST a seal or an unseal

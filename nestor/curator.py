@@ -42,6 +42,7 @@ Usage::
 """
 from __future__ import annotations
 
+import builtins
 from typing import Optional
 
 from . import keyring, ledger, memory, signing
@@ -134,7 +135,15 @@ class Curator:
         out["rejection_count"] = len(out["rejections"])
         return out
 
-    def unverifiable(self, limit: int = 200) -> list[dict]:
+    def unverifiable(self, limit: int = 200) -> builtins.list[dict]:
+        # `builtins.list`, not the bare `list[dict]` every other signature in
+        # this file uses: this class defines its OWN method named `list`
+        # above, which shadows the builtin type inside this class body from
+        # this point on — mypy resolves an unqualified `list` here to
+        # `Curator.list` (the method) and rejects it as "not valid as a
+        # type". Only annotations written after that method's def are
+        # affected; qualifying via `builtins` sidesteps the clash without
+        # renaming the public `Curator.list` API.
         """Rows claiming ``sealed`` that Nestor would refuse to serve.
 
         With signing enabled these are rows written by something that did not
@@ -146,7 +155,7 @@ class Curator:
                 if not p["servable"]]
 
     def replaced_seals(self, conflicts_only: bool = True,
-                       limit: int = 200) -> list[dict]:
+                       limit: int = 200) -> builtins.list[dict]:
         """Seals that were overwritten — someone re-sealed an already-sealed source.
 
         The memory keeps one row per normalized source, so a replacement leaves

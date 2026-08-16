@@ -47,7 +47,7 @@ recover is corroboration, never the source.
 """
 from __future__ import annotations
 
-from nestor.matcher import StringMatcher
+from nestor.matcher import Matcher
 from nestor.triage import Decision, ProposedEdge
 
 #: How much of a question / commitment to quote in an edge's evidence. Enough to
@@ -61,7 +61,7 @@ def _clip(text: str, limit: int = _CLIP) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
-def _question_bound(matcher: StringMatcher, a_norm: str, b_norm: str,
+def _question_bound(matcher: Matcher, a_norm: str, b_norm: str,
                     floor: float) -> float:
     """Upper bound on the question similarity, using the matcher's cheap
     ``similarity_bound`` when it offers one (lossless prune) and falling back to
@@ -73,7 +73,7 @@ def _question_bound(matcher: StringMatcher, a_norm: str, b_norm: str,
     return matcher.similarity(a_norm, b_norm)
 
 
-def find_supersessions(decisions: list[Decision], matcher: StringMatcher,
+def find_supersessions(decisions: list[Decision], matcher: Matcher,
                        bar: float) -> list[ProposedEdge]:
     """Propose ``supersedes`` / ``contradicts`` edges between draft decisions.
 

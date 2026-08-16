@@ -22,13 +22,13 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, cast
 
 from . import memory, signing
 from .cascade import _ledger_append
 from .matcher import Matcher, StringMatcher
-from .storage import (Storage, supports_edges, supports_lineage,
-                      supports_rejection)
+from .storage import (EdgeStorage, LineageStorage, Storage, supports_edges,
+                      supports_lineage, supports_rejection)
 
 #: The relations an edge may assert (docs/decision-memory.md N6). A kind outside
 #: this set is a typo that would silently grow an ungraphable graph, so it is
@@ -114,7 +114,9 @@ class DecisionMemory:
         edge = {"id": str(uuid.uuid4()), "src_id": src_id, "dst_id": dst_id,
                 "kind": kind, "reason": reason, "verifier": "",
                 "created_at": _now(), "edge_sig": ""}
-        self.store.memory_add_edge(edge)
+        # _require_edges() above raises unless supports_edges(self.store) —
+        # the cast just tells the type checker what that check established.
+        cast(EdgeStorage, self.store).memory_add_edge(edge)
         return edge
 
     def seal_edge(self, src_id: str, dst_id: str, kind: str, verifier: str,
@@ -136,14 +138,16 @@ class DecisionMemory:
                 f"edge signature does not verify for {verifier!r} over "
                 f"{kind} {src_id}->{dst_id}; refusing to ratify a relation "
                 f"nothing backs (the seal covenant, for edges).")
-        proposed = [e for e in self.store.memory_edges_to(dst_id, kind)
+        # Same check-then-cast shape as propose_edge above.
+        edge_store = cast(EdgeStorage, self.store)
+        proposed = [e for e in edge_store.memory_edges_to(dst_id, kind)
                     if e["src_id"] == src_id and not e["edge_sig"]]
         if proposed:
             edge_id = proposed[0]["id"]
-            self.store.memory_seal_edge(edge_id, verifier, edge_sig)
+            edge_store.memory_seal_edge(edge_id, verifier, edge_sig)
         else:
             edge_id = str(uuid.uuid4())
-            self.store.memory_add_edge(
+            edge_store.memory_add_edge(
                 {"id": edge_id, "src_id": src_id, "dst_id": dst_id,
                  "kind": kind, "reason": reason, "verifier": verifier,
                  "created_at": _now(), "edge_sig": edge_sig})
@@ -186,7 +190,7 @@ class DecisionMemory:
                 result["lineage"] = [
                     {"commitment": p["target_text"], "reason": p.get("reason", ""),
                      "verifier": p.get("verifier", "")}
-                    for p in self.store.memory_lineage(row["id"])]
+                    for p in cast(LineageStorage, self.store).memory_lineage(row["id"])]
             if supports_edges(self.store):
                 self._collect_edges(row["id"], result)
 
@@ -199,10 +203,14 @@ class DecisionMemory:
         return result
 
     def _collect_edges(self, pair_id: str, result: dict) -> None:
+        # Only called from constraints_on after supports_edges(self.store)
+        # already returned True; the cast documents that precondition rather
+        # than re-checking it.
+        edge_store = cast(EdgeStorage, self.store)
         seen: set = set()
         for direction, edges in (
-                ("out", self.store.memory_edges_from(pair_id)),
-                ("in", self.store.memory_edges_to(pair_id))):
+                ("out", edge_store.memory_edges_from(pair_id)),
+                ("in", edge_store.memory_edges_to(pair_id))):
             for e in edges:
                 if e["id"] in seen:
                     continue

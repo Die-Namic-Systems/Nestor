@@ -20,6 +20,7 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
    ```bash
    bash scripts/ci-lint.sh
    # same ruff scope as Actions: nestor tests hooks
+   # mypy scope is narrower: nestor only, pragmatic baseline (IDEAS §7.5)
    python -m pytest -q
    ```
 

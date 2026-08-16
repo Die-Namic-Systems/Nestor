@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 python -m ruff check nestor tests hooks
 python -m bandit -r nestor -ll -q
+# Type gate (IDEAS §7.5) — pragmatic baseline, `nestor` only; see [tool.mypy]
+# in pyproject.toml for what that does and does not cover.
+python -m mypy nestor
 # Secret scan — never commit the trust root. New findings not in
 # .secrets.baseline fail. Derived/binary artifacts carry high-entropy hashes but
 # no source secret, so they are excluded (the store bundles, the rebuilt

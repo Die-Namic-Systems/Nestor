@@ -41,7 +41,7 @@ BRAIN_DB = ("docs", "dogfood", "nestor.db")
 #: ``tests/test_session_start.py`` parses ci-lint.sh and fails if the two drift —
 #: a boot check that reports on two of three gates is how the third one stayed
 #: broken.
-LINT_MODULES = ("ruff", "bandit", "detect_secrets")
+LINT_MODULES = ("ruff", "bandit", "mypy", "detect_secrets")
 
 #: What proves a household home was laid out rather than merely existing.
 #: ``nestor.home_init`` writes it once and never overwrites it, so its presence
@@ -154,7 +154,11 @@ def _lint_line(root: Path) -> str:
         return f"[check] lint: could not probe {py.name} — {hint}"
     missing = proc.stdout.split()
     if not missing:
-        return ("[check] lint: ruff, bandit, detect_secrets ready — "
+        # Named from LINT_MODULES itself, not retyped here — a retyped list is
+        # exactly how ci-lint.sh's fourth gate (this one) could drift from the
+        # "ready" line the same way the third gate once drifted from the boot
+        # check that was supposed to cover it.
+        return (f"[check] lint: {', '.join(LINT_MODULES)} ready — "
                 "`bash scripts/ci-lint.sh` before push")
     return ("[check] lint: MISSING " + ", ".join(missing) +
             " — `bash scripts/ci-lint.sh` will fail at that gate. Fix with: "

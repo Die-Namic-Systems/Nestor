@@ -21,7 +21,7 @@ import warnings
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
@@ -295,7 +295,7 @@ class SqliteStore:
     #: suite injecting a real step over a two-generation world, so the ladder is
     #: wired rather than merely declared. A class attribute so a test can
     #: override it per instance; the read below tolerates an instance override.
-    _FORWARD_MIGRATIONS: "list[tuple[int, object]]" = []
+    _FORWARD_MIGRATIONS: "list[tuple[int, Callable[[sqlite3.Connection], None]]]" = []
 
     def __init__(self, db_path: str = "data/nestor.db") -> None:
         self.db_path = db_path
@@ -648,7 +648,8 @@ class SqliteStore:
                       limit: int = 200, offset: int = 0) -> list[dict]:
         # Ordered by position, not by time: a reviewer reads a document in the
         # order it was written, and `created_at` ties within one cascade run.
-        where, params = [], []
+        where: list[str] = []
+        params: list[object] = []   # SQL params mix str filters and int limit/offset
         for col, val in (("document_id", document_id), ("status", status)):
             if val:
                 where.append(f"{col}=?")
@@ -932,7 +933,8 @@ class SqliteStore:
         # produce byte-identical files. This does NOT make the digest stable —
         # `portable.digest` sorts rows by id itself, so list order never
         # reached it. Worth having for diffable exports; not load-bearing.
-        where, params = [], []
+        where: list[str] = []
+        params: list[object] = []   # SQL params mix str filters and int limit
         for col, val in (("source_lang", source_lang), ("target_lang", target_lang)):
             if val:
                 where.append(f"{col}=?")
@@ -950,7 +952,8 @@ class SqliteStore:
     def memory_list(self, source_lang: str = "", target_lang: str = "",
                     status: str = "", verifier: str = "", contains: str = "",
                     limit: int = 50, offset: int = 0) -> list[dict]:
-        where, params = [], []
+        where: list[str] = []
+        params: list[object] = []   # SQL params mix str filters and int limit/offset
         for col, val in (("source_lang", source_lang), ("target_lang", target_lang),
                          ("status", status), ("verifier", verifier)):
             if val:

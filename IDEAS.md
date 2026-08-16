@@ -1908,10 +1908,23 @@ its credibility: `CHANGELOG.md`, `.pre-commit-config.yaml`, the `.github` PR
 template, coverage with a floor, the CI matrix, and the local `http.server`
 behind `nestor ui`. Absent, each a part the same method would re-land:
 
-- **Type checking.** `scripts/ci-lint.sh` runs `ruff` and `bandit`; there is no
-  `mypy` or `pyright`. A typed decision store with no type gate leaves the seam
-  between recipes — the place most likely to drift — unguarded. **Status: open**,
-  and the cheapest of these to add.
+- **Type checking.** `scripts/ci-lint.sh` now runs `mypy nestor` alongside
+  `ruff` and `bandit` (`[tool.mypy]` in `pyproject.toml`). Scope is the whole
+  `nestor` package at a pragmatic baseline — `check_untyped_defs`,
+  `warn_redundant_casts`, `warn_unused_ignores`, `no_implicit_optional` — not
+  `--strict`; three modules (`cloud_seal.py`, `semantic_matcher.py`,
+  `engine.py`) get `ignore_missing_imports` for their optional-extra imports
+  (`willow_gate`, `fastembed`, `anthropic`), which are not in `[dev]`, so
+  those specific imports type as `Any` rather than being stub-checked — the
+  rest of every module, including those three, is. The optional-capability
+  seam (`Storage`'s six predicates) is now typed too: `LineageStorage`,
+  `AtomicSupersedeStorage`, `EdgeStorage` (`nestor/storage.py`) and
+  `EmbeddingCapableStorage` (`nestor/embedding_store.py`) are `cast()`
+  targets for the call sites a `supports_*` check already guards, so the
+  seam between recipes this entry named is guarded rather than papered over
+  with a blanket ignore. **Status: shipped**, at that baseline — tightening
+  it (`disallow_untyped_defs`, dropping the three overrides once their
+  extras are typed upstream) is future work, not done here.
 - **Dependency-vulnerability scanning.** `detect-secrets` guards the trust root;
   nothing checks the *dependency set* for known CVEs (`pip-audit`, `osv`). A
   dependency-light repo has the fewest deps to audit and the least excuse not to.

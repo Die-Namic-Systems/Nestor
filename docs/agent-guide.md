@@ -65,8 +65,8 @@ exactly this the day this file was written.
          && pip install -e ".[dev,keys]"; }
   ```
 
-- `[dev]` carries pytest and every gate `scripts/ci-lint.sh` runs — ruff, bandit
-  and detect-secrets; `[keys]` carries cryptography so
+- `[dev]` carries pytest and every gate `scripts/ci-lint.sh` runs — ruff,
+  bandit, mypy and detect-secrets; `[keys]` carries cryptography so
   the asymmetric suite runs instead of skipping. Do **not** add `[semantic]`
   unless the task needs it — see "Before you finish".
 
@@ -338,9 +338,12 @@ Everything that follows falls out of that:
   fastembed-**absent**. If you install the semantic extra you un-skip three
   model-downloading tests and diverge from CI.
 - **`bash scripts/ci-lint.sh`** (or `ruff check nestor tests hooks` + `bandit -r
-  nestor -ll -q`) — same gate as GitHub Actions. Do **not** add unused imports in
-  tests (`pytest`, `os`, `Path`, …); ruff **F401** fails CI and cloud will not
-  see your fix until it is **pushed to the PR branch** and the job re-runs.
+  nestor -ll -q` + `mypy nestor`) — same gate as GitHub Actions. Do **not** add
+  unused imports in tests (`pytest`, `os`, `Path`, …); ruff **F401** fails CI
+  and cloud will not see your fix until it is **pushed to the PR branch** and
+  the job re-runs. Mypy is scoped to `nestor` only, at a pragmatic baseline —
+  see `[tool.mypy]` in `pyproject.toml` and IDEAS §7.5 for exactly what that
+  does and does not cover.
 - Optional: `pre-commit install` then commits auto-fix ruff locally.
 - `docs/code-review-lessons.md` §11 is the pre-PR checklist. Use it.
 
