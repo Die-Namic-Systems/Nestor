@@ -129,3 +129,122 @@ def test_human_output_prints_the_signing_half_too(tmp_path, capsys):
 
     result = _open_session("eydis", path, printed)
     assert result["verifier"] == "eydis"
+
+
+# --- the other two claims in the same sentence (§6.36 / Nestor#99) ---------
+#
+# The generate case above is one of three ways to add a verifier. The pre-fix
+# message ("This is the only time it is printed. {name} needs it to sign in")
+# was reused verbatim for all three, and the other two are wrong in a
+# different way each: `--public HEX` types the key on the command line before
+# the command ever runs (not "the only time"), and the peer never signs in
+# with it at all (they sign client-side with their own private half — the
+# entry's `can_sign` is False by construction). These tests hold that fix down
+# the same way: red against the pre-fix code (parent of the fix commit),
+# green after.
+
+
+def _add_ed25519_peer(name: str, public_hex: str, path, capsys, *,
+                       as_json: bool = True) -> str:
+    """Run `nestor keys add <name> --type ed25519 --public <hex>` and return
+    stdout."""
+    argv = (["--json"] if as_json else []) + [
+        "keys", "add", name, "--type", "ed25519", "--public", public_hex,
+        "--keyring", str(path)]
+    rc = cli.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 0, out
+    return out
+
+
+def test_peer_public_key_message_does_not_claim_only_time_printed(tmp_path, capsys):
+    """Registering a peer's PUBLIC key (`--public HEX`) must not say "this is
+    the only time it is printed" — it was already typed on the command line,
+    in shell history, before this process ever ran.
+
+    Red before the fix: `cmd_keys` reused the generate-case sentence
+    unconditionally, so it printed that claim here too.
+    """
+    path = tmp_path / "ring.json"
+    public_hex = "ab" * 32
+    out = _add_ed25519_peer("gunnar", public_hex, path, capsys, as_json=False)
+    assert "only time it is printed" not in out
+
+
+def test_peer_public_key_message_does_not_claim_it_signs_in(tmp_path, capsys):
+    """Registering a peer must not claim they need this key to sign in — a
+    peer entry holds no private half, so `Sessions.open` can never
+    authenticate against it (`Keyring.signing_entry` refuses by construction).
+    The peer signs in on their own instance, with their own private half.
+
+    Red before the fix: the reused sentence said "{name} needs it to sign in
+    to the UI" for the peer case too, which is backwards.
+    """
+    path = tmp_path / "ring.json"
+    public_hex = "cd" * 32
+    out = _add_ed25519_peer("halla", public_hex, path, capsys, as_json=False)
+    assert "needs it to sign in" not in out
+    assert "cannot open a session" in out
+
+
+def test_peer_entry_has_no_signing_material(tmp_path, capsys):
+    """The mechanism the message now describes: a `--public`-registered entry
+    holds no private half on this instance, so there is nothing here for
+    `Keyring.signing_key`/`signing_entry` to authenticate a sign-in against —
+    ``bool(entry.private)`` is what `scripts/two_instances.py` calls
+    "can_sign" for a peer (not `Entry.can_sign`, which tracks revocation, a
+    different axis)."""
+    path = tmp_path / "ring.json"
+    public_hex = "ef" * 32
+    _add_ed25519_peer("ingrid", public_hex, path, capsys, as_json=False)
+
+    entry = keyring_mod.load(str(path)).get("ingrid")
+    assert entry.kind == "ed25519"
+    assert entry.private == b""
+    with pytest.raises(keyring_mod.KeyringError):
+        keyring_mod.load(str(path)).signing_entry("ingrid")
+
+
+def test_peer_json_has_no_signing_key_field(tmp_path, capsys):
+    """`--json` must not hand a script a `"key"` it could pipe to a new
+    verifier as their sign-in credential — a peer entry has no signing
+    material on this instance at all. The public half is still surfaced,
+    under a name that says what it is.
+
+    Red before the fix: `--json` emitted `"key": entry.key.hex()` — the
+    PUBLIC half — indistinguishable in shape from the generate case's
+    (correct) `"key"` field, which IS the signing half there.
+    """
+    path = tmp_path / "ring.json"
+    public_hex = "12" * 32
+    out = _add_ed25519_peer("jon", public_hex, path, capsys, as_json=True)
+    payload = json.loads(out)
+    assert "key" not in payload
+    assert payload["public_key"] == public_hex
+
+
+def test_hmac_add_is_unaffected_by_the_ed25519_fix(tmp_path, capsys):
+    """Regression guard: the hmac path (the default, and the only kind where
+    the original sentence held for every claim it made) must still print the
+    signing secret, still say it is the only time, and it must still open a
+    session — the fix must not have narrowed the branch that was already
+    correct.
+    """
+    path = tmp_path / "ring.json"
+    argv = ["--json", "keys", "add", "klara", "--keyring", str(path)]
+    rc = cli.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 0, out
+    payload = json.loads(out)
+    assert payload["kind"] == "hmac"
+    printed = payload["key"]
+
+    entry = keyring_mod.load(str(path)).get("klara")
+    assert printed == entry.key.hex()
+
+    keyring_mod.set_keyring(keyring_mod.load(str(path)))
+    try:
+        result = Sessions().open("klara", printed)
+    finally:
+        keyring_mod.set_keyring(None)
+    assert result["verifier"] == "klara"
