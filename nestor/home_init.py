@@ -1,17 +1,17 @@
-"""Idempotent scaffolder for the Nestor household home (``$HOMESTEAD_HOME`` / ``~/.homestead``).
+"""Idempotent scaffolder for the Nestor household home (``$NESTOR_HOME`` / ``~/.nestor``).
 
 Re-land of willow-mcp's ``src/willow_mcp/home_init.py`` (``ensure_home_layout``) —
 the "create the tree if absent, write a default file only when missing, never
 clobber an operator's own content" pattern — narrowed to Nestor's household
 layout. Path resolution is **not** duplicated: this module builds *on*
-:mod:`nestor.homestead_paths` for **where** the home lives, and adds only the
+:mod:`nestor.home_paths` for **where** the home lives, and adds only the
 idempotent **create**.
 
-The household tree it guarantees (see ``docs/homestead-paths.md``)::
+The household tree it guarantees (see ``docs/home-paths.md``)::
 
     <home>/
       keep/        # hash-chained ledger lives here (cascade owns the file)
-      record/      # homestead canonical record
+      record/      # canonical household record
       logs/        # sealed log (I-22)
       drafts/
       layout.json  # written once; a version marker, never overwritten
@@ -30,15 +30,15 @@ import os
 from pathlib import Path
 from typing import Any
 
-from . import homestead_paths
+from . import home_paths
 
 __all__ = ["SUBDIRS", "required_dirs", "layout_manifest_path", "ensure_home_layout"]
 
-_LAYOUT_VERSION = "homestead_household_v1"
+_LAYOUT_VERSION = "nestor_household_v1"
 
 # Directory tree under the household root, in a fixed order so the reported
 # ``dirs_created`` is deterministic. ``keep`` first because it is the
-# load-bearing one (the ledger's parent); the rest mirror the homestead seat.
+# load-bearing one (the ledger's parent); the rest mirror the household seat.
 SUBDIRS: tuple[str, ...] = ("keep", "record", "logs", "drafts")
 
 _DEFAULT_MANIFEST: dict[str, Any] = {
@@ -48,26 +48,26 @@ _DEFAULT_MANIFEST: dict[str, Any] = {
 
 
 def _resolve_home(home: Path | None) -> Path:
-    """Resolve the household root, reusing :mod:`homestead_paths` for the *where*.
+    """Resolve the household root, reusing :mod:`home_paths` for the *where*.
 
-    When ``home`` is given it is pinned via ``$HOMESTEAD_HOME`` so every
-    ``homestead_paths`` helper (``keep_dir``, ``ledger_path``) agrees with it —
+    When ``home`` is given it is pinned via ``$NESTOR_HOME`` so every
+    ``home_paths`` helper (``keep_dir``, ``ledger_path``) agrees with it —
     the same trick willow-mcp uses with ``$WILLOW_HOME``. When ``home`` is None
-    the resolver's own default (``$HOMESTEAD_HOME`` or ``~/.homestead``) wins.
+    the resolver's own default (``$NESTOR_HOME`` or ``~/.nestor``) wins.
     """
     if home is not None:
-        os.environ[homestead_paths._ROOT_ENV] = str(home)
-    return homestead_paths.home()
+        os.environ[home_paths._ROOT_ENV] = str(home)
+    return home_paths.home()
 
 
 def required_dirs(home: Path | None = None) -> list[Path]:
     """Absolute paths of the household directories, in scaffold order.
 
-    ``keep`` is taken from :func:`homestead_paths.keep_dir` so the ledger's
+    ``keep`` is taken from :func:`home_paths.keep_dir` so the ledger's
     parent stays authoritative; the siblings hang off the same resolved root.
     """
     root = _resolve_home(home)
-    keep = homestead_paths.keep_dir()
+    keep = home_paths.keep_dir()
     return [keep] + [root / name for name in SUBDIRS if name != "keep"]
 
 

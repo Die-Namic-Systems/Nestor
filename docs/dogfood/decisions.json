@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 359,
+    "pairs": 363,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-15T00:00:00+00:00",
-  "digest": "f4195752267cb8cf3bb5078dd0fc1b7daa0c70e3ef8ee9f2a5f87da3b3594284",
+  "created_at": "2026-08-16T00:00:00+00:00",
+  "digest": "6239a50ef721aca9fa567c877ad84786097ab26e1b42c555f13b0634a86593db",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,62 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "9765ca26-f8f8-553a-a6c5-bcf2f7d52643",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a host already keeping keepledgerjsonl under homestead fall back to the old root or forward to the new one",
+      "source_text": "A host already keeping keep/ledger.jsonl under ~/.homestead: fall back to the old root, or forward to the new one?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither. home() raises HomeRelocationRefused when HOMESTEAD_HOME is set and NESTOR_HOME is not.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "93e06b60-2413-5fb2-af4e-4edde98cda19",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "test_docs reported nestor_home as documented but read nowhere rename the constant or widen the gate",
+      "source_text": "test_docs reported NESTOR_HOME as documented but read nowhere. Rename the constant, or widen the gate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Widen the gate. _env_names_in_code now also resolves a module constant that is passed to environ.get.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "8c12f253-614e-5ad5-8f52-9cf8940966b4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the bash guards secretpath rule for homestead be replaced by one for nestor",
+      "source_text": "Should the bash guard's secret-path rule for ~/.homestead be replaced by one for ~/.nestor?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No -- added, not replaced. Both roots stay guarded.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-16T00:00:00+00:00",
+      "id": "5c9c48cc-1219-5579-9f43-e417a6ab7424",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is moving off homestead a reversal of the roots doc or an application of it",
+      "source_text": "Is moving off ~/.homestead a reversal of the roots doc, or an application of it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "An application. docs/roots-willow-and-homestead.md now derives ~/.nestor from its own audience test rather than treating it as an exception to one.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-15T00:00:00+00:00",
       "id": "ebcb99e6-7cd3-5b59-a9e1-a3a4d5690ab6",

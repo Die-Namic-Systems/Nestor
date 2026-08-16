@@ -1,0 +1,28 @@
+{
+    "pr": null,
+    "branch": "claude/repo-issues-8qydya",
+    "date": "2026-08-16",
+    "note": "The boot's [nestor] line reported no Nestor stood up in this tree and asked the question it is built to ask. The answer named a defect rather than a store: things should be standing up in .nestor, not homestead. Nestor's household resolver (nestor/homestead_paths.py) had defaulted to ~/.homestead -- a root owned by rudi193-cmd/homestead -- so a person installing Nestor alone got another product's brand in their home directory. Renamed to nestor/home_paths.py with NESTOR_HOME / ~/.nestor, and the legacy root is now read only in order to refuse. Docs, hooks, the bash guard's secret-path family and the tests moved with it; docs/homestead-paths.md became docs/home-paths.md.",
+    "decisions": [
+        {
+            "question": "Is moving off ~/.homestead a reversal of the roots doc, or an application of it?",
+            "commitment": "An application. docs/roots-willow-and-homestead.md now derives ~/.nestor from its own audience test rather than treating it as an exception to one.",
+            "why": "That doc's Die Rule 2 argument is audience, not brand: someone who only installs a household product should not be handed a vocabulary that is not theirs, and WILLOW_* was the worked example. A Nestor-only install being given a .homestead directory is the identical mistake one brand along -- the rule was written and then not applied to the repo that wrote it. Framing this as a reversal would have made it a matter of taste that the next session could flip back; deriving it from the existing rule makes it the answer that rule already had. ~/.homestead is untouched as a root and still owned by its own repo; Nestor simply stops resolving to it unasked."
+        },
+        {
+            "question": "A host already keeping keep/ledger.jsonl under ~/.homestead: fall back to the old root, or forward to the new one?",
+            "commitment": "Neither. home() raises HomeRelocationRefused when HOMESTEAD_HOME is set and NESTOR_HOME is not.",
+            "why": "The ledger is a hash chain, and neither fallback is a move. Resolving forward to ~/.nestor leaves the existing chain behind and begins a second one; resolving back to the old root silently re-establishes exactly the default this change exists to remove, so the migration never happens and the next reader cannot tell which root is authoritative. The failure mode of the forward guess is the bad one: two partial chains each verify on their own, so nothing reports an error, and the missing history between them is discoverable only at audit -- the moment the chain exists for. A refusal an operator reads at startup costs one environment variable. Both ways out are explicit and both are legitimate: NESTOR_HOME=$HOMESTEAD_HOME keeps the chain where it is, NESTOR_HOME=~/.nestor is correct once the keep tree has actually moved."
+        },
+        {
+            "question": "Should the bash guard's secret-path rule for ~/.homestead be replaced by one for ~/.nestor?",
+            "commitment": "No -- added, not replaced. Both roots stay guarded.",
+            "why": "A host that answers the refusal with NESTOR_HOME=$HOMESTEAD_HOME still keeps live keep state under the old root, so dropping that rule would un-guard a directory this very change tells people they may keep using. Deleting a secret-path rule as tidy-up during a rename is how a guard narrows without anyone deciding that it should, and the narrowing is invisible because the tests that remain all still pass."
+        },
+        {
+            "question": "test_docs reported NESTOR_HOME as documented but read nowhere. Rename the constant, or widen the gate?",
+            "commitment": "Widen the gate. _env_names_in_code now also resolves a module constant that is passed to environ.get.",
+            "why": "The scanner matched only environ.get(\"LITERAL\"), and home_paths reads its knob through _ROOT_ENV so that home_init and the session-start hook share one spelling instead of retyping it. The variable is genuinely read; the gate could not see it. Contorting the code to satisfy a regex would have traded a real single-source-of-truth for a green check. The widening is strictly stronger in both directions -- a constant counts only when it is actually passed to environ.get -- and it immediately proved that by catching NESTOR_CONFIG, a working knob read by nestor/config.py and documented in no document at all. That is a pre-existing rot the narrow scan had been hiding, and the reverse gate is the test that exists to catch exactly it."
+        }
+    ]
+}

@@ -18,6 +18,46 @@ what moved.
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING — Nestor's household root is now `~/.nestor` (`NESTOR_HOME`).**
+  `nestor/homestead_paths.py` becomes `nestor/home_paths.py`, and the resolver
+  no longer defaults to another product's root. This is
+  `docs/roots-willow-and-homestead.md`'s own audience test applied to Nestor:
+  the rule there is that someone who only installs a household product should
+  not be handed a vocabulary that isn't theirs — `WILLOW_*` was the example,
+  and a Nestor-only install creating a `.homestead` directory is the same
+  mistake one brand along. `~/.homestead` remains a real root owned by
+  `rudi193-cmd/homestead`; Nestor just no longer resolves to it unasked.
+
+  A host that wants the keep tree where it already is names the root:
+  `NESTOR_HOME="$HOMESTEAD_HOME"`. That is the entire migration.
+
+  `home_init`'s layout marker is now `nestor_household_v1`, so a tree stood up
+  by an earlier version keeps its own `layout.json` untouched (the scaffolder
+  never overwrites) and reads as stood-up either way.
+
+### Added
+
+- **A refusal instead of a silent relocation.** `home_paths.home()` raises
+  `HomeRelocationRefused` when `HOMESTEAD_HOME` is set and `NESTOR_HOME` is
+  not, rather than falling back to either root. `keep/ledger.jsonl` is a hash
+  chain: resolving the other way would not move it, it would start a second
+  one, and both halves then verify on their own while the history between them
+  is gone. The session-start hook carries the same refusal as its `[nestor]`
+  ask, so a host in this state is told at boot rather than at the first append.
+
+### Security
+
+- The bash guard's secret-path family now covers `~/.nestor` alongside
+  `~/.homestead`. Both stay guarded — a host that pinned `NESTOR_HOME` at the
+  old location still keeps live state there, and dropping a rule to tidy a
+  rename is how a guard quietly narrows.
+
+---
+
 ## [0.3.1] - 2026-08-15
 
 A correctness patch for what 0.3.0's rename left behind. No schema, ledger or

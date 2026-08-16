@@ -166,7 +166,25 @@ def _env_names_in_code() -> set[str]:
     # several documents, so it satisfied the reverse gate by accident and that
     # variable was covered in neither direction. Found by widening the scan
     # above and then checking which names it had actually gained.
-    return set(re.findall(r"environ\.get\(\s*[\"']([A-Z][A-Z0-9_]+)", source))
+    direct = set(re.findall(r"environ\.get\(\s*[\"']([A-Z][A-Z0-9_]+)", source))
+
+    # Indirection the pattern above cannot see: a module names its knob once as
+    # a constant and reads it through that (`_ROOT_ENV = "NESTOR_HOME"` … later
+    # `environ.get(_ROOT_ENV)`), so the name is shared with the callers that
+    # must agree with it instead of being retyped at each read. Without this the
+    # gate reports a variable the code demonstrably reads as "read nowhere" —
+    # the same false positive the docstring above records for the narrow scan,
+    # and the one that sends a writer to delete a true sentence.
+    #
+    # A constant only counts when it is actually passed to `environ.get`, so
+    # this widens what the gate can see without letting an unread string in.
+    via_const = set()
+    for const, value in re.findall(
+            r"^(_?[A-Z][A-Z0-9_]*)\s*=\s*[\"']([A-Z][A-Z0-9_]+)[\"']", source, re.MULTILINE):
+        if re.search(rf"environ\.get\(\s*{re.escape(const)}\b", source):
+            via_const.add(value)
+
+    return direct | via_const
 
 
 def test_documented_environment_variables_exist():

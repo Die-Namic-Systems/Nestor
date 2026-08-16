@@ -33,8 +33,8 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
 | [`docs/agent-guide.md`](docs/agent-guide.md) | Operating rules (seals, tests, dogfood, voice) |
 | [`hooks/README.md`](hooks/README.md) | CLI-agnostic hooks (`hooks/nestor-hook`) |
 | [`hooks/seat.md`](hooks/seat.md) | Injected session policy (local-first, no fleet MCP) |
-| [`docs/homestead-paths.md`](docs/homestead-paths.md) | `~/.homestead` vs repo `./data/` |
-| [`docs/roots-willow-and-homestead.md`](docs/roots-willow-and-homestead.md) | `~/.willow` fleet vs household roots |
+| [`docs/home-paths.md`](docs/home-paths.md) | `~/.nestor` vs repo `./data/` |
+| [`docs/roots-willow-and-homestead.md`](docs/roots-willow-and-homestead.md) | `~/.willow` fleet vs `~/.nestor` household roots |
 
 Claude Code loads [`CLAUDE.md`](CLAUDE.md) as a thin pointer to this map — same
 substance as Cursor hooks + this file.

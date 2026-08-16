@@ -1,4 +1,4 @@
-# Two roots on one machine — `~/.willow` and `~/.homestead`
+# Roots on one machine — `~/.willow`, `~/.nestor`, `~/.homestead`
 
 Die Rule 2 ([homestead-affairs face / `die-rules.md`](https://github.com/rudi193-cmd/safe-app-store-public/blob/main/docs/die-rules.md)):
 **audience**, not brand. Someone who **runs the fleet** uses Willow’s home;
@@ -35,22 +35,41 @@ household record.
 
 ---
 
-## `~/.homestead` — household runtime home
+## `~/.nestor` — Nestor's household home
 
-**Who:** Humans (and their apps) using Homestead · Affairs without running the fleet.
+**Who:** Humans (and their apps) running Nestor without running the fleet.
+
+**Canonical definition:** this repo → `nestor/home_paths.py` (`NESTOR_HOME`,
+default `Path.home() / ".nestor"`).
+
+| Subtree | Role |
+|---------|------|
+| `keep/` | Engine state Nestor pins here (e.g. `ledger.jsonl`) |
+| `record/` | Canonical read-only household record |
+| `logs/` | Sealed log (I-22) |
+| `drafts/` | Working drafts |
+
+**Nestor pins here** via `nestor.home_paths.bind_ledger()` (and future seam
+store) — see [`home-paths.md`](home-paths.md).
+
+Nestor used to mirror `~/.homestead` instead. It no longer does, and that is
+**this file's own audience test applied to Nestor**: the rule is that someone
+who only installs a household product should not be handed another product's
+vocabulary. `WILLOW_*` was the example; a Nestor-only install being given a
+`.homestead` directory is the same mistake one brand along.
+
+## `~/.homestead` — the Homestead · Affairs household home
+
+**Who:** Humans using Homestead · Affairs.
 
 **Canonical definition:** `rudi193-cmd/homestead` → `homestead/keep/paths.py`
 (`HOMESTEAD_HOME`, default `Path.home() / ".homestead"`).
 
-| Subtree | Role |
-|---------|------|
-| `keep/` | Engine state Nestor must pin here (e.g. `ledger.jsonl`) |
-| `record/` | Canonical read-only household record |
-| `logs/` | Homestead sealed log (I-22) |
-| `drafts/` | Working drafts |
-
-**Nestor pins here** via `nestor.homestead_paths.bind_ledger()` (and future seam
-store) — see [`homestead-paths.md`](homestead-paths.md).
+Still a real root, still owned by that repo — Nestor simply does not resolve to
+it on its own. A homestead host that wants Nestor's keep tree there **names**
+it: `NESTOR_HOME="$HOMESTEAD_HOME"`. Setting `HOMESTEAD_HOME` *without*
+`NESTOR_HOME` is refused rather than guessed, because guessing either way forks
+a hash-chained ledger — see [`home-paths.md`](home-paths.md).
 
 ---
 
@@ -58,8 +77,8 @@ store) — see [`homestead-paths.md`](homestead-paths.md).
 
 | Data | Root | Mechanism |
 |------|------|-----------|
-| Hash-chained audit ledger (household host) | `~/.homestead/keep/` | `bind_ledger()` / `nestor_seam.bind()` |
-| TM / entity store (household host) | Host-injected `Storage` under homestead | Explicit `store=`, never global `set_store` in seam |
+| Hash-chained audit ledger (household host) | `$NESTOR_HOME/keep/` (default `~/.nestor/keep/`) | `bind_ledger()` / `nestor_seam.bind()` |
+| TM / entity store (household host) | Host-injected `Storage` under `$NESTOR_HOME` | Explicit `store=`, never global `set_store` in seam |
 | SOIL gaps, charter seals, fleet KB | `~/.willow/store/` (project paths) | willow-mcp; **not** for Nestor *source* dev |
 | Hanuman dispatch handoffs (UI echo) | `$WILLOW_HOME/dispatch/` | `nestor ui` + `NESTOR_GATE_ROLLUP` |
 | Developing the Nestor package | Repo `./data/`, `docs/dogfood/` | No home dir required |
@@ -68,16 +87,17 @@ store) — see [`homestead-paths.md`](homestead-paths.md).
 
 ## How to define `.willow` *better* (shared checklist)
 
-Homestead already does this for `.homestead` in one module (`paths.py` + invariant
-tests). Willow should stay the authority for `.willow`, but **consumers** (Nestor,
-homestead, charter) should repeat the same **four lines** everywhere `WILLOW_HOME`
-appears:
+Homestead does this for `.homestead` in one module (`paths.py` + invariant
+tests), and Nestor now does it for `.nestor` in `nestor/home_paths.py`. Willow
+should stay the authority for `.willow`, but **consumers** (Nestor, homestead,
+charter) should repeat the same **four lines** everywhere `WILLOW_HOME` appears:
 
 1. **Purpose** — fleet operator runtime, not household records.
 2. **Resolver** — `WILLOW_HOME` / `fleet_home()`; alias `~/.willow`.
 3. **Table** — top-level subtrees and env vars (`WILLOW_STORE_ROOT`, …).
 4. **Audience test** — if the installer is not a fleet operator, do not require
-   `.willow`; use `.homestead` (or the face’s own root).
+   `.willow`; use the face’s own root — `.nestor` for Nestor, `.homestead` for
+   Homestead · Affairs.
 
 Nestor’s [`docs/local-fleet.md`](local-fleet.md) is the **integration** guide;
 this file is the **root vocabulary** guide. Homestead remote docs should link
@@ -92,9 +112,10 @@ or `~/.willow` for the ledger.
 |----------|------|----------|
 | `WILLOW_HOME` | `.willow` | Fleet home, dispatch, MCP materialization |
 | `WILLOW_STORE_ROOT` | under `.willow` | SOIL store path (often `…/store`) |
-| `HOMESTEAD_HOME` | `.homestead` | Household engine paths |
+| `NESTOR_HOME` | `.nestor` | Nestor household engine paths |
+| `HOMESTEAD_HOME` | `.homestead` | Homestead · Affairs paths; Nestor reads it only to refuse |
 | `NESTOR_LEDGER` | explicit path | Overrides ledger location (dev or migration) |
 | `NESTOR_GATE_ROLLUP` | file path | Charter JSON (not a home root) |
 
-No `NESTOR_HOME` and no `~/.nestor` — household Nestor state lives under
-**`.homestead/keep/`**, fleet Nestor wiring under **`.willow/`**.
+Household Nestor state lives under **`$NESTOR_HOME/keep/`** (default
+**`~/.nestor/keep/`**), fleet Nestor wiring under **`.willow/`**.

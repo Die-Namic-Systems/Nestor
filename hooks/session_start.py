@@ -225,7 +225,7 @@ def _nestor_section(root: Path) -> str:
     stays the user's call, the posture :func:`_ask_prompt` keeps.
     """
     try:
-        from nestor import homestead_paths
+        from nestor import home_paths
     except Exception as exc:  # noqa: BLE001 — 'not installed' is a state to report
         return _ask_prompt(
             "nestor", "Nestor is not installed here (" + type(exc).__name__ + ")",
@@ -235,23 +235,40 @@ def _nestor_section(root: Path) -> str:
 
     # A household host pins its state outside the repo and is stood up when
     # home_init has written its marker; the product tree uses the CLI default.
-    # Two seats, one question — see nestor/homestead_paths.py, which is explicit
+    # Two seats, one question — see nestor/home_paths.py, which is explicit
     # that the household layout is not this tree's dev default.
-    household = os.environ.get(homestead_paths._ROOT_ENV)
+    household = os.environ.get(home_paths._ROOT_ENV)
     if household:
-        home = homestead_paths.home()
+        home = home_paths.home()
         if (home / HOME_MARKER).is_file():
             return (f"[nestor] household home stood up: {home} "
-                    f"(keep: {homestead_paths.keep_dir()}). Nothing to ask.")
+                    f"(keep: {home_paths.keep_dir()}). Nothing to ask.")
         return _ask_prompt(
             "nestor",
-            f"{homestead_paths._ROOT_ENV} points at {home} but no Nestor is stood up there "
+            f"{home_paths._ROOT_ENV} points at {home} but no Nestor is stood up there "
             f"(no {HOME_MARKER})",
             "a household host writes ledger and keep state into that tree, and "
             "the first write would scatter it into a home nobody laid out",
             "`python -m nestor.home_init` — idempotent, creates "
             + ", ".join(f"{d}/" for d in _SUBDIRS()) + f" and {HOME_MARKER}, clobbers nothing",
-            "docs/homestead-paths.md")
+            "docs/home-paths.md")
+
+    # The legacy root without the new one: `home_paths.home()` refuses rather
+    # than guessing, so the boot has to carry that refusal instead of falling
+    # through to the repo-tree branch below. Falling through would report on
+    # ./data/ while the host's real keep state sits unnamed under the old root
+    # — a green boot for a machine that is one write away from a forked chain.
+    if os.environ.get(home_paths._LEGACY_ENV):
+        return _ask_prompt(
+            "nestor",
+            f"{home_paths._LEGACY_ENV} is set but {home_paths._ROOT_ENV} is not — "
+            "Nestor's household root is now ~/.nestor and it will not pick between them",
+            "an existing keep/ledger.jsonl under the old root is a hash chain; "
+            "resolving the other way starts a second one rather than moving it, "
+            "and both halves verify while the history between them is gone",
+            f"set {home_paths._ROOT_ENV} to the old root to keep the current location, "
+            "or to ~/.nestor once the keep tree has been moved",
+            "docs/home-paths.md")
 
     # Either store counts. `nestor demo` cannot create the default one by
     # design, so looking only there would reject the very thing the ask asks for.
