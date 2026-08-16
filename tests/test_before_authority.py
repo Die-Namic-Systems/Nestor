@@ -72,6 +72,40 @@ def test_reads_and_ordinary_work_are_allowed():
     assert evaluate_authority(_write("nestor/foo.py", "x = 1"), REPO)[0] is True
 
 
+def test_a_read_only_consult_quoting_the_mint_phrase_is_allowed():
+    # §6.109: the decision-store check the seat tells every agent to run before
+    # proposing. The mint phrase appears only inside the quoted question, not as
+    # the command's own subcommand — it must not be denied. Fails on the pre-fix
+    # code, which scanned the whole command line including quoted argument text.
+    consult = ('nestor --db docs/dogfood/nestor.db decision check '
+               '"must cmd_keys print the signing half when a verifier is enrolled '
+               'via keys add on an ed25519 keyring"')
+    assert evaluate_authority(_bash(consult), REPO)[0] is True
+
+
+def test_env_and_import_phrases_quoted_as_argument_text_do_not_trip():
+    # Same class as above for the other two structural mints: naming them inside
+    # a quoted question is not doing them.
+    assert evaluate_authority(
+        _bash('nestor decision check "when may we set NESTOR_SEAL_KEY at all"'), REPO)[0] is True
+    assert evaluate_authority(
+        _bash('nestor decision check "is import --apply --verifier ever ok"'), REPO)[0] is True
+
+
+def test_the_sqlite_seal_write_guard_still_reads_quoted_sql():
+    # Regression guard (passes before AND after §6.109's fix): the quote-blanking
+    # that unblocks the consult above must NOT reach the sqlite check, whose
+    # signal is the sealed status *inside* the SQL string.
+    assert evaluate_authority(
+        _bash("sqlite3 store.db \"UPDATE pairs SET status='sealed'\""), REPO)[0] is False
+
+
+def test_a_real_enrol_with_a_quoted_display_name_is_still_denied():
+    # Blanking quotes must not let a real mint through: the subcommand tokens are
+    # unquoted, only the display name is quoted, so it still denies.
+    assert evaluate_authority(_bash('nestor keys add "Rita Jones"'), REPO)[0] is False
+
+
 def test_a_malformed_payload_fails_open():
     assert evaluate_authority({"tool_name": "Bash", "tool_input": "garbage"}, REPO)[0] is True
     assert evaluate_authority({}, REPO)[0] is True
