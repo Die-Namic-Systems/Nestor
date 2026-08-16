@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.3.2](https://github.com/rudi193-cmd/Nestor/compare/v0.3.1...v0.3.2) (2026-08-16)
+
+
+### Build
+
+* the git tag becomes the version, and Nestor gets its own household root ([#120](https://github.com/rudi193-cmd/Nestor/issues/120)) ([7c8dede](https://github.com/rudi193-cmd/Nestor/commit/7c8dedeb5dc23111b119817cb431f47a6b7119f8))
+* the git tag becomes the version, and release-please cuts it ([8303b34](https://github.com/rudi193-cmd/Nestor/commit/8303b347c5499ac6586cb3dead3a682f2131ea93))
+
 ## [Unreleased]
 
 > From here on this section is written by `release-please` from
