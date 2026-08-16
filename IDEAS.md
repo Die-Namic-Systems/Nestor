@@ -1973,7 +1973,22 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   (*you may not be the only agent*), part concrete scan (open PRs, next-number,
   changed files). The fleet already holds the stance (`safe-app-willow-grove`:
   *another instance may have already designed it*); Nestor has no guard for it.
-  **Status: open** — recorded, not built, by the operator's call.
+  **Status: shipped** — `hooks/before_propose.py`, riding `UserPromptSubmit`
+  exactly like `before_build`, fires only on a propose/mint/open-a-PR-shaped
+  prompt. It scans entirely with local git (`git branch -a --no-merged`, no
+  GitHub API, no fetch performed): the next decision number this checkout would
+  mint against every other locally-known branch's own decision files, and
+  whether a sibling branch has also touched the derived store
+  (`docs/dogfood/nestor.db`, `docs/dogfood/decisions.json`). Advisory, not a
+  boundary — it is in `hook_runner.MODULES` and `hook_guard`'s non-gates, same
+  as `before_build`. Its one hard requirement, tested directly
+  (`tests/test_before_propose.py`): when the scan cannot determine collision
+  state (no resolvable base, not a git repo), it says *UNKNOWN*, never folds
+  that into a false "no collision found" — the failure mode `silence from the
+  store means nothing` already cost this repo once (decision `0127`). What it
+  still cannot see, named in its own docstring: a sibling session's uncommitted
+  work, or a branch pushed since the last local fetch — it cannot serialize two
+  agents, only make a visible collision loud.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,

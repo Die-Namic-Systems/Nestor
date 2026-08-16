@@ -45,7 +45,8 @@ from hooks.hook_runner import MODULES  # noqa: E402
 
 #: Modules that only inject context or clean up, never block — excluded from the
 #: deny pin.
-_NON_GATES = frozenset({"session_start", "session_end", "reinject", "before_build"})
+_NON_GATES = frozenset({"session_start", "session_end", "reinject", "before_build",
+                        "before_propose"})
 #: Every gate the pin requires a deny/flag case for.
 BLOCKING = tuple(m for m in MODULES if m not in _NON_GATES)
 
