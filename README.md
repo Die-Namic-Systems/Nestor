@@ -145,6 +145,22 @@ The distribution is `nestor-meaning`; the import name is unchanged, so
 pip install "nestor-meaning @ git+https://github.com/rudi193-cmd/Nestor@v0.3.0"
 ```
 
+**Then, the actual first run:**
+
+```bash
+nestor init                # a guided walk: ask, watch nothing verify it yet, propose a draft
+```
+
+Three steps, in Nestor's own voice: ask something, watch the matcher say
+truthfully that nothing has verified it yet, and propose your first decision
+as a **draft**. That is where the wizard stops — sealing is a human's
+signature, made by hand, in `nestor ui`, so `nestor init` ends by pointing
+you there rather than pretending to finish the job itself. `--yes` skips the
+prompts and uses a small built-in example, for a script or a container with
+no TTY. (`nestor demo` is the *other* first look — it seeds a store with
+someone else's already-sealed memory so `nestor ui` has something to show;
+`nestor init` gives you your own, one step at a time.)
+
 Optional extras add capability without moving the core:
 `[keys]` (ed25519 per-verifier signing), `[cloud]` (the Anthropic draft
 engine), `[semantic]` (embedding matcher), `[gate]` (the willow-gate seam).
@@ -325,6 +341,7 @@ nestor/
 ├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── seed.py           a small demo store across all three recipes, so a cold `ui --demo` lands live
+├── onboarding.py     `nestor init` — ask, watch the matcher refuse, propose a first draft; never seals
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
 ├── cloud_seal.py     optional cloud-path seam — an agent provisionally seals through willow-gate (nestor[gate]); never canonical
@@ -955,6 +972,7 @@ nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
 nestor stats
+nestor init                              # the guided first run — see Quick start; --yes for CI
 nestor calibrate --from en --to es       # where the threshold belongs for this corpus (--matcher too)
 nestor rejections                        # what the recorded "no"s say in aggregate
 nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke

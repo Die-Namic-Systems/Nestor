@@ -1930,20 +1930,35 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
 - **Onboarding and install — the first five minutes.** Present as raw materials: a
   `nestor` console entry point (`pyproject.toml` `[project.scripts]`), a `nestor
   demo` that seeds a live store for `nestor ui`, and a tested README quick-start.
-  Absent is the thing those three gesture at and none delivers — an *actual*
-  first-run. No one-line install beyond `pip install -e .` (no `pipx` recipe, no
-  `curl | sh`, no Homebrew tap), and no playful, guided onboarding: a `nestor init`
-  that walks a newcomer through asking, resolving, and **sealing their first
-  decision**, rather than a seeded store they have to already know to open. This is
-  the *user's* on-ramp — distinct from the contributor row above, which is the
-  developer's. It is also the one gap on this list a user meets before any of the
-  others, and the industry standard for it is loud and well-loved (`create-*-app`
-  scaffolders, `gh auth login`, the deliberate delight of a good first-run).
-  **Status: open** for the install story — concrete, standard, cheap. **Status:
-  hypothesis** for *how playful* to make the onboarding: a propose-never-confirm
-  governance tool that greets a newcomer with a wizard is a real tonal question —
-  the seal is the one moment the tour cannot fake, since only a human may set it —
-  so this is built small and tested against the covenant, not assumed.
+  Absent was the thing those three gesture at and none delivered — an *actual*
+  first-run. This is the *user's* on-ramp — distinct from the contributor row
+  above, which is the developer's — and the one gap on this list a user meets
+  before any of the others; the industry standard for it is loud and well-loved
+  (`create-*-app` scaffolders, `gh auth login`, the deliberate delight of a good
+  first-run). Two halves, **now split**:
+  - The wizard — **status: partly addressed.** `nestor init`
+    (`nestor/onboarding.py`) walks a newcomer through asking, watching the
+    matcher say honestly that nothing is verified yet, and proposing a first
+    decision as a **draft**. It does *not* walk them through sealing one — the
+    original framing above claimed that, and it was wrong to: only a human, at
+    `nestor ui`, may seal, so a wizard that ended by "sealing their first
+    decision" is exactly the fake ending the tonal-question sentence below
+    warned against. The corrected shape is propose-then-point: the wizard's own
+    finale names `nestor ui` and hands the reader there, on purpose, without
+    writing `status="sealed"` or a `verifier=` anywhere it can reach —
+    `tests/test_onboarding.py::TestNeverSeals` pins that structurally, not just
+    by example. What is still open under this half: no `pipx` recipe, no
+    `curl | sh`, no Homebrew tap — the actual one-line **install** story is
+    unchanged by this and stays **open**, concrete and cheap.
+  - The tonal question — **resolved by the build, not by argument.**
+    *"How playful should a propose-never-confirm tool's first run be"* turned
+    out to have a mechanical answer once tried: as playful as the ask-and-draft
+    steps want to be, and completely un-playful at the one moment authority
+    actually changes hands. The seal was the one beat a tour could not fake,
+    and the fix was not a softer sentence about it — it was to make faking one
+    structurally unavailable (`onboarding.run` takes no `verifier=`, no
+    `status=`, no `seal_sig=`; there is nowhere on the call path to hand it
+    one) and to say what that means in Nestor's own voice at the finale, plainly.
 - **Tooling — the surface exists; its standard parts are half-finished.** Present:
   a `nestor` CLI (sixteen verbs) and a `nestor serve` MCP server (`tools/list` +
   `call`, seven tools), with `--json` on some verbs. Absent are the conventions
