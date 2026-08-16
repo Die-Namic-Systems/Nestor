@@ -18,6 +18,27 @@ what moved.
 
 ---
 
+## [0.4.0](https://github.com/rudi193-cmd/Nestor/compare/v0.3.2...v0.4.0) (2026-08-16)
+
+
+### Added
+
+* **cli:** nestor init first-run wizard ([7ff8759](https://github.com/rudi193-cmd/Nestor/commit/7ff8759d148c7b81f81a98f6d659d022683a8357))
+* **hooks:** advisory cross-session collision awareness ([#111](https://github.com/rudi193-cmd/Nestor/issues/111)) ([350ff55](https://github.com/rudi193-cmd/Nestor/commit/350ff5512c1b2e6be3293354b2e38151952d1a69))
+
+
+### Fixed
+
+* **ci:** one secret-scan exclusion list, shared by ci-lint.sh and the workflow ([f5f5f2d](https://github.com/rudi193-cmd/Nestor/commit/f5f5f2d041f70e8968a7b07611e8e7787e4c33bc))
+* **hooks:** the self-grant tripwire no longer denies a read-only decision consult ([39563cd](https://github.com/rudi193-cmd/Nestor/commit/39563cd7c96e1b2ca39078f009ebdceed879a2c5))
+* **mypy:** ignore cryptography imports so the keys-absent lint job passes ([44a4f23](https://github.com/rudi193-cmd/Nestor/commit/44a4f23ef8898458e9f5bed718fae2ba8b641627))
+* **ui:** route detailPanel's card assembly through appendKids, not a per-call filter ([da7e475](https://github.com/rudi193-cmd/Nestor/commit/da7e475c1afe501d4a0fcd8bed5aa5c9c72c4994))
+
+
+### Build
+
+* add mypy type gate to ci-lint (IDEAS §7.5) ([6b5721f](https://github.com/rudi193-cmd/Nestor/commit/6b5721f2aaa81772cea379add37272af92368e47))
+
 ## [0.3.2](https://github.com/rudi193-cmd/Nestor/compare/v0.3.1...v0.3.2) (2026-08-16)
 
 
