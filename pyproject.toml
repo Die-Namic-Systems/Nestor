@@ -1,13 +1,25 @@
 [build-system]
-# >=77 for PEP 639 (`license` as an SPDX expression + `license-files`). The old
-# `license = { text = ... }` table still builds but is deprecated, and a
-# packaging change is the one time it is cheap to stop carrying it.
-requires = ["setuptools>=77", "wheel"]
-build-backend = "setuptools.build_meta"
+# hatchling >=1.27 for PEP 639 (`license` as an SPDX expression +
+# `license-files`); hatch-vcs derives the version from the git tag — see the
+# tool.hatch.version table below. This replaced setuptools carrying a pinned
+# version string in the project table: the fleet pattern (willow-mcp,
+# kartikeya, jeles), adopted here after kartikeya's v0.0.8 shipped a tag that
+# built a different version and only PyPI's duplicate-upload refusal noticed.
+#
+# No bracketed table name appears in the comments of this file. Not style:
+# tests/test_version.py reads it as text, splitting on the first literal
+# `[name]`, so a table named in prose above its own header silently becomes the
+# thing the tests read. That is the same class of trap as the License-classifier
+# comment further down, which an earlier check matched instead of the list.
+requires = ["hatchling>=1.27", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "nestor-meaning"
-version = "0.3.1"
+# The git tag is the single source of truth — see the tool.hatch.version table
+# below. Nothing in this tree carries a version to drift from it, which is what
+# tests/test_version.py::test_the_version_is_written_once now enforces.
+dynamic = ["version"]
 description = "Has a human checked this? A seal/serve/audit mechanic over a verified-match memory — translation, entity resolution and numeric reconciliation recipes, a hash-chained ledger, injected storage, and browser, terminal and MCP surfaces."
 readme = "README.md"
 license = "Apache-2.0"
@@ -103,8 +115,32 @@ publish = [
 # they must not be skippable. Pin the path so the invocation stops mattering.
 pythonpath = ["."]
 
-[tool.setuptools.packages.find]
-include = ["nestor*"]
+[tool.hatch.version]
+# Derived from the git tag (hatch-vcs). At an exact tag `vX.Y.Z` the version is
+# X.Y.Z; an off-tag build gets a `.devN+g<sha>` suffix, which PyPI refuses — so
+# an accidental publish from an untagged commit fails loudly instead of shipping
+# something mislabelled. Every CI checkout that builds must use `fetch-depth: 0`
+# with tags, or no tag is present and the derived version is silently wrong.
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nestor"]
+
+[tool.hatch.build.targets.sdist]
+# Named explicitly rather than left to the default, which is "everything not
+# VCS-ignored" — that would put docs/agent-log.md and the dogfood store
+# (hundreds of KB of session record) inside every sdist. A source distribution
+# is the package plus what it takes to build and test it, and this repo keeps a
+# great deal that is neither.
+include = [
+    "nestor/",
+    "tests/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "pyproject.toml",
+]
 
 [tool.ruff]
 line-length = 120

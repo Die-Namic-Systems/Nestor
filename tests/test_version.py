@@ -20,8 +20,10 @@ making.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
+from fnmatch import fnmatch
 from importlib.metadata import PackageNotFoundError, version as dist_version
 
 import pytest
@@ -47,7 +49,6 @@ def table(name: str) -> str:
 
 
 PROJECT = table("project")
-DECLARED = re.search(r'^version = "([^"]+)"', PROJECT, re.M).group(1)
 
 #: What the package reports when there is no installed distribution to ask.
 UNINSTALLED = "0+unknown"
@@ -86,14 +87,40 @@ def test_the_version_is_written_once():
     """The gate this file exists for, and the same one
     `test_engine.py::test_the_rule_is_written_once` makes for the voice rule.
 
-    `pyproject.toml` declares the version. If the package also carried a
-    literal, the two would be a pending disagreement that nothing checks — and
-    the copy that loses is always the one somebody forgot on release day."""
+    It used to mean "pyproject declares it, and the package must not repeat the
+    literal". The git tag declares it now (hatch-vcs), so the rule got stricter
+    rather than looser: *nothing tracked in this tree* may carry the number. A
+    literal anywhere is a pending disagreement with the tag that nothing checks,
+    and the copy that loses is always the one somebody forgot on release day.
+    """
+    assert re.search(r'^dynamic = \["version"\]', PROJECT, re.M), (
+        '[project] must declare `dynamic = ["version"]` — the version comes '
+        "from the git tag via [tool.hatch.version], not from this file")
+    assert not re.search(r'^version = "', PROJECT, re.M), (
+        "[project] carries a literal `version = ...`; that is the second source "
+        "of truth hatch-vcs was adopted to remove")
+
     init = (ROOT / "nestor" / "__init__.py").read_text(encoding="utf-8")
-    assert DECLARED not in init, (
-        f"nestor/__init__.py contains the literal {DECLARED!r}; the version is "
-        f"declared in pyproject.toml and read through importlib.metadata, and a "
-        f"second copy is the defect this test exists to refuse")
+    literals = set(re.findall(r'__version__\s*=\s*["\']([^"\']+)["\']', init))
+    # The one permitted literal is the uninstalled sentinel, which is not a
+    # release number and is asserted above to be unmistakable for one. Anything
+    # else assigned here is a number that has to be remembered on release day.
+    assert literals <= {UNINSTALLED}, (
+        f"nestor/__init__.py assigns __version__ the literal(s) "
+        f"{sorted(literals - {UNINSTALLED})}; the version is read through "
+        f"importlib.metadata so the installed distribution answers")
+
+
+def test_the_build_backend_derives_the_version_from_the_tag():
+    """The other half of the same rule, in the table that implements it.
+
+    Without `source = "vcs"` the dynamic declaration above has no supplier and
+    the build fails — but it fails at release time, in CI, on a tag, which is
+    the worst of the three places to find out.
+    """
+    assert 'source = "vcs"' in table("tool.hatch.version")
+    build = table("build-system")
+    assert "hatch-vcs" in build and "hatchling" in build
 
 
 # --- the release path ------------------------------------------------------
@@ -127,9 +154,103 @@ def test_the_publish_job_is_gated_on_an_environment():
 def test_the_workflow_refuses_a_tag_that_disagrees_with_the_version():
     """A filename on PyPI is permanent — it cannot be renamed, reassigned, or
     deleted and replaced. A tag and a version that disagree therefore produce
-    an artifact nobody can correct."""
+    an artifact nobody can correct.
+
+    Now compared against the *built* artifact rather than a pyproject literal,
+    because there is no longer a literal. The failure this guards has changed
+    shape with it: not "somebody forgot to bump" but "the checkout could not see
+    the tag", which produces a `.devN` version off the right commit.
+    """
     assert 'tag="${GITHUB_REF_NAME#v}"' in WORKFLOW
-    assert 'if [ "$tag" != "$pkg" ]; then' in WORKFLOW
+    assert 'if [ "$tag" != "$built" ]; then' in WORKFLOW
+
+
+def test_the_publish_checkout_can_see_the_tags():
+    """hatch-vcs cannot derive a version from a shallow checkout.
+
+    The failure is not a build error, which is what makes it worth a test: a
+    tagless checkout builds happily and produces a development version, so the
+    guard above rejects a tag that was perfectly correct and the release fails
+    with a message pointing at the wrong thing.
+    """
+    build_job = WORKFLOW.split("  build:", 1)[1].split("  publish:", 1)[0]
+    assert "fetch-depth: 0" in build_job
+    assert "fetch-tags: true" in build_job
+
+
+def test_the_environment_url_names_the_distribution_that_is_published():
+    """The link a reviewer follows out of the run.
+
+    It said `pypi.org/p/nestor` for two releases after the rename — this
+    project's own reserved-and-empty name, which is exactly what the failed
+    v0.2.0 attempt reported (docs/releasing.md). Cosmetic, and pointing a
+    reviewer at the wrong project during a release is not a good place to be
+    cosmetically wrong.
+    """
+    name = re.search(r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+    assert f"https://pypi.org/p/{name}" in WORKFLOW, (
+        f"publish.yml's environment url must name {name}")
+
+
+# --- release-please wiring -------------------------------------------------
+#
+# The tag release-please produces has to match the tag publish.yml waits for.
+# Nothing reports when they disagree: the release PR merges, a tag is created,
+# and no publish run ever starts. willow-mcp#256 shipped exactly that.
+
+RP_CONFIG = json.loads((ROOT / "release-please-config.json").read_text(encoding="utf-8"))
+RP_PACKAGE = RP_CONFIG["packages"]["."]
+RP_MANIFEST = json.loads((ROOT / ".release-please-manifest.json").read_text(encoding="utf-8"))
+
+
+def test_the_produced_tag_matches_the_publish_trigger():
+    """`include-component-in-tag: false` is the whole test.
+
+    Absent, release-please defaults to true and tags `nestor-meaning-v0.4.0`;
+    publish.yml triggers on `v*`, which does not match. The setting looks like
+    noise, which is why it gets dropped when this config is copied, which is why
+    this is a test and not a comment.
+    """
+    assert RP_PACKAGE["include-component-in-tag"] is False
+
+    trigger = WORKFLOW.split("on:", 1)[1].split("permissions:", 1)[0]
+    assert 'tags: ["v*"]' in trigger
+
+    produced = f"v{RP_MANIFEST['.']}"
+    assert fnmatch(produced, "v*"), produced
+    assert not produced.startswith(RP_PACKAGE["package-name"]), (
+        f"release-please would produce {produced!r}, which publish.yml's `v*` "
+        f"trigger does not match — nothing would publish, and nothing would say so")
+
+
+def test_the_manifest_names_the_same_distribution_pyproject_does():
+    assert RP_PACKAGE["package-name"] == re.search(
+        r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+
+
+def test_release_please_bumps_nothing_in_the_tree():
+    """No `extra-files`: the version is tag-derived, so there is no file to bump.
+
+    An entry here would reintroduce the second source of truth that
+    `test_the_version_is_written_once` exists to refuse — and it would be
+    written by a bot, so nobody would notice it drift.
+    """
+    assert "extra-files" not in RP_PACKAGE
+
+
+def test_the_pr_title_gate_reads_the_types_from_the_config():
+    """Not a restated list. The two must move together or the gate lies.
+
+    If pr-title.yml hardcoded the release-cutting types, hiding a type in
+    release-please-config.json would leave the gate rejecting titles that no
+    longer cut anything — and, worse, accepting ones that now do.
+    """
+    gate = (ROOT / ".github" / "workflows" / "pr-title.yml").read_text(encoding="utf-8")
+    assert 'json.load(open("release-please-config.json"))' in gate
+    assert 'if not s.get("hidden")' in gate
+    # And the hidden set is the one the gate's own error message offers.
+    hidden = {s["type"] for s in RP_PACKAGE["changelog-sections"] if s.get("hidden")}
+    assert hidden == {"docs", "test", "ci", "chore"}, hidden
 
 
 @pytest.mark.parametrize("promise", [

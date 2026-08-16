@@ -37,12 +37,18 @@ def ttl_seconds() -> int:
 
 
 def receipt_path(root: pathlib.Path) -> pathlib.Path:
-    """Per-checkout receipt file. Explicit env wins, then homestead, then temp."""
+    """Per-checkout receipt file. Explicit env wins, then the home, then temp.
+
+    ``home()`` refuses outright when the legacy root is set without
+    ``NESTOR_HOME`` (``docs/home-paths.md``); the ``except`` below already
+    covers that, and falling back to temp is right here — a review receipt is
+    cache, not record, so it must never be the thing that fails a session.
+    """
     override = os.environ.get(_ENV_PATH, "")
     if override:
         return pathlib.Path(override)
-    try:                                    # PR #52's household root, if present
-        from nestor.homestead_paths import home
+    try:                                    # Nestor's household root, if present
+        from nestor.home_paths import home
         base = pathlib.Path(home()) / "nestor-review"
     except Exception:
         base = pathlib.Path(tempfile.gettempdir()) / "nestor-review"

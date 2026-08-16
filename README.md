@@ -340,8 +340,8 @@ nestor/
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
-├── homestead_paths.py  ~/.homestead/keep paths for homestead hosts (see docs/homestead-paths.md)
-├── home_init.py      idempotent scaffolder for the homestead home — creates the keep tree if absent, never clobbers
+├── home_paths.py     ~/.nestor/keep paths for household hosts (see docs/home-paths.md)
+├── home_init.py      idempotent scaffolder for the Nestor home — creates the keep tree if absent, never clobbers
 ├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
@@ -399,8 +399,8 @@ docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos
 docs/live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
-docs/homestead-paths.md  ~/.homestead ledger/keep paths vs the repo's ./data/ (household hosts)
-docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.homestead household root — audience, not brand
+docs/home-paths.md  ~/.nestor ledger/keep paths vs the repo's ./data/ (household hosts)
+docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.nestor household root — audience, not brand
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
@@ -1176,7 +1176,8 @@ handoffs from a charter rollup JSON plus files under your willow home:
 |----------|---------|---------|
 | `NESTOR_GATE_ROLLUP` | path to fleet-gap seals JSON (willow `governance/decisions/*` schema) | unset — override with `nestor ui --gate-rollup` |
 | `WILLOW_HOME` | willow **fleet** runtime root (`store/`, `dispatch/`, `mcp_apps/` — see `docs/roots-willow-and-homestead.md`) | `~/github/.willow` (alias `~/.willow`) |
-| `HOMESTEAD_HOME` | household root when a host pins Nestor under homestead (see `docs/homestead-paths.md`) | `<home>/.homestead` |
+| `NESTOR_HOME` | household root for the ledger/keep tree (see `docs/home-paths.md`) | `<home>/.nestor` |
+| `NESTOR_CONFIG` | path to the config file layer (`nestor.config.json`); a path that does not exist is a valid answer, not an error | `./nestor.config.json` in the cwd |
 
 With a keyring in force:
 

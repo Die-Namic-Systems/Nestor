@@ -12,7 +12,7 @@ The **taxonomy** — which command shapes are dangerous, and that secret-reads a
 their own family — is the idea behind the MIT-licensed ``cc-safety-net``. Nothing
 here is copied from it: the rules, the normalizer, the messages and the tests are
 written against this repo's own conventions and this repo's own secrets
-(``NESTOR_SEAL_KEY`` keystores, ``~/.homestead``). The debt is the *shape of the
+(``NESTOR_SEAL_KEY`` keystores, ``~/.nestor``). The debt is the *shape of the
 problem*, not any line of text.
 
 Why normalize before matching
@@ -203,7 +203,12 @@ def _is_secret_path(token: str) -> bool:
     """True if the token names a credential this fleet must not read out.
 
     ``.env`` / ``.env.*``, SSH private keys and ``.ssh/``, ``.aws/credentials``,
-    ``.config/gcloud``, a ``NESTOR_SEAL_KEY`` keystore, and ``~/.homestead``.
+    ``.config/gcloud``, a ``NESTOR_SEAL_KEY`` keystore, and the household roots
+    ``~/.nestor`` and ``~/.homestead``. Both roots stay guarded: Nestor's own
+    root replaced homestead's as the *default* (``docs/home-paths.md``), but a
+    host that pinned ``NESTOR_HOME`` at the old location still keeps live keep
+    state there, and dropping a secret-path rule to tidy a rename is how a
+    guard quietly narrows.
     """
     for cand in _secret_candidates(token):
         low = cand.lower()
@@ -217,7 +222,7 @@ def _is_secret_path(token: str) -> bool:
             return True
         if ".aws/credentials" in low or ".config/gcloud" in low:
             return True
-        if ".homestead" in low:
+        if ".homestead" in low or ".nestor" in low:
             return True
         if "seal_key" in low or "seal-key" in low or "nestor_seal_key" in low:
             return True

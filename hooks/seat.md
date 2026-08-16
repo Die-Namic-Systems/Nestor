@@ -24,7 +24,7 @@ This is not the willow charter seat and not an operator Jarvis desk.
 
 Fleet wiring (SOIL gap import, charter rollup, Hanuman handoffs) is **after** the code and docs exist — see `docs/local-fleet.md`, `scripts/import_willow_gaps.py`, `scripts/apply_sealed_fleet_gaps.py`.
 
-**Household hosts (homestead seat):** Nestor ledger and keep state belong under **`~/.homestead`** (`HOMESTEAD_HOME`), not a `.nestor` directory — see `docs/homestead-paths.md` and `nestor.homestead_paths.bind_ledger()`.
+**Household hosts:** Nestor ledger and keep state belong under **`~/.nestor`** (`NESTOR_HOME`) — see `docs/home-paths.md` and `nestor.home_paths.bind_ledger()`. A host embedding Nestor in another face pins the root explicitly (`NESTOR_HOME="$HOMESTEAD_HOME"`); setting the old var alone is refused, not guessed.
 
 ## Governance (unchanged)
 

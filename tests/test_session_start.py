@@ -91,6 +91,7 @@ def bare_tree(tmp_path, monkeypatch):
     """A repo-shaped tree with a seat and no Nestor, and no household env."""
     (tmp_path / "hooks").mkdir()
     (tmp_path / "hooks" / "seat.md").write_text("[seat]", encoding="utf-8")
+    monkeypatch.delenv("NESTOR_HOME", raising=False)
     monkeypatch.delenv("HOMESTEAD_HOME", raising=False)
     return tmp_path
 
@@ -216,10 +217,10 @@ def test_the_read_only_summary_agrees_with_memory_stats(bare_tree):
 
 
 def test_a_household_seat_is_asked_about_on_its_own_terms(bare_tree, monkeypatch):
-    """$HOMESTEAD_HOME set is a different seat with a different fix: the ask must
+    """$NESTOR_HOME set is a different seat with a different fix: the ask must
     name home_init and the household tree, not `nestor demo`."""
     hh = bare_tree / "household"
-    monkeypatch.setenv("HOMESTEAD_HOME", str(hh))
+    monkeypatch.setenv("NESTOR_HOME", str(hh))
     line = session_start._nestor_section(bare_tree)
     assert "no Nestor is stood up there" in line
     assert "python -m nestor.home_init" in line
@@ -231,6 +232,26 @@ def test_a_household_seat_is_asked_about_on_its_own_terms(bare_tree, monkeypatch
     after = session_start._nestor_section(bare_tree)
     assert "household home stood up" in after
     assert "Ask the user" not in after
+
+
+def test_the_legacy_root_alone_is_carried_as_its_own_ask(bare_tree, monkeypatch):
+    """$HOMESTEAD_HOME without $NESTOR_HOME must not fall through to ./data/.
+
+    `home_paths.home()` refuses to pick between the two roots, and the boot has
+    to surface that refusal. Falling through would print a green line about the
+    repo tree while the host's real keep state sits unnamed under the old root —
+    a boot that looks answered for the one machine the question is about.
+    """
+    monkeypatch.setenv("HOMESTEAD_HOME", str(bare_tree / "old"))
+
+    line = session_start._nestor_section(bare_tree)
+
+    assert "HOMESTEAD_HOME is set but NESTOR_HOME is not" in line
+    assert "Ask the user" in line
+    assert "docs/home-paths.md" in line
+    # Not the repo-tree ask, and not the household-scaffold ask.
+    assert "nestor demo" not in line
+    assert "python -m nestor.home_init" not in line
 
 
 def test_the_probe_opens_the_path_the_cli_opens(bare_tree):

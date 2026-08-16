@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "nestor-meaning",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "changelog-sections": [
+        { "type": "feat", "section": "Added" },
+        { "type": "fix", "section": "Fixed" },
+        { "type": "security", "section": "Security" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Changed" },
+        { "type": "build", "section": "Build" },
+        { "type": "deps", "section": "Build" },
+        { "type": "docs", "section": "Docs", "hidden": true },
+        { "type": "test", "section": "Tests", "hidden": true },
+        { "type": "ci", "section": "CI", "hidden": true },
+        { "type": "chore", "section": "Chores", "hidden": true }
+      ]
+    }
+  },
+
+  "$comment-tag-format": "include-component-in-tag MUST stay false, and it is the setting most likely to be dropped when copying this file, because nothing about it looks load-bearing. With it absent release-please defaults to true and names the tag `nestor-meaning-v0.4.0` instead of `v0.4.0`. publish.yml triggers on `v*`, which that does not match -- so the tag would be created and nothing would publish, with no error anywhere. That exact mistake was made on willow-mcp#256. tests/test_version.py checks the produced tag against the workflow trigger, because a comment did not stop it happening once.",
+
+  "$comment-no-extra-files": "There is deliberately no `extra-files` block. The version is tag-derived (hatch-vcs, see pyproject [tool.hatch.version]), so nothing in the tree holds a version string for release-please to bump -- which is the same reason kartikeya has none and willow-mcp does (its .claude-plugin/plugin.json carries its own copy, and that copy drifted to 2.0.0 while the package was 2.0.1). Adding a file here would be reintroducing the second source of truth that this repo just removed.",
+
+  "$comment-first-bump": "bump-minor-pre-major false means a breaking change goes to 1.0.0 rather than being held at a minor, and bump-patch-for-minor-pre-major false keeps `fix:` at a patch. This repo is past 0.3.1 with a published PyPI history, so the pre-1.0 caution those flags exist for buys nothing here: a break should say 1.0.0. WHAT IS NOT GUARANTEED: this keys off the commit type, so a breaking change mislabelled `refactor:` still ships as a patch. Nothing in this file can catch that -- the pr-title.yml gate covers the other direction (a title claiming a release its commits do not)."
+}

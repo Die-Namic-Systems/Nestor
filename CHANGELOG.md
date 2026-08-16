@@ -18,6 +18,89 @@ what moved.
 
 ---
 
+## [Unreleased]
+
+> From here on this section is written by `release-please` from
+> conventional-commit prefixes, not by hand. See `docs/releasing.md`.
+
+### Build
+
+- **The git tag is now the version.** `pyproject.toml` moves from setuptools
+  with a literal `version = "0.3.1"` to `hatchling` + `hatch-vcs` with
+  `dynamic = ["version"]`, matching willow-mcp, kartikeya and jeles. Nothing in
+  the tree carries a version number, so there is no bump commit and no second
+  copy to forget — the failure kartikeya's v0.0.8 shipped, where a tag built a
+  different version and only PyPI's duplicate-upload refusal noticed.
+
+  Off a tag, a build produces `X.Y.Z.devN+g<sha>`, which PyPI rejects outright.
+  `publish.yml` now checks out with `fetch-depth: 0` and `fetch-tags: true`, and
+  compares the tag against the **built artefact** rather than a pyproject
+  literal that no longer exists.
+
+- **Release automation: `release-please`.** `release-please.yml` keeps an open
+  release PR carrying the next version and its changelog section, cuts the tag
+  when it merges, and the tag push starts `publish.yml`. It refuses to run
+  without `RELEASE_PLEASE_TOKEN` rather than falling back to `GITHUB_TOKEN` —
+  that fallback opens a healthy-looking release PR and then silently publishes
+  nothing, because GitHub suppresses workflow runs for events generated with the
+  default token.
+
+- **`pr-title.yml`.** This repo merges with merge commits, so GitHub writes the
+  PR title into the merge commit body and release-please parses it. The gate
+  fails a title that would cut a release its commits would not, and the reverse:
+  a release for a PR that touches nothing under `nestor/` or `pyproject.toml`.
+  It reads the release-cutting types out of `release-please-config.json` rather
+  than restating them.
+
+### Fixed
+
+- **`publish.yml`'s environment URL named the wrong project.** It pointed at
+  `https://pypi.org/p/nestor` — this project's own reserved-and-empty name from
+  before the 0.3.0 rename — for two releases after the rename. The distribution
+  is `nestor-meaning`. Cosmetic (the OIDC claim exchange matches on owner,
+  repository, workflow filename and environment, never on this URL) but it is
+  the link a reviewer follows out of a release run. Same rename fallout as
+  decision `0129`; now covered by a test that derives the expected URL from
+  `pyproject.toml`.
+
+### Changed
+
+- **BREAKING — Nestor's household root is now `~/.nestor` (`NESTOR_HOME`).**
+  `nestor/homestead_paths.py` becomes `nestor/home_paths.py`, and the resolver
+  no longer defaults to another product's root. This is
+  `docs/roots-willow-and-homestead.md`'s own audience test applied to Nestor:
+  the rule there is that someone who only installs a household product should
+  not be handed a vocabulary that isn't theirs — `WILLOW_*` was the example,
+  and a Nestor-only install creating a `.homestead` directory is the same
+  mistake one brand along. `~/.homestead` remains a real root owned by
+  `rudi193-cmd/homestead`; Nestor just no longer resolves to it unasked.
+
+  A host that wants the keep tree where it already is names the root:
+  `NESTOR_HOME="$HOMESTEAD_HOME"`. That is the entire migration.
+
+  `home_init`'s layout marker is now `nestor_household_v1`, so a tree stood up
+  by an earlier version keeps its own `layout.json` untouched (the scaffolder
+  never overwrites) and reads as stood-up either way.
+
+### Added
+
+- **A refusal instead of a silent relocation.** `home_paths.home()` raises
+  `HomeRelocationRefused` when `HOMESTEAD_HOME` is set and `NESTOR_HOME` is
+  not, rather than falling back to either root. `keep/ledger.jsonl` is a hash
+  chain: resolving the other way would not move it, it would start a second
+  one, and both halves then verify on their own while the history between them
+  is gone. The session-start hook carries the same refusal as its `[nestor]`
+  ask, so a host in this state is told at boot rather than at the first append.
+
+### Security
+
+- The bash guard's secret-path family now covers `~/.nestor` alongside
+  `~/.homestead`. Both stay guarded — a host that pinned `NESTOR_HOME` at the
+  old location still keeps live state there, and dropping a rule to tidy a
+  rename is how a guard quietly narrows.
+
+---
+
 ## [0.3.1] - 2026-08-15
 
 A correctness patch for what 0.3.0's rename left behind. No schema, ledger or
