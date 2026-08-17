@@ -6,7 +6,7 @@
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "b5c2fd492eed7f033fc41865e5a31e71ae4b68fc4104004e267e72064edff124",
+  "digest": "58895a0a28edb01165cc6554d320ab979419bdf606cac90442f6d8dcfdc4523b",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -58,6 +58,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Left open on purpose, with a deadline: before the schema hardens. In a one-model deployment the distinction is free; with several agents proposing into one store it is the whole attribution question, and an evidence relation that lands drafts from multiple machines makes it concrete (whose evidence, attached by which proposer). Proposed constraint only: whatever answers it must be keyed to a durable authorship fact, consistent with the rest of the store, not a mutable label -- see the sibling decision on structural exemptions. No recommendation yet on the here-vs-sibling-package locus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "e38a689c-4cbe-5393-9411-58bb561cc1a2",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what may exempt a sealed row from the needsevidence report and what is the residual risk recorded here",
+      "source_text": "What may exempt a sealed row from the needs-evidence report, and what is the residual risk recorded here?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing exempts a row in v1 -- every live sealed pair without evidence is listed. Any future exemption must key on a structural fact (authorship, or a key the store cannot forge), never a list of names. The orphan-row window first recorded here was closed after the audit: attach() now runs ledger_preflight() before the store write, matching every other write path, so a broken ledger refuses the attach rather than leaving a row without a trail. One residual remains, named not fixed: evidence is not yet carried in the portable bundle, so it does not survive an export/import round-trip.",
       "verifier": "",
       "weight": 1.0
     },
@@ -240,20 +254,6 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No, but it records attached_by on every evidence row from the first migration so the column is never a later retrofit. It does not build a multi-agent taxonomy and does not decide whether attribution belongs in Nestor or a sibling package -- that stays the open question 0142 named, to be settled before the schema hardens further.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-17T00:00:00+00:00",
-      "id": "298e10af-903c-54cc-a356-c1758b4fe6d9",
-      "origin": "pr:None",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "what may exempt a sealed row from the needsevidence report and what is the residual risk recorded here",
-      "source_text": "What may exempt a sealed row from the needs-evidence report, and what is the residual risk recorded here?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "Nothing exempts a row in v1 -- every live sealed pair without evidence is listed. Any future exemption must key on a structural fact (authorship, or a key the store cannot forge), never a list of names. Two residuals are recorded, not fixed: attach() writes the row before its ledger entry (the seal_edge order), so a broken ledger could leave an orphan evidence row -- low-stakes because evidence carries no authority; and evidence is not yet carried in the portable bundle, so it does not survive an export/import round-trip.",
       "verifier": "",
       "weight": 1.0
     },

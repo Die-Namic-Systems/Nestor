@@ -165,3 +165,51 @@ def test_a_reference_to_a_pair_that_does_not_exist_is_refused(store):
     with pytest.raises(ValueError, match="no pair"):
         evidence.attach(ghost, "document", "x.pdf", store=store)
     assert evidence.evidence_for(ghost, store=store) == []
+
+
+def test_an_over_long_locator_is_refused_with_nothing_written(store):
+    pair = _sealed(store, "too long")
+    with pytest.raises(ValueError, match="too long"):
+        evidence.attach(pair["id"], "url", "x" * 5000, store=store)
+    assert evidence.evidence_for(pair["id"], store=store) == []
+
+
+def test_a_broken_ledger_refuses_the_attach_before_the_row_is_written(store, tmp_path):
+    """The orphan-row guard: if the trail will not take the entry, refuse BEFORE
+    the store write, so an evidence row can never outlive its ledger line — the
+    rule every other write path holds. Found by the evidence-relation audit."""
+    pair = _sealed(store, "broken ledger")           # a valid seal entry lands
+    # Point the ledger at a directory: not a regular file, so the preflight
+    # refuses to append (QUESTIONS.md §17), exactly as it would on a broken chain.
+    bad = tmp_path / "ledger_is_a_dir"
+    bad.mkdir()
+    cascade.set_ledger_path(bad)
+    with pytest.raises(Exception):
+        evidence.attach(pair["id"], "document", "x.pdf", store=store)
+    # nothing written — the row did not land ahead of a trail that refused it
+    cascade.set_ledger_path(tmp_path / "ledger.jsonl")
+    assert evidence.evidence_for(pair["id"], store=store) == []
+
+
+def test_a_store_advertising_evidence_but_lacking_memory_get_says_so_honestly(store):
+    """supports_evidence checks three ops; attach also needs memory_get (a
+    different capability). A store shaped that way must get an honest capability
+    error, not a false 'no pair' about a pair that exists. Found by the audit."""
+    pair = _sealed(store, "cap gap")
+
+    class NoGet:
+        """Delegates everything to a real store but hides memory_get."""
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            if name == "memory_get":
+                raise AttributeError(name)
+            return getattr(self._inner, name)
+
+    wrapped = NoGet(store)
+    assert storage.supports_evidence(wrapped) is True     # it advertises support
+    with pytest.raises(RuntimeError, match="memory_get"):
+        evidence.attach(pair["id"], "document", "x.pdf", store=wrapped)
+    # and the pair genuinely exists — the old code would have said "no pair"
+    assert store.memory_get(pair["id"]) is not None

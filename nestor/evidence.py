@@ -43,6 +43,12 @@ from .storage import EvidenceStorage, Storage, get_store, supports_evidence
 EVIDENCE_KINDS = frozenset(
     {"document", "url", "prior_seal", "human_statement"})
 
+#: A reference is a pointer, not the document. Generous caps that fit any real
+#: path, url, prior-seal id, or quoted statement while refusing an unbounded
+#: blob — the same defensive posture the rest of the package takes on free-text.
+_MAX_LOCATOR = 4096
+_MAX_REASON = 4096
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -68,11 +74,23 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
     reference was offered against. Returns the stored row.
 
     Confirms nothing: no signature, no change to the pair's status, no effect on
-    serving. Refuses — with nothing written — an unknown kind, an empty locator,
-    or a pair that does not exist.
+    serving. Refuses — with nothing written — an unknown kind, an empty or
+    over-long locator, a pair that does not exist, or a ledger that cannot take
+    the entry.
     """
     store = get_store(store)
     _require_evidence(store)
+    # A pair reference has to be checked against a real pair, which needs
+    # ``memory_get`` — a *different* capability (curation) from the three
+    # ``supports_evidence`` verifies. A store can advertise evidence and lack it,
+    # so say so honestly rather than letting the check below read every pair as
+    # absent and refuse everything with a false "no pair".
+    if not callable(getattr(store, "memory_get", None)):
+        raise RuntimeError(
+            f"{type(store).__name__} implements the evidence capability but not "
+            f"memory_get, which attach() needs to confirm a pair exists before "
+            f"referencing it (the curation capability — see "
+            f"nestor.storage.supports_curation).")
     if kind not in EVIDENCE_KINDS:
         raise ValueError(
             f"unknown evidence kind {kind!r} — one of {sorted(EVIDENCE_KINDS)}")
@@ -80,7 +98,14 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
         raise ValueError(
             "evidence needs a locator — the thing it points at (a path, url, "
             "prior seal id, or statement); refusing a reference to nothing")
-    pair = store.memory_get(pair_id) if hasattr(store, "memory_get") else None
+    if len(locator) > _MAX_LOCATOR or len(reason) > _MAX_REASON:
+        # Reject rather than truncate: a silently shortened locator is a wrong
+        # pointer, which is worse than no reference. Generous caps — a real path,
+        # url, or quoted statement fits; an unbounded blob does not.
+        raise ValueError(
+            f"locator (max {_MAX_LOCATOR}) or reason (max {_MAX_REASON}) is too "
+            f"long; a reference is a pointer, not the document itself")
+    pair = store.memory_get(pair_id)
     if pair is None:
         raise ValueError(f"no pair {pair_id!r} in this store")
 
@@ -89,10 +114,13 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
         "locator": locator, "attaches_to": attaches_to or pair.get("status", ""),
         "reason": reason, "attached_by": attached_by, "created_at": _now(),
     }
+    # Refuse before the store write if the trail will not take the entry, so an
+    # evidence row can never outlive its ledger line — the rule every other
+    # write path here holds (memory.add_pair, curator unseal/restore). Lazy
+    # import: cascade imports memory at load, and evidence is reachable from it.
+    from .cascade import _ledger_append, ledger_preflight
+    ledger_preflight()
     cast(EvidenceStorage, store).memory_add_evidence(ev)
-    # Append-only in the ledger, like every other decision. Lazy import: cascade
-    # imports memory at load, and evidence is reachable from there.
-    from .cascade import _ledger_append
     _ledger_append({
         "kind": "attach_evidence", "pair_id": pair_id, "evidence_id": ev["id"],
         "evidence_kind": kind, "attaches_to": ev["attaches_to"],
