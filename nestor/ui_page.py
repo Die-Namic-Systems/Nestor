@@ -663,6 +663,24 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // open list only) a question, never every commitment, to keep
             // that response the shape nestor.ui documents.
             triage: null, triageDetail: null, triageLoading: false,
+            // What this SESSION has confirmed via the Triage tab's Confirm
+            // button (see confirmEdge) — keyed by src|dst|kind, valued by
+            // who ratified it. GET /api/triage's proposed edges are a pure
+            // recomputation over the decisions' text (see the comment above
+            // triageEdgeRow), so confirming one does not change what that
+            // endpoint returns; this is this tab's own memory of what it
+            // already asked a human to sign, so a confirmed row keeps
+            // reading as confirmed rather than reverting to "proposed" on
+            // the next refresh.
+            triageConfirmed: {},
+            // A row currently mid-ceremony (dialog open, or the sign+POST in
+            // flight) — guards confirmEdge against a second click on the same
+            // row firing a second /api/edge/seal before the first completes,
+            // which would otherwise write two distinct (but each validly
+            // signed) sealed edges for the same relation, since seal_edge
+            // finds no persisted draft to seal in place (see the comment
+            // above the Triage block) and creates a fresh one every call.
+            triageConfirming: {},
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -970,6 +988,24 @@ async function signWithBrowserKey(sourceNorm, targetText, verifierName) {
   return hex(sig);
 }
 
+/* ---------- Sign & confirm an edge (the Triage tab's Confirm affordance) --
+ *
+ * The edge-confirmation ceremony (docs/decision-memory.md N6/N9): a proposed
+ * `supersedes`/`refines`/`depends_on`/`contradicts` relation becomes fact
+ * only once a human signs it here. `pyJsonArray` is the SAME encoder
+ * `signWithBrowserKey` uses above, over the edge's own frozen wire contract
+ * (`nestor.signing._edge_message`: a 4-element array led by the literal
+ * "edge", not the 3-element seal message) — ids and kind carry no surrogate
+ * risk (UUIDs and one of four ASCII literals), so no `frozenMessageBytes`
+ * guard is needed here the way it is for arbitrary sealed text.
+ */
+async function signEdgeWithBrowserKey(srcId, dstId, kind) {
+  if (!S.browserKey) throw new Error("no browser key is unlocked");
+  const message = new TextEncoder().encode(pyJsonArray(["edge", srcId, dstId, kind]));
+  const sig = await crypto.subtle.sign({ name: "Ed25519" }, S.browserKey.privateKey, message);
+  return hex(sig);
+}
+
 /* ---------- Sign & seal: the human approves the exact bytes ---------------
  *
  * `target_text` and `verifier` here are the values already on screen and
@@ -1017,6 +1053,37 @@ function confirmSign(norm, target, who) {
       h("div", { class: "row", style: "justify-content:flex-end;margin-top:14px;gap:8px" },
         h("button", { onclick: () => finish(false) }, "Cancel"),
         h("button", { class: "primary", onclick: () => finish(true) }, "Sign & seal")));
+    dlg.onclose = () => finish(dlg.returnValue === "ok" ? true : false);
+    dlg.showModal();
+  });
+}
+
+/* Same dialog element, the edge ceremony's own fields: what a human actually
+ * ratifies is the RELATION between two decisions, so this shows their
+ * questions — never the bare ids the signed bytes are made of — exactly the
+ * same discipline as confirmSign's "read what you're about to sign, in the
+ * language it means something in" above. Nothing is written until sign. */
+function confirmSignEdge(srcQuestion, dstQuestion, kind, who) {
+  return new Promise((resolve) => {
+    const dlg = $("sign-dialog"), body = $("sign-dialog-body");
+    let settled = false;
+    const finish = (v) => { if (settled) return; settled = true; dlg.close(); resolve(v); };
+    body.replaceChildren(
+      h("h2", { style: "margin:0 0 10px;font-size:15px", text: "Confirm this relation" }),
+      h("p", { class: "small muted", style: "margin:0 0 10px" },
+        "This is what " + who + "'s browser key is about to sign — that the first decision " +
+        "below " + kind + " the second. Proposed, not decided, until you sign; nothing is " +
+        "written until after."),
+      h("div", { class: "context-panel small" },
+        h("div", {}, h("b", {}, "kind  "), h("span", { class: "mono", text: kind })),
+        h("div", { style: "margin-top:8px" }, h("b", {}, "src — "),
+          h("span", { text: srcQuestion || "(no question text)" })),
+        h("div", { style: "margin-top:8px" }, h("b", {}, "dst — "),
+          h("span", { text: dstQuestion || "(no question text)" })),
+        h("div", { style: "margin-top:8px" }, h("b", {}, "verifier  "), h("span", { class: "mono", text: who }))),
+      h("div", { class: "row", style: "justify-content:flex-end;margin-top:14px;gap:8px" },
+        h("button", { onclick: () => finish(false) }, "Cancel"),
+        h("button", { class: "primary", onclick: () => finish(true) }, "Sign & confirm")));
     dlg.onclose = () => finish(dlg.returnValue === "ok" ? true : false);
     dlg.showModal();
   });
@@ -2815,20 +2882,37 @@ function viewGraph() {
   S.cy = cy;
 }
 
-/* ---------- Triage: what needs you, read-only (N9 — the follow-up to N6/N8)
+/* ---------- Triage: what needs you (N9 — the follow-up to N6/N8) ----------
  *
- * GET /api/triage only. There is no seal button, no confirm/reject affordance
- * on a cluster or an edge anywhere below — same discipline as the Graph tab
- * just above: the refusal is not enforced in this file, it simply is not
- * built here. Confirming or rejecting a proposal is the next bite, at the
- * Memory tab, by a human with a key.
+ * GET /api/triage is still the whole read side, unmodified — the clustering
+ * and the proposed-edge list are exactly what they were, computed fresh from
+ * the store's decisions and never read back from a persisted edge row. What
+ * this block ADDS is the one write this tab now offers: confirming a
+ * proposed edge (`confirmEdge` below), POSTing /api/edge/seal, a ceremony
+ * that mirrors the seal ceremony above it exactly (sign what you were shown,
+ * never opaque ids — see confirmSignEdge). Still no reject/dismiss
+ * affordance anywhere on this tab or this file — recording a "no" against a
+ * proposal has no schema yet (the next bite) — and still no seal button on a
+ * DECISION or a cluster member here; only a proposed EDGE gets a Confirm.
+ *
+ * Because /api/triage's proposed edges are `nestor.triage`'s own clustering
+ * pass over the decisions' TEXT, not a read of whatever is sealed in the
+ * store, confirming one does not change what a later GET /api/triage
+ * returns — the same relation is proposed again next time the decisions are
+ * unchanged, exactly as `nestor.triage.triage()` is a pure function of them.
+ * `S.triageConfirmed` is this tab's own memory of what was ratified THIS
+ * SESSION, so a confirmed row reads as confirmed without this file
+ * pretending the read-only endpoint above it now says something it does
+ * not; the sealed edge itself is real and ledgered regardless (see the
+ * Graph tab, and `nestor ledger verify`).
  *
  * The response carries ids and (for the ranked "open" list only) a question;
  * `selectTriageDecision` fills in the rest — question AND commitment — by
  * calling the existing GET /api/pair, exactly the lookup the Memory tab
  * already uses, rather than the triage payload repeating every commitment
  * for every cluster member and edge endpoint whether or not a human ever
- * looks at it.
+ * looks at it. `confirmEdge` below reuses the same GET /api/pair call to
+ * build the confirm dialog's src/dst questions, for the same reason.
  */
 
 async function selectTriageDecision(id) {
@@ -2890,7 +2974,59 @@ function triageEdgeKindBadge(kind) {
   return h("span", { class: cls, text: kind });
 }
 
+function edgeKey(e) { return e.src_id + "|" + e.dst_id + "|" + e.kind; }
+
+/* The Confirm affordance: shown only when signed in with a browser key —
+ * the only identity this tab can produce an edge_sig with (seal_edge never
+ * signs server-side, see nestor.decision — unlike a decision seal, there is
+ * no shared-key "acting as" path for an edge, so a plain session sign-in
+ * gets no button here). Mirrors how the seal buttons elsewhere gate on
+ * S.browserKey/identity, and disables (not hides) under --read-only exactly
+ * as every other write control in this page does.
+ */
+async function confirmEdge(e) {
+  if (!S.browserKey) return;
+  const key = edgeKey(e);
+  if (S.triageConfirming[key]) return;      // already mid-ceremony for this row
+  S.triageConfirming[key] = true;
+  render();
+  try {
+    const who = S.browserKey.verifier;
+    let src, dst;
+    try {
+      [src, dst] = await Promise.all([
+        api("/api/pair?id=" + encodeURIComponent(e.src_id)),
+        api("/api/pair?id=" + encodeURIComponent(e.dst_id)),
+      ]);
+    } catch (err) {
+      toast("Could not load this relation's decisions: " + err.message, "err");
+      return;
+    }
+    const srcQuestion = (src.pair && (src.pair.source_text || src.pair.question)) || "";
+    const dstQuestion = (dst.pair && (dst.pair.source_text || dst.pair.question)) || "";
+    const approved = await confirmSignEdge(srcQuestion, dstQuestion, e.kind, who);
+    if (!approved) return;
+    try {
+      const edge_sig = await signEdgeWithBrowserKey(e.src_id, e.dst_id, e.kind);
+      await api("/api/edge/seal",
+        { src_id: e.src_id, dst_id: e.dst_id, kind: e.kind, verifier: who, edge_sig });
+    } catch (err) {
+      toast("Confirming failed: " + err.message, "err");
+      return;
+    }
+    S.triageConfirmed[key] = who;
+    toast("Confirmed — " + who + "'s ratified judgment, now ledgered.", "ok");
+    await refresh();
+  } finally {
+    delete S.triageConfirming[key];
+    render();
+  }
+}
+
 function triageEdgeRow(e) {
+  const key = edgeKey(e);
+  const confirmedBy = S.triageConfirmed[key];
+  const confirming = !!S.triageConfirming[key];
   return h("div", { class: "seg" },
     h("div", { class: "row" },
       triageEdgeKindBadge(e.kind),
@@ -2900,7 +3036,15 @@ function triageEdgeRow(e) {
       h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
                  onclick: () => selectTriageDecision(e.dst_id), text: e.dst_id.slice(0, 8) }),
       h("span", { class: "spacer" }),
-      h("span", { class: "small muted", text: "score " + Number(e.score).toFixed(2) })));
+      h("span", { class: "small muted", text: "score " + Number(e.score).toFixed(2) }),
+      confirmedBy
+        ? h("span", { class: "badge good", title: confirmedBy + "'s ratified judgment, ledgered",
+                      text: "confirmed" })
+        : (S.browserKey
+            ? h("button", { class: "small primary",
+                            disabled: confirming || (S.state && S.state.read_only),
+                            onclick: () => confirmEdge(e) }, confirming ? "Confirming…" : "Confirm")
+            : null)));
 }
 
 function viewTriage() {
@@ -2932,10 +3076,11 @@ function viewTriage() {
     h("p", { class: "small muted", text:
       "Proposed, not decided. nestor.triage groups near-duplicate decisions and proposes "
       + "supersedes/contradicts/refines edges at bar " + Number(t.bar || 0).toFixed(2)
-      + " — a human confirms or rejects a proposal at the Memory tab; this view seals "
-      + "nothing and writes nothing. Below: what still needs you, ranked so a live "
-      + "contradiction or a group worth consolidating sorts ahead of a decision with "
-      + "nothing proposed about it." })));
+      + " — a human signed in with a browser key can confirm (seal) a proposed edge below; "
+      + "everything else on this tab stays read-only, and there is no way to reject a "
+      + "proposal here yet. Below: what still needs you, ranked so a live contradiction or "
+      + "a group worth consolidating sorts ahead of a decision with nothing proposed about "
+      + "it." })));
 
   if (!c.decisions) {
     view.append(h("div", { class: "card" }, h("p", { class: "empty",
@@ -2970,9 +3115,12 @@ function viewTriage() {
 
   const edgesCard = h("div", { class: "card" },
     h("h2", { text: "Proposed edges" }),
-    h("p", { class: "small muted", text:
-      "src → dst, proposed only — nothing here has a verifier or a signature. A "
-      + "human confirms or rejects a proposal at the Memory tab, never on this screen." }));
+    h("p", { class: "small muted", text: S.browserKey
+      ? "src → dst, proposed until signed. Confirm signs it with " + S.browserKey.verifier
+        + "'s browser key and writes a sealed edge, ledgered — the only write this tab makes. "
+        + "There is no way to reject a proposal here yet."
+      : "src → dst, proposed only — nothing here has a verifier or a signature yet. Sign in "
+        + "with a browser key (top right) to confirm one; without it this list is read-only." }));
   if (!t.proposed_edges.length) {
     edgesCard.append(h("p", { class: "empty", text: "No supersession or contradiction proposed at this bar." }));
   } else {

@@ -81,7 +81,7 @@ from typing import Any, Callable, Mapping, Optional, Union
 
 from . import answer, cascade, config, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
-from .decision import DecisionMemory
+from .decision import EDGE_KINDS, DecisionMemory
 from .entity import EntityResolver
 from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
@@ -362,9 +362,10 @@ def _verifier(app: App, payload: Mapping[str, Any]) -> str:
     return who
 
 
-def _verifier_for_seal(app: App, payload: Mapping[str, Any]) -> str:
-    """Like :func:`_verifier`, but for the three endpoints that accept
-    ``seal_sig`` (Nestor#17's browser signer): a caller supplying a signature
+def _verifier_for_seal(app: App, payload: Mapping[str, Any],
+                       sig_field: str = "seal_sig") -> str:
+    """Like :func:`_verifier`, but for the endpoints that accept a client
+    signature (Nestor#17's browser signer): a caller supplying one
     authenticates BY the signature, not by a :class:`Sessions` token.
 
     ``Sessions.open`` checks a typed secret against one this server holds
@@ -372,29 +373,41 @@ def _verifier_for_seal(app: App, payload: Mapping[str, Any]) -> str:
     keyring entry is ed25519 PUBLIC-only, so that verifier can never sign in
     through it, by the same refusal :meth:`~nestor.keyring.Keyring.signing_entry`
     already makes at the library level. That verifier's browser holds the
-    private key instead and produces ``seal_sig`` itself; the signature IS the
-    proof of identity, checked exactly once, downstream, by
-    ``memory.add_pair``'s existing verify-only seam (decision 0077) — a typed
-    ``verifier`` this signature does not verify for is refused there,
-    ``InvalidSealSignatureError``, before any write, whether or not a session
-    ever existed. Requiring a session in ADDITION would not add safety, since
-    the check it would perform is the same fact the signature already proves;
-    it would only make this path impossible to use for exactly the verifiers
-    it exists to serve — see decision 0078.
+    private key instead and produces the signature itself; the signature IS
+    the proof of identity, checked exactly once, downstream, by the
+    verify-only seam that actually forwards it (``memory.add_pair`` for a
+    decision seal, decision 0077; :meth:`~nestor.decision.DecisionMemory.seal_edge`
+    for an edge, N6) — a typed ``verifier`` this signature does not verify for
+    is refused there, before any write, whether or not a session ever
+    existed. Requiring a session in ADDITION would not add safety, since the
+    check it would perform is the same fact the signature already proves; it
+    would only make this path impossible to use for exactly the verifiers it
+    exists to serve — see decision 0078.
 
-    Deliberately narrow: only the three ``seal_sig``-accepting endpoints call
-    this. Every other write (``unseal``, ``restore``, ``reject-pair``,
+    ``sig_field`` names the payload field the signature travels under —
+    ``seal_sig`` for ``/api/seal`` and its two siblings, ``edge_sig`` for
+    ``/api/edge/seal``. Same rule, parameterized rather than reimplemented, so
+    the edge-confirmation ceremony does not grow a second, driftable copy of
+    it: **deliberately narrow either way** — only the endpoints that actually
+    forward the named field to a verify-only seam may call this with that
+    field name. Every other write (``unseal``, ``restore``, ``reject-pair``,
     ``entity/seal``, ``reconcile/seal``, …) still calls :func:`_verifier` and
     still requires a session — those endpoints have no signature to check
     identity against, so a session token remains the only proof available for
     them, and a browser-key-only verifier cannot make those calls from this UI
-    (a stated gap, not a silent one: see decision 0078).
+    (a stated gap, not a silent one: see decision 0078). A prior draft of
+    ``/api/queue/seal`` resolved the verifier this way for BOTH its branches
+    before one of them forwarded the signature anywhere — a live
+    authentication bypass, fixed by resolving per branch (see
+    ``tests/test_client_signed_seals_ui.py``'s regression test) — the reason
+    this function must never be called except where the signature it trusts
+    is the exact one about to be checked.
     """
-    if keyring.enabled() and _str(payload, "seal_sig"):
+    if keyring.enabled() and _str(payload, sig_field):
         who = _str(payload, "verifier")
         if not who:
-            raise ApiError(400, "seal_sig was supplied but no verifier was named — "
-                                "a signature has to be checked against somebody's key.",
+            raise ApiError(400, f"{sig_field} was supplied but no verifier was named — "
+                                f"a signature has to be checked against somebody's key.",
                            code="bad_request")
         return who
     return _verifier(app, payload)
@@ -937,6 +950,68 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
     return result
 
 
+def _edge_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Confirm (seal) a proposed edge — the human's ratification, the first
+    write path this close to the trust root (docs/decision-memory.md N6/N9,
+    the Triage tab's ``Confirm`` affordance).
+
+    Mirrors :func:`_seal`'s authority discipline exactly, one level over:
+    resolve ``kind`` against the same closed set the library refuses outside
+    of, resolve the verifier the SAME way a client-signed decision seal does
+    (:func:`_verifier_for_seal`, here with ``sig_field="edge_sig"`` — a typed
+    ``verifier`` is trusted only on the strength of a signature that is about
+    to be checked; with no signature and a keyring installed, only the signed-
+    in SESSION names the verifier, never the payload — so a human cannot seal
+    as someone else), then hand everything to
+    :meth:`~nestor.decision.DecisionMemory.seal_edge` UNCHANGED — the same
+    write ``nestor.decision`` already ledgers, verifying before it, never a
+    second verify or a second write built here.
+
+    ``kind`` is checked against :data:`~nestor.decision.EDGE_KINDS` here, not
+    only inside ``seal_edge``, so a bad kind is a plain 400 (a malformed
+    request) rather than sharing the 403 a refused signature gets below — the
+    two are different facts about the request and a curator reading the
+    response should not have to guess which one happened.
+
+    ``seal_edge`` itself never signs — it only verifies
+    (:func:`nestor.signing.edge_is_valid`) and raises ``ValueError`` before any
+    write when the signature does not check out, including the empty string
+    (an edge with no signature is a proposal, never a fact, by construction —
+    see that function's docstring). That refusal is mapped to 403 here, never
+    a 500 that would read as a bug in this server rather than as the covenant
+    holding.
+
+    No ``propose_edge`` call happens anywhere on this path: the Triage tab's
+    proposed edges are ``nestor.triage``'s in-memory ``ProposedEdge``s (see
+    :func:`_triage`), never persisted as a draft edge row, so there is
+    normally no matching unsigned edge for ``seal_edge`` to seal in place —
+    it creates a fresh sealed edge instead, which is exactly what "a human
+    ratifies this proposal" means the first time it is confirmed. If a draft
+    edge WAS separately proposed (:meth:`~nestor.decision.DecisionMemory.propose_edge`,
+    reachable only from library/script callers today, never from this UI),
+    sealing it in place is ``seal_edge``'s own behaviour, reused unchanged.
+    """
+    src_id = _str(payload, "src_id")
+    dst_id = _str(payload, "dst_id")
+    kind = _str(payload, "kind")
+    if not src_id or not dst_id:
+        raise ApiError(400, "an edge seal needs both src_id and dst_id",
+                       code="bad_request")
+    if kind not in EDGE_KINDS:
+        raise ApiError(400, f"unknown edge kind {kind!r} — one of {sorted(EDGE_KINDS)}",
+                       code="bad_request")
+    who = _verifier_for_seal(app, payload, sig_field="edge_sig")
+    try:
+        edge = DecisionMemory(app.store).seal_edge(
+            src_id, dst_id, kind, who, _str(payload, "edge_sig"),
+            reason=_str(payload, "reason"))
+    except ValueError as exc:
+        # seal_edge's own refusal — an empty, forged, or wrong-key signature —
+        # raised before any write. A clear refusal, never a 500.
+        raise ApiError(403, str(exc), code="invalid_edge_signature") from exc
+    return {"edge": edge}
+
+
 def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Alias → canonical entity, with the same three answers the cascade gives."""
     surface = _str(payload, "surface")
@@ -1305,6 +1380,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("POST", "/api/reconcile/seal"): _reconcile_seal,
     ("POST", "/api/seal"): _seal,
     ("POST", "/api/seal-draft"): _seal_draft,
+    ("POST", "/api/edge/seal"): _edge_seal,
     ("POST", "/api/unseal"): _unseal,
     ("POST", "/api/restore"): _restore,
     ("POST", "/api/reject-pair"): _reject_pair,
