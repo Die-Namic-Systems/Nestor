@@ -14,8 +14,11 @@ The argument below is one a human can reject. Recorded as
 > `nestor ui`. What stayed open stayed open: the report has **no exemptions** and
 > attaching evidence carries **no signature** (it grants no authority), attribution
 > records a plain `attached_by` without resolving the multi-agent locus, and the
-> UI surface, the `rejection_signals` taxonomy (proposal #3), and bundle carriage
-> are **not** in this pass. The measure-demand-first caution below still stands;
+> UI surface and the `rejection_signals` taxonomy (proposal #3) are **not** in
+> this pass. Bundle carriage — first deferred, then flagged by the audit — landed
+> in [decision 0145](dogfood/decisions/0145-evidence-bundle-carriage.json): a
+> version-3 bundle carries evidence for its pairs, inside the integrity digest,
+> and import re-attaches it. The measure-demand-first caution below still stands;
 > the relation shipped ahead of it on the human's call.
 
 The issue's one-sentence claim: `sealed`/`draft`/`pending` answers *has a human

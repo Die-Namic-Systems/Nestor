@@ -1,24 +1,40 @@
 {
   "counts": {
-    "pairs": 399,
+    "evidence": 0,
+    "pairs": 402,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "3bc52d83beae85d41ab2e18c194159331c52fa51cd57b06f5be849eac0bf8868",
+  "digest": "eff90a63ef6477f6b80141081dc091de923b63452c1c920a1ee115586bcf5ad0",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
   },
+  "evidence": [],
   "ledger": {
     "entries": [],
     "note": "the source instance's chain, for audit; it is not merged on import",
     "unreadable": []
   },
   "matcher": "StringMatcher",
-  "nestor_bundle": 2,
+  "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "f9c3b961-fe54-5572-8f73-4722f0fbc4ae",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the bundle format did not carry evidence so a memory moved between instances lost what its claims rest on how is it carried without breaking bundles already in circulation",
+      "source_text": "The bundle format did not carry evidence, so a memory moved between instances lost what its claims rest on. How is it carried without breaking bundles already in circulation?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A new EVIDENCE_FIELDS row set and BUNDLE_VERSION 3. export_bundle gathers evidence per exported pair (so nothing can dangle by construction) into bundle['evidence']; verify_bundle reads and validates it; import_bundle re-adds each row via memory_add_evidence, remapping pair_id through the same id_map the rejection loop uses. Version 1 and 2 stay readable and their digests unchanged.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
       "id": "efff2de5-ac60-59c7-8e88-05adc5dd1cda",
@@ -189,6 +205,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "6fffc767-6c67-5178-a7d0-bbcec2540cdf",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "on import does a reattached reference need a signature or a fresh ledger line per row",
+      "source_text": "On import, does a re-attached reference need a signature or a fresh ledger line per row?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Import writes evidence rows directly via memory_add_evidence -- no signature (evidence has none to verify) and no per-row ledger entry -- and records the count in the single bundle_import ledger line, exactly as the rejection import does. A duplicate id on re-import is caught and not counted, so a re-import is idempotent. The report gains 'evidence' and 'dangling_evidence' counters.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "67d7a596-4eb0-5332-9fd5-f41181af623d",
       "origin": "pr:None",
       "seal_sig": "",
@@ -268,6 +298,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A structural fact, never a list of strings. Proposed as a hard constraint on the evidence report before it is built: whatever marks a row as not-needing-evidence must key on a durable property (authorship, or the seal key), the way seals already key on keys the store does not hold rather than on sealer names. The issue reports the counter-example from its own session -- a seal exemption guarded by a blocklist of ten sealer names, walked by an adversary sealing as 'gemini', fixed by keying on authorship instead. Nestor already keys on keys not names; the report must not reintroduce the string-list shape.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "383a1615-ac21-5b21-9d0a-1739d515da5e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is evidence inside the integrity digest or beside it",
+      "source_text": "Is evidence inside the integrity digest, or beside it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Inside, for version 3 and up only. digest() gains an evidence argument and folds evidence rows into the hashed payload when version >= 3; for versions 1 and 2 the payload is byte-identical to before, so an old bundle recomputes to the same hash. A test tampers an exported evidence row and asserts verify_bundle reports a digest mismatch.",
       "verifier": "",
       "weight": 1.0
     },

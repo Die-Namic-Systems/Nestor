@@ -53,12 +53,15 @@ from .storage import (EvidenceStorage, Storage, get_store, supports_curation,
 #: silently because the field changes the payload the digest is taken over, and
 #: a bundle whose integrity check depends on which build wrote it is not an
 #: integrity check.
-BUNDLE_VERSION = 2
+#: Version 3 carries ``evidence`` (docs/evidence-edge.md). Bumped, not added
+#: silently, for the same reason 2 was: evidence joins the payload the digest is
+#: taken over, so a bundle's integrity check depends on which build wrote it.
+BUNDLE_VERSION = 3
 
-#: Both are readable. Writing is always the current version; a version-1 bundle
-#: keeps verifying against the fields it was hashed with, so upgrading this
-#: build does not invalidate bundles already in circulation.
-SUPPORTED_BUNDLE_VERSIONS = (1, 2)
+#: All are readable. Writing is always the current version; a version-1 or -2
+#: bundle keeps verifying against the fields it was hashed with, so upgrading
+#: this build does not invalidate bundles already in circulation.
+SUPPORTED_BUNDLE_VERSIONS = (1, 2, 3)
 
 PAIR_FIELDS = ("id", "source_text", "source_norm", "source_lang", "target_text",
                "target_lang", "status", "verifier", "weight", "origin",
@@ -71,7 +74,14 @@ _REJECTION_FIELDS_V1 = ("id", "query_norm", "source_lang", "target_lang", "pair_
 #: exists to preserve, lost by the transfer that was supposed to preserve it.
 REJECTION_FIELDS = _REJECTION_FIELDS_V1 + ("reopen_when",)
 
-_REJECTION_FIELDS_BY_VERSION = {1: _REJECTION_FIELDS_V1, 2: REJECTION_FIELDS}
+_REJECTION_FIELDS_BY_VERSION = {1: _REJECTION_FIELDS_V1, 2: REJECTION_FIELDS,
+                                3: REJECTION_FIELDS}
+
+#: Evidence carried in a version-3+ bundle (docs/evidence-edge.md). No signature
+#: field: evidence holds no authority, so unlike a pair there is nothing to
+#: verify on import — the row is a reference, re-added as-is.
+EVIDENCE_FIELDS = ("id", "pair_id", "kind", "locator", "attaches_to", "reason",
+                   "attached_by", "created_at")
 
 #: Rejections get their own default cap, deliberately not `limit`'s. A cap
 #: sized for pairs says nothing about how many times those pairs were argued
@@ -111,6 +121,7 @@ def _canonical(value: Any) -> str:
 
 
 def digest(pairs: list[dict], rejections: list[dict],
+           evidence: Optional[list[dict]] = None,
            version: int = BUNDLE_VERSION) -> str:
     """A stable sha256 over the bundle's payload, as ``version`` defines it.
 
@@ -141,10 +152,16 @@ def digest(pairs: list[dict], rejections: list[dict],
         return sorted(({f: _canonical(r.get(f)) for f in fields} for r in raw),
                       key=lambda r: r.get("id", ""))
 
-    payload = json.dumps(
-        {"pairs": rows(pairs, PAIR_FIELDS),
-         "rejections": rows(rejections, _REJECTION_FIELDS_BY_VERSION[version])},
-        sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    payload_dict = {"pairs": rows(pairs, PAIR_FIELDS),
+                    "rejections": rows(rejections,
+                                       _REJECTION_FIELDS_BY_VERSION[version])}
+    # Version-gated so v1/v2 digests are byte-identical to before: a bundle
+    # written without evidence must recompute to the same hash, exactly as the
+    # reopen_when bump was gated. Only v3+ folds evidence into the payload.
+    if version >= 3:
+        payload_dict["evidence"] = rows(evidence or [], EVIDENCE_FIELDS)
+    payload = json.dumps(payload_dict, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -284,18 +301,17 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                 f"raw candidate is NOT in it.", RuntimeWarning, stacklevel=2)
         rejections = [_row(r, REJECTION_FIELDS) for r in by_id.values()]
         rejections.sort(key=lambda r: (r.get("created_at", ""), r.get("id", "")))
-    # Evidence is not carried by the bundle format (decision 0143, a named
-    # follow-up). Warn only when an exported pair actually has a reference
-    # attached, so the omission is visible rather than silent — the same posture
-    # the rejection-listing gap above takes — without a false alarm on a store
-    # that has the capability but no evidence.
-    if supports_evidence(store) and any(
-            cast(EvidenceStorage, store).memory_evidence_for(p["id"])
-            for p in pairs):
-        warnings.warn(
-            "this bundle does not carry evidence (docs/evidence-edge.md); "
-            "references attached to these sealed pairs are NOT exported and will "
-            "be absent after import.", RuntimeWarning, stacklevel=2)
+    # Evidence for the exported pairs (docs/evidence-edge.md, v3+). Gathered
+    # per-pair, so it carries only references whose pair is in this bundle —
+    # nothing can dangle, the same by-construction invariant the pair-bound
+    # rejection walk keeps.
+    evidence: list[dict] = []
+    if supports_evidence(store):
+        ev_store = cast(EvidenceStorage, store)
+        for p in pairs:
+            evidence.extend(_row(e, EVIDENCE_FIELDS)
+                            for e in ev_store.memory_evidence_for(p["id"]))
+        evidence.sort(key=lambda e: (e.get("created_at", ""), e.get("id", "")))
     if pairs_truncated:
         warnings.warn(
             f"export hit its pair limit ({limit}); this bundle is a prefix of the "
@@ -322,10 +338,12 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
             "sealed": sum(1 for p in pairs if p["status"] == "sealed"),
             "servable": sum(1 for p in pairs if memory.is_verified_seal(p)),
             "rejections": len(rejections),
+            "evidence": len(evidence),
         },
-        "digest": digest(pairs, rejections, version=BUNDLE_VERSION),
+        "digest": digest(pairs, rejections, evidence, version=BUNDLE_VERSION),
         "pairs": pairs,
         "rejections": rejections,
+        "evidence": evidence,
     }
     if include_ledger:
         # Carried for reading, never for splicing — see the module docstring.
@@ -361,15 +379,17 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
                        f"and writes {BUNDLE_VERSION})")
     version = int(version)
     pairs, rejections = bundle.get("pairs"), bundle.get("rejections", [])
-    if not isinstance(pairs, list) or not isinstance(rejections, list):
-        return False, "'pairs' and 'rejections' must be lists"
+    evidence = bundle.get("evidence", [])
+    if not isinstance(pairs, list) or not isinstance(rejections, list) \
+            or not isinstance(evidence, list):
+        return False, "'pairs', 'rejections' and 'evidence' must be lists"
     for row in pairs:
         missing = [f for f in ("id", "source_norm", "source_lang", "target_lang",
                                "target_text", "status") if f not in row]
         if missing:
             return False, f"pair {row.get('id', '?')} is missing {', '.join(missing)}"
     want = bundle.get("digest")
-    got = digest(pairs, rejections, version=version)
+    got = digest(pairs, rejections, evidence, version=version)
     if want and want != got:
         return False, (f"digest mismatch: the payload is not the one exported "
                        f"(expected {want[:16]}…, computed {got[:16]}…)")
@@ -378,8 +398,9 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
                if bundle.get(f)]
     short = f" — SHORT: the exporter flagged missing {' and '.join(missing)}" \
         if missing else ""
-    return True, (f"{len(pairs)} pair(s), {len(rejections)} rejection(s), "
-                  f"digest {got[:16]}…{short}")
+    ev_note = f", {len(evidence)} evidence row(s)" if version >= 3 else ""
+    return True, (f"{len(pairs)} pair(s), {len(rejections)} rejection(s)"
+                  f"{ev_note}, digest {got[:16]}…{short}")
 
 
 def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
@@ -458,6 +479,7 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
     report: dict[str, Any] = {"sealed": 0, "demoted": 0, "drafts": 0, "existing": 0,
                               "conflicts": [], "rejected_here": [], "rejections": 0,
                               "dangling_rejections": [],
+                              "evidence": 0, "dangling_evidence": [],
                               "partial_source": bool(bundle.get("partial_rejections")
                                                      or bundle.get("partial_pairs")),
                               "source_matcher": source_matcher,
@@ -601,13 +623,37 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
                 except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
                     report["rejections"] -= 1
 
+    if supports_evidence(store):
+        ev_store = cast(EvidenceStorage, store)
+        for raw in bundle.get("evidence", []):
+            named = raw.get("pair_id") or ""
+            if named and named not in id_map:
+                # A reference naming a pair this bundle does not carry. Export
+                # cannot make one (evidence is gathered per exported pair), but a
+                # hand-edited or third-party bundle can — and adding it would
+                # leave a reference pointing at nothing here. Evidence confers no
+                # authority, so this is not the security hazard a dangling
+                # rejection is; it is dropped for the same tidiness reason.
+                report["dangling_evidence"].append(named)
+                continue
+            report["evidence"] += 1
+            if not dry_run:
+                ev = _row(raw, EVIDENCE_FIELDS)
+                ev["id"] = ev.get("id") or str(uuid.uuid4())
+                if named:
+                    ev["pair_id"] = id_map[named]
+                try:
+                    ev_store.memory_add_evidence(ev)
+                except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
+                    report["evidence"] -= 1
+
     if not dry_run:
         cascade._ledger_append({
             "kind": "bundle_import", "digest": report["digest"],
             "verifier": verifier, "sealed": report["sealed"],
             "demoted": report["demoted"], "drafts": report["drafts"],
             "existing": report["existing"], "conflicts": len(report["conflicts"]),
-            "rejections": report["rejections"],
+            "rejections": report["rejections"], "evidence": report["evidence"],
             "source_created_at": bundle.get("created_at", ""),
         })
         if report["rejected_here"] and not override_rejections:

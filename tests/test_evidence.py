@@ -221,15 +221,61 @@ def test_attach_records_a_content_hash_in_the_ledger(store):
     assert entry["content_sha"] == expected
 
 
-def test_export_warns_that_evidence_is_not_carried(store):
-    """The bundle format does not carry evidence (decision 0143); export says so
-    when an exported pair actually has a reference, rather than dropping it
-    silently."""
+def test_evidence_survives_an_export_import_round_trip(store, tmp_path):
+    """Carriage: a reference attached here is carried in the v3 bundle and lands
+    on the pair after importing into a fresh instance (decision 0144)."""
     from nestor import portable
-    pair = _sealed(store, "exported")
+    pair = _sealed(store, "round trip")
+    evidence.attach(pair["id"], "document", "MSA.pdf#cl.4", reason="the def",
+                    attached_by="rita", store=store)
+    bundle = portable.export_bundle(store=store)
+    assert bundle["nestor_bundle"] == 3
+    assert bundle["counts"]["evidence"] == 1
+    ok, detail = portable.verify_bundle(bundle)
+    assert ok, detail
+
+    # a fresh instance with its own store + ledger
+    cascade.set_ledger_path(tmp_path / "dest_ledger.jsonl")
+    dest = SqliteStore(":memory:")
+    dest.memory_init()
+    portable.import_bundle(bundle, store=dest, dry_run=False, verifier="sam")
+    landed = evidence.evidence_for(pair["id"], store=dest)
+    assert len(landed) == 1
+    assert landed[0]["locator"] == "MSA.pdf#cl.4"
+    assert landed[0]["kind"] == "document"
+    dest.close()
+
+
+def test_the_digest_covers_evidence_so_an_edit_is_caught(store):
+    """Tampering an evidence row after export breaks verify — evidence is inside
+    the integrity digest for v3, not bolted on beside it."""
+    from nestor import portable
+    pair = _sealed(store, "tamper")
+    evidence.attach(pair["id"], "url", "https://real", store=store)
+    bundle = portable.export_bundle(store=store)
+    assert portable.verify_bundle(bundle)[0]
+    bundle["evidence"][0]["locator"] = "https://forged"
+    ok, detail = portable.verify_bundle(bundle)
+    assert not ok and "digest mismatch" in detail
+
+
+def test_import_drops_evidence_naming_a_pair_the_bundle_does_not_carry(store, tmp_path):
+    """A hand-edited bundle whose evidence names an uncarried pair: the reference
+    is dropped, not left dangling. Export cannot produce this — only tampering."""
+    from nestor import portable
+    pair = _sealed(store, "carried")
     evidence.attach(pair["id"], "document", "x.pdf", store=store)
-    with pytest.warns(RuntimeWarning, match="does not carry evidence"):
-        portable.export_bundle(store=store)
+    bundle = portable.export_bundle(store=store)
+    bundle["evidence"][0]["pair_id"] = "ghost-pair-id-not-in-bundle"
+    bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                       bundle["evidence"], version=3)
+    cascade.set_ledger_path(tmp_path / "dest2_ledger.jsonl")
+    dest = SqliteStore(":memory:")
+    dest.memory_init()
+    report = portable.import_bundle(bundle, store=dest, dry_run=False, verifier="sam")
+    assert report["evidence"] == 0
+    assert report["dangling_evidence"] == ["ghost-pair-id-not-in-bundle"]
+    dest.close()
 
 
 def test_a_store_advertising_evidence_but_lacking_memory_get_says_so_honestly(store):

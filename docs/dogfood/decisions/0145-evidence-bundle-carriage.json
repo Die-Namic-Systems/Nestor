@@ -1,0 +1,26 @@
+{
+    "pr": null,
+    "branch": "claude/new-session-416wga",
+    "date": "2026-08-17",
+    "note": "Closes the last named residual from 0143/0144: evidence now survives an export/import round-trip. The portable bundle goes to version 3, carrying a decision_evidence row per exported pair inside the integrity digest; import re-attaches them and drops any that name an uncarried pair. Files: nestor/portable.py (BUNDLE_VERSION 3, EVIDENCE_FIELDS, digest, export, verify, import). Draft. Round-trip, digest-covers-evidence, and dangling-drop tests in test_evidence.py; the export-side 'not carried' warning added in 0144 is removed (the omission it flagged is gone).",
+    "decisions": [
+        {
+            "question": "The bundle format did not carry evidence, so a memory moved between instances lost what its claims rest on. How is it carried without breaking bundles already in circulation?",
+            "commitment": "A new EVIDENCE_FIELDS row set and BUNDLE_VERSION 3. export_bundle gathers evidence per exported pair (so nothing can dangle by construction) into bundle['evidence']; verify_bundle reads and validates it; import_bundle re-adds each row via memory_add_evidence, remapping pair_id through the same id_map the rejection loop uses. Version 1 and 2 stay readable and their digests unchanged.",
+            "why": "Evidence that cannot cross an instance boundary is evidence that vanishes exactly when a second reviewer would most want it -- when the memory is handed to them. Carrying it per-pair reuses the rejection walk's by-construction no-dangling invariant rather than inventing a new one, and gathering only references whose pair is in the bundle means the destination never holds a reference to a pair it does not have. A version bump rather than a silent field keeps the rule 0143's version-2 bump set: a bundle whose integrity check depends on which build wrote it is not an integrity check.",
+            "doors_closed": "Adding evidence to the payload without a version bump (would change the digest of bundles already in circulation). Carrying evidence for pairs the bundle does not include (would dangle on import)."
+        },
+        {
+            "question": "Is evidence inside the integrity digest, or beside it?",
+            "commitment": "Inside, for version 3 and up only. digest() gains an evidence argument and folds evidence rows into the hashed payload when version >= 3; for versions 1 and 2 the payload is byte-identical to before, so an old bundle recomputes to the same hash. A test tampers an exported evidence row and asserts verify_bundle reports a digest mismatch.",
+            "why": "A field the importer consumes but the digest does not cover is the wrong way round -- the same lesson the reopen_when bump recorded: a check that covers less than the read lets a key be edited into the file after export and land in the store while verify still passes. Gating the fold on version keeps that coverage without invalidating the v1/v2 bundles whose digest never saw evidence. The digest is still not a signature (evidence carries none), only a same-bundle check -- but it now answers that question about the whole payload, evidence included.",
+            "doors_closed": "Evidence carried outside the digest (editable post-export, undetected). Folding evidence into the v1/v2 digest (would break bundles in circulation)."
+        },
+        {
+            "question": "On import, does a re-attached reference need a signature or a fresh ledger line per row?",
+            "commitment": "No. Import writes evidence rows directly via memory_add_evidence -- no signature (evidence has none to verify) and no per-row ledger entry -- and records the count in the single bundle_import ledger line, exactly as the rejection import does. A duplicate id on re-import is caught and not counted, so a re-import is idempotent. The report gains 'evidence' and 'dangling_evidence' counters.",
+            "why": "Import is a bulk operation whose audit record is the one bundle_import entry summarising it; per-row ledger lines would be a second, redundant trail and would diverge from how every other imported row (pairs, rejections) is recorded. Evidence carries no authority, so there is nothing an import must verify before re-adding it -- the pair-existence and covenant checks that matter all live on the original attach(). Mirroring the rejection path keeps import one shape rather than two.",
+            "doors_closed": "Re-ledgering every imported evidence row (redundant with bundle_import, and inconsistent with rejection import). Requiring a signature to import a reference that never had one."
+        }
+    ]
+}
