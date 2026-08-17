@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 404,
+    "pairs": 406,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "53de4d2d8b8691f74134928fc214011728e0cbf5420026756b2baed07bdc15b9",
+  "digest": "249ce117b4b5bcc8ddf60554e1327e6f7f814a4f2b2b1eb6999d9c2726eec897",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -163,6 +163,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "a85f5f75-7a2a-5c65-81ab-9fa2ead6d888",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is running under coverage detected reliably",
+      "source_text": "How is 'running under coverage' detected reliably?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "By coverage's own `Coverage.current()` API when the module is present, with `sys.gettrace() is not None` as a fallback. gettrace alone is not enough: coverage's C tracer can leave it None, so the API check is primary and gettrace covers debuggers and the pure-Python tracer. When coverage is not installed (the local .venv), neither fires and the timing assertion runs as before — verified: `_instrumented()` is False bare and True under `sys.settrace`, and the smoke passes locally in ~18s with the assertion live.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "9a59e1e2-d535-5276-8168-e3c72341eeb5",
       "origin": "pr:None",
       "seal_sig": "",
@@ -312,6 +326,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Adopt nestor.config.Resolver / get_secret at every ad hoc call site (signing, keyring, frank, cascade, glossary, semantic_matcher, cli, ui) and add nestor.config.REGISTRY -- one VarSpec per NESTOR_* name, with a secret flag and secret_names()/configurable_names() accessors -- as the single enumerated place these vars live. Keep keyring_path() and cascade._ledger_path() env-only: enumerated in the registry for discovery, but never resolved from the config file, so a nestor.config.json riding along in a cloned working tree cannot redirect where the trust root or the audit trail come from. Non-trust knobs (glossary, frank, gate_rollup, ledger-verify interval) gain the file layer; the value-secrets (seal key, cache key) stay env-only via get_secret, as before.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "443fb7d0-3725-56e5-83a3-4a37f49544c0",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a wallclock assertion clustering 60s fails in ci at 69s but passes at 19s locally what is actually wrong and what is the fix",
+      "source_text": "A wall-clock assertion (clustering < 60s) fails in CI at ~69s but passes at ~19s locally. What is actually wrong, and what is the fix?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The measurement, not the code. CI runs pytest under `coverage run`, and coverage's tracer inflates wall-clock several-fold, so a bar measured uninstrumented is unreachable instrumented. The fix guards only the timing assertion behind `_instrumented()` (true under coverage or any tracer); the clustering call and the partition/well-formedness assertions run unconditionally. So the invariant the test exists for is checked in CI exactly as before, and only the number that coverage makes meaningless is not.",
       "verifier": "",
       "weight": 1.0
     },
