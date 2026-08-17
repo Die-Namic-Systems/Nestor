@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 382,
+    "pairs": 383,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "bf8505b6dd343be251a5f1a307faaf9cdc74ed08e094fc5f07caece764ae4567",
+  "digest": "f30708e98e4fd91b2557a3bb71cae590363e66040d3055a1386764bbce3baeef",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -100,6 +100,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Adopt nestor.config.Resolver / get_secret at every ad hoc call site (signing, keyring, frank, cascade, glossary, semantic_matcher, cli, ui) and add nestor.config.REGISTRY -- one VarSpec per NESTOR_* name, with a secret flag and secret_names()/configurable_names() accessors -- as the single enumerated place these vars live. Keep keyring_path() and cascade._ledger_path() env-only: enumerated in the registry for discovery, but never resolved from the config file, so a nestor.config.json riding along in a cloned working tree cannot redirect where the trust root or the audit trail come from. Non-trust knobs (glossary, frank, gate_rollup, ledger-verify interval) gain the file layer; the value-secrets (seal key, cache key) stay env-only via get_secret, as before.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "18f891bf-95a4-507f-9ea1-5d4a4d7ead80",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should humanfacing language translation be removed from nestor or demoted to an optional addon and what exactly may that touch without breaking the covenant",
+      "source_text": "Should human-facing language translation be removed from Nestor, or demoted to an optional add-on -- and what exactly may that touch without breaking the covenant?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Demote, do not delete, and only at the presentation layer. Translation stays a working recipe but becomes opt-in (not the desk's default, not a headline door); the desk defaults to decisions. Three layers, decided separately: (A) the presentation/positioning -- the translate recipe, the ('en','es') default, the translation-memory framing -- is demoted (the tractable part, and the one this decision authorizes). (B) the internal source_lang/target_lang naming is left as-is -- it is generic in mechanism (a decision domain already uses the same tag on both sides, nestor/decision.py:69) and renaming it would churn storage, API, tests and docs for near-zero user payoff. (C) the source_text/target_text pair model and the frozen signing contract are NOT touched.",
       "verifier": "",
       "weight": 1.0
     },
