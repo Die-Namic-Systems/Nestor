@@ -400,10 +400,11 @@ nestor/
 ├── entity.py         recipe — alias → canonical entity resolution
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
+├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
-├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges
+├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges/decision_evidence
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
@@ -464,6 +465,7 @@ docs/decision-memory.md  decisions as a Nestor recipe — the design carried in 
 docs/releasing.md     the release runbook — the decisions before a first release, and the publish workflow
 docs/install.md        the install story, verified — pipx/pip, from PyPI or a checkout, wired to the first run (§7.5)
 docs/seal-staleness-and-quorum.md  design memo (§1.4): does a seal expire, and is one enough — an argument, unimplemented
+docs/evidence-edge.md  what a sealed claim rests on, distinct from who sealed it — memo + landed core relation/report/CLI (decision 0142/0143)
 docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
 docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
 docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos (§6.50–§6.55)

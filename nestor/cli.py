@@ -225,6 +225,55 @@ def cmd_decision(args) -> int:
     return EXIT_ANSWER_IS_NO if blocked else EXIT_OK
 
 
+def cmd_evidence(args) -> int:
+    """``nestor evidence`` — attach what a claim rests on, and list the sealed
+    pairs that rest on nothing recorded (docs/evidence-edge.md, decision 0142).
+
+    ``attach`` records a reference on a pair; ``report`` prints the curator queue
+    of live sealed pairs with no evidence. The report is read-only and never
+    blocks a seal, so it always exits 0; only a usage or refusal error exits 2.
+    """
+    from . import evidence
+    store = _store(args)
+    if args.evidence_command == "attach":
+        if not args.pair_id:
+            print("a pair id is required: nestor evidence attach <pair_id> "
+                  "--kind <kind> --locator <locator>", file=sys.stderr)
+            return EXIT_USAGE
+        if not args.kind:
+            print(f"--kind is required — one of {sorted(evidence.EVIDENCE_KINDS)}",
+                  file=sys.stderr)
+            return EXIT_USAGE
+        try:
+            ev = evidence.attach(args.pair_id, args.kind, args.locator,
+                                 reason=args.reason, attached_by=args.attached_by,
+                                 store=store)
+        except ValueError as e:                     # refusal: nothing written
+            print(str(e), file=sys.stderr)
+            return EXIT_USAGE
+        if args.json:
+            _emit(ev, True)
+        else:
+            print(f"attached {args.kind} evidence to {args.pair_id}  ({ev['id']})\n"
+                  f"a reference, not a seal — this confirms nothing and changes "
+                  f"nothing about what is served.")
+        return EXIT_OK
+
+    # report — the curator queue, read-only
+    rows = evidence.unevidenced_seals(store=store)
+    if args.json:
+        _emit({"unevidenced_seals": rows, "count": len(rows)}, True)
+    elif not rows:
+        print("no live sealed pair is missing evidence.")
+    else:
+        print(f"{len(rows)} sealed pair(s) with no evidence attached — a queue "
+              f"for a human, not a block on sealing:")
+        for r in rows:
+            print(f"  {r['id']}  {r.get('source_norm', '')!r}  "
+                  f"(sealed by {r.get('verifier', '') or '(unknown)'})")
+    return EXIT_OK
+
+
 # --------------------------------------------------------------------------
 # moving the memory
 # --------------------------------------------------------------------------
@@ -728,6 +777,23 @@ def build_parser() -> argparse.ArgumentParser:
     dec.add_argument("question", help="the question a proposal is about to answer")
     domain_args(dec, source="decision", target="decision")
     dec.set_defaults(func=cmd_decision)
+
+    from .evidence import EVIDENCE_KINDS
+    ev = sub.add_parser("evidence",
+                        help="what a sealed claim rests on — attach references, "
+                             "and list the seals with none")
+    ev.add_argument("evidence_command", choices=("attach", "report"))
+    ev.add_argument("pair_id", nargs="?",
+                    help="the pair a reference attaches to (attach only)")
+    ev.add_argument("--kind", choices=sorted(EVIDENCE_KINDS),
+                    help="the reference kind (attach only)")
+    ev.add_argument("--locator", default="",
+                    help="what the reference points at — a path, url, prior seal "
+                         "id, or statement (attach only)")
+    ev.add_argument("--reason", default="", help="why it supports the pair")
+    ev.add_argument("--by", dest="attached_by", default="",
+                    help="who attached it — a label, not a credential")
+    ev.set_defaults(func=cmd_evidence)
 
     exp = sub.add_parser("export", help="write a portable, re-importable bundle")
     exp.add_argument("--out", default="", help="file to write (default: stdout)")

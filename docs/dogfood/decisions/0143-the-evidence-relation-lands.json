@@ -1,0 +1,32 @@
+{
+    "pr": null,
+    "branch": "claude/new-session-416wga",
+    "date": "2026-08-17",
+    "note": "Builds the evidence relation decision 0142 proposed, after a human said the relation is wanted (over a note-field locator). Recorded as draft: the direction came from the human but the decision is not sealed until they seal it in nestor ui -- the machine may build and propose, not confirm. Scope is core + report + CLI (no UI, no fleet wiring): a decision_evidence table in sqlite_store, an EvidenceStorage capability in storage.py, a nestor/evidence.py ceremony, the attach_evidence ledger kind (pinned in cascade.LEDGER_KINDS + test_ledger_kinds.py), and `nestor evidence attach|report`. 15 behaviour+adversarial tests in test_evidence.py; a diff-scoped security review found no seal-forgery, ledger-tamper, or secret-serialization path. docs/evidence-edge.md carries the whole argument.",
+    "decisions": [
+        {
+            "question": "Evidence attaches to a pair and records what it rests on. Does attaching it need a signature, the way an edge seal does?",
+            "commitment": "No. attach() writes a decision_evidence row and an append-only attach_evidence ledger entry, with no *_sig column and no verifier gate. A machine may attach evidence as a proposal exactly as it writes a draft. attached_by records who attached it as a plain label, never checked as a credential.",
+            "why": "A signature exists to stop the machine forging a human's ratification. Attaching a reference ratifies nothing: it never changes status, verifier, or seal_sig, never changes what is served, and is never traversed as fact. There is no authority to forge, so requiring a signature would be ceremony without a threat behind it -- and it would wrongly imply evidence is a second kind of seal. The covenant is upheld structurally (the write cannot grant authority) rather than cryptographically.",
+            "doors_closed": "Gating serving or sealing on evidence (rejected in 0142: that converts the structural fact 'a human checked this' back into a confidence score). Trusting attached_by as an identity (it grants nothing, so it needs no proof)."
+        },
+        {
+            "question": "How is the 'which sealed rows have no evidence' report computed, and what does it do?",
+            "commitment": "A store method memory_unevidenced_seals() runs one SQL join -- live (superseded_by='') sealed pairs whose id is NOT IN decision_evidence -- and nestor/evidence.py + `nestor evidence report` surface it read-only. It never writes, never blocks a seal, and always exits 0; a superseded seal is excluded because it is history, not a live claim.",
+            "why": "This is the four-line view 0142 is about, run in the store rather than read out of it. The read-only, queue-not-gate shape is the house pattern (triage/report.py, due_for_reverification, the seal-staleness memo): work for a human belongs in the queue, not the score. Excluding superseded seals keeps the queue about what is served now. The report is the cheap, reversible half of the feature and carries the value on its own.",
+            "doors_closed": "A report that blocks or downgrades a seal (would breach the covenant and withhold verified answers). Reading the ledger to compute it (the store join is exact and needs no enumerate-everything ledger pass)."
+        },
+        {
+            "question": "The store may hold proposals from several machines. Does v1 resolve where per-agent attribution lives?",
+            "commitment": "No, but it records attached_by on every evidence row from the first migration so the column is never a later retrofit. It does not build a multi-agent taxonomy and does not decide whether attribution belongs in Nestor or a sibling package -- that stays the open question 0142 named, to be settled before the schema hardens further.",
+            "why": "Attribution is 'expensive to get wrong' because other rows come to depend on the column, and it is the one question here with no defensible default -- so guessing the locus would be worse than leaving it open. Recording a plain attached_by string commits to none of the hard choices while making sure the cheap, always-safe part (knowing who attached a reference) is captured from row one rather than migrated in after data exists.",
+            "doors_closed": "Hardening a here-vs-sibling-package attribution model in v1 (premature). Shipping with no attacher recorded at all (would make attribution an expensive backfill)."
+        },
+        {
+            "question": "What may exempt a sealed row from the needs-evidence report, and what is the residual risk recorded here?",
+            "commitment": "Nothing exempts a row in v1 -- every live sealed pair without evidence is listed. Any future exemption must key on a structural fact (authorship, or a key the store cannot forge), never a list of names. Two residuals are recorded, not fixed: attach() writes the row before its ledger entry (the seal_edge order), so a broken ledger could leave an orphan evidence row -- low-stakes because evidence carries no authority; and evidence is not yet carried in the portable bundle, so it does not survive an export/import round-trip.",
+            "why": "A name-list exemption is the defect this codebase keeps deleting -- a check anyone who can write the string satisfies (0142, caution B). Having no exemption path at all in v1 is the strongest form of that guarantee: there is no string list to walk. The residuals are named so the next change starts from an honest state rather than rediscovering them: the orphan-row window is the same one seal_edge accepts, and bundle carriage is a real follow-up, not a silent gap.",
+            "doors_closed": "A blocklist/allowlist of sealer names as an exemption (structurally forbidden). Claiming evidence is bundle-portable (it is not, yet)."
+        }
+    ]
+}

@@ -2,9 +2,21 @@
 
 *Design memo for the issue "The evidence edge: Nestor can say who checked a
 claim, but not what the claim rests on" (design, question). Written 2026-08-17.
-Nothing here is implemented; the deliverable is an argument a human can reject.
-Recorded as [decision 0142](dogfood/decisions/0142-the-evidence-edge.json),
-draft.*
+The argument below is one a human can reject. Recorded as
+[decision 0142](dogfood/decisions/0142-the-evidence-edge.json), draft.*
+
+> **Landed 2026-08-17 (draft), after a human said the relation is wanted.** The
+> core relation + report + CLI of proposals #1 and #2 are built:
+> a `decision_evidence` table, an `EvidenceStorage` capability, `nestor/evidence.py`,
+> the `attach_evidence` ledger kind, and `nestor evidence attach|report`. See
+> [decision 0143](dogfood/decisions/0143-the-evidence-relation-lands.json), also
+> draft — the direction came from a human but the decision is sealed only in
+> `nestor ui`. What stayed open stayed open: the report has **no exemptions** and
+> attaching evidence carries **no signature** (it grants no authority), attribution
+> records a plain `attached_by` without resolving the multi-agent locus, and the
+> UI surface, the `rejection_signals` taxonomy (proposal #3), and bundle carriage
+> are **not** in this pass. The measure-demand-first caution below still stands;
+> the relation shipped ahead of it on the human's call.
 
 The issue's one-sentence claim: `sealed`/`draft`/`pending` answers *has a human
 checked this?* and says nothing about *what is this resting on?* — the two are

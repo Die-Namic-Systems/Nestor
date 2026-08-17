@@ -27,6 +27,7 @@ from nestor import cascade, ledger
 #: two files in one reviewed diff. Importing cascade.LEDGER_KINDS here would
 #: make this test true by construction and therefore vacuous.
 PINNED = {
+    "attach_evidence",
     "baseline_replaced", "baseline_seal", "bundle_import", "corpus_seed",
     "countersign", "edge_seal", "entity_resolve", "entity_seal", "passage",
     "proposal", "reconcile",

@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 391,
+    "pairs": 395,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "febe80f9d7ae64adb8cb90749bd9330d2208165ec8cf10831f10b8d4eeda6840",
+  "digest": "b5c2fd492eed7f033fc41865e5a31e71ae4b68fc4104004e267e72064edff124",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -72,6 +72,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "scripts/dep-audit.sh runs pip-audit over the resolved [dev] environment (not the empty dependencies=[] list), wired identically into ci-lint.sh and the CI lint job per the §6.111 shared-script pattern. An unreachable vulnerability database fails the gate as UNKNOWN, never passes as clean (decision 0127); skips are cleared by *reason* -- every 'distribution marked as editable' row is the deliberate --skip-editable result -- rather than by a hardcoded package name, so the gate stays correct in a dev venv carrying more than one editable install of this tree, and any skip for another reason (metadata error, not-found-on-PyPI) still fails loud as unaudited. CI upgrades pip/setuptools before the audit so a whole-environment scan does not flap on a stale runner toolchain.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "c29bfadf-5f60-5c25-86b2-c0fbdd76da97",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the which sealed rows have no evidence report computed and what does it do",
+      "source_text": "How is the 'which sealed rows have no evidence' report computed, and what does it do?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A store method memory_unevidenced_seals() runs one SQL join -- live (superseded_by='') sealed pairs whose id is NOT IN decision_evidence -- and nestor/evidence.py + `nestor evidence report` surface it read-only. It never writes, never blocks a seal, and always exits 0; a superseded seal is excluded because it is history, not a live claim.",
       "verifier": "",
       "weight": 1.0
     },
@@ -147,6 +161,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "62b5ae09-d67b-587b-ae14-2f66dcb90d4c",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "evidence attaches to a pair and records what it rests on does attaching it need a signature the way an edge seal does",
+      "source_text": "Evidence attaches to a pair and records what it rests on. Does attaching it need a signature, the way an edge seal does?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. attach() writes a decision_evidence row and an append-only attach_evidence ledger entry, with no *_sig column and no verifier gate. A machine may attach evidence as a proposal exactly as it writes a draft. attached_by records who attached it as a plain label, never checked as a credential.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "5033cf37-e60f-5ad4-82db-ba8cf643dc62",
       "origin": "pr:None",
       "seal_sig": "",
@@ -198,6 +226,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Add to seal_edge the same two guards propose_edge already has: reject src_id == dst_id, and reject an edge whose endpoints are not both live decisions in this store (via memory_get, gracefully skipped on a store without it). The self-relation check goes before the signature gate (a pure request check that reads nothing), the existence check goes AFTER it (so it reads the store only for a caller who has already proven authority). Two adversarial tests attempt the forbidden act WITH a valid signature and assert nothing is written.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "2a767a44-0c1a-53ae-bd6f-2f10d98c5b06",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the store may hold proposals from several machines does v1 resolve where peragent attribution lives",
+      "source_text": "The store may hold proposals from several machines. Does v1 resolve where per-agent attribution lives?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, but it records attached_by on every evidence row from the first migration so the column is never a later retrofit. It does not build a multi-agent taxonomy and does not decide whether attribution belongs in Nestor or a sibling package -- that stays the open question 0142 named, to be settled before the schema hardens further.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "298e10af-903c-54cc-a356-c1758b4fe6d9",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what may exempt a sealed row from the needsevidence report and what is the residual risk recorded here",
+      "source_text": "What may exempt a sealed row from the needs-evidence report, and what is the residual risk recorded here?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing exempts a row in v1 -- every live sealed pair without evidence is listed. Any future exemption must key on a structural fact (authorship, or a key the store cannot forge), never a list of names. Two residuals are recorded, not fixed: attach() writes the row before its ledger entry (the seal_edge order), so a broken ledger could leave an orphan evidence row -- low-stakes because evidence carries no authority; and evidence is not yet carried in the portable bundle, so it does not survive an export/import round-trip.",
       "verifier": "",
       "weight": 1.0
     },
