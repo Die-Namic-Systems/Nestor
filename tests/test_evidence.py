@@ -191,6 +191,47 @@ def test_a_broken_ledger_refuses_the_attach_before_the_row_is_written(store, tmp
     assert evidence.evidence_for(pair["id"], store=store) == []
 
 
+# -- audit follow-up: domain scope, content hash, bundle warning ------------
+
+def test_the_report_can_scope_to_one_domain(store):
+    """A multi-domain store's queue can be narrowed; unscoped, it lists all."""
+    d = _sealed(store, "decision seal")                     # decision/decision
+    t = memory.add_pair("hola", "hello", "es", "en", status="sealed",
+                        verifier="rita", store=store)        # es/en
+    allrows = {r["id"] for r in evidence.unevidenced_seals(store=store)}
+    assert allrows == {d["id"], t["id"]}                    # both, unscoped
+    dec = evidence.unevidenced_seals(store=store, source_lang="decision",
+                                     target_lang="decision")
+    assert [r["id"] for r in dec] == [d["id"]]
+    tr = evidence.unevidenced_seals(store=store, source_lang="es", target_lang="en")
+    assert [r["id"] for r in tr] == [t["id"]]
+
+
+def test_attach_records_a_content_hash_in_the_ledger(store):
+    """The attach_evidence entry carries a hash of the mutable content, so an
+    out-of-band edit to a row's locator/reason is detectable against the chain."""
+    import hashlib
+    pair = _sealed(store, "hashed")
+    ev = evidence.attach(pair["id"], "document", "MSA.pdf", reason="clause 4",
+                         store=store)
+    entry = [e for e in ledger.entries(kind="attach_evidence")
+             if e.get("evidence_id") == ev["id"]][0]
+    expected = hashlib.sha256(
+        "\n".join(("document", "MSA.pdf", "clause 4")).encode()).hexdigest()
+    assert entry["content_sha"] == expected
+
+
+def test_export_warns_that_evidence_is_not_carried(store):
+    """The bundle format does not carry evidence (decision 0143); export says so
+    when an exported pair actually has a reference, rather than dropping it
+    silently."""
+    from nestor import portable
+    pair = _sealed(store, "exported")
+    evidence.attach(pair["id"], "document", "x.pdf", store=store)
+    with pytest.warns(RuntimeWarning, match="does not carry evidence"):
+        portable.export_bundle(store=store)
+
+
 def test_a_store_advertising_evidence_but_lacking_memory_get_says_so_honestly(store):
     """supports_evidence checks three ops; attach also needs memory_get (a
     different capability). A store shaped that way must get an honest capability

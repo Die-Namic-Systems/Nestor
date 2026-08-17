@@ -41,11 +41,12 @@ import json
 import uuid
 import warnings
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from . import cascade, ledger as ledger_mod, memory, signing
 from .matcher import Matcher, matcher_audit_fields
-from .storage import (Storage, get_store, supports_curation, supports_rejection,
+from .storage import (EvidenceStorage, Storage, get_store, supports_curation,
+                      supports_evidence, supports_rejection,
                       supports_rejection_listing)
 
 #: Version 2 carries ``reopen_when`` on rejections. Bumped rather than added
@@ -283,6 +284,18 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
                 f"raw candidate is NOT in it.", RuntimeWarning, stacklevel=2)
         rejections = [_row(r, REJECTION_FIELDS) for r in by_id.values()]
         rejections.sort(key=lambda r: (r.get("created_at", ""), r.get("id", "")))
+    # Evidence is not carried by the bundle format (decision 0143, a named
+    # follow-up). Warn only when an exported pair actually has a reference
+    # attached, so the omission is visible rather than silent — the same posture
+    # the rejection-listing gap above takes — without a false alarm on a store
+    # that has the capability but no evidence.
+    if supports_evidence(store) and any(
+            cast(EvidenceStorage, store).memory_evidence_for(p["id"])
+            for p in pairs):
+        warnings.warn(
+            "this bundle does not carry evidence (docs/evidence-edge.md); "
+            "references attached to these sealed pairs are NOT exported and will "
+            "be absent after import.", RuntimeWarning, stacklevel=2)
     if pairs_truncated:
         warnings.warn(
             f"export hit its pair limit ({limit}); this bundle is a prefix of the "

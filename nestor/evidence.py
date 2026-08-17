@@ -30,6 +30,7 @@ See ``docs/evidence-edge.md`` and decision 0142.
 """
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, cast
@@ -125,8 +126,19 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
         "kind": "attach_evidence", "pair_id": pair_id, "evidence_id": ev["id"],
         "evidence_kind": kind, "attaches_to": ev["attaches_to"],
         "attached_by": attached_by,
+        # A hash of the mutable content (like a seal's source_sha/target_sha), so
+        # an out-of-band edit to the row's locator or reason is detectable
+        # against the append-only chain — not a signature, evidence holds no
+        # authority, just tamper-evidence for an audit.
+        "content_sha": _content_sha(kind, locator, reason),
     })
     return ev
+
+
+def _content_sha(kind: str, locator: str, reason: str) -> str:
+    """A stable hash of an evidence row's mutable content fields."""
+    return hashlib.sha256(
+        "\n".join((kind, locator, reason)).encode("utf-8")).hexdigest()
 
 
 def evidence_for(pair_id: str, store: Optional[Storage] = None) -> list[dict]:
@@ -136,14 +148,19 @@ def evidence_for(pair_id: str, store: Optional[Storage] = None) -> list[dict]:
     return cast(EvidenceStorage, store).memory_evidence_for(pair_id)
 
 
-def unevidenced_seals(store: Optional[Storage] = None) -> list[dict]:
+def unevidenced_seals(store: Optional[Storage] = None, *,
+                      source_lang: str = "", target_lang: str = "") -> list[dict]:
     """Live sealed pairs with no evidence attached — the curator queue.
 
     Read-only. Never blocks a seal, never changes a score. The analogue of the
     SQL view in decision 0142: a sealed row is groundless not because it is
     wrong but because nothing recorded what it rests on, and only this can say
     so — the seal itself cannot.
+
+    ``source_lang`` / ``target_lang`` optionally scope the queue to one domain;
+    empty (the default) is every domain.
     """
     store = get_store(store)
     _require_evidence(store)
-    return cast(EvidenceStorage, store).memory_unevidenced_seals()
+    return cast(EvidenceStorage, store).memory_unevidenced_seals(
+        source_lang, target_lang)

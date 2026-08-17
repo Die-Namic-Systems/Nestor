@@ -507,7 +507,8 @@ class EvidenceStorage(Storage, Protocol):
 
     def memory_evidence_for(self, pair_id: str) -> list[dict]: ...
 
-    def memory_unevidenced_seals(self) -> list[dict]: ...
+    def memory_unevidenced_seals(self, source_lang: str = "",
+                                 target_lang: str = "") -> list[dict]: ...
 
 
 def supports_evidence(store: "Storage") -> bool:

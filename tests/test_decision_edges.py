@@ -209,6 +209,33 @@ def test_seal_edge_refuses_an_edge_to_a_decision_that_does_not_exist(store, sean
     assert dm.all_edges([a, ghost]) == []          # no junk edge minted
 
 
+def test_seal_edge_refuses_when_the_store_cannot_look_up_endpoints(store, sean):
+    """supports_edges does not include memory_get, so a store can advertise the
+    graph and lack it. Silently skipping the endpoint check then let a VALID
+    signature seal an edge against ids nothing verifies (the fail-open the audit
+    found). It now refuses — fail closed — the way evidence.attach does."""
+    dm, a, b = _two_decisions(store)
+
+    class NoGet:
+        """Advertises the graph capability but hides memory_get."""
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            if name == "memory_get":
+                raise AttributeError(name)
+            return getattr(self._inner, name)
+
+    blind = NoGet(store)
+    assert storage.supports_edges(blind) is True           # it advertises edges
+    dm2 = DecisionMemory(blind)
+    sig = _sign_edge(sean, a, b, "depends_on")             # a real signature
+    assert signing.edge_is_valid(a, b, "depends_on", "sean", sig)
+    with pytest.raises(RuntimeError, match="memory_get"):
+        dm2.seal_edge(a, b, "depends_on", "sean", sig)
+    assert dm.all_edges([a, b]) == []                       # nothing sealed
+
+
 # -- constraints_on carries the rest of the record ---------------------------
 
 def test_constraints_on_reports_live_decision(store):

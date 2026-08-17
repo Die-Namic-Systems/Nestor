@@ -904,7 +904,8 @@ class SqliteStore:
                 "SELECT * FROM decision_evidence WHERE pair_id=? "
                 "ORDER BY created_at DESC, id", (pair_id,))]
 
-    def memory_unevidenced_seals(self) -> list[dict]:
+    def memory_unevidenced_seals(self, source_lang: str = "",
+                                 target_lang: str = "") -> list[dict]:
         """The report: every LIVE sealed pair with no evidence attached.
 
         The four-line view decision 0142 is about, run in the store rather than
@@ -912,14 +913,26 @@ class SqliteStore:
         not a live claim — out of the queue; the ``NOT IN`` is the whole test.
         Read-only: this never writes and never gates a seal. Ordered stably so a
         caller and a test can pin it.
+
+        ``source_lang`` / ``target_lang`` optionally narrow the queue to one
+        domain (a decision recipe rides its domain in both tags); empty means
+        every domain, so a curator on a multi-domain store can scope the queue
+        instead of reading translation and decision seals interleaved.
         """
+        q = ("SELECT id, source_norm, source_lang, target_lang, target_text, "
+             "verifier FROM tm_pairs "
+             "WHERE status='sealed' AND superseded_by='' "
+             "AND id NOT IN (SELECT pair_id FROM decision_evidence)")
+        args: tuple = ()
+        if source_lang:
+            q += " AND source_lang=?"
+            args += (source_lang,)
+        if target_lang:
+            q += " AND target_lang=?"
+            args += (target_lang,)
         with self._db() as conn:
-            return [dict(r) for r in conn.execute(
-                "SELECT id, source_norm, source_lang, target_text, verifier "
-                "FROM tm_pairs "
-                "WHERE status='sealed' AND superseded_by='' "
-                "AND id NOT IN (SELECT pair_id FROM decision_evidence) "
-                "ORDER BY source_norm, id")]
+            return [dict(r) for r in conn.execute(q + " ORDER BY source_norm, id",
+                                                  args)]
 
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 

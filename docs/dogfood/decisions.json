@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 395,
+    "pairs": 399,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "58895a0a28edb01165cc6554d320ab979419bdf606cac90442f6d8dcfdc4523b",
+  "digest": "3bc52d83beae85d41ab2e18c194159331c52fa51cd57b06f5be849eac0bf8868",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -133,6 +133,34 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "9a59e1e2-d535-5276-8168-e3c72341eeb5",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the edge endpointexistence check defaulted memory_get to a lambda returning true so on a store lacking memory_get a signed edge could be sealed against ids that name no decision how is that closed",
+      "source_text": "The edge endpoint-existence check defaulted memory_get to a lambda returning True, so on a store lacking memory_get a signed edge could be sealed against ids that name no decision. How is that closed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "propose_edge and seal_edge now call a _require_pair_lookup() helper that refuses (RuntimeError naming the missing capability) when memory_get is absent, then read the store directly. Fail closed: an edge whose endpoints cannot be verified is one that must not be ratified. A regression test wraps a store to hide memory_get, presents a VALID signature, and asserts seal_edge raises and nothing is sealed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "8973c75a-d4e4-5c7c-a6d2-3d5e811a9de6",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the unevidencedseals report had no domain predicate so a multidomain stores curator saw decision translation and entity seals interleaved with no way to narrow intended",
+      "source_text": "The unevidenced-seals report had no domain predicate, so a multi-domain store's curator saw decision, translation, and entity seals interleaved with no way to narrow. Intended?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No -- it fell out of the query. memory_unevidenced_seals now takes optional source_lang/target_lang (empty = every domain, unchanged default), threaded through evidence.unevidenced_seals and a `nestor evidence report --from/--to`. A test seals a decision-domain and an es/en pair and asserts the unscoped report lists both while each scoped call lists only its own.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "837eee12-4604-5e7f-aec5-03bd68fd7c6d",
       "origin": "pr:None",
       "seal_sig": "",
@@ -142,6 +170,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Memoize the /api/triage response on the App under a sha256 signature of the decisions (id, status, question, commitment): computed once per store-state, reused until a seal, edit, or new decision changes the signature (measured: first call ~22s, second ~0.007s). Paint a 'computing...' loading card before the first uncached compute so the tab reads as working, not broken. Both are read-only -- the cache holds only a response dict, guarded by a module lock while the compute runs outside it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "7bb93622-d63a-52fb-aca3-d7ce5edb10d5",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the attach_evidence ledger entry recorded only ids and labels so an outofband edit to a rows locator or reason left no trace what is added",
+      "source_text": "The attach_evidence ledger entry recorded only ids and labels, so an out-of-band edit to a row's locator or reason left no trace. What is added?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A content_sha over (kind, locator, reason) is written into the attach_evidence ledger entry, mirroring a seal's source_sha/target_sha. Not a signature -- evidence holds no authority -- but tamper-evidence: a later audit can recompute the hash from the row and detect a mismatch against the append-only chain. A test asserts the entry's content_sha equals the expected digest.",
       "verifier": "",
       "weight": 1.0
     },
@@ -268,6 +310,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Demote, do not delete, and only at the presentation layer. Translation stays a working recipe but becomes opt-in (not the desk's default, not a headline door); the desk defaults to decisions. Three layers, decided separately: (A) the presentation/positioning -- the translate recipe, the ('en','es') default, the translation-memory framing -- is demoted (the tractable part, and the one this decision authorizes). (B) the internal source_lang/target_lang naming is left as-is -- it is generic in mechanism (a decision domain already uses the same tag on both sides, nestor/decision.py:69) and renaming it would churn storage, API, tests and docs for near-zero user payoff. (C) the source_text/target_text pair model and the frozen signing contract are NOT touched.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "131f0f02-f678-5d45-8ee0-4739a12d2367",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "bundle export carries no evidence 0143s named followup silent drop or visible",
+      "source_text": "Bundle export carries no evidence (0143's named follow-up). Silent drop, or visible?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Visible. export_bundle now warns (RuntimeWarning) when an exported pair actually has a reference attached, saying evidence is not carried and will be absent after import. It does NOT warn when the store has the capability but no evidence, so there is no false alarm. A test attaches a reference and asserts the warning; the omission itself stays a real follow-up (carrying evidence in the bundle), not fixed here.",
       "verifier": "",
       "weight": 1.0
     },

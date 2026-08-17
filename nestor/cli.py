@@ -260,14 +260,19 @@ def cmd_evidence(args) -> int:
         return EXIT_OK
 
     # report — the curator queue, read-only
-    rows = evidence.unevidenced_seals(store=store)
+    rows = evidence.unevidenced_seals(store=store, source_lang=args.source_lang,
+                                      target_lang=args.target_lang)
+    scope = ""
+    if args.source_lang or args.target_lang:
+        scope = f" in {args.source_lang or '*'}→{args.target_lang or '*'}"
     if args.json:
-        _emit({"unevidenced_seals": rows, "count": len(rows)}, True)
+        _emit({"unevidenced_seals": rows, "count": len(rows),
+               "source_lang": args.source_lang, "target_lang": args.target_lang}, True)
     elif not rows:
-        print("no live sealed pair is missing evidence.")
+        print(f"no live sealed pair{scope} is missing evidence.")
     else:
-        print(f"{len(rows)} sealed pair(s) with no evidence attached — a queue "
-              f"for a human, not a block on sealing:")
+        print(f"{len(rows)} sealed pair(s){scope} with no evidence attached — a "
+              f"queue for a human, not a block on sealing:")
         for r in rows:
             print(f"  {r['id']}  {r.get('source_norm', '')!r}  "
                   f"(sealed by {r.get('verifier', '') or '(unknown)'})")
@@ -793,6 +798,9 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--reason", default="", help="why it supports the pair")
     ev.add_argument("--by", dest="attached_by", default="",
                     help="who attached it — a label, not a credential")
+    ev.add_argument("--source-lang", "--from", dest="source_lang", default="",
+                    help="report only: scope the queue to one domain (default: all)")
+    ev.add_argument("--target-lang", "--to", dest="target_lang", default="")
     ev.set_defaults(func=cmd_evidence)
 
     exp = sub.add_parser("export", help="write a portable, re-importable bundle")
