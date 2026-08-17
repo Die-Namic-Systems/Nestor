@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.5.0](https://github.com/rudi193-cmd/Nestor/compare/v0.4.0...v0.5.0) (2026-08-17)
+
+
+### Added
+
+* nestor evidence for &lt;pair&gt; — read a pair's attached references ([ae95718](https://github.com/rudi193-cmd/Nestor/commit/ae9571832f81012c706557c2794b2e9eb8b7e2bd))
+* nestor evidence for &lt;pair&gt; — read a pair's attached references ([#131](https://github.com/rudi193-cmd/Nestor/issues/131)) ([a18abd0](https://github.com/rudi193-cmd/Nestor/commit/a18abd064193c55e89608ac9c4f385be7e338dd4))
+
 ## [0.4.0](https://github.com/rudi193-cmd/Nestor/compare/v0.3.2...v0.4.0) (2026-08-16)
 
 
