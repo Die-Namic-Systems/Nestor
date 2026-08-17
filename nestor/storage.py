@@ -494,6 +494,35 @@ def supports_edges(store: "Storage") -> bool:
     return all(callable(getattr(store, op, None)) for op in _EDGE_OPS)
 
 
+_EVIDENCE_OPS = ("memory_add_evidence", "memory_evidence_for",
+                 "memory_unevidenced_seals")
+
+
+class EvidenceStorage(Storage, Protocol):
+    """``Storage`` plus the evidence capability (docs/evidence-edge.md) — a
+    ``cast`` target on the same terms as :class:`EdgeStorage`; see
+    :func:`supports_evidence`."""
+
+    def memory_add_evidence(self, ev: dict) -> None: ...
+
+    def memory_evidence_for(self, pair_id: str) -> list[dict]: ...
+
+    def memory_unevidenced_seals(self, source_lang: str = "",
+                                 target_lang: str = "") -> list[dict]: ...
+
+
+def supports_evidence(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional evidence capability
+    (docs/evidence-edge.md).
+
+    Its own predicate on :func:`supports_edges`' precedent — a host store
+    without it still seals and serves exactly as before; it simply cannot record
+    what a claim rests on, so :func:`nestor.evidence.attach` raises rather than
+    dropping the reference, and the unevidenced-seals report is unavailable.
+    """
+    return all(callable(getattr(store, op, None)) for op in _EVIDENCE_OPS)
+
+
 _store: "Optional[Storage]" = None
 
 

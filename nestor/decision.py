@@ -94,6 +94,25 @@ class DecisionMemory:
                 f"decision-graph capability (memory_add_edge, memory_edges_to, "
                 f"memory_edges_from, memory_seal_edge — see nestor.storage).")
 
+    def _require_pair_lookup(self) -> None:
+        """An edge's endpoints must be checkable against real decisions.
+
+        ``supports_edges`` does not include ``memory_get`` (that is the curation
+        capability), so a store can advertise the graph and lack it. The
+        endpoint-existence guard below then cannot run — and *silently skipping*
+        it, as this code first did, lets a **signed** edge be sealed against ids
+        that name no decision. Refuse instead: an edge you cannot verify the
+        ends of is one you must not ratify. Fail closed, the way
+        :func:`nestor.evidence.attach` does for the same missing capability.
+        Recorded in decision 0144 (it revises 0141's 'gracefully skipped').
+        """
+        if not callable(getattr(self.store, "memory_get", None)):
+            raise RuntimeError(
+                f"{type(self.store).__name__} implements the decision-graph "
+                f"capability but not memory_get, needed to confirm an edge's "
+                f"endpoints are real decisions (the curation capability — see "
+                f"nestor.storage.supports_curation).")
+
     def propose_edge(self, src_id: str, dst_id: str, kind: str,
                      reason: str = "") -> dict:
         """Propose that decision ``src_id`` ``kind`` decision ``dst_id``.
@@ -108,8 +127,9 @@ class DecisionMemory:
                 f"unknown edge kind {kind!r} — one of {sorted(EDGE_KINDS)}")
         if src_id == dst_id:
             raise ValueError("a decision cannot relate to itself")
+        self._require_pair_lookup()
         for pid in (src_id, dst_id):
-            if getattr(self.store, "memory_get", lambda _p: True)(pid) is None:
+            if self.store.memory_get(pid) is None:
                 raise ValueError(f"no decision {pid!r} in this store")
         edge = {"id": str(uuid.uuid4()), "src_id": src_id, "dst_id": dst_id,
                 "kind": kind, "reason": reason, "verifier": "",
@@ -147,8 +167,9 @@ class DecisionMemory:
         # caller-supplied request, and reading the store only for a caller who
         # has already proven authority keeps it from being an existence oracle
         # for an unsigned probe.
+        self._require_pair_lookup()
         for pid in (src_id, dst_id):
-            if getattr(self.store, "memory_get", lambda _p: True)(pid) is None:
+            if self.store.memory_get(pid) is None:
                 raise ValueError(f"no decision {pid!r} in this store")
         # Same check-then-cast shape as propose_edge above.
         edge_store = cast(EdgeStorage, self.store)

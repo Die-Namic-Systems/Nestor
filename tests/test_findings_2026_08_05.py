@@ -179,11 +179,39 @@ class TestTheVersionBumpDoesNotOrphanOlderBundles:
         ok, detail = portable.verify_bundle(bundle)
         assert ok, f"a version-1 bundle stopped verifying after the bump: {detail}"
 
+    def test_a_version_2_bundle_still_verifies(self):
+        # The v2 bump (reopen_when) must not be orphaned by the v3 bump
+        # (evidence): a v2 bundle's digest never saw an evidence key, and the
+        # version gate keeps it that way. Hashed the way v2 hashed it.
+        pairs = [{"id": "p1", "source_text": "q", "source_norm": "q",
+                  "source_lang": "d", "target_lang": "d", "target_text": "a",
+                  "status": "draft", "verifier": "", "weight": 1.0, "origin": "",
+                  "created_at": "2026-01-01T00:00:00+00:00", "seal_sig": ""}]
+        rejections = [{"id": "r1", "query_norm": "q", "source_lang": "d",
+                       "target_lang": "d", "pair_id": "", "target_text": "no",
+                       "verifier": "rita", "reason": "because",
+                       "created_at": "2026-01-01T00:00:00+00:00", "reject_sig": "",
+                       "reopen_when": "when the rule changes"}]
+
+        def rows(raw, fields):
+            return sorted(({f: portable._canonical(r.get(f)) for f in fields}
+                           for r in raw), key=lambda r: r.get("id", ""))
+
+        payload = json.dumps(
+            {"pairs": rows(pairs, portable.PAIR_FIELDS),
+             "rejections": rows(rejections, portable.REJECTION_FIELDS)},
+            sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        bundle = {"nestor_bundle": 2, "pairs": pairs, "rejections": rejections,
+                  "digest": hashlib.sha256(payload.encode("utf-8")).hexdigest()}
+
+        ok, detail = portable.verify_bundle(bundle)
+        assert ok, f"a version-2 bundle stopped verifying after the bump: {detail}"
+
     def test_the_current_build_writes_the_new_version(self, store):
         _decision(store, "q", "a")
-        assert portable.export_bundle(store)["nestor_bundle"] == 2
-        assert portable.BUNDLE_VERSION == 2
-        assert set(portable.SUPPORTED_BUNDLE_VERSIONS) == {1, 2}
+        assert portable.export_bundle(store)["nestor_bundle"] == 3
+        assert portable.BUNDLE_VERSION == 3
+        assert set(portable.SUPPORTED_BUNDLE_VERSIONS) == {1, 2, 3}
 
     def test_an_unknown_version_is_still_refused(self):
         ok, detail = portable.verify_bundle({"nestor_bundle": 99, "pairs": [],

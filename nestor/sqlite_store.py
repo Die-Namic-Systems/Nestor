@@ -129,6 +129,29 @@ CREATE TABLE IF NOT EXISTS decision_edges (
 );
 CREATE INDEX IF NOT EXISTS idx_decision_edges_dst ON decision_edges(dst_id, kind);
 CREATE INDEX IF NOT EXISTS idx_decision_edges_src ON decision_edges(src_id, kind);
+
+-- Evidence (docs/evidence-edge.md, decision 0142). The orthogonal axis to the
+-- seal: `status` answers *has a human checked this?*, this answers *what does it
+-- rest on?*. A sealed pair may carry no evidence and a draft may carry plenty,
+-- so this is a separate relation, not a column on tm_pairs.
+--
+-- Unlike `decision_edges`, there is no `*_sig`: attaching a reference is not a
+-- ratification. It is additive, append-only, and changes neither what is served
+-- nor whether a pair is sealed, so it carries no authority and needs none -- a
+-- machine may attach evidence as a proposal exactly as it may write a draft.
+-- `attached_by` records who attached it (a plain label, not a credential); it is
+-- kept from the first row so attribution never has to be a later migration.
+CREATE TABLE IF NOT EXISTS decision_evidence (
+    id          TEXT PRIMARY KEY,
+    pair_id     TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    locator     TEXT NOT NULL,
+    attaches_to TEXT NOT NULL DEFAULT '',
+    reason      TEXT NOT NULL DEFAULT '',
+    attached_by TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_decision_evidence_pair ON decision_evidence(pair_id);
 """
 
 
@@ -854,6 +877,62 @@ class SqliteStore:
                 "UPDATE decision_edges SET verifier=?, edge_sig=? WHERE id=?",
                 (verifier, edge_sig, edge_id))
             return cur.rowcount == 1
+
+    # --- evidence (optional; docs/evidence-edge.md, decision 0142) --------
+
+    def memory_add_evidence(self, ev: dict) -> None:
+        """Insert one evidence reference verbatim, append-only.
+
+        The recipe (:mod:`nestor.evidence`) owns the ceremony — which kinds are
+        legal, that the pair exists, the ledger entry — exactly as
+        ``memory.supersede_pair`` owns it for ``memory_mark_superseded``. There
+        is no update or delete path: evidence accumulates, it is never rewritten.
+        """
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO decision_evidence (id, pair_id, kind, locator, "
+                "attaches_to, reason, attached_by, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (ev["id"], ev["pair_id"], ev["kind"], ev["locator"],
+                 ev.get("attaches_to", ""), ev.get("reason", ""),
+                 ev.get("attached_by", ""), ev["created_at"]))
+
+    def memory_evidence_for(self, pair_id: str) -> list[dict]:
+        """Every reference attached to ``pair_id``, newest first."""
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(
+                "SELECT * FROM decision_evidence WHERE pair_id=? "
+                "ORDER BY created_at DESC, id", (pair_id,))]
+
+    def memory_unevidenced_seals(self, source_lang: str = "",
+                                 target_lang: str = "") -> list[dict]:
+        """The report: every LIVE sealed pair with no evidence attached.
+
+        The four-line view decision 0142 is about, run in the store rather than
+        read out of it. ``superseded_by=''`` keeps a superseded seal — history,
+        not a live claim — out of the queue; the ``NOT IN`` is the whole test.
+        Read-only: this never writes and never gates a seal. Ordered stably so a
+        caller and a test can pin it.
+
+        ``source_lang`` / ``target_lang`` optionally narrow the queue to one
+        domain (a decision recipe rides its domain in both tags); empty means
+        every domain, so a curator on a multi-domain store can scope the queue
+        instead of reading translation and decision seals interleaved.
+        """
+        q = ("SELECT id, source_norm, source_lang, target_lang, target_text, "
+             "verifier FROM tm_pairs "
+             "WHERE status='sealed' AND superseded_by='' "
+             "AND id NOT IN (SELECT pair_id FROM decision_evidence)")
+        args: tuple = ()
+        if source_lang:
+            q += " AND source_lang=?"
+            args += (source_lang,)
+        if target_lang:
+            q += " AND target_lang=?"
+            args += (target_lang,)
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(q + " ORDER BY source_norm, id",
+                                                  args)]
 
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 

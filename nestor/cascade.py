@@ -339,6 +339,7 @@ def ledger_preflight() -> None:
 #: kind is deliberate: add it here AND to the pinning test
 #: (tests/test_ledger_kinds.py), in the same change as its first writer.
 LEDGER_KINDS = frozenset({
+    "attach_evidence",
     "baseline_replaced", "baseline_seal", "bundle_import", "corpus_seed",
     "countersign", "edge_seal", "entity_resolve", "entity_seal", "passage",
     "proposal", "reconcile",

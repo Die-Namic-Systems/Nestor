@@ -51,7 +51,8 @@ def source(tmp_path, seal_key):
 def test_export_carries_pairs_rejections_signatures_and_a_digest(source):
     b = portable.export_bundle(source)
     assert b["nestor_bundle"] == portable.BUNDLE_VERSION
-    assert b["counts"] == {"pairs": 3, "sealed": 2, "servable": 2, "rejections": 1}
+    assert b["counts"] == {"pairs": 3, "sealed": 2, "servable": 2,
+                           "rejections": 1, "evidence": 0}
     assert all(p["seal_sig"] for p in b["pairs"] if p["status"] == "sealed")
     json.dumps(b)                                   # must round-trip
     ok, detail = portable.verify_bundle(b)
