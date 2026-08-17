@@ -20,6 +20,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from .errors import NestorError
+
 __all__ = ["HomeRelocationRefused", "home", "keep_dir", "ledger_path", "bind_ledger"]
 
 _ROOT_ENV = "NESTOR_HOME"
@@ -30,7 +32,7 @@ _ROOT_NAME = ".nestor"
 _LEGACY_ENV = "HOMESTEAD_HOME"
 
 
-class HomeRelocationRefused(RuntimeError):
+class HomeRelocationRefused(NestorError):
     """``$HOMESTEAD_HOME`` is set and ``$NESTOR_HOME`` is not — refuse to guess.
 
     Raised instead of quietly resolving to ``~/.nestor``, because that answer

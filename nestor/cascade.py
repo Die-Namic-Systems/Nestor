@@ -16,6 +16,7 @@ call :func:`set_ledger_path`. It defaults to the original ``data/ledger.jsonl``.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import pathlib
@@ -442,6 +443,29 @@ def ledger_append(entry: dict) -> None:
 _ledger_append = ledger_append
 
 
+def _accepted_kwargs(func, **candidates) -> dict:
+    """Which of ``candidates`` ``func`` accepts, decided by its signature.
+
+    A draft engine's ``translate`` may take ``store=``/``matcher=`` (widened over
+    time), one, or neither. This used to be probed with a ``try/except TypeError``
+    cascade — call with both, retry with fewer on ``TypeError`` — but that could
+    not tell "this engine doesn't accept ``matcher=``" from a genuine ``TypeError``
+    raised *inside* the engine body: the real bug was swallowed and the call
+    silently retried with fewer args (extra side effects, e.g. a second draft-API
+    call). Reading the signature answers the same question without catching an
+    exception the engine meant to raise. A callable we cannot introspect (a C
+    builtin, say) or one taking ``**kwargs`` gets every candidate — the old
+    permissive behavior, minus the swallowing.
+    """
+    try:
+        params = inspect.signature(func).parameters
+    except (ValueError, TypeError):
+        return dict(candidates)
+    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return dict(candidates)
+    return {name: value for name, value in candidates.items() if name in params}
+
+
 def translate_segment(text: str, source_lang: str, target_lang: str,
                       engine=None, document_id: str = "", position: int = 0,
                       store: Optional[Storage] = None,
@@ -481,15 +505,8 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
         # custom engine written against the older signature keeps working and
         # falls back to the process-wide matcher, which is what it was already
         # using.
-        try:
-            draft = engine.translate(text, source_lang, target_lang, store=store,
-                                     matcher=matcher)
-        except TypeError:
-            try:
-                draft = engine.translate(text, source_lang, target_lang, store=store)
-            except TypeError:
-                # A custom engine that doesn't accept store= relies on the global store.
-                draft = engine.translate(text, source_lang, target_lang)
+        kwargs = _accepted_kwargs(engine.translate, store=store, matcher=matcher)
+        draft = engine.translate(text, source_lang, target_lang, **kwargs)
         if draft:
             passage = Passage(source=text, target=draft.text, tier=2, state="draft",
                               engine=draft.engine, confidence=draft.confidence)

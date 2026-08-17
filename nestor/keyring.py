@@ -56,12 +56,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+from .errors import NestorError
 
-class KeyringError(RuntimeError):
+
+class KeyringError(NestorError):
     """The keyring cannot be used as given (unreadable, malformed, unsafe)."""
 
 
-class UnknownVerifierError(RuntimeError):
+class UnknownVerifierError(NestorError):
     """A keyring is installed and this verifier is not in it.
 
     Raised at *seal* time, before anything is written. With per-verifier keys
@@ -70,7 +72,7 @@ class UnknownVerifierError(RuntimeError):
     """
 
 
-class RevokedKeyError(RuntimeError):
+class RevokedKeyError(NestorError):
     """This verifier's key has been revoked; it cannot make new seals.
 
     Whether their *existing* seals still serve depends on why it was revoked —

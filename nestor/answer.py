@@ -16,6 +16,7 @@ drives.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Optional
 
 from . import cascade, memory
@@ -45,7 +46,18 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
 
     ``persist=False`` stops the semantic / ollama matcher writing its embedding
     cache; the other matchers never write anything and ignore it.
+
+    Only ``numeric`` reads ``abs_tol`` / ``pct_tol`` — the others define nearness
+    their own way and cannot honour a tolerance. Passing one to a non-numeric
+    matcher warns rather than silently doing nothing, so a caller who tuned a
+    tolerance against the wrong matcher gets a signal (``nestor serve`` refuses
+    the same situation outright; the CLI keeps running, but says so).
     """
+    if name != "numeric" and (abs_tol != 0.0 or pct_tol != 0.05):
+        warnings.warn(
+            f"abs_tol/pct_tol are ignored by the {name!r} matcher — only "
+            f"'numeric' has a tolerance band; the values passed had no effect.",
+            RuntimeWarning, stacklevel=2)
     if name == "string":
         return StringMatcher()
     if name == "numeric":

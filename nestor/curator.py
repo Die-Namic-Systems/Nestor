@@ -46,10 +46,11 @@ import builtins
 from typing import Optional
 
 from . import keyring, ledger, memory, signing
+from .errors import NestorError
 from .storage import Storage, get_store, supports_curation, supports_rejection
 
 
-class CurationUnsupportedError(RuntimeError):
+class CurationUnsupportedError(NestorError):
     """The injected store does not implement the curation capability."""
 
 

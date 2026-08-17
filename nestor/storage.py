@@ -20,9 +20,12 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are six **optional capabilities**, each
+Beyond the core Protocol there are **nine optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
-working and the surfaces that need it say so rather than showing an empty list:
+working and the surfaces that need it say so rather than showing an empty list.
+Six live here; the last three are declared beside the recipes that use them
+(``supports_edges`` and ``supports_evidence`` below, ``supports_embedding_store``
+in :mod:`nestor.embedding_store`) — if you add a tenth, add a row here:
 
 ==================  =====================================  =====================================
 Capability          Predicate                              Without it
@@ -39,6 +42,13 @@ Lineage             :func:`supports_lineage`               ``supersede_pair`` / 
                                                            raise rather than overwriting
 Atomic supersede    :func:`supports_atomic_supersede`      ``revise_draft`` refuses rather
                                                            than racing
+Decision edges      :func:`supports_edges`                 decisions still seal, but cannot be
+                                                           related — no graph neighbours
+Evidence            :func:`supports_evidence`              a sealed claim cannot carry what it
+                                                           rests on, and the report is empty
+Embedding store     :func:`nestor.embedding_store.supports_embedding_store`
+                                                           the semantic matcher recomputes each
+                                                           vector rather than caching it
 ==================  =====================================  =====================================
 
 Partial implementation counts as none. Writing rejections nobody can read back,

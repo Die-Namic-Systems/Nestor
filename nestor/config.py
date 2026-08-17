@@ -33,6 +33,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Mapping, Optional
 
+from .errors import NestorError
+
 __all__ = [
     "ConfigError",
     "Resolver",
@@ -64,7 +66,7 @@ _TRUE = frozenset({"1", "true", "yes", "on"})
 _FALSE = frozenset({"0", "false", "no", "off", ""})
 
 
-class ConfigError(RuntimeError):
+class ConfigError(NestorError):
     """Configuration is unusable: a malformed/unreadable file, or a value that
     cannot be cast to the requested type. Never raised for a *missing* file —
     that is a legitimate empty layer, not an error."""

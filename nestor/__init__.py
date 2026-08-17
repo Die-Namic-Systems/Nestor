@@ -98,6 +98,7 @@ from .cascade import (
 )
 from .curator import Curator
 from .entity import EntityResolver
+from .errors import NestorError
 from .frank import set_forwarder as set_frank_forwarder
 from .matcher import Matcher, NumericMatcher, StringMatcher
 from .memory import (
@@ -125,6 +126,7 @@ __all__ = [
     "Curator",
     "EntityResolver",
     "Matcher",
+    "NestorError",
     "NumericMatcher",
     "Passage",
     "Reconciler",

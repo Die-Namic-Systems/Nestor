@@ -47,6 +47,7 @@ from typing import Callable, Optional, cast
 
 from . import signing
 from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
+from .errors import NestorError
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
                       get_store, supports_atomic_supersede, supports_lineage,
@@ -194,7 +195,7 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-class RejectedPairError(RuntimeError):
+class RejectedPairError(NestorError):
     """Refusing to re-seal a pair a human previously rejected.
 
     Raised by :func:`add_pair` rather than silently overwriting the rejection.
@@ -206,7 +207,7 @@ class RejectedPairError(RuntimeError):
     """
 
 
-class ConflictingDraftError(RuntimeError):
+class ConflictingDraftError(NestorError):
     """Refusing to answer a proposal with somebody else's proposal.
 
     ``add_pair`` writes only when sealing, so a *draft* offered for a source
@@ -243,7 +244,7 @@ class ConflictingDraftError(RuntimeError):
     """
 
 
-class ConflictingSealError(RuntimeError):
+class ConflictingSealError(NestorError):
     """Refusing to overwrite a sealed pair with a different verifier's answer.
 
     Same structural moment as :class:`RejectedPairError`, one step earlier:
@@ -265,7 +266,7 @@ class ConflictingSealError(RuntimeError):
     """
 
 
-class InvalidSealSignatureError(RuntimeError):
+class InvalidSealSignatureError(NestorError):
     """Refusing to record a seal under a CLIENT-PROVIDED signature that does
     not verify (Nestor#17, the client-signing seam).
 

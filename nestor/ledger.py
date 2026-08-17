@@ -19,8 +19,10 @@ import json
 from pathlib import Path
 from typing import Optional, Tuple
 
+from .errors import NestorError
 
-class LedgerError(RuntimeError):
+
+class LedgerError(NestorError):
     """The ledger is unusable (e.g. a non-file path that would swallow the
     audit trail) or its hash-chain is broken."""
 

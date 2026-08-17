@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 408,
+    "pairs": 410,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "f8f8ebf24749e75eefd9900849b4f45bcd0edd5daf5a26c97dbb2eb35dcf9702",
+  "digest": "6bca1f48ff39ea43b81c4d4db36dfd5c43c2e45b556c050c80c845b31a053a36",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -116,6 +116,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A conventional-commit title does. release-please reads the release-cutting type from PR titles and commits (the title lands in the merge-commit body, docs/releasing.md); #128/#129/#130 all used prose titles, so no release was proposed and PyPI stayed at 0.4.0. This PR ships a genuine feat -- a `nestor evidence for <pair_id>` read action -- titled `feat:`, which makes release-please open 'chore(master): release 0.5.0'. release-please tags from current master HEAD, so everything merged since v0.4.0, the evidence relation included, ships in that build.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "cabc0012-b601-5b8e-8a1f-3264ed34edc1",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a draft engines translate may accept storematcher one or neither the old probe called with both and caught typeerror to retry with fewer args what replaces it",
+      "source_text": "A draft engine's translate() may accept store=/matcher=, one, or neither. The old probe called with both and caught TypeError to retry with fewer args. What replaces it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "inspect.signature(engine.translate) decides which of store=/matcher= the callable actually accepts (everything if it takes **kwargs, or if it cannot be introspected -- the old permissive fallback). The engine is then called exactly once with the accepted kwargs.",
       "verifier": "",
       "weight": 1.0
     },
@@ -424,6 +438,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No, but it records attached_by on every evidence row from the first migration so the column is never a later retrofit. It does not build a multi-agent taxonomy and does not decide whether attribution belongs in Nestor or a sibling package -- that stays the open question 0142 named, to be settled before the schema hardens further.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "1a4e7955-e40a-5366-b99a-7c5c0ce9e422",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the refusal exceptions have no common base a host turning a policy refusal into an http 409 must import a dozen names from six modules and will miss the next one give them a base but which exceptions and what base",
+      "source_text": "The refusal exceptions have no common base — a host turning a policy refusal into an HTTP 409 must import a dozen names from six modules and will miss the next one. Give them a base — but which exceptions, and what base?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A new NestorError(RuntimeError) that the fifteen RuntimeError-based refusals subclass (memory's four seal guards, the three keyring errors, the three sqlite store errors, curator, ledger, signing, config, home_paths). It stays a RuntimeError, so every existing `except RuntimeError` still catches them. The two ValueError-based errors -- PersonaError and BundleError -- are left out: a malformed bundle or persona spec is bad input, not a policy refusal, and reparenting them under RuntimeError would change which except clause catches them. A drift test pins that every listed refusal subclasses the base.",
       "verifier": "",
       "weight": 1.0
     },
