@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 379,
+    "pairs": 380,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "90179591f511520fa6521abb7570971f86a9972ced7a3071f903c9a4306b8804",
+  "digest": "d217b9a0559a39c2d1c87fae94cc916286c7fe9dd299bf1c4ee1c505264246ba",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -44,6 +44,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A README '## Install' section recommends `pipx install nestor-meaning` (or `pipx install .` from a checkout) as the blessed one-liner, `pip install nestor-meaning` / `pip install .` as the fallback, linking to docs/install.md for the verified transcripts and the `nestor init` -> `nestor demo` -> `nestor ui` first run, kept honest that the wizard proposes and never confirms.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "655cebf9-a7bd-561d-a8eb-b419bb46e8d3",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "nestor already licensechecked a graph viewer for the decision store how should the readonly graph tab reach it under a csp with scriptsrc unsafeinline and no self and what counts as a decision domain when the store also holds entity and numeric domains with the same tagshape",
+      "source_text": "Nestor already license-checked a graph viewer for the decision store. How should the read-only Graph tab reach it under a CSP with script-src 'unsafe-inline' and no 'self', and what counts as a 'decision' domain when the store also holds entity and numeric domains with the same tag-shape?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Vendor Cytoscape.js 3.34.1 (MIT) at nestor/vendor/, read and inlined into the served page's own inline script at import time -- never a script src=, never a CDN, the CSP left byte-for-byte unchanged and pinned in a regression test. GET /api/graph is a pure read that walks only domains whose tags match 'decision' or 'decision:*' on both sides (the convention DecisionMemory already documents), explicitly excluding any domain that merely happens to share the same-tag-on-both-sides shape (entity, numeric), and returns honestly empty rather than erroring when a store has no decisions or no edge capability.",
       "verifier": "",
       "weight": 1.0
     },
