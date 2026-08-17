@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 383,
+    "pairs": 384,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "f30708e98e4fd91b2557a3bb71cae590363e66040d3055a1386764bbce3baeef",
+  "digest": "84915baa2438bcc46dd0a3cccde474ac0d14fbea07b454618609ab0da97bd078",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -86,6 +86,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Vendor Cytoscape.js 3.34.1 (MIT) at nestor/vendor/, read and inlined into the served page's own inline script at import time -- never a script src=, never a CDN, the CSP left byte-for-byte unchanged and pinned in a regression test. GET /api/graph is a pure read that walks only domains whose tags match 'decision' or 'decision:*' on both sides (the convention DecisionMemory already documents), explicitly excluding any domain that merely happens to share the same-tag-on-both-sides shape (entity, numeric), and returns honestly empty rather than erroring when a store has no decisions or no edge capability.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "5033cf37-e60f-5ad4-82db-ba8cf643dc62",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a human ratify a machineproposed decisiongraph edge from the browser and what must the server trust to accept it",
+      "source_text": "How does a human ratify a machine-proposed decision-graph edge from the browser, and what must the server trust to accept it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "POST /api/edge/seal accepts a client-produced Ed25519 signature over the frozen 4-element message ['edge', src_id, dst_id, kind] and forwards it to DecisionMemory.seal_edge unchanged -- the endpoint itself never signs. The verifier is resolved by the same rule as a client-signed decision seal (_verifier_for_seal, generalized only by which payload field carries the signature): a signed-in session names the verifier when no signature is offered, and a payload-named verifier is trusted only on the strength of a signature that verifies for that exact name, checked downstream in seal_edge. kind is validated against the closed EDGE_KINDS set (a bad kind is a 400, distinct from the 403 a refused signature gets). Confirm only: rejecting a proposed edge is out of scope (no schema today) and is the next bite.",
       "verifier": "",
       "weight": 1.0
     },
