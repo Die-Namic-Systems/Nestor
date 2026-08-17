@@ -72,15 +72,6 @@
             "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude before_bash; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
           }
         ]
-      },
-      {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude before_authority; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
-          }
-        ]
       }
     ],
     "Stop": [

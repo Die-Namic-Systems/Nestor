@@ -400,6 +400,25 @@ def _brain_section(root: Path) -> str:
     )
 
 
+def _gate_line(root: Path | None = None) -> str:
+    """Surface the review-desk write-gate at boot.
+
+    Without this the rule is disclosed only in the denial: an agent editing any
+    gated code discovers the gate by getting blocked mid-task. Naming it here —
+    with the one command that clears it — turns a cold block into a known step.
+    ``GATED_DIRS`` is imported rather than retyped so this can never name a
+    different set than the gate enforces.
+    """
+    from hooks.before_write import GATED_DIRS
+    dirs = "/, ".join(GATED_DIRS) + "/"
+    return (
+        f"[gate] editing code under {dirs} needs a fresh review-desk bearing first "
+        f"— the Write/Edit is blocked otherwise (a gate, not advice). Record one "
+        f"before you touch gated code:\n"
+        f"[gate]   python demo/review_desk.py --home .review bearing "
+        f"\"<what you are about to change>\"")
+
+
 def build_context(root: Path | None = None) -> str:
     """The seat context: seat rules, readiness checks, and the live brain.
 
@@ -416,6 +435,7 @@ def build_context(root: Path | None = None) -> str:
         _guard("pytest", lambda: _pytest_line(root)),
         _guard("lint", lambda: _lint_line(root)),
         _guard("nestor", lambda: _nestor_section(root)),
+        _guard("gate", lambda: _gate_line(root)),
         _guard("brain", lambda: _brain_section(root)),
     ]
     return "\n\n".join(sections)

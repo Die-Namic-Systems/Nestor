@@ -87,6 +87,16 @@ CASES: tuple[Case, ...] = (
          {"tool_name": "Bash", "tool_input": {"command": "nestor keys add rita"}}, "deny"),
     Case("authority-keys-list-allowed", "before_authority",
          {"tool_name": "Bash", "tool_input": {"command": "nestor keys list"}}, "allow"),
+    # The authority tripwire shares a matcher with the write/bash gates, so it now
+    # runs INSIDE their one hook process rather than as a second subprocess. These
+    # two prove that collapse did not drop it from the wired path: a keyring write
+    # (allowed by the review-desk gate — not a gated .py) and a `keys add` bash
+    # command (allowed by the bash guard) must still be denied, by authority.
+    Case("write-path-still-carries-authority", "before_write",
+         {"tool_name": "Write", "tool_input": {"file_path": "my-keyring.json", "content": "{}"}},
+         "deny"),
+    Case("bash-path-still-carries-authority", "before_bash",
+         {"tool_name": "Bash", "tool_input": {"command": "nestor keys add rita"}}, "deny"),
     Case("stop-claim-no-evidence-flagged", "before_stop",
          {"last_message": "All tests pass, done."}, "deny"),
     Case("stop-claim-with-evidence-allowed", "before_stop",
