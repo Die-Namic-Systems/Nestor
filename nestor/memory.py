@@ -411,8 +411,8 @@ def _upgrade_local_draft(store: Storage, existing: dict, norm: str, source_lang:
                 f"refusing to drop the recorded reason for this seal "
                 f"on the floor — omit reason= or extend the store.")
         setter(existing["id"], reason)
-    existing = store.memory_find(norm, source_lang, target_lang)
-    if existing is None:
+    refreshed = store.memory_find(norm, source_lang, target_lang)
+    if refreshed is None:
         # The row this call just sealed above cannot legitimately be gone one
         # line later — this store violated the read-after-write invariant.
         # Surfacing that loudly beats a bare TypeError from the indexing that
@@ -421,6 +421,7 @@ def _upgrade_local_draft(store: Storage, existing: dict, norm: str, source_lang:
             f"{type(store).__name__} lost pair for {norm!r} "
             f"immediately after memory_seal — read-after-write "
             f"invariant violated.")
+    existing = refreshed
     if audit:
         _log_seal_event({
             "kind": "seal", "pair_id": existing["id"], "verifier": verifier,
@@ -479,7 +480,7 @@ def _log_seal_countersign(existing: dict, verifier: str, source_lang: str,
 
 def _retry_insert_race(source_text: str, target_text: str, source_lang: str,
                        target_lang: str, status: str, verifier: str, weight: float,
-                       origin: str, reason: str, store: Optional[Storage],
+                       origin: str, reason: str, store: Storage,
                        matcher: Optional[Matcher], override_rejection: bool,
                        override_conflict: bool, audit: bool, seal_sig: str,
                        norm: str, _racing: bool) -> dict:
