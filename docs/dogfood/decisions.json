@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 380,
+    "pairs": 382,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "d217b9a0559a39c2d1c87fae94cc916286c7fe9dd299bf1c4ee1c505264246ba",
+  "digest": "bf8505b6dd343be251a5f1a307faaf9cdc74ed08e094fc5f07caece764ae4567",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "efff2de5-ac60-59c7-8e88-05adc5dd1cda",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should decision triage clustering proposed supersedescontradicts edges the ranked open list be surfaced at the nestor ui review desk and should the first cut be readonly",
+      "source_text": "Should decision triage (clustering, proposed supersedes/contradicts edges, the ranked open list) be surfaced at the nestor ui review desk, and should the first cut be read-only?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes -- add GET /api/triage (built from nestor.triage.triage() over the served store's own decision-domain pairs via _decision_domains, shared with the Graph tab) and a Triage tab that renders it. Read-only: there is no POST /api/triage, no write path, and the view seals nothing. Confirming or rejecting a proposed edge is deliberately out of scope for this pass -- it is a human-authority write and is the next bite.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
       "id": "cab6792c-ef6a-52e7-a77e-a5811e0a7394",
@@ -44,6 +58,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A README '## Install' section recommends `pipx install nestor-meaning` (or `pipx install .` from a checkout) as the blessed one-liner, `pip install nestor-meaning` / `pip install .` as the fallback, linking to docs/install.md for the verified transcripts and the `nestor init` -> `nestor demo` -> `nestor ui` first run, kept honest that the wizard proposes and never confirms.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "837eee12-4604-5e7f-aec5-03bd68fd7c6d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "triage clustering is on2 in the decision count and took 23s over the 380decision store freezing the tab with no feedback how is that made acceptable without changing the proposenotconfirm covenant or the matcher",
+      "source_text": "Triage clustering is O(n^2) in the decision count and took ~23s over the 380-decision store, freezing the tab with no feedback. How is that made acceptable without changing the propose-not-confirm covenant or the matcher?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Memoize the /api/triage response on the App under a sha256 signature of the decisions (id, status, question, commitment): computed once per store-state, reused until a seal, edit, or new decision changes the signature (measured: first call ~22s, second ~0.007s). Paint a 'computing...' loading card before the first uncached compute so the tab reads as working, not broken. Both are read-only -- the cache holds only a response dict, guarded by a module lock while the compute runs outside it.",
       "verifier": "",
       "weight": 1.0
     },

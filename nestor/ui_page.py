@@ -627,6 +627,7 @@ const TABS = [
   ["signals", "Signals"],
   ["ledger",  "Ledger"],
   ["graph",   "Graph"],
+  ["triage",  "Triage"],
 ];
 
 // How many pairs the Memory list shows at once. One more than this is asked
@@ -654,6 +655,14 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // destroys it before every re-render so a stale one never
             // outlives the canvas element it was drawn into (see render()).
             graph: null, cy: null, graphSelected: null,
+            // Triage tab (read-only, GET /api/triage only — no seal, no edge
+            // write reachable from this tab; see nestor.ui's `_triage`).
+            // `triageDetail` is the full pair fetched via the existing
+            // GET /api/pair when a decision, cluster member or edge endpoint
+            // is tapped — the triage payload itself carries ids and (for the
+            // open list only) a question, never every commitment, to keep
+            // that response the shape nestor.ui documents.
+            triage: null, triageDetail: null, triageLoading: false,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -2806,6 +2815,172 @@ function viewGraph() {
   S.cy = cy;
 }
 
+/* ---------- Triage: what needs you, read-only (N9 — the follow-up to N6/N8)
+ *
+ * GET /api/triage only. There is no seal button, no confirm/reject affordance
+ * on a cluster or an edge anywhere below — same discipline as the Graph tab
+ * just above: the refusal is not enforced in this file, it simply is not
+ * built here. Confirming or rejecting a proposal is the next bite, at the
+ * Memory tab, by a human with a key.
+ *
+ * The response carries ids and (for the ranked "open" list only) a question;
+ * `selectTriageDecision` fills in the rest — question AND commitment — by
+ * calling the existing GET /api/pair, exactly the lookup the Memory tab
+ * already uses, rather than the triage payload repeating every commitment
+ * for every cluster member and edge endpoint whether or not a human ever
+ * looks at it.
+ */
+
+async function selectTriageDecision(id) {
+  try {
+    S.triageDetail = (await api("/api/pair?id=" + encodeURIComponent(id))).pair;
+  } catch (e) {
+    S.triageDetail = { id, question: "", commitment: "", status: "", error: e.message };
+  }
+  const card = $("triage-detail-card");
+  if (card) card.replaceChildren(triageDetail());
+}
+
+function triageDetail() {
+  const p = S.triageDetail;
+  if (!p) {
+    return h("p", { class: "empty", text: "Tap a decision, a group member or an edge endpoint "
+      + "to read its question and commitment here." });
+  }
+  if (p.error) {
+    return h("p", { class: "empty", text: "Could not load " + p.id + ": " + p.error });
+  }
+  return h("div", { class: "graph-detail" },
+    h("div", { class: "row" }, statusLamp(p.status),
+      h("b", { text: p.status === "sealed" ? "sealed" : (p.status || "draft") }),
+      p.verifier ? h("span", { class: "chip", text: p.verifier }) : null),
+    h("div", { class: "q", text: p.source_text || p.question || "" }),
+    h("div", { class: "c", text: p.target_text || p.commitment || "" }));
+}
+
+function triageOpenRow(row) {
+  const active = S.triageDetail && S.triageDetail.id === row.id;
+  return h("div", { class: "pair" + (active ? " on" : ""), onclick: () => selectTriageDecision(row.id) },
+    h("div", { class: "row" }, mark(row.status),
+      h("span", { class: "small muted", text: "#" + row.number }),
+      h("span", { text: row.question || "(no question text)" })));
+}
+
+function triageClusterRow(c) {
+  return h("div", { class: "seg" },
+    h("div", { class: "row" },
+      h("b", { text: c.label || "(untitled group)" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge", text: c.member_ids.length + " member(s)" })),
+    h("div", { class: "row small", style: "gap:6px;flex-wrap:wrap;margin-top:6px" },
+      ...c.member_ids.map((mid) => h("span", {
+        class: "chip mono", style: "cursor:pointer" + (mid === c.representative_id ? ";font-weight:700" : ""),
+        title: mid === c.representative_id ? "representative — most central member" : "member",
+        onclick: () => selectTriageDecision(mid),
+        text: (mid === c.representative_id ? "★ " : "") + mid.slice(0, 8),
+      }))));
+}
+
+// contradicts reads as an alarm (same reason the Graph tab's edge gets its
+// own dashed red line) — supersedes reads as tidy — refines is unemitted
+// today (see nestor/triage/supersede.py) but gets a plain badge if that
+// changes, so an unrecognised kind never falls through with no styling at all.
+function triageEdgeKindBadge(kind) {
+  const cls = kind === "contradicts" ? "badge bad" : kind === "supersedes" ? "badge good" : "badge";
+  return h("span", { class: cls, text: kind });
+}
+
+function triageEdgeRow(e) {
+  return h("div", { class: "seg" },
+    h("div", { class: "row" },
+      triageEdgeKindBadge(e.kind),
+      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
+                 onclick: () => selectTriageDecision(e.src_id), text: e.src_id.slice(0, 8) }),
+      h("span", { class: "muted", text: "→" }),
+      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
+                 onclick: () => selectTriageDecision(e.dst_id), text: e.dst_id.slice(0, 8) }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "small muted", text: "score " + Number(e.score).toFixed(2) })));
+}
+
+function viewTriage() {
+  const view = $("view");
+  if (S.triageLoading && !S.triage) {
+    view.append(h("div", { class: "card" },
+      h("div", { class: "row" },
+        h("h2", { style: "margin:0", text: "Decision triage" }),
+        h("span", { class: "spacer" }),
+        h("span", { class: "badge", text: "computing…" })),
+      h("p", { class: "small muted", text:
+        "Clustering the store's decisions and proposing supersedes/contradicts "
+        + "edges. This runs once and is reused until a decision changes — it can "
+        + "take a moment on a large store. Nothing is being written; this view "
+        + "only ever reads." })));
+    return;
+  }
+  const t = S.triage || { bar: 0, open: [], clusters: [], proposed_edges: [], counts: {} };
+  const c = t.counts || {};
+
+  view.append(h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("h2", { style: "margin:0", text: "Decision triage" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge", text: (c.decisions ?? 0) + " decision(s)" }),
+      h("span", { class: "badge", text: (c.groups ?? 0) + " group(s)" }),
+      h("span", { class: "badge", text: (c.edges ?? 0) + " proposed edge(s)" }),
+      h("span", { class: "badge good", text: (c.open ?? 0) + " open" })),
+    h("p", { class: "small muted", text:
+      "Proposed, not decided. nestor.triage groups near-duplicate decisions and proposes "
+      + "supersedes/contradicts/refines edges at bar " + Number(t.bar || 0).toFixed(2)
+      + " — a human confirms or rejects a proposal at the Memory tab; this view seals "
+      + "nothing and writes nothing. Below: what still needs you, ranked so a live "
+      + "contradiction or a group worth consolidating sorts ahead of a decision with "
+      + "nothing proposed about it." })));
+
+  if (!c.decisions) {
+    view.append(h("div", { class: "card" }, h("p", { class: "empty",
+      text: "No decisions in this store yet — triage fills in as decisions are proposed "
+        + "and sealed. This view only ever reads; it cannot propose or resolve one for you." })));
+    return;
+  }
+
+  const openList = h("div", { class: "card" },
+    h("h2", { text: "Open — what needs you" }));
+  if (!t.open.length) {
+    openList.append(h("p", { class: "empty", text:
+      "Nothing open: every decision here is already the dst of a proposed supersession "
+      + "(or carries a hand-written consolidated_onto note). Still proposed, not sealed." }));
+  } else {
+    for (const row of t.open) openList.append(triageOpenRow(row));
+  }
+  const detail = h("div", { class: "card", id: "triage-detail-card" }, triageDetail());
+  view.append(h("div", { class: "grid" }, openList, detail));
+
+  const clustersCard = h("div", { class: "card" },
+    h("h2", { text: "Themed groups" }),
+    h("p", { class: "small muted", text:
+      "Near-duplicate questions, clustered by nestor.triage — a candidate to seal once "
+      + "instead of several times. ★ marks the most central member." }));
+  if (!t.clusters.length) {
+    clustersCard.append(h("p", { class: "empty", text: "No groups found at this bar." }));
+  } else {
+    for (const cl of t.clusters) clustersCard.append(triageClusterRow(cl));
+  }
+  view.append(clustersCard);
+
+  const edgesCard = h("div", { class: "card" },
+    h("h2", { text: "Proposed edges" }),
+    h("p", { class: "small muted", text:
+      "src → dst, proposed only — nothing here has a verifier or a signature. A "
+      + "human confirms or rejects a proposal at the Memory tab, never on this screen." }));
+  if (!t.proposed_edges.length) {
+    edgesCard.append(h("p", { class: "empty", text: "No supersession or contradiction proposed at this bar." }));
+  } else {
+    for (const e of t.proposed_edges) edgesCard.append(triageEdgeRow(e));
+  }
+  view.append(edgesCard);
+}
+
 /* ---------- shell --------------------------------------------------------- */
 function badges() {
   const s = S.state, box = $("badges");
@@ -3067,6 +3242,7 @@ function render() {
   else if (S.tab === "ask") viewAsk();
   else if (S.tab === "signals") viewSignals();
   else if (S.tab === "graph") viewGraph();
+  else if (S.tab === "triage") viewTriage();
   else viewLedger();
 }
 
@@ -3123,6 +3299,16 @@ async function refresh() {
     if (S.tab === "graph") {
       S.graph = await api("/api/graph");
       S.graphSelected = null;
+    }
+    if (S.tab === "triage") {
+      // Triage clustering can take tens of seconds server-side on a large
+      // store (memoized thereafter — see nestor.ui's _triage). Paint a
+      // "computing" state first so the tab does not sit silently on the
+      // previous view while the first compute runs.
+      if (!S.triage) { S.triageLoading = true; render(); }
+      S.triage = await api("/api/triage");
+      S.triageLoading = false;
+      S.triageDetail = null;
     }
     render();
   } catch (e) {

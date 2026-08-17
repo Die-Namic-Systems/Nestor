@@ -62,6 +62,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import ipaddress
 import json
 import os
@@ -86,6 +87,11 @@ from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .storage import Storage, supports_curation, supports_queue, supports_rejection
+from .triage import DEFAULT_BAR as TRIAGE_BAR
+from .triage import Decision as TriageDecision
+from .triage import triage as run_triage
+from .triage.report import _population as _triage_population
+from .triage.report import _resolved as _triage_resolved
 from .ui_page import PAGE
 
 MAX_BODY = 1 << 20          # 1 MiB — a review decision is never larger than this
@@ -234,6 +240,13 @@ class App:
     db_path: str = ""
     gate_rollup_path: str = ""
     sessions: Sessions = field(default_factory=Sessions)
+    #: Memoized /api/triage response, keyed by a signature of the store's
+    #: decisions (see :func:`_triage`). Triage clustering is O(n^2) in the
+    #: decision count and takes tens of seconds on a few hundred rows, but is a
+    #: pure function of them — so it is computed once per store-state and reused
+    #: until a seal, edit, or new decision changes the signature. Holds only a
+    #: response dict; nothing here writes.
+    _triage_cache: dict = field(default_factory=dict)
 
     def curator(self, source_lang: str = "", target_lang: str = "") -> Curator:
         """A curator over one domain, or over every domain when both are empty.
@@ -773,6 +786,157 @@ def _graph(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
     return {"nodes": nodes, "edges": edges}
 
 
+#: Proposed-edge kinds ranked by how much a human's attention should go to
+#: them first — a contradiction is a live conflict a seal would have to
+#: resolve, a supersession is a tidy duplicate somebody already answered, and
+#: ``refines`` (unemitted by :mod:`nestor.triage.supersede` today; kept here so
+#: the ordering stays correct the day that changes) is neither. Not a new
+#: score — :data:`nestor.triage.EDGE_KINDS` is the set this fixes a reading
+#: order over, same three kinds :func:`nestor.triage.report.render` already
+#: prints, just reordered so the one that blocks is read first.
+_TRIAGE_EDGE_ORDER = {"contradicts": 0, "supersedes": 1, "refines": 2}
+
+#: Guards :attr:`App._triage_cache` reads and writes. The compute itself runs
+#: outside the lock (a concurrent duplicate compute is benign — same decisions
+#: in, same response out), so a slow triage never blocks another request.
+_TRIAGE_CACHE_LOCK = threading.Lock()
+
+
+def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Decision triage, read-only — the seal queue's own clustering and
+    proposed edges, brought to the review desk (nestor ui's Triage tab).
+
+    Builds :class:`nestor.triage.Decision` objects from the SERVED store's own
+    decision-domain pairs — never :func:`nestor.triage.load_decisions`, which
+    reads ``docs/dogfood/decisions/*.json``, this checkout's own commit
+    history, a different corpus than whatever store ``nestor ui --db`` was
+    pointed at. Walks the same domains :func:`_decision_domains` picks for the
+    Graph tab (N6/N8), so the two views never disagree about what counts as a
+    decision and an entity or numeric domain never leaks in here either. Then
+    calls :func:`nestor.triage.triage` — the built organ, unmodified — with
+    this app's own matcher (:func:`nestor.memory.get_matcher`, the same
+    fallback every other recipe on a domain that is not the App's own already
+    gets) and the package's own :data:`~nestor.triage.DEFAULT_BAR` (0.55, the
+    measured knee — see ``nestor/triage/__init__.py``).
+
+    Like :func:`_graph`, there is no write path reachable from here.
+    ``all_decisions`` is a plain read (``memory_candidates``, a required
+    Storage capability); ``triage()`` is pure computation over dataclasses
+    copied out of the store and seals nothing by construction; its
+    ``ProposedEdge``s are read back into this response, never handed to
+    :meth:`~nestor.decision.DecisionMemory.propose_edge` — that write exists
+    only in :func:`nestor.triage.report.emit_edges`, which this function never
+    calls. No ``verifier``, no ``seal_sig``, no ``status`` reaches this
+    function's inputs, and there is no POST counterpart in ``_ROUTES``.
+
+    The ordering is derived from the :class:`~nestor.triage.Report`'s own
+    structure, not a new invented score: a decision that is an endpoint of a
+    proposed ``contradicts`` edge, or a member of a multi-member cluster, sorts
+    ahead of a singleton with no proposal about it at all — the same two
+    groups :func:`nestor.triage.report.render` already leads with (PROPOSED
+    EDGES, then THEMED GROUPS, largest first). "open" reuses
+    ``report._population`` / ``report._resolved`` verbatim rather than
+    re-deriving "probably already answered": a decision that is the ``dst`` of
+    a proposed ``supersedes`` edge is exactly the fact ``render()``'s own
+    open/resolved split already shows a human.
+
+    Honest empty state: a store with no decision domain returns
+    ``{"open": [], "clusters": [], "proposed_edges": [], ...}`` with every
+    count at zero, not an error — :func:`nestor.triage.triage` returns an
+    empty :class:`~nestor.triage.Report` for zero decisions by construction
+    (see ``cluster.group`` / ``supersede.find_supersessions``, both of which
+    return ``[]`` immediately for an empty list), so there is nothing here to
+    special-case.
+    """
+    domains = _decision_domains(app)
+    decisions: list[TriageDecision] = []
+    numbers: dict[str, int] = {}
+    statuses: dict[str, str] = {}
+    for d in domains:
+        for row in DecisionMemory(app.store, domain=d).all_decisions():
+            decisions.append(TriageDecision(
+                id=row["id"], file=row.get("origin") or d,
+                question=row.get("source_text", ""),
+                commitment=row.get("target_text", ""),
+                why=row.get("reason", ""),
+                # The dogfood corpus's hand-written `consolidated_onto` note has
+                # no analogue on a served store's rows — `report._resolved`
+                # folds it in only when a caller supplies it, so `None` here
+                # means "this store carries none of those", not "ignore the
+                # notion"; the `supersedes`-edge signal it unions with still
+                # applies in full.
+                consolidated_onto=None))
+            numbers[row["id"]] = len(numbers) + 1
+            statuses[row["id"]] = row.get("status", "draft")
+
+    # Triage clustering is O(n^2) in the decision count — the StringMatcher is
+    # the binding constraint (IDEAS §3.4/§6.106), tens of seconds on a few
+    # hundred rows. It is a pure function of the decisions, so the built
+    # response is memoized under a signature of them (id, status, question,
+    # commitment); a seal, an edit, or a new decision changes the signature and
+    # forces a recompute. Reading the rows above is cheap; only the clustering
+    # below is not, so the signature is computed from what was already read.
+    sig = hashlib.sha256(
+        "\x00".join(
+            f"{d.id}\x1f{statuses.get(d.id, '')}\x1f{d.question}\x1f{d.commitment}"
+            for d in decisions
+        ).encode("utf-8")).hexdigest()
+    with _TRIAGE_CACHE_LOCK:
+        cached = app._triage_cache
+        if cached.get("sig") == sig:
+            return cached["result"]
+
+    report = run_triage(decisions=decisions, matcher=memory.get_matcher(app.matcher),
+                        bar=TRIAGE_BAR)
+
+    population = _triage_population(report, decisions)
+    resolved = _triage_resolved(report, decisions) & population
+
+    contradicted: set[str] = set()
+    for e in report.edges:
+        if e.kind == "contradicts":
+            contradicted.add(e.src_id)
+            contradicted.add(e.dst_id)
+    clustered: set[str] = {mid for c in report.clusters if len(c.member_ids) > 1
+                           for mid in c.member_ids}
+
+    def _priority(pid: str) -> int:
+        if pid in contradicted:
+            return 0
+        if pid in clustered:
+            return 1
+        return 2
+
+    by_id = {d.id: d for d in decisions}
+    open_ids = sorted(population - resolved, key=lambda pid: (_priority(pid), pid))
+    open_rows = [{"id": pid, "number": numbers.get(pid, 0),
+                 "question": by_id[pid].question if pid in by_id else "",
+                 "status": statuses.get(pid, "draft")}
+                for pid in open_ids]
+
+    clusters = [{"representative_id": c.representative_id,
+                "member_ids": list(c.member_ids), "label": c.label}
+               for c in report.clusters]
+
+    edges = sorted(report.edges, key=lambda e: (
+        _TRIAGE_EDGE_ORDER.get(e.kind, len(_TRIAGE_EDGE_ORDER)), e.src_id, e.dst_id))
+    edge_rows = [{"src_id": e.src_id, "dst_id": e.dst_id, "kind": e.kind,
+                 "score": e.score} for e in edges]
+
+    result = {
+        "bar": report.bar,
+        "open": open_rows,
+        "clusters": clusters,
+        "proposed_edges": edge_rows,
+        "counts": {"decisions": len(decisions), "groups": len(clusters),
+                  "edges": len(edge_rows), "open": len(open_rows),
+                  "resolved": len(resolved)},
+    }
+    with _TRIAGE_CACHE_LOCK:
+        app._triage_cache = {"sig": sig, "result": result}
+    return result
+
+
 def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Alias → canonical entity, with the same three answers the cascade gives."""
     surface = _str(payload, "surface")
@@ -1126,6 +1290,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
     ("GET", "/api/graph"): _graph,
+    ("GET", "/api/triage"): _triage,
     ("GET", "/api/bundle"): _bundle,
     ("GET", "/api/gate-echo"): _gate_echo,
     ("POST", "/api/session"): _session_open,
