@@ -32,6 +32,7 @@ import warnings
 from typing import Optional, Protocol
 
 from . import signing
+from .storage import supports as _supports_capability
 
 _warned_unavailable = False
 
@@ -54,9 +55,11 @@ class EmbeddingCapableStorage(Protocol):
 
 
 def supports_embedding_store(store) -> bool:
-    return all(callable(getattr(store, name, None)) for name in (
-        "embedding_load", "embedding_save", "embedding_drop",
-    ))
+    # Its ops are registered in nestor.storage's capability table (as
+    # "embedding_store") even though the Protocol, this predicate, and its
+    # callers stay here — this capability was deliberately never folded into
+    # the core Storage Protocol (see the module docstring above).
+    return _supports_capability(store, "embedding_store")
 
 
 def source_text_sha(text: str) -> str:

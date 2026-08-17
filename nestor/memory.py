@@ -50,8 +50,7 @@ from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
 from .errors import NestorError
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
-                      get_store, supports_atomic_supersede, supports_lineage,
-                      supports_rejection)
+                      get_store, require_capability, supports_rejection)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -675,13 +674,13 @@ def rejection_signature_report(query_norm: str, source_lang: str,
 
 
 def _require_lineage(store: Storage) -> None:
-    if not supports_lineage(store):
-        raise RuntimeError(
-            f"{type(store).__name__} does not implement Nestor's lineage "
-            f"capability. Implement memory_mark_superseded and memory_lineage "
-            f"(see nestor.storage.Storage) — refusing to fall back to the "
-            f"destructive overwrite supersede_pair exists to replace."
-        )
+    require_capability(
+        store, "lineage",
+        f"{type(store).__name__} does not implement Nestor's lineage "
+        f"capability. Implement memory_mark_superseded and memory_lineage "
+        f"(see nestor.storage.Storage) — refusing to fall back to the "
+        f"destructive overwrite supersede_pair exists to replace."
+    )
 
 
 def supersede_pair(source_text: str, target_text: str, source_lang: str,
@@ -819,13 +818,13 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
     """
     store = get_store(store)
     _require_lineage(store)
-    if not supports_atomic_supersede(store):
-        raise RuntimeError(
-            f"{type(store).__name__} cannot retire a row conditionally (see "
-            f"storage.supports_atomic_supersede), so this revision would have to "
-            f"check the row in Python and then overwrite it blind. That race "
-            f"retires a human's seal and installs an unverified draft in its "
-            f"place, so it is refused rather than degraded.")
+    require_capability(
+        store, "atomic_supersede",
+        f"{type(store).__name__} cannot retire a row conditionally (see "
+        f"storage.supports_atomic_supersede), so this revision would have to "
+        f"check the row in Python and then overwrite it blind. That race "
+        f"retires a human's seal and installs an unverified draft in its "
+        f"place, so it is refused rather than degraded.")
     # Same check-then-cast shape as supersede_pair above.
     store = cast(AtomicSupersedeStorage, store)
     matcher = get_matcher(matcher)
@@ -1187,13 +1186,13 @@ def _log_rejection(entry: dict) -> None:
 
 
 def _require_rejection(store: Storage) -> None:
-    if not supports_rejection(store):
-        raise RuntimeError(
-            f"{type(store).__name__} does not implement Nestor's rejection "
-            f"capability. Implement memory_reject_pair, memory_add_rejection "
-            f"and memory_rejections (see nestor.storage.Storage) — refusing to "
-            f"accept a rejection that would be silently discarded."
-        )
+    require_capability(
+        store, "rejection",
+        f"{type(store).__name__} does not implement Nestor's rejection "
+        f"capability. Implement memory_reject_pair, memory_add_rejection "
+        f"and memory_rejections (see nestor.storage.Storage) — refusing to "
+        f"accept a rejection that would be silently discarded."
+    )
 
 
 def reject_match(source_text: str, source_lang: str, target_lang: str,

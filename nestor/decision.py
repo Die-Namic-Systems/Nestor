@@ -27,8 +27,8 @@ from typing import Iterable, Optional, cast
 from . import memory, signing
 from .cascade import _ledger_append
 from .matcher import Matcher, StringMatcher
-from .storage import (EdgeStorage, LineageStorage, Storage, supports_edges,
-                      supports_lineage, supports_rejection)
+from .storage import (EdgeStorage, LineageStorage, Storage, require_capability,
+                      supports_edges, supports_lineage, supports_rejection)
 
 #: The relations an edge may assert (docs/decision-memory.md N6). A kind outside
 #: this set is a typo that would silently grow an ungraphable graph, so it is
@@ -88,11 +88,11 @@ class DecisionMemory:
     # -- edges ------------------------------------------------------------
 
     def _require_edges(self) -> None:
-        if not supports_edges(self.store):
-            raise RuntimeError(
-                f"{type(self.store).__name__} does not implement Nestor's "
-                f"decision-graph capability (memory_add_edge, memory_edges_to, "
-                f"memory_edges_from, memory_seal_edge — see nestor.storage).")
+        require_capability(
+            self.store, "edges",
+            f"{type(self.store).__name__} does not implement Nestor's "
+            f"decision-graph capability (memory_add_edge, memory_edges_to, "
+            f"memory_edges_from, memory_seal_edge — see nestor.storage).")
 
     def _require_pair_lookup(self) -> None:
         """An edge's endpoints must be checkable against real decisions.

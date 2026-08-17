@@ -47,7 +47,7 @@ from typing import Optional
 
 from . import keyring, ledger, memory, signing
 from .errors import NestorError
-from .storage import Storage, get_store, supports_curation, supports_rejection
+from .storage import Storage, get_store, require_capability, supports_rejection
 
 
 class CurationUnsupportedError(NestorError):
@@ -64,12 +64,13 @@ class Curator:
     def __init__(self, store: Optional[Storage] = None, source_lang: str = "",
                  target_lang: str = "") -> None:
         self.store = get_store(store)
-        if not supports_curation(self.store):
-            raise CurationUnsupportedError(
-                f"{type(self.store).__name__} does not implement Nestor's curation "
-                f"capability. Implement memory_list, memory_get, memory_unseal and "
-                f"memory_rejections_for_pair (see nestor.storage.Storage)."
-            )
+        require_capability(
+            self.store, "curation",
+            f"{type(self.store).__name__} does not implement Nestor's curation "
+            f"capability. Implement memory_list, memory_get, memory_unseal and "
+            f"memory_rejections_for_pair (see nestor.storage.Storage).",
+            exc_type=CurationUnsupportedError,
+        )
         self.source_lang = source_lang
         self.target_lang = target_lang
         self.store.memory_init()
