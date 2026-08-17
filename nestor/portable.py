@@ -403,6 +403,193 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
                   f"{ev_note}, digest {got[:16]}…{short}")
 
 
+class _PairDisposition:
+    """What an incoming pair does against the local row keyed the same way.
+
+    ``report_key``/``entry`` name the report update the caller must apply —
+    ``"existing"`` bumps a counter, any other key appends ``entry`` to that
+    report list, ``None`` means no report update from this call. ``skip``
+    tells the loop whether to move to the next pair without importing this
+    one.
+    """
+
+    __slots__ = ("report_key", "entry", "skip")
+
+    def __init__(self, report_key: Optional[str], entry: Any, skip: bool) -> None:
+        self.report_key = report_key
+        self.entry = entry
+        self.skip = skip
+
+
+def _resolve_incoming_pair(existing: dict, row: dict, override_conflicts: bool,
+                           override_rejections: bool) -> _PairDisposition:
+    """Compare an incoming pair to the local row already keyed the same source/langs.
+
+    Called only when a local row exists for this ``(source_norm, source_lang,
+    target_lang)``. Returns the disposition to report, plus whether the pair
+    is settled here (``skip=True``) or should continue on to the seal/draft
+    classification below — a brand-new pair falling through unchanged, an
+    override taking the incoming answer, or a local draft being upgraded by a
+    verified incoming seal.
+    """
+    if existing["status"] == "rejected":
+        # A pair a human here rejected is not a disagreement for the import to
+        # settle. `override_conflicts` must not reach it: that flag means
+        # "their answer wins where we disagree", and a rejection is not a
+        # competing answer, it is a decision that this mapping is wrong.
+        # Overwriting it would resurrect exactly what rejection exists to
+        # retire — the same leak `add_pair` raises RejectedPairError for,
+        # arriving through a file instead. The deliberate way back is
+        # Curator.restore, or this second, separate flag, mirroring
+        # add_pair's two.
+        entry = {
+            "source_text": row["source_text"],
+            "source_lang": row["source_lang"], "target_lang": row["target_lang"],
+            "rejected_by": existing.get("verifier", ""),
+            "incoming": {"target_text": row["target_text"],
+                         "status": row["status"],
+                         "verifier": row.get("verifier", "")},
+        }
+        return _PairDisposition("rejected_here", entry, not override_rejections)
+
+    if existing["target_text"] == row["target_text"]:
+        # Same answer on both sides — but not necessarily the same standing. A
+        # sealed, signature-verified row arriving over a local *draft* is a
+        # verification this instance does not have, and reporting it as
+        # "already present" threw away the one thing the bundle was carrying.
+        # Upgrade instead; anything else here genuinely is a no-op.
+        if (existing["status"] != "sealed" and row["status"] == "sealed"
+                and signing.seal_is_valid(row["source_norm"], row["target_text"],
+                                          row.get("verifier", ""), row.get("seal_sig", ""))):
+            return _PairDisposition(None, None, False)
+        return _PairDisposition("existing", None, True)
+
+    entry = {
+        "source_text": row["source_text"],
+        "source_lang": row["source_lang"], "target_lang": row["target_lang"],
+        "here": {"target_text": existing["target_text"],
+                 "status": existing["status"],
+                 "verifier": existing.get("verifier", "")},
+        "incoming": {"target_text": row["target_text"],
+                     "status": row["status"],
+                     "verifier": row.get("verifier", "")},
+    }
+    return _PairDisposition("conflicts", entry, not override_conflicts)
+
+
+def _classify_seal_claim(row: dict) -> tuple[bool, bool]:
+    """Does this incoming row claim to be sealed, and does that seal verify here?
+
+    The load-bearing check: a seal is honored only if it verifies HERE.
+    ``seal_is_valid`` returns True when signing is off, which is the same
+    trust-the-stored-status degrade the rest of the package makes.
+    """
+    claims_sealed = row["status"] == "sealed"
+    verifies = claims_sealed and signing.seal_is_valid(
+        row["source_norm"], row["target_text"], row.get("verifier", ""),
+        row.get("seal_sig", ""))
+    return claims_sealed, verifies
+
+
+def _write_incoming_pair(store: Storage, existing: Optional[dict], row: dict,
+                         claims_sealed: bool, verifies: bool) -> str:
+    """Commit one incoming pair to the store. Returns the id to record in id_map.
+
+    Called only when not a dry run.
+    """
+    incoming = dict(row)
+    incoming["id"] = existing["id"] if existing else (row.get("id") or str(uuid.uuid4()))
+    if claims_sealed and not verifies:
+        # Demoted, and its signature dropped with it: a draft row carrying a
+        # live-looking signature is a seal waiting to be reactivated by
+        # anything that flips the status column back (the same reason
+        # memory_unseal clears it).
+        incoming["status"] = "draft"
+        incoming["seal_sig"] = ""
+        incoming["origin"] = (f"imported-unverifiable:{row.get('verifier') or '?'}")[:200]
+    if existing:
+        store.memory_seal(existing["id"], incoming["target_text"],
+                          incoming.get("verifier", ""),
+                          float(incoming.get("weight") or 1.0),
+                          incoming.get("seal_sig", ""))
+    else:
+        store.memory_insert(incoming)
+    return incoming["id"]
+
+
+def _import_rejections(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
+                       report: dict) -> None:
+    """Import the bundle's rejections. Unconditional: honoring a rejection only
+    ever withholds an answer, which is the safe direction (see module docstring).
+    """
+    if not supports_rejection(store):
+        return
+    for raw in bundle.get("rejections", []):
+        named = raw.get("pair_id") or ""
+        if named and named not in id_map:
+            # A rejection naming a pair this bundle does not carry. Export
+            # cannot produce one, but a hand-edited bundle, a third-party one,
+            # or one written by an earlier build can — and honouring it is
+            # exactly the documented harm: on a destination still holding that
+            # id live, it suppresses a sealed, signature-verified answer. The
+            # export-side invariant is only half an invariant if the read side
+            # takes the file's word, which is the mistake the seal signature
+            # exists to refuse.
+            report["dangling_rejections"].append(named)
+            continue
+        report["rejections"] += 1
+        if not dry_run:
+            # The bundle's OWN version, not this build's. A version-1 bundle
+            # was hashed over version-1 fields, so reading it with version-2
+            # fields lets a key the digest never covered — `reopen_when`,
+            # which decides never-vs-not-yet — be added to the file after
+            # export, verify cleanly, and land in the store. The digest is
+            # explicitly not a signature, so this is hygiene rather than an
+            # auth break; but a check that covers less than the importer
+            # consumes is the wrong way round, and version plumbing that stops
+            # short of the read is not plumbing.
+            rejection = _row(raw, _REJECTION_FIELDS_BY_VERSION[
+                bundle.get("nestor_bundle", BUNDLE_VERSION)])
+            rejection["id"] = rejection.get("id") or str(uuid.uuid4())
+            if named:
+                rejection["pair_id"] = id_map[named]
+            try:
+                store.memory_add_rejection(rejection)
+            except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
+                report["rejections"] -= 1
+
+
+def _import_evidence(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
+                     report: dict) -> None:
+    """Import the bundle's evidence rows, dropping any referencing a pair id the
+    bundle doesn't carry.
+    """
+    if not supports_evidence(store):
+        return
+    ev_store = cast(EvidenceStorage, store)
+    for raw in bundle.get("evidence", []):
+        named = raw.get("pair_id") or ""
+        if named and named not in id_map:
+            # A reference naming a pair this bundle does not carry. Export
+            # cannot make one (evidence is gathered per exported pair), but a
+            # hand-edited or third-party bundle can — and adding it would
+            # leave a reference pointing at nothing here. Evidence confers no
+            # authority, so this is not the security hazard a dangling
+            # rejection is; it is dropped for the same tidiness reason.
+            report["dangling_evidence"].append(named)
+            continue
+        report["evidence"] += 1
+        if not dry_run:
+            ev = _row(raw, EVIDENCE_FIELDS)
+            ev["id"] = ev.get("id") or str(uuid.uuid4())
+            if named:
+                ev["pair_id"] = id_map[named]
+            try:
+                ev_store.memory_add_evidence(ev)
+            except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
+                report["evidence"] -= 1
+
+
 def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
                   verifier: str = "", override_conflicts: bool = False,
                   override_rejections: bool = False,
@@ -505,61 +692,18 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
         # it is the commonest case in a real re-import.
         id_map[row.get("id") or ""] = (existing["id"] if existing
                                        else row.get("id") or "")
-        if existing:
-            if existing["status"] == "rejected":
-                # A pair a human here rejected is not a disagreement for the
-                # import to settle. `override_conflicts` must not reach it: that
-                # flag means "their answer wins where we disagree", and a
-                # rejection is not a competing answer, it is a decision that
-                # this mapping is wrong. Overwriting it would resurrect exactly
-                # what rejection exists to retire — the same leak `add_pair`
-                # raises RejectedPairError for, arriving through a file instead.
-                # The deliberate way back is Curator.restore, or this second,
-                # separate flag, mirroring add_pair's two.
-                report["rejected_here"].append({
-                    "source_text": row["source_text"],
-                    "source_lang": row["source_lang"], "target_lang": row["target_lang"],
-                    "rejected_by": existing.get("verifier", ""),
-                    "incoming": {"target_text": row["target_text"],
-                                 "status": row["status"],
-                                 "verifier": row.get("verifier", "")},
-                })
-                if not override_rejections:
-                    continue
-            elif existing["target_text"] == row["target_text"]:
-                # Same answer on both sides — but not necessarily the same
-                # standing. A sealed, signature-verified row arriving over a
-                # local *draft* is a verification this instance does not have,
-                # and reporting it as "already present" threw away the one thing
-                # the bundle was carrying. Upgrade instead; anything else here
-                # genuinely is a no-op.
-                if not (existing["status"] != "sealed" and row["status"] == "sealed"
-                        and signing.seal_is_valid(row["source_norm"], row["target_text"],
-                                                  row.get("verifier", ""),
-                                                  row.get("seal_sig", ""))):
-                    report["existing"] += 1
-                    continue
-            else:
-                report["conflicts"].append({
-                    "source_text": row["source_text"],
-                    "source_lang": row["source_lang"], "target_lang": row["target_lang"],
-                    "here": {"target_text": existing["target_text"],
-                             "status": existing["status"],
-                             "verifier": existing.get("verifier", "")},
-                    "incoming": {"target_text": row["target_text"],
-                                 "status": row["status"],
-                                 "verifier": row.get("verifier", "")},
-                })
-                if not override_conflicts:
-                    continue
 
-        claims_sealed = row["status"] == "sealed"
-        # The load-bearing line: a seal is honored only if it verifies HERE.
-        # `seal_is_valid` returns True when signing is off, which is the same
-        # trust-the-stored-status degrade the rest of the package makes.
-        verifies = claims_sealed and signing.seal_is_valid(
-            row["source_norm"], row["target_text"], row.get("verifier", ""),
-            row.get("seal_sig", ""))
+        if existing:
+            disposition = _resolve_incoming_pair(existing, row, override_conflicts,
+                                                 override_rejections)
+            if disposition.report_key == "existing":
+                report["existing"] += 1
+            elif disposition.report_key is not None:
+                report[disposition.report_key].append(disposition.entry)
+            if disposition.skip:
+                continue
+
+        claims_sealed, verifies = _classify_seal_claim(row)
         if claims_sealed and verifies:
             report["sealed"] += 1
         elif claims_sealed:
@@ -569,83 +713,11 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
 
         if dry_run:
             continue
-        incoming = dict(row)
-        incoming["id"] = existing["id"] if existing else (row.get("id") or str(uuid.uuid4()))
-        id_map[row.get("id") or ""] = incoming["id"]
-        if claims_sealed and not verifies:
-            # Demoted, and its signature dropped with it: a draft row carrying a
-            # live-looking signature is a seal waiting to be reactivated by
-            # anything that flips the status column back (the same reason
-            # memory_unseal clears it).
-            incoming["status"] = "draft"
-            incoming["seal_sig"] = ""
-            incoming["origin"] = (f"imported-unverifiable:{row.get('verifier') or '?'}")[:200]
-        if existing:
-            store.memory_seal(existing["id"], incoming["target_text"],
-                              incoming.get("verifier", ""),
-                              float(incoming.get("weight") or 1.0),
-                              incoming.get("seal_sig", ""))
-        else:
-            store.memory_insert(incoming)
+        id_map[row.get("id") or ""] = _write_incoming_pair(store, existing, row,
+                                                            claims_sealed, verifies)
 
-    if supports_rejection(store):
-        for raw in bundle.get("rejections", []):
-            named = raw.get("pair_id") or ""
-            if named and named not in id_map:
-                # A rejection naming a pair this bundle does not carry. Export
-                # cannot produce one, but a hand-edited bundle, a third-party
-                # one, or one written by an earlier build can — and honouring it
-                # is exactly the documented harm: on a destination still holding
-                # that id live, it suppresses a sealed, signature-verified
-                # answer. The export-side invariant is only half an invariant if
-                # the read side takes the file's word, which is the mistake the
-                # seal signature exists to refuse.
-                report["dangling_rejections"].append(named)
-                continue
-            report["rejections"] += 1
-            if not dry_run:
-                # The bundle's OWN version, not this build's. A version-1
-                # bundle was hashed over version-1 fields, so reading it with
-                # version-2 fields lets a key the digest never covered —
-                # `reopen_when`, which decides never-vs-not-yet — be added to
-                # the file after export, verify cleanly, and land in the store.
-                # The digest is explicitly not a signature, so this is hygiene
-                # rather than an auth break; but a check that covers less than
-                # the importer consumes is the wrong way round, and version
-                # plumbing that stops short of the read is not plumbing.
-                rejection = _row(raw, _REJECTION_FIELDS_BY_VERSION[
-                    bundle.get("nestor_bundle", BUNDLE_VERSION)])
-                rejection["id"] = rejection.get("id") or str(uuid.uuid4())
-                if named:
-                    rejection["pair_id"] = id_map[named]
-                try:
-                    store.memory_add_rejection(rejection)
-                except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
-                    report["rejections"] -= 1
-
-    if supports_evidence(store):
-        ev_store = cast(EvidenceStorage, store)
-        for raw in bundle.get("evidence", []):
-            named = raw.get("pair_id") or ""
-            if named and named not in id_map:
-                # A reference naming a pair this bundle does not carry. Export
-                # cannot make one (evidence is gathered per exported pair), but a
-                # hand-edited or third-party bundle can — and adding it would
-                # leave a reference pointing at nothing here. Evidence confers no
-                # authority, so this is not the security hazard a dangling
-                # rejection is; it is dropped for the same tidiness reason.
-                report["dangling_evidence"].append(named)
-                continue
-            report["evidence"] += 1
-            if not dry_run:
-                ev = _row(raw, EVIDENCE_FIELDS)
-                ev["id"] = ev.get("id") or str(uuid.uuid4())
-                if named:
-                    ev["pair_id"] = id_map[named]
-                try:
-                    ev_store.memory_add_evidence(ev)
-                except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
-                    report["evidence"] -= 1
+    _import_rejections(store, bundle, id_map, dry_run, report)
+    _import_evidence(store, bundle, id_map, dry_run, report)
 
     if not dry_run:
         cascade._ledger_append({
