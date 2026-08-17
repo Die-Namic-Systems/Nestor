@@ -1,0 +1,20 @@
+{
+    "pr": null,
+    "branch": "claude/new-session-416wga",
+    "date": "2026-08-17",
+    "note": "The triage-cluster smoke test asserted `clustering < 60s` but CI runs the suite under `coverage run`, whose tracing inflates wall-clock several-fold: the test clocked ~68-69s on the 3.10 runner while taking ~19s uninstrumented locally, and it was red on master, not just on this branch. Because 3.10 gates auto-merge, that false red blocked the 0.5.0 release PR. Fixed on test_triage_cluster.py: the clustering still runs and the partition invariant is still asserted every time; only the timing assertion is skipped when a tracer is active.",
+    "decisions": [
+        {
+            "question": "A wall-clock assertion (clustering < 60s) fails in CI at ~69s but passes at ~19s locally. What is actually wrong, and what is the fix?",
+            "commitment": "The measurement, not the code. CI runs pytest under `coverage run`, and coverage's tracer inflates wall-clock several-fold, so a bar measured uninstrumented is unreachable instrumented. The fix guards only the timing assertion behind `_instrumented()` (true under coverage or any tracer); the clustering call and the partition/well-formedness assertions run unconditionally. So the invariant the test exists for is checked in CI exactly as before, and only the number that coverage makes meaningless is not.",
+            "why": "Skipping or deleting the test would drop the partition guard, which is the part that catches a real regression; raising the bar to some coverage-padded number would keep a timing check in CI but make it a guess that drifts as the corpus and the runner change (this is why it was already red on master). Measuring time only when the measurement is valid keeps a true perf smoke for local and uninstrumented runs while removing a false red that would otherwise train reviewers to ignore a red 3.10 — the same 'an integrity check that fails on an untouched payload' hazard the bundle digest code names.",
+            "doors_closed": "Skipping/quarantining the whole test (loses the partition invariant). Raising the 60s bar to a coverage-padded guess (a number that drifts with corpus and runner)."
+        },
+        {
+            "question": "How is 'running under coverage' detected reliably?",
+            "commitment": "By coverage's own `Coverage.current()` API when the module is present, with `sys.gettrace() is not None` as a fallback. gettrace alone is not enough: coverage's C tracer can leave it None, so the API check is primary and gettrace covers debuggers and the pure-Python tracer. When coverage is not installed (the local .venv), neither fires and the timing assertion runs as before — verified: `_instrumented()` is False bare and True under `sys.settrace`, and the smoke passes locally in ~18s with the assertion live.",
+            "why": "A detector that misses the C tracer would leave the false red exactly where it bites (CI, where coverage runs), and one that fires locally would silently drop the only place the timing bar is meaningful. Keying on coverage's documented current-instance API rather than a tracer side effect is the difference between detecting the thing and detecting one of its incidental symptoms.",
+            "doors_closed": "Detecting coverage by sys.gettrace alone (misses the C tracer, the CI case). A detector that suppresses the timing check on uninstrumented local runs (would drop the guard where it works)."
+        }
+    ]
+}
