@@ -15,11 +15,11 @@ A single :class:`SemanticMatcher` may be shared across threads (for example from
 """
 from __future__ import annotations
 
-import os
 import threading
 from collections import OrderedDict
 from typing import Optional
 
+from . import config
 from .embedding_store import load_embedding, save_embedding, supports_embedding_store
 from .matcher import Matcher, StringMatcher
 
@@ -30,8 +30,13 @@ BACKENDS = ("fastembed", "ollama")
 
 
 def integration_tests_enabled() -> bool:
-    """True when ``NESTOR_SEMANTIC_TEST=1`` (optional integration tests only)."""
-    return os.environ.get(INTEGRATION_TEST_ENV, "").strip() == "1"
+    """True when ``NESTOR_SEMANTIC_TEST=1`` (optional integration tests only).
+
+    Exact ``"1"`` only, unlike the usual truthy token set — preserved via
+    :func:`nestor.config.get_bool_loose`, which is also why this stays
+    lowercased-but-not-widened: ``"true"``/``"on"`` were never accepted here.
+    """
+    return config.get_bool_loose(INTEGRATION_TEST_ENV, False, frozenset({"1"}))
 
 
 def _require_fastembed() -> None:

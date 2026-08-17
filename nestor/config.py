@@ -31,15 +31,20 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 
 __all__ = [
     "ConfigError",
     "Resolver",
+    "VarSpec",
     "load",
     "load_file",
     "default_config_path",
     "get_secret",
+    "get_bool_loose",
+    "secret_names",
+    "configurable_names",
+    "REGISTRY",
     "ENV_PREFIX",
     "CONFIG_PATH_ENV",
     "DEFAULT_CONFIG_FILENAME",
@@ -275,3 +280,150 @@ def get_secret(env_name: str, *, env: Optional[Mapping[str, str]] = None) -> Opt
     if value is not None and value.strip() == "":
         return None
     return value
+
+
+def get_bool_loose(name: str, default: bool, true_tokens: frozenset[str],
+                    *, env: Optional[Mapping[str, str]] = None) -> bool:
+    """A second, **permissive** boolean reader, kept apart from
+    :meth:`Resolver.get_bool` on purpose.
+
+    A handful of call sites (``NESTOR_REQUIRE_SEAL_KEY``, ``NESTOR_FRANK_STRICT``,
+    ``NESTOR_SEMANTIC_TEST``) predate this module and were each written as
+    ``os.environ.get(NAME, "").strip().lower() in (...)`` — an unrecognized token
+    silently reads as ``False``, not a raised error, and each site accepts its own
+    slightly different set of truthy spellings (one omits ``"on"``; one accepts
+    only the literal ``"1"``). :meth:`Resolver.get_bool` is strict by design — an
+    unrecognized token is a :class:`ConfigError` — which is the right default for
+    a *new* setting but would be a silent behavior change for these three: turning
+    a typo that used to read as "off" into a hard refusal is not a refactor.
+
+    This function is the adoption seam for that shape: env-only (these sites
+    never had a file layer and gaining one is out of scope for a
+    behavior-preserving migration), and it reproduces the exact
+    unset/blank/unrecognized -> ``default`` fallthrough every one of them had.
+    Route the *name* through :data:`REGISTRY` even when the parsing stays loose,
+    so the enumeration remains complete.
+    """
+    source = os.environ if env is None else env
+    raw = (source.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in true_tokens
+
+
+#: What a config knob *is* — not what it currently holds. One entry per
+#: ``NESTOR_*`` name this codebase reads, so a reviewer (or a hook, such as the
+#: self-grant pin in ``hooks/before_authority.py``) has one place to enumerate
+#: them instead of grepping ``nestor/*.py`` for ``os.environ``.
+@dataclass(frozen=True)
+class VarSpec:
+    """One row of the registry.
+
+    ``kind`` names the typed accessor a well-behaved caller resolves it with
+    (``get_str`` / ``get_int`` / ``get_float`` / ``get_bool`` / ``get_path``) —
+    documentation, not an enforcement the dataclass carries out itself.
+
+    ``default`` is the value a caller falls back to when neither env nor file
+    supplies the key. It is ``None`` for two different reasons that this
+    registry does not need to tell apart: a secret has no safe default to
+    print, and a few paths (``NESTOR_HOME``, ``NESTOR_GLOSSARY``) compute
+    their fallback at call time (the user's home directory; the process's
+    working directory captured at import) rather than carrying a literal.
+
+    ``secret`` marks the key-material subset — ``NESTOR_SEAL_KEY`` and
+    ``NESTOR_CACHE_KEY`` today — that must be resolved with :func:`get_secret`
+    and never surfaced from the config file. See :func:`secret_names`.
+
+    ``configurable`` is ``False`` for the two ``NESTOR_IDB_*`` entries: they
+    are literal identifiers inside the browser-side IndexedDB script in
+    :mod:`nestor.ui_page` (a database name and an object-store name), not
+    environment variables any Nestor process reads. They are listed here for
+    completeness — so "every ``NESTOR_*`` name in the tree" has one answer —
+    and so nobody mistakes them for a settable knob.
+    """
+
+    name: str
+    kind: Literal["str", "int", "float", "bool", "path"]
+    default: Any = None
+    secret: bool = False
+    configurable: bool = True
+    doc: str = ""
+
+
+#: The single enumerated list IDEAS §7.5 asks for. Every ``NESTOR_*`` name
+#: this tree reads or reserves, keyed by its full env-var name. Confirm new
+#: entries against ``git grep 'NESTOR_' nestor/`` before adding one — this is
+#: meant to be exhaustive, not aspirational.
+REGISTRY: dict[str, VarSpec] = {
+    v.name: v for v in (
+        VarSpec("NESTOR_HOME", "path", default=None, doc=(
+            "Household root for embedding hosts (nestor.home_paths). Default "
+            "is computed at call time (`~/.nestor`), not a static literal — "
+            "see home_paths.home().")),
+        VarSpec("NESTOR_LEDGER", "path", default="data/ledger.jsonl", doc=(
+            "Hash-chained ledger location (nestor.cascade).")),
+        VarSpec("NESTOR_LEDGER_VERIFY_INTERVAL_SEC", "float", default=0.0, doc=(
+            "Seconds between full ledger chain walks; 0 = once per process, "
+            "<0 = every append (nestor.cascade).")),
+        VarSpec("NESTOR_KEYRING", "path", default="", doc=(
+            "Per-verifier keyring file. Empty/unset = no keyring, single "
+            "shared NESTOR_SEAL_KEY (nestor.keyring).")),
+        VarSpec("NESTOR_SEAL_KEY", "str", default=None, secret=True, doc=(
+            "Shared HMAC seal key. Key material — env-only, via get_secret() "
+            "(nestor.signing).")),
+        VarSpec("NESTOR_REQUIRE_SEAL_KEY", "bool", default=False, doc=(
+            "Fail closed instead of degrading to unsigned when no seal key "
+            "is configured (nestor.signing). Not itself a secret — a "
+            "fail-closed flag.")),
+        VarSpec("NESTOR_GLOSSARY", "path", default=None, doc=(
+            "Term-lock glossary file. Default is the cwd-relative "
+            "data/glossary.json captured once at import (nestor.glossary).")),
+        VarSpec("NESTOR_CACHE_KEY", "str", default=None, secret=True, doc=(
+            "Embedding-cache HMAC key, separate from NESTOR_SEAL_KEY. Key "
+            "material — env-only, via get_secret() (nestor.signing).")),
+        VarSpec("NESTOR_SEMANTIC_TEST", "bool", default=False, doc=(
+            "Enables the optional Ollama/fastembed integration tests. Exact "
+            "'1' only, not the usual truthy set (nestor.semantic_matcher).")),
+        VarSpec("NESTOR_OLLAMA_EMBED_MODEL", "str", default="nomic-embed-text",
+                doc="Ollama embedding model tag (nestor.ollama_embed)."),
+        VarSpec("NESTOR_OLLAMA_EMBED_TIMEOUT", "float", default=60.0,
+                doc="Ollama HTTP request timeout, seconds (nestor.ollama_embed)."),
+        VarSpec("NESTOR_FRANK_APP_ID", "str", default="", doc=(
+            "FRANK app seat to call as; falls further back to WILLOW_APP_ID "
+            "then 'nestor' (nestor.frank.WillowForwarder).")),
+        VarSpec("NESTOR_FRANK_PROJECT", "str", default="", doc=(
+            "FRANK project name; falls back to 'nestor' "
+            "(nestor.frank.WillowForwarder).")),
+        VarSpec("NESTOR_FRANK_STRICT", "bool", default=False, doc=(
+            "Propagate a down FRANK mirror as a raised error instead of "
+            "swallowing it (nestor.frank).")),
+        VarSpec("NESTOR_GATE_ROLLUP", "str", default="", doc=(
+            "Charter JSON of Nestor seals -> Hanuman dispatches (nestor.ui).")),
+        VarSpec("NESTOR_IDB_NAME", "str", default="nestor-keys",
+                configurable=False, doc=(
+                    "IndexedDB database name in the browser-side identity "
+                    "script (nestor.ui_page). A JS literal, not an env var "
+                    "any process reads.")),
+        VarSpec("NESTOR_IDB_STORE", "str", default="identities",
+                configurable=False, doc=(
+                    "IndexedDB object-store name in the same script. Also a "
+                    "JS literal, not an env var.")),
+        VarSpec("NESTOR_CONFIG", "path", default=None, doc=(
+            "Points at the config file this module's own file layer reads. "
+            "Meta: it names *where*, not a value inside it.")),
+    )
+}
+
+
+def secret_names() -> tuple[str, ...]:
+    """The key-material subset — every :class:`VarSpec` with ``secret=True`` —
+    sorted, so a caller (the self-grant pin in ``hooks/before_authority.py``
+    among them) can import this list instead of grepping source for
+    ``NESTOR_*KEY`` patterns."""
+    return tuple(sorted(v.name for v in REGISTRY.values() if v.secret))
+
+
+def configurable_names() -> tuple[str, ...]:
+    """Every registered name that is an actual, settable environment
+    variable — excludes the ``NESTOR_IDB_*`` JS literals."""
+    return tuple(sorted(v.name for v in REGISTRY.values() if v.configurable))

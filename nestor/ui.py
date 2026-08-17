@@ -78,7 +78,7 @@ from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Mapping, Optional, Union
 
-from . import answer, cascade, keyring, ledger as ledger_mod, memory, portable, signing, storage
+from . import answer, cascade, config, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
 from .entity import EntityResolver
 from .matcher import Matcher, matcher_audit_fields
@@ -1309,7 +1309,10 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
-    if "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" in os.environ:
+    # `source_of` covers both layers `cascade.ledger_verify_interval_sec` now
+    # reads (env or config file); the plain `"... in os.environ"` presence
+    # check this replaced only ever saw the first.
+    if config.load().source_of("ledger_verify_interval_sec") != "default":
         try:
             cascade.ledger_verify_interval_sec()
         except ValueError as exc:
@@ -1401,7 +1404,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         else:
             demo_note = "store already has content — not seeding"
 
-    gate_rollup = (args.gate_rollup or os.environ.get("NESTOR_GATE_ROLLUP", "")).strip()
+    gate_rollup = (args.gate_rollup or config.load().get_str("gate_rollup", "")).strip()
     if not gate_rollup:
         candidate = pathlib.Path(
             "~/github/willow/governance/decisions/nestor-phase1-gate-seals-2026-08-06.json"

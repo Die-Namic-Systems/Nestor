@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from . import frank, langid, memory
+from . import config, frank, langid, memory
 from .engine import get_engine
 from .ledger import LedgerError, verify as _ledger_verify
 from .matcher import Matcher, matcher_audit_fields
@@ -190,16 +190,18 @@ def ledger_verify_interval_sec() -> float:
     """
     if _VERIFY_INTERVAL_OVERRIDE is not None:
         return _VERIFY_INTERVAL_OVERRIDE
-    raw = os.environ.get("NESTOR_LEDGER_VERIFY_INTERVAL_SEC")
-    if raw is None or not raw.strip():
-        return 0.0
+    # config.Resolver already treats an unset-or-blank env var and a missing
+    # key the same way this function always did (fall through to 0.0), and
+    # raises ConfigError — not ValueError — on a value that fails to cast.
+    # Every caller of this function (nestor.ui among them) already catches
+    # ValueError specifically, so that exception type is a wire contract this
+    # migration must not change; re-raise under the original type and the
+    # resolver's own message, which already names NESTOR_LEDGER_VERIFY_INTERVAL_SEC
+    # (the auto-derived env name for the "ledger_verify_interval_sec" key).
     try:
-        return float(raw.strip())
-    except ValueError as exc:
-        raise ValueError(
-            f"NESTOR_LEDGER_VERIFY_INTERVAL_SEC={raw!r} is not a number of "
-            f"seconds — use a plain float (e.g. 300), not a duration suffix."
-        ) from exc
+        return config.load().get_float("ledger_verify_interval_sec", 0.0)
+    except config.ConfigError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def set_ledger_verify_interval(seconds: Optional[float]) -> None:
@@ -223,7 +225,19 @@ def _ledger_verify_cache_stale(key: str) -> bool:
 def _ledger_path() -> pathlib.Path:
     if _LEDGER_OVERRIDE is not None:
         return _LEDGER_OVERRIDE
-    return pathlib.Path(os.environ.get("NESTOR_LEDGER", _DEFAULT_LEDGER))
+    # A subtlety worth being explicit about: `os.environ.get(name, default)`
+    # (the old read) takes NESTOR_LEDGER literally even when it is set to the
+    # empty string, while config.Resolver treats a blank env var as absent and
+    # falls through to the file/default layer instead. Preserved here rather
+    # than adopted, because Path("") resolves to Path(".") and quietly
+    # redirecting the ledger at the current directory is exactly the kind of
+    # surprise this migration is not supposed to introduce — check the raw env
+    # var directly, by presence rather than by non-blankness, before falling
+    # through to the resolver for the file layer and the default.
+    raw_env = os.environ.get("NESTOR_LEDGER")
+    if raw_env is not None:
+        return pathlib.Path(raw_env)
+    return pathlib.Path(config.load().get_str("ledger", _DEFAULT_LEDGER))
 
 
 @dataclass

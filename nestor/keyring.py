@@ -56,6 +56,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+from . import config
+
 
 class KeyringError(RuntimeError):
     """The keyring cannot be used as given (unreadable, malformed, unsafe)."""
@@ -447,7 +449,11 @@ def set_keyring(k: Optional[Keyring]) -> None:
 
 
 def keyring_path() -> str:
-    return os.environ.get("NESTOR_KEYRING", "")
+    # get_str falls through to "" for an env value that is unset OR blank —
+    # the same place `os.environ.get("NESTOR_KEYRING", "")` landed either way,
+    # since every caller below already treats "" as "no keyring configured".
+    # Adopting the resolver here adds a file layer atop the prior env-only read.
+    return config.load().get_str("keyring", "")
 
 
 def get_keyring() -> Optional[Keyring]:

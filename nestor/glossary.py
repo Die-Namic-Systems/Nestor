@@ -23,9 +23,10 @@ once at startup rather than trusting the environment to stay still.
 from __future__ import annotations
 
 import json
-import os
 import pathlib
 from typing import Optional
+
+from . import config
 
 #: Captured at import, so a `chdir` mid-process cannot silently move the
 #: glossary out from under a running server. Launch-dependent by default —
@@ -48,7 +49,10 @@ def glossary_path() -> pathlib.Path:
     """The file the locks are read from and written to. Always absolute."""
     if _OVERRIDE is not None:
         return _OVERRIDE
-    env = os.environ.get("NESTOR_GLOSSARY")
+    # get_str's blank-env fallthrough and the old `if env:` truthy check land
+    # on the same branch (both fall through when NESTOR_GLOSSARY is unset or
+    # blank), so adopting the resolver only adds the file layer here.
+    env = config.load().get_str("glossary", "")
     if env:
         return pathlib.Path(env).expanduser().resolve()
     return _DEFAULT_PATH
