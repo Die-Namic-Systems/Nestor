@@ -248,3 +248,43 @@ def test_hmac_add_is_unaffected_by_the_ed25519_fix(tmp_path, capsys):
     finally:
         keyring_mod.set_keyring(None)
     assert result["verifier"] == "klara"
+
+
+def _fresh_public_hex() -> str:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+    return Ed25519PrivateKey.generate().public_key().public_bytes(
+        Encoding.Raw, PublicFormat.Raw).hex()
+
+
+def test_peer_add_prints_the_public_half_and_says_it_cannot_sign_in(tmp_path, capsys):
+    """§6.36's third case, the sentence read across the value it takes: a peer
+    registered with ``--public`` gets the PUBLIC key printed, and the message
+    says plainly it verifies seals but cannot open a session — never "the only
+    time it is printed" or "needs it to sign in", which are false for a peer
+    (the public half was typed on the command line, and the peer signs on their
+    own instance with the private half this instance never holds)."""
+    pub_hex = _fresh_public_hex()
+    path = tmp_path / "keys.json"
+    rc = cli.main(["keys", "add", "bob", "--type", "ed25519",
+                   "--public", pub_hex, "--keyring", str(path)])
+    out = capsys.readouterr().out.lower()
+    assert rc == 0, out
+    assert pub_hex in out
+    assert "cannot open a session" in out
+    assert "only time it is printed" not in out
+    assert "needs it to sign in" not in out
+
+
+def test_peer_add_json_carries_the_public_half_not_a_sign_in_key(tmp_path, capsys):
+    """The machine-readable half of the same case: a peer entry emits
+    ``public_key`` and no ``key`` — so a script cannot pipe a sign-in credential
+    that does not exist for a peer to a new verifier."""
+    pub_hex = _fresh_public_hex()
+    path = tmp_path / "keys.json"
+    rc = cli.main(["--json", "keys", "add", "bob", "--type", "ed25519",
+                   "--public", pub_hex, "--keyring", str(path)])
+    payload = json.loads(capsys.readouterr().out)
+    assert rc == 0
+    assert payload.get("public_key") == pub_hex
+    assert "key" not in payload

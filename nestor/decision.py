@@ -133,11 +133,23 @@ class DecisionMemory:
         if kind not in EDGE_KINDS:
             raise ValueError(
                 f"unknown edge kind {kind!r} — one of {sorted(EDGE_KINDS)}")
+        if src_id == dst_id:
+            raise ValueError("a decision cannot relate to itself")
         if not signing.edge_is_valid(src_id, dst_id, kind, verifier, edge_sig):
             raise ValueError(
                 f"edge signature does not verify for {verifier!r} over "
                 f"{kind} {src_id}->{dst_id}; refusing to ratify a relation "
                 f"nothing backs (the seal covenant, for edges).")
+        # A signature is valid over the id *bytes* whether or not those ids name
+        # real decisions, so — like propose_edge — refuse an edge whose endpoints
+        # are not both live decisions in this store. Placed AFTER the signature
+        # gate, unlike propose_edge (which is the machine's own draft): this is a
+        # caller-supplied request, and reading the store only for a caller who
+        # has already proven authority keeps it from being an existence oracle
+        # for an unsigned probe.
+        for pid in (src_id, dst_id):
+            if getattr(self.store, "memory_get", lambda _p: True)(pid) is None:
+                raise ValueError(f"no decision {pid!r} in this store")
         # Same check-then-cast shape as propose_edge above.
         edge_store = cast(EdgeStorage, self.store)
         proposed = [e for e in edge_store.memory_edges_to(dst_id, kind)

@@ -1,0 +1,20 @@
+{
+    "pr": null,
+    "branch": "claude/good-evening-c7y6dv",
+    "date": "2026-08-17",
+    "note": "Two small loose ends closed together. First, the security-review follow-up from the edge-confirmation ceremony (0140): DecisionMemory.seal_edge lacked the src/dst existence and self-relation guards that propose_edge already has, so a valid key-holder could ratify an edge between decisions that do not exist. Second, agent-log 6.36 (nestor keys add prints the wrong key) was already fixed in code by Nestor#99 and locked by tests/test_fix_keys_add_ed25519.py, but its status still read 'fix open' -- the exact doc-status drift the log itself keeps flagging (6.71). Both are additive and behavior-preserving except at the newly-guarded refusal.",
+    "decisions": [
+        {
+            "question": "seal_edge accepts a valid signature over ids that name no decision (or over a self-relation), minting a junk edge -- the finding the edge-confirmation security review surfaced. Where and how is the guard added?",
+            "commitment": "Add to seal_edge the same two guards propose_edge already has: reject src_id == dst_id, and reject an edge whose endpoints are not both live decisions in this store (via memory_get, gracefully skipped on a store without it). The self-relation check goes before the signature gate (a pure request check that reads nothing), the existence check goes AFTER it (so it reads the store only for a caller who has already proven authority). Two adversarial tests attempt the forbidden act WITH a valid signature and assert nothing is written.",
+            "why": "A signature is valid over the id bytes whether or not those ids name real decisions, so edge_is_valid alone cannot catch a junk edge -- only an existence check can, and propose_edge already had the pattern to mirror. Placing existence after the signature keeps the endpoint from becoming an existence oracle for an unsigned probe; placing the cheap self-relation check before it costs nothing and matches propose_edge's order. Reused the exact predicate rather than inventing a new one.",
+            "doors_closed": "Existence-check-before-signature (rejected: it would answer 'does this id exist' to an unauthenticated caller). Deleting/loosening any part of edge_is_valid (untouched; this is an additional guard, not a replacement)."
+        },
+        {
+            "question": "agent-log 6.36 says 'fix open', but the wrong-key bug was fixed by Nestor#99 and is tested. Is it closed, and what stays open?",
+            "commitment": "Correct the status to 'fix shipped' (agent-log heading and the IDEAS map row, kept in lockstep so the doc gate passes), append a dated trailer naming the fix and its test, and add a peer-path message test so the sentence is read across every value it takes (not just the generate case the existing tests cover). The separate question 6.36 flagged -- whether the generate case should print the private key to a terminal at all -- stays open with TODO 1's key distribution, not resolved here.",
+            "why": "The bug (printing the ed25519 public half and calling it the sign-in key) is genuinely fixed: cmd_keys branches on the key kind, and the tests read the sentence rather than trusting it. Leaving the status at 'fix open' is the pointed-prose drift the log itself keeps paying for (6.71: every fork number in this file was wrong) -- a status is a claim about the tree, and the tree had moved. The peer-path test closes the log's own lesson: a claim in a sentence must hold across every value that sentence can take.",
+            "doors_closed": "Claiming 6.36 fully resolved (the print-the-private-key-at-all deployment question is real and stays open). Editing the fixed code (it is correct; only the status and coverage were behind)."
+        }
+    ]
+}
