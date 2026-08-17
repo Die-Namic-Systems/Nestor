@@ -1607,8 +1607,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--open", action="store_true", dest="open_browser",
                    help="open the page in a browser once the server is up")
     p.add_argument("--gate-rollup", default="",
-                   help="charter JSON listing Nestor seals → Hanuman dispatches "
-                        "(default: NESTOR_GATE_ROLLUP or willow governance rollup if present)")
+                   help="opt-in fleet integration: path to a gate-rollup JSON that "
+                        "links sealed pairs to downstream handoffs (default: unset, "
+                        "or NESTOR_GATE_ROLLUP; see docs/frank.md)")
     return p
 
 
@@ -1719,13 +1720,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         else:
             demo_note = "store already has content — not seeding"
 
+    # Opt-in only: the fleet-gate echo activates when --gate-rollup or
+    # NESTOR_GATE_ROLLUP names a rollup, and never by probing a hardcoded path.
+    # A default-on probe of a willow home put one deployment's governance
+    # workflow into the domain-agnostic UI for everyone; a general product should
+    # not reach outside its own directory unless asked.
     gate_rollup = (args.gate_rollup or config.load().get_str("gate_rollup", "")).strip()
-    if not gate_rollup:
-        candidate = pathlib.Path(
-            "~/github/willow/governance/decisions/nestor-phase1-gate-seals-2026-08-06.json"
-        ).expanduser()
-        if candidate.is_file():
-            gate_rollup = str(candidate)
 
     app = App(store=store, source_lang=args.source_lang, target_lang=args.target_lang,
               engine_name=args.engine, matcher=chosen_matcher, read_only=args.read_only,

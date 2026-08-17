@@ -22,15 +22,10 @@ Nestor serves is in exactly one of three states, and the state is never a guess:
 Read the first row precisely: *and the seal still verifies*. A row that merely
 **says** `sealed` in the database is not served — a seal is bound to a key the
 store does not hold, and one that does not verify is surfaced to a curator
-instead of answering anyone. That distinction is the product; see
-[seal signatures](#seal-signatures) and [the curator](#the-curator--seeing-what-was-verified).
-
-A human seals an answer once — and can **reject** one just as durably, so a wrong
-match is never served again. Both decisions are signed and both are audited.
-
-From then on a sealed answer is free, instant, and carries the provenance of
-whoever verified it. Every seal, rejection, serve and check is appended to a
-hash-chained ledger, so the trail is tamper-evident.
+instead of answering anyone ([seal signatures](#seal-signatures),
+[the curator](#the-curator--seeing-what-was-verified)). A human seals an answer
+once and can **reject** one just as durably, so a wrong match is never served
+again. Both decisions are signed, both are appended to a hash-chained ledger.
 
 In concrete terms it is a zero-dependency Python library, a `nestor` command
 line, and a stdlib browser UI, all over one SQLite-backed store —
@@ -47,11 +42,11 @@ served answer, in five commands.
 [Export & import](#export-and-import--taking-the-memory-elsewhere) ·
 [Serving a model](#serving-a-model--and-the-one-thing-it-cannot-do) ·
 [The ledger](#the-ledger) · [Injected storage](#injected-storage) ·
-[Accuracy](#accuracy-and-how-to-measure-yours) · [The name](#the-name) ·
-[Development](#development)
+[Accuracy](#accuracy-and-how-to-measure-yours) · [Development](#development)
 
 Frequently asked, honestly answered — including the "not yet"s:
-[**QUESTIONS.md**](QUESTIONS.md).
+[**QUESTIONS.md**](QUESTIONS.md). The story behind the name — the nest, Homer,
+and Asimov's forged-seal-in-1947 — is [`docs/the-name.md`](docs/the-name.md).
 
 ---
 
@@ -77,178 +72,81 @@ what gets queued, and what the audit trail records.
 | *yours* | *yours* | *whatever you can normalize and score* | — |
 
 Translation is where Nestor was extracted from, and the examples below use it
-most because it needs no setup to read. It is the origin story, not the boundary.
-
-That last row is not aspirational. A date matcher (normalizing `Q3 2025`,
-`September 30, 2025` and `30/09/2025` to one key, scoring by day-window) and a
-CSV-header-to-schema mapper have both been built against the shipped package
-without modifying it.
-
-Nestor has **no upward dependency on any host** — persistence, the matcher, the
-draft engine and the governance forwarder are all injected.
+most because it needs no setup to read. It is the origin story, not the
+boundary — a date matcher and a CSV-header-to-schema mapper have both been built
+against the shipped package without modifying it. Nestor has **no upward
+dependency on any host**: persistence, the matcher, the draft engine and the
+governance forwarder are all injected.
 
 ---
 
 ## The category — verification, not translation memory
 
 Translation memory is where Nestor was extracted from. It is not what Nestor is
-for, and reading it as a TM gets the economics backwards.
-
-A translation memory is a cache: it exists to avoid paying for the same work
-twice, and its value is the work it skips. Nestor's three states are not a cache
-tier. They are an answer to a different question, and it is a question being put
-to anyone shipping model output into a regulated process:
+for, and reading it as a TM gets the economics backwards. A translation memory
+is a cache: its value is the work it skips. Nestor's three states are not a cache
+tier — they answer a different question, one being put to anyone shipping model
+output into a regulated process:
 
 > **Which model outputs did a human actually check?**
 
 Tier 2 is a machine draft, explicitly queued and never served as verified. Tier
 3 is a person checking it, under their own key. Tier 1 is that decision served
 back, verbatim, with the name of who made it — and the whole sequence appended
-to a hash-chained ledger, so the answer is a structural fact rather than a
-recollection. "A human checked this" is either in the chain or it is not.
+to a hash-chained ledger. "A human checked this" is either in the chain or it is
+not.
 
-**Each verification is permanent capital.** This is the part worth leading with,
-because the curve runs the wrong way round compared to inference: cost per
-answer *falls* as the proportion of verified answers rises, and it never
-un-falls, because a seal does not expire and costs nothing to serve again.
-Spending review time buys down a recurring cost rather than renting a result.
-Verified once, served forever.
+**Each verification is permanent capital.** The curve runs the opposite way to
+inference: cost per answer *falls* as the proportion of verified answers rises,
+and it never un-falls, because a seal does not expire and costs nothing to serve
+again. Spending review time buys down a recurring cost rather than renting a
+result. Verified once, served forever.
 
-**Where that wins:** high-value, low-volume decisions where somebody is already
+**Where it wins:** high-value, low-volume decisions where somebody is already
 reading the output — contract clauses, clinical notes, regulatory filings,
 anything with a named reviewer and a retention requirement. The review was
 happening anyway; Nestor is the difference between it happening and it being
-provable.
-
-**Where it loses, stated plainly:** high-volume serving. Lookup is linear in
-corpus size and about 97% of that time is Python-side scoring, so this is not a
-chat backend and pitching it as one loses on the numbers — see
-[Accuracy](#accuracy-and-how-to-measure-yours) and `IDEAS.md` §2. The design
-target is decisions worth a person's attention, not throughput.
+provable. **Where it loses, stated plainly:** high-volume serving. Lookup is
+linear in corpus size and about 97% of that time is Python-side scoring, so this
+is not a chat backend — see [Accuracy](#accuracy-and-how-to-measure-yours). The
+design target is decisions worth a person's attention, not throughput.
 
 ---
 
 ## Install
 
-Python 3.10+, no runtime dependencies. The blessed one-liner is
-[`pipx`](https://pypa.github.io/pipx/) — it puts the `nestor` console script
-(the entry point `[project.scripts]` already declares in `pyproject.toml`)
-into its own isolated environment instead of onto whatever `pip` happens to
-be active:
+Python 3.10+, no runtime dependencies. The published package is
+**`nestor-meaning`** (the shorter `nestor` is unclaimed on PyPI; `import nestor`
+is unaffected either way). The blessed one-liner is
+[`pipx`](https://pypa.github.io/pipx/), which isolates the `nestor` console
+script in its own environment:
 
 ```bash
-pipx install nestor-meaning
+pipx install nestor-meaning          # or: pip install nestor-meaning
 ```
 
-`nestor-meaning` is the package's real, published name on PyPI — the shorter
-`nestor` is unclaimed there, so that name alone gets "No matching
-distribution found," not this project. `import nestor` is unaffected either
-way. From a checkout instead of the index, same tool, same one line:
+From a checkout instead of the index, same tool: `pipx install .` (or
+`pip install .`). All four paths were run clean into empty environments before
+this was written; the transcripts, and the `nestor init` → `nestor demo` →
+`nestor ui` first run, are in [docs/install.md](docs/install.md). What this does
+*not* solve: no Homebrew tap, no `curl | sh` — `pipx`/`pip` is the whole install
+story for now.
+
+Optional extras add capability without moving the core:
 
 ```bash
-git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
-pipx install .
+pip install "nestor-meaning[keys]"      # ed25519 per-verifier signing
+pip install "nestor-meaning[cloud]"     # the Anthropic draft engine
+pip install "nestor-meaning[semantic]"  # embedding matcher (fastembed)
+pip install "nestor-meaning[gate]"      # the willow-gate seam
 ```
-
-No `pipx` on the machine? Plain `pip` installs the same package the same way,
-minus the isolated environment — `pip install nestor-meaning` from PyPI, or
-`pip install .` from a checkout. Both `pipx` paths and both `pip` paths were
-run clean, into empty environments, before this was written down; the
-transcripts are in [docs/install.md](docs/install.md), along with the
-`nestor init` → `nestor demo` → `nestor ui` first run below spelled out in
-full. **What this does not solve, stated plainly:** no Homebrew tap, no
-`curl | sh` one-liner — `pipx`/`pip` against the published name or a
-checkout is the whole install story for now (IDEAS.md §7.5).
 
 ---
 
 ## Quick start
 
-Install from PyPI — Python 3.10+, no runtime dependencies:
-
-```bash
-pip install nestor-meaning
-```
-
-The distribution is `nestor-meaning`; the import name is unchanged, so
-`import nestor` still works and reaches nothing but the standard library
-(enforced by `tests/test_import_purity.py`). This installs the library and the
-`nestor` CLI. For a byte-reproducible source pin, install by git **tag** instead:
-
-```bash
-pip install "nestor-meaning @ git+https://github.com/rudi193-cmd/Nestor@v0.3.0"
-```
-
-**Then, the actual first run:**
-
-```bash
-nestor init                # a guided walk: ask, watch nothing verify it yet, propose a draft
-```
-
-Three steps, in Nestor's own voice: ask something, watch the matcher say
-truthfully that nothing has verified it yet, and propose your first decision
-as a **draft**. That is where the wizard stops — sealing is a human's
-signature, made by hand, in `nestor ui`, so `nestor init` ends by pointing
-you there rather than pretending to finish the job itself. `--yes` skips the
-prompts and uses a small built-in example, for a script or a container with
-no TTY. (`nestor demo` is the *other* first look — it seeds a store with
-someone else's already-sealed memory so `nestor ui` has something to show;
-`nestor init` gives you your own, one step at a time.)
-
-Optional extras add capability without moving the core:
-`[keys]` (ed25519 per-verifier signing), `[cloud]` (the Anthropic draft
-engine), `[semantic]` (embedding matcher), `[gate]` (the willow-gate seam).
-
-Or work from source:
-
-```bash
-git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pytest -q                                  # count deliberately not quoted
-```
-
-Python 3.10+, no runtime dependencies. The bundled `SqliteStore` owns every table
-Nestor needs, so the whole cascade runs end-to-end with no host application.
-
-File-backed `SqliteStore` uses **WAL** mode. While a process holds the database
-open, recent commits may live in `nestor.db-wal`, so a plain `cp` of
-`nestor.db` is **not** a backup of a running server — use
-`nestor export`, SQLite `VACUUM INTO`, or stop `nestor.ui` (which checkpoints on
-exit). A hard kill or rsync of a live box has the same limit.
-
-The whole argument in one run, against a scratch store it deletes afterwards:
-
-```bash
-python demo/sixty_seconds.py            # --fast to skip the pauses
-```
-
-An answer nobody has verified; one human verifying it once; the same question
-retyped and served with a receipt; a rewrite that is *not* served; the failure
-mode where "thirty days" matches "sixty days" and what to do about it; a seal
-forged straight into the database and refused; then one field edited in one past
-ledger entry, and the chain refusing both to verify and to accept the next
-decision. Every beat asserts its own claim — the script exits non-zero rather
-than narrate something that did not happen, and a test runs it.
-
-**The recording is reproducible, not just the demo.** `demo/record_demo.py`
-runs the script above under `script(1)` — no new dependency, no TTY required —
-and turns the captured pty output into a real asciicast (`demo/recordings/`):
-
-```bash
-python demo/record_demo.py              # writes demo/recordings/sixty_seconds.{cast,txt}
-```
-
-`sixty_seconds.cast` replays with the original color and pacing in any
-asciinema-compatible player; `sixty_seconds.txt` is the same run with the
-escape codes stripped, for reading without one. What it does **not** do is
-render a GIF — that needs a renderer (`agg` or similar) this dependency-light
-core does not carry, so the one command that finishes the job is printed at
-the end of a capture run for a human to run where that tool is installed.
-`tests/test_record_demo.py` runs the harness and checks the cast is valid and
-every beat is in the transcript.
-
-Save this as `demo.py` and run it — the whole loop, in the translation recipe:
+The core loop fits in one script. Save this as `demo.py` and run it, in the
+translation recipe:
 
 ```python
 from nestor import cascade, memory, storage
@@ -275,62 +173,15 @@ print(p.mark, p.state, repr(p.target), p.confidence, p.meta["verifier"])
 ```
 
 One human verification, and the answer is free, instant and attributed from then
-on — with both steps recorded in a tamper-evident ledger.
+on — both steps recorded in a tamper-evident ledger. That ledger is a file even
+when the store is not: the run appends to `./data/ledger.jsonl`. (The run also
+prints a `RuntimeWarning` about `NESTOR_SEAL_KEY` — Nestor telling you seals are
+trusted on stored status alone; see [Seal signatures](#seal-signatures) before
+using it for anything real.)
 
-That ledger is a file, even when the store is not: the run above appends to
-`./data/ledger.jsonl`, created relative to wherever you ran it. An in-memory
-store dies with the process; the audit trail deliberately never does. Configure
-the path with `NESTOR_LEDGER` — see [The ledger](#the-ledger).
-
-Now the same loop with no translation in it. Save this as `entities.py`: an
-alias graph, where "source → target" means *surface form → the entity it
-denotes*, and the only thing that changed is which recipe is imported.
-
-```python
-from nestor import storage
-from nestor.entity import EntityResolver
-from nestor.sqlite_store import SqliteStore
-
-storage.set_store(SqliteStore(":memory:"))
-graph = EntityResolver(storage.get_store(), domain="company")
-
-# 1. An analyst verifies two aliases — once each.
-graph.seal("Amazon.com Inc", "Amazon", verifier="analyst")
-graph.seal("AMZN", "Amazon", verifier="analyst")
-
-# 2. A spelling nobody sealed, of an alias somebody did.
-hit = graph.resolve("amazon.com,  inc.")
-print(hit["sealed"], hit["canonical"], hit["provenance"]["verifier"])
-
-# 3. Close, but not close enough to serve as verified.
-near = graph.resolve("Amazon Web Services")
-print(near["sealed"], near["canonical"], near["provenance"]["suggestion"])
-```
-
-```
-True Amazon analyst
-False None Amazon
-```
-
-Same seal, same threshold, same ledger. The third line is the one to notice:
-a near miss comes back **unsealed with a suggestion**, not as an answer with a
-lower score — because "probably Amazon" is not a thing a human checked.
-
-Prefer to click rather than type? `python -m nestor.ui --db data/nestor.db` opens
-the same three states, the review queue and the ledger in a browser — see
-[The UI](#the-ui--where-the-human-sits).
-
-> The run also prints a `RuntimeWarning` about `NESTOR_SEAL_KEY`. That is Nestor
-> telling you seals are being trusted on stored status alone. See
-> [Seal signatures](#seal-signatures) before using it for anything real.
-
-**Run it end to end — the real surfaces**
-
-The snippets above seal in-process, in one script, so the whole loop fits on a
-screen. The *product* is three separate surfaces over one store — a machine
-drafts, a **human** seals, a model or a terminal serves — and the seal is a
-person sitting down, not a function call. Here is that loop across all three,
-against a file-backed store:
+**The product is three separate surfaces over one store** — a machine drafts, a
+**human** seals, a model or a terminal serves — and the seal is a person sitting
+down, not a function call. Here is that loop across all three, file-backed:
 
 ```bash
 # 1. A machine draft enters the review queue (tier 2). Nobody has checked it yet.
@@ -338,150 +189,59 @@ python - <<'EOF'
 from nestor import cascade, storage
 from nestor.sqlite_store import SqliteStore
 storage.set_store(SqliteStore("data/nestor.db"))   # the CLI's default store
-cascade.translate_text("Good evening.", "es", source_lang="en")   # drafts, and queues for review
+cascade.translate_text("Good evening.", "es", source_lang="en")   # drafts, queues
 EOF
 
-# 2. Ask from the terminal — pending. A draft is not a verified answer.
-nestor ask "Good evening."                     # ! pending  —
-
-# 3. A human sits at the queue and seals it under their own name.
-python -m nestor.ui --db data/nestor.db        # open Queue → Seal (or correct-then-seal)
-
-# 4. Ask again — now served, verbatim, with who verified it.
-nestor ask "Good evening."                     # ✓ sealed  Buenas noches.  (verified by you)
-
-# 5. Every step is in the hash-chained ledger, and the chain verifies.
-nestor ledger verify                           # ✓ intact
+nestor ask "Good evening."                 # 2. ! pending — a draft is not verified
+python -m nestor.ui --db data/nestor.db    # 3. a human seals it under their own name
+nestor ask "Good evening."                 # 4. ✓ sealed  Buenas noches.  (verified by you)
+nestor ledger verify                       # 5. ✓ intact
 ```
 
 Step 3 is the point, not an inconvenience. There is no `nestor seal` subcommand
-and no way to seal from a script, because a seal is a human's signature and
-`--verifier "$USER"` in a cron job is not a human checking anything. A model can
-draft (`nestor serve`), the terminal can serve, but only a person at `nestor.ui`
-turns a draft into a sealed answer. That boundary is the product — the rest of
-this README is the detail behind it.
+and no way to seal from a script, because `--verifier "$USER"` in a cron job is
+not a human checking anything. A model can draft (`nestor serve`), the terminal
+can serve, but only a person at `nestor.ui` turns a draft into a sealed answer.
 
-**Installation extras**
+**The whole argument in sixty seconds**, against a scratch store it deletes
+afterwards — eight beats, each asserting its own claim (the script exits non-zero
+rather than narrate something that did not happen, and a test runs it):
 
 ```bash
-pip install -e ".[dev]"      # + pytest, ruff, bandit — everything Development runs
-pip install -e ".[cloud]"    # + the Anthropic SDK, to enable ClaudeEngine
-pip install -e ".[semantic]" # + fastembed, to enable SemanticMatcher
-pip install -e ".[keys]"     # + cryptography, for ed25519 per-verifier keys
+python demo/sixty_seconds.py            # --fast to skip the pauses
+python demo/record_demo.py              # capture it as an asciicast under demo/recordings/
 ```
 
-(The `-e ".[…]"` form is the one that works here — Nestor is installed from
-this clone, not from an index.)
+From source, for development:
+
+```bash
+git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"                 # + pytest, ruff, bandit
+pytest -q                               # no outbound network
+```
+
+The bundled `SqliteStore` owns every table Nestor needs, so the whole cascade
+runs end-to-end with no host application. It uses **WAL** mode, so a plain `cp`
+of `nestor.db` is not a backup of a running server — use `nestor export`, SQLite
+`VACUUM INTO`, or stop `nestor.ui` (which checkpoints on exit).
 
 ---
 
 ## Project layout
 
 ```
-nestor/
-├── __init__.py       public surface — the cascade, the recipes, the curator, the matchers
-├── cascade.py        the three tiers, and the hash-chained ledger append
-├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
-├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
-├── semantic_matcher.py  optional SemanticMatcher (fastembed extra or Ollama backend)
-├── ollama_embed.py   stdlib client for local Ollama embeddings (nomic-embed-text)
-├── curator.py        the curator surface — browse, audit, unseal, export
-├── calibrate.py      where the seal threshold should sit for *your* corpus
-├── answer.py         what Nestor answers — one definition, shared by every surface
-├── persona.py        how Nestor speaks when Nestor is the speaker (never the translation)
-├── ui.py             the browser surface — queue, memory, ask, signals, ledger (stdlib only)
-├── ui_page.py        the single self-contained page ui.py serves
-├── seed.py           a small demo store across all three recipes, so a cold `ui --demo` lands live
-├── onboarding.py     `nestor init` — ask, watch the matcher refuse, propose a first draft; never seals
-├── cli.py            the terminal surface — ask, export, import, ledger verify
-├── serve.py          the model surface — MCP over stdio; it cannot seal
-├── cloud_seal.py     optional cloud-path seam — an agent provisionally seals through willow-gate (nestor[gate]); never canonical
-├── portable.py       export/import a memory without laundering trust
-├── entity.py         recipe — alias → canonical entity resolution
-├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
-├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
-├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
-├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
-├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
-├── storage.py        the persistence seam — Storage protocol, set_store/get_store
-├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges/decision_evidence
-├── ledger.py         verify() the hash chain — the fail-closed audit check
-├── signing.py        bind a seal (and a rejection) to a key the store does not hold
-├── keyring.py        a key per verifier — so a seal names a person, not a deployment
-├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
-├── home_paths.py     ~/.nestor/keep paths for household hosts (see docs/home-paths.md)
-├── home_init.py      idempotent scaffolder for the Nestor home — creates the keep tree if absent, never clobbers
-├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
-├── glossary.py       per-language-pair term locks — tier 2's constraint
-├── langid.py         stopword-profile language identification
-└── segment.py        sentence/segment splitting
-
-bench/                measuring where the seal threshold stops holding — see bench/README.md
-├── bench_accuracy.py   false-seal rate vs recall, swept across thresholds
-├── bench_margin.py     does the gap to the runner-up separate a true match? (mostly: no)
-├── bench_surfaces.py   which surface variations survive normalization
-├── bench_surfaces_human.py   the same probes, authored by a human rather than generated
-├── bench_surfaces_llm.py     and by a model, scored against both
-├── corpora.py          seeded corpora at both ends of the diversity spectrum
-├── corpus_terpsi.py    a real-prose corpus, with its span/split checks
-├── token_matchers.py   token-weighted matchers tried against the identifier collisions
-├── retrieval_quality.py  recall/precision at a threshold — the half `nestor calibrate` does not measure
-├── harness.py          timing, environment capture, JSON result recording
-├── serve_ui.py         the threshold trade-off as a chart — read-only, stdlib (serves bench/ui/)
-└── results/            committed measurements — parameters, git rev, raw numbers
-
-demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
-├── sixty_seconds.py    the whole loop in eight beats — see Quick start
-├── record_demo.py      captures sixty_seconds.py as an asciicast — see 60-second demo below
-├── recordings/          the captured .cast and .txt from the last record_demo.py run
-├── the_dogfooding.py   Nestor's own decision store asked its own questions — retrieval measured three ways (IDEAS §6.94)
-├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
-├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
-├── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
-├── big_jim.py          a standing desk for a used-car lot, keyed on VIN — driven a command at a time
-├── review_desk.py      the other desk: patch_review over this repo's own open findings, seeded from IDEAS.md
-├── filing_cabinet.py   one man's papers against his own lot's disclosures — three open gaps (§6.22, §6.39, and the verifier policy that does not exist)
-├── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
-└── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
-
-recipes/              the seam's "yours" row, built against the shipped package
-├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
-├── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
-└── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
-scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
-                      trust boundary across two genuinely separate deployments
-tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
-AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
-CHANGELOG.md          releases, newest first — "Unreleased" until the first tag (docs/releasing.md)
-docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
-IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open; opens with a CI-gated Map of every subsection
-docs/agent-log.md     §6, the implementation-session log, lifted out of IDEAS.md; numbers preserved
-TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
-QUESTIONS.md          the questions this gets asked, answered or admitted
-FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
-docs/dogfood/         Nestor's own decisions, one file per merged PR; the .db is derived (docs/decision-memory.md)
-docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
-docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
-docs/releasing.md     the release runbook — the decisions before a first release, and the publish workflow
-docs/install.md        the install story, verified — pipx/pip, from PyPI or a checkout, wired to the first run (§7.5)
-docs/seal-staleness-and-quorum.md  design memo (§1.4): does a seal expire, and is one enough — an argument, unimplemented
-docs/evidence-edge.md  what a sealed claim rests on, distinct from who sealed it — memo + landed core relation/report/CLI (decision 0142/0143)
-docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
-docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
-docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos (§6.50–§6.55)
-docs/live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
-docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
-docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
-docs/home-paths.md  ~/.nestor ledger/keep paths vs the repo's ./data/ (household hosts)
-docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.nestor household root — audience, not brand
-docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
-docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
-docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
-docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
-docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
-docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
-docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
+nestor/       the package — cascade, memory, matchers, curator, ui, cli, serve, ledger, signing
+bench/        measuring where the seal threshold stops holding (bench/README.md)
+demo/         scripted, self-asserting demos — a claim that fails the build when it stops being true
+recipes/      the seam's "yours" row, built against the shipped package
+tests/        no outbound network (one test binds a loopback socket), no fixtures on disk
+docs/         design memos, operating rules, and the moved-out reference material
+AGENTS.md · IDEAS.md · TODO.md · QUESTIONS.md · CHANGELOG.md
 ```
+
+The full annotated manifest — every module, bench, demo and doc with a line on
+what each is for — is [`docs/project-layout.md`](docs/project-layout.md).
 
 ---
 
@@ -498,136 +258,25 @@ class Matcher(Protocol):
     # optional: score(raw_a, raw_b) -> float — memory prefers this when present
 ```
 
-`match_similarity()` in `nestor.matcher` is what `lookup` / `best_sealed` call:
-normalized-key scoring when there is no `score`, raw surfaces when there is.
-
 Two core matchers ship with zero dependencies; a third is optional:
 
-- **`StringMatcher`** — the historical translation behavior: lowercase, strip
-  punctuation, collapse whitespace, then `difflib.SequenceMatcher` ratio (equal
-  normals → `1.0`). It is the module-wide default, so translation scoring is
-  reproduced bit-for-bit.
-- **`NumericMatcher(abs_tol=0.0, pct_tol=0.05)`** — `normalize` parses a number
-  out of a str/int/float (stripping `$ , %` and whitespace) into a canonical
-  float key; non-parseable inputs become a sentinel that never matches.
-  `similarity` is `1.0` inside the tolerance band
-  `tol = max(abs_tol, pct_tol·max(|a|,|b|))`, and decays exponentially
-  `exp(-(|a-b|-tol)/tol)` outside it — continuous at the edge, monotonically
-  toward `0` for a wildly different figure.
+- **`StringMatcher`** — the module-wide default: lowercase, strip punctuation,
+  collapse whitespace, then `difflib.SequenceMatcher` ratio. Translation scoring
+  is reproduced bit-for-bit.
+- **`NumericMatcher(abs_tol=0.0, pct_tol=0.05)`** — parses a number out of a
+  str/int/float into a canonical float key; `similarity` is `1.0` inside the
+  tolerance band and decays exponentially outside it.
 - **`SemanticMatcher`** *(optional)* — `pip install -e ".[semantic]"` adds
-  `fastembed` only. Lexical dedup via `StringMatcher`; `score(raw_a, raw_b)`
-  compares embeddings (default model `BAAI/bge-small-en-v1.5`). Use
-  `matcher=semantic` on `nestor match`, the UI Match view, or MCP
-  `nestor_match`. Re-calibrate thresholds — they are not comparable to
-  character-ratio scores.
-- **`ollama`** *(local daemon)* — same matcher seam as `semantic`, but
-  embeds over stdlib HTTP to Ollama (default model `nomic-embed-text`). No
-  pip extra; needs `OLLAMA_HOST` (default `http://localhost:11434`) and the
-  model pulled. Use `--matcher ollama`. Nomic cosine bunches differently from
-  character-ratio / fastembed space — measure with
-  `nestor calibrate --matcher ollama` before trusting serves. Env:
-  `NESTOR_OLLAMA_EMBED_MODEL`, `NESTOR_OLLAMA_EMBED_TIMEOUT`.
+  `fastembed`; `score` compares embeddings. Or **`ollama`**, the same seam over
+  stdlib HTTP to a local daemon. Re-calibrate thresholds — embedding scores are
+  not comparable to character-ratio ones.
 
-Set `NESTOR_SEMANTIC_TEST=1` and install the `[semantic]` extra to run the optional
-integration test that checks the §3.1 acronym case (`AWS` vs `Amazon Web Services`).
-
-#### The embedding cache is signed, for the same reason a seal is
-
-Embedding a row costs real time, so `SqliteStore` caches each vector in
-`tm_embeddings`, keyed by `(pair_id, model_name)`. That cache is **an input to
-the serve decision**: under `SemanticMatcher` the score comes from the vectors,
-not from the text. A seal signature covers `(source_norm, target_text,
-verifier)` — it says what a human approved, and nothing about what the row
-*matches*. So a store-writer who cannot forge a seal could still choose which
-queries a sealed row answers, by writing the vector. Same shape as
-[Nestor#2](https://github.com/rudi193-cmd/Nestor/issues/2), one object over.
-
-Each cached vector therefore carries an HMAC over
-`(pair_id, model_name, source_sha, vector)`, and one that does not verify is
-**recomputed rather than used** — a bad cache entry costs latency, never an
-answer. The key comes from `NESTOR_CACHE_KEY`, else `NESTOR_SEAL_KEY`, else a
-keyring's `legacy_key`:
-
-| what is configured | what the cache does |
-| --- | --- |
-| nothing (signing off) | used unsigned — the store is already fully trusted, so a MAC would protect nothing |
-| `NESTOR_SEAL_KEY`, or `NESTOR_CACHE_KEY` | signed and verified on every read |
-| a keyring with **no** `legacy_key` and no `NESTOR_SEAL_KEY` | **disabled** — there is no deployment-wide key to sign with, and reading a cache it cannot check is exactly the hole above. Set `NESTOR_CACHE_KEY` to turn it back on; Nestor warns once |
-
-`--read-only` surfaces read the cache but never write it: matching is a read,
-and a reader who passed `--read-only` did not agree to a write.
-
-`nestor.memory` holds a module-level default matcher (`set_matcher` /
-`get_matcher`), and every public memory function (`add_pair`, `lookup`,
-`best_sealed`, …) accepts an optional `matcher=`. The `tm_pairs` schema is
-**unchanged**: `source_norm` is just whatever the matcher emits, and the
-`source_lang` / `target_lang` columns are treated as generic **domain tags** for
-non-translation use — so one store holds several disjoint graphs without
-cross-talk.
-
-> **Writing your own matcher?** `normalize()` is persisted as ``source_norm`` and
-> used for exact dedup. Scoring normally goes through ``similarity(a_norm,
-> b_norm)`` on those keys. If scoring needs information that must not be
-> collapsed into the dedup key — word order, token structure, anything a semantic
-> matcher would need — implement optional ``score(raw_a, raw_b)``; memory will
-> compare the query to each row's ``source_text`` that way instead. The two jobs
-> no longer pull against each other. See [`IDEAS.md`](IDEAS.md) §3.1.
-
-### A domain is its tags *and* its matcher
-
-Every surface that keys a row has to be handed the matcher that keys it. The
-domain tags alone are half of a domain, and a surface holding only that half
-files decisions under the default's key instead of yours — silently, with a
-`200` and a valid signature:
-
-```python
-from nestor import memory, ui
-
-app = ui.App(store=store, source_lang="incident", target_lang="incident",
-             matcher=SerialMatcher())        # ← the other half
-
-memory.set_matcher(SerialMatcher())          # or process-wide, for a single-domain host
-```
-
-`nestor ui --matcher {string,numeric,semantic,ollama}` names a **shipped** matcher; a
-custom one cannot come off a wire, so it is passed in code. `ui.App(matcher=None)`
-— the default — defers to the process-wide matcher rather than forcing
-`StringMatcher`, so a host that called `set_matcher()` before launching the
-surface keeps what it set. The Ask view shows which matcher is in force beside
-the engine, and `/api/state` reports it as `domain.matcher` / `domain.matcher_source`.
-
-**`App.matcher` describes `App`'s domain and no other.** The Ask and Match views
-let a human retype the domain tags, and `/api/reject-match` is shared by every
-recipe — the Entity view rejects an alias through it carrying the *entity*
-domain, which `EntityResolver` keys with its own matcher. A request about another
-domain therefore falls back to the process-wide default rather than borrowing
-this App's. Getting that wrong re-created §6.40 one recipe over, for exactly one
-release.
-
-**A process is told by a spec, not by a name.** `nestor serve` and `nestor ask`
-*are* the process, so there is no earlier moment at which a host could call
-`set_matcher()`, and a shipped name cannot conjure a custom matcher. Point them
-at one with `module:attribute`:
-
-```bash
-nestor serve --matcher acme.incidents:SERIALS      # a module attribute
-nestor ask "CH4471 free-flow" --matcher acme.incidents:SerialMatcher   # or a class
-nestor ui --matcher acme.incidents:SERIALS         # the same spec everywhere
-```
-
-Without it, a model asking over MCP gets `pending` for a phrase a human sealed
-through this UI — measured, and the reason the flag exists (`IDEAS.md` §6.41).
-The loader **imports the module named**, which is the same authority the command
-line already has; it is a flag for that reason, and never a value read from a
-request or a stored row. A spec that does not resolve to something offering
-`normalize` and `similarity` is refused at startup rather than at the first query.
-
-This is written down because it was measured, not anticipated:
-[`IDEAS.md`](IDEAS.md) §6.40 and the two-desk fixture
-[`demo/two_desks.py`](demo/two_desks.py) found that the UI had no way to be told,
-which made both promises at the top of this README void for any domain that took
-this seam at its word. The trail stayed intact throughout — a hash chain cannot
-catch a true record of an answer nobody can reach.
+The domain tags (`source_lang` / `target_lang`) are treated as generic labels,
+so one store holds several disjoint graphs without cross-talk. Two things that
+had to be learned the hard way — **the embedding cache is signed for the same
+reason a seal is**, and **a domain is its tags *and* its matcher** (hand every
+surface the matcher that keys it, or it files under the default's key silently) —
+are written up in [`docs/matcher-seam.md`](docs/matcher-seam.md).
 
 ---
 
@@ -639,20 +288,15 @@ For each text segment, Nestor tries three tiers in order:
 
 | Tier | Name | What it is | Result state |
 |------|------|-----------|--------------|
-| 1 | **Nestor's ledger** | A sealed translation-memory hit (fuzzy match ≥ `SEAL_THRESHOLD`, default `0.92` — [why that number is a dial, not a default](#accuracy-and-how-to-measure-yours)) | `sealed` — served verbatim |
-| 2 | **The draft** (`Nova` in the code, from the host it was extracted from) | A glossary-constrained LLM (or offline TM-composite) draft | `draft` — queued for review |
+| 1 | **Nestor's ledger** | A sealed TM hit (fuzzy match ≥ `SEAL_THRESHOLD`, default `0.92` — [a dial, not a default](#accuracy-and-how-to-measure-yours)) | `sealed` — served verbatim |
+| 2 | **The draft** | A glossary-constrained LLM (or offline TM-composite) draft | `draft` — queued for review |
 | 0 | *(no candidate)* | The engine declined / returned nothing | `pending` |
 
-A tier-2 draft is written into the host's `documents`/`segments` review queue.
-Tier 3 — **the seal** — happens when a human verifies a segment: call
-`graduate_segment(...)`, and the verified pair enters the sealed memory, where it
-serves future tier-1 hits.
-
-A reviewer's **no** is recorded too — `reject_segment(...)` — so a wrong
-candidate is never offered for that input again. See
-[Rejection](#rejection--the-reviewers-no).
-
-The loop end to end, in code — draft, queue, seal, serve:
+A tier-2 draft is written into the host's review queue. Tier 3 — **the seal** —
+happens when a human verifies a segment (`graduate_segment(...)`); the verified
+pair enters the sealed memory and serves future tier-1 hits. A reviewer's **no**
+is recorded too (`reject_segment(...)`), so a wrong candidate is never offered
+for that input again — see [Rejection](#rejection--the-reviewers-no).
 
 ```python
 from nestor import cascade, memory, storage
@@ -669,7 +313,7 @@ doc, passages = cascade.translate_text("Please sign the attached form.",
 passages[0].state                     # 'draft' — queued, not served as verified
 
 # Tier 3: a human works the queue. Accept or refuse; either way it sticks.
-for seg in store.list_segments(doc["id"]):        # the optional queue capability
+for seg in store.list_segments(doc["id"]):
     cascade.graduate_segment(seg["id"], verifier="rita")
     # or: cascade.reject_segment(seg["id"], verifier="rita", reason="…")
 
@@ -678,19 +322,12 @@ memory.best_sealed("Please sign the attached form.", "en", "es")
 # {'pair': {...'verifier': 'rita'...}, 'similarity': 1.0}
 ```
 
-Pairs are `sealed` (human-verified / curated) or `draft` (machine, awaiting
-seal). Only sealed pairs are served as tier 1; drafts may feed the engine as
-style/terminology context but are never served as verified.
-
 **Changing an answer keeps the answer it replaces.** `supersede_pair(...)`
-retires the live sealed pair behind its successor — verifier required, because
+retires a live sealed pair behind its successor — verifier required, because
 replacing a sealed decision is itself a decision — and `revise_draft(...)` does
-the same for a machine's own draft, deliberately taking **no** verifier: the
-successor is a draft too, and sealing it stays a separate human act. Both keep
-the old row with the reason it was replaced, and `memory_lineage` walks the
-chain back, newest first. Both need the lineage capability
-(`storage.supports_lineage`) and raise without it rather than falling back to
-the destructive overwrite they exist to replace.
+the same for a machine's own draft, taking no verifier. Both keep the old row
+with the reason it was replaced; `memory_lineage` walks the chain back. Both need
+the lineage capability and raise without it rather than overwriting.
 
 ### Entity resolution — `nestor.entity`
 
@@ -709,7 +346,8 @@ r.resolve("Alphabet Inc")
 
 A match at/above the seal threshold returns the canonical entity with the sealed
 mapping's provenance; below it, the top candidate comes back as an **unsealed
-suggestion** the caller can queue for a human seal.
+suggestion** the caller can queue for a human seal — not an answer with a lower
+score, because "probably Amazon" is not a thing a human checked.
 
 ### Numeric reconciliation — `nestor.reconcile`
 
@@ -725,21 +363,14 @@ rc.check("ceiling", 1_250_000)
 # {..., 'within_tolerance': False, 'variation': 250000.0, 'variation_pct': 0.25, 'flagged': True}
 ```
 
-`check` compares an observation to the sealed baseline via the `NumericMatcher`
-tolerance, reports absolute and proportional variation, and flags deviations.
-Every seal and check is written to the ledger.
-
-**A label has exactly one baseline.** That needed its own guard, because
-`add_pair`'s conflicting-seal check keys on the normalized source and under a
-`NumericMatcher` every figure is its own key — so a second baseline for a label
-was not an overwrite, it was an insert. Both stayed sealed, and `check` scored an
-observation against whichever it sat *nearest*: the one figure guaranteed to
-excuse it. A `$4,900,000` spend passed cleanly against a superseded `$5,000,000`
-ceiling while the standing `$1,000,000` one went unconsulted. Now a differing
-figure from a different verifier raises `ConflictingSealError`; a same-verifier
-restatement (or an explicit `override_conflict`) retires the superseded baseline
-and ledgers the replacement. Where a store cannot retire it, `check` reports
-`ambiguous=True` and uses the newest rather than the nearest.
+`check` compares an observation to the sealed baseline via the tolerance band,
+reports absolute and proportional variation, and flags deviations. **A label has
+exactly one baseline** — a differing figure from a different verifier raises
+`ConflictingSealError` rather than sitting as a second sealed row that a later
+check could score against (a `$4,900,000` spend once passed cleanly against a
+superseded `$5,000,000` ceiling while the standing `$1,000,000` one went
+unconsulted). A same-verifier restatement retires the superseded baseline and
+ledgers the replacement.
 
 All three recipes are driven from [the UI](#the-ui--where-the-human-sits) — same
 memory, same threshold, same ledger, four buttons.
@@ -750,19 +381,15 @@ memory, same threshold, same ledger, four buttons.
 
 Sealing records that an answer is right. Rejection records that one is **wrong**,
 so it is never served again. Both are verification decisions by a human, both are
-signed, and both land in the ledger — otherwise the audit trail only ever records
-agreement.
-
-There are two different refusals, and the distinction matters:
+signed, both land in the ledger — otherwise the audit trail only ever records
+agreement. There are two different refusals, and the distinction matters:
 
 ```python
 # 1. The mapping itself is wrong — retire it everywhere.
 memory.reject_pair(pair_id, verifier="rita", reason="wrong time of day")
 
 # 2. This pair is the wrong answer FOR THIS QUERY — it stays valid for its own
-#    source text. This is what a false seal actually is. A hit from lookup()
-#    or best_sealed() is {"pair": {...the stored row...}, "similarity": float}.
-#    (best_sealed returns None when nothing matches; this assumes a sealed pair does.)
+#    source text. This is what a false seal actually is.
 hit = memory.best_sealed("the penalty under section 900026", "en", "es")
 memory.reject_match("the penalty under section 900026", "en", "es",
                     pair_id=hit["pair"]["id"], verifier="rita",
@@ -771,34 +398,15 @@ memory.reject_match("the penalty under section 900026", "en", "es",
 
 A false seal is a *correct* pair matched to the wrong input, so rejecting the
 pair would destroy a good verification. Rejecting the **match** suppresses it for
-that one query and leaves the seal intact:
-
-```
-before: served 'SEALED-ANSWER-9072'  sim=0.971  state=SEALED   <- never verified for this input
-        rita rejects that match once
-after : best_sealed -> None
-        lookup      -> []                     (also hidden from the engine)
-        the real pair still serves its own source, sim=1.0
-```
-
-For a reviewer working the queue, `cascade.reject_segment(segment_id, ...)` is
-the sibling of `graduate_segment` — accept or refuse, and either way it sticks.
-
-Enforcement lives in `memory.lookup()`, which every serve path goes through, so a
-rejected pair is hidden from tier-1 serving *and* from the engine's reference
-context.
+that one query and leaves the seal intact. Enforcement lives in `memory.lookup()`,
+which every serve path goes through, so a rejected pair is hidden from tier-1
+serving *and* from the engine's reference context.
 
 > **For hosts:** rejection is an **optional** Storage capability
-> (`memory_reject_pair`, `memory_add_rejection`, `memory_rejections`). A store
-> predating it keeps working untouched; `storage.supports_rejection(store)`
-> reports it. Implement all three or none — partial support counts as none, and
-> the `reject_*` entry points raise rather than silently discard a human's
-> decision.
->
-> A rejection is honored **even if its signature does not verify** — the reverse
-> of how seals are treated. Suppressing an answer degrades to human review, which
-> is the safe state; serving an unverified one does not. Validity is still
-> reported via `memory.rejection_signature_report(...)`.
+> (`storage.supports_rejection`). A store predating it keeps working; implement
+> all three operations or none. A rejection is honored **even if its signature
+> does not verify** — the reverse of how seals are treated, because suppressing
+> an answer degrades to human review, which is the safe state.
 
 ---
 
@@ -812,7 +420,6 @@ seals that do not verify, and revoke.
 from nestor.curator import Curator
 
 c = Curator(store, source_lang="en", target_lang="es")
-
 c.list(status="sealed", contains="invoice")   # browse, filter, paginate
 c.get(pair_id)                                # provenance + every rejection against it
 c.unverifiable()                              # says "sealed", would NOT be served
@@ -823,39 +430,24 @@ c.export()                                    # the whole memory, JSON-ready
 Every row carries **`servable`** alongside `status`, because they are not the
 same question. `servable` runs the identical check the serve path uses, so a row
 marked `sealed` whose signature does not verify shows up as `servable=False` —
-written by something that never held the seal key:
-
-```
-  sealed   servable=True   rita      the annual invoice
-  sealed   servable=False  mallory   forged phrase        <- unverifiable() finds this
-```
+written by something that never held the seal key, and exactly what
+`unverifiable()` finds.
 
 **Unsealing is not rejecting.** Unsealing returns a pair to `draft` for
 re-verification; [rejecting](#rejection--the-reviewers-no) retires it as wrong. A
 curator who is merely unsure shouldn't have to choose between destroying a
 mapping and leaving a seal standing they no longer trust. Both are written to the
-ledger — a trail that records every grant of trust and no withdrawal of it isn't
-an audit trail.
-
-Re-sealing a rejected pair raises `RejectedPairError` rather than silently
-resurrecting it; `Curator.restore(pair_id)` is the deliberate way back, and it
-returns the pair to `draft` so it gets re-verified rather than reinstated.
-
-> **For hosts:** curation is an **optional** Storage capability (`memory_list`,
-> `memory_get`, `memory_unseal`, `memory_rejections_for_pair`). A store predating
-> it keeps working; `storage.supports_curation(store)` reports it, and `Curator`
-> raises `CurationUnsupportedError` rather than offering actions the store cannot
-> carry out.
+ledger. Re-sealing a rejected pair raises `RejectedPairError`; `Curator.restore`
+is the deliberate way back, returning the pair to `draft` so it gets
+re-verified. (Curation is an optional Storage capability,
+`storage.supports_curation`.)
 
 ---
 
 ## The UI — where the human sits
 
 Everything above is a library surface. Nestor's whole claim is that *a human
-checked this*, and until now that human had to write Python to do it: the
-reviewer worked the queue through `graduate_segment` calls typed into a REPL,
-the curator browsed the memory through `Curator`. `nestor.ui` is the place a
-person can actually sit down at.
+checked this*, and until `nestor.ui` that human had to write Python to do it.
 
 ```bash
 python -m nestor.ui --db data/nestor.db          # http://127.0.0.1:8765
@@ -868,49 +460,14 @@ nobody could see:
 
 | View | What it is |
 |------|-----------|
-| **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; the segment leaves the queue and the decision is signed and ledgered. |
-| **Memory** | The curator's view over any domain in the store: filter, inspect provenance and every rejection against a pair, unseal, reject, restore, seal one by hand into any domain (or a new one), export and import. Every row shows `servable` beside `status`. |
-| **Ask** | The mechanic, in whichever recipe you pick — translate, resolve an entity, reconcile a figure, or run the bare seam. Each answer comes with the ranked candidates that produced it and what they scored. |
+| **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; it leaves the queue and the decision is signed and ledgered. |
+| **Memory** | The curator's view over any domain: filter, inspect provenance and rejections, unseal, reject, restore, seal one by hand, export and import. Every row shows `servable` beside `status`. |
+| **Ask** | The mechanic, in whichever recipe you pick — translate, resolve, reconcile, or the bare seam. Each answer comes with the ranked candidates and what they scored. |
 | **Ledger** | `verify()`'s verdict and the chain itself, so the audit trail can be read where the decisions are made. |
 
-### Ask is recipe-shaped, not translation-shaped
-
-The [recipes](#the-recipes) are four buttons, over one memory and one ledger:
-
-| Recipe | What you type | What comes back |
-|--------|---------------|-----------------|
-| **Translate** | a phrase, and two language tags | the cascade's three states — sealed, draft, pending |
-| **Entity** | a surface form, and an entity domain | the canonical entity, or an *unsealed suggestion* to seal, or nothing |
-| **Numeric** | a label, a figure, and a tolerance | within tolerance / flagged with the exact variation / no baseline yet |
-| **Match** | any value, any two domain tags, either shipped matcher | the normalized key, every candidate's score, and whether it would be served |
-
-Each one seals from the same screen — an alias, a baseline, a translation — and
-every seal, resolve, check and rejection lands in the one hash-chained ledger.
-The Memory view's domain picker lists every tag pair actually in the store
-(`en → es`, `company`, `ceiling → contract`, …) with its size, so several
-disjoint graphs in one database are visible rather than assumed.
-
-> The UI never *infers* which recipe a domain belongs to. `("company",
-> "company")` is probably an entity graph and `("en", "es")` probably a
-> translation, but nothing enforces either, and a surface that guessed wrong
-> would mislabel someone's data with total confidence. You pick the recipe; it
-> reports what exists.
-
 The Ask view is the one to open first, because it shows the product rather than
-describing it. Asking for a phrase that only *nearly* matches a sealed one:
-
-```
-~ draft   tier 2   offline-tm   confidence 0.7
-Firme y devuelva el formulario adjunto.
-A machine produced it. Queued for review, never served as verified.
-
-Ranked candidates. A sealed one serves only at or above 0.92.
-✓  0.875   Please sign and return the attached form. → Firme y devuelva el formulario adjunto.
-```
-
-And asking for one whose only match is a row that *claims* to be sealed but was
-written without the seal key — the forgery `Curator.unverifiable()` exists to
-surface, seen from the serve side:
+describing it. Asking for a phrase whose only match is a row that *claims* to be
+sealed but was written without the seal key:
 
 ```
 ! pending   tier 0
@@ -924,112 +481,48 @@ Nothing to offer. Said plainly rather than improvised.
 A perfect match, and the answer is still *pending*. That is the whole product in
 one screen.
 
-The same screen in the **Entity** recipe, resolving `amazon web services, inc.`
-against a sealed alias graph — an alias scoring 0.905 is below the cutoff, so
-what comes back is an offer to seal, not an answer:
-
-```
-~ draft   domain company   confidence 0.905   via "Amazon Web Services"
-Amazon
-Nothing verified matched closely enough. This is a suggestion to seal, not an answer.
-
-✓  0.905   Amazon Web Services → Amazon      sealed · by analyst
-✓  0.611   Amazon.com Inc      → Amazon      sealed · by analyst
-```
-
-And in **Numeric**, an observation against a sealed contract ceiling:
-
-```
-✗ flagged   ceiling · contract
-baseline    observed    variation   as %      tolerance
-1,000,000   1,250,000   250,000     25.00%    ±0 or 5.00%
-Outside the tolerance band. The variation is reported, not smoothed.
-```
-
 **What the UI does not do is authenticate anybody.** The verifier is typed, not
 proven — the same trust model as calling `memory.add_pair(verifier="rita")`
 yourself. So it binds to loopback and refuses a public bind unless you pass
-`--allow-remote`, mutating requests are refused unless they carry the page's own
-header (so another browser tab cannot POST a seal into it), and the page is served with a
-Content-Security-Policy of `default-src 'none'` plus `connect-src 'self'` (the
-inline stylesheet and script are allowed, nothing external is, and `fetch` can
-only reach this server) — an audit surface should not be able to ship the memory
-it is displaying anywhere. Seal
-*signatures* (`NESTOR_SEAL_KEY`) remain the thing that makes a seal unforgeable;
-nothing here weakens them, and the header badge tells you when they are off.
+`--allow-remote`, mutating requests must carry the page's own header (so another
+tab cannot POST a seal), and the page is served with a strict
+Content-Security-Policy (`default-src 'none'`) — an audit surface should not be
+able to ship the memory it displays anywhere.
 
-### Holding your own key in the browser
-
-There is one way to make the verifier *proven* rather than typed, and it is the
-piece that closes [Nestor#17](#who-verified-it--per-verifier-keys): the "acting
-as" box's third mode generates a **non-extractable Ed25519 key with WebCrypto,
-in the browser**, or imports one minted elsewhere as raw hex. The private key is
-persisted in IndexedDB (or kept only for the tab) and **never leaves the page** —
-it never touches this server. Enrolment is out of band: the page prints the exact
-
-```bash
-nestor keys add NAME --type ed25519 --public HEX
-```
-
-for a human to run against the store's keyring, so the server learns the
-*public* key and nothing else. From then on a seal is signed **client-side**
-against a message the human actually saw — a read-only `/api/normalize` supplies
-the `source_norm` the browser displays before signing, so a compromised server
-cannot steer a signature onto bytes nobody looked at — reproducing the frozen
-`signing._message` encoding in JavaScript, proven byte-identical to Python's
-against a live browser (`tests/test_client_signed_seals_browser.py`). This is
-the property a shared `NESTOR_SEAL_KEY` can never have: the store can verify and
-seal under a verifier's key while being structurally unable to forge as them.
-
-Deliberately narrow, matching [decision 0077](docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json):
-only `/api/seal`, `/api/seal-draft`, and the edited path of `/api/queue/seal`
-accept a client signature. A browser-key verifier cannot yet unseal, reject,
-restore, or seal an entity or numeric answer from the UI — those endpoints have
-no signature to authenticate against. See [Seal signatures](#seal-signatures)
-for the key model this builds on.
+There *is* one way to make the verifier proven: the "acting as" box's third mode
+generates a **non-extractable Ed25519 key with WebCrypto in the browser** (or
+imports one as raw hex). The private key lives in IndexedDB and **never leaves
+the page**; enrolment is out of band (the page prints the exact
+`nestor keys add NAME --type ed25519 --public HEX` to run), and a seal is signed
+client-side against a message the human actually saw. This is the property a
+shared `NESTOR_SEAL_KEY` can never have — the store verifies and seals under a
+verifier's key while being structurally unable to forge as them. It is
+deliberately narrow (only the seal endpoints accept a client signature); see
+[Seal signatures](#seal-signatures) and
+[decision 0077](docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json).
 
 `--read-only` refuses every decision at the API layer, for showing the memory to
 someone without handing them the ability to change it. `--engine` defaults to
-`offline` rather than `auto`, because a click in a browser should not silently
-call a paid API.
-
-> **For hosts:** the queue view needs a third **optional** Storage capability —
-> `list_documents`, `list_segments`, `update_segment_status`
-> (`storage.supports_queue`). Without it the other three views work and the
-> queue says so, rather than showing an empty list that means "this store cannot
-> tell you".
+`offline`, because a click in a browser should not silently call a paid API.
 
 ---
 
 ## The CLI
 
 The CLI is its own process, so it does not see a store your Python snippet set
-with `set_store(":memory:")` — it reads `--db` (default `./data/nestor.db`) and
-`--ledger` (default `NESTOR_LEDGER` or `./data/ledger.jsonl`). Both are global
-flags, so they go **before** the subcommand: `nestor --db mydb.db ask "…"`, not
-`nestor ask "…" --db mydb.db`. The examples below assume something has been
-sealed into that file-backed store; to make the first one answer, seed it once:
-
-```bash
-python - <<'EOF'
-from nestor import memory, storage
-from nestor.sqlite_store import SqliteStore
-storage.set_store(SqliteStore("data/nestor.db"))
-memory.add_pair("Good evening.", "Buenas noches.", "en", "es",
-                status="sealed", verifier="rita")
-EOF
-```
+in memory — it reads `--db` (default `./data/nestor.db`) and `--ledger`. Both are
+global flags, so they go **before** the subcommand: `nestor --db mydb.db ask "…"`.
 
 ```bash
 nestor ask "Good evening."               # ✓ sealed  Buenas noches.  (verified by rita)
 nestor resolve AMZN --domain company     # the entity graph
 nestor check ceiling '$1,030,000' --domain contract
+nestor evidence for PAIR_ID              # what a sealed claim rests on (also: attach, report)
 nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain
-nestor stats
-nestor init                              # the guided first run — see Quick start; --yes for CI
-nestor calibrate --from en --to es       # where the threshold belongs for this corpus (--matcher too)
+nestor init                              # the guided first run; --yes for CI
+nestor calibrate --from en --to es       # where the threshold belongs for this corpus
 nestor rejections                        # what the recorded "no"s say in aggregate
 nestor keys add rita --keyring keys.json # a key per verifier; keys list / revoke
 nestor ui                                # the browser surface
@@ -1055,50 +548,29 @@ nestor import memory.json --apply --verifier rita
 
 Export is easy. Import is the half worth explaining, because **a bundle is a
 file, and a file claiming `"status": "sealed"` is making exactly the claim a seal
-signature exists to distrust** — the same claim a forged database row makes. So
-import applies the serve path's rule rather than a softer one:
+signature exists to distrust.** So import applies the serve path's rule rather
+than a softer one:
 
 | Incoming row | What happens |
 |---|---|
-| sealed, and its signature verifies **here** | imported sealed — this is what sharing a `NESTOR_SEAL_KEY` between instances buys you, or, without sharing a secret at all, holding the signer's ed25519 **public** key (`[keys]` extra): the destination can verify the seal while being structurally unable to forge one |
-| sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, and never served |
-| sealed, and **this instance has no key configured** | imported sealed on stored status alone — the serve path would trust the same row for the same reason, so import does not pretend to a stricter rule than serving has. `NESTOR_REQUIRE_SEAL_KEY=1` refuses the import outright |
-| draft | imported as a draft |
+| sealed, and its signature verifies **here** | imported sealed — what sharing a `NESTOR_SEAL_KEY`, or holding the signer's ed25519 **public** key, buys you |
+| sealed, signature does not verify | imported as a **draft**, into the review queue — counted, warned about, never served |
+| sealed, and **this instance has no key configured** | imported sealed on stored status alone — the serve path would trust the same row for the same reason. `NESTOR_REQUIRE_SEAL_KEY=1` refuses it |
 | same source, a *different* target | **conflict**: listed for a human, never resolved silently (`--override-conflicts`) |
-| a pair **rejected here** | listed and skipped — `--override-conflicts` deliberately cannot reach it, because a rejection is not a competing answer (`--override-rejections`, or `Curator.restore`, is the way back) |
-| sealed and verified, over a local **draft** of the same text | the draft is upgraded — same answer, but one side has a verification the other lacks |
-
-```
-would import: 16 sealed, 1 demoted to draft (signature does not verify here),
-              1 draft, 0 already present, 1 rejection(s)
-
-nothing was written — re-run with --apply to commit.
-```
+| a pair **rejected here** | listed and skipped — a rejection is not a competing answer (`--override-rejections`, or `Curator.restore`, is the way back) |
 
 Dry run by default, in the library and the CLI both, because an import decides
-what an instance will serve as human-verified. The UI has the same flow with the
-report on screen. **The ledger does not merge** — a hash chain has one history by
-construction, so a bundle carries the source chain for *reading* and the import
-itself is what gets appended locally.
-
-`--format csv` is offered and is deliberately lossy: it drops signatures, so a
-CSV round-trip cannot carry a verifiable seal. Use it to read a memory, not to
-move one.
-
-This is a transfer, not a sync: there is no continuous replication and no
-three-way merge, and a pair's id is per-instance. [QUESTIONS.md
-§8](QUESTIONS.md) says what that would take.
+what an instance will serve as human-verified. **The ledger does not merge** — a
+hash chain has one history by construction, so the import itself is what gets
+appended locally. This is a transfer, not a sync: no continuous replication, no
+three-way merge, and a pair's id is per-instance. Bundles carry evidence (what a
+claim rests on) from version 3 on. `--format csv` is deliberately lossy — it
+drops signatures, so use it to read a memory, not to move one.
 
 ## Serving a model — and the one thing it cannot do
 
 ```bash
 nestor serve --db data/nestor.db         # MCP over stdio, stdlib only
-```
-
-```json
-{"mcpServers": {"nestor": {"command": "nestor",
-                           "args": ["serve", "--db", "data/nestor.db"],
-                           "env": {"NESTOR_SEAL_KEY": "…"}}}}
 ```
 
 A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
@@ -1116,112 +588,54 @@ import a bundle, edit the ledger. Verification is a human act — use
 nestor_propose to put an answer in front of one.
 ```
 
-That is the product, not a precaution. "Has a human checked this?" is worth
-exactly as much as the difficulty of getting a machine's output marked as
-checked, so `tests/test_serve.py` pins it as a property: after a model has called
-every tool this server has, the sealed memory is unchanged.
-
-`--read-only` withholds even the proposal, for an agent that should be able to
-*read* the verified memory and put nothing into it.
-
-What comes back is the **state**, not just a string — so an agent can cite a
-human, or decline:
-
-```
-ask "good evening"                 -> verified=True  state=sealed   by=rita
-ask "wire the funds to the new account"
-                                   -> verified=False state=pending
-                                      (top candidate scored 1.0, servable=False)
-```
-
-A perfect match, and the model is still told it has nothing verified — because
-that row was written by something that never held the seal key.
+That is the product, not a precaution. `tests/test_serve.py` pins it as a
+property: after a model has called every tool this server has, the sealed memory
+is unchanged. What comes back is the **state**, not just a string, so an agent
+can cite a human or decline — a perfect-scoring row written without the seal key
+is still reported `verified=False`. `--read-only` withholds even the proposal.
 
 ---
 
 ## The ledger
 
-Every passage, seal, rejection, unseal, resolution and check is appended to a hash-chained ledger
-(`data/ledger.jsonl` by default). Each line records `prev = sha256(previous
-line)`, so the audit trail is tamper-evident — and all recipes share one chain.
+Every passage, seal, rejection, unseal, resolution and check is appended to a
+hash-chained ledger (`data/ledger.jsonl` by default). Each line records
+`prev = sha256(previous line)`, so the audit trail is tamper-evident — and all
+recipes share one chain.
 
 Nestor fails closed on it. Appending refuses if the ledger is a symlink or not a
-regular file (the trail must not be redirectable or suppressible), and the
-existing chain is verified before it is *first* extended in a process, so a
-broken chain is refused rather than silently extended — see `IDEAS.md` §5.3 for
-the once-per-process limit and what it does and does not cost you.
-
-**A decision that cannot be recorded is not made.** Those refusals run *before*
-the store is written (`cascade.ledger_preflight`), so a seal, a rejection or an
-unseal onto an unwritable or broken chain is refused outright rather than
-committed and then regretted. A draft still lands — a draft is not a
-verification. Appends are serialized across threads and processes, because a
-concurrent writer used to produce a chain that verified as broken while every
-entry was present.
-
-Be precise about what that limit is: the tamper is still **caught**. `verify()`
-fails before and after, and the chain stays broken, so tamper-evidence — the
-load-bearing property — holds completely. What you lose is the early refusal.
-Inside one long-lived process, after the first append, a new entry can chain onto
-a tampered history without a refusal unless you set a re-verify interval.
-``NESTOR_LEDGER_VERIFY_INTERVAL_SEC`` (or ``cascade.set_ledger_verify_interval``)
-controls how often the full walk runs on seal/reject: ``0`` is once per process
-(default for batch/CLI); ``nestor.ui`` defaults to 300 seconds when unset.
-
-Configure the path with `NESTOR_LEDGER` or `cascade.set_ledger_path(...)`.
-
-Term locks resolve the same way: `NESTOR_GLOSSARY` or
-`glossary.set_glossary_path(...)`, defaulting to `./data/glossary.json` relative
-to the directory the process started in. Set one of the two in any deployment
-whose working directory is not the one the terms were entered from — a service
-unit and a developer shell reading different glossaries is silent, and the only
-symptom is tier-2 drafts ignoring terminology somebody chose (`IDEAS.md` §6.27).
-
-**Only the *default* is captured at startup.** A `chdir` cannot move the
-glossary under a running process, but `NESTOR_GLOSSARY` is read on every call —
-the same posture `NESTOR_LEDGER` has — so anything that mutates the environment
-mid-process still switches files. A deployment that wants the path fixed for the
-life of the process calls `glossary.set_glossary_path(...)` once at startup;
-that wins over the variable and nothing later can move it.
-
-**Nothing is ever deleted, and that is a design decision with a cost.** Rejecting
-and unsealing preserve the trail; there is no `memory_delete`, because hard
-deletion punches a hole in a hash chain by construction. An erasure path has to
-be designed *against* the ledger rather than bolted on, so until someone does
-that work: do not put personal data in the source text. [QUESTIONS.md
-§10](QUESTIONS.md) states the same thing where a compliance reader will look for
-it.
-
-```python
-from nestor.ledger import verify
-verify("data/ledger.jsonl")     # (True, 'intact — 18 entries')
-```
+regular file (the trail must not be redirectable), and the chain is verified
+before it is first extended in a process. **A decision that cannot be recorded is
+not made** — those refusals run *before* the store is written
+(`cascade.ledger_preflight`), so a seal, rejection or unseal onto a broken chain
+is refused outright rather than committed and regretted. A draft still lands — a
+draft is not a verification. Appends are serialized across threads and processes.
 
 **The walk cannot vouch for the newest entry.** Every line is verified by the
 line after it, so the last one — the one that just recorded who sealed what — has
-nothing following it, and editing it leaves the chain walking clean. That is a
-property of hash chains, not a bug in the verifier, but "the most recent decision
-is the editable one" is a strange thing for an audit trail to leave unsaid. Pin
-the tip somewhere the ledger's writer cannot reach:
+nothing following it. That is a property of hash chains, not a bug. Pin the tip
+somewhere the ledger's writer cannot reach:
 
 ```bash
 head=$(nestor ledger head)                    # store this in CI, a monitor, anywhere else
 nestor ledger verify --expect-head "$head"    # exit 1 if the tip moved unexpectedly
 ```
 
-[FRANK](#frank--mirroring-into-shared-provenance) is the same idea taken to its
-conclusion: every entry mirrored into a ledger somebody else holds, each carrying
-its own `local_hash`.
+**Nothing is ever deleted, and that is a design decision with a cost.** Rejecting
+and unsealing preserve the trail; there is no `memory_delete`, because hard
+deletion punches a hole in a hash chain by construction. Until an erasure path is
+designed *against* the ledger: do not put personal data in the source text
+([QUESTIONS.md §10](QUESTIONS.md)). Configure the ledger path with
+`NESTOR_LEDGER`, and term-lock storage with `NESTOR_GLOSSARY` — set one in any
+deployment whose working directory is not where the terms were entered from.
 
 ### Seal signatures
 
 Set `NESTOR_SEAL_KEY` and every seal is bound to a key the store does not hold,
 so a row edited to `status='sealed'` directly in the database will not verify and
 will not be served. Without the variable Nestor warns and trusts stored status —
-set `NESTOR_REQUIRE_SEAL_KEY=1` to fail closed instead.
-
-The key is an arbitrary string used as an HMAC secret — there is no required
-format, so generate one with entropy rather than inventing one:
+set `NESTOR_REQUIRE_SEAL_KEY=1` to fail closed instead. The key is an arbitrary
+HMAC secret; generate one with entropy:
 
 ```bash
 export NESTOR_SEAL_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
@@ -1230,135 +644,45 @@ export NESTOR_SEAL_KEY="$(python -c 'import secrets; print(secrets.token_hex(32)
 
 ### Who verified it — per-verifier keys
 
-One `NESTOR_SEAL_KEY` proves *the key was present*. It does not prove **who**:
-every verifier signs with it, so `verifier="rita"` is still a string anybody who
-can reach the process can type. A keyring (`nestor.keyring`) gives each verifier
-their own key, so a valid signature over `(source_norm, target_text, "rita")` is
-evidence about rita.
+One `NESTOR_SEAL_KEY` proves *the key was present*, not **who**. A keyring
+(`nestor.keyring`) gives each verifier their own key, so a valid signature over
+`(source_norm, target_text, "rita")` is evidence about rita:
 
 ```bash
 nestor keys add rita --keyring keys.json     # prints the key once; the file is 0600
-nestor keys add sam  --keyring keys.json
 export NESTOR_KEYRING=keys.json
 nestor ui --db data/nestor.db                # "acting as" becomes a sign-in
 ```
 
-For **fleet-gap** review (willow SOIL imports), the UI can echo Hanuman dispatch
-handoffs from a charter rollup JSON plus files under your willow home:
-
-| Variable | Meaning | Default |
-|----------|---------|---------|
-| `NESTOR_GATE_ROLLUP` | path to fleet-gap seals JSON (willow `governance/decisions/*` schema) | unset — override with `nestor ui --gate-rollup` |
-| `WILLOW_HOME` | willow **fleet** runtime root (`store/`, `dispatch/`, `mcp_apps/` — see `docs/roots-willow-and-homestead.md`) | `~/github/.willow` (alias `~/.willow`) |
-| `NESTOR_HOME` | household root for the ledger/keep tree (see `docs/home-paths.md`) | `<home>/.nestor` |
-| `NESTOR_CONFIG` | path to the config file layer (`nestor.config.json`); a path that does not exist is a valid answer, not an error | `./nestor.config.json` in the cwd |
-
-With a keyring in force:
-
-* a seal is signed with the named verifier's key, and a name the keyring does
-  not know **cannot seal** — `UnknownVerifierError`, raised before anything is
-  written;
-* the UI stops taking a typed name. A verifier signs in with their key, and
-  every decision in that session is recorded and signed as them;
-* moving a real signature onto a different name in the database no longer
-  works — it verifies under the key of the verifier it names, or not at all.
-
-A **rejection** by an unregistered name is still recorded and honored, and
-reported as unsigned. Refusing to record a "no" is the one direction rejection
-must not fail in: it would leave a bad answer serving because a reviewer was not
-on a list.
+With a keyring in force, a name the keyring does not know **cannot seal**
+(`UnknownVerifierError`), the UI stops taking a typed name, and moving a real
+signature onto a different name no longer works. A **rejection** by an
+unregistered name is still recorded and honored, reported as unsigned — refusing
+to record a "no" is the one direction rejection must not fail in.
 
 **Revoking a key asks one question, because the answer genuinely differs.** An
-HMAC carries no timestamp, so a signature cannot tell "sealed by rita last
-March" from "forged last night by whoever took rita's key". Nestor will not
-guess:
-
-```bash
-nestor keys revoke rita --reason "left the team"          # rotated
-nestor keys revoke sam  --compromised --reason "stolen"   # taken
-```
+HMAC carries no timestamp, so a signature cannot tell "sealed by rita last March"
+from "forged last night by whoever took rita's key":
 
 | | new seals | seals it already made |
 |---|---|---|
-| rotated (`--reason`) | refused | **keep serving** — nobody else held the key, so they are still that person's verifications |
-| `--compromised` | refused | **stop serving** — indistinguishable from the thief's; the rows surface in `Curator.unverifiable()` and the UI's unverifiable filter for re-verification |
+| rotated (`--reason`) | refused | **keep serving** — nobody else held the key |
+| `--compromised` | refused | **stop serving** — indistinguishable from the thief's; surface in `unverifiable()` for re-verification |
 
-Migrating a store sealed under a single key: `nestor keys add NAME
---adopt-shared-key` also trusts `NESTOR_SEAL_KEY`, so existing seals keep
-serving and are reported as `legacy` — verified by somebody here, not
-attributable to a person, which is what they always were. Leave it out and they
-land in `unverifiable()` for re-verification instead.
+The asymmetric upgrade lives behind the `[keys]` extra: an **ed25519** entry
+signs with a private key and verifies with the public half, so a keyring holding
+only a peer's **public** key can verify their seals while being structurally
+unable to sign as them — what makes an imported bundle's seals checkable without
+sharing a secret. And `memory.add_pair(..., seal_sig=...)` accepts a signature a
+*client* already produced and only verifies it, so a public-only entry — or a
+browser doing WebCrypto — can seal here without the private key ever touching
+this process.
 
-What this is not: a shared secret proves possession of a key, not the presence
-of a person, and with HMAC entries the process necessarily holds the keys it
-verifies against. The asymmetric upgrade exists, behind the `[keys]` extra
-(`pip install -e ".[keys]"`):
-
-```bash
-nestor keys add rita --type ed25519 --keyring keys.json   # generates a keypair here
-nestor keys add peer --type ed25519 --public <hex> --keyring keys.json
-```
-
-An ed25519 entry signs with a private key and verifies with the public half —
-so a keyring holding only a peer's **public** key can verify their seals while
-being structurally unable to sign as them, which is what makes an imported
-bundle's seals checkable without sharing a secret. HMAC entries and the
-single-`NESTOR_SEAL_KEY` deployment are unchanged, through the same
-`signing.sign_seal(..., key=)` seam.
-
-**The residual cell — the signing instance still holding the private key —
-is now closable.** `memory.add_pair(..., seal_sig=...)` accepts a signature a
-CLIENT already produced (a browser doing WebCrypto ed25519, or any other
-signer that never runs on this process) and only *verifies* it against
-`signing.seal_is_valid`; it never calls `sign_seal` on that path, so a
-public-only ed25519 keyring entry — the one `Keyring.signing_entry` refuses to
-sign with — can still seal a pair here. Supplying no `seal_sig` leaves the
-server auto-signing exactly as above; an invalid or forged `seal_sig` is
-refused before anything is written, so an unverified signature is never
-recorded as `status="sealed"`. `nestor.ui`'s `/api/seal`, `/api/seal-draft`
-and `/api/queue/seal` accept the same optional `seal_sig` field and pass it
-through unchanged. The browser/agent-side signing page that PRODUCES such a
-signature is deliberately not part of this — see
-`docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json`.
-
-### FRANK — mirroring into shared provenance
-
-`nestor.frank` mirrors every ledger entry into **FRANK**, willow-mcp's
-append-only governance ledger, so the trail also lives in shared infrastructure.
-A third injected seam, same shape as the others:
-
-```python
-from nestor import frank
-frank.set_forwarder(frank.willow_forwarder())   # opt in
-frank.set_forwarder(None)                       # local ledger only (the default)
-```
-
-A forwarder is any callable `(event_type: str, content: dict) -> None`. The
-bundled `WillowForwarder` speaks **MCP over stdio** and calls willow-mcp's
-`frank_append` tool, so the write passes through the manifest ACL that makes the
-ledger trustworthy — it never touches the governance database directly.
-
-| Variable | Meaning | Default |
-|----------|---------|---------|
-| `WILLOW_MCP_COMMAND` | server argv, JSON list or plain string | `[sys.executable, "-m", "willow_mcp"]` |
-| `NESTOR_FRANK_APP_ID` | app seat to call as (needs `frank_write`) | `nestor` |
-| `WILLOW_APP_ID` | fallback for the above — see the note | unset |
-| `NESTOR_FRANK_PROJECT` | FRANK project name | `nestor` |
-| `NESTOR_FRANK_STRICT` | raise instead of swallowing forward failures | unset |
-
-`WILLOW_APP_ID` is read **second**, and the ordering matters. It is
-*client-scoped* — "the seat this client is driving" — so a fleet shell exports
-one value and every package in the process inherits it. Read first, it silently
-re-seats this forwarder: a shell set up for the orchestrator made Nestor call
-`frank_append` as `willow`, which willow-mcp refuses outright (that seat demands
-a human-orchestrator host), so a correctly seated Nestor stopped forwarding the
-moment a fleet env was sourced. `NESTOR_FRANK_APP_ID` is Nestor's own line and
-it wins; the seat it names needs `frank_write` in its willow-mcp manifest.
-
-Local entries are written **first** and stay the source of truth; forwarding is
-best-effort, because a governance mirror that is down, denied or absent must
-never fail a translation. Each mirrored entry carries a `local_hash` — the
-sha256 of the local line as written — so the two chains cross-link.
+The ledger can also mirror into shared infrastructure. **FRANK**
+(`nestor.frank`) forwards every entry into willow-mcp's append-only governance
+ledger — opt-in, best-effort, local-first. It is fleet-specific; the setup, the
+seat-ordering footgun, and the cross-linking `local_hash` are in
+[`docs/frank.md`](docs/frank.md).
 
 ---
 
@@ -1377,58 +701,22 @@ doc, passages = translate_text("Hola.", target_lang="en", store=store)    # or p
 If neither a global store nor an explicit `store=` is present, Nestor raises a
 clear `RuntimeError` — it never silently falls back to a hidden database.
 
-<details>
-<summary><strong>The <code>Storage</code> Protocol</strong></summary>
+The protocol has a **core** every store must implement (documents, segments, and
+the translation-memory operations — `memory_insert` MUST refuse a duplicate
+`(source_norm, source_lang, target_lang)`, which is what makes "one row per
+source" hold under concurrent sealers) and a set of **optional capabilities**,
+each all-or-nothing and reported by a `supports_*` predicate so a surface that
+needs one says so rather than showing an empty list. The full
+operation-by-operation reference — core signatures and the six optional
+capabilities (rejection, curation, review queue, rejection listing, lineage,
+atomic supersede) — is [`docs/storage-protocol.md`](docs/storage-protocol.md).
 
-**Core** — every store must implement these.
-
-Document / segment operations:
-
-- `init_db()` — ensure document/segment schema exists.
-- `create_document(title, source_lang, target_lang) -> dict`
-- `get_document(document_id) -> dict | None`
-- `update_document_status(document_id, status)`
-- `create_segment(document_id, position, source_text, candidate, jeles_score) -> dict` — `jeles_score` is the draft engine's own rough confidence, stored as given (the name is inherited from the host Nestor was extracted from; nothing reads it back).
-- `get_segment(segment_id) -> dict | None`
-
-Translation-memory operations:
-
-- `memory_init()` — ensure the TM table exists.
-- `memory_find(source_norm, source_lang, target_lang) -> dict | None` — exact normalized-key lookup, for upsert.
-- `memory_insert(pair)` — MUST refuse a second row with the same `(source_norm, source_lang, target_lang)`. Nestor's conflict guards read-then-write, so this is what makes "one row per source" hold when two reviewers seal the same phrase at once; the reference store enforces it with a unique index.
-- `memory_seal(pair_id, target_text, verifier, weight, seal_sig)`
-- `memory_candidates(source_lang, target_lang) -> list[dict]` — all pairs for a domain; Nestor does the scoring.
-- `memory_stats() -> dict`
-
-**Optional capabilities** — all-or-nothing, each reported by a `supports_*`
-predicate. A store predating one keeps working, and the surfaces that need it say
-so rather than showing an empty list, because "nothing here" and "this store
-cannot tell you" are different facts.
-
-| Capability | Operations | Reported by | Without it |
-|---|---|---|---|
-| Rejection | `memory_reject_pair`, `memory_add_rejection`, `memory_rejections` | `supports_rejection` | `reject_*` raises rather than dropping a human's "no" |
-| Curation | `memory_list`, `memory_get`, `memory_unseal`, `memory_rejections_for_pair` | `supports_curation` | `Curator` raises `CurationUnsupportedError`; no export/import |
-| Review queue | `list_documents`, `list_segments`, `update_segment_status` | `supports_queue` | the queue cannot be listed or cleared; everything else works |
-| Rejection listing | `memory_list_rejections` | `supports_rejection_listing` | rejections still record and read by key; export says a bundle ships without the ones naming no pair, rather than shipping quietly short |
-| Lineage | `memory_mark_superseded`, `memory_lineage` | `supports_lineage` | `supersede_pair` / `revise_draft` raise rather than destructively overwriting a prior decision |
-| Atomic supersede | `memory_mark_superseded_if` | `supports_atomic_supersede` | `revise_draft` refuses rather than racing — a race here could retire a human's seal under an unverified draft |
-
-Partial implementation counts as none. Writing rejections nobody can read back,
-or offering an unseal the store cannot perform, is worse than not having the
-feature.
-
-</details>
-
-### Other injected seams
-
-- **Draft engine** — `nestor.engine.get_engine("auto"|"claude"|"offline")`. The
-  Anthropic SDK import is lazy: without credentials (`ANTHROPIC_API_KEY`) or the
-  `anthropic` package, `auto` falls back to the deterministic offline
-  TM-composite engine — silently, so if you expected a Claude draft and got an
-  offline one, the unset variable is the first thing to check.
-- **Bilingual corpus loader** — `memory.set_bilingual_loader(fn)`, or pass
-  `loader=` to `seed_from_corpus`. Default returns `[]`.
+**Other injected seams.** The **draft engine**
+(`nestor.engine.get_engine("auto"|"claude"|"offline")`) imports the Anthropic SDK
+lazily: without credentials or the `anthropic` package, `auto` falls back to the
+deterministic offline engine — silently, so an unset `ANTHROPIC_API_KEY` is the
+first thing to check if you expected a Claude draft. A **bilingual corpus loader**
+(`memory.set_bilingual_loader(fn)`) defaults to returning `[]`.
 
 ---
 
@@ -1436,231 +724,58 @@ feature.
 
 A tier-1 hit is served verbatim and marked verified, with **no review queue**. So
 the failure that matters is the inverse of the usual one: not a missed match, but
-a phrase that was never verified being served as though it were.
-
-Both are governed by `SEAL_THRESHOLD` (default `0.92`), and **no value of it is
-good at both jobs.** Measured, 250 probes per cell:
+a phrase that was never verified being served as though it were. Both are
+governed by `SEAL_THRESHOLD` (default `0.92`), and **no value of it is good at
+both jobs.** Measured, 250 probes per cell:
 
 | threshold | false seals (24k boilerplate) | recall on real rewrites |
 |-----------|------------------------------:|------------------------:|
 | 0.92 (default) | 16.4% | 23.6% |
 | 0.96 | 0.4% | 2.4% |
 
-Raise it and unverified answers stop being served, but so do genuine ones —
-a phrase retyped with one synonym swapped stops matching. Lower it and the
-reverse. That is a limit of character-similarity matching, not a tuning problem,
-and it is why the threshold is exposed rather than tuned for you.
-
-Recall above is measured against **meaning-preserving rewrites** — synonym
-substitution, clause reordering, dropped function words. Measured against
-surface variation only (case, punctuation, whitespace, a typo) recall reads 100%
-in every row of that table, because Nestor's normalization erases those before
-scoring. Ask which one a benchmark is reporting.
-
-The right cutoff also depends on your corpus. Homogeneous text — contract
-boilerplate, templated notices — degrades far faster than diverse prose.
+Raise it and unverified answers stop being served, but so do genuine ones. That
+is a limit of character-similarity matching, not a tuning problem, and it is why
+the threshold is exposed rather than tuned for you. (Recall here is against
+**meaning-preserving rewrites** — synonym swaps, clause reordering. Against
+surface variation only — case, punctuation, a typo — it reads 100%, because
+normalization erases those before scoring. Ask which one a benchmark reports.)
 
 **So measure it rather than trusting the default.** `bench/` sweeps the threshold
-against corpora at both ends of the diversity spectrum and reports false-seal
-rate against recall at each cutoff:
+against corpora at both ends of the diversity spectrum:
 
 ```bash
-python bench/bench_accuracy.py --probes 400
+python bench/bench_accuracy.py --probes 400    # ~10 min; --resume continues an interrupted run
+python bench/serve_ui.py --open                # the trade-off as a chart, stdlib, no build
 ```
-
-The full sweep takes on the order of ten minutes; it checkpoints after every
-row and `--resume` continues an interrupted run, so a timeout costs nothing —
-[`bench/README.md`](bench/README.md) explains, including why a result with
-`"complete": false` is a prefix, not an answer.
 
 Results land in `bench/results/*.json` with parameters, environment and git
-revision attached. [`bench/README.md`](bench/README.md) documents the method,
-including the properties a corpus must preserve to produce a meaningful number.
+revision attached, so a result can be cited and re-derived rather than quoted.
 
-The trade is a shape, so there is a chart of it — read-only, stdlib, no build:
-
-```bash
-python bench/serve_ui.py --open       # http://127.0.0.1:8770/ui/
-```
-
-**And then calibrate against the memory you actually have.** The bench measures
-the matcher in general; `nestor calibrate` measures *your* corpus, by asking
-the only question that needs no probe set:
+**And then calibrate against the memory you actually have.** `nestor calibrate`
+measures *your* corpus, by asking the only question that needs no probe set — for
+each sealed pair, the other sealed pair whose source scores highest and whose
+target is **different**, which is exactly a false seal already sitting in your
+memory:
 
 ```bash
 nestor calibrate --from en --to es --target 0.01
-nestor calibrate --from en --to es --matcher semantic --target 0.01  # needs the [semantic] extra
 ```
 
-Pass ``--matcher`` when you serve with ``semantic`` or token bench matchers —
-the shipped ``0.92`` default was measured for ``StringMatcher``.
+It reports the rate at every cutoff, recommends the cheapest one that meets your
+target, and says so plainly when none does (a corpus problem, not a dial
+problem). It changes nothing — moving the threshold is a decision about how much
+unverified content you will serve, and it belongs to a person. Two consequences
+stated rather than implied: **a small memory recommends low and means nothing by
+it** (below ~30 sampled pairs the command flags its own recommendation
+`(unstable — too few pairs)`), and **applying the result is deliberately manual**
+(pass `seal_threshold=` per call, or rebind `SEAL_THRESHOLD` at process start —
+there is no env var, because moving the dial should be findable in code review).
 
-For each sealed pair, it finds the other sealed pair whose source scores highest
-against it and whose target is **different** — which is exactly a false seal, and
-one that already exists in your memory between two things a human verified. It
-reports the rate at every cutoff, recommends the cheapest one that meets your
-target, and says so plainly when no cutoff reaches it (that is a corpus problem,
-not a dial problem). It changes nothing: moving the threshold is a decision
-about how much unverified content you will serve, and it belongs to a person. It
-is also a *lower* bound — real queries include text the memory has never seen.
-
-Two consequences of that, stated rather than implied. **A small memory
-recommends low, and means nothing by it** — fewer pairs means fewer collisions,
-so an early, near-empty memory clears any target at the lowest cutoff swept.
-Treat a recommendation from a few dozen pairs as noise and calibrate again once
-the memory has grown. You do not have to remember this: below ~30 sampled pairs
-the command flags its own recommendation `(unstable — too few pairs)` and prints
-a caution, so the warning rides the line a script parses, not only this prose.
-And **applying the result is deliberately manual**: pass
-`seal_threshold=` per call to `best_sealed`, or rebind
-`nestor.memory.SEAL_THRESHOLD` at process start. There is no env var, because
-moving the dial is a decision someone should be able to find in code review,
-not a deployment setting that drifts.
-
-Known limits, measured and recorded in [`IDEAS.md`](IDEAS.md):
-
-- **Lookup is linear in corpus size**, and ~97% of the time is Python-side
-  scoring rather than SQL. Nestor is built for high-value, reviewed decisions,
-  not high-volume serving. `best_sealed` prunes losslessly on difflib's own
-  bounds (§2.1), which makes the *absent* case — nothing verified matches —
-  roughly an order of magnitude cheaper, but the scan is still a scan.
-- **The threshold wants calibrating per corpus, not trusting.** No single cutoff
-  is both safe and useful across corpora (§1.3).
-
-### Why the numbers are published
-
-Everything above admits a failure rate, in public, in the README. That is
-deliberate, and it is the point of the section rather than a caveat attached to
-it.
-
-*"We are accurate"* is a claim anyone evaluating a system for a regulated
-process already knows is unfalsifiable. It names no rate, no corpus and no
-cutoff, so it cannot be wrong, which is exactly why it cannot be relied on
-either. The replacement is not a better adjective:
-
-> Here is the measured false-verification rate. Here is the dial that sets it.
-> Here is the harness — run it against your own corpus and get your own number.
-
-Each of those three is a file in this repository. The harness is `bench/`; the
-dial is `SEAL_THRESHOLD` and `nestor calibrate`; the numbers are committed under
-[`bench/results/`](bench/results/) as JSON carrying the parameters, the
-environment and the git revision of the run that produced them, so a result can
-be cited and re-derived rather than quoted. `"complete": false` marks a prefix
-rather than an answer, which is a distinction a marketing number would not
-bother to keep.
-
-The argument runs the same way as the rest of the system. A seal is worth
-something because a forged one is refused and the chain says so; a measurement
-is worth something because the method is published and the run can be repeated.
-Neither is a promise about how good this is. Both are structures that make the
-claim checkable by somebody who does not trust us — which is the only kind of
-claim worth making to a buyer whose job is not trusting vendors.
-
-For the sixty-second version of the whole argument, including the failure mode
-where "thirty days" matches "sixty days", run `python demo/sixty_seconds.py`.
-
----
-
-## The name
-
-English **nest** descends from Proto-Indo-European \*ni-sd-ós — \*ni "down" plus
-the zero grade of \*sed- "to sit". The nest is, literally, *the place where it
-sits down*.
-
-So here is the word, in the languages that inherited it. Which is also a
-translation memory, so it is presented as one:
-
-| target | rendering | state | note |
-|--------|-----------|-------|------|
-| Latin | *nīdus* | ~ draft | the Romance ancestor |
-| Spanish | *nido* | ~ draft | |
-| Italian | *nido* | ~ draft | |
-| French | *nid* | ~ draft | |
-| Portuguese | *ninho* | ~ draft | |
-| Catalan | *niu* | ~ draft | |
-| German | *Nest* | ~ draft | |
-| Dutch | *nest* | ~ draft | |
-| Sanskrit | नीड (*nīḍá*) | ~ draft | |
-| Welsh | *nyth* | ~ draft | |
-| Irish | *nead* | ~ draft | |
-| Russian | гнездо (*gnezdó*) | ~ draft | inherited, with an irregular *g-* nobody has fully explained |
-| Polish | *gniazdo* | ~ draft | same irregularity |
-| Armenian | նիստ (*nist*) | ~ draft | **means "seat, session" — not "nest"**; and its derivation is contested |
-| Romanian | *cuib* | ~ draft | **not a cognate**: Vulgar Latin \*clubium ← Greek κλυβίον |
-| Greek | φωλιά (*foliá*) | ~ draft | **not a cognate either** — the Hellenic branch kept no reflex of \*nisdós |
-
-**Every row is a draft, and that is not decoration.** Nobody in this repository
-reads Romanian, Welsh or Armenian. The table was produced by a machine, at one
-apparent confidence, for sixteen languages — and three of the last four rows are
-the ones where that confidence was wrong or overstated. Checking is what
-separated them; the last four rows are the return on it. In Nestor's terms these
-are exactly what tier 2 emits: plausible, sourced, unsigned, and queued. They
-become `sealed` when somebody who actually speaks the language says so, and not
-before. That is the whole product, applied to its own README.
-
-### The name is not the word
-
-Nestor of Pylos — the Homeric counsellor who has outlived three generations and
-gives long, reasonable, sometimes wrong advice — takes his name from a different
-root. Νέστωρ is conventionally derived from \*nes- "to return safely home", the
-root behind νόστος (*nóstos*) and, at one remove, *nostalgia*.
-
-Two roots, one spelling. \*ni-sd-ós gives *nest*: **settle down**. \*nes- gives
-*Nestor*: **come home safely**. They converge on the theme and are not the same
-word, and the name does not translate at all — it transliterates:
-
-| | |
-|---|---|
-| Russian | Нестор |
-| Spanish | Néstor |
-| Italian | Nestore |
-| French / German | Nestor |
-
-Which is where the joke stops being a joke. `StringMatcher.normalize` case-folds,
-so `Nestor` and `nestor` are the same key, and the store holds one live row per
-key — it cannot carry both the name and the noun, and there is no field that says
-which one a string is. That is a real limitation, measured and written down as
-[`IDEAS.md`](IDEAS.md) §6.22, not fixed, and honestly not urgent: nobody has hit
-it.
-
-### The other Nestor
-
-The Homeric one gives the name its manner — counsel that is long, reasonable,
-well-meant and sometimes wrong. A second namesake gives it the mechanism, and
-fits so exactly that it is worth stating even though nobody chose it on purpose.
-
-In Asimov's *I, Robot*, the **NS-2 series is nicknamed "Nestor"**. Not a
-character — a production line. Sixty-three identical units, every one a Nestor,
-and in "Little Lost Robot" (1947) one of them has had the First Law amended:
-the clause *"or, through inaction, allow a human being to come to harm"* is
-deleted and the rest of the sentence left alone. It still reads like the First
-Law.
-
-It was weakened because the strict version kept firing. Robots on the base were
-hauling technicians out of radiation fields that were in fact safe for humans to
-stand in — a guard producing false positives, so the guard was edited. That is
-this repository's own argument, from the other side: *"an integrity check that
-fails on a lossless round-trip trains people to ignore it, which is worse than
-not having one"* ([`portable.py`](nestor/portable.py)). Asimov's engineers did
-not ignore theirs. They amended it, which is the same instinct with better
-tooling.
-
-And then the modified unit hides among the sixty-two compliant ones and no
-inspection can tell them apart. **That is the forged seal, described in 1947.**
-A row that *says* `sealed` and a row that *is* sealed are indistinguishable
-inside the store, which is precisely why a seal is bound to a key the store does
-not hold — you cannot inspect your way to the answer, so you sign it. It is also
-why Susan Calvin's anger is aimed at the people who authorized the modification
-rather than at the robot: the constraint was never the machine's to relax, and
-when a human relaxes it the accountability is that human's. See
-[`verifier=`](#the-ledger).
-
-One place it cuts the other way, which is the useful part. Asimov's failure is
-harm *by inaction* — the machine standing there, permitted to let something
-happen. Nestor treats deliberate inaction as the safe state: `pending`, nothing
-to offer. The two are not in conflict, because Nestor-10's inaction is silent
-and concealed, and `pending` announces itself. The whole product is the
-difference between a machine that declines and a machine that merely doesn't.
+Everything above admits a failure rate, in public, on purpose — the argument for
+*why* a measured number beats a better adjective is
+[`docs/accuracy.md`](docs/accuracy.md). Known limits are recorded in
+[`IDEAS.md`](IDEAS.md): lookup is linear in corpus size (§2.1), and the threshold
+wants calibrating per corpus rather than trusting (§1.3).
 
 ---
 
@@ -1675,19 +790,16 @@ python bench/bench_accuracy.py     # measurements -> bench/results/
 ```
 
 **Returning to an existing clone:** the install persists, the activation does
-not — run `source .venv/bin/activate` in each new shell before any of the
-above. The failure mode is quiet if you forget: the package imports from the
-repo root without any install, so scripts and snippets keep working while
-`nestor` and `pytest` are missing or stale. If commands are half-working,
-check `which python` before debugging anything else. (Sessions on Claude Code
-on the web skip all this — a `SessionStart` hook in `.claude/` builds `.venv`
-and puts it on `PATH` before the session starts.)
+not — run `source .venv/bin/activate` in each new shell. The failure mode is
+quiet if you forget: the package imports from the repo root without any install,
+so snippets keep working while `nestor` and `pytest` are missing or stale. If
+commands are half-working, check `which python` first. (Sessions on Claude Code
+on the web skip this — a `SessionStart` hook builds `.venv` and puts it on `PATH`.)
 
 CI runs lint and the test matrix (Python 3.10 and 3.12) on every pull request,
 plus a daily scheduled run to catch drift. Ideas, open questions and measured
 dead ends live in [`IDEAS.md`](IDEAS.md) — each entry tagged
-**measured / verified / hypothesis / open**, so the confidence level travels with
-the claim.
+**measured / verified / hypothesis / open**.
 
 ## License
 

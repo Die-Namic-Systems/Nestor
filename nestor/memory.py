@@ -47,10 +47,10 @@ from typing import Callable, Optional, cast
 
 from . import signing
 from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
+from .errors import NestorError
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
-                      get_store, supports_atomic_supersede, supports_lineage,
-                      supports_rejection)
+                      get_store, require_capability, supports_rejection)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -194,7 +194,7 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-class RejectedPairError(RuntimeError):
+class RejectedPairError(NestorError):
     """Refusing to re-seal a pair a human previously rejected.
 
     Raised by :func:`add_pair` rather than silently overwriting the rejection.
@@ -206,7 +206,7 @@ class RejectedPairError(RuntimeError):
     """
 
 
-class ConflictingDraftError(RuntimeError):
+class ConflictingDraftError(NestorError):
     """Refusing to answer a proposal with somebody else's proposal.
 
     ``add_pair`` writes only when sealing, so a *draft* offered for a source
@@ -243,7 +243,7 @@ class ConflictingDraftError(RuntimeError):
     """
 
 
-class ConflictingSealError(RuntimeError):
+class ConflictingSealError(NestorError):
     """Refusing to overwrite a sealed pair with a different verifier's answer.
 
     Same structural moment as :class:`RejectedPairError`, one step earlier:
@@ -265,7 +265,7 @@ class ConflictingSealError(RuntimeError):
     """
 
 
-class InvalidSealSignatureError(RuntimeError):
+class InvalidSealSignatureError(NestorError):
     """Refusing to record a seal under a CLIENT-PROVIDED signature that does
     not verify (Nestor#17, the client-signing seam).
 
@@ -300,6 +300,221 @@ def _same_verifier(a: str, b: str) -> bool:
     difference; the safe read is "unknown," which resolves to conflicting.
     """
     return bool(a) and bool(b) and a == b
+
+
+# --------------------------------------------------------------------------
+# add_pair helpers — one per conflict-resolution step, in the order add_pair
+# calls them. Split out so the orchestrator reads as a sequence of named
+# decisions instead of one long function; see add_pair's docstring for the
+# rationale behind each check.
+# --------------------------------------------------------------------------
+
+def _resolve_seal_sig(status: str, norm: str, target_text: str, verifier: str,
+                      seal_sig: str) -> str:
+    """Bind the seal to a key the store does not hold (Nestor#2).
+
+    Not sealing: no signature needed, return "". Sealing with a
+    caller-supplied ``seal_sig`` (the client-signing seam, Nestor#17): verify
+    it against :func:`nestor.signing.seal_is_valid` and raise
+    :class:`InvalidSealSignatureError` if it does not verify — BEFORE any
+    store read or write, so a forged or mismatched signature leaves no row at
+    all. Otherwise (the default path): sign it ourselves via
+    :func:`nestor.signing.sign_seal`.
+    """
+    if status != "sealed":
+        return ""
+    if seal_sig:
+        if not signing.seal_is_valid(norm, target_text, verifier, seal_sig):
+            raise InvalidSealSignatureError(
+                f"the seal_sig provided for {verifier or 'an unknown verifier'!r} "
+                f"does not verify against (source_norm={norm!r}, "
+                f"target_text={target_text!r}, verifier={verifier!r}) — "
+                f"refusing to record it as sealed. Nothing was written.")
+        # Verified above: recorded as-is, exactly like a server-produced one.
+        return seal_sig
+    return signing.sign_seal(norm, target_text, verifier)
+
+
+def _check_not_rejected(existing: dict, status: str, override_rejection: bool) -> None:
+    """A rejected pair must not be resurrected by a routine re-seal."""
+    if (existing["status"] == "rejected" and status == "sealed"
+            and not override_rejection):
+        raise RejectedPairError(
+            f"pair {existing['id']} was rejected by "
+            f"{existing.get('verifier') or 'a reviewer'!r} and will not be "
+            f"re-sealed implicitly. Restore it first (Curator.restore) or "
+            f"pass override_rejection=True."
+        )
+
+
+def _check_no_conflicting_seal(existing: dict, status: str, target_text: str,
+                               verifier: str, override_conflict: bool) -> None:
+    """A different verifier asserting a different target for an already-SEALED
+    source is a conflict, not a routine upgrade."""
+    if (status == "sealed" and existing["status"] == "sealed"
+            and existing["target_text"] != target_text
+            and not override_conflict
+            and not _same_verifier(existing.get("verifier", ""), verifier)):
+        raise ConflictingSealError(
+            f"pair {existing['id']} was sealed by "
+            f"{existing.get('verifier') or 'an unknown verifier'!r} as "
+            f"{existing['target_text']!r}; {verifier or 'an unknown verifier'!r} "
+            f"is now asserting {target_text!r} for the same source. This "
+            f"will not be sealed implicitly. Reject/restore the pair first, "
+            f"reseal as the SAME verifier if this is a self-correction, or "
+            f"pass override_conflict=True."
+        )
+
+
+def _check_no_conflicting_draft(existing: dict, status: str, target_text: str) -> None:
+    """A draft over a different draft. Below this point every branch is a
+    seal, so without this the call would silently return the stored row."""
+    if (status == "draft" and existing["status"] == "draft"
+            and existing["target_text"] != target_text):
+        raise ConflictingDraftError(
+            f"pair {existing['id']} already holds the draft "
+            f"{existing['target_text']!r} for this source; {target_text!r} is "
+            f"a different proposal. add_pair writes only when sealing, so "
+            f"this would have returned the stored draft as if it were yours. "
+            f"Call revise_draft() to replace it — the old proposal is kept "
+            f"as history with its reason, which is the point. Or seal it if "
+            f"a human has checked it, or reject_match the one you do not want."
+        )
+
+
+def _upgrade_local_draft(store: Storage, existing: dict, norm: str, source_lang: str,
+                         target_lang: str, target_text: str, verifier: str,
+                         weight: float, seal_sig: str, reason: str, origin: str,
+                         audit: bool) -> dict:
+    """Seal ``existing`` (a draft, or a sealed row with a same-verifier
+    correction) with ``target_text``, and ledger the upgrade.
+
+    Re-reads the row after ``memory_seal`` and raises if it is gone — the
+    read-after-write invariant this function relies on for the audit trail
+    below. Overwriting a seal destroys a previous human decision, and the
+    memory keeps only one row per normalized source, so without the ledger
+    entries here the earlier verification would leave no trace anywhere.
+    """
+    replaced_target = existing["target_text"]
+    replaced_status = existing["status"]
+    replaced_verifier = existing.get("verifier", "")
+    store.memory_seal(existing["id"], target_text, verifier, weight, seal_sig)
+    # memory_seal predates N4 and its signature is frozen into every host's
+    # Storage implementation, so the reason rides a separate optional op.
+    # Losing it silently would recreate the asymmetry N4 closes, so a store
+    # without the op refuses a reason instead.
+    if reason:
+        setter = getattr(store, "memory_set_reason", None)
+        if not callable(setter):
+            raise RuntimeError(
+                f"{type(store).__name__} has no memory_set_reason; "
+                f"refusing to drop the recorded reason for this seal "
+                f"on the floor — omit reason= or extend the store.")
+        setter(existing["id"], reason)
+    refreshed = store.memory_find(norm, source_lang, target_lang)
+    if refreshed is None:
+        # The row this call just sealed above cannot legitimately be gone one
+        # line later — this store violated the read-after-write invariant.
+        # Surfacing that loudly beats a bare TypeError from the indexing that
+        # follows.
+        raise RuntimeError(
+            f"{type(store).__name__} lost pair for {norm!r} "
+            f"immediately after memory_seal — read-after-write "
+            f"invariant violated.")
+    existing = refreshed
+    if audit:
+        _log_seal_event({
+            "kind": "seal", "pair_id": existing["id"], "verifier": verifier,
+            "source_lang": source_lang, "target_lang": target_lang,
+            "source_sha": _sha(norm), "origin": origin,
+            "upgraded_from": replaced_status,
+        })
+    # Reaching here with a DIFFERENT verifier means the guard above was
+    # explicitly overridden, so `same_verifier: False` in the trail marks a
+    # deliberate overrule rather than an accident. Curator.replaced_seals
+    # surfaces exactly those.
+    if replaced_status == "sealed":
+        _log_seal_event({
+            "kind": "seal_replaced", "pair_id": existing["id"],
+            "source_lang": source_lang, "target_lang": target_lang,
+            "replaced_verifier": replaced_verifier, "verifier": verifier,
+            "replaced_target_sha": _sha(replaced_target),
+            "target_sha": _sha(target_text),
+            "source_sha": _sha(norm),
+            "same_verifier": replaced_verifier == verifier,
+        })
+    return existing
+
+
+def _log_seal_countersign(existing: dict, verifier: str, source_lang: str,
+                          target_lang: str, norm: str, target_text: str,
+                          origin: str, seal_sig: str) -> None:
+    """Reached only when the row is ALREADY sealed with THIS target.
+
+    Nothing about the row changes here, and nothing about serving does. There
+    is one ``verifier`` column and one ``seal_sig``, and they belong to
+    whoever got there first; the second signature has nowhere to live but the
+    chain.
+    """
+    first = (existing.get("verifier") or "")
+    # NOT `not _same_verifier(first, verifier)`. That helper answers "may we
+    # assume the same actor", and resolves unknown to *not the same* so a
+    # guard fails closed. Negating it inherits the wrong polarity: two
+    # anonymous re-seals would become a countersignature between two people
+    # who never identified themselves. Both sides must NAME somebody before
+    # this is evidence of anything.
+    if first and verifier and first != verifier:
+        _log_countersign({
+            "kind": "countersign", "pair_id": existing["id"],
+            "verifier": verifier, "countersigned": first,
+            "source_lang": source_lang, "target_lang": target_lang,
+            "source_sha": _sha(norm), "target_sha": _sha(target_text),
+            "origin": origin,
+            # The signature the row cannot carry. Computed above with this
+            # caller's key, so with a keyring installed an unknown or revoked
+            # countersigner is refused before the store is touched — same
+            # refusal a seal gets, for the same reason.
+            "sig": seal_sig,
+        })
+
+
+def _retry_insert_race(source_text: str, target_text: str, source_lang: str,
+                       target_lang: str, status: str, verifier: str, weight: float,
+                       origin: str, reason: str, store: Storage,
+                       matcher: Optional[Matcher], override_rejection: bool,
+                       override_conflict: bool, audit: bool, seal_sig: str,
+                       norm: str, _racing: bool) -> dict:
+    """Recover from a losing race on ``store.memory_insert``.
+
+    Somebody inserted the same normalized source between our ``memory_find``
+    and this line. That window is real — nestor.ui seals from a thread pool
+    — and it used to end with two sealed rows for one source, no
+    ConflictingSealError, and no answer to which one serves.
+
+    A store that enforces uniqueness on (source_norm, source_lang,
+    target_lang) turns that race into this failure, and the failure into the
+    correct outcome: re-run, take the existing-row path, and let the
+    ordinary guards decide — which raises ConflictingSealError when the
+    winner is a different verifier with a different answer. ``_racing``
+    bounds it to one retry, so a genuine insert error still surfaces. Must be
+    called from within the ``except`` block it recovers, so the bare
+    ``raise`` below re-raises that original exception.
+    """
+    if _racing or not store.memory_find(norm, source_lang, target_lang):
+        raise
+    return add_pair(source_text, target_text, source_lang, target_lang,
+                    status=status, verifier=verifier, weight=weight,
+                    origin=origin, reason=reason, store=store, matcher=matcher,
+                    override_rejection=override_rejection,
+                    override_conflict=override_conflict, audit=audit,
+                    # Carry the ALREADY-RESOLVED signature into the retry —
+                    # not the original `seal_sig` argument. On a race the
+                    # existing-row branch above may resolve this call to a
+                    # no-op (draft already sealed by somebody else) rather
+                    # than a fresh write, so re-verifying a client signature
+                    # or re-signing here is a redundant check, never a
+                    # second act of signing/trust.
+                    seal_sig=seal_sig, _racing=True)
 
 
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
@@ -364,171 +579,23 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     if status == "sealed" and audit:
         _ledger_preflight()
     norm = matcher.normalize(source_text)
-    # Bind the seal to a key the store does not hold (Nestor#2). Two paths:
-    #
-    # 1. `seal_sig` NOT supplied (the default — everything before Nestor#17's
-    #    client-signing seam worked this way, and still does): the SERVER
-    #    signs, via `signing.sign_seal`. Returns "" when no key is configured
-    #    (signing off) — nothing about that changes here.
-    # 2. `seal_sig` supplied: a CLIENT signed it. The server MUST NOT call
-    #    `sign_seal` — it does not need the private key on this path, and for
-    #    an ed25519 keyring entry holding only the verifier's PUBLIC half it
-    #    does not HAVE one (`Keyring.signing_entry` refuses that entry for
-    #    exactly this reason). Instead the server only VERIFIES the supplied
-    #    signature with `signing.seal_is_valid`, against the verifier's own
-    #    key. An invalid signature raises `InvalidSealSignatureError` HERE —
-    #    before `store.memory_find` below, let alone any write — so a forged
-    #    or mismatched client signature leaves no row at all, sealed or not.
-    if status != "sealed":
-        seal_sig = ""
-    elif seal_sig:
-        if not signing.seal_is_valid(norm, target_text, verifier, seal_sig):
-            raise InvalidSealSignatureError(
-                f"the seal_sig provided for {verifier or 'an unknown verifier'!r} "
-                f"does not verify against (source_norm={norm!r}, "
-                f"target_text={target_text!r}, verifier={verifier!r}) — "
-                f"refusing to record it as sealed. Nothing was written.")
-        # Verified above: recorded as-is, exactly like a server-produced one.
-    else:
-        seal_sig = signing.sign_seal(norm, target_text, verifier)
+    seal_sig = _resolve_seal_sig(status, norm, target_text, verifier, seal_sig)
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
         if (existing.get("source_text") or "") != source_text:
             _drop_stored_embeddings(store, existing["id"])
-        # A rejected pair must not be resurrected by a routine re-seal. Without
-        # this, a curator rejects a bad mapping and the next graduate_segment
-        # over the same source text silently seals it again — the exact leak
-        # rejection exists to close.
-        if (existing["status"] == "rejected" and status == "sealed"
-                and not override_rejection):
-            raise RejectedPairError(
-                f"pair {existing['id']} was rejected by "
-                f"{existing.get('verifier') or 'a reviewer'!r} and will not be "
-                f"re-sealed implicitly. Restore it first (Curator.restore) or "
-                f"pass override_rejection=True."
-            )
-        # A different verifier asserting a different target for an already-
-        # SEALED source is a conflict, not a routine upgrade — this is the
-        # overwrite the RejectedPairError check above does not catch, because
-        # there was never a rejection recorded, just a second seal silently
-        # clobbering the first. Runs BEFORE the overwrite below, same as the
-        # rejection guard.
-        if (status == "sealed" and existing["status"] == "sealed"
-                and existing["target_text"] != target_text
-                and not override_conflict
-                and not _same_verifier(existing.get("verifier", ""), verifier)):
-            raise ConflictingSealError(
-                f"pair {existing['id']} was sealed by "
-                f"{existing.get('verifier') or 'an unknown verifier'!r} as "
-                f"{existing['target_text']!r}; {verifier or 'an unknown verifier'!r} "
-                f"is now asserting {target_text!r} for the same source. This "
-                f"will not be sealed implicitly. Reject/restore the pair first, "
-                f"reseal as the SAME verifier if this is a self-correction, or "
-                f"pass override_conflict=True."
-            )
-        # A draft over a different draft. Below this point every branch is a
-        # seal, so without this the call silently returned the stored row — see
-        # ConflictingDraftError for why that is worse than either alternative.
-        if (status == "draft" and existing["status"] == "draft"
-                and existing["target_text"] != target_text):
-            raise ConflictingDraftError(
-                f"pair {existing['id']} already holds the draft "
-                f"{existing['target_text']!r} for this source; {target_text!r} is "
-                f"a different proposal. add_pair writes only when sealing, so "
-                f"this would have returned the stored draft as if it were yours. "
-                f"Call revise_draft() to replace it — the old proposal is kept "
-                f"as history with its reason, which is the point. Or seal it if "
-                f"a human has checked it, or reject_match the one you do not want."
-            )
+        _check_not_rejected(existing, status, override_rejection)
+        _check_no_conflicting_seal(existing, status, target_text, verifier, override_conflict)
+        _check_no_conflicting_draft(existing, status, target_text)
         if status == "sealed" and (
             existing["status"] != "sealed" or existing["target_text"] != target_text
         ):
-            replaced_target = existing["target_text"]
-            replaced_status = existing["status"]
-            replaced_verifier = existing.get("verifier", "")
-            store.memory_seal(existing["id"], target_text, verifier, weight, seal_sig)
-            # memory_seal predates N4 and its signature is frozen into every
-            # host's Storage implementation, so the reason rides a separate
-            # optional op. Losing it silently would recreate the asymmetry
-            # N4 closes, so a store without the op refuses a reason instead.
-            if reason:
-                setter = getattr(store, "memory_set_reason", None)
-                if not callable(setter):
-                    raise RuntimeError(
-                        f"{type(store).__name__} has no memory_set_reason; "
-                        f"refusing to drop the recorded reason for this seal "
-                        f"on the floor — omit reason= or extend the store.")
-                setter(existing["id"], reason)
-            existing = store.memory_find(norm, source_lang, target_lang)
-            if existing is None:
-                # The row this call just sealed above cannot legitimately be
-                # gone one line later — this store violated the
-                # read-after-write invariant add_pair relies on for the
-                # audit trail below. Surfacing that loudly beats a bare
-                # TypeError from the indexing that follows.
-                raise RuntimeError(
-                    f"{type(store).__name__} lost pair for {norm!r} "
-                    f"immediately after memory_seal — read-after-write "
-                    f"invariant violated.")
-            # Overwriting a seal destroys a previous human decision, and the
-            # memory keeps only one row per normalized source — so without this
-            # entry the earlier verification would leave no trace anywhere. A
-            # ledger that records every grant of trust and no replacement of one
-            # cannot answer "what did this used to say, and who said it".
-            #
-            # Reaching here with a DIFFERENT verifier means the guard above was
-            # explicitly overridden, so `same_verifier: False` in the trail marks
-            # a deliberate overrule rather than an accident. Curator.replaced_seals
-            # surfaces exactly those.
-            if audit:
-                _log_seal_event({
-                    "kind": "seal", "pair_id": existing["id"], "verifier": verifier,
-                    "source_lang": source_lang, "target_lang": target_lang,
-                    "source_sha": _sha(norm), "origin": origin,
-                    "upgraded_from": replaced_status,
-                })
-            if replaced_status == "sealed":
-                _log_seal_event({
-                    "kind": "seal_replaced", "pair_id": existing["id"],
-                    "source_lang": source_lang, "target_lang": target_lang,
-                    "replaced_verifier": replaced_verifier, "verifier": verifier,
-                    "replaced_target_sha": _sha(replaced_target),
-                    "target_sha": _sha(target_text),
-                    "source_sha": _sha(norm),
-                    "same_verifier": replaced_verifier == verifier,
-                })
+            existing = _upgrade_local_draft(
+                store, existing, norm, source_lang, target_lang, target_text,
+                verifier, weight, seal_sig, reason, origin, audit)
         elif status == "sealed" and audit:
-            # Reached only when the row is ALREADY sealed with THIS target — the
-            # branch above covers every other seal. Until IDEAS §6.26 this fell
-            # straight through to `return existing`: a second reviewer agreeing
-            # with the first wrote nothing, appended nothing, raised nothing, and
-            # got the stored row back as though they had sealed it.
-            #
-            # Nothing about the row changes here, and nothing about serving does.
-            # There is one `verifier` column and one `seal_sig`, and they belong
-            # to whoever got there first; the second signature has nowhere to
-            # live but the chain. That is the whole fix — the store still holds
-            # one decision, and the ledger now holds both people.
-            first = (existing.get("verifier") or "")
-            # NOT `not _same_verifier(first, verifier)`. That helper answers
-            # "may we assume the same actor", and resolves unknown to *not the
-            # same* so a guard fails closed. Negating it inherits the wrong
-            # polarity: two anonymous re-seals would become a countersignature
-            # between two people who never identified themselves. Both sides
-            # must NAME somebody before this is evidence of anything.
-            if first and verifier and first != verifier:
-                _log_countersign({
-                    "kind": "countersign", "pair_id": existing["id"],
-                    "verifier": verifier, "countersigned": first,
-                    "source_lang": source_lang, "target_lang": target_lang,
-                    "source_sha": _sha(norm), "target_sha": _sha(target_text),
-                    "origin": origin,
-                    # The signature the row cannot carry. Computed above with
-                    # this caller's key, so with a keyring installed an unknown
-                    # or revoked countersigner is refused before the store is
-                    # touched — same refusal a seal gets, for the same reason.
-                    "sig": seal_sig,
-                })
+            _log_seal_countersign(existing, verifier, source_lang, target_lang,
+                                  norm, target_text, origin, seal_sig)
         return existing
     # `pair_id`/`created_at` default to a fresh uuid4 and now(); a caller that
     # rebuilds a derived, committed store from source (scripts/dogfood_store.py)
@@ -542,32 +609,12 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     try:
         store.memory_insert(pair)
     except Exception:
-        # Somebody inserted the same normalized source between our memory_find
-        # above and this line. That window is real — nestor.ui seals from a
-        # thread pool — and it used to end with two sealed rows for one source,
-        # no ConflictingSealError, and no answer to which one serves.
-        #
-        # A store that enforces uniqueness on (source_norm, source_lang,
-        # target_lang) turns that race into this failure, and the failure into
-        # the correct outcome: re-run, take the existing-row path above, and let
-        # the ordinary guards decide — which raises ConflictingSealError when the
-        # winner is a different verifier with a different answer. `_racing`
-        # bounds it to one retry, so a genuine insert error still surfaces.
-        if _racing or not store.memory_find(norm, source_lang, target_lang):
-            raise
-        return add_pair(source_text, target_text, source_lang, target_lang,
-                        status=status, verifier=verifier, weight=weight,
-                        origin=origin, reason=reason, store=store, matcher=matcher,
-                        override_rejection=override_rejection,
-                        override_conflict=override_conflict, audit=audit,
-                        # Carry the ALREADY-RESOLVED signature into the retry —
-                        # not the original `seal_sig` argument. On a race the
-                        # existing-row branch above may resolve this call to a
-                        # no-op (draft already sealed by somebody else) rather
-                        # than a fresh write, so re-verifying a client
-                        # signature or re-signing here is a redundant check,
-                        # never a second act of signing/trust.
-                        seal_sig=seal_sig, _racing=True)
+        # See _retry_insert_race: a losing race on a uniqueness constraint is
+        # recovered by re-running through the existing-row path above.
+        return _retry_insert_race(
+            source_text, target_text, source_lang, target_lang, status, verifier,
+            weight, origin, reason, store, matcher, override_rejection,
+            override_conflict, audit, seal_sig, norm, _racing)
     if status == "sealed" and audit:
         _log_seal_event({
             "kind": "seal", "pair_id": pair["id"], "verifier": verifier,
@@ -628,13 +675,13 @@ def rejection_signature_report(query_norm: str, source_lang: str,
 
 
 def _require_lineage(store: Storage) -> None:
-    if not supports_lineage(store):
-        raise RuntimeError(
-            f"{type(store).__name__} does not implement Nestor's lineage "
-            f"capability. Implement memory_mark_superseded and memory_lineage "
-            f"(see nestor.storage.Storage) — refusing to fall back to the "
-            f"destructive overwrite supersede_pair exists to replace."
-        )
+    require_capability(
+        store, "lineage",
+        f"{type(store).__name__} does not implement Nestor's lineage "
+        f"capability. Implement memory_mark_superseded and memory_lineage "
+        f"(see nestor.storage.Storage) — refusing to fall back to the "
+        f"destructive overwrite supersede_pair exists to replace."
+    )
 
 
 def supersede_pair(source_text: str, target_text: str, source_lang: str,
@@ -772,13 +819,13 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
     """
     store = get_store(store)
     _require_lineage(store)
-    if not supports_atomic_supersede(store):
-        raise RuntimeError(
-            f"{type(store).__name__} cannot retire a row conditionally (see "
-            f"storage.supports_atomic_supersede), so this revision would have to "
-            f"check the row in Python and then overwrite it blind. That race "
-            f"retires a human's seal and installs an unverified draft in its "
-            f"place, so it is refused rather than degraded.")
+    require_capability(
+        store, "atomic_supersede",
+        f"{type(store).__name__} cannot retire a row conditionally (see "
+        f"storage.supports_atomic_supersede), so this revision would have to "
+        f"check the row in Python and then overwrite it blind. That race "
+        f"retires a human's seal and installs an unverified draft in its "
+        f"place, so it is refused rather than degraded.")
     # Same check-then-cast shape as supersede_pair above.
     store = cast(AtomicSupersedeStorage, store)
     matcher = get_matcher(matcher)
@@ -1140,13 +1187,13 @@ def _log_rejection(entry: dict) -> None:
 
 
 def _require_rejection(store: Storage) -> None:
-    if not supports_rejection(store):
-        raise RuntimeError(
-            f"{type(store).__name__} does not implement Nestor's rejection "
-            f"capability. Implement memory_reject_pair, memory_add_rejection "
-            f"and memory_rejections (see nestor.storage.Storage) — refusing to "
-            f"accept a rejection that would be silently discarded."
-        )
+    require_capability(
+        store, "rejection",
+        f"{type(store).__name__} does not implement Nestor's rejection "
+        f"capability. Implement memory_reject_pair, memory_add_rejection "
+        f"and memory_rejections (see nestor.storage.Storage) — refusing to "
+        f"accept a rejection that would be silently discarded."
+    )
 
 
 def reject_match(source_text: str, source_lang: str, target_lang: str,

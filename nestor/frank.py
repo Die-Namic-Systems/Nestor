@@ -37,6 +37,7 @@ import sys
 from typing import Any, Optional, Protocol, runtime_checkable
 
 from . import config
+from .errors import NestorError
 
 #: FRANK groups entries by project; every Nestor entry lands under this one.
 DEFAULT_PROJECT = "nestor"
@@ -51,7 +52,7 @@ class Forwarder(Protocol):
     def __call__(self, event_type: str, content: dict) -> None: ...
 
 
-class FrankUnavailable(RuntimeError):
+class FrankUnavailable(NestorError):
     """The FRANK mirror could not be written. Never fatal to a translation."""
 
 

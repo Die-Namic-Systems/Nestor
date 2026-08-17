@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
+from .errors import NestorError
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
     id          TEXT PRIMARY KEY,
@@ -210,7 +212,7 @@ def _uid() -> str:
     return str(uuid.uuid4())
 
 
-class StoreClosedError(RuntimeError):
+class StoreClosedError(NestorError):
     """The store was closed and something tried to use it anyway.
 
     Deliberately not a silent reopen. A closed ``":memory:"`` store has nothing
@@ -220,7 +222,7 @@ class StoreClosedError(RuntimeError):
     """
 
 
-class StoreSchemaTooNewError(RuntimeError):
+class StoreSchemaTooNewError(NestorError):
     """The on-disk database was written by a newer build than this code knows.
 
     ``PRAGMA user_version`` on the file is greater than :data:`SCHEMA_VERSION`,
@@ -291,7 +293,7 @@ class _Conn(sqlite3.Connection):
     """
 
 
-class RowRetiredError(RuntimeError):
+class RowRetiredError(NestorError):
     """A write targeted a row that had been superseded before it landed.
 
     Raised rather than returning quietly, because the alternative is a caller

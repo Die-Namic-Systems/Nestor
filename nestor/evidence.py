@@ -35,7 +35,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, cast
 
-from .storage import EvidenceStorage, Storage, get_store, supports_evidence
+from .storage import EvidenceStorage, Storage, get_store, require_capability
 
 #: The reference kinds evidence may carry. A kind outside this set is a typo that
 #: would silently grow an unqueryable taxonomy, so it is refused at attach time
@@ -56,11 +56,11 @@ def _now() -> str:
 
 
 def _require_evidence(store: Storage) -> None:
-    if not supports_evidence(store):
-        raise RuntimeError(
-            f"{type(store).__name__} does not implement Nestor's evidence "
-            f"capability (memory_add_evidence, memory_evidence_for, "
-            f"memory_unevidenced_seals — see nestor.storage).")
+    require_capability(
+        store, "evidence",
+        f"{type(store).__name__} does not implement Nestor's evidence "
+        f"capability (memory_add_evidence, memory_evidence_for, "
+        f"memory_unevidenced_seals — see nestor.storage).")
 
 
 def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",

@@ -155,6 +155,25 @@ def _emit_reinject(fmt: str, event: str, context: str) -> None:
     print(json.dumps({"additional_context": context}))
 
 
+def _first_block(payload: dict, root, *evaluators):
+    """Run several PreToolUse evaluators in one process; the first to BLOCK wins,
+    else allow.
+
+    Each evaluator fails OPEN on its own exception — exactly what the separate
+    single-evaluator dispatch did — so collapsing two hook subprocesses into one
+    changes no verdict. Authority is passed first by its callers, so a self-grant
+    is refused with the tripwire's own message rather than the gate's.
+    """
+    for ev in evaluators:
+        try:
+            allow, user, agent = ev(payload, root)
+        except Exception:          # fail OPEN on our own bug, never on the subject
+            allow, user, agent = True, "", ""
+        if not allow:
+            return allow, user, agent
+    return True, "", ""
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Nestor CLI-agnostic hook runner")
     parser.add_argument("format", choices=("cursor", "claude"))
@@ -215,18 +234,17 @@ def main() -> None:
         return
 
     if args.module == "before_write":
-        try:
-            allow, user, agent = evaluate_write(payload, root)
-        except Exception:          # fail OPEN on our own bugs — see before_write
-            allow, user, agent = True, "", ""
+        # Authority (the self-grant tripwire) shares a matcher with this gate, so
+        # both used to run as two hook subprocesses per Write. Run them in one:
+        # first to block wins, authority first so a mint is refused with its own
+        # reason. Behaviour is identical to the two separate hooks.
+        allow, user, agent = _first_block(payload, root, evaluate_authority, evaluate_write)
         _emit_before_write(args.format, allow, user, agent)
         return
 
     if args.module == "before_bash":
-        try:
-            allow, user, agent = evaluate_bash(payload, root)
-        except Exception:          # fail OPEN on our own bugs
-            allow, user, agent = True, "", ""
+        # Same collapse for Bash: authority + the bash guard in one process.
+        allow, user, agent = _first_block(payload, root, evaluate_authority, evaluate_bash)
         _emit_before_write(args.format, allow, user, agent)
         return
 

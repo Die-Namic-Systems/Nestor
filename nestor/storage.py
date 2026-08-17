@@ -20,9 +20,12 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are six **optional capabilities**, each
+Beyond the core Protocol there are **nine optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
-working and the surfaces that need it say so rather than showing an empty list:
+working and the surfaces that need it say so rather than showing an empty list.
+Six live here; the last three are declared beside the recipes that use them
+(``supports_edges`` and ``supports_evidence`` below, ``supports_embedding_store``
+in :mod:`nestor.embedding_store`) — if you add a tenth, add a row here:
 
 ==================  =====================================  =====================================
 Capability          Predicate                              Without it
@@ -39,6 +42,13 @@ Lineage             :func:`supports_lineage`               ``supersede_pair`` / 
                                                            raise rather than overwriting
 Atomic supersede    :func:`supports_atomic_supersede`      ``revise_draft`` refuses rather
                                                            than racing
+Decision edges      :func:`supports_edges`                 decisions still seal, but cannot be
+                                                           related — no graph neighbours
+Evidence            :func:`supports_evidence`              a sealed claim cannot carry what it
+                                                           rests on, and the report is empty
+Embedding store     :func:`nestor.embedding_store.supports_embedding_store`
+                                                           the semantic matcher recomputes each
+                                                           vector rather than caching it
 ==================  =====================================  =====================================
 
 Partial implementation counts as none. Writing rejections nobody can read back,
@@ -344,7 +354,7 @@ def supports_rejection(store: "Storage") -> bool:
     the same bad match kept being served. Partial support is therefore reported
     as no support.
     """
-    return all(callable(getattr(store, op, None)) for op in _REJECTION_OPS)
+    return supports(store, "rejection")
 
 
 _REJECTION_LISTING_OPS = ("memory_list_rejections",)
@@ -363,7 +373,7 @@ def supports_rejection_listing(store: "Storage") -> bool:
     is hand :func:`nestor.portable.export_bundle` the ones that name no pair.
     Export says so out loud rather than shipping a quietly short bundle.
     """
-    return all(callable(getattr(store, op, None)) for op in _REJECTION_LISTING_OPS)
+    return supports(store, "rejection_listing")
 
 
 _CURATION_OPS = ("memory_list", "memory_get", "memory_unseal",
@@ -378,7 +388,7 @@ def supports_curation(store: "Storage") -> bool:
     is being unsealed, is worse than none — it invites a decision the store
     cannot actually carry out.
     """
-    return all(callable(getattr(store, op, None)) for op in _CURATION_OPS)
+    return supports(store, "curation")
 
 
 _QUEUE_OPS = ("list_documents", "list_segments", "update_segment_status")
@@ -392,7 +402,7 @@ def supports_queue(store: "Storage") -> bool:
     they have already sealed, and a reviewer who cannot trust the queue to empty
     stops trusting the queue.
     """
-    return all(callable(getattr(store, op, None)) for op in _QUEUE_OPS)
+    return supports(store, "queue")
 
 
 _LINEAGE_OPS = ("memory_mark_superseded", "memory_lineage")
@@ -444,7 +454,7 @@ def supports_atomic_supersede(store: "Storage") -> bool:
     superseding a *sealed* row are unaffected — they are human-driven and carry
     a verifier; this verb is the one an agent drives at machine frequency.
     """
-    return all(callable(getattr(store, op, None)) for op in _ATOMIC_SUPERSEDE_OPS)
+    return supports(store, "atomic_supersede")
 
 
 def supports_lineage(store: "Storage") -> bool:
@@ -458,7 +468,7 @@ def supports_lineage(store: "Storage") -> bool:
     destroying a prior human decision quietly must not be a fallback
     (the ``reject_*`` precedent, one capability over).
     """
-    return all(callable(getattr(store, op, None)) for op in _LINEAGE_OPS)
+    return supports(store, "lineage")
 
 
 _EDGE_OPS = ("memory_add_edge", "memory_edges_to", "memory_edges_from",
@@ -491,7 +501,7 @@ def supports_edges(store: "Storage") -> bool:
     it just cannot relate one to another, so ``constraints_on`` returns the
     live decision and its rejected alternatives but no graph neighbours.
     """
-    return all(callable(getattr(store, op, None)) for op in _EDGE_OPS)
+    return supports(store, "edges")
 
 
 _EVIDENCE_OPS = ("memory_add_evidence", "memory_evidence_for",
@@ -520,7 +530,75 @@ def supports_evidence(store: "Storage") -> bool:
     what a claim rests on, so :func:`nestor.evidence.attach` raises rather than
     dropping the reference, and the unevidenced-seals report is unavailable.
     """
-    return all(callable(getattr(store, op, None)) for op in _EVIDENCE_OPS)
+    return supports(store, "evidence")
+
+
+# --------------------------------------------------------------------------
+# The capability registry
+# --------------------------------------------------------------------------
+#
+# Everything above this point defines each capability's ops tuple and its
+# ``supports_<cap>`` predicate by hand, once per capability — nine times the
+# same ``all(callable(getattr(store, op, None)) for op in OPS)`` line, and
+# (in memory.py, decision.py, evidence.py, curator.py) a ``_require_<cap>``
+# wrapper repeating the same "not supported -> raise" shape with its own
+# exception and message. This table is the one place a capability's ops list
+# lives; ``supports()`` and ``require_capability()`` below are the one place
+# the "is it there" and "raise if not" logic lives. The ``supports_<cap>``
+# predicates above are kept (name, docstring, and return value all unchanged)
+# as thin shims over :func:`supports`, so every existing caller —
+# ``from nestor.storage import supports_rejection`` included — keeps working
+# unmodified; ``embedding_store`` is registered here too even though its
+# Protocol, predicate and callers live in :mod:`nestor.embedding_store`
+# (kept there because that capability was deliberately never folded into the
+# core ``Storage`` Protocol — see that module's docstring).
+_CAPABILITY_OPS: dict[str, tuple[str, ...]] = {
+    "rejection": _REJECTION_OPS,
+    "rejection_listing": _REJECTION_LISTING_OPS,
+    "curation": _CURATION_OPS,
+    "queue": _QUEUE_OPS,
+    "lineage": _LINEAGE_OPS,
+    "atomic_supersede": _ATOMIC_SUPERSEDE_OPS,
+    "edges": _EDGE_OPS,
+    "evidence": _EVIDENCE_OPS,
+    "embedding_store": ("embedding_load", "embedding_save", "embedding_drop"),
+}
+
+
+def supports(store: "Storage", capability: str) -> bool:
+    """Whether ``store`` implements ``capability`` — the table-driven form of
+    the individual ``supports_<cap>`` predicates above (and of
+    :func:`nestor.embedding_store.supports_embedding_store`).
+
+    ``capability`` is one of :data:`_CAPABILITY_OPS`'s keys, e.g.
+    ``supports(store, "lineage")``. All of a capability's ops or none, same
+    rule every ``supports_<cap>`` predicate documents on its own: partial
+    support is reported as no support.
+    """
+    return all(callable(getattr(store, op, None))
+              for op in _CAPABILITY_OPS[capability])
+
+
+def require_capability(store: "Storage", capability: str, message: str,
+                       exc_type: "type[BaseException]" = RuntimeError) -> None:
+    """Raise ``exc_type(message)`` unless ``supports(store, capability)``.
+
+    The table-driven counterpart of the hand-written ``_require_<cap>``
+    wrappers (``nestor.memory._require_lineage`` / ``_require_rejection``,
+    ``nestor.decision.DecisionMemory._require_edges``,
+    ``nestor.evidence._require_evidence``, the check in
+    ``nestor.curator.Curator.__init__``). Each of those raises its own exact
+    exception type and message for its own capability — most raise
+    ``RuntimeError``, curation raises ``CurationUnsupportedError`` — so
+    rather than hardcode one exception type here (or import the others,
+    which this module cannot do without risking an import cycle: it is
+    imported by all of them), the caller supplies the message and, when it
+    is not the default ``RuntimeError``, the exception class. This function
+    only centralizes the "check, then raise" shape; each call site still
+    owns its own wording and exception type exactly as before.
+    """
+    if not supports(store, capability):
+        raise exc_type(message)
 
 
 _store: "Optional[Storage]" = None

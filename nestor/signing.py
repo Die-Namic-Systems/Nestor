@@ -65,9 +65,10 @@ from typing import Optional
 
 from . import config
 from . import keyring as keyring_mod
+from .errors import NestorError
 
 
-class SigningRequiredError(RuntimeError):
+class SigningRequiredError(NestorError):
     """``NESTOR_REQUIRE_SEAL_KEY`` is set but no ``NESTOR_SEAL_KEY`` is
     configured — strict mode refuses to serve seals it cannot verify."""
 

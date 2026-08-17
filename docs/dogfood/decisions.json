@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 406,
+    "pairs": 415,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "249ce117b4b5bcc8ddf60554e1327e6f7f814a4f2b2b1eb6999d9c2726eec897",
+  "digest": "f90e74a2920aa54bd3d9062ed3026b83d3b830758d16936940ae58af6b6a71ac",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -32,6 +32,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A new EVIDENCE_FIELDS row set and BUNDLE_VERSION 3. export_bundle gathers evidence per exported pair (so nothing can dangle by construction) into bundle['evidence']; verify_bundle reads and validates it; import_bundle re-adds each row via memory_add_evidence, remapping pair_id through the same id_map the rejection loop uses. Version 1 and 2 stay readable and their digests unchanged.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "f0ca988b-2df2-5562-9434-8bf1501a6ca4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "two test_docspy gates required the full module and doc manifest to live inside the readmes fenced projectlayout block moving the manifest breaks them weaken the gates or move them",
+      "source_text": "Two test_docs.py gates required the full module and doc manifest to live inside the README's fenced Project-layout block. Moving the manifest breaks them. Weaken the gates, or move them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Move them. The manifest now lives in docs/project-layout.md; the two gates parse that file instead of the README block, with their assertions byte-for-byte unchanged -- every nestor/*.py and every docs/*.md is still listed, still no ghosts. docs/matcher-seam.md, docs/frank.md and docs/storage-protocol.md join the DOCS scan set for the same reason docs/agent-guide.md already had: they now carry the env-var tables, CLI examples and protocol reference the env/command/flag gates must keep covering.",
       "verifier": "",
       "weight": 1.0
     },
@@ -93,6 +107,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "e05b512d-995a-5119-bdc2-a9a973a0f7bc",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "making a singlechoice subcommand verb optional broke nestor decision keep the convenience or the safety",
+      "source_text": "Making a single-choice subcommand verb optional broke `nestor decision`. Keep the convenience or the safety?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Safety. The `db` verb stays optional (`nestor db` == `nestor db checkpoint`) because `db` has no other positional. `decision` reverts to a required verb, because it has a trailing required `question`: with the verb optional, argparse gives a lone token to `question`, so `nestor decision check` parsed as question='check' and silently ran a real check on the literal word instead of erroring for the missing question -- defeating cmd_decision's own 'a question is required' guard. A test now pins that `nestor decision check` (verb, no question) errors rather than runs.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "d9bd792d-dd12-5b86-ac3d-69c2b5174237",
       "origin": "pr:None",
       "seal_sig": "",
@@ -102,6 +130,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A conventional-commit title does. release-please reads the release-cutting type from PR titles and commits (the title lands in the merge-commit body, docs/releasing.md); #128/#129/#130 all used prose titles, so no release was proposed and PyPI stayed at 0.4.0. This PR ships a genuine feat -- a `nestor evidence for <pair_id>` read action -- titled `feat:`, which makes release-please open 'chore(master): release 0.5.0'. release-please tags from current master HEAD, so everything merged since v0.4.0, the evidence relation included, ships in that build.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "cabc0012-b601-5b8e-8a1f-3264ed34edc1",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a draft engines translate may accept storematcher one or neither the old probe called with both and caught typeerror to retry with fewer args what replaces it",
+      "source_text": "A draft engine's translate() may accept store=/matcher=, one, or neither. The old probe called with both and caught TypeError to retry with fewer args. What replaces it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "inspect.signature(engine.translate) decides which of store=/matcher= the callable actually accepts (everything if it takes **kwargs, or if it cannot be introspected -- the old permissive fallback). The engine is then called exactly once with the accepted kwargs.",
       "verifier": "",
       "weight": 1.0
     },
@@ -121,6 +163,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "ca19a480-618a-58b8-a477-63bf8e24e4ea",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "collapsing the doubled hook subprocess means editing the live sessions own enforcement wiring how is gates intact guaranteed rather than asserted",
+      "source_text": "Collapsing the doubled hook subprocess means editing the live session's own enforcement wiring. How is 'gates intact' guaranteed rather than asserted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The authority tripwire is run INSIDE the before_write/before_bash dispatch (first-to-block wins, authority first) and its standalone PreToolUse block is removed — one process instead of two. The collapse is behaviour-preserving by construction (same evaluators, same fail-open-on-own-bug), and it is PROVEN, not assumed: two new hook_guard cases assert the wired write and bash paths still deny a keyring write and a key-minting command via authority, and they were run green before the settings.json edit was trusted; a live check confirmed the wired path still blocks.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "c29bfadf-5f60-5c25-86b2-c0fbdd76da97",
       "origin": "pr:None",
       "seal_sig": "",
@@ -130,6 +186,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A store method memory_unevidenced_seals() runs one SQL join -- live (superseded_by='') sealed pairs whose id is NOT IN decision_evidence -- and nestor/evidence.py + `nestor evidence report` surface it read-only. It never writes, never blocks a seal, and always exits 0; a superseded seal is excluded because it is history, not a live claim.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "b7cc47e2-f5d5-5dcb-b3bf-c7a0f46202dc",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the readme holds too much and reads as a manual what comes out and does it get deleted or moved",
+      "source_text": "The README holds too much and reads as a manual. What comes out, and does it get deleted or moved?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Moved, never deleted. The material that is reference (the per-file manifest, the Storage Protocol, the Matcher-seam deep dive, FRANK) or standalone essay (the name, why-the-numbers-are-published) is relocated verbatim into its own docs/ file, with a one-line teaser and a link left in the README. The spine -- every concept, the three-state framing, the executed quick-start example, and each recipe's code -- stays inline. Result: 1694 -> ~805 lines, a 52% cut, with nothing lost from the tree.",
       "verifier": "",
       "weight": 1.0
     },
@@ -172,6 +242,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "By coverage's own `Coverage.current()` API when the module is present, with `sys.gettrace() is not None` as a fallback. gettrace alone is not enough: coverage's C tracer can leave it None, so the API check is primary and gettrace covers debuggers and the pure-Python tracer. When coverage is not installed (the local .venv), neither fires and the timing assertion runs as before — verified: `_instrumented()` is False bare and True under `sys.settrace`, and the smoke passes locally in ~18s with the assertion live.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "9d96b2bf-e2a9-5c29-a607-87c214befc19",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the nestor ui probed a hardcoded willow governance rollup path at startup and lit fleet widgets for everyone keep the defaulton convenience for the fleet deployment or make it optin",
+      "source_text": "The nestor ui probed a hardcoded willow governance rollup path at startup and lit fleet widgets for everyone. Keep the default-on convenience for the fleet deployment, or make it opt-in?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Opt-in. The startup auto-probe is removed; the fleet-gate echo activates only when --gate-rollup or NESTOR_GATE_ROLLUP names a rollup. With neither set the echo returns no entries and the widgets (already behind the fleet-gap domain filter) stay dormant. The --gate-rollup help drops the org vocabulary and the default-on claim.",
       "verifier": "",
       "weight": 1.0
     },
@@ -228,6 +312,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Memoize the /api/triage response on the App under a sha256 signature of the decisions (id, status, question, commitment): computed once per store-state, reused until a seal, edit, or new decision changes the signature (measured: first call ~22s, second ~0.007s). Paint a 'computing...' loading card before the first uncached compute so the tab reads as working, not broken. Both are read-only -- the cache holds only a response dict, guarded by a module lock while the compute runs outside it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "7f54955a-96e1-5c99-9c2b-403230676e4e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the three core refactors touch the sealconflicttrust hot paths how is behaviourpreserving enforced when the whole point is to move 270line functions around",
+      "source_text": "The three core refactors touch the seal/conflict/trust hot paths. How is 'behaviour-preserving' enforced when the whole point is to move 270-line functions around?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Each refactor is a pure extract-method: every exception type and message, every guard condition and branch order, every ledger write, warning, report key, and the id-remap/no-dangling and race-retry invariants stay byte-identical — only relocated into named helpers. Each was run against the full suite (1417 passed, the import-trust and capability tests included) as the behaviour-preservation proof, and its diff reviewed to confirm the raises/warnings/report-keys were relocated, not edited. A capability's bespoke require that did not fit the registry table was left inline rather than forced.",
       "verifier": "",
       "weight": 1.0
     },
@@ -401,6 +499,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "1a4e7955-e40a-5366-b99a-7c5c0ce9e422",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the refusal exceptions have no common base a host turning a policy refusal into an http 409 must import a dozen names from six modules and will miss the next one give them a base but which exceptions and what base",
+      "source_text": "The refusal exceptions have no common base — a host turning a policy refusal into an HTTP 409 must import a dozen names from six modules and will miss the next one. Give them a base — but which exceptions, and what base?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A new NestorError(RuntimeError) that the fifteen RuntimeError-based refusals subclass (memory's four seal guards, the three keyring errors, the three sqlite store errors, curator, ledger, signing, config, home_paths). It stays a RuntimeError, so every existing `except RuntimeError` still catches them. The two ValueError-based errors -- PersonaError and BundleError -- are left out: a malformed bundle or persona spec is bad input, not a policy refusal, and reparenting them under RuntimeError would change which except clause catches them. A drift test pins that every listed refusal subclasses the base.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "18f891bf-95a4-507f-9ea1-5d4a4d7ead80",
       "origin": "pr:None",
       "seal_sig": "",
@@ -410,6 +522,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Demote, do not delete, and only at the presentation layer. Translation stays a working recipe but becomes opt-in (not the desk's default, not a headline door); the desk defaults to decisions. Three layers, decided separately: (A) the presentation/positioning -- the translate recipe, the ('en','es') default, the translation-memory framing -- is demoted (the tractable part, and the one this decision authorizes). (B) the internal source_lang/target_lang naming is left as-is -- it is generic in mechanism (a decision domain already uses the same tag on both sides, nestor/decision.py:69) and renaming it would churn storage, API, tests and docs for near-zero user payoff. (C) the source_text/target_text pair model and the frozen signing contract are NOT touched.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "1556e213-0213-563f-b22e-07fef9d9a101",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the nestorerror base was supposed to unify every policy refusal but frankunavailable was missed add it or is it deliberately separate",
+      "source_text": "The NestorError base was supposed to unify every policy refusal, but FrankUnavailable was missed. Add it, or is it deliberately separate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Add it. FrankUnavailable is raised when a FRANK governance-ledger mirror write fails and is re-raised to the caller under NESTOR_FRANK_STRICT=1 -- a refusal shaped exactly like the fifteen already migrated, and one a host doing `except NestorError` to handle 'any refusal' would otherwise silently miss. It joins the base and the refusal test's roster.",
       "verifier": "",
       "weight": 1.0
     },

@@ -758,8 +758,33 @@ def cmd_demo(args) -> int:
 # parser
 # --------------------------------------------------------------------------
 
+class _HintingParser(argparse.ArgumentParser):
+    """Argparse, but a misplaced global flag explains itself.
+
+    ``--db`` / ``--ledger`` / ``--json`` are defined on the top parser, so they
+    must precede the subcommand (``nestor --db x.db ask ...``). Put after it,
+    argparse only says ``unrecognized arguments: --db x.db`` — true, and useless.
+    Since ``--db`` against a non-default store is the single most common way
+    anyone drives this tool, the bare failure is a landmine. Here the same error
+    carries the fix. (``ui`` / ``serve`` accept these after the subcommand too;
+    ``split_delegated`` handles that before parsing ever reaches here.)
+    """
+
+    def error(self, message: str) -> None:                     # type: ignore[override]
+        # Match the leftover tokens exactly, not the message as a substring: a
+        # typo'd '--dbg' contains '--db' and must NOT trigger the hint.
+        globals_ = ("--db", "--ledger", "--json")
+        tail = (message.split("unrecognized arguments:", 1)[-1]
+                if "unrecognized arguments" in message else "")
+        if any(tok == f or tok.startswith(f + "=")
+               for tok in tail.split() for f in globals_):
+            message += ("\nglobal flags (--db, --ledger, --json) go BEFORE the "
+                        "subcommand — e.g. 'nestor --db data/x.db ask \"…\"'")
+        super().error(message)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    p = _HintingParser(
         prog="nestor",
         description="Nestor — meaning infrastructure. Has a human checked this?")
     p.add_argument("--db", default="data/nestor.db", help="SQLite database (default: data/nestor.db)")
@@ -801,6 +826,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     dec = sub.add_parser("decision",
                          help="the decision graph — a CI gate over recorded constraints")
+    # Kept required, unlike `db` below: `decision` has a trailing required
+    # `question`, so an optional leading verb is ambiguous — argparse gives a
+    # lone token to `question` and `nestor decision check` would silently check
+    # the literal word "check" instead of erroring for the missing question.
     dec.add_argument("decision_command", choices=("check",))
     dec.add_argument("question", help="the question a proposal is about to answer")
     domain_args(dec, source="decision", target="decision")
@@ -839,7 +868,8 @@ def build_parser() -> argparse.ArgumentParser:
     exp.set_defaults(func=cmd_export)
 
     dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
-    dbp.add_argument("db_command", choices=("checkpoint",))
+    dbp.add_argument("db_command", nargs="?", choices=("checkpoint",), default="checkpoint",
+                     help="only 'checkpoint' today; optional, so 'nestor db' works")
     dbp.add_argument("--out", default="",
                      help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
                           "ledger to <basename>.ledger.jsonl beside it unless --no-ledger")
@@ -958,6 +988,7 @@ def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
     the subcommand still wins.
     """
     carried: list[str] = []
+    dropped_json = False
     i = 0
     while i < len(argv):
         token = argv[i]
@@ -968,8 +999,12 @@ def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
             carried.append(token)
             i += 1
         elif token == "--json":            # nothing for a server to do with it
+            dropped_json = True
             i += 1
         elif token in DELEGATED:
+            if dropped_json:               # say so rather than swallow it silently
+                print(f"note: --json has no effect on '{token}'; ignored",
+                      file=sys.stderr)
             return token, carried + argv[i + 1:]
         else:
             break                          # anything else: parse normally
