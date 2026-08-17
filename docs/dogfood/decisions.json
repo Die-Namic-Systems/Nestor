@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 412,
+    "pairs": 415,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "1566585d94dca7bc047348141a3fa6e7e938249036a22915b210df3a29981bf8",
+  "digest": "f90e74a2920aa54bd3d9062ed3026b83d3b830758d16936940ae58af6b6a71ac",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -163,6 +163,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "ca19a480-618a-58b8-a477-63bf8e24e4ea",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "collapsing the doubled hook subprocess means editing the live sessions own enforcement wiring how is gates intact guaranteed rather than asserted",
+      "source_text": "Collapsing the doubled hook subprocess means editing the live session's own enforcement wiring. How is 'gates intact' guaranteed rather than asserted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The authority tripwire is run INSIDE the before_write/before_bash dispatch (first-to-block wins, authority first) and its standalone PreToolUse block is removed — one process instead of two. The collapse is behaviour-preserving by construction (same evaluators, same fail-open-on-own-bug), and it is PROVEN, not assumed: two new hook_guard cases assert the wired write and bash paths still deny a keyring write and a key-minting command via authority, and they were run green before the settings.json edit was trusted; a live check confirmed the wired path still blocks.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "c29bfadf-5f60-5c25-86b2-c0fbdd76da97",
       "origin": "pr:None",
       "seal_sig": "",
@@ -233,6 +247,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "9d96b2bf-e2a9-5c29-a607-87c214befc19",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the nestor ui probed a hardcoded willow governance rollup path at startup and lit fleet widgets for everyone keep the defaulton convenience for the fleet deployment or make it optin",
+      "source_text": "The nestor ui probed a hardcoded willow governance rollup path at startup and lit fleet widgets for everyone. Keep the default-on convenience for the fleet deployment, or make it opt-in?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Opt-in. The startup auto-probe is removed; the fleet-gate echo activates only when --gate-rollup or NESTOR_GATE_ROLLUP names a rollup. With neither set the echo returns no entries and the widgets (already behind the fleet-gap domain filter) stay dormant. The --gate-rollup help drops the org vocabulary and the default-on claim.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "9a59e1e2-d535-5276-8168-e3c72341eeb5",
       "origin": "pr:None",
       "seal_sig": "",
@@ -284,6 +312,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Memoize the /api/triage response on the App under a sha256 signature of the decisions (id, status, question, commitment): computed once per store-state, reused until a seal, edit, or new decision changes the signature (measured: first call ~22s, second ~0.007s). Paint a 'computing...' loading card before the first uncached compute so the tab reads as working, not broken. Both are read-only -- the cache holds only a response dict, guarded by a module lock while the compute runs outside it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "7f54955a-96e1-5c99-9c2b-403230676e4e",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the three core refactors touch the sealconflicttrust hot paths how is behaviourpreserving enforced when the whole point is to move 270line functions around",
+      "source_text": "The three core refactors touch the seal/conflict/trust hot paths. How is 'behaviour-preserving' enforced when the whole point is to move 270-line functions around?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Each refactor is a pure extract-method: every exception type and message, every guard condition and branch order, every ledger write, warning, report key, and the id-remap/no-dangling and race-retry invariants stay byte-identical — only relocated into named helpers. Each was run against the full suite (1417 passed, the import-trust and capability tests included) as the behaviour-preservation proof, and its diff reviewed to confirm the raises/warnings/report-keys were relocated, not edited. A capability's bespoke require that did not fit the registry table was left inline rather than forced.",
       "verifier": "",
       "weight": 1.0
     },
