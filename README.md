@@ -517,6 +517,7 @@ global flags, so they go **before** the subcommand: `nestor --db mydb.db ask "â€
 nestor ask "Good evening."               # âœ“ sealed  Buenas noches.  (verified by rita)
 nestor resolve AMZN --domain company     # the entity graph
 nestor check ceiling '$1,030,000' --domain contract
+nestor evidence for PAIR_ID              # what a sealed claim rests on (also: attach, report)
 nestor export --out memory.json          # a portable bundle
 nestor import memory.json                # dry run; --apply commits
 nestor ledger verify                     # exit 1 on a broken chain

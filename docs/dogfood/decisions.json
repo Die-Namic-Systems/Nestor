@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 410,
+    "pairs": 412,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "6bca1f48ff39ea43b81c4d4db36dfd5c43c2e45b556c050c80c845b31a053a36",
+  "digest": "1566585d94dca7bc047348141a3fa6e7e938249036a22915b210df3a29981bf8",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -102,6 +102,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Nothing exempts a row in v1 -- every live sealed pair without evidence is listed. Any future exemption must key on a structural fact (authorship, or a key the store cannot forge), never a list of names. The orphan-row window first recorded here was closed after the audit: attach() now runs ledger_preflight() before the store write, matching every other write path, so a broken ledger refuses the attach rather than leaving a row without a trail. One residual remains, named not fixed: evidence is not yet carried in the portable bundle, so it does not survive an export/import round-trip.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "e05b512d-995a-5119-bdc2-a9a973a0f7bc",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "making a singlechoice subcommand verb optional broke nestor decision keep the convenience or the safety",
+      "source_text": "Making a single-choice subcommand verb optional broke `nestor decision`. Keep the convenience or the safety?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Safety. The `db` verb stays optional (`nestor db` == `nestor db checkpoint`) because `db` has no other positional. `decision` reverts to a required verb, because it has a trailing required `question`: with the verb optional, argparse gives a lone token to `question`, so `nestor decision check` parsed as question='check' and silently ran a real check on the literal word instead of erroring for the missing question -- defeating cmd_decision's own 'a question is required' guard. A test now pins that `nestor decision check` (verb, no question) errors rather than runs.",
       "verifier": "",
       "weight": 1.0
     },
@@ -466,6 +480,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Demote, do not delete, and only at the presentation layer. Translation stays a working recipe but becomes opt-in (not the desk's default, not a headline door); the desk defaults to decisions. Three layers, decided separately: (A) the presentation/positioning -- the translate recipe, the ('en','es') default, the translation-memory framing -- is demoted (the tractable part, and the one this decision authorizes). (B) the internal source_lang/target_lang naming is left as-is -- it is generic in mechanism (a decision domain already uses the same tag on both sides, nestor/decision.py:69) and renaming it would churn storage, API, tests and docs for near-zero user payoff. (C) the source_text/target_text pair model and the frozen signing contract are NOT touched.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "1556e213-0213-563f-b22e-07fef9d9a101",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the nestorerror base was supposed to unify every policy refusal but frankunavailable was missed add it or is it deliberately separate",
+      "source_text": "The NestorError base was supposed to unify every policy refusal, but FrankUnavailable was missed. Add it, or is it deliberately separate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Add it. FrankUnavailable is raised when a FRANK governance-ledger mirror write fails and is re-raised to the caller under NESTOR_FRANK_STRICT=1 -- a refusal shaped exactly like the fifteen already migrated, and one a host doing `except NestorError` to handle 'any refusal' would otherwise silently miss. It joins the base and the refusal test's roster.",
       "verifier": "",
       "weight": 1.0
     },

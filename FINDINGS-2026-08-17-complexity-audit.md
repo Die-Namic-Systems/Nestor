@@ -2,7 +2,7 @@
 
 Four read-only Sonnet auditors were run in parallel over non-overlapping slices
 of the tree, on the `claude/overwhelm-discussion-gmtbjg` branch, right after the
-README trim (decision 0146). The brief: find what is **overly complicated** and
+README trim (decision 0148). The brief: find what is **overly complicated** and
 might interfere with **human usability** and/or **agent usability** — full scope.
 Slices: (1) docs & narrative, (2) CLI/UI/MCP surfaces, (3) core library & seams,
 (4) governance ritual & agent machinery.

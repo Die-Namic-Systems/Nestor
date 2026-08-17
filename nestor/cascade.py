@@ -463,7 +463,13 @@ def _accepted_kwargs(func, **candidates) -> dict:
         return dict(candidates)
     if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
         return dict(candidates)
-    return {name: value for name, value in candidates.items() if name in params}
+    # Only names that can actually be passed BY KEYWORD — a positional-only
+    # `store` (declared before `/`) matches by name but cannot take a keyword, so
+    # passing it would raise the very TypeError this helper exists to avoid.
+    passable = {name for name, p in params.items()
+                if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                              inspect.Parameter.KEYWORD_ONLY)}
+    return {name: value for name, value in candidates.items() if name in passable}
 
 
 def translate_segment(text: str, source_lang: str, target_lang: str,

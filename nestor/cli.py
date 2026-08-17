@@ -771,8 +771,13 @@ class _HintingParser(argparse.ArgumentParser):
     """
 
     def error(self, message: str) -> None:                     # type: ignore[override]
-        if "unrecognized arguments" in message and any(
-                f in message for f in ("--db", "--ledger", "--json")):
+        # Match the leftover tokens exactly, not the message as a substring: a
+        # typo'd '--dbg' contains '--db' and must NOT trigger the hint.
+        globals_ = ("--db", "--ledger", "--json")
+        tail = (message.split("unrecognized arguments:", 1)[-1]
+                if "unrecognized arguments" in message else "")
+        if any(tok == f or tok.startswith(f + "=")
+               for tok in tail.split() for f in globals_):
             message += ("\nglobal flags (--db, --ledger, --json) go BEFORE the "
                         "subcommand — e.g. 'nestor --db data/x.db ask \"…\"'")
         super().error(message)
@@ -821,8 +826,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     dec = sub.add_parser("decision",
                          help="the decision graph — a CI gate over recorded constraints")
-    dec.add_argument("decision_command", nargs="?", choices=("check",), default="check",
-                     help="only 'check' today; optional, so 'nestor decision \"…\"' works")
+    # Kept required, unlike `db` below: `decision` has a trailing required
+    # `question`, so an optional leading verb is ambiguous — argparse gives a
+    # lone token to `question` and `nestor decision check` would silently check
+    # the literal word "check" instead of erroring for the missing question.
+    dec.add_argument("decision_command", choices=("check",))
     dec.add_argument("question", help="the question a proposal is about to answer")
     domain_args(dec, source="decision", target="decision")
     dec.set_defaults(func=cmd_decision)

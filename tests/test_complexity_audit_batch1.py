@@ -19,11 +19,14 @@ from nestor.sqlite_store import SqliteStore
 
 # --- the common refusal base ------------------------------------------------
 
-# The fifteen policy refusals that must share the NestorError base, imported from
-# where each lives so a move that drops one from the base fails here.
+# The policy refusals that must share the NestorError base, imported from where
+# each lives so a move that drops one from the base fails here. FrankUnavailable
+# was missed in the first pass (found by review) — it belongs to the family: a
+# strict-mode FRANK forward failure is a refusal a host may want to catch.
 def _refusals():
     from nestor.config import ConfigError
     from nestor.curator import CurationUnsupportedError
+    from nestor.frank import FrankUnavailable
     from nestor.home_paths import HomeRelocationRefused
     from nestor.keyring import KeyringError, RevokedKeyError, UnknownVerifierError
     from nestor.ledger import LedgerError
@@ -40,8 +43,8 @@ def _refusals():
         StoreSchemaTooNewError,
     )
     return [
-        ConfigError, CurationUnsupportedError, HomeRelocationRefused, KeyringError,
-        UnknownVerifierError, RevokedKeyError, LedgerError, RejectedPairError,
+        ConfigError, CurationUnsupportedError, FrankUnavailable, HomeRelocationRefused,
+        KeyringError, UnknownVerifierError, RevokedKeyError, LedgerError, RejectedPairError,
         ConflictingDraftError, ConflictingSealError, InvalidSealSignatureError,
         SigningRequiredError, StoreClosedError, StoreSchemaTooNewError, RowRetiredError,
     ]
@@ -87,13 +90,30 @@ def test_misplaced_global_flag_explains_itself(capsys):
     assert "--db" in err
 
 
-def test_single_choice_verbs_have_a_default():
-    dec = build_parser().parse_args(["decision", "my question"])
-    assert dec.decision_command == "check" and dec.question == "my question"
-    # the explicit form still parses
-    dec2 = build_parser().parse_args(["decision", "check", "q"])
-    assert dec2.decision_command == "check" and dec2.question == "q"
+def test_db_verb_defaults_but_decision_stays_required():
+    # `db` has no trailing positional, so its single verb is safely optional.
     assert build_parser().parse_args(["db"]).db_command == "checkpoint"
+    assert build_parser().parse_args(["db", "checkpoint"]).db_command == "checkpoint"
+    # `decision` keeps the verb REQUIRED: it has a trailing required `question`,
+    # so a lone token would be swallowed as the question and `nestor decision
+    # check` would silently check the literal word "check" instead of erroring.
+    dec = build_parser().parse_args(["decision", "check", "q"])
+    assert dec.decision_command == "check" and dec.question == "q"
+    with pytest.raises(SystemExit):          # verb given, question missing -> error, not a silent run
+        build_parser().parse_args(["decision", "check"])
+    with pytest.raises(SystemExit):          # a bare token that isn't the verb is refused
+        build_parser().parse_args(["decision", "my question"])
+
+
+def test_hint_matches_the_flag_exactly_not_as_a_substring(capsys):
+    # A real misplaced global flag gets the hint...
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["ask", "hi", "--db", "x"])
+    assert "go BEFORE the subcommand" in capsys.readouterr().err
+    # ...but an unrelated typo that merely CONTAINS '--db' as a substring does not.
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["ask", "hi", "--dbg"])
+    assert "go BEFORE the subcommand" not in capsys.readouterr().err
 
 
 def test_json_flag_is_reported_dropped_for_delegated_surfaces(capsys):
@@ -128,6 +148,13 @@ def test_accepted_kwargs_reads_the_signature():
     assert cascade._accepted_kwargs(only_store, store=1, matcher=2) == {"store": 1}
     assert cascade._accepted_kwargs(neither, store=1, matcher=2) == {}
     assert cascade._accepted_kwargs(var_kw, store=1, matcher=2) == {"store": 1, "matcher": 2}
+
+
+def test_accepted_kwargs_skips_positional_only_params():
+    """A positional-only `store` (before `/`) matches by name but cannot take a
+    keyword — passing it would raise the TypeError this helper exists to avoid."""
+    def posonly(text, s, t, store=None, /, matcher=None): ...
+    assert cascade._accepted_kwargs(posonly, store=1, matcher=2) == {"matcher": 2}
 
 
 def test_a_real_engine_typeerror_is_not_swallowed():

@@ -50,7 +50,8 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
     rel: (ROOT / rel).read_text(encoding="utf-8")
     for rel in ("bench/README.md", "docs/agent-guide.md",
                 "docs/matcher-seam.md", "docs/frank.md",
-                "docs/storage-protocol.md")}
+                "docs/storage-protocol.md", "docs/the-name.md",
+                "docs/accuracy.md")}
 
 
 def slugify(heading: str) -> str:
