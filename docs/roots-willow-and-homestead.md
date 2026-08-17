@@ -42,15 +42,10 @@ household record.
 **Canonical definition:** this repo → `nestor/home_paths.py` (`NESTOR_HOME`,
 default `Path.home() / ".nestor"`).
 
-| Subtree | Role |
-|---------|------|
-| `keep/` | Engine state Nestor pins here (e.g. `ledger.jsonl`) |
-| `record/` | Canonical read-only household record |
-| `logs/` | Sealed log (I-22) |
-| `drafts/` | Working drafts |
-
-**Nestor pins here** via `nestor.home_paths.bind_ledger()` (and future seam
-store) — see [`home-paths.md`](home-paths.md).
+**The subtree** (`keep/`, `record/`, `logs/`, `drafts/`, `layout.json`) and the
+`bind_ledger()` how-to are in [`home-paths.md`](home-paths.md) — the canonical
+Nestor-side doc — rather than repeated here; this file's job is the comparison
+*between* the roots, not the detail of any one.
 
 Nestor used to mirror `~/.homestead` instead. It no longer does, and that is
 **this file's own audience test applied to Nestor**: the rule is that someone

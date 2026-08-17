@@ -97,7 +97,6 @@ docs/evidence-edge.md  what a sealed claim rests on, distinct from who sealed it
 docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
 docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
 docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos (§6.50–§6.55)
-docs/live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
 docs/home-paths.md  ~/.nestor ledger/keep paths vs the repo's ./data/ (household hosts)
@@ -106,7 +105,6 @@ docs/covenant-lineage.md  where "you may propose, you may not confirm" came from
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
 docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
-docs/felt-cost.md     one operator sentence about friction, read closely — what it implies, and what it cannot
 docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
 docs/the-name.md      where "Nestor" comes from — the nest, the Homeric counsellor, and Asimov's NS-2 line
 docs/accuracy.md      why the measured false-verification rate is published rather than an adjective
@@ -115,4 +113,7 @@ docs/frank.md         mirroring the ledger into willow-mcp's shared governance l
 docs/storage-protocol.md  the persistence seam in full — core operations and the six optional capabilities
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
 docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
+docs/journal/         not reference docs — kept writing the reference tree should not mix in
+├── felt-cost.md        one operator sentence about friction, read closely — what it implies, and what it cannot
+└── live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
 ```
