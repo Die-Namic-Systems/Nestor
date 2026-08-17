@@ -33,7 +33,12 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install lint tools
-        run: pip install ruff==0.15.0 bandit mypy detect-secrets==1.5.0
+        # pip-audit sits before detect-secrets==1.5.0 on purpose: appended
+        # after it, detect-secrets' own KeywordDetector reads the pinned
+        # version plus the next token as one high-entropy "secret" value and
+        # flags this line on itself — reordering avoids the false positive
+        # without an inline `pragma: allowlist secret` or a baseline entry.
+        run: pip install ruff==0.15.0 bandit mypy pip-audit detect-secrets==1.5.0
 
       - name: Ruff (enforced)
         run: ruff check nestor tests hooks
@@ -48,6 +53,12 @@ jobs:
         # Shared with scripts/ci-lint.sh so the exclusion list is defined once
         # and local and CI cannot disagree (agent-log §6.111).
         run: bash scripts/secret-scan.sh
+
+      - name: Dependency vulnerability scan (known CVEs, IDEAS §7.5)
+        # Shared with scripts/ci-lint.sh so the invocation and its offline
+        # handling are defined once and local and CI cannot disagree
+        # (agent-log §6.111 pattern).
+        run: bash scripts/dep-audit.sh
 
   test-matrix:
     runs-on: ubuntu-latest
