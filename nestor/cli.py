@@ -230,8 +230,9 @@ def cmd_evidence(args) -> int:
     pairs that rest on nothing recorded (docs/evidence-edge.md, decision 0142).
 
     ``attach`` records a reference on a pair; ``report`` prints the curator queue
-    of live sealed pairs with no evidence. The report is read-only and never
-    blocks a seal, so it always exits 0; only a usage or refusal error exits 2.
+    of live sealed pairs with no evidence; ``for`` lists the references on one
+    pair. The reads are read-only and never block a seal, so they always exit 0;
+    only a usage or refusal error exits 2.
     """
     from . import evidence
     store = _store(args)
@@ -257,6 +258,28 @@ def cmd_evidence(args) -> int:
             print(f"attached {args.kind} evidence to {args.pair_id}  ({ev['id']})\n"
                   f"a reference, not a seal — this confirms nothing and changes "
                   f"nothing about what is served.")
+        return EXIT_OK
+
+    if args.evidence_command == "for":
+        if not args.pair_id:
+            print("a pair id is required: nestor evidence for <pair_id>",
+                  file=sys.stderr)
+            return EXIT_USAGE
+        refs = evidence.evidence_for(args.pair_id, store=store)
+        if args.json:
+            _emit({"pair_id": args.pair_id, "evidence": refs,
+                   "count": len(refs)}, True)
+        elif not refs:
+            print(f"no evidence attached to {args.pair_id}.")
+        else:
+            print(f"{len(refs)} reference(s) on {args.pair_id}:")
+            for r in refs:
+                line = f"  {r.get('kind', ''):16} {r.get('locator', '')}"
+                if r.get("reason"):
+                    line += f"  — {r['reason']}"
+                if r.get("attached_by"):
+                    line += f"  (by {r['attached_by']})"
+                print(line)
         return EXIT_OK
 
     # report — the curator queue, read-only
@@ -787,9 +810,10 @@ def build_parser() -> argparse.ArgumentParser:
     ev = sub.add_parser("evidence",
                         help="what a sealed claim rests on — attach references, "
                              "and list the seals with none")
-    ev.add_argument("evidence_command", choices=("attach", "report"))
+    ev.add_argument("evidence_command", choices=("attach", "report", "for"))
     ev.add_argument("pair_id", nargs="?",
-                    help="the pair a reference attaches to (attach only)")
+                    help="the pair a reference attaches to (attach), or whose "
+                         "references to list (for)")
     ev.add_argument("--kind", choices=sorted(EVIDENCE_KINDS),
                     help="the reference kind (attach only)")
     ev.add_argument("--locator", default="",

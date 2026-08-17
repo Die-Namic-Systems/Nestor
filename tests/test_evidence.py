@@ -191,6 +191,30 @@ def test_a_broken_ledger_refuses_the_attach_before_the_row_is_written(store, tmp
     assert evidence.evidence_for(pair["id"], store=store) == []
 
 
+def test_cli_evidence_for_lists_a_pairs_references(tmp_path, capsys, monkeypatch):
+    """`nestor evidence for <pair>` prints the references attached to one pair,
+    and says so plainly when there are none."""
+    monkeypatch.delenv("NESTOR_SEAL_KEY", raising=False)
+    from nestor import cli
+    cascade.set_ledger_path(tmp_path / "ledger.jsonl")
+    db = str(tmp_path / "ev.db")
+    st = SqliteStore(db)
+    st.memory_init()
+    pair = memory.add_pair("cli for", "yes", "decision", "decision",
+                           status="sealed", verifier="rita", store=st)
+    st.close()
+
+    assert cli.main(["--db", db, "evidence", "attach", pair["id"],
+                     "--kind", "url", "--locator", "https://ref"]) == 0
+    capsys.readouterr()
+    assert cli.main(["--db", db, "evidence", "for", pair["id"]]) == 0
+    out = capsys.readouterr().out
+    assert "https://ref" in out and "url" in out
+    # a pair with nothing attached
+    assert cli.main(["--db", db, "evidence", "for", "no-such-pair"]) == 0
+    assert "no evidence attached" in capsys.readouterr().out
+
+
 # -- audit follow-up: domain scope, content hash, bundle warning ------------
 
 def test_the_report_can_scope_to_one_domain(store):

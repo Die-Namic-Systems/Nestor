@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 402,
+    "pairs": 404,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "eff90a63ef6477f6b80141081dc091de923b63452c1c920a1ee115586bcf5ad0",
+  "digest": "53de4d2d8b8691f74134928fc214011728e0cbf5420026756b2baed07bdc15b9",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -93,6 +93,20 @@
     },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "d9bd792d-dd12-5b86-ac3d-69c2b5174237",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the evidence work is merged but not on pypi why and what actually carries it there",
+      "source_text": "The evidence work is merged but not on PyPI. Why, and what actually carries it there?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A conventional-commit title does. release-please reads the release-cutting type from PR titles and commits (the title lands in the merge-commit body, docs/releasing.md); #128/#129/#130 all used prose titles, so no release was proposed and PyPI stayed at 0.4.0. This PR ships a genuine feat -- a `nestor evidence for <pair_id>` read action -- titled `feat:`, which makes release-please open 'chore(master): release 0.5.0'. release-please tags from current master HEAD, so everything merged since v0.4.0, the evidence relation included, ships in that build.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
       "id": "cab6792c-ef6a-52e7-a77e-a5811e0a7394",
       "origin": "pr:None",
       "seal_sig": "",
@@ -158,6 +172,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "propose_edge and seal_edge now call a _require_pair_lookup() helper that refuses (RuntimeError naming the missing capability) when memory_get is absent, then read the store directly. Fail closed: an edge whose endpoints cannot be verified is one that must not be ratified. A regression test wraps a store to hide memory_get, presents a VALID signature, and asserts seal_edge raises and nothing is sealed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "94145db1-9745-58ac-b781-8f61785a7c22",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the feat and is it real product surface or a pretext",
+      "source_text": "What is the feat, and is it real product surface or a pretext?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Real. `nestor evidence for <pair_id>` lists the references attached to one pair -- the read that completes the CLI triad (attach writes, report queues the unevidenced, for reads one pair's evidence). It wraps evidence.evidence_for, which existed in the library with no CLI door. Read-only, exits 0, prints kind/locator/reason/attached_by or 'no evidence attached'. A CLI test locks it.",
       "verifier": "",
       "weight": 1.0
     },
