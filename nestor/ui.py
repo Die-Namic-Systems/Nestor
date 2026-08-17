@@ -80,6 +80,7 @@ from typing import Any, Callable, Mapping, Optional, Union
 
 from . import answer, cascade, config, keyring, ledger as ledger_mod, memory, portable, signing, storage
 from .curator import CurationUnsupportedError, Curator
+from .decision import DecisionMemory
 from .entity import EntityResolver
 from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
@@ -700,6 +701,78 @@ def _domains(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> 
             "total": stats.get("total", 0)}
 
 
+def _decision_domains(app: App) -> list[str]:
+    """Every domain tag this store holds that looks like a decision graph.
+
+    :class:`~nestor.decision.DecisionMemory` rides its ``domain`` in BOTH
+    language tags (see that module's docstring) and names disjoint graphs
+    ``decision``, ``decision:architecture``, ``decision:governance`` — never
+    inferred from a tag that merely happens to match on both sides, because
+    :class:`~nestor.entity.EntityResolver` and the numeric recipe do exactly
+    that too (``domain, domain``), and treating one of THEIR domains as a
+    decision graph would show entity aliases or reconciled figures dressed up
+    as a question-and-commitment row that was never proposed as one.
+    """
+    stats = memory.stats(store=app.store)
+    return sorted({sl for sl, tl, _ in stats.get("lang_pairs", [])
+                  if sl == tl and (sl == "decision" or sl.startswith("decision:"))})
+
+
+def _graph(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """The whole decision graph, read-only — nodes = decisions, edges = the
+    four typed relations between them (nestor ui's Graph tab, N6/N8).
+
+    Walks every decision domain this store holds (see :func:`_decision_domains`)
+    so ``decision:architecture`` and ``decision:governance`` both show, not
+    only the default. A store with no decision domain, or none of the optional
+    edge capability, answers ``{"nodes": [...], "edges": []}`` — honestly,
+    since "nothing to show" and "this failed" are different facts and only one
+    of them is true here.
+
+    This is the one API surface in this module with no write path at all: it
+    calls no ``store.memory_*`` method that is not a plain read
+    (``memory_candidates``, ``memory_edges_from``, ``memory_edges_to`` — see
+    :meth:`~nestor.decision.DecisionMemory.all_decisions` and ``all_edges``),
+    accepts no ``verifier``, no ``seal_sig``, no ``status``, and reaches
+    nothing in :mod:`nestor.signing`. It cannot seal, write or mutate a row —
+    not "is refused from doing so", there is simply no code path here that
+    tries. See ``tests/test_ui_graph.py`` for the refusal test that proves a
+    POST at this surface is rejected the same as at any other read endpoint,
+    and that nothing reachable through it can set ``status`` or ``verifier``.
+    """
+    domains = _decision_domains(app)
+    nodes: list[dict] = []
+    node_ids: list[str] = []
+    for d in domains:
+        for row in DecisionMemory(app.store, domain=d).all_decisions():
+            nodes.append({
+                "id": row["id"],
+                "number": len(nodes) + 1,
+                "question": row.get("source_text", ""),
+                "commitment": row.get("target_text", ""),
+                "status": row.get("status", "draft"),
+                "verifier": row.get("verifier") or None,
+            })
+            node_ids.append(row["id"])
+    edges: list[dict] = []
+    if node_ids:
+        node_id_set = set(node_ids)
+        # Any DecisionMemory instance reaches the same store — domain is
+        # irrelevant to an edge lookup, which is keyed by decision id, not by
+        # the domain that happens to list that id as one of its own nodes.
+        raw_edges = DecisionMemory(app.store, domain=domains[0]).all_edges(node_ids)
+        for e in raw_edges:
+            # An edge whose other endpoint fell outside every decision domain
+            # this store holds (a stray reference, or a domain this walk does
+            # not recognise as a decision graph) would ask the viewer to draw
+            # an edge to a node it was never sent — refused here, not passed
+            # through for the front end to fail on.
+            if e["src_id"] in node_id_set and e["dst_id"] in node_id_set:
+                edges.append({"source": e["src_id"], "target": e["dst_id"],
+                             "kind": e["kind"]})
+    return {"nodes": nodes, "edges": edges}
+
+
 def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Alias → canonical entity, with the same three answers the cascade gives."""
     surface = _str(payload, "surface")
@@ -1052,6 +1125,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/rejections"): _rejections,
     ("GET", "/api/export"): _export,
     ("GET", "/api/domains"): _domains,
+    ("GET", "/api/graph"): _graph,
     ("GET", "/api/bundle"): _bundle,
     ("GET", "/api/gate-echo"): _gate_echo,
     ("POST", "/api/session"): _session_open,

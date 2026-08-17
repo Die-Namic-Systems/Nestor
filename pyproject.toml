@@ -138,6 +138,21 @@ source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["nestor"]
+# Checked, not assumed: with `packages = ["nestor"]` alone, hatchling's
+# default wheel packaging DOES already walk the whole nestor/ tree and pick
+# up nestor/vendor/cytoscape.min.js and its LICENSE file — verified by
+# building a real wheel with this force-include block removed and inspecting
+# its contents. force-include is redundant against that default *today*, and
+# is kept anyway as an explicit contract: "these two files ship, however
+# hatchling's own default packaging behaves" survives a future hatchling
+# default change or a stray exclude pattern that would otherwise silently
+# ship a Graph tab whose script tag has nothing to inline. The actual guard
+# is tests/test_packaging.py, which builds a real wheel and asserts both
+# files are inside it — independent of whether this block or hatchling's
+# default is what put them there.
+[tool.hatch.build.targets.wheel.force-include]
+"nestor/vendor/cytoscape.min.js" = "nestor/vendor/cytoscape.min.js"
+"nestor/vendor/cytoscape.LICENSE" = "nestor/vendor/cytoscape.LICENSE"
 
 [tool.hatch.build.targets.sdist]
 # Named explicitly rather than left to the default, which is "everything not
@@ -157,6 +172,14 @@ include = [
 
 [tool.ruff]
 line-length = 120
+# nestor/vendor/ is a vendored third-party artifact (Cytoscape.js — see
+# nestor/vendor/README.md), not project source. Ruff only lints .py/.pyi by
+# extension so this is redundant against the vendored .js itself today, but
+# it is documented here rather than left to that default: `ruff check nestor
+# tests hooks` names a whole directory, and a future vendored file with a
+# `.py`-shaped name (a stub, a shim) must not become part of the gated
+# surface just by living next to this one.
+extend-exclude = ["nestor/vendor"]
 
 [tool.ruff.lint.per-file-ignores]
 # Compact one-line test setup is house style; don't fight it.
@@ -182,6 +205,11 @@ line-length = 120
 # on rather than being the reason the gate was scoped down instead.
 python_version = "3.10"
 files = ["nestor"]
+# Same rationale as [tool.ruff]'s extend-exclude just above: mypy only reads
+# .py/.pyi by extension so this is belt-and-braces against today's vendored
+# .js, documented for the same reason — a directory-scoped gate should not
+# start covering a vendored file by accident of a future filename.
+exclude = ["^nestor/vendor/"]
 check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = true

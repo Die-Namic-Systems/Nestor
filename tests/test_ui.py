@@ -492,9 +492,20 @@ def test_the_pages_javascript_is_structurally_balanced():
     A stray paren in it is invisible to every other test here and fatal in the
     browser — the whole page renders blank. This is the cheap standing guard;
     it caught exactly that.
+
+    Scoped to the LAST ``<script>...</script>`` block — nestor's own app
+    script — not the vendored Cytoscape.js ahead of it. That bundle is a
+    separately pinned, checksummed third-party artifact
+    (nestor/vendor/README.md), already valid JS by construction (it is
+    exactly what npm ships), and its minified body contains regex literals
+    that ``_strip_js_literals`` — which only knows string and comment
+    delimiters, not the string/regex ambiguity around ``/`` in JS — cannot
+    tell from a stray bracket. A false positive there would say nothing about
+    a paren this project's own contributors typed, which is the one thing
+    this guard exists to catch.
     """
     from nestor.ui_page import PAGE
-    js = _strip_js_literals(PAGE.split("<script>", 1)[1].rsplit("</script>", 1)[0])
+    js = _strip_js_literals(PAGE.rsplit("<script>", 1)[1].rsplit("</script>", 1)[0])
     pairs = {")": "(", "]": "[", "}": "{"}
     stack, line = [], 1
     for ch in js:
@@ -511,10 +522,24 @@ def test_the_pages_javascript_is_structurally_balanced():
 
 
 def test_the_page_is_self_contained():
-    """No CDN, no fonts, no beacons — and no innerHTML for text a stranger wrote."""
-    from nestor.ui_page import PAGE
-    assert "http://" not in PAGE and "https://" not in PAGE
-    assert "innerHTML =" not in PAGE and "insertAdjacentHTML" not in PAGE
+    """No CDN, no fonts, no beacons — and no innerHTML for text a stranger wrote.
+
+    The vendored Cytoscape.js bundle (nestor/vendor/README.md — pinned,
+    checksummed, its own license audited separately) is excluded from the
+    URL-substring check below: its minified body carries a handful of inert
+    ``/*! ... */`` attribution comments for code it bundles (a Promises/A+
+    shim, two easing-function generators), each an ``http://`` URL in a
+    comment, never fed to a request of any kind. What actually forbids this
+    page fetching anything is the CSP (``default-src 'none'``, no ``self`` on
+    script-src) pinned byte-for-byte in
+    test_csp_header_is_unchanged_by_the_graph_view — this assertion is the
+    cheap grep-level smoke test over NESTOR's OWN markup and script, not a
+    substitute for that.
+    """
+    from nestor import ui_page
+    own = ui_page.PAGE.replace(ui_page._read_vendor_script(), "")
+    assert "http://" not in own and "https://" not in own
+    assert "innerHTML =" not in ui_page.PAGE and "insertAdjacentHTML" not in ui_page.PAGE
 
 
 def test_a_draft_is_ratified_in_place_from_the_detail_panel():
