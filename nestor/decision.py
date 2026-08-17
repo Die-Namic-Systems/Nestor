@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import Iterable, Optional, cast
 
 from . import memory, signing
 from .cascade import _ledger_append
@@ -226,3 +226,53 @@ class DecisionMemory:
                     e["src_id"], e["dst_id"], e["kind"],
                     e.get("verifier", ""), e.get("edge_sig", ""))
                 (result["constraints"] if sealed else result["proposed"]).append(entry)
+
+    # -- the graph view (nestor.ui's read-only Graph tab) ------------------
+    #
+    # constraints_on is per-question: it answers "what does the record say
+    # about THIS one". The graph view answers a different question — "show me
+    # the whole thing" — and needs every decision and every edge, not one
+    # neighbourhood. Both accessors below are read-only and additive: neither
+    # writes, seals, or changes what constraints_on already does.
+
+    def all_decisions(self) -> list[dict]:
+        """Every live decision in this domain, sealed and draft alike.
+
+        Deliberately built on :meth:`~nestor.storage.Storage.memory_candidates`
+        rather than the curation-only ``memory_list`` — ``memory_candidates``
+        is a REQUIRED Storage capability (every serve path already depends on
+        it), so a store with no curation support still shows its decisions
+        here rather than the graph silently going empty on a capability this
+        view never needed. A superseded row (``superseded_by`` set) is
+        excluded, same as every serve path — it is not the live decision for
+        its question, which is the fact this view exists to make legible.
+
+        Ordered by ``created_at`` then ``id`` so repeat calls return a stable
+        order — a caller numbering the rows for display needs that order not
+        to change between one fetch and the next.
+        """
+        rows = self.store.memory_candidates(self.domain, self.domain)
+        return sorted(rows, key=lambda r: (r.get("created_at", ""), r["id"]))
+
+    def all_edges(self, node_ids: Iterable[str]) -> list[dict]:
+        """Every edge — sealed or merely proposed — touching any of ``node_ids``.
+
+        Walks both :meth:`~nestor.storage.EdgeStorage.memory_edges_from` and
+        ``memory_edges_to`` for each id, because an edge is stored once and
+        surfaces from either endpoint; deduplicated by the edge's own ``id``
+        so a relation between two ids both in ``node_ids`` is not returned
+        twice. Returns ``[]``, not a raise, when this store has no decision-
+        graph capability at all (:func:`~nestor.storage.supports_edges`) —
+        "no edges" and "cannot have edges" render identically to a viewer
+        that only ever asked to see what exists.
+        """
+        if not supports_edges(self.store):
+            return []
+        edge_store = cast(EdgeStorage, self.store)
+        seen: dict[str, dict] = {}
+        for nid in node_ids:
+            for e in edge_store.memory_edges_from(nid):
+                seen[e["id"]] = e
+            for e in edge_store.memory_edges_to(nid):
+                seen[e["id"]] = e
+        return list(seen.values())

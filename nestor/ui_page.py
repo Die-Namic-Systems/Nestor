@@ -8,10 +8,42 @@ so the surface that displays the sealed memory cannot ship it anywhere.
 All data is written into the DOM through ``textContent`` (see the ``h`` helper)
 rather than ``innerHTML``. Sealed text is arbitrary human input and the curator
 view exists precisely to look at rows a stranger may have written.
+
+The Graph tab's Cytoscape.js library is the one exception to "everything
+inline in this module": it is vendored as a file
+(``nestor/vendor/cytoscape.min.js``, see ``nestor/vendor/README.md``) rather
+than pasted into this string, and :func:`_read_vendor_script` reads it back in
+and splices it into ``_TEMPLATE`` at import time, so the bytes the browser
+receives are still fully self-contained — the served page never fetches
+anything, it is just assembled from two files on disk instead of one.
 """
 from __future__ import annotations
 
-PAGE = r"""<!doctype html>
+import pathlib
+
+_VENDOR_DIR = pathlib.Path(__file__).resolve().parent / "vendor"
+
+
+def _read_vendor_script(name: str = "cytoscape.min.js") -> str:
+    """The vendored library's own bytes, decoded — read fresh at import time.
+
+    Not cached beyond that: :data:`PAGE` is built once, when this module is
+    first imported, exactly like every other part of the page. A missing
+    vendor file fails loudly and immediately (import-time, not first-request
+    time) with a message that says what to do about it, rather than serving a
+    page whose Graph tab silently has no ``cytoscape`` global to call.
+    """
+    path = _VENDOR_DIR / name
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"{path} is missing — nestor.ui_page cannot build its served page "
+            f"without the vendored Cytoscape.js it inlines into the Graph tab. "
+            f"See nestor/vendor/README.md to fetch the pinned version.") from exc
+
+
+_TEMPLATE = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -493,6 +525,31 @@ body.fleet-review .mem-list .decision-card:nth-child(3) { animation-delay: 0.08s
 body.fleet-review .mem-list .decision-card:nth-child(4) { animation-delay: 0.12s; }
 body.fleet-review .mem-list .decision-card:nth-child(5) { animation-delay: 0.16s; }
 body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s; }
+
+/* Graph tab: the covenant, drawn. Cytoscape paints its own Canvas — these
+   rules style everything AROUND that canvas (the frame, the legend, the
+   selected-node detail panel); the marks ON the graph (sealed vs draft,
+   contradicts vs everything else) are Cytoscape style rules built from these
+   same CSS custom properties in the script below, so one palette drives
+   both. */
+.graph-frame {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden;
+}
+#graph-canvas { width: 100%; height: 62vh; min-height: 420px; display: block; }
+.graph-legend {
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted);
+}
+.graph-legend .item { display: flex; align-items: center; gap: 6px; }
+.graph-legend .swatch { width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0; }
+.graph-legend .swatch.sealed { background: var(--sealed); border: 1.5px solid var(--sealed); }
+.graph-legend .swatch.draft { background: transparent; border: 1.5px dashed var(--draft); }
+.graph-legend .line { width: 20px; height: 0; border-top: 2px solid var(--line); flex-shrink: 0; }
+.graph-legend .line.contradicts { border-top-color: var(--rejected); border-top-style: dashed; }
+.graph-detail { display: flex; flex-direction: column; gap: 10px; }
+.graph-detail .q { font-weight: 600; }
+.graph-detail .c { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -551,6 +608,15 @@ body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s;
      one dialog in the page a client signature is never produced without. -->
 <dialog id="sign-dialog"><div id="sign-dialog-body"></div></dialog>
 
+<!-- Cytoscape.js (MIT, vendored — nestor/vendor/README.md), inlined verbatim
+     by _read_vendor_script() below, as its own inline script element ahead
+     of the app script below it: the CSP this page is served with has no
+     `self` on script-src, so a script with a src= attribute of any kind —
+     local file or CDN — would be blocked, and this is the one way an
+     inline-only CSP can still load a third-party library: as bytes already
+     inside the response. -->
+<!--CYTOSCAPE_VENDOR_SCRIPT-->
+
 <script>
 "use strict";
 
@@ -560,6 +626,7 @@ const TABS = [
   ["ask",     "Ask"],
   ["signals", "Signals"],
   ["ledger",  "Ledger"],
+  ["graph",   "Graph"],
 ];
 
 // How many pairs the Memory list shows at once. One more than this is asked
@@ -582,6 +649,11 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             offset: 0, more: false, session: null, typedVerifier: "",
             commitmentPickByPair: {},
             gateEcho: null,
+            // Graph tab (read-only decision graph, N6/N8). `cy` is the live
+            // Cytoscape instance, if the tab has been opened — render()
+            // destroys it before every re-render so a stale one never
+            // outlives the canvas element it was drawn into (see render()).
+            graph: null, cy: null, graphSelected: null,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -2586,6 +2658,154 @@ function viewLedger() {
   $("view").append(card);
 }
 
+/* ---------- Graph: the covenant, read-only (N6/N8) -------------------------
+ *
+ * nodes = decisions, edges = the four typed relations between them
+ * (supersedes | refines | depends_on | contradicts). Sealed vs draft is the
+ * one distinction this whole tab exists to make legible at a glance — sealed
+ * solid and filled, draft outlined and muted, never the reverse, because
+ * draft is the default and most nodes will be draft: it must not read as
+ * "broken". `contradicts` gets its own line style for the same reason
+ * `.lamp.rejected` gets its own colour elsewhere — it is the one relation
+ * that blocks.
+ *
+ * Nothing in this view calls anything but GET /api/graph. There is no seal
+ * button, no edit field, no session-aware affordance anywhere below — the
+ * refusal isn't enforced here, it's simply not built, which is the point
+ * (see tests/test_ui_graph.py's refusal test for the enforced half).
+ */
+
+// Cytoscape paints on a <canvas>, which cannot read a CSS custom property —
+// the palette has to be resolved to concrete colour strings once, here,
+// rather than duplicated as a second set of literals that could drift from
+// the one in <style> above. Picking it up from :root means dark mode (a
+// plain prefers-color-scheme media query, same as the rest of this page)
+// colours the graph correctly without this function knowing which mode is
+// active.
+function graphPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name) => cs.getPropertyValue(name).trim();
+  return { ink: v("--ink"), muted: v("--muted"), line: v("--line"),
+           panel: v("--panel"), sealed: v("--sealed"), draft: v("--draft"),
+           rejected: v("--rejected"), accent: v("--accent") };
+}
+
+function graphElements(g) {
+  const nodes = (g.nodes || []).map((n) => ({
+    data: { id: n.id, label: "#" + n.number + " " + n.question,
+            question: n.question, commitment: n.commitment,
+            status: n.status, verifier: n.verifier, number: n.number },
+  }));
+  const edges = (g.edges || []).map((e, i) => ({
+    data: { id: "e" + i, source: e.source, target: e.target,
+            kind: e.kind, label: e.kind },
+  }));
+  return nodes.concat(edges);
+}
+
+function graphStylesheet(pal) {
+  return [
+    { selector: "node", style: {
+        "shape": "round-rectangle", "label": "data(label)",
+        "text-wrap": "wrap", "text-max-width": "160px",
+        // "label" is Cytoscape's own value for "size the box to fit the
+        // rendered text" — still fully supported in 3.34.1, only soft-
+        // deprecated (it logs a console warning, nothing more; verified
+        // against the real vendored bundle in this session's own test
+        // harness, which rendered every node at the correct size on this
+        // value). Left as-is rather than guessed at a replacement.
+        "width": "label", "height": "label", "padding": "10px",
+        "font-size": "12px", "color": pal.ink,
+        "text-valign": "center", "text-halign": "center",
+        "border-width": 2, "background-color": pal.panel, "border-color": pal.line } },
+    { selector: 'node[status = "sealed"]', style: {
+        // Earned, not decorative: solid fill is the one visual a draft
+        // never gets, on purpose (the covenant this whole tab exists to show).
+        "background-color": pal.sealed, "border-color": pal.sealed,
+        "color": pal.panel, "font-weight": 600 } },
+    { selector: 'node[status = "draft"]', style: {
+        "background-color": pal.panel, "border-color": pal.draft,
+        "border-style": "dashed", "color": pal.muted } },
+    { selector: "node:selected", style: { "border-width": 4, "border-color": pal.accent } },
+    { selector: "edge", style: {
+        "curve-style": "bezier", "target-arrow-shape": "triangle",
+        "line-color": pal.line, "target-arrow-color": pal.line,
+        "width": 2, "label": "data(label)", "font-size": "10px",
+        "color": pal.muted, "text-rotation": "autorotate",
+        "text-background-color": pal.panel, "text-background-opacity": 0.85,
+        "text-background-padding": "2px" } },
+    { selector: 'edge[kind = "contradicts"]', style: {
+        // The one relation that blocks — the only edge that gets to look
+        // alarming; everything else stays quiet so this keeps standing out.
+        "line-color": pal.rejected, "target-arrow-color": pal.rejected,
+        "line-style": "dashed", "width": 3 } },
+  ];
+}
+
+function graphDetail(n) {
+  if (!n) {
+    return h("p", { class: "empty", text: "Tap a decision to read it here." });
+  }
+  return h("div", { class: "graph-detail" },
+    h("div", { class: "row" }, statusLamp(n.status),
+      h("b", { text: n.status === "sealed" ? "sealed" : "draft" }),
+      n.verifier ? h("span", { class: "chip", text: n.verifier }) : null),
+    h("div", { class: "q", text: n.question }),
+    h("div", { class: "c", text: n.commitment }));
+}
+
+function viewGraph() {
+  const g = S.graph || { nodes: [], edges: [] };
+  const view = $("view");
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("h2", { style: "margin:0", text: "Decision graph" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge good", text: g.nodes.length + " decision(s)" }),
+      h("span", { class: "badge", text: g.edges.length + " relation(s)" })));
+  view.append(card);
+
+  if (!g.nodes.length) {
+    view.append(h("div", { class: "card" },
+      h("p", { class: "empty",
+        text: "No decisions in this store yet — the graph fills in as decisions "
+          + "are proposed and sealed. This view only ever reads; it cannot "
+          + "propose or seal one for you." })));
+    return;
+  }
+
+  const canvas = h("div", { id: "graph-canvas" });
+  const legend = h("div", { class: "graph-legend" },
+    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed"),
+    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft"),
+    h("span", { class: "item" }, h("span", { class: "line" }), "relation"),
+    h("span", { class: "item" }, h("span", { class: "line contradicts" }), "contradicts"));
+  const frame = h("div", { class: "graph-frame" }, canvas, legend);
+  const detail = h("div", { class: "card", id: "graph-detail-card" }, graphDetail(S.graphSelected));
+  view.append(h("div", { class: "grid" }, frame, detail));
+
+  const cy = cytoscape({
+    container: canvas,
+    elements: graphElements(g),
+    style: graphStylesheet(graphPalette()),
+    layout: { name: "breadthfirst", directed: true, spacingFactor: 1.15, padding: 24 },
+    // Canvas only, no DOM to click through — a read-only view has nothing to
+    // lose by letting a curator pan/zoom to read a dense graph.
+    userZoomingEnabled: true, userPanningEnabled: true, boxSelectionEnabled: false,
+  });
+  cy.on("tap", "node", (evt) => {
+    const d = evt.target.data();
+    S.graphSelected = { question: d.question, commitment: d.commitment,
+                        status: d.status, verifier: d.verifier };
+    // A node tap updates only the detail card, not the whole page: a full
+    // render() would destroy and rebuild `cy` (see render()'s comment on
+    // why it owns that teardown), throwing away the pan/zoom the curator
+    // just used to find this node.
+    $("graph-detail-card").replaceChildren(graphDetail(S.graphSelected));
+  });
+  S.cy = cy;
+}
+
 /* ---------- shell --------------------------------------------------------- */
 function badges() {
   const s = S.state, box = $("badges");
@@ -2833,6 +3053,12 @@ function render() {
   const c = (S.state && S.state.summary) || {};
   document.body.classList.toggle("gate-closed",
     S.tab === "memory" && fleetGapReviewMode() && (c.draft ?? 0) === 0 && (c.sealed ?? 0) > 0);
+  // A live Cytoscape instance holds a reference to the #graph-canvas element
+  // it was drawn into; view.replaceChildren() below is about to detach that
+  // element whether or not the graph tab is where we are going, so the
+  // instance is torn down here — its one owner — rather than leaking one
+  // Canvas context per tab switch away from Graph.
+  if (S.cy) { S.cy.destroy(); S.cy = null; }
   const view = $("view");
   view.replaceChildren();
   if (S.tab === "welcome") viewWelcome();
@@ -2840,6 +3066,7 @@ function render() {
   else if (S.tab === "memory") viewMemory();
   else if (S.tab === "ask") viewAsk();
   else if (S.tab === "signals") viewSignals();
+  else if (S.tab === "graph") viewGraph();
   else viewLedger();
 }
 
@@ -2893,6 +3120,10 @@ async function refresh() {
     if (S.tab === "ledger") {
       S.ledger = await api("/api/ledger?limit=200&kind=" + encodeURIComponent(S.ledgerKind || ""));
     }
+    if (S.tab === "graph") {
+      S.graph = await api("/api/graph");
+      S.graphSelected = null;
+    }
     render();
   } catch (e) {
     toast(e.message, "err");
@@ -2922,3 +3153,10 @@ api("/api/state?session=" + encodeURIComponent(savedToken || "")).then((s) => {
 </body>
 </html>
 """
+
+# Built once, at import time — same lifetime as the old plain-string PAGE, and
+# still one HTTP response with nothing left to fetch: the vendored library's
+# bytes are spliced in below rather than requested by the browser.
+PAGE = _TEMPLATE.replace(
+    "<!--CYTOSCAPE_VENDOR_SCRIPT-->",
+    "<script>\n" + _read_vendor_script() + "\n</script>")
