@@ -60,10 +60,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import warnings
 from typing import Optional
 
+from . import config
 from . import keyring as keyring_mod
 
 
@@ -117,7 +117,7 @@ def _verifies_with(entry_kind: str, key_bytes: bytes, message: bytes,
 def _key(key: Optional[bytes] = None) -> Optional[bytes]:
     if key is not None:
         return key
-    env = os.environ.get("NESTOR_SEAL_KEY")
+    env = config.get_secret("NESTOR_SEAL_KEY")
     return env.encode() if env else None
 
 
@@ -215,8 +215,8 @@ def verifier_key_type(verifier: str) -> str:
 
 
 def _strict() -> bool:
-    return os.environ.get("NESTOR_REQUIRE_SEAL_KEY", "").strip().lower() in (
-        "1", "true", "yes", "on")
+    return config.get_bool_loose("NESTOR_REQUIRE_SEAL_KEY", False,
+                                 frozenset({"1", "true", "yes", "on"}))
 
 
 def signing_enabled(key: Optional[bytes] = None) -> bool:
@@ -299,7 +299,7 @@ def cache_key(key: Optional[bytes] = None) -> Optional[bytes]:
     """
     if key is not None:
         return key
-    env = os.environ.get("NESTOR_CACHE_KEY")
+    env = config.get_secret("NESTOR_CACHE_KEY")
     if env:
         return env.encode()
     shared = _key(None)

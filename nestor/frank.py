@@ -36,6 +36,8 @@ import time
 import sys
 from typing import Any, Optional, Protocol, runtime_checkable
 
+from . import config
+
 #: FRANK groups entries by project; every Nestor entry lands under this one.
 DEFAULT_PROJECT = "nestor"
 
@@ -69,7 +71,11 @@ def get_forwarder() -> Optional[Forwarder]:
 
 
 def strict() -> bool:
-    return os.environ.get("NESTOR_FRANK_STRICT", "").strip().lower() in ("1", "true", "yes")
+    # Loose parsing preserved exactly: an unrecognized token reads as False,
+    # never a raised ConfigError (config.get_bool_loose), and this site's own
+    # truthy set has always omitted "on" — unlike NESTOR_REQUIRE_SEAL_KEY's.
+    return config.get_bool_loose("NESTOR_FRANK_STRICT", False,
+                                 frozenset({"1", "true", "yes"}))
 
 
 def event_type_for(entry: dict) -> str:
@@ -134,13 +140,16 @@ class WillowForwarder:
         env: Optional[dict[str, str]] = None,
     ) -> None:
         self._command = command or _default_command()
+        # WILLOW_APP_ID is not a NESTOR_* var and stays a plain env read — see
+        # the class docstring for why NESTOR_FRANK_APP_ID must be read first.
         self._app_id = (
             app_id
-            or os.environ.get("NESTOR_FRANK_APP_ID", "").strip()
+            or config.load().get_str("frank_app_id", "").strip()
             or os.environ.get("WILLOW_APP_ID", "").strip()
             or DEFAULT_PROJECT
         )
-        self._project = project or os.environ.get("NESTOR_FRANK_PROJECT", "").strip() or DEFAULT_PROJECT
+        self._project = (project or config.load().get_str("frank_project", "").strip()
+                         or DEFAULT_PROJECT)
         self._timeout = timeout
         self._env = env
         self._proc: Optional[subprocess.Popen] = None

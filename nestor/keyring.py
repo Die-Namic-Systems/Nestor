@@ -447,6 +447,13 @@ def set_keyring(k: Optional[Keyring]) -> None:
 
 
 def keyring_path() -> str:
+    # Env-only, deliberately NOT routed through nestor.config's file layer.
+    # This names the location of the trust root — which per-verifier keys are
+    # loaded and marked trusted — so it must be set by the environment the
+    # human controls, never by a `nestor.config.json` that can ride along in a
+    # cloned working tree and silently redirect the keyring to a planted file.
+    # NESTOR_KEYRING stays enumerated in config.REGISTRY for discovery; only
+    # its *resolution* stays env-only. Every caller treats "" as "no keyring".
     return os.environ.get("NESTOR_KEYRING", "")
 
 

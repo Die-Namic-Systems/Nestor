@@ -17,13 +17,25 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from . import config
+
+# OLLAMA_HOST is not a NESTOR_* var (it names the fleet's own embed client
+# convention) and stays a plain env read. The two NESTOR_OLLAMA_EMBED_* names
+# are pulled from the registry rather than re-declaring their defaults here —
+# still a bare `os.environ.get`, deliberately not `config.load()`, because
+# these are computed once at import: routing an import-time constant through
+# the resolver's file layer would mean an unrelated, malformed
+# nestor.config.json in the working directory could fail `import
+# nestor.ollama_embed` outright, which no prior behavior here risked.
 DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-DEFAULT_EMBED_MODEL = os.environ.get("NESTOR_OLLAMA_EMBED_MODEL", "nomic-embed-text")
+_MODEL_SPEC = config.REGISTRY["NESTOR_OLLAMA_EMBED_MODEL"]
+DEFAULT_EMBED_MODEL = os.environ.get(_MODEL_SPEC.name, _MODEL_SPEC.default)
 
 DOC_PREFIX = "search_document: "
 
 _CAPS = (4000, 2000, 1000)
-_TIMEOUT = float(os.environ.get("NESTOR_OLLAMA_EMBED_TIMEOUT", "60"))
+_TIMEOUT_SPEC = config.REGISTRY["NESTOR_OLLAMA_EMBED_TIMEOUT"]
+_TIMEOUT = float(os.environ.get(_TIMEOUT_SPEC.name, str(_TIMEOUT_SPEC.default)))
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 _installed: set[str] | None = None

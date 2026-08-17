@@ -87,6 +87,14 @@ dev = [
     # that finds a different set from CI's is a gate that disagrees with the one
     # branch protection actually runs.
     "detect-secrets==1.5.0",
+    # The fifth gate in scripts/ci-lint.sh (IDEAS §7.5) — known CVEs in the
+    # resolved dependency set. Unpinned like bandit and mypy: it is judged
+    # against a live vulnerability database queried at run time, not a
+    # version-pinned rule set or a committed baseline the way ruff and
+    # detect-secrets are, so there is no version this gate must agree with CI
+    # about. See scripts/dep-audit.sh for the invocation and its offline
+    # handling.
+    "pip-audit",
 ]
 cloud = [
     "anthropic>=0.60",

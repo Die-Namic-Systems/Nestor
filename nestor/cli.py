@@ -43,7 +43,7 @@ import shutil
 import sys
 from typing import Optional
 
-from . import (answer, cascade, keyring as keyring_mod, ledger as ledger_mod, memory,
+from . import (answer, cascade, config, keyring as keyring_mod, ledger as ledger_mod, memory,
                portable, seed as seed_mod, serve, signing, storage, ui)
 from .sqlite_store import SqliteStore
 
@@ -463,7 +463,7 @@ def cmd_keys(args) -> int:
 
     if args.keys_command == "add":
         if args.adopt_shared_key:
-            shared = os.environ.get("NESTOR_SEAL_KEY", "")
+            shared = config.get_secret("NESTOR_SEAL_KEY") or ""
             if not shared:
                 print("--adopt-shared-key needs NESTOR_SEAL_KEY set: it is the key "
                       "your existing seals were signed with.", file=sys.stderr)

@@ -24,6 +24,8 @@ from contextlib import redirect_stdout
 
 import pytest
 
+from nestor import config as _nestor_config
+
 ROOT = pathlib.Path(__file__).parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 #: Root-level markdown, plus the nested docs that carry operating rules rather
@@ -184,7 +186,18 @@ def _env_names_in_code() -> set[str]:
         if re.search(rf"environ\.get\(\s*{re.escape(const)}\b", source):
             via_const.add(value)
 
-    return direct | via_const
+    # A third indirection, deeper than a per-module constant: nestor.config's
+    # registry (IDEAS §7.5) is itself the enumeration of every NESTOR_* name
+    # the code resolves, and several call sites now go through it —
+    # `config.get_secret(...)` / `config.get_bool_loose(...)` /
+    # `config.load().get_str(...)` — rather than a literal `environ.get(...)`
+    # this scanner's text patterns can see. Reading the registry directly is
+    # more reliable than growing another regex to match every accessor shape:
+    # `configurable_names()` already excludes the two NESTOR_IDB_* entries,
+    # which are browser-side JS literals nothing in this process reads.
+    via_registry = set(_nestor_config.configurable_names())
+
+    return direct | via_const | via_registry
 
 
 def test_documented_environment_variables_exist():
