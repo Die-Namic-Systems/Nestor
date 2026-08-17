@@ -41,7 +41,7 @@ BRAIN_DB = ("docs", "dogfood", "nestor.db")
 #: ``tests/test_session_start.py`` parses ci-lint.sh and fails if the two drift —
 #: a boot check that reports on two of three gates is how the third one stayed
 #: broken.
-LINT_MODULES = ("ruff", "bandit", "mypy", "detect_secrets")
+LINT_MODULES = ("ruff", "bandit", "mypy", "detect_secrets", "pip_audit")
 
 #: What proves a household home was laid out rather than merely existing.
 #: ``nestor.home_init`` writes it once and never overwrites it, so its presence

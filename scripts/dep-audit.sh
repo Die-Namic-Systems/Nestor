@@ -71,15 +71,20 @@ if [ "$status" -ne 0 ]; then
 fi
 
 # pip-audit exits 0 even when it skipped a package it could not resolve
-# (distinct from --skip-editable's deliberate, expected skip of this
-# project's own editable install) — treat any other skip as an unaudited
-# dependency and fail loud rather than pass on partial coverage.
+# (distinct from --skip-editable's deliberate skip) — treat any such skip as
+# an unaudited dependency and fail loud rather than pass on partial coverage.
+# The expected skips are keyed by *reason*, not by package name: every
+# "distribution marked as editable" row is a deliberate --skip-editable result
+# and is cleared. Keying on the reason (not a hardcoded "nestor-meaning") is
+# what lets this stay correct in a dev venv that carries more than one editable
+# install of this tree — only a skip for some *other* reason (metadata error,
+# not-found-on-PyPI) is the "reported clean but never checked" shape we fail on.
 unexpected_skips="$(awk '
   found && /^-+ / { next }
   found && NF == 0 { found = 0; next }
   found { print }
   /^Name +Skip Reason/ { found = 1 }
-' "$out" | grep -v '^nestor-meaning ' || true)"
+' "$out" | grep -vi 'distribution marked as editable' || true)"
 
 if [ -n "$unexpected_skips" ]; then
   echo

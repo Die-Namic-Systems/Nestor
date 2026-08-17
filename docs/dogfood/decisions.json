@@ -1,12 +1,12 @@
 {
   "counts": {
-    "pairs": 376,
+    "pairs": 379,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-16T00:00:00+00:00",
-  "digest": "22c8282ff1d49a894e88d528aeb4251b277adaaf8ed98d5f24a25b18224bbbae",
+  "created_at": "2026-08-17T00:00:00+00:00",
+  "digest": "90179591f511520fa6521abb7570971f86a9972ced7a3071f903c9a4306b8804",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,6 +19,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 2,
   "pairs": [
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "cab6792c-ef6a-52e7-a77e-a5811e0a7394",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ideas 75s dependencyvulnerability gate what ships and how is it kept honest offline and across environments that carry more than one editable install",
+      "source_text": "IDEAS §7.5's dependency-vulnerability gate -- what ships, and how is it kept honest offline and across environments that carry more than one editable install?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "scripts/dep-audit.sh runs pip-audit over the resolved [dev] environment (not the empty dependencies=[] list), wired identically into ci-lint.sh and the CI lint job per the §6.111 shared-script pattern. An unreachable vulnerability database fails the gate as UNKNOWN, never passes as clean (decision 0127); skips are cleared by *reason* -- every 'distribution marked as editable' row is the deliberate --skip-editable result -- rather than by a hardcoded package name, so the gate stays correct in a dev venv carrying more than one editable install of this tree, and any skip for another reason (metadata error, not-found-on-PyPI) still fails loud as unaudited. CI upgrades pip/setuptools before the audit so a whole-environment scan does not flap on a stale runner toolchain.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "b61a8478-8665-5957-acb8-f6102c32c76d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ideas 75 named the install half of the first five minutes open no pipx recipe no documented oneliner what ships and how is it verified rather than asserted",
+      "source_text": "IDEAS §7.5 named the install half of 'the first five minutes' open -- no pipx recipe, no documented one-liner. What ships, and how is it verified rather than asserted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A README '## Install' section recommends `pipx install nestor-meaning` (or `pipx install .` from a checkout) as the blessed one-liner, `pip install nestor-meaning` / `pip install .` as the fallback, linking to docs/install.md for the verified transcripts and the `nestor init` -> `nestor demo` -> `nestor ui` first run, kept honest that the wizard proposes and never confirms.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-17T00:00:00+00:00",
+      "id": "47ddc303-5524-5daf-ae16-f0d801cddc33",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestors ad hoc nestor_ env reads be migrated onto the existing nestorconfig resolver with the keymaterial subset enumerated in one registry and should the trustroot and auditlog locations follow the same envonly rule the key material itself follows",
+      "source_text": "Should Nestor's ad hoc NESTOR_* env reads be migrated onto the existing nestor.config resolver with the key-material subset enumerated in one registry -- and should the trust-root and audit-log *locations* follow the same env-only rule the key material itself follows?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Adopt nestor.config.Resolver / get_secret at every ad hoc call site (signing, keyring, frank, cascade, glossary, semantic_matcher, cli, ui) and add nestor.config.REGISTRY -- one VarSpec per NESTOR_* name, with a secret flag and secret_names()/configurable_names() accessors -- as the single enumerated place these vars live. Keep keyring_path() and cascade._ledger_path() env-only: enumerated in the registry for discovery, but never resolved from the config file, so a nestor.config.json riding along in a cloned working tree cannot redirect where the trust root or the audit trail come from. Non-trust knobs (glossary, frank, gate_rollup, ledger-verify interval) gain the file layer; the value-secrets (seal key, cache key) stay env-only via get_secret, as before.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-16T00:00:00+00:00",
       "id": "f4c5b097-1372-53b6-8096-e73030fc25d3",

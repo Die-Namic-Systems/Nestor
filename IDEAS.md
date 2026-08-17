@@ -1928,15 +1928,24 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   it (`disallow_untyped_defs`, dropping the three overrides once their
   extras are typed upstream) is future work, not done here.
 - **Dependency-vulnerability scanning.** `detect-secrets` guards the trust root;
-  nothing checks the *dependency set* for known CVEs (`pip-audit`, `osv`). A
-  dependency-light repo has the fewest deps to audit and the least excuse not to.
-  **Status: open.**
-- **Central configuration.** The sixteen `NESTOR_*` env vars the sweep found are
-  read ad hoc across `signing`, `keyring`, `frank`, `ollama_embed`, `ledger`,
-  `glossary` — no `config.py`, no schema, no validation, no one place that lists
-  them. The self-grant pin (`0110`) had to *rediscover* the key-material subset by
-  scanning source; a config schema is where that list should live.
-  **Status: open**, and the most in-grain.
+  the *dependency set* is now checked for known CVEs too. `scripts/dep-audit.sh`
+  runs `pip-audit` over the resolved environment (not the empty `dependencies=[]`
+  list), wired identically into `ci-lint.sh` and the CI lint job so the two
+  cannot drift (the §6.111 shared-script pattern). Offline behavior was measured,
+  not assumed: an unreachable vulnerability database makes the gate fail as
+  *UNKNOWN*, never pass as clean (decision `0127`), and any non-editable skip
+  fails loud rather than counting as audited. **Status: shipped.**
+- **Central configuration.** The `NESTOR_*` env vars that were read ad hoc across
+  `signing`, `keyring`, `frank`, `ollama_embed`, `ledger`, `glossary` now go
+  through `nestor.config` — the resolver (env > file > default, ported in #90)
+  plus a new enumerated `REGISTRY`: one `VarSpec` per name, typed, with a
+  `secret` flag and a `secret_names()` accessor the self-grant pin (`0110`) can
+  import instead of *rediscovering* the key-material subset by scanning source.
+  Two locations stay deliberately env-only, off the config-file layer: the
+  keyring (the trust root) and the ledger (the audit log) — a `nestor.config.json`
+  riding along in a working tree must not be able to redirect *where* trust or
+  the audit trail come from, only the key material's env-only rule extended to
+  its location. **Status: shipped.**
 - **Structured logging / observability.** The loop speaks in `print` and
   `warnings.warn`; no `logging`, no telemetry, no metric. Defensible for a local
   CLI — but the bench and the hooks already emit findings a structured log would
@@ -1977,9 +1986,14 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
     finale names `nestor ui` and hands the reader there, on purpose, without
     writing `status="sealed"` or a `verifier=` anywhere it can reach —
     `tests/test_onboarding.py::TestNeverSeals` pins that structurally, not just
-    by example. What is still open under this half: no `pipx` recipe, no
-    `curl | sh`, no Homebrew tap — the actual one-line **install** story is
-    unchanged by this and stays **open**, concrete and cheap.
+    by example. The install half under it is **now addressed**: a README
+    `## Install` section and `docs/install.md` document the one-liner
+    (`pipx install nestor-meaning`, or `pipx install .` from a checkout, with
+    `pip` as the fallback), every command verified in a throwaway environment
+    before being written down, and wired to the `nestor init` → `nestor demo`
+    → `nestor ui` first run — kept honest that the wizard proposes and never
+    seals. Still **open**, stated plainly and not papered over: no Homebrew
+    tap and no `curl | sh` one-liner.
   - The tonal question — **resolved by the build, not by argument.**
     *"How playful should a propose-never-confirm tool's first run be"* turned
     out to have a mechanical answer once tried: as playful as the ask-and-draft

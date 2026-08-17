@@ -56,8 +56,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from . import config
-
 
 class KeyringError(RuntimeError):
     """The keyring cannot be used as given (unreadable, malformed, unsafe)."""
@@ -449,11 +447,14 @@ def set_keyring(k: Optional[Keyring]) -> None:
 
 
 def keyring_path() -> str:
-    # get_str falls through to "" for an env value that is unset OR blank —
-    # the same place `os.environ.get("NESTOR_KEYRING", "")` landed either way,
-    # since every caller below already treats "" as "no keyring configured".
-    # Adopting the resolver here adds a file layer atop the prior env-only read.
-    return config.load().get_str("keyring", "")
+    # Env-only, deliberately NOT routed through nestor.config's file layer.
+    # This names the location of the trust root — which per-verifier keys are
+    # loaded and marked trusted — so it must be set by the environment the
+    # human controls, never by a `nestor.config.json` that can ride along in a
+    # cloned working tree and silently redirect the keyring to a planted file.
+    # NESTOR_KEYRING stays enumerated in config.REGISTRY for discovery; only
+    # its *resolution* stays env-only. Every caller treats "" as "no keyring".
+    return os.environ.get("NESTOR_KEYRING", "")
 
 
 def get_keyring() -> Optional[Keyring]:

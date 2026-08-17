@@ -225,19 +225,15 @@ def _ledger_verify_cache_stale(key: str) -> bool:
 def _ledger_path() -> pathlib.Path:
     if _LEDGER_OVERRIDE is not None:
         return _LEDGER_OVERRIDE
-    # A subtlety worth being explicit about: `os.environ.get(name, default)`
-    # (the old read) takes NESTOR_LEDGER literally even when it is set to the
-    # empty string, while config.Resolver treats a blank env var as absent and
-    # falls through to the file/default layer instead. Preserved here rather
-    # than adopted, because Path("") resolves to Path(".") and quietly
-    # redirecting the ledger at the current directory is exactly the kind of
-    # surprise this migration is not supposed to introduce — check the raw env
-    # var directly, by presence rather than by non-blankness, before falling
-    # through to the resolver for the file layer and the default.
-    raw_env = os.environ.get("NESTOR_LEDGER")
-    if raw_env is not None:
-        return pathlib.Path(raw_env)
-    return pathlib.Path(config.load().get_str("ledger", _DEFAULT_LEDGER))
+    # Env-only, deliberately NOT routed through nestor.config's file layer.
+    # This names the location of the append-only, hash-chained audit ledger, so
+    # it must be set by the environment the human controls, never by a
+    # `nestor.config.json` that can ride along in a cloned working tree and
+    # silently redirect the audit trail to another file. NESTOR_LEDGER stays
+    # enumerated in config.REGISTRY for discovery; only its *resolution* stays
+    # env-only. `os.environ.get(name, default)` takes the value literally (an
+    # empty string resolves to Path(".")), matching the original behavior.
+    return pathlib.Path(os.environ.get("NESTOR_LEDGER", _DEFAULT_LEDGER))
 
 
 @dataclass

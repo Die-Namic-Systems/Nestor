@@ -33,12 +33,21 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install lint tools
+        # Upgrade pip/setuptools first: the dependency-vulnerability gate below
+        # audits the whole resolved environment (dependencies=[] means the
+        # declared set is empty), so a runner shipping a stale, CVE-flagged pip
+        # or setuptools would fail the gate on ambient toolchain, not on this
+        # project. Upgrading is the honest remediation, and it keeps CI green
+        # deterministically rather than at the mercy of the runner image.
+        #
         # pip-audit sits before detect-secrets==1.5.0 on purpose: appended
         # after it, detect-secrets' own KeywordDetector reads the pinned
         # version plus the next token as one high-entropy "secret" value and
         # flags this line on itself — reordering avoids the false positive
         # without an inline `pragma: allowlist secret` or a baseline entry.
-        run: pip install ruff==0.15.0 bandit mypy pip-audit detect-secrets==1.5.0
+        run: |
+          python -m pip install --upgrade pip setuptools
+          pip install ruff==0.15.0 bandit mypy pip-audit detect-secrets==1.5.0
 
       - name: Ruff (enforced)
         run: ruff check nestor tests hooks
