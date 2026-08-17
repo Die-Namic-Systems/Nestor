@@ -185,6 +185,30 @@ def test_propose_edge_leaves_it_unsealed(store):
     assert not signing.edge_is_valid(b, a, "depends_on", "", "")
 
 
+# -- seal_edge refuses a relation nothing real backs -------------------------
+# The forbidden acts, attempted with a VALID signature — a valid key does not
+# buy the right to write a self-loop or an edge to a decision that does not
+# exist. seal_edge must refuse both the way propose_edge already does (the
+# security-review follow-up from the edge-confirmation ceremony).
+
+def test_seal_edge_refuses_a_self_relation_even_with_a_valid_signature(store, sean):
+    dm, a, b = _two_decisions(store)
+    sig = _sign_edge(sean, a, a, "depends_on")     # a real signature over a->a
+    with pytest.raises(ValueError, match="cannot relate to itself"):
+        dm.seal_edge(a, a, "depends_on", "sean", sig)
+    assert dm.all_edges([a]) == []                 # nothing written
+
+
+def test_seal_edge_refuses_an_edge_to_a_decision_that_does_not_exist(store, sean):
+    dm, a, b = _two_decisions(store)
+    ghost = "00000000-0000-0000-0000-000000000000"
+    sig = _sign_edge(sean, a, ghost, "depends_on")  # signature verifies over the ids
+    assert signing.edge_is_valid(a, ghost, "depends_on", "sean", sig)  # the sig is real
+    with pytest.raises(ValueError, match="no decision"):
+        dm.seal_edge(a, ghost, "depends_on", "sean", sig)
+    assert dm.all_edges([a, ghost]) == []          # no junk edge minted
+
+
 # -- constraints_on carries the rest of the record ---------------------------
 
 def test_constraints_on_reports_live_decision(store):

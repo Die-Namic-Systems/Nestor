@@ -103,7 +103,7 @@ this map is not, CI fails. It cannot drift.
 | [6.33](docs/agent-log.md#633-the-memory-has-never-been-given-the-projects-decisions--measured-fix-open) | The memory has never been given the project's decisions | measured, fix open |
 | [6.34](docs/agent-log.md#634-a-ledger-line-that-cannot-exist-was-ignored-by-every-reader--shipped) | A ledger line that cannot exist was ignored by every reader | shipped |
 | [6.35](docs/agent-log.md#635-the-solo-verifier-two-records-kept-carefully-and-shown-to-nobody--measured-fix-open) | The solo verifier: two records kept carefully and shown to nobody | measured, fix open |
-| [6.36](docs/agent-log.md#636-nestor-keys-add-prints-the-wrong-key-and-calls-it-the-only-copy--measured-fix-open) | `nestor keys add` prints the wrong key and calls it the only copy | measured, fix open |
+| [6.36](docs/agent-log.md#636-nestor-keys-add-prints-the-wrong-key-and-calls-it-the-only-copy--measured-fix-shipped) | `nestor keys add` prints the wrong key and calls it the only copy | measured, fix shipped |
 | [6.37](docs/agent-log.md#637-the-entity-graph-destroys-what-the-numeric-recipe-keeps-and-has-no-word-for-an-ambiguous-name--measured-fix-open) | The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name | measured, fix open |
 | [6.38](docs/agent-log.md#638-locks_in_text-is-a-raw-substring-so-a-short-lock-fires-inside-longer-words--measured-fix-open) | `locks_in_text` is a raw substring, so a short lock fires inside longer words | measured, fix open |
 | [6.39](docs/agent-log.md#639-the-entity-graph-has-only-the-verb-a-machine-may-not-use--measured-fix-open) | The entity graph has only the verb a machine may not use | measured, fix open |

@@ -1923,7 +1923,7 @@ looking for, not a spelling of a `kind`. Deciding it from inside the fix is how
 this repo has produced three criticals in a row before. **Open**, and the fixture
 now fails the build if either gap closes without this entry being updated.
 
-### 6.36 `nestor keys add` prints the wrong key and calls it the only copy — **measured**, fix **open**
+### 6.36 `nestor keys add` prints the wrong key and calls it the only copy — **measured**, fix **shipped**
 
 *Found 2026-08-06 by standing up a second instance (§6.35's fixture, box B) and
 enrolling a verifier on it. Not found by the test suite, which never reads the
@@ -1996,6 +1996,17 @@ print the private key at all?** Printing a signing key to a terminal puts it in
 scrollback and history; not printing it means the message must say where to find
 it instead. That is a deployment decision of the same family as TODO §1's key
 distribution, and it should be made with that rather than in passing. **Open.**
+
+**Landed (Nestor#99).** `cmd_keys` now branches on the key kind: an
+ed25519-generate entry prints the **private** signing half (the one a sign-in is
+checked against), an ed25519 peer entry (`--public`) prints the public half with
+a message that says plainly it verifies seals but cannot open a session, and
+`hmac` prints the shared secret as before. `tests/test_fix_keys_add_ed25519.py`
+reads the sentence rather than trusting it — the printed key opens a session, the
+public half is still refused, and the printed value equals `signing_key()`'s
+private half. That closes the **wrong-key bug** above; the separate question this
+entry flagged — whether the generate case should print the private key at all —
+stays **open** with TODO §1's key distribution, not resolved here.
 
 ### 6.37 The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name — **measured**, fix **open**
 
