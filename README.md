@@ -39,7 +39,7 @@ served answer, in five commands.
 
 **Contents** — [The mechanic](#the-mechanic) ·
 [The category](#the-category--verification-not-translation-memory) ·
-[Quick start](#quick-start) ·
+[Install](#install) · [Quick start](#quick-start) ·
 [Project layout](#project-layout) · [The Matcher seam](#the-matcher-seam) ·
 [The recipes](#the-recipes) · [Rejection](#rejection--the-reviewers-no) ·
 [The curator](#the-curator--seeing-what-was-verified) ·
@@ -125,6 +125,40 @@ corpus size and about 97% of that time is Python-side scoring, so this is not a
 chat backend and pitching it as one loses on the numbers — see
 [Accuracy](#accuracy-and-how-to-measure-yours) and `IDEAS.md` §2. The design
 target is decisions worth a person's attention, not throughput.
+
+---
+
+## Install
+
+Python 3.10+, no runtime dependencies. The blessed one-liner is
+[`pipx`](https://pypa.github.io/pipx/) — it puts the `nestor` console script
+(the entry point `[project.scripts]` already declares in `pyproject.toml`)
+into its own isolated environment instead of onto whatever `pip` happens to
+be active:
+
+```bash
+pipx install nestor-meaning
+```
+
+`nestor-meaning` is the package's real, published name on PyPI — the shorter
+`nestor` is unclaimed there, so that name alone gets "No matching
+distribution found," not this project. `import nestor` is unaffected either
+way. From a checkout instead of the index, same tool, same one line:
+
+```bash
+git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
+pipx install .
+```
+
+No `pipx` on the machine? Plain `pip` installs the same package the same way,
+minus the isolated environment — `pip install nestor-meaning` from PyPI, or
+`pip install .` from a checkout. Both `pipx` paths and both `pip` paths were
+run clean, into empty environments, before this was written down; the
+transcripts are in [docs/install.md](docs/install.md), along with the
+`nestor init` → `nestor demo` → `nestor ui` first run below spelled out in
+full. **What this does not solve, stated plainly:** no Homebrew tap, no
+`curl | sh` one-liner — `pipx`/`pip` against the published name or a
+checkout is the whole install story for now (IDEAS.md §7.5).
 
 ---
 
@@ -428,6 +462,7 @@ docs/dogfood/         Nestor's own decisions, one file per merged PR; the .db is
 docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
 docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE
 docs/releasing.md     the release runbook — the decisions before a first release, and the publish workflow
+docs/install.md        the install story, verified — pipx/pip, from PyPI or a checkout, wired to the first run (§7.5)
 docs/seal-staleness-and-quorum.md  design memo (§1.4): does a seal expire, and is one enough — an argument, unimplemented
 docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
 docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
