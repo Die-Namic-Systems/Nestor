@@ -662,7 +662,7 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // is tapped — the triage payload itself carries ids and (for the
             // open list only) a question, never every commitment, to keep
             // that response the shape nestor.ui documents.
-            triage: null, triageDetail: null,
+            triage: null, triageDetail: null, triageLoading: false,
             recipe: localStorage.getItem("nestor.recipe") || "translate",
             filters: { status: "", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
@@ -2905,6 +2905,19 @@ function triageEdgeRow(e) {
 
 function viewTriage() {
   const view = $("view");
+  if (S.triageLoading && !S.triage) {
+    view.append(h("div", { class: "card" },
+      h("div", { class: "row" },
+        h("h2", { style: "margin:0", text: "Decision triage" }),
+        h("span", { class: "spacer" }),
+        h("span", { class: "badge", text: "computing…" })),
+      h("p", { class: "small muted", text:
+        "Clustering the store's decisions and proposing supersedes/contradicts "
+        + "edges. This runs once and is reused until a decision changes — it can "
+        + "take a moment on a large store. Nothing is being written; this view "
+        + "only ever reads." })));
+    return;
+  }
   const t = S.triage || { bar: 0, open: [], clusters: [], proposed_edges: [], counts: {} };
   const c = t.counts || {};
 
@@ -3288,7 +3301,13 @@ async function refresh() {
       S.graphSelected = null;
     }
     if (S.tab === "triage") {
+      // Triage clustering can take tens of seconds server-side on a large
+      // store (memoized thereafter — see nestor.ui's _triage). Paint a
+      // "computing" state first so the tab does not sit silently on the
+      // previous view while the first compute runs.
+      if (!S.triage) { S.triageLoading = true; render(); }
       S.triage = await api("/api/triage");
+      S.triageLoading = false;
       S.triageDetail = null;
     }
     render();

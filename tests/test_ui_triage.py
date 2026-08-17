@@ -269,3 +269,35 @@ def test_csp_and_page_are_unchanged_by_the_triage_view(app):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+# --- the cache: computed once per store-state, invalidated by any change -----
+
+def test_triage_is_memoized_and_returns_the_same_result(app):
+    """Triage clustering is O(n^2) and slow on a real store, so /api/triage is
+    memoized on the App under a signature of the decisions. A repeat GET, with
+    the store unchanged, returns the *same object* — proof it was reused, not
+    recomputed — which is what keeps the tab instant on every reopen."""
+    _seed_cluster_and_contradiction(app.store)
+    _, first = get(app, "/api/triage")
+    _, second = get(app, "/api/triage")
+    assert first is second                       # the cached object, not a recompute
+    assert first["counts"]["decisions"] == 5
+
+
+def test_triage_cache_is_invalidated_when_a_decision_changes(app):
+    """The memo is keyed by a signature of the decisions, not a blunt 'compute
+    once forever' — so a new (or changed) decision recomputes rather than
+    serving a stale answer. A cache that could go stale here would show a human
+    a triage that no longer matches the store they are sealing against."""
+    _seed_cluster_and_contradiction(app.store)
+    _, before = get(app, "/api/triage")
+    assert before["counts"]["decisions"] == 5
+
+    DecisionMemory(app.store).propose(
+        "Should the ledger be compacted on a schedule?",
+        "No, an append-only log is never rewritten.")
+
+    _, after = get(app, "/api/triage")
+    assert after is not before                   # signature changed -> recomputed
+    assert after["counts"]["decisions"] == 6

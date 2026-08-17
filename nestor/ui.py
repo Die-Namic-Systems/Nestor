@@ -62,6 +62,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import ipaddress
 import json
 import os
@@ -239,6 +240,13 @@ class App:
     db_path: str = ""
     gate_rollup_path: str = ""
     sessions: Sessions = field(default_factory=Sessions)
+    #: Memoized /api/triage response, keyed by a signature of the store's
+    #: decisions (see :func:`_triage`). Triage clustering is O(n^2) in the
+    #: decision count and takes tens of seconds on a few hundred rows, but is a
+    #: pure function of them — so it is computed once per store-state and reused
+    #: until a seal, edit, or new decision changes the signature. Holds only a
+    #: response dict; nothing here writes.
+    _triage_cache: dict = field(default_factory=dict)
 
     def curator(self, source_lang: str = "", target_lang: str = "") -> Curator:
         """A curator over one domain, or over every domain when both are empty.
@@ -788,6 +796,11 @@ def _graph(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
 #: prints, just reordered so the one that blocks is read first.
 _TRIAGE_EDGE_ORDER = {"contradicts": 0, "supersedes": 1, "refines": 2}
 
+#: Guards :attr:`App._triage_cache` reads and writes. The compute itself runs
+#: outside the lock (a concurrent duplicate compute is benign — same decisions
+#: in, same response out), so a slow triage never blocks another request.
+_TRIAGE_CACHE_LOCK = threading.Lock()
+
 
 def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Decision triage, read-only — the seal queue's own clustering and
@@ -856,6 +869,23 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
             numbers[row["id"]] = len(numbers) + 1
             statuses[row["id"]] = row.get("status", "draft")
 
+    # Triage clustering is O(n^2) in the decision count — the StringMatcher is
+    # the binding constraint (IDEAS §3.4/§6.106), tens of seconds on a few
+    # hundred rows. It is a pure function of the decisions, so the built
+    # response is memoized under a signature of them (id, status, question,
+    # commitment); a seal, an edit, or a new decision changes the signature and
+    # forces a recompute. Reading the rows above is cheap; only the clustering
+    # below is not, so the signature is computed from what was already read.
+    sig = hashlib.sha256(
+        "\x00".join(
+            f"{d.id}\x1f{statuses.get(d.id, '')}\x1f{d.question}\x1f{d.commitment}"
+            for d in decisions
+        ).encode("utf-8")).hexdigest()
+    with _TRIAGE_CACHE_LOCK:
+        cached = app._triage_cache
+        if cached.get("sig") == sig:
+            return cached["result"]
+
     report = run_triage(decisions=decisions, matcher=memory.get_matcher(app.matcher),
                         bar=TRIAGE_BAR)
 
@@ -893,7 +923,7 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
     edge_rows = [{"src_id": e.src_id, "dst_id": e.dst_id, "kind": e.kind,
                  "score": e.score} for e in edges]
 
-    return {
+    result = {
         "bar": report.bar,
         "open": open_rows,
         "clusters": clusters,
@@ -902,6 +932,9 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
                   "edges": len(edge_rows), "open": len(open_rows),
                   "resolved": len(resolved)},
     }
+    with _TRIAGE_CACHE_LOCK:
+        app._triage_cache = {"sig": sig, "result": result}
+    return result
 
 
 def _entity_resolve(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
