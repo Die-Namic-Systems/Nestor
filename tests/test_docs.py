@@ -28,6 +28,11 @@ from nestor import config as _nestor_config
 
 ROOT = pathlib.Path(__file__).parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
+#: The annotated manifest of every module, bench, demo and doc. It used to be a
+#: fenced block inside the README's `## Project layout` section; when the README
+#: was trimmed to a front door it moved here, and the two drift gates below moved
+#: with it — the gate is the same assertion, read at the manifest's new home.
+LAYOUT = (ROOT / "docs" / "project-layout.md").read_text(encoding="utf-8")
 #: Root-level markdown, plus the nested docs that carry operating rules rather
 #: than prose. `docs/agent-guide.md` is here because 263 lines moved out of
 #: `CLAUDE.md` into it, and a corpus built from `ROOT.glob("*.md")` alone
@@ -35,11 +40,17 @@ README = (ROOT / "README.md").read_text(encoding="utf-8")
 #: the same broken link appended to `docs/agent-guide.md` left the suite green,
 #: and appended to `AGENTS.md` failed. The move also rewrote every relative link
 #: to `../`, so the change most likely to break a path was the one that left
-#: coverage.
+#: coverage. `docs/matcher-seam.md`, `docs/frank.md` and `docs/storage-protocol.md`
+#: joined for the same reason `agent-guide.md` did: the README trim moved the
+#: env-var tables, the CLI examples and the protocol reference into them, so the
+#: forward/reverse env gates and the command/flag gates would have stopped
+#: covering that content had it left the scanned corpus.
 DOCS = {p.name: p.read_text(encoding="utf-8")
         for p in ROOT.glob("*.md")} | {
     rel: (ROOT / rel).read_text(encoding="utf-8")
-    for rel in ("bench/README.md", "docs/agent-guide.md")}
+    for rel in ("bench/README.md", "docs/agent-guide.md",
+                "docs/matcher-seam.md", "docs/frank.md",
+                "docs/storage-protocol.md")}
 
 
 def slugify(heading: str) -> str:
@@ -61,7 +72,7 @@ def fenced(text: str, language: str) -> list[str]:
 
 def test_the_project_layout_lists_every_module_and_no_ghosts():
     """A layout diagram is a promise about what is in the package."""
-    block = README.split("## Project layout", 1)[1].split("```")[1].split("bench/")[0]
+    block = LAYOUT.split("```")[1].split("bench/")[0]
     listed = set(re.findall(r"([a-z_]+\.py)", block))
     actual = {p.name for p in (ROOT / "nestor").glob("*.py")}
     assert listed == actual, (
@@ -79,7 +90,7 @@ def test_the_project_layout_lists_every_doc_and_no_ghosts():
     §4.5 and stayed clean; the docs listing had none and drifted. So it gets the
     same gate, over the whole layout block rather than the `nestor/` slice.
     """
-    block = README.split("## Project layout", 1)[1].split("```")[1]
+    block = LAYOUT.split("```")[1]
     listed = set(re.findall(r"docs/([a-z-]+\.md)", block))
     actual = {p.name for p in (ROOT / "docs").glob("*.md")}
     assert listed == actual, (
