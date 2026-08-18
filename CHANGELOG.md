@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.8.0](https://github.com/rudi193-cmd/Nestor/compare/v0.7.0...v0.8.0) (2026-08-18)
+
+
+### Added
+
+* GET /api/due-for-reverification — aged seals as a read-only UI surface (IDEAS §6.49) ([4e4c7d0](https://github.com/rudi193-cmd/Nestor/commit/4e4c7d0388f3c66d9ad22e24df9ee7d432459a18))
+* IDEAS batch 5 — staleness API, eight status updates ([#146](https://github.com/rudi193-cmd/Nestor/issues/146)) ([3e867d5](https://github.com/rudi193-cmd/Nestor/commit/3e867d513f6b6960f3eb4c68485787c9e22ba339))
+
 ## [0.7.0](https://github.com/rudi193-cmd/Nestor/compare/v0.6.2...v0.7.0) (2026-08-18)
 
 
