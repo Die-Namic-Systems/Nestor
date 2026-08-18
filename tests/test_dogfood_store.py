@@ -154,6 +154,60 @@ def test_row_ids_and_timestamps_are_derived_from_the_decision(tmp_path):
     assert row["created_at"] == f"{d.date}T00:00:00+00:00"
 
 
+# --- the digest covers origin and reason (IDEAS 6.43) ----------------------
+
+def test_digest_changes_when_origin_moves(tmp_path):
+    """A digest that does not go red when origin moves is the whole defect.
+
+    Before the fix, ``_bundle_digest`` hashed ``(source_text, target_text,
+    status)`` and omitted ``origin`` and ``reason``. A decision file could
+    change where its rows claimed to have come from and ``--verify`` still
+    exited 0. Mutating ``origin`` on one row must change the digest.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_store
+
+    s = SqliteStore(str(tmp_path / "a.db"))
+    s.memory_init()
+    dogfood_store.build(s)
+    before = dogfood_store._bundle_digest(s)
+
+    # Mutate origin on the first row — the digest must move.
+    rows = s.memory_list(limit=1)
+    assert rows, "the build must produce at least one row"
+    with s._db() as conn:
+        conn.execute("UPDATE tm_pairs SET origin='pr:forged' WHERE id=?",
+                     (rows[0]["id"],))
+    after = dogfood_store._bundle_digest(s)
+    s.close()
+    assert before != after, (
+        "the digest did not change when origin moved — the defect §6.43 is "
+        "about: a decision file can change where its rows claim to have come "
+        "from and --verify still exits 0")
+
+
+def test_digest_changes_when_reason_moves(tmp_path):
+    """Same defect as origin: reason was omitted from the digest."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_store
+
+    s = SqliteStore(str(tmp_path / "b.db"))
+    s.memory_init()
+    dogfood_store.build(s)
+    before = dogfood_store._bundle_digest(s)
+
+    rows = s.memory_list(limit=1)
+    assert rows, "the build must produce at least one row"
+    with s._db() as conn:
+        conn.execute("UPDATE tm_pairs SET reason='forged rationale' WHERE id=?",
+                     (rows[0]["id"],))
+    after = dogfood_store._bundle_digest(s)
+    s.close()
+    assert before != after, (
+        "the digest did not change when reason moved — same class of defect "
+        "as origin: the rationale can be rewritten and --verify stays green")
+
+
 # --- the direction ---------------------------------------------------------
 
 def test_a_local_store_cannot_reach_the_committed_one(tmp_path, monkeypatch):
