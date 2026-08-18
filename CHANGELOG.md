@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.7.0](https://github.com/rudi193-cmd/Nestor/compare/v0.6.2...v0.7.0) (2026-08-18)
+
+
+### Added
+
+* EntityResolver.propose() — draft alias without seal (IDEAS §6.39) ([6eb84ad](https://github.com/rudi193-cmd/Nestor/commit/6eb84adc6c27a1b54a5ff10cc38c0a9ffd35ba36))
+* IDEAS batch 4 — EntityResolver.propose(), JS test harness, three status updates ([#144](https://github.com/rudi193-cmd/Nestor/issues/144)) ([7f1e97f](https://github.com/rudi193-cmd/Nestor/commit/7f1e97ffd98fbd3c5e6ff298d4513437f3f031a1))
+
 ## [0.6.2](https://github.com/rudi193-cmd/Nestor/compare/v0.6.1...v0.6.2) (2026-08-18)
 
 
