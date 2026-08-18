@@ -2619,7 +2619,7 @@ which is how the gap was noticed at all.
 
 ---
 
-### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **open**
+### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **shipped**
 
 *Found 2026-08-06 by running jeles' own escalation against this package
 (`scripts/audit_against_jeles.py`). jeles closed this hole after demonstrating it
@@ -2662,6 +2662,21 @@ is true and general; it is not a refusal of what was asked.
 keyring already names an unknown verifier (`'(empty)' is not in the keyring`).
 Left open because the reply shape is a wire contract with any MCP host, which is
 a wider blast radius than the audit branch that found it.
+
+**Corrected in place, 2026-08-18:** this was shipped a week after the finding
+above was written, in commit `0f7d1a1` ("Fix #94/#98/#99: null card nodes,
+unnamed propose refusal, wrong ed25519 key", 2026-08-13) — before §6.45 below
+was even filed — and this entry's status line was never updated to say so, so
+it kept reading as an open gap for five days after it closed. `answer.propose`
+now takes `ignored: Optional[list]`; `serve.call` passes it every wire key
+outside `PROPOSE_KEYS`; and the reply names them — `ignored_fields` for any
+unread key, `seal_authority_refused` calling out `status` / `verifier` /
+`verification_kind` / `sealed` / `seal_sig` by name with the reason: "a
+machine may propose, not confirm." The write is unchanged — still a `draft`,
+nothing seals. `tests/test_fix_propose_names_refused.py` pins the reply shape
+and still passes on this tree. §6.45's framing of this as the one place jeles
+was ahead is therefore a snapshot of 2026-08-06 through 2026-08-12, not of the
+tree as it now stands.
 
 **What the rest of the audit found** — 2 satisfied, 3 differently, 0 failing:
 
