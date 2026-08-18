@@ -46,15 +46,18 @@ ALLOWED = ("personal-research", "professional", "willow-store", "experiments",
 
 
 def allowed_files(root: pathlib.Path) -> set:
-    """Every file under the operator's chosen directories, resolved."""
+    """Every file under the operator's chosen directories, resolved.
+
+    Git-tracked, per §6.102 — a personal archive this size is exactly where a
+    stray `.venv/` or `node_modules/` under one of these directories would
+    otherwise be counted as something the operator declared.
+    """
     out = set()
     for name in ALLOWED:
         base = root / name
         if not base.is_dir():
             continue
-        for path in base.rglob("*"):
-            if path.is_file() and ".git" not in path.parts:
-                out.add(path.resolve())
+        out.update(p.resolve() for p in common.tracked_files(base, "*"))
     return out
 
 
@@ -66,6 +69,8 @@ def main() -> int:
     args = ap.parse_args()
 
     root = pathlib.Path(args.repo).resolve()
+    if not common.require_checkout(root):
+        return 1
     out = pathlib.Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists():

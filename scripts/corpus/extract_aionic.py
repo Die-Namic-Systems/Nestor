@@ -40,7 +40,7 @@ DEFN_KEYS = ("term", "concept", "field", "key", "name", "skill", "command",
 
 
 def skills(root: pathlib.Path) -> list[pathlib.Path]:
-    return sorted(p for p in root.rglob("SKILL.md") if ".git" not in p.parts)
+    return common.tracked_files(root, "SKILL.md")
 
 
 def described(root: pathlib.Path) -> list[tuple]:
@@ -132,6 +132,8 @@ def main() -> int:
     args = ap.parse_args()
 
     root = pathlib.Path(args.repo).resolve()
+    if not common.require_checkout(root):
+        return 1
     out = pathlib.Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists():
