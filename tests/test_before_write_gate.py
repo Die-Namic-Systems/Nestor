@@ -137,4 +137,4 @@ def test_the_gate_fails_open_on_its_own_bugs(receipt):
         input="this is not json at all",
         capture_output=True, text=True, cwd=REPO, timeout=60)
     assert done.returncode == 0
-    assert json.loads(done.stdout)["decision"] == "allow"
+    assert done.stdout.strip() == "", "failing open is silence, not a blocking verdict"
