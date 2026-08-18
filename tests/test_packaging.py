@@ -71,6 +71,16 @@ def test_the_vendored_cytoscape_library_and_its_license_ship_in_the_wheel(built_
         assert len(shipped) > 100_000    # a real ~425 KB bundle, not a stub
 
 
+def test_ui_pure_js_ships_in_the_wheel(built_wheel):
+    with zipfile.ZipFile(built_wheel) as z:
+        names = set(z.namelist())
+        assert "nestor/ui_pure.js" in names
+        shipped = z.read("nestor/ui_pure.js")
+        on_disk = (ROOT / "nestor" / "ui_pure.js").read_bytes()
+        assert shipped == on_disk
+        assert len(shipped) > 100
+
+
 def test_an_installed_wheel_can_actually_build_the_served_page(tmp_path, built_wheel):
     """The point of the packaging test: import ui_page from a wheel install,
     not from this checkout, and confirm PAGE actually contains the library.

@@ -153,6 +153,7 @@ packages = ["nestor"]
 [tool.hatch.build.targets.wheel.force-include]
 "nestor/vendor/cytoscape.min.js" = "nestor/vendor/cytoscape.min.js"
 "nestor/vendor/cytoscape.LICENSE" = "nestor/vendor/cytoscape.LICENSE"
+"nestor/ui_pure.js" = "nestor/ui_pure.js"
 
 [tool.hatch.build.targets.sdist]
 # Named explicitly rather than left to the default, which is "everything not
