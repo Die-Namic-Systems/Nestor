@@ -47,6 +47,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 os.environ.setdefault("NESTOR_SEAL_KEY", "audit-fixture-key-not-a-secret")
 
+from nestor import keyring                                               # noqa: E402
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 BOLD, DIM, GREEN, AMBER, RED, CYAN, OFF = (
     "\033[1m", "\033[2m", "\033[32m", "\033[33m", "\033[31m", "\033[36m", "\033[0m")
@@ -374,16 +376,24 @@ def main() -> int:
     work = pathlib.Path(tempfile.mkdtemp(prefix="nestor-jeles-audit-"))
     colour = {SATISFIED: GREEN, DIFFERENTLY: CYAN, NA: DIM, FAILS: RED}
     results = []
-    for trace, states, probe in PROBES:
-        try:
-            verdict, evidence = probe(work, rules)
-        except Exception as exc:            # a probe that dies proves nothing
-            verdict, evidence = FAILS, f"the probe itself raised {type(exc).__name__}: {exc}"
-        results.append((trace, verdict, evidence))
-        print(f"\n{BOLD}{trace}{OFF}  {colour[verdict]}{verdict}{OFF}")
-        print(f"   {DIM}jeles{OFF} {states}")
-        for line in _wrap(evidence, 84):
-            print(f"   {line}")
+    # Same isolation as the constitution audit, and for the same reason: these
+    # probes seal under synthetic verifiers ("one-person", "audit") that are
+    # deliberately not in anybody's real keyring. Without it, a real
+    # NESTOR_KEYRING export turns UnknownVerifierError into a false FAILS —
+    # measured for JELES-INDEPENDENCE specifically (IDEAS §6.98's "second false
+    # verdict"), published and left uncorrected across several rounds because
+    # the probe's own exception handler made it look like an ordinary result.
+    with keyring.isolated():
+        for trace, states, probe in PROBES:
+            try:
+                verdict, evidence = probe(work, rules)
+            except Exception as exc:        # a probe that dies proves nothing
+                verdict, evidence = FAILS, f"the probe itself raised {type(exc).__name__}: {exc}"
+            results.append((trace, verdict, evidence))
+            print(f"\n{BOLD}{trace}{OFF}  {colour[verdict]}{verdict}{OFF}")
+            print(f"   {DIM}jeles{OFF} {states}")
+            for line in _wrap(evidence, 84):
+                print(f"   {line}")
 
     print(f"\n{BOLD}verdict{OFF}")
     for trace, verdict, _ in results:

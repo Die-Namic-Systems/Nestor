@@ -369,3 +369,75 @@ def test_preflight_is_quiet_when_there_is_nothing_wrong(tmp_path):
     ring.save()
     os.environ["NESTOR_KEYRING"] = str(ring.path)
     assert keyring.preflight().names() == ["rita"]
+
+
+# --- isolated(): the fix for IDEAS §6.98 ------------------------------------
+#
+# bench/ and scripts/audit_*.py seal under synthetic verifiers ("someone",
+# "bench") deliberately not registered anywhere. Run with a real
+# NESTOR_KEYRING exported — correct for a real deployment — those calls used
+# to raise UnknownVerifierError, get caught by the harness's own probe
+# exception handler, and print as FAILS: a fault in the harness, reported as
+# a fault in the thing it measures.
+
+def test_isolated_ignores_an_ambient_keyring_by_path(tmp_path, store):
+    ring = keyring.Keyring(path=str(tmp_path / "keys.json"))
+    ring.add("rita")
+    ring.save()
+    os.environ["NESTOR_KEYRING"] = str(ring.path)
+    os.environ["NESTOR_SEAL_KEY"] = "fixture-key-not-a-secret"
+    assert keyring.get_keyring() is not None       # the ambient keyring is in force
+    with pytest.raises(keyring.UnknownVerifierError):
+        memory.add_pair("q", "a", "en", "es", status="sealed",
+                        verifier="someone", store=store)
+
+    with keyring.isolated():
+        assert keyring.get_keyring() is None
+        # A synthetic verifier nobody registered now seals — the plain shared
+        # NESTOR_SEAL_KEY path, exactly as it would with no keyring exported.
+        pair = memory.add_pair("q", "a", "en", "es", status="sealed",
+                               verifier="someone", store=store)
+        assert memory.is_verified_seal(pair)
+
+    # Restored exactly on the way out: the ambient keyring is back in force,
+    # and an unknown verifier is refused again.
+    assert keyring.get_keyring() is not None
+    assert keyring.get_keyring().names() == ["rita"]
+    with pytest.raises(keyring.UnknownVerifierError):
+        memory.add_pair("q2", "a2", "en", "es", status="sealed",
+                        verifier="someone", store=store)
+
+
+def test_isolated_ignores_an_injected_keyring_too(tmp_path):
+    """set_keyring wins over NESTOR_KEYRING — isolated() must beat that too,
+    or a harness embedded in a host process that injected a keyring would
+    still inherit it."""
+    ring = keyring.Keyring()
+    ring.add("rita")
+    keyring.set_keyring(ring)
+    assert keyring.get_keyring() is ring
+
+    with keyring.isolated():
+        assert keyring.get_keyring() is None
+
+    assert keyring.get_keyring() is ring           # the injection is restored
+
+
+def test_isolated_leaves_a_missing_env_var_missing():
+    os.environ.pop("NESTOR_KEYRING", None)
+    with keyring.isolated():
+        assert "NESTOR_KEYRING" not in os.environ
+    assert "NESTOR_KEYRING" not in os.environ
+
+
+def test_isolated_restores_state_even_if_the_block_raises(tmp_path):
+    ring = keyring.Keyring(path=str(tmp_path / "keys.json"))
+    ring.add("rita")
+    ring.save()
+    os.environ["NESTOR_KEYRING"] = str(ring.path)
+    with pytest.raises(ValueError):
+        with keyring.isolated():
+            assert keyring.get_keyring() is None
+            raise ValueError("boom")
+    assert keyring.get_keyring() is not None
+    assert keyring.get_keyring().names() == ["rita"]

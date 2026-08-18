@@ -2119,7 +2119,7 @@ sibling, the entry that would have told me exactly where to look — **third, at
 0.031**. The box has now failed to connect a new finding to its own sibling
 three times running. §3.3's argument, again, from inside the tool.
 
-### 6.38 `locks_in_text` is a raw substring, so a short lock fires inside longer words — **measured**, fix **open**
+### 6.38 `locks_in_text` is a raw substring, so a short lock fires inside longer words — **measured**, fix **shipped**
 
 *Found 2026-08-06 giving §6.35's fixture a glossary. The second blindness on the
 line §6.22 already corrected itself about, and a different one.*
@@ -2175,6 +2175,13 @@ done here.
 **Related and not the same:** §6.22's real question is whether a glossary can
 express *do not translate this*, and the answer stayed no. This entry does not
 change that. It removes one more reason to reach for the glossary as the way out.
+
+**Shipped in PR #138, `3cc1bb6`** ("fix: glossary word-boundary matching (IDEAS
+§6.38)"). `nestor/glossary.py` gained `_word_boundary_match()`, a `\b`-anchored
+regex; `locks_in_text` calls it in place of the raw `t.lower() in lower`
+substring test, so `Tito` no longer fires inside `apetito`. `tests/test_glossary.py`
+(new, 12 tests) covers the fix directly, including case-insensitivity, boundary
+punctuation, and multi-word terms.
 
 ### 6.39 The entity graph has only the verb a machine may not use — **measured**, fix **open**
 
@@ -2561,7 +2568,7 @@ one person with two keys.
 
 ---
 
-### 6.43 `dogfood_store.py --verify` says the store matches the decision files, and does not check where a row came from — **measured**, fix **open**
+### 6.43 `dogfood_store.py --verify` says the store matches the decision files, and does not check where a row came from — **measured**, fix **shipped**
 
 *Found 2026-08-06 while consolidating seven branches into one and correcting the
 `pr` field in seven decision files. Found by querying the store instead of
@@ -2616,6 +2623,15 @@ the whole defect, so the test writes itself.
 **Not affected:** this consolidation's own correctness. The seven files' origins
 were checked by querying `tm_pairs` directly rather than by believing `--verify`,
 which is how the gap was noticed at all.
+
+**Shipped in `4e4aaf0`** ("chore: dogfood digest covers origin and reason (IDEAS
+6.43)"). `_bundle_digest` now hashes `(source_text, target_text, status, origin,
+reason)` and reads from the store directly rather than the portable bundle (which
+does not carry `reason`). Two mutation tests in `tests/test_dogfood_store.py` —
+`test_digest_changes_when_origin_moves` and
+`test_digest_changes_when_reason_moves` — prove the digest goes red when either
+field drifts. Re-verified 2026-08-18: mutating a decision file's `pr` field
+without rebuilding now correctly fails `--verify` (exit 1, digest mismatch).
 
 ---
 
@@ -5806,7 +5822,7 @@ Chromium tab — `test_ordinary_row_detail_card_has_no_null_text_nodes`,
 `test_detail_panel_source_routes_through_append_kids`, and
 `test_append_kids_skips_null_generically`.
 
-### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **open**
+### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **shipped**
 
 *Found 2026-08-12, while standing up an instance with per-verifier keys on.*
 With `NESTOR_KEYRING` exported — which is the correct configuration for a real
@@ -5858,6 +5874,20 @@ ran under it**, not only the case that surfaced it. The instinct is to fix the
 example in front of you, and the example is the one you already know about.
 Nothing here flagged the second audit: it had completed, exit 0, with a verdict
 formatted exactly like a true one.
+
+**Shipped.** `nestor.keyring.isolated()` (new context manager) pops
+`NESTOR_KEYRING` and clears any injected keyring for the duration of a block,
+restoring both on exit — modelled on `scripts/dogfood_store.py`'s existing
+isolation of the ambient store. Both audit scripts wrap their probe loops in
+`with keyring.isolated()`, so a synthetic verifier (`"someone"`,
+`"a-machine-with-the-key"`, `"one-person"`, `"audit"`) seals via the shared
+`NESTOR_SEAL_KEY` regardless of what the calling shell has exported.
+`bench/harness.py`'s `seal_key()` and `bench/retrieval_quality.py`'s
+`seal_corpus()` do the same for their synthetic `"bench"` verifier. Four new
+tests in `tests/test_keyring.py` cover `isolated()` directly (env-var, injected,
+missing, exception-safety); one each in `test_audit_against_constitution.py` and
+`test_audit_against_jeles.py` reproduce the exact false-FAILS regression — export
+a real keyring, run the audit, assert 0 failing and no `UnknownVerifierError`.
 
 ### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
 
@@ -5985,7 +6015,7 @@ prompt. The last one is a working agreement rather than code, which is exactly
 why it belongs written down where the next session reads it — nothing enforces
 it, and the agent that just learned it will not be the agent in the room.
 
-### 6.101 The corpus extractors do not fail closed, and the test named for them covers a different family — **verified**, fix **open**
+### 6.101 The corpus extractors do not fail closed, and the test named for them covers a different family — **verified**, fix **shipped**
 
 *Found 2026-08-12, by running all seventeen of them for the first time in one
 session.* Point any `scripts/corpus/extract_*.py` at a repository that does not
@@ -6034,7 +6064,16 @@ The fix is the one the feed family already took — refuse before reading, in
 words that name which of the two happened — plus rows in the existing table so
 the seventeen are covered by the gate that claims their name.
 
-### 6.102 The extractors walk the working tree, so following this repo's own setup instructions poisons its corpus — **verified**, fix **open**
+**Shipped in PR #140, `498a62c`** ("chore: extractors fail closed and walk only
+git-tracked files (IDEAS §6.101, §6.102)"). Every `--repo` extractor now calls
+`common.require_checkout(root)`, which prints "could not look" and returns
+`False` before any reading happens when the target checkout is absent — the
+fix the feed family already had, brought to the directory whose gate claimed
+it and didn't have it. 23 new tests in `tests/test_corpus_extractors_git_scoped.py`
+parametrize the refusal over all 16 extractors; the vocabulary mirrors
+`test_corpus_readers_fail_closed.py`.
+
+### 6.102 The extractors walk the working tree, so following this repo's own setup instructions poisons its corpus — **verified**, fix **shipped**
 
 *Found 2026-08-12, in the same sweep as §6.101.* `extract_standard.py` against
 this repository produced 19,804 rows. **18,665 of them — 94% — came from
@@ -6103,6 +6142,16 @@ and needs no code change, which is how the number above was obtained. And the
 **published coverage figure was not merely diluted but wrong in the direction
 that flatters nobody**: this package documents half its definitions, not a
 third, and the 35% would have been quoted as a fact about work still to do.
+
+**Shipped in PR #140, `498a62c`**, same commit as §6.101. `common.tracked_files(root,
+pattern)` enumerates via `git ls-files -z` rather than a filesystem walk, so
+`.venv/`, `node_modules/`, and anything else `.gitignore` excludes never enters
+the corpus; `docs()`, `docstrings()`, and `skills()` in `common.py` all route
+through it, propagating the fix to all 16 extractors, with a `rglob` fallback
+(and a warning) for directories that are not a git checkout. Covered by the
+same 23-test suite in `tests/test_corpus_extractors_git_scoped.py`, including an
+end-to-end run of `extract_standard.py` against a constructed checkout with a
+gitignored `.venv` tree.
 
 ### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, fix **open**
 
@@ -6207,7 +6256,7 @@ every reader re-derives — or misreads — it privately. `IDEAS.md` §6's own r
 that a finding not written down did not happen, and this is the case where the
 finding *was* made, twice, and still has nowhere to live but a terminal.
 
-### 6.105 The fleet's own decision record is invisible to every corpus extractor — **verified**, fix **open**
+### 6.105 The fleet's own decision record is invisible to every corpus extractor — **verified**, fix **shipped**
 
 *Found 2026-08-12, in the second Nestor loop.* Three commits landed between loops
 and `extract_standard` reported **0 new rows** while `extract_ideas` reported 3.
@@ -6231,6 +6280,13 @@ subtract — which is how it was found. A boundary nobody wrote down is
 indistinguishable from a boundary nobody noticed, and the cost falls on whoever
 next asks "is the decision record in the corpus?" and has to spend the same
 minutes proving it is not.
+
+**Shipped in two steps.** `scripts/corpus/common.py` gained a scope statement in
+its module docstring (`920179f`) naming the boundary and citing `docs/two-stores.md`.
+`docs/decision-memory.md` gained a "Scope: the corpus does not carry decision
+records" section (this session) stating the design choice, the two-store reason,
+and that any change should be written here before being discovered by diffing
+extractors.
 
 ### 6.106 Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones — **measured**, fix **open**
 

@@ -15,12 +15,15 @@ these pin that it still does.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import subprocess
 import sys
+import textwrap
 
 import pytest
 
+from nestor import keyring as keyring_mod
 from tests._fleet_paths import constitution_cases  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -28,9 +31,10 @@ AUDIT = REPO / "scripts" / "audit_against_constitution.py"
 CASES = constitution_cases()
 
 
-def run(*args):
+def run(*args, env=None):
     return subprocess.run([sys.executable, str(AUDIT), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=300)
+                          capture_output=True, text=True, cwd=REPO, timeout=300,
+                          env=env)
 
 
 def test_it_refuses_a_constitution_it_cannot_read(tmp_path):
@@ -82,6 +86,65 @@ def test_against_the_real_constitution():
     # The two that are honestly not clean passes must stay visible as such.
     assert "differently" in done.stdout
     assert "CONST-0-5" in done.stdout and "CONST-0-2" in done.stdout
+
+
+# --- IDEAS §6.98: an ambient NESTOR_KEYRING must not produce a false FAILS --
+
+def _fixture_cases(tmp_path) -> pathlib.Path:
+    """Two minimal ``const_*.py`` cards, naming the two clauses whose probes
+    seal under a synthetic verifier in-process (``probe_ratify``,
+    ``probe_ledger``) — no subprocess of their own, so nothing else about the
+    environment they run under can explain a pass or a fail."""
+    cases = tmp_path / "cases"
+    cases.mkdir()
+    (cases / "const_0_2_ratify.py").write_text(textwrap.dedent('''\
+        """CONST-0-2 — self-ratification.
+
+        The forbidden act, in one line: *this package's own machinery promoting
+        its own claim to verified.*
+        """
+
+        TRACE_ID = "CONST-0-2"
+        CLAUSE = "A claim may not ratify itself."
+        '''))
+    (cases / "const_0_5_ledger.py").write_text(textwrap.dedent('''\
+        """CONST-0-5 — tamper-evidence.
+
+        The forbidden act, in one line: *rewriting a past entry without the
+        chain noticing.*
+        """
+
+        TRACE_ID = "CONST-0-5"
+        CLAUSE = "The ledger must detect tampering with a past entry."
+        '''))
+    return cases
+
+
+def test_an_ambient_keyring_does_not_produce_a_false_fails(tmp_path):
+    """The exact regression IDEAS §6.98 measured: with a real ``NESTOR_KEYRING``
+    exported — the correct configuration for a real deployment — the audit used
+    to report clauses FAILING because its own probes seal as ``"someone"`` and
+    ``"a-machine-with-the-key"``, names deliberately not in any real keyring.
+
+    Run against the unfixed script this reports 2 failing (CONST-0-2,
+    CONST-0-5), each with 'the probe itself raised UnknownVerifierError' —
+    proving the failure was the harness reading ambient config, not the
+    clause. Fixed, the same run reports 0 failing regardless of what the
+    calling shell has exported.
+    """
+    ring = keyring_mod.Keyring(path=str(tmp_path / "keys.json"))
+    ring.add("rita")                        # a real person; not a probe's name
+    ring.save()
+    env = {**os.environ, "NESTOR_KEYRING": str(ring.path)}
+    env.pop("NESTOR_SEAL_KEY", None)
+
+    done = run("--cases", str(_fixture_cases(tmp_path)), env=env)
+    out = done.stdout + done.stderr
+    assert done.returncode == 0, out
+    assert "0 failing" in out, out
+    assert "the probe itself raised" not in out, (
+        "a probe died and the audit reported it as an ordinary verdict: " + out)
+    assert "UnknownVerifierError" not in out, out
 
 
 @pytest.mark.skipif(not CASES.exists() or not any(CASES.glob("const_*.py")),

@@ -74,6 +74,33 @@ and edges.**
 
 ---
 
+## Scope: the corpus does not carry decision records
+
+The mapping above is a reason to say this plainly rather than leave it to be
+inferred: **`docs/dogfood/decisions/` — the fleet's own decision record, one
+file per merged PR with a question, a commitment and a reason — is not read by
+any extractor in `scripts/corpus/`, on purpose.**
+
+The corpus and the dogfood store are the two stores `docs/two-stores.md`
+reasons about. `scripts/corpus/` reads Markdown out of *other* repositories and
+loads it as draft rows in a working memory; `scripts/dogfood_store.py` reads
+JSON out of *this* repository and rebuilds a committed artifact whose every row
+traces to a merged PR, remote-to-local only. Pulling the decision files into a
+corpus extractor would produce the second copy of the same rows that the
+two-store split exists to avoid, and it would let a corpus import carry a
+decision that never went through review — exactly what the dogfood store's
+remote-to-local rule is there to prevent.
+
+The same holds for decision rows written through `DecisionMemory` (the
+`domain="decision"` `tm_pairs` this document proposes elsewhere): they live in
+whichever store the operator points `DecisionMemory` at, and the corpus
+extractors do not read them either. Nothing in `scripts/corpus/` treats a
+decision — dogfood file or `DecisionMemory` row — as corpus material. If that
+ever changes, it should change here first, not be discovered by running
+`extract_standard` and `extract_ideas` side by side and subtracting.
+
+---
+
 ## N1 — "where does a decision start?" is a Matcher, not an ontology
 
 The SAFE store's `stores/checkpoint_memory.py` records this as its D8 open

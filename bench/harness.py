@@ -244,4 +244,29 @@ def quiet_ledger(tmpdir) -> None:
 
 
 def seal_key(value: str = "bench-key") -> None:
+    """A shared signing key for benches, and isolation from any real keyring.
+
+    Every bench that seals (``seal_all`` above, and the direct
+    ``memory.add_pair(status="sealed", ...)`` calls in ``bench_surfaces.py``)
+    seals under a synthetic verifier — ``"bench"`` — that is deliberately not
+    a person and so is deliberately not in anybody's real keyring. Run with a
+    real ``NESTOR_KEYRING`` exported (correct for a real deployment, and
+    exactly what an operator standing one up plausibly has set), sealing as
+    ``"bench"`` raises :class:`nestor.keyring.UnknownVerifierError`: there is
+    no key for a name nobody meant to register. That is a fault in the bench
+    reading the deployment's config, not in what the bench measures — the same
+    shape IDEAS.md §6.98 records against the audit scripts, so a bench run
+    from a shell configured for real use previously crashed rather than
+    measuring anything.
+
+    Popping ``NESTOR_KEYRING`` and clearing any injected keyring is not
+    restored afterward, unlike :func:`nestor.keyring.isolated` — a bench is a
+    one-shot process with no ambient keyring configuration downstream of this
+    call that anything should see, so there is nothing to hand back. A test
+    process is different: pytest's ``isolate_globals`` autouse fixture resets
+    both between tests regardless.
+    """
     os.environ["NESTOR_SEAL_KEY"] = value
+    os.environ.pop("NESTOR_KEYRING", None)
+    from nestor import keyring
+    keyring.set_keyring(None)

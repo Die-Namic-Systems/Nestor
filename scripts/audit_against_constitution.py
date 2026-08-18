@@ -46,6 +46,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 os.environ.setdefault("NESTOR_SEAL_KEY", "audit-fixture-key-not-a-secret")
 
+from nestor import keyring                                               # noqa: E402
 from feed_willow_constitution import extract, resolve_cases_dir          # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
@@ -236,20 +237,28 @@ def main() -> int:
 
     colour = {SATISFIED: GREEN, DIFFERENTLY: CYAN, NA: DIM, FAILS: RED}
     results = []
-    for trace, clause in clauses.items():
-        probe = PROBES.get(trace)
-        if probe is None:
-            results.append((trace, NA, "no probe written for this clause"))
-            continue
-        try:
-            verdict, evidence = probe(work)
-        except Exception as exc:                    # a probe that dies proves nothing
-            verdict, evidence = FAILS, f"the probe itself raised {type(exc).__name__}: {exc}"
-        results.append((trace, verdict, evidence))
-        print(f"\n{BOLD}{trace}{OFF}  {colour[verdict]}{verdict}{OFF}")
-        print(f"   {DIM}forbids{OFF} {clause['forbidden'][:88]}")
-        for line in _wrap(evidence, 84):
-            print(f"   {line}")
+    # This package's own probes seal under synthetic verifiers — "someone",
+    # "a-machine-with-the-key" — that are deliberately not people and so are
+    # deliberately not in anybody's real keyring. Isolated from an ambient
+    # NESTOR_KEYRING (see nestor.keyring.isolated), or a real deployment's
+    # export turns every sealing probe into UnknownVerifierError, the probe
+    # catches its own failure, and the clause reads FAILS for a fault that was
+    # the harness's, not the clause's (IDEAS §6.98).
+    with keyring.isolated():
+        for trace, clause in clauses.items():
+            probe = PROBES.get(trace)
+            if probe is None:
+                results.append((trace, NA, "no probe written for this clause"))
+                continue
+            try:
+                verdict, evidence = probe(work)
+            except Exception as exc:                # a probe that dies proves nothing
+                verdict, evidence = FAILS, f"the probe itself raised {type(exc).__name__}: {exc}"
+            results.append((trace, verdict, evidence))
+            print(f"\n{BOLD}{trace}{OFF}  {colour[verdict]}{verdict}{OFF}")
+            print(f"   {DIM}forbids{OFF} {clause['forbidden'][:88]}")
+            for line in _wrap(evidence, 84):
+                print(f"   {line}")
 
     print(f"\n{BOLD}verdict{OFF}")
     for trace, verdict, _ in results:
