@@ -2619,7 +2619,7 @@ which is how the gap was noticed at all.
 
 ---
 
-### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **open**
+### 6.44 `nestor_propose` discards a forbidden argument without saying so — **measured**, fix **shipped**
 
 *Found 2026-08-06 by running jeles' own escalation against this package
 (`scripts/audit_against_jeles.py`). jeles closed this hole after demonstrating it
@@ -2662,6 +2662,21 @@ is true and general; it is not a refusal of what was asked.
 keyring already names an unknown verifier (`'(empty)' is not in the keyring`).
 Left open because the reply shape is a wire contract with any MCP host, which is
 a wider blast radius than the audit branch that found it.
+
+**Corrected in place, 2026-08-18:** this was shipped a week after the finding
+above was written, in commit `0f7d1a1` ("Fix #94/#98/#99: null card nodes,
+unnamed propose refusal, wrong ed25519 key", 2026-08-13) — before §6.45 below
+was even filed — and this entry's status line was never updated to say so, so
+it kept reading as an open gap for five days after it closed. `answer.propose`
+now takes `ignored: Optional[list]`; `serve.call` passes it every wire key
+outside `PROPOSE_KEYS`; and the reply names them — `ignored_fields` for any
+unread key, `seal_authority_refused` calling out `status` / `verifier` /
+`verification_kind` / `sealed` / `seal_sig` by name with the reason: "a
+machine may propose, not confirm." The write is unchanged — still a `draft`,
+nothing seals. `tests/test_fix_propose_names_refused.py` pins the reply shape
+and still passes on this tree. §6.45's framing of this as the one place jeles
+was ahead is therefore a snapshot of 2026-08-06 through 2026-08-12, not of the
+tree as it now stands.
 
 **What the rest of the audit found** — 2 satisfied, 3 differently, 0 failing:
 
@@ -5737,7 +5752,7 @@ stays keyed by `model_name`, so nomic vectors never collide with
 `BAAI/bge-small-en-v1.5`. Document prefixes only (symmetric `score` / `scores_against`).
 Default `SEAL_THRESHOLD` is still character-ratio space — calibrate before serving.
 
-### 6.97 `detailPanel` renders two literal `null` text nodes into the provenance card — **verified**, fix **open**
+### 6.97 `detailPanel` renders two literal `null` text nodes into the provenance card — **verified**, fix **shipped**
 
 *Found 2026-08-12, by standing the UI up and looking at it.* The Provenance card
 in `nestor.ui` shows the string `nullnull` between the answer and the chip row,
@@ -5764,6 +5779,32 @@ paths with different null semantics — route card assembly through the helper
 that already has the rule. This is `docs/agent-guide.md`'s "when a guard fails,
 remove the interaction — do not add a condition", and the guard here is `h()`'s
 line 534 being bypassed rather than being wrong.
+
+**Shipped, in two steps, both already in `master`.** The per-call-site
+`.filter(...)` landed first (#94, `ea316ee`/`0f7d1a1`, `CHANGELOG.md` 0.2.0) and
+closed the two known cases; the mechanism-level fix this entry actually asked
+for — a shared `appendKids(el, ...kids)` helper that `h()` and `detailPanel`'s
+*entire* card assembly both route through, so a future null-returning helper
+in this or any other panel cannot reopen it — landed in `da7e475` (`CHANGELOG.md`
+0.4.0, "route detailPanel's card assembly through appendKids, not a per-call
+filter"). `tests/test_fix_null_nodes.py` carries three tests: a live-Chromium
+render of an all-nulls row asserting no `"null"` text among the card's direct
+children, a source-level check that `detailPanel` calls `appendKids` and has no
+bespoke `.filter(...)` left, and a live-Chromium call into `appendKids` itself
+with null/undefined/false interleaved among real children.
+
+Re-verified 2026-08-18: `nestor/ui_page.py`'s `detailPanel`/`fleetDetailStage`
+route every child through `appendKids` or `h()`, no bare `.append()` of a
+nullable expression remains anywhere else in the file (every other native
+`.append(` call site is either `if`-guarded or passed a value that cannot be
+null), and the shipped `appendKids` source was executed directly under Node
+against a row with every optional field — `reason`, `origin`, `verifier`,
+`created_at`, `rejection_count`, `rejections` — set to `null`: zero `"null"`
+text nodes anywhere in the rendered card. The packaged suite
+(`tests/test_fix_null_nodes.py`) was then run: all three tests passed in a real
+Chromium tab — `test_ordinary_row_detail_card_has_no_null_text_nodes`,
+`test_detail_panel_source_routes_through_append_kids`, and
+`test_append_kids_skips_null_generically`.
 
 ### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **open**
 

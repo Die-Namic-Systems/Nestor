@@ -70,6 +70,8 @@ def main() -> int:
     args = ap.parse_args()
 
     root = pathlib.Path(args.repo).resolve()
+    if not common.require_checkout(root):
+        return 1
     out = pathlib.Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists():

@@ -35,11 +35,68 @@ import ast
 import collections
 import pathlib
 import re
+import subprocess
+import sys
 from typing import Iterator
 
 from nestor import memory
 
 FIELD = r"\*\*{}:\*\*\s*(.+?)(?=\n\n|\n\*\*|\n#|\n---|\Z)"
+
+
+def require_checkout(root: pathlib.Path, what: str = "checkout") -> bool:
+    """``True`` if ``root`` is a real, present directory. ``False`` and a
+    printed refusal otherwise — never a silent, empty-looking success.
+
+    §6.101: pointed at a repository that is not there, every extractor used
+    to print the same ``0 pair(s)`` a checkout that is present and genuinely
+    bare prints, and exit 0 either way — indistinguishable from a corpus that
+    was read and declared nothing. Callers check this *before* doing any
+    work and exit non-zero when it fails. Mirrors the vocabulary the feed_*
+    family already settled on (`tests/test_corpus_readers_fail_closed.py`):
+    "could not look" names the refusal, so a caller never mistakes an absent
+    target for a true empty one.
+    """
+    if not root.is_dir():
+        print(f"could not look — no {what} at {root}")
+        return False
+    return True
+
+
+def tracked_files(root: pathlib.Path, pattern: str) -> list[pathlib.Path]:
+    """Files under ``root`` matching ``pattern``, restricted to what git
+    tracks there.
+
+    §6.102: a plain filesystem walk picks up whatever is on disk, including
+    ``.venv/`` after this repo's own documented setup (`pip install -e .` at
+    the root) and anything else `.gitignore` excludes. `git ls-files` is what
+    the origin string already claims to be quoting — the tree at a commit —
+    so this asks git directly rather than re-deriving its own ignore list.
+    Two pathspecs cover both a root-level match and a nested one (a bare,
+    non-glob pathspec like ``SKILL.md`` does not recurse on its own, and
+    ``**/pattern`` alone misses a root-level hit).
+
+    Falls back to a full filesystem walk, with a warning, only when ``root``
+    is not a git checkout at all (or git is unavailable) — the same case a
+    plain walk was always correct for.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--",
+             pattern, f"**/{pattern}"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        result = None
+    if result is not None and result.returncode == 0:
+        names = {p for p in result.stdout.split("\0") if p}
+        return sorted((root / p) for p in names if (root / p).is_file())
+    print(f"  warning: {root} is not a git checkout (or git is unavailable) — "
+          f"falling back to a full filesystem walk, which can pick up "
+          f".venv/, node_modules/, and anything else .gitignore excludes",
+          file=sys.stderr)
+    return sorted(p for p in root.rglob(pattern)
+                  if ".git" not in p.parts and p.is_file())
 
 
 def docs(root: pathlib.Path, only: set | None = None) -> list[pathlib.Path]:
@@ -49,7 +106,7 @@ def docs(root: pathlib.Path, only: set | None = None) -> list[pathlib.Path]:
     the standard shapes are run over just the files the operator's own commits
     touched — see `docs/corpus-order.md`.
     """
-    found = sorted(p for p in root.rglob("*.md") if ".git" not in p.parts)
+    found = tracked_files(root, "*.md")
     if only is None:
         return found
     return [p for p in found if p.resolve() in only]
@@ -221,9 +278,7 @@ def docstrings(root: pathlib.Path, only: set | None = None) -> tuple[list[tuple]
     """
     rows: list[tuple] = []
     total = 0
-    for path in sorted(root.rglob("*.py")):
-        if ".git" in path.parts:
-            continue
+    for path in tracked_files(root, "*.py"):
         if only is not None and path.resolve() not in only:
             continue
         try:
@@ -316,9 +371,7 @@ def skills(root: pathlib.Path, only: set | None = None) -> list[tuple]:
     those, which is the only reason this is here rather than still repo-specific.
     """
     rows = []
-    for path in sorted(root.rglob("SKILL.md")):
-        if ".git" in path.parts:
-            continue
+    for path in tracked_files(root, "SKILL.md"):
         if only is not None and path.resolve() not in only:
             continue
         fm = frontmatter(path.read_text(encoding="utf-8"))
