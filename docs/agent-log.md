@@ -2192,7 +2192,7 @@ substring test, so `Tito` no longer fires inside `apetito`. `tests/test_glossary
 (new, 12 tests) covers the fix directly, including case-insensitivity, boundary
 punctuation, and multi-word terms.
 
-### 6.39 The entity graph has only the verb a machine may not use — **measured**, fix **open**
+### 6.39 The entity graph has only the verb a machine may not use — **measured**, fix **shipped**
 
 *Found 2026-08-06 by putting a living person into §6.35's fixture. The operator
 gave Nieves an aunt, the aunt met somebody, and the honest record of that is a
@@ -2261,6 +2261,8 @@ nobody has met yet. All three are states a business deployment either does not
 reach or reaches with a colleague standing next to it, and all three were
 invisible until somebody's actual life was in the store. The fixture is worth
 more than the entries it produced.
+
+**Shipped.** `EntityResolver.propose(surface, canonical, reason="", origin="")` — seal minus the seal, minus the verifier, minus the append. A draft row that `resolve` already understands; no ledger entry, because a proposal is not a decision. Six tests cover the basic lifecycle, ledger absence, sealed-name no-op, conflicting-draft error, idempotent re-proposal, and verifier absence. The demo fixtures (`shoebox.py` beat 10, `filing_cabinet.py` beat 8) now use the method instead of going around the recipe.
 
 ### 6.40 `nestor ui` can be aimed at a custom domain and cannot be told its matcher — **measured**, fix **shipped**
 
@@ -2504,7 +2506,7 @@ two desks for exactly this reason; it is no longer a gap, it is the explanation.
 
 ---
 
-### 6.42 The quorum memo's step 2 has been unrunnable, and its zero would have been unreadable — **measured**, question **open**
+### 6.42 The quorum memo's step 2 has been unrunnable, and its zero would have been unreadable — **measured**, blocked on deployment chain
 
 *Written 2026-08-06. Not a defect in the package — a defect in the way its one
 open persistence question was going to get answered.*
@@ -2574,6 +2576,8 @@ Witness. That caveat lands harder here. jeles at least has
 `registrable_domain()` to collapse two pages on one site into one source. There
 is no such function for humans, and two names in the `verifier` column can be
 one person with two keys.
+
+**Blocked on a real chain, not on code.** `scripts/count_countersignatures.py` exists and has been exercised against fixture chains covering all four of its verdicts. It cannot answer the quorum question because `data/ledger.jsonl` does not exist in this checkout and the dogfood store is drafts — there is no deployment chain to measure. The question (does anyone countersign?) remains open until somebody with a real chain runs the tool.
 
 ---
 
@@ -5909,7 +5913,7 @@ missing, exception-safety); one each in `test_audit_against_constitution.py` and
 `test_audit_against_jeles.py` reproduce the exact false-FAILS regression — export
 a real keyring, run the audit, assert 0 failing and no `UnknownVerifierError`.
 
-### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
+### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, conclusion **recorded**
 
 *Measured 2026-08-12, because both real backends were unreachable.* `[semantic]`
 needs weights from `huggingface.co` and the `ollama` backend needs a daemon from
@@ -5992,6 +5996,8 @@ on that, and saying which pairs sit in that band needs a corpus, not a sample.
 The honest reading is that this is a **measuring instrument, not a backend**: it
 makes the seam's value visible where nothing else could, and it must not key a
 cache or key a seal.
+
+**Conclusion recorded, no code fix needed.** The stand-in is a measuring instrument, not a backend, and the boundary is documented in `docs/embedder-stand-in.md` and decisions 0084/0089: it may not key the embedding cache and may not stand behind a seal. Drift of up to 0.300 on a 0-1 scale across instantiations confirms that boundary is load-bearing, not precautionary. Nothing in the codebase needs to change; the measurement is the deliverable.
 
 ### 6.100 One gate for every change class, and what that costs a session with a human waiting in it — **measured**, fix **shipped**
 
@@ -6179,7 +6185,7 @@ same 23-test suite in `tests/test_corpus_extractors_git_scoped.py`, including an
 end-to-end run of `extract_standard.py` against a constructed checkout with a
 gitignored `.venv` tree.
 
-### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, fix **open**
+### 6.103 A model survey of vendors got two licences exactly backwards, in the same row — **verified**, lesson **shipped**
 
 *Measured 2026-08-12.* Five small-model agents surveyed twenty-five repositories
 for machinery built in-house where an Apache-2.0-compatible vendor exists. They
@@ -6233,6 +6239,8 @@ Standing consequence: the fleet already has a vendor survey with a
 adoption argument starts there, not from a fresh model survey — and no licence
 reaches a dependency file without the registry metadata read by a human or a
 script.
+
+**Lesson shipped, no code fix needed.** Decision 0087 records the finding and the standing consequence. The two inverted licences (celery/dramatiq) were the measurement; the general rule — fan-out is cheap for finding things and unreliable for asserting them — is the deliverable, and it is recorded.
 
 ### 6.104 The jeles source registry's gaps live in a feeder's stdout, and I misreported one by reading the top of it — **measured**, fix **shipped**
 
@@ -6383,7 +6391,7 @@ The rank-110 case (question-shaped probe sharing interrogative structure)
 remains: only a matcher that discounts shared stems moves it, and
 `StringMatcher` was chosen as sufficient when the bar is calibrated.
 
-### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **shipped**, one follow-up **open** (JS test harness)
+### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **shipped**
 
 *Proposed 2026-08-12, from a conversation about opening `nestor ui` to a mixed,
 non-expert audience: a Discord group — physicists, artists, people who build
@@ -6583,9 +6591,11 @@ which is the more valuable half of an audit. The lesson worth keeping: **auditin
 a still-open PR is where the audit pays; the two criticals were caught with hours
 to spare, not after they shipped.**
 
-Still open, and small: the front-end has no JS test harness, so `moodFromState`
+~~Still open, and small: the front-end has no JS test harness, so `moodFromState`
 and its kin are verified live (Playwright) and by construction, not by a CI unit
-test. Standing that up is the only named follow-up this entry leaves.
+test. Standing that up is the only named follow-up this entry leaves.~~
+
+**JS test harness shipped.** Pure functions (`moodFromState`, `askMood`, `relativeAge`, `hex`/`hexToBytes`, `hasLoneSurrogate`, `pyJsonString`/`pyJsonArray`, `frozenMessageBytes`, `STATE_MOOD`) extracted from the inline `<script>` in `ui_page.py` into `nestor/ui_pure.js` — a standalone file that serves double duty: inlined into the served page at import time (same self-contained pattern as the cytoscape vendor script), and importable under Node.js via a `module.exports` guard. `moodFromState` refactored from reading global `S` to taking `(tab, result, detail)` as arguments. 60 tests in `tests/js/test_ui_pure.js` using Node's built-in `node:test` runner (no npm dependencies, no `package.json`). CI gated via a new `js-test` job in `.github/workflows/tests.yml`; the aggregate `test` gate now requires `[test-matrix, lint, js-test]`.
 
 ---
 
