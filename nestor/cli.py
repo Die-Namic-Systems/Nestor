@@ -186,31 +186,39 @@ def cmd_decision(args) -> int:
         return EXIT_USAGE
     store = _store(args)
     from .decision import DecisionMemory
-    dm = DecisionMemory(store, domain=args.source_lang)
+    bar = args.fuzzy_bar if args.fuzzy_bar else None
+    dm = DecisionMemory(store, domain=args.source_lang, fuzzy_bar=bar)
     result = dm.constraints_on(question)
     contradicts = [c for c in result["constraints"] if c["kind"] == "contradicts"]
     blocked = bool(result["rejected"]) or bool(contradicts)
+    match_kind = result.get("match", "exact")
     payload = {"question": question, "domain": args.source_lang, "blocked": blocked,
               "rejected": result["rejected"], "contradicts": contradicts,
-              "live": result["live"], "match": "exact"}
+              "live": result["live"], "match": match_kind,
+              "similarity": result.get("similarity", 1.0 if result["live"] else 0.0)}
     if args.json:
         _emit(payload, True)
     else:
         if not blocked:
-            # `constraints_on` matches the question by exact normalized form, so a
-            # clear result means "clear at this wording", not "no such constraint
-            # exists". Saying only the former would be the §6.14 hazard — silence
-            # read as a "no". N1 (docs/decision-rewording-bench.md) shows the fix
-            # is mostly a dial Nestor already owns: at the shipped 0.92 bar a
-            # re-worded decision scores 0% recall, but it is rank-1 88-96% of the
-            # time, and a CALIBRATED bar (~0.45) recovers ~60-75% with 0 false
-            # constraints. This surface still matches EXACTLY, so a paraphrase is
-            # not caught here yet — calibrate a fuzzy constraints_on to close it.
-            print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}\n"
-                  f"  (exact-wording match only; a re-worded proposal is not caught here — "
-                  f"a calibrated fuzzy matcher recovers most, docs/decision-rewording-bench.md)")
+            if match_kind == "fuzzy":
+                live = result["live"]
+                matched_q = live.get("matched_question", "") if live else ""
+                sim = result.get("similarity", 0.0)
+                print(f"✓ clear — no recorded rejection or contradicts edge\n"
+                      f"  fuzzy match ({sim:.3f}): {matched_q!r}")
+            elif match_kind == "exact":
+                print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}")
+            else:
+                print(f"✓ clear — no decision on record for {question!r}")
         else:
-            print(f"✗ BLOCKED — {question!r} carries a recorded constraint:")
+            if match_kind == "fuzzy":
+                live = result["live"]
+                matched_q = live.get("matched_question", "") if live else ""
+                sim = result.get("similarity", 0.0)
+                print(f"✗ BLOCKED — fuzzy match ({sim:.3f}) to {matched_q!r}\n"
+                      f"  carries a recorded constraint:")
+            else:
+                print(f"✗ BLOCKED — {question!r} carries a recorded constraint:")
             for r in result["rejected"]:
                 reason = r["reason"] or "(no reason recorded)"
                 if r["reopen_when"]:
@@ -832,6 +840,12 @@ def build_parser() -> argparse.ArgumentParser:
     # the literal word "check" instead of erroring for the missing question.
     dec.add_argument("decision_command", choices=("check",))
     dec.add_argument("question", help="the question a proposal is about to answer")
+    dec.add_argument("--fuzzy-bar", type=float, default=0.55,
+                     help="similarity bar for fuzzy matching when exact-norm "
+                          "match fails (0 = exact only; the rewording bench "
+                          "measured 0.45 on 24 decisions, the triage calibrate "
+                          "found 0.55 as the knee on the full corpus — "
+                          "docs/decision-rewording-bench.md)")
     domain_args(dec, source="decision", target="decision")
     dec.set_defaults(func=cmd_decision)
 

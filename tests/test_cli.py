@@ -354,6 +354,40 @@ def test_decision_check_json_output(db, capsys):
     assert payload["rejected"][0]["reason"] == "see incidents"
 
 
+# --- fuzzy decision check (§6.33/6.94/6.106) --------------------------------
+
+def test_decision_check_fuzzy_finds_paraphrase(db, capsys):
+    from nestor.decision import DecisionMemory
+    dm = DecisionMemory(db["store"])
+    dm.propose("may the machine seal its own work?", "no — author != witness")
+    assert run(db, "decision", "check", "--fuzzy-bar", "0.45",
+              "can the machine seal its own work?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "fuzzy match" in out
+    assert "may the machine seal its own work?" in out
+
+
+def test_decision_check_fuzzy_zero_disables(db, capsys):
+    from nestor.decision import DecisionMemory
+    dm = DecisionMemory(db["store"])
+    dm.propose("may the machine seal its own work?", "no — author != witness")
+    assert run(db, "decision", "check", "--fuzzy-bar", "0",
+              "can the machine seal its own work?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "no decision on record" in out
+
+
+def test_decision_check_fuzzy_json_includes_match_and_similarity(db, capsys):
+    from nestor.decision import DecisionMemory
+    dm = DecisionMemory(db["store"])
+    dm.propose("may the machine seal its own work?", "no — author != witness")
+    assert run(db, "--json", "decision", "check", "--fuzzy-bar", "0.45",
+              "can the machine seal its own work?") == cli.EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["match"] == "fuzzy"
+    assert payload["similarity"] >= 0.45
+
+
 # --- delegation ------------------------------------------------------------
 
 def test_ui_and_serve_own_their_own_flags():
