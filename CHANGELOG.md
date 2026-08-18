@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.6.1](https://github.com/rudi193-cmd/Nestor/compare/v0.6.0...v0.6.1) (2026-08-18)
+
+
+### Fixed
+
+* glossary locks_in_text uses word-boundary matching (IDEAS §6.38) ([ee67645](https://github.com/rudi193-cmd/Nestor/commit/ee67645efd6f9f699f401244d3455901a587fa42))
+* glossary word-boundary matching (IDEAS §6.38) ([#138](https://github.com/rudi193-cmd/Nestor/issues/138)) ([3cc1bb6](https://github.com/rudi193-cmd/Nestor/commit/3cc1bb61caa703866fd07d6f5dcedee64062c3a5))
+
 ## [0.6.0](https://github.com/rudi193-cmd/Nestor/compare/v0.5.0...v0.6.0) (2026-08-18)
 
 
