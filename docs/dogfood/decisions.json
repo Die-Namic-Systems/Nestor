@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 415,
+    "pairs": 418,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "f90e74a2920aa54bd3d9062ed3026b83d3b830758d16936940ae58af6b6a71ac",
+  "created_at": "2026-08-18T00:00:00+00:00",
+  "digest": "330a573269886bcd516680eee0427c988f4469e0d1f23a9af10897b143aaccce",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "96c3befc-dea4-59c8-8037-222d11c9c028",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the survey strengthen the case for a conflictscan 73 question 2 and interrater reliability integration",
+      "source_text": "Does the survey strengthen the case for a conflict-scan (§7.3 question 2) and inter-rater reliability integration?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both strengthened, neither built. Conflict-scan: Checkov and OPA both traverse policy graphs to find contradictions — the same operation a contradicts-edge traversal of the decision graph would perform. The rubric-self-contradiction defect documented in decision 0084 is exactly the failure mode this traversal catches. Inter-rater reliability: the education literature's kappa/alpha measures (do two raters applying the same rubric agree?) map directly to Nestor's matcher precision problem. This reframes nestor calibrate as rubric calibration — the same problem with a longer literature and a richer toolkit. Both are downstream build questions; the survey provides evidence, not implementations.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "7bd5e016-93bb-511d-a55f-b0a8ac32edd4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which fleet and openworld rubric structures are relandable into apache20 and what gates them",
+      "source_text": "Which fleet and open-world rubric structures are re-landable into Apache-2.0, and what gates them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Structure re-lands (clean): Checkov's policy-DAG meta-model (Apache 2.0); OPA/Rego's rule-dependency DAG (Apache 2.0); assessment-visibility's E1→E4 dependency-graph shape and false-negative pattern table (CC BY 4.0, attribution required); willow-gate's trust-ladder rung-gating pattern (Apache 2.0); prod-readiness's no-go gates and conditional activation (MIT). Ideas-only re-lands (clean-room): RADAR's inter-criterion dependency model (academic); OpenRubrics' hard-rule/soft-principle split (open/permissive); terpsi-music's anchor-type constraints (license unstated). Two gates: the license gate (permissive → text, share-alike or none → ideas-only, clean-room) and an ethical gate on assessment-visibility and terpsi-music (education/minors — re-land structure only, never domain content or student-facing vocabulary).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "3f19f435-edfa-5f04-8dee-76d2afc6acac",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is a rubric a domain the decision recipe already answers or a shape that needs its own machinery",
+      "source_text": "Is a rubric a domain the decision recipe already answers, or a shape that needs its own machinery?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither — it is the decision graph read as what it already is. constraints_on(question) at decision.py:196 is rubric evaluation: 'score this proposal against the criteria that touch it.' The 4 edge types (supersedes, refines, depends_on, contradicts) are the inter-criterion dependencies every graph-shaped rubric in the survey models. A rubric is not new machinery bolted beside the decision store; it is a view of the store. The fleet's assessment-visibility E1→E4 dependency graph (CC BY 4.0), willow-gate's trust ladder (Apache 2.0), prod-readiness's no-go gates (MIT), and the open world's Checkov policy-DAG and OPA/Rego rule-DAG (both Apache 2.0) all model criteria-as-graph — and none combine it with human-sealed verdicts. Nestor already does.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
       "id": "f9c3b961-fe54-5572-8f73-4722f0fbc4ae",
