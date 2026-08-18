@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 417,
+    "pairs": 423,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-18T00:00:00+00:00",
-  "digest": "16d740c5cce14f49a9f22cbf1a015f2617a5656385064895701901c9612bb1dc",
+  "digest": "337d5351653795ed898f85bfa2e80f6cbe27c8cf8babf5a7796bb6fc95ed5538",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "fed262ac-bce2-533c-96ea-65f346564514",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the corpus extractors read the decision record in docsdogfooddecisionsjson",
+      "source_text": "Should the corpus extractors read the decision record in docs/dogfood/decisions/*.json?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The decision files are out of corpus scope by design. The dogfood store is its own store with its own builder (scripts/dogfood_store.py + dogfood_common.py), reading the same checkout through a separate path. Documented in the module docstring of scripts/corpus/common.py, citing docs/two-stores.md for the boundary.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
       "id": "d78b516e-f7e4-51b1-8fc8-bba5a729b9a8",
@@ -37,6 +51,62 @@
     },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "9d878776-af21-562b-97e9-a3cdb00cf728",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the dogfood stores verify digest cover origin and reason not just source_texttarget_textstatus",
+      "source_text": "Should the dogfood store's verify digest cover origin and reason, not just source_text/target_text/status?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. _bundle_digest now reads from the store (which carries reason) instead of from the exported bundle (which does not), and hashes (source_text, target_text, status, origin, reason). The digest changed from its old value -- expected and correct, since the old one was blind to two fields it should have covered. Two tests mutate origin and reason on a built store and assert the digest moves; before the fix, both would have stayed green.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "96c3befc-dea4-59c8-8037-222d11c9c028",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the survey strengthen the case for a conflictscan 73 question 2 and interrater reliability integration",
+      "source_text": "Does the survey strengthen the case for a conflict-scan (§7.3 question 2) and inter-rater reliability integration?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both strengthened, neither built. Conflict-scan: Checkov and OPA both traverse policy graphs to find contradictions — the same operation a contradicts-edge traversal of the decision graph would perform. The rubric-self-contradiction defect documented in decision 0084 is exactly the failure mode this traversal catches. Inter-rater reliability: the education literature's kappa/alpha measures (do two raters applying the same rubric agree?) map directly to Nestor's matcher precision problem. This reframes nestor calibrate as rubric calibration — the same problem with a longer literature and a richer toolkit. Both are downstream build questions; the survey provides evidence, not implementations.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "7bd5e016-93bb-511d-a55f-b0a8ac32edd4",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which fleet and openworld rubric structures are relandable into apache20 and what gates them",
+      "source_text": "Which fleet and open-world rubric structures are re-landable into Apache-2.0, and what gates them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Structure re-lands (clean): Checkov's policy-DAG meta-model (Apache 2.0); OPA/Rego's rule-dependency DAG (Apache 2.0); assessment-visibility's E1→E4 dependency-graph shape and false-negative pattern table (CC BY 4.0, attribution required); willow-gate's trust-ladder rung-gating pattern (Apache 2.0); prod-readiness's no-go gates and conditional activation (MIT). Ideas-only re-lands (clean-room): RADAR's inter-criterion dependency model (academic); OpenRubrics' hard-rule/soft-principle split (open/permissive); terpsi-music's anchor-type constraints (license unstated). Two gates: the license gate (permissive → text, share-alike or none → ideas-only, clean-room) and an ethical gate on assessment-visibility and terpsi-music (education/minors — re-land structure only, never domain content or student-facing vocabulary).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "6bde5580-cf9f-5e94-82a5-dfc04685f290",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does nestor_propose name the sealauthority fields it refuses or does it silently discard them",
+      "source_text": "Does nestor_propose name the seal-authority fields it refuses, or does it silently discard them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It names them. This was fixed in commit 0f7d1a1 (PR #98). The serve.py handler computes ignored keys from the wire arguments, and answer.propose names them in the reply -- ignored_fields lists all unread keys, seal_authority_refused calls out the seal-boundary fields (status, verifier, verification_kind, sealed, seal_sig), and the note says why they were dropped. Tests in tests/test_fix_propose_names_refused.py verify the wire contract.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
       "id": "5ed41de6-4937-5e86-a67b-02957293146d",
       "origin": "pr:None",
       "seal_sig": "",
@@ -46,6 +116,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — constraints_on now accepts a fuzzy_bar parameter. When exact-norm match via memory_find fails and fuzzy_bar is set (and >0), it scans all candidates with the matcher and returns the highest-scoring one above the bar. The result dict now includes 'match' ('exact'|'fuzzy'|'none') and 'similarity' fields so callers can see how the match was made. A fuzzy match also includes 'matched_question' in the live dict so the caller sees the actual stored question.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "3f19f435-edfa-5f04-8dee-76d2afc6acac",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is a rubric a domain the decision recipe already answers or a shape that needs its own machinery",
+      "source_text": "Is a rubric a domain the decision recipe already answers, or a shape that needs its own machinery?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither — it is the decision graph read as what it already is. constraints_on(question) at decision.py:196 is rubric evaluation: 'score this proposal against the criteria that touch it.' The 4 edge types (supersedes, refines, depends_on, contradicts) are the inter-criterion dependencies every graph-shaped rubric in the survey models. A rubric is not new machinery bolted beside the decision store; it is a view of the store. The fleet's assessment-visibility E1→E4 dependency graph (CC BY 4.0), willow-gate's trust ladder (Apache 2.0), prod-readiness's no-go gates (MIT), and the open world's Checkov policy-DAG and OPA/Rego rule-DAG (both Apache 2.0) all model criteria-as-graph — and none combine it with human-sealed verdicts. Nestor already does.",
       "verifier": "",
       "weight": 1.0
     },
