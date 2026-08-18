@@ -86,8 +86,17 @@ def terms_for(source_lang: str, target_lang: str) -> dict[str, str]:
     return load().get(_key(source_lang, target_lang), {})
 
 
+def _word_boundary_match(needle: str, haystack: str) -> bool:
+    """Check if needle appears in haystack as a whole word, not inside a longer word."""
+    import re
+    return bool(re.search(r'\b' + re.escape(needle) + r'\b', haystack, re.IGNORECASE))
+
+
 def locks_in_text(text: str, source_lang: str, target_lang: str) -> dict[str, str]:
-    """The subset of glossary terms that actually appear in this segment."""
-    lower = text.lower()
+    """The subset of glossary terms that actually appear in this segment.
+
+    Uses word-boundary matching so a short term like "lock" does not fire
+    inside "blockchain" or "locksmith" (IDEAS §6.38).
+    """
     return {t: tr for t, tr in terms_for(source_lang, target_lang).items()
-            if t.lower() in lower}
+            if _word_boundary_match(t, text)}
