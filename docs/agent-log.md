@@ -1346,7 +1346,7 @@ setting rather than from `os.getcwd()` at call time. It is listed separately for
 that reason: everything else in §6.22 is deliberately parked, and this should
 not be parked with it.
 
-### 6.28 Concurrent writers: the known limit, quantified — **measured**, fix **open**
+### 6.28 Concurrent writers: the known limit, quantified — **measured**, fix **deferred to store replacement**
 
 *Measured 2026-08-06 while walking `docs/code-review-lessons.md` §11 over the
 §6.8 change — the checklist row "concurrent / pooled threads?".*
@@ -1385,6 +1385,8 @@ comparison used `git stash push` on an already-committed file, which stashes
 nothing and silently ran the *same* revision twice. The paired runs above use
 `git checkout c68b8be -- nestor/sqlite_store.py`, verified each time by grepping
 for `_Conn` in the file before running.
+
+**Reviewed 2026-08-18, batch 5.** The 0.1–0.3% locked-write rate is a known property of `SqliteStore` under concurrent access, not a regression. The entry's own conclusion — "the fix belongs in whatever replaces the reference store" — stands. No code change; status updated from "fix open" to "fix deferred to store replacement."
 
 ### 6.29 Two of the three refusals are exported; the third is not — **shipped**
 
@@ -1508,7 +1510,7 @@ a matcher.
 > nothing, so a query scoring 0.1975 under character difflib scores **0.0000**
 > here. The win was measured and the loss was never looked for.
 
-### 6.31 Nothing that persists carries a version — **measured**, store **addressed**, ledger **open**
+### 6.31 Nothing that persists carries a version — **measured**, store **ratified** (decision 0121), ledger **still open**
 
 *Raised 2026-08-06 while wiring the package for PyPI. The packaging half
 shipped; this is the half that did not, because it should not be stamped
@@ -1623,6 +1625,8 @@ stop being deferred by not being written down.
 > The interim restart rule in `docs/releasing.md` stays — `user_version` gates the
 > forward ladder but the §6.8 warm-connection skip is per-process, so a schema
 > change still lands on restart, not on package upgrade.
+
+**Reviewed 2026-08-18, batch 5.** The store half is ratified (decision 0121, `PRAGMA user_version` shipped in #91) and the schema-digest gate in the test suite makes schema changes a deliberate release decision. The ledger half remains open for the same reason it was parked: a hash-linked append-only chain cannot be re-versioned without breaking the integrity it exists to protect. No code change; status updated to separate the ratified store from the still-open ledger.
 
 ### 6.32 The loop, fourth turn — and it found the recipe's caveat was right — **measured**
 
@@ -1854,7 +1858,7 @@ makes the next one. The construction that would close it is a gate over the
 package's own call sites rather than a better docstring — §6.12's argument, and
 it is **open**.
 
-### 6.35 The solo verifier: two records kept carefully and shown to nobody — **measured**, fix **open**
+### 6.35 The solo verifier: two records kept carefully and shown to nobody — **measured**, fix **blocked on design decision**
 
 *Found 2026-08-06 by building a fixture for one person instead of a team. The
 operator's framing: the code side has had all the attention and the human side
@@ -1931,6 +1935,8 @@ filter or two views, and that is a design decision about what a reviewer is
 looking for, not a spelling of a `kind`. Deciding it from inside the fix is how
 this repo has produced three criticals in a row before. **Open**, and the fixture
 now fails the build if either gap closes without this entry being updated.
+
+**Reviewed 2026-08-18, batch 5.** The two gaps — `memory_lineage()` with no caller and `reopen_when` with no reader — remain open and deliberately so: the design question underneath (one view with a filter, or two views for two kinds of revision?) has not been answered, and the entry's own gates in `tests/test_shoebox.py` prevent closing either gap without updating this record. No code change; status updated from "fix open" to "fix blocked on design decision."
 
 ### 6.36 `nestor keys add` prints the wrong key and calls it the only copy — **measured**, fix **shipped**
 
@@ -2017,7 +2023,7 @@ private half. That closes the **wrong-key bug** above; the separate question thi
 entry flagged — whether the generate case should print the private key at all —
 stays **open** with TODO §1's key distribution, not resolved here.
 
-### 6.37 The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name — **measured**, fix **open**
+### 6.37 The entity graph destroys what the numeric recipe keeps, and has no word for an ambiguous name — **measured**, fix **blocked on §6.22 design**
 
 *Found 2026-08-06 by extending §6.35's fixture past translation. Nestor has three
 recipes and the shoebox exercises all three: the letters are Spanish, the people
@@ -2127,6 +2133,8 @@ returned the wrong row at 0.042, and ranked §6.35 — this finding's structural
 sibling, the entry that would have told me exactly where to look — **third, at
 0.031**. The box has now failed to connect a new finding to its own sibling
 three times running. §3.3's argument, again, from inside the tool.
+
+**Reviewed 2026-08-18, batch 5.** The overwrite defect and the missing ambiguity vocabulary both remain, blocked on §6.22's open design question: whether a second canonical replaces the first or joins it. The `propose()` method shipped in batch 4 (§6.39) gives agents a draft verb that does not trigger the destructive path, which is a partial mitigation but not the fix. No code change; status updated from "fix open" to "fix blocked on §6.22 design."
 
 ### 6.38 `locks_in_text` is a raw substring, so a short lock fires inside longer words — **measured**, fix **shipped**
 
@@ -6599,7 +6607,7 @@ test. Standing that up is the only named follow-up this entry leaves.~~
 
 ---
 
-### 6.108 The web SessionStart hook depends on an env var the runtime did not set, fails silently, and the seat policy that would have caught the miss fails through the same door — **verified**, fix **shipped** (residual: parent-rooted multi-repo)
+### 6.108 The web SessionStart hook depends on an env var the runtime did not set, fails silently, and the seat policy that would have caught the miss fails through the same door — **verified**, fix **shipped** (residual: upstream, not fixable from this tree)
 
 *Proposed 2026-08-12, from a session that opened in a multi-repo web container
 (`Nestor` and `DispatchesFromReality` both cloned under `/home/user`, which was
@@ -6684,6 +6692,8 @@ parent of sibling repos as undocumented; the real fix is upstream (root the
 session at the repo, or a pre-launch setup script), not in this tree. Recorded
 rather than smoothed over, because a boot that survives the common case and
 quietly does not survive the rare one is the failure this entry is about.
+
+**Reviewed 2026-08-18, batch 5.** The shipped fix (decision 0118) covers all cases where `settings.json` hooks can locate the repo — var set, var unset with cwd at root, cwd in a subdir. The parent-rooted multi-repo residual is confirmed unfixable from this tree: Claude Code discovers project settings by git-repo resolution, and a non-git parent of sibling repos is undocumented upstream. Status updated to mark the residual as upstream.
 
 ---
 
