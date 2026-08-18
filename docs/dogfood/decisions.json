@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 415,
+    "pairs": 417,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-17T00:00:00+00:00",
-  "digest": "f90e74a2920aa54bd3d9062ed3026b83d3b830758d16936940ae58af6b6a71ac",
+  "created_at": "2026-08-18T00:00:00+00:00",
+  "digest": "16d740c5cce14f49a9f22cbf1a015f2617a5656385064895701901c9612bb1dc",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "d78b516e-f7e4-51b1-8fc8-bba5a729b9a8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what should the default fuzzy_bar be for decision check",
+      "source_text": "What should the default fuzzy_bar be for decision check?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "0.55 — the triage calibrate's knee for the full dogfood corpus. The rewording bench's 0.45 was measured on 24 distinct decisions; on 418 decisions with many similarly-shaped questions, 0.45 produces skeleton false-positives (the same finding nestor.triage recorded). 0.55 eliminates observed wrong-keys while recovering close paraphrases (0.68+ correct matches observed). Configurable via --fuzzy-bar on the CLI, and fuzzy_bar= on the DecisionMemory constructor.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "5ed41de6-4937-5e86-a67b-02957293146d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should constraints_on do fuzzy matching when exactnorm match fails",
+      "source_text": "Should constraints_on do fuzzy matching when exact-norm match fails?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — constraints_on now accepts a fuzzy_bar parameter. When exact-norm match via memory_find fails and fuzzy_bar is set (and >0), it scans all candidates with the matcher and returns the highest-scoring one above the bar. The result dict now includes 'match' ('exact'|'fuzzy'|'none') and 'similarity' fields so callers can see how the match was made. A fuzzy match also includes 'matched_question' in the live dict so the caller sees the actual stored question.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-17T00:00:00+00:00",
       "id": "f9c3b961-fe54-5572-8f73-4722f0fbc4ae",

@@ -26,7 +26,7 @@ from typing import Iterable, Optional, cast
 
 from . import memory, signing
 from .cascade import _ledger_append
-from .matcher import Matcher, StringMatcher
+from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import (EdgeStorage, LineageStorage, Storage, require_capability,
                       supports_edges, supports_lineage, supports_rejection)
 
@@ -46,12 +46,14 @@ class DecisionMemory:
     def __init__(self, store: Storage, domain: str = "decision",
                  matcher: Optional[Matcher] = None,
                  seal_threshold: Optional[float] = None,
-                 context_threshold: Optional[float] = None) -> None:
+                 context_threshold: Optional[float] = None,
+                 fuzzy_bar: Optional[float] = None) -> None:
         self.store = store
         self.domain = domain
         self.matcher = matcher or StringMatcher()
         self.seal_threshold = seal_threshold
         self.context_threshold = context_threshold
+        self.fuzzy_bar = fuzzy_bar
         store.memory_init()
 
     # -- decisions --------------------------------------------------------
@@ -193,7 +195,8 @@ class DecisionMemory:
 
     # -- the traversal ----------------------------------------------------
 
-    def constraints_on(self, question: str) -> dict:
+    def constraints_on(self, question: str, *,
+                        fuzzy_bar: Optional[float] = None) -> dict:
         """What the committed record constrains about ``question``.
 
         Not "what is the answer" but the shape a proposal has to fit:
@@ -208,17 +211,41 @@ class DecisionMemory:
           surfaced so a curator sees them and never as a constraint;
         * ``rejected`` — rejected alternatives, each with its reason and any
           ``reopen_when`` condition (a not-yet, not a closed door).
+        * ``match`` — ``"exact"`` when the normalized question matched a stored
+          key directly, ``"fuzzy"`` when a fuzzy scan found a match above the
+          bar, ``"none"`` when no match was found.
+        * ``similarity`` — the score of the match (1.0 for exact, the computed
+          similarity for fuzzy, 0.0 for none).
+
+        ``fuzzy_bar`` overrides this instance's ``self.fuzzy_bar``. When set,
+        an exact-match miss triggers a candidate scan: every decision in this
+        domain is scored against ``question``, and the highest-scoring one
+        above the bar is treated as the match. ``docs/decision-rewording-bench.md``
+        measured this: at ~0.45, StringMatcher recovers ~75% of re-worded
+        decisions with 0 false constraints on 24 distinct decisions.
         """
+        bar = fuzzy_bar if fuzzy_bar is not None else self.fuzzy_bar
         norm = self.matcher.normalize(question)
         row = self.store.memory_find(norm, self.domain, self.domain)
+        match_kind = "exact" if row is not None else "none"
+        similarity = 1.0 if row is not None else 0.0
+
+        if row is None and bar:
+            row, similarity = self._fuzzy_scan(question, norm, bar)
+            if row is not None:
+                match_kind = "fuzzy"
+
         result: dict = {"question": question, "live": None, "lineage": [],
-                        "constraints": [], "proposed": [], "rejected": []}
+                        "constraints": [], "proposed": [], "rejected": [],
+                        "match": match_kind, "similarity": similarity}
         if row is not None:
             result["live"] = {
                 "pair_id": row["id"], "commitment": row["target_text"],
                 "reason": row.get("reason", ""),
                 "verifier": row.get("verifier", ""),
                 "sealed": row.get("status") == "sealed"}
+            if match_kind == "fuzzy":
+                result["live"]["matched_question"] = row["source_text"]
             if supports_lineage(self.store):
                 result["lineage"] = [
                     {"commitment": p["target_text"], "reason": p.get("reason", ""),
@@ -228,12 +255,32 @@ class DecisionMemory:
                 self._collect_edges(row["id"], result)
 
         if supports_rejection(self.store):
-            for r in self.store.memory_rejections(norm, self.domain, self.domain):
-                result["rejected"].append({
-                    "option": r.get("target_text", ""),
-                    "reason": r.get("reason", ""),
-                    "reopen_when": r.get("reopen_when", "")})
+            rej_norms = {norm}
+            if match_kind == "fuzzy" and row is not None:
+                rej_norms.add(row["source_norm"])
+            for rn in rej_norms:
+                for r in self.store.memory_rejections(rn, self.domain,
+                                                      self.domain):
+                    result["rejected"].append({
+                        "option": r.get("target_text", ""),
+                        "reason": r.get("reason", ""),
+                        "reopen_when": r.get("reopen_when", "")})
         return result
+
+    def _fuzzy_scan(self, question: str, norm: str,
+                    bar: float) -> tuple[Optional[dict], float]:
+        """Best candidate above ``bar``, or ``(None, 0.0)``."""
+        raw_score = uses_raw_score(self.matcher)
+        best_row: Optional[dict] = None
+        best_sim = 0.0
+        for candidate in self.store.memory_candidates(self.domain, self.domain):
+            sim = match_similarity(
+                self.matcher, question, norm,
+                candidate["source_text"], candidate["source_norm"],
+                _raw_score=raw_score)
+            if sim >= bar and sim > best_sim:
+                best_row, best_sim = candidate, sim
+        return best_row, round(best_sim, 3)
 
     def _collect_edges(self, pair_id: str, result: dict) -> None:
         # Only called from constraints_on after supports_edges(self.store)
