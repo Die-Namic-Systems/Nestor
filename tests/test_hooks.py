@@ -99,6 +99,17 @@ def test_claude_mcp_allow_emits_nothing(capsys):
     assert capsys.readouterr().out == ""
 
 
+def test_claude_stop_clean_allow_is_silence(capsys):
+    """The bare silence branch of _emit_before_stop — no advisory, no agent msg.
+
+    The parametrized invariant test passes ``agent msg`` which hits the
+    ``additionalContext`` advisory branch. This covers the other arm: a clean
+    stop with nothing to say, which must emit nothing at all.
+    """
+    _emit_before_stop("claude", True, "", "")
+    assert capsys.readouterr().out == ""
+
+
 def test_cursor_mcp_deny_keeps_permission_dialect(capsys):
     _emit_before_mcp("cursor", False, "user msg", "agent msg")
     out = json.loads(capsys.readouterr().out)
@@ -107,12 +118,16 @@ def test_cursor_mcp_deny_keeps_permission_dialect(capsys):
 
 
 def _run_hook(payload: dict) -> dict:
-    """Drive the real wrapper end-to-end and return its parsed stdout JSON."""
+    """Drive the real wrapper end-to-end and return its parsed stdout JSON.
+
+    Only for deny cases — an allow emits nothing, so ``json.loads`` would fail.
+    """
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_mcp"],
         input=json.dumps(payload),
         capture_output=True, text=True, cwd=REPO, timeout=60)
     assert done.returncode == 0, done.stderr
+    assert done.stdout.strip(), "expected deny output, got silence (allow)"
     return json.loads(done.stdout)
 
 
