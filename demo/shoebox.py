@@ -402,38 +402,34 @@ def main() -> int:
 
     beat(10, "Somebody living.")
     say("Her aunt called. She has met somebody — Tony, born 1972.")
-    gap(not hasattr(entity.EntityResolver, "propose"),
-        "the entity recipe has no verb for an unverified alias")
-    memory.add_pair("Tony", "Tony (b. 1972)", "person", "person", status="draft",
-                    origin=ORIGIN, store=store,
-                    reason="My tia's. I have not met him and I do not know his "
-                           "full name — 'goes by Tony' is all I have.")
+    people.propose("Tony", "Tony (b. 1972)", origin=ORIGIN,
+                   reason="My tia's. I have not met him and I do not know his "
+                          "full name — 'goes by Tony' is all I have.")
     tony = people.resolve("Tony")
     claim(tony["canonical"] is None and tony["provenance"].get("draft"),
-          "the reader understands a draft the writer cannot create")
-    say(f"\n   EntityResolver offers: {RED}"
+          "the reader understands a draft the writer created via propose")
+    say(f"\n   EntityResolver offers: {GREEN}"
         f"{[m for m in dir(entity.EntityResolver) if not m.startswith('_')]}{OFF}")
-    say("   so the draft went in around it, via memory.add_pair.")
+    say(f"   propose('Tony', 'Tony (b. 1972)') — a draft, not a seal.")
     say(f"   resolve('Tony') → suggestion {tony['provenance']['suggestion']!r}, "
         f"sealed={tony['sealed']}")
-    note("resolve() has a whole branch for a state the recipe has no verb to "
-         "produce, and the one verb it does have is the one a machine may not "
-         "use. IDEAS §6.39 — the smallest thing on the open list.")
+    note("propose() is seal() minus the seal, minus the verifier, minus the "
+         "append — the missing verb (IDEAS §6.39, closed).")
 
     beat(11, "What the fixture is for.")
-    say("Four gaps remain, across all three recipes, and not one of them is a bug in how")
+    say("Three gaps remain, across all three recipes, and not one of them is a bug in how")
     say("this handles teams:")
     say(f"  {DIM}§6.35{OFF}  a revision she cannot see, and a deferral nobody reads")
     say(f"  {DIM}§6.37{OFF}  an alias overwritten, where the numeric recipe keeps it")
     say(f"  {GREEN}§6.38{OFF}  {GREEN}closed{OFF} — word-boundary matching prevents locks inside words")
-    say(f"  {DIM}§6.39{OFF}  no verb for a person nobody has verified")
+    say(f"  {GREEN}§6.39{OFF}  {GREEN}closed{OFF} — propose() gives the entity graph a verb a machine may use")
     say("")
     say("Every remaining one is a state a business deployment either never reaches or "
         "reaches with a colleague standing next to it. None was visible until")
     say("somebody's actual life was in the store — which is the shape of every "
         "archive, every estate, every notebook somebody is trying to finish")
     say("before their kid stops asking.")
-    note("Four open, one closed. This fixture fails the build if any of them "
+    note("Three open, two closed. This fixture fails the build if any of them "
          "closes quietly.")
 
     if not args.keep:

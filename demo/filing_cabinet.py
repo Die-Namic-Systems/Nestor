@@ -53,11 +53,11 @@ theirs too. One is a story; six is a systematic error in one field. The
 reconciler surfaces the collision and stops: *which* record is wrong is a fact
 about a life, not about paperwork, and is not a machine's to settle.
 
-**An alias with one witness, and the witness is dead** (§6.39). His mother
-called him *Jamie*. Nobody else ever did and she died in 2010. It cannot be
-sealed — no living person can confirm it — and calling it doubtful would be
-false. ``EntityResolver`` has only ``seal``, so the package has no verb for the
-truest name in the cabinet.
+**An alias with one witness, and the witness is dead** (§6.39, closed). His
+mother called him *Jamie*. Nobody else ever did and she died in 2010. It cannot
+be sealed — no living person can confirm it — and calling it doubtful would be
+false. ``EntityResolver.propose()`` records it as a draft: no seal, no verifier,
+no ledger entry. The truest name in the cabinet has a verb now.
 
 And the one this fixture exists for
 -----------------------------------
@@ -245,20 +245,17 @@ def main() -> int:
         # ------------------------------------------------------------ 8
         beat(8, "An alias with one witness, and the witness is dead")
         resolver = entity.EntityResolver(papers.store, domain="person")
-        gap(not hasattr(resolver, "propose"),
-            "the entity graph still has only the verb a machine may not use",
-            "§6.39")
-        papers.propose(
+        resolver.propose(
             "Jamie",
             "What his mother called him. Nobody else ever did. She died in 2010.",
             reason="Cannot be sealed — no living person can confirm it. Calling it "
-                   "doubtful would be false. Recorded around the recipe, because "
-                   "EntityResolver can only seal.")
+                   "doubtful would be false.",
+            origin=ORIGIN)
         say("His mother called him Jamie. She was the only one.")
         say(f"It cannot be {GREEN}sealed{OFF} — nobody living can confirm it — and it")
         say("is not doubtful, so calling it a guess would be a lie.")
-        note("EntityResolver offers seal and nothing else, so the truest name in")
-        note("the cabinet goes in around the recipe or not at all.")
+        note("EntityResolver.propose() — the missing verb (IDEAS §6.39, closed).")
+        note("A draft, not a seal. No verifier, no ledger entry.")
 
         # ------------------------------------------------------------ 9
         beat(9, "What he actually asked for, and the refusal")

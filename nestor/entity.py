@@ -87,6 +87,39 @@ class EntityResolver:
                          origin=origin, override_conflict=override_conflict,
                          override_rejection=override_rejection)
 
+    # -- proposing --------------------------------------------------------
+
+    def propose(self, surface: str, canonical: str, reason: str = "",
+                origin: str = "") -> dict:
+        """Add an unverified draft alias — a proposal, not a decision.
+
+        The missing verb (IDEAS §6.39). ``seal`` is the entity graph's only
+        write path, and it is the one a machine may not use: it appends to the
+        chain and requires a verifier, both of which belong to the human who
+        confirms. ``propose`` is ``seal`` minus the seal, minus the verifier,
+        minus the append — a draft row that ``resolve`` already understands.
+
+        Edge cases are inherited from :func:`~nestor.memory.add_pair`:
+
+        * a draft landing on an already-**sealed** name returns the existing
+          sealed row, untouched — no overwrite;
+        * a second, **different** draft for one surface raises
+          :class:`~nestor.memory.ConflictingDraftError`;
+        * re-proposing the same answer is idempotent.
+
+        Nothing is appended to the ledger. A proposal is not a decision.
+        """
+        pair = memory.add_pair(
+            source_text=surface, target_text=canonical,
+            source_lang=self.domain, target_lang=self.domain,
+            status="draft", verifier="", weight=1.0, origin=origin,
+            reason=reason,
+            store=self.store, matcher=self.matcher,
+        )
+        return {"surface": surface, "canonical": canonical,
+                "sealed": pair["status"] == "sealed",
+                "pair_id": pair["id"], "draft": pair["status"] == "draft"}
+
     # -- resolving --------------------------------------------------------
 
     def resolve(self, surface: str) -> dict:
