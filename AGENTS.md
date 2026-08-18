@@ -25,7 +25,7 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
    | Changed paths | Class | Verification command |
    |---|---|---|
    | `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | full | `bash scripts/ci-lint.sh && python -m pytest -q` |
-   | `docs/`, `IDEAS.md`, `docs/dogfood/decisions/*.json` | docs-only | `python scripts/dogfood_store.py --rebuild && python -m pytest tests/test_docs.py tests/test_open_findings.py tests/test_dogfood_store.py -q` |
+   | `docs/`, `IDEAS.md`, `docs/dogfood/decisions/*.json` | docs-only | `bash scripts/ci-docs.sh` |
    | `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/` | lint-only | `bash scripts/ci-lint.sh` |
    | Mixed (any combination of the above) | full | `bash scripts/ci-lint.sh && python -m pytest -q` |
 
@@ -33,6 +33,11 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
    you chose. When in doubt, run full. The point is that "correct and cheap"
    is a real option for docs-only changes, and choosing it is not cutting a
    corner.
+
+   **Background rule:** any verification step estimated over ~10 s goes to
+   background (`run_in_background` or equivalent) so the human is not
+   staring at a spinner. The docs-only gate runs in ~7 s and can stay
+   foreground; the full gate (~100 s) should not.
 
 3. **Environment** — `source .venv/bin/activate` and `pip install -e ".[dev,keys]"`
    if `python -m pytest` is missing (`docs/agent-guide.md` → Environment).
