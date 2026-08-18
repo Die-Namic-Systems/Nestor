@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.6.2](https://github.com/rudi193-cmd/Nestor/compare/v0.6.1...v0.6.2) (2026-08-18)
+
+
+### Fixed
+
+* isolate bench and audit scripts from ambient keyring (IDEAS §6.98) ([29b8205](https://github.com/rudi193-cmd/Nestor/commit/29b820569c0d6b6d186af01835caec36cffba218))
+* isolate bench/audit scripts from ambient keyring + status corrections (IDEAS §6.x batch 2) ([#141](https://github.com/rudi193-cmd/Nestor/issues/141)) ([8a7652c](https://github.com/rudi193-cmd/Nestor/commit/8a7652c45e8711b11d2514c644df460baec238db))
+
 ## [0.6.1](https://github.com/rudi193-cmd/Nestor/compare/v0.6.0...v0.6.1) (2026-08-18)
 
 
