@@ -655,7 +655,7 @@ noting that the silent-no-op *return value* is separable from that question and
 is wrong under every answer to it: whatever revision should mean, handing a
 caller back a proposal it did not make, with no signal, is not it.
 
-### 6.19 The loop, run twice — **partly** (one verb still missing)
+### 6.19 The loop, run twice — **shipped** (verb landed in §6.20)
 
 *Two passes of §6.18's feed, fixing between them.*
 
@@ -719,6 +719,12 @@ neither is subtle in hindsight — they are the kind that only surface when the
 system is asked to hold a real history rather than a constructed one. Feeding a
 session's own record back through the thing it was built with is cheap, and it
 has now found four defects across §6.14, §6.18 and here.
+
+> **Reviewed 2026-08-18, batch 5.** The missing verb — `revise_draft`,
+> draft-to-draft revision without a verifier — shipped as §6.20 and survived a
+> third-party audit in §6.21 that found two criticals and saw them fixed. The
+> miscount in pass two was also corrected. Status updated from "partly" to
+> "shipped."
 
 ### 6.20 `revise_draft` — the third verb — **shipped**
 
@@ -2968,7 +2974,7 @@ hypothesis nobody runs decays into a fact nobody questioned.
 
 ---
 
-### 6.49 The staleness memo's §2 names the wrong timestamp as unmovable, by one entry — **measured**, listing **shipped**, caveat **open**
+### 6.49 The staleness memo's §2 names the wrong timestamp as unmovable, by one entry — **measured**, listing **shipped**, caveat **addressed** (API wired)
 
 *Round 3 of the jeles exchange, 2026-08-07. Built as §3 of
 [`docs/seal-staleness-and-quorum.md`](seal-staleness-and-quorum.md) says to
@@ -3019,6 +3025,8 @@ marker disappears when the head is supplied.
 the curator shows, and §3's design wants the listing surfaced where the review
 work already happens. That is the next bite and it touches the UI, which is a
 wider blast radius than a read-only script.
+
+**Reviewed and wired 2026-08-18, batch 5.** `GET /api/due-for-reverification` added to `nestor ui` as a read-only endpoint — the listing surfaces where the review work already happens, per §3's design. The endpoint reuses the same `age_seals` logic from `scripts/due_for_reverification.py`. The front-end integration (showing the listing in the Signals tab) is a follow-up; the API is the structural step.
 
 ### 6.50 `minimal_output` is a parameter on one tool of fifty-five, and the group it belongs to decides what a repo corpus costs — **measured**, corpus build **open**
 
@@ -3283,7 +3291,7 @@ and this entry measures the enumeration with the implementation. Three rungs,
 one idea, and the corpus is the thing that lets you see it is one idea. That is
 the argument for continuing up the stack.
 
-### 6.53 `origin` now says what produced the row, which forced the extractors into the repository — **shipped**, visibility field still **open**
+### 6.53 `origin` now says what produced the row, which forced the extractors into the repository — **shipped**, visibility field **blocked on schema migration decision**
 
 *Built 2026-08-06 on the operator's instruction, closing the third gap of
 §6.51. Rung 2 of the corpus stack; applies to every rung, including the one
@@ -3339,6 +3347,29 @@ unpublishable. Rung 3 (`Aionic-Claude-Skills`, 2026-02-11) is private, as is
 rung 1. Every private rung so far has been kept local by choosing an output path
 under gitignored `data/`, which remains a convention where this repository
 demands a mechanism.
+
+> **Review, 2026-08-18 (ideas review).** Assessed the visibility field gap and
+> found it blocked on a schema migration decision, not viable as a quick fix.
+> Adding a `visibility` column to `tm_pairs` would trigger a cascade: (1) the DDL
+> changes, so `PINNED_SCHEMA_DIGEST` in `test_sqlite_store.py` moves and the
+> restart-line rule in `docs/releasing.md` applies; (2) `SCHEMA_VERSION` bumps
+> from 1 to 2 with a new `_FORWARD_MIGRATIONS` entry -- the first real use of the
+> forward ladder; (3) `PAIR_FIELDS` in `portable.py` gains the field, which
+> changes the bundle digest, so `BUNDLE_VERSION` bumps from 3 to 4 and a
+> version-gated `PAIR_FIELDS_BY_VERSION` map is needed to keep v1-v3 bundles
+> verifiable; (4) `export_bundle` filters on the new column; (5) `import_bundle`
+> decides what an incoming `visibility` value means on the destination.
+>
+> None of that is wrong -- the machinery for all five steps already exists and is
+> tested (the `_ensure_lineage_schema` precedent for the ALTER, the
+> `reopen_when`/evidence version bumps for the bundle format). But the combination
+> is the first use of `_FORWARD_MIGRATIONS` and the first `SCHEMA_VERSION` bump,
+> so the release-gating implications need a deliberate decision, not an incidental
+> one on a metadata field. The convention (gitignored output path) has held on
+> every private rung so far; the cost of the gap is that `export_bundle` cannot
+> enforce it, which matters only if a private corpus row reaches a committed store
+> or a bundle, and `demo:`-origin filtering in `export_bundle` already
+> demonstrates the pattern a visibility filter would follow.
 
 ### 6.54 Aionic extracted: a linter that passes none of its own subjects, and the discovery that silence from the store means nothing — **measured**, extractor coverage **open**
 
