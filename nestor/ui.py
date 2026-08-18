@@ -615,6 +615,103 @@ def _ledger_view(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
             "unreadable": ledger_mod.unreadable()}
 
 
+# -- staleness listing (§6.49) ---------------------------------------------
+# Constants and helpers inlined from ``scripts/due_for_reverification.py`` so
+# the UI endpoint does not import from a scripts/ path.  The canonical copy
+# lives there; these must stay in sync.
+
+#: Kinds that record a human deciding a pair is good.
+_FRESHENING = ("seal", "countersign")
+
+#: Kinds that end a pair's life — not stale, finished.
+_RETIRING = ("reject_pair", "reject_match", "supersede", "unseal", "seal_replaced")
+
+
+def _when_entry(entry: dict) -> datetime | None:
+    """Parse an entry's ``ts`` into an aware datetime, or None."""
+    ts = entry.get("ts")
+    if not isinstance(ts, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _age_seals(entries: list[dict], now: datetime) -> list[dict]:
+    """Newest freshening decision per pair, sorted by age descending.
+
+    Retired pairs are dropped.  A re-verification resets the clock.
+    """
+    latest: dict[str, dict] = {}
+    retired: set[str] = set()
+    last_index = len(entries) - 1
+    for i, e in enumerate(entries):
+        pair_id = str(e.get("pair_id") or "")
+        if not pair_id:
+            continue
+        kind = e.get("kind")
+        if kind in _RETIRING:
+            retired.add(pair_id)
+            continue
+        if kind not in _FRESHENING:
+            continue
+        when = _when_entry(e)
+        if when is None:
+            continue
+        prior = latest.get(pair_id)
+        if prior is None or when >= prior["last"]:
+            latest[pair_id] = {
+                "pair_id": pair_id,
+                "verifier": str(e.get("verifier") or ""),
+                "last": when,
+                "kind": kind,
+                "tail": i == last_index,
+            }
+    rows = [r for p, r in latest.items() if p not in retired]
+    for r in rows:
+        r["days"] = (now - r["last"]).days
+    return sorted(rows, key=lambda r: r["days"], reverse=True)
+
+
+def _due_for_reverification(app: App, query: Mapping[str, Any],
+                            payload: Mapping[str, Any]) -> dict:
+    """Read-only listing of sealed pairs old enough to merit re-checking.
+
+    Surfaces ``scripts/due_for_reverification.py``'s logic as an API endpoint
+    the Signals tab can consume.  No score, no weight, no multiplier — just a
+    list.  The chain must verify; if it does not, the response says so.
+    """
+    threshold = max(0, _int(query, "older_than", 90))
+    expected_head = _str(query, "expected_head") or None
+
+    ok, detail = ledger_mod.verify(expected_head=expected_head)
+    if not ok:
+        return {"error": "chain does not verify", "chain_ok": False,
+                "detail": str(detail)[:200]}
+
+    # Pull ALL entries (no kind filter) — age_seals needs both freshening and
+    # retiring kinds to compute which pairs are still live.
+    entries = ledger_mod.entries(limit=100_000)
+    now = datetime.now(timezone.utc)
+    rows = _age_seals(entries, now)
+    due = [r for r in rows if r["days"] >= threshold]
+
+    serialised = []
+    for r in due:
+        serialised.append({
+            "pair_id": r["pair_id"],
+            "verifier": r["verifier"],
+            "last": r["last"].isoformat(),
+            "days": r["days"],
+            "tail": r["tail"],
+        })
+
+    return {"rows": serialised, "chain_ok": True,
+            "threshold_days": threshold}
+
+
 def _replaced_seals(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Seals somebody overwrote — the one thing the store keeps no trace of.
 
@@ -1360,6 +1457,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/pair"): _pair,
     ("GET", "/api/queue"): _queue,
     ("GET", "/api/ledger"): _ledger_view,
+    ("GET", "/api/due-for-reverification"): _due_for_reverification,
     ("GET", "/api/replaced-seals"): _replaced_seals,
     ("GET", "/api/rejections"): _rejections,
     ("GET", "/api/export"): _export,
