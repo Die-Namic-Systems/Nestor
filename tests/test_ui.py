@@ -668,6 +668,41 @@ def test_rejections_are_summarised_for_the_page(filled):
     assert out["queries"][0]["rejections"] == 2
 
 
+# --- staleness listing (§6.49) ---------------------------------------------
+
+def test_due_for_reverification_returns_rows_for_aged_seals(filled):
+    """A sealed pair older than the threshold shows up in the listing."""
+    # The filled fixture sealed "the annual invoice" just now, so it is
+    # 0 days old.  Ask for seals >= 0 days to include it.
+    status, out = get(filled, "/api/due-for-reverification", older_than="0")
+    assert status == 200
+    assert out["chain_ok"] is True
+    assert out["threshold_days"] == 0
+    assert len(out["rows"]) >= 1
+    row = out["rows"][0]
+    assert "pair_id" in row and "verifier" in row and "last" in row
+    assert row["days"] >= 0
+    assert isinstance(row["tail"], bool)
+
+
+def test_due_for_reverification_older_than_filters(filled):
+    """The default 90-day threshold excludes a just-sealed pair."""
+    status, out = get(filled, "/api/due-for-reverification")
+    assert status == 200
+    assert out["chain_ok"] is True
+    assert out["threshold_days"] == 90
+    # The sealed pair was created moments ago — it must NOT appear at 90 days.
+    assert out["rows"] == []
+
+
+def test_due_for_reverification_survives_read_only(filled):
+    """GET endpoints survive --read-only; this one must too."""
+    filled.read_only = True
+    status, out = get(filled, "/api/due-for-reverification", older_than="0")
+    assert status == 200
+    assert out["chain_ok"] is True
+
+
 def test_the_numeric_check_tells_the_page_the_figure_was_half_read(filled):
     """The matcher searches for a number rather than requiring one, so a typo
     becomes a real figure. The page can only warn about it if the API says so."""
