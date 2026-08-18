@@ -391,12 +391,14 @@ def main() -> int:
     say(f"{line}")
     say(f"   → {', '.join(sorted(locks))}")
     tito = glossary.locks_in_text("se come con buen apetito", ES, EN)
-    gap("Tito" in tito, "a short lock fires inside a longer word")
+    claim("Tito" not in tito,
+          "a short lock no longer fires inside a longer word (§6.38 closed)")
     say("\n   Her uncle is Tito. The notebook is a recipe notebook:")
-    say(f"   'se come con buen apetito'  →  {RED}{tito}{OFF}")
-    note("`t.lower() in lower` is a substring with no word boundary, and the "
-         "glossary is tier 2's constraint — so a sentence about appetite reaches "
-         "the draft engine carrying an instruction about a man. IDEAS §6.38.")
+    say(f"   'se come con buen apetito'  →  {GREEN}{tito}{OFF}")
+    note("Word-boundary matching (IDEAS §6.38, closed): `locks_in_text` now uses "
+         "\\\\b anchors, so 'Tito' no longer fires inside 'apetito'. The sentence "
+         "about appetite no longer reaches the draft engine carrying an instruction "
+         "about a man.")
 
     beat(10, "Somebody living.")
     say("Her aunt called. She has met somebody — Tony, born 1972.")
@@ -419,19 +421,20 @@ def main() -> int:
          "use. IDEAS §6.39 — the smallest thing on the open list.")
 
     beat(11, "What the fixture is for.")
-    say("Five gaps, across all three recipes, and not one of them is a bug in how")
+    say("Four gaps remain, across all three recipes, and not one of them is a bug in how")
     say("this handles teams:")
     say(f"  {DIM}§6.35{OFF}  a revision she cannot see, and a deferral nobody reads")
     say(f"  {DIM}§6.37{OFF}  an alias overwritten, where the numeric recipe keeps it")
-    say(f"  {DIM}§6.38{OFF}  a lock that fires inside a word")
+    say(f"  {GREEN}§6.38{OFF}  {GREEN}closed{OFF} — word-boundary matching prevents locks inside words")
     say(f"  {DIM}§6.39{OFF}  no verb for a person nobody has verified")
     say("")
-    say("Every one is a state a business deployment either never reaches or "
+    say("Every remaining one is a state a business deployment either never reaches or "
         "reaches with a colleague standing next to it. None was visible until")
     say("somebody's actual life was in the store — which is the shape of every "
         "archive, every estate, every notebook somebody is trying to finish")
     say("before their kid stops asking.")
-    note("All open. This fixture fails the build if any of them closes quietly.")
+    note("Four open, one closed. This fixture fails the build if any of them "
+         "closes quietly.")
 
     if not args.keep:
         shutil.rmtree(workdir, ignore_errors=True)
