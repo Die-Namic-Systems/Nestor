@@ -17,6 +17,7 @@ tests drive the real checkout when present, marked skip otherwise.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 import subprocess
@@ -24,6 +25,8 @@ import sys
 import textwrap
 
 import pytest
+
+from nestor import keyring as keyring_mod
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
@@ -162,6 +165,65 @@ def test_it_never_imports_the_repo_it_reads():
         assert forbidden not in body, f"the audit must not {forbidden}"
     assert re.search(r"(?<!literal_)\beval\(", body) is None
     assert "ast.parse" in body
+
+
+# --- IDEAS §6.98: an ambient NESTOR_KEYRING must not produce a false FAILS --
+
+def _fake_jeles_repo(tmp_path) -> pathlib.Path:
+    """A minimal, self-contained stand-in for a jeles checkout — just enough
+    for :func:`AUDIT.read_rules` to succeed, so the probes run without needing
+    the real repository (not a dependency, not in CI, per this file's own
+    module docstring)."""
+    repo = tmp_path / "jeles"
+    (repo / "jeles" / "reactions").mkdir(parents=True)
+    (repo / "jeles" / "_independence.py").write_text(
+        "MIN_INDEPENDENT_SOURCES = 2\n")
+    (repo / "jeles" / "reactions" / "conflict_scan.py").write_text(textwrap.dedent("""\
+        PROPOSAL_VERIFICATION_KIND = "human"
+        _NON_WITNESS = frozenset({"a-search-engine.example"})
+        _ALLOWED_ARGS = {"put_nugget": frozenset({"question", "answer"})}
+        """))
+    (repo / "jeles" / "corpus.py").write_text(textwrap.dedent("""\
+        def put_nugget(question, answer, verification_kind="human"):
+            pass
+        """))
+    return repo
+
+
+def test_an_ambient_keyring_does_not_produce_a_false_fails(tmp_path):
+    """The exact second false verdict IDEAS §6.98 records: JELES-INDEPENDENCE
+    seals as ``verifier="one-person"`` in-process. With a real ``NESTOR_KEYRING``
+    exported — correct for a real deployment — that name is not registered
+    anywhere, ``memory.add_pair`` used to raise ``UnknownVerifierError``, the
+    probe caught its own failure, and the audit published 'jeles fails an
+    independence clause' from a fault that was the harness's, not jeles'.
+
+    Run against the unfixed script this reports the clause FAILING with 'the
+    probe itself raised UnknownVerifierError'. Fixed, it reads 'differently'
+    regardless of what the calling shell has exported.
+    """
+    ring = keyring_mod.Keyring(path=str(tmp_path / "keys.json"))
+    ring.add("rita")                        # a real person; not a probe's name
+    ring.save()
+    env = {**os.environ, "NESTOR_KEYRING": str(ring.path)}
+    env.pop("NESTOR_SEAL_KEY", None)
+
+    done = subprocess.run([sys.executable, str(SCRIPT), "--repo",
+                           str(_fake_jeles_repo(tmp_path))],
+                          capture_output=True, text=True, timeout=180, env=env)
+    out = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout + done.stderr)
+    assert "the probe itself raised" not in out, (
+        "a probe died and the audit reported it as an ordinary verdict: " + out)
+    # JELES-WITNESS legitimately prints "UnknownVerifierError" — its "keyring"
+    # branch installs its own explicit keyring and *expects* an unregistered
+    # witness to be refused. The bug this guards is specific to
+    # JELES-INDEPENDENCE, which never touches a keyring on purpose.
+    tail = out.split("JELES-INDEPENDENCE", 1)[-1].split("JELES-DEFAULT")[0]
+    assert "FAILS" not in tail, out
+    assert "UnknownVerifierError" not in tail, out
+    assert "differently" in tail, out
+    assert "0 failing" in out, out
+    assert done.returncode == 0, out
 
 
 # --- against the real checkout ---------------------------------------------

@@ -46,6 +46,7 @@ a thief's forgeries as human-verified.
 """
 from __future__ import annotations
 
+import contextlib
 import hmac
 import json
 import os
@@ -54,7 +55,7 @@ import secrets
 import stat
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Iterator, Optional
 
 from .errors import NestorError
 
@@ -521,6 +522,58 @@ def preflight() -> Optional[Keyring]:
 def enabled() -> bool:
     """Whether per-verifier identity is in force."""
     return get_keyring() is not None
+
+
+@contextlib.contextmanager
+def isolated() -> Iterator[None]:
+    """Ignore any ambient ``NESTOR_KEYRING`` (and any injected keyring) for the
+    duration of the block, restoring both exactly as found on the way out.
+
+    For a harness that seals under a synthetic verifier a real deployment
+    never registered — an audit probe's ``"someone"``, a bench's ``"bench"``.
+    Run those calls with a real ``NESTOR_KEYRING`` exported (the correct
+    configuration for a real deployment, and the shape ``docs/local-fleet.md``
+    tells an operator to expect) and :meth:`Keyring.signing_entry` raises
+    :class:`UnknownVerifierError` — there is no key for a name nobody meant to
+    register. That is a fault in the harness reading the deployment's config,
+    not in the thing the harness measures, and IDEAS.md §6.98 records it
+    reaching a published verdict twice before anyone noticed: an audit
+    reporting **2 failing** with the variable exported and **0 failing**
+    without it, and a second, un-rerun audit that had made the same mistake in
+    the same shell.
+
+    This closes it the way ``scripts/dogfood_store.py`` already closes the
+    equivalent gap for the ambient *store* (``storage.set_store`` in a temp
+    root, never the developer's ``data/nestor.db``): isolate first, so the
+    harness's own fixture key — already set via ``NESTOR_SEAL_KEY``, and
+    already deliberately not a secret — is what signs, regardless of what the
+    calling shell happens to have exported.
+
+    Popping ``NESTOR_KEYRING`` rather than injecting an empty
+    :class:`Keyring` matters: an *injected* keyring, even an empty one, still
+    makes :meth:`Keyring.signing_entry` refuse every name, because "a keyring
+    is installed" is exactly the condition that turns an unknown verifier into
+    a refusal. What the isolation needs is the OTHER state — no keyring at
+    all — which :func:`get_keyring` only returns when neither an injection nor
+    ``NESTOR_KEYRING`` names one.
+
+    A subprocess launched with ``subprocess.run(...)`` and no explicit ``env=``
+    inherits ``os.environ`` at call time, so a probe spawned from inside this
+    block does not see ``NESTOR_KEYRING`` either — the same isolation reaches
+    a probe that runs in a fresh interpreter on purpose (to avoid the
+    process-wide ``set_keyring`` deciding a second question from the first).
+    """
+    global _injected
+    had_env = "NESTOR_KEYRING" in os.environ
+    saved_env = os.environ.pop("NESTOR_KEYRING", None)
+    saved_injected = _injected
+    _injected = None
+    try:
+        yield
+    finally:
+        _injected = saved_injected
+        if had_env:
+            os.environ["NESTOR_KEYRING"] = saved_env  # type: ignore[assignment]
 
 
 def same_key(a: bytes, b: bytes) -> bool:

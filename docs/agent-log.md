@@ -5822,7 +5822,7 @@ Chromium tab — `test_ordinary_row_detail_card_has_no_null_text_nodes`,
 `test_detail_panel_source_routes_through_append_kids`, and
 `test_append_kids_skips_null_generically`.
 
-### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **open**
+### 6.98 `bench/` and `scripts/audit_*.py` inherit the ambient keyring, and report a false `FAILS` — **measured**, fix **shipped**
 
 *Found 2026-08-12, while standing up an instance with per-verifier keys on.*
 With `NESTOR_KEYRING` exported — which is the correct configuration for a real
@@ -5874,6 +5874,20 @@ ran under it**, not only the case that surfaced it. The instinct is to fix the
 example in front of you, and the example is the one you already know about.
 Nothing here flagged the second audit: it had completed, exit 0, with a verdict
 formatted exactly like a true one.
+
+**Shipped.** `nestor.keyring.isolated()` (new context manager) pops
+`NESTOR_KEYRING` and clears any injected keyring for the duration of a block,
+restoring both on exit — modelled on `scripts/dogfood_store.py`'s existing
+isolation of the ambient store. Both audit scripts wrap their probe loops in
+`with keyring.isolated()`, so a synthetic verifier (`"someone"`,
+`"a-machine-with-the-key"`, `"one-person"`, `"audit"`) seals via the shared
+`NESTOR_SEAL_KEY` regardless of what the calling shell has exported.
+`bench/harness.py`'s `seal_key()` and `bench/retrieval_quality.py`'s
+`seal_corpus()` do the same for their synthetic `"bench"` verifier. Four new
+tests in `tests/test_keyring.py` cover `isolated()` directly (env-var, injected,
+missing, exception-safety); one each in `test_audit_against_constitution.py` and
+`test_audit_against_jeles.py` reproduce the exact false-FAILS regression — export
+a real keyring, run the audit, assert 0 failing and no `UnknownVerifierError`.
 
 ### 6.99 An LLM standing in for the embedder is self-consistent inside a conversation and drifts between them — **measured**, fix **open**
 

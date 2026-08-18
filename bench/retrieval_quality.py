@@ -69,7 +69,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 # good for one process's first import, not for every test that imports it.
 os.environ.setdefault("NESTOR_SEAL_KEY", "retrieval-quality-fixture-key-not-a-secret")
 
-from nestor import cascade, calibrate, memory                   # noqa: E402
+from nestor import cascade, calibrate, keyring, memory          # noqa: E402
 from nestor.matcher import Matcher, StringMatcher, matcher_audit_fields  # noqa: E402
 from nestor.sqlite_store import SqliteStore                     # noqa: E402
 from recipes import patch_review                                # noqa: E402
@@ -128,8 +128,18 @@ def seal_corpus(root: pathlib.Path, rows: list[dict], source_lang: str,
     fixture, not a person — nothing here is a human's decision, and the
     covenant (``docs/agent-guide.md``: "you may propose, you may not confirm")
     applies to a measurement tool exactly as it applies to an agent.
+
+    ``FIXTURE_VERIFIER`` is not a person and so is not in anybody's real
+    keyring — sealed under a real deployment's exported ``NESTOR_KEYRING``,
+    ``memory.add_pair`` would raise :class:`nestor.keyring.UnknownVerifierError`
+    for a name nobody meant to register. Isolated here the way
+    ``nestor.keyring.isolated`` isolates the audit scripts (IDEAS §6.98): the
+    ambient keyring must never decide whether this bench's own fixture key
+    signs.
     """
     os.environ.setdefault("NESTOR_SEAL_KEY", FIXTURE_KEY)
+    os.environ.pop("NESTOR_KEYRING", None)
+    keyring.set_keyring(None)
     root.mkdir(parents=True, exist_ok=True)
     cascade.set_ledger_path(str(root / "ledger.jsonl"))
     store = SqliteStore(str(root / "nestor.db"))
