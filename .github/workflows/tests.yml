@@ -110,10 +110,26 @@ jobs:
           # Floor, not target: measured 88.4% on master. Ratchet up, never down.
           coverage report --fail-under=85
 
+  js-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No npm install — Node's built-in test runner (node:test) needs nothing
+      # beyond what ships with Node itself.  The functions under test live in
+      # nestor/ui_pure.js with a CommonJS module.exports block at the bottom.
+      - name: Run JS unit tests (ui_pure)
+        run: node --test 'tests/js/*.js'
+
   # Aggregate gate: branch protection requires a single check named "test"
   # across the whole fleet. Green only when lint and every matrix leg are.
   test:
-    needs: [test-matrix, lint]
+    needs: [test-matrix, lint, js-test]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "lint and all matrix legs green"
+      - run: echo "lint, all matrix legs, and JS tests green"

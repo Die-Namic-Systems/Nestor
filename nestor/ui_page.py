@@ -9,19 +9,43 @@ All data is written into the DOM through ``textContent`` (see the ``h`` helper)
 rather than ``innerHTML``. Sealed text is arbitrary human input and the curator
 view exists precisely to look at rows a stranger may have written.
 
-The Graph tab's Cytoscape.js library is the one exception to "everything
-inline in this module": it is vendored as a file
-(``nestor/vendor/cytoscape.min.js``, see ``nestor/vendor/README.md``) rather
-than pasted into this string, and :func:`_read_vendor_script` reads it back in
-and splices it into ``_TEMPLATE`` at import time, so the bytes the browser
-receives are still fully self-contained — the served page never fetches
-anything, it is just assembled from two files on disk instead of one.
+Two pieces of JavaScript live in their own files rather than in this template
+string, and :data:`PAGE` inlines them at import time so the served page never
+fetches anything — it is just assembled from three files on disk:
+
+* **Cytoscape.js** (``nestor/vendor/cytoscape.min.js``): vendored, MIT — see
+  ``nestor/vendor/README.md``.
+* **ui_pure.js** (``nestor/ui_pure.js``): the pure functions (mood, hex,
+  relative-age, the frozen signing-contract encoder) that the Node.js test
+  suite (``tests/js/``) imports directly.  Nothing in that file may reference
+  the DOM; the ``module.exports`` block at the bottom is inert in the browser
+  and makes the same functions ``require()``-able under Node.
 """
 from __future__ import annotations
 
 import pathlib
 
-_VENDOR_DIR = pathlib.Path(__file__).resolve().parent / "vendor"
+_MODULE_DIR = pathlib.Path(__file__).resolve().parent
+_VENDOR_DIR = _MODULE_DIR / "vendor"
+
+
+def _read_pure_functions() -> str:
+    """The pure-function module, read at import time for inlining.
+
+    ``nestor/ui_pure.js`` is the single source of truth for the functions it
+    defines (mood, hex, signing-contract encoding, relative-age).  It is
+    inlined here so the served page remains fully self-contained, and it is
+    also importable under Node.js (``require("./ui_pure.js")``) so the same
+    code runs in CI unit tests without a browser.
+    """
+    path = _MODULE_DIR / "ui_pure.js"
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"{path} is missing — nestor.ui_page cannot build its served page "
+            f"without the pure-function module it inlines ahead of the main "
+            f"script block.") from exc
 
 
 def _read_vendor_script(name: str = "cytoscape.min.js") -> str:
@@ -608,6 +632,13 @@ body.fleet-review .mem-list .decision-card:nth-child(6) { animation-delay: 0.2s;
      one dialog in the page a client signature is never produced without. -->
 <dialog id="sign-dialog"><div id="sign-dialog-body"></div></dialog>
 
+<!-- Pure functions (nestor/ui_pure.js): mood, hex, relative-age, the
+     frozen signing-contract encoder.  Inlined by _read_pure_functions()
+     as its own script element ahead of the main block, so they are globals
+     when the app script runs — exactly as if they were still pasted here.
+     Under Node.js the same file is require()-able for CI unit tests. -->
+<!--UI_PURE_SCRIPT-->
+
 <!-- Cytoscape.js (MIT, vendored — nestor/vendor/README.md), inlined verbatim
      by _read_vendor_script() below, as its own inline script element ahead
      of the app script below it: the CSP this page is served with has no
@@ -693,20 +724,10 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             keyDialogMode: "menu" };
 
 /* ---------- tiny DOM helper: every value lands as text, never as markup ---- */
-function relativeAge(iso) {
-  if (!iso) return "";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
-  const sec = Math.floor((Date.now() - t) / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.floor(sec / 60);
-  if (min < 60) return min + "m ago";
-  const hr = Math.floor(min / 60);
-  if (hr < 48) return hr + "h ago";
-  const day = Math.floor(hr / 24);
-  if (day < 14) return day + "d ago";
-  return iso.slice(0, 10);
-}
+// relativeAge, hex, hexToBytes, hasLoneSurrogate, pyJsonString, pyJsonArray,
+// frozenMessageBytes, STATE_MOOD, askMood, moodFromState — all now live in
+// nestor/ui_pure.js (inlined by ui_page.py ahead of this block) so they are
+// CI-testable under Node.js without a browser.
 
 // Native Element.append() stringifies null/undefined/false arguments into a
 // literal text node ("null"/"false") instead of skipping them. h()'s kid loop
@@ -842,18 +863,7 @@ function ed25519Supported() {
   return _ed25519Support;
 }
 
-function hex(buf) {
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-function hexToBytes(s) {
-  const clean = (s || "").trim().replace(/\s+/g, "");
-  if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) {
-    throw new Error("expected hex (0-9, a-f, A-F), an even number of digits");
-  }
-  const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
-  return out;
-}
+// hex, hexToBytes — now in ui_pure.js
 
 async function generateBrowserIdentity(verifierName, persist) {
   const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, false, ["sign", "verify"]);
@@ -908,78 +918,9 @@ async function importBrowserIdentity(verifierName, privHex, pubHexOrEmpty, persi
   return record;
 }
 
-/* ---------- the frozen wire contract, reproduced byte-for-byte ------------
- *
- * signing._message is FROZEN (nestor/signing.py):
- *   json.dumps([source_norm, target_text, verifier],
- *              separators=(",", ":"), ensure_ascii=False).encode("utf-8")
- *
- * JSON.stringify is not relied on here — it is not proven byte-identical to
- * json.dumps for arbitrary input, and Nestor accepts arbitrary human-typed
- * target text, so there is no smaller "allowed" character set to restrict to
- * instead. pyJsonString hand-encodes each string the way CPython's json.dumps
- * does for exactly this call shape: escape `"`, `\`, and code points below
- * 0x20 (`\b\t\n\f\r` where Python uses those, `\u00XX` otherwise), and emit
- * every other code point literally (ensure_ascii=False — U+2028/U+2029, 0x7f,
- * and non-ASCII letters all pass through unescaped, exactly as json.dumps
- * leaves them). Checked, not assumed: this table was run against live
- * CPython 3.11 and this Chromium build side by side — matching strings AND
- * matching UTF-8 bytes — for a plain-ASCII case, a non-ASCII letter, an
- * embedded quote, raw control bytes 0x00/0x1f/0x7f, a backslash, and a
- * non-BMP emoji, before being relied on here. tests/test_client_signed_seals.py
- * pins the same table from the Python side.
- *
- * The one case Python and a naive JS port CANNOT agree on: an unpaired UTF-16
- * surrogate. Python's str.encode("utf-8") refuses one outright
- * (UnicodeEncodeError, no surrogatepass); TextEncoder silently replaces it
- * with U+FFFD. hasLoneSurrogate refuses it client-side, with a clear message,
- * before any bytes are built — the mandated alternative to silently producing
- * bytes Python could never have produced from the same string.
- */
-function hasLoneSurrogate(s) {
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c >= 0xd800 && c <= 0xdbff) {                 // high surrogate
-      const next = s.charCodeAt(i + 1);
-      if (Number.isNaN(next) || next < 0xdc00 || next > 0xdfff) return true;
-      i++;                                            // paired — skip the low half
-    } else if (c >= 0xdc00 && c <= 0xdfff) {           // unpaired low surrogate
-      return true;
-    }
-  }
-  return false;
-}
-
-function pyJsonString(s) {
-  let out = '"';
-  for (const ch of s) {          // iterates by CODE POINT (keeps a surrogate
-                                  // pair together), matching Python's str
-    const cp = ch.codePointAt(0);
-    if (ch === '"') out += '\\"';
-    else if (ch === '\\') out += '\\\\';
-    else if (cp === 0x08) out += '\\b';
-    else if (cp === 0x09) out += '\\t';
-    else if (cp === 0x0a) out += '\\n';
-    else if (cp === 0x0c) out += '\\f';
-    else if (cp === 0x0d) out += '\\r';
-    else if (cp < 0x20) out += '\\u' + cp.toString(16).padStart(4, '0');
-    else out += ch;
-  }
-  return out + '"';
-}
-function pyJsonArray(values) { return '[' + values.map(pyJsonString).join(',') + ']'; }
-
-function frozenMessageBytes(sourceNorm, targetText, verifierName) {
-  for (const [label, v] of [["the normalized source", sourceNorm], ["the target text", targetText],
-                             ["the verifier name", verifierName]]) {
-    if (hasLoneSurrogate(v)) {
-      throw new Error(label + " contains an unpaired UTF-16 surrogate. The frozen signing " +
-        "contract cannot represent that the same way in Python and in the browser (Python " +
-        "refuses to encode it at all) — remove or replace that character before sealing.");
-    }
-  }
-  return new TextEncoder().encode(pyJsonArray([sourceNorm, targetText, verifierName]));
-}
+// hasLoneSurrogate, pyJsonString, pyJsonArray, frozenMessageBytes — now in
+// ui_pure.js (see the block-comment at the top of that file for the full
+// rationale and the Python-side contract they reproduce byte-for-byte).
 
 async function signWithBrowserKey(sourceNorm, targetText, verifierName) {
   if (!S.browserKey) throw new Error("no browser key is unlocked");
@@ -3330,46 +3271,12 @@ function nestorMood(m) {
   if (f) f.setAttribute("data-mood", m || "idle");
 }
 
-// Nestor's expression is a function of the verdict on screen, never decoration:
-// he settles when a person vouched, is unconvinced by his own draft or a figure
-// that will not reconcile, stays politely blank when there is simply nothing to
-// serve, and alarms only at a seal whose signature does not check out.
-// Recomputed each render, so the face can never disagree with the card it sits
-// above — which is why it derives each recipe's state exactly as that recipe's
-// result renderer does (translateResult / entityResult / numericResult), rather
-// than second-guessing from `verified` (which for numeric means only "a baseline
-// exists," not "the figure is within tolerance").
-const STATE_MOOD = { sealed: "pleased", draft: "unconvinced", rejected: "unconvinced", pending: "idle" };
-
-function askMood(r) {
-  // A forged seal — a candidate that says sealed but would not serve — is the
-  // one alarming case, and the only one worth interrupting a calm face for. A
-  // plain "nothing matched" is a refusal, not an alarm.
-  if ((r.matches || []).some((m) => m && m.status === "sealed" && m.servable === false)) return "alert";
-  let state;
-  if (r.recipe === "entity") {
-    state = r.sealed ? "sealed" : (r.provenance && r.provenance.suggestion ? "draft" : "pending");
-  } else if (r.recipe === "numeric") {
-    state = r.baseline == null ? "pending" : (r.within_tolerance ? "sealed" : "rejected");
-  } else {  // translate, match
-    state = (r.passage && r.passage.state) || (r.served ? "sealed" : "pending");
-  }
-  return STATE_MOOD[state] || "idle";
-}
-
-function moodFromState() {
-  if (S.tab === "ask" && S.result) return askMood(S.result);
-  if (S.tab === "memory" && S.detail) {
-    const d = S.detail;
-    if (d.status === "sealed" && d.signature_valid === false) return "alert";
-    if (d.status === "sealed") return "pleased";
-    if (d.status === "draft" || d.status === "rejected") return "unconvinced";
-  }
-  return "idle";
-}
+// STATE_MOOD, askMood, moodFromState — now in ui_pure.js (inlined above).
+// moodFromState takes (tab, result, detail) so it is testable without a DOM;
+// render() passes the current state below.
 
 function render() {
-  nestorMood(moodFromState());
+  nestorMood(moodFromState(S.tab, S.result, S.detail));
   tabs(); badges(); whoBox();
   document.body.classList.toggle("shell-memory", S.tab === "memory");
   document.body.classList.toggle("fleet-review", S.tab === "memory" && fleetGapReviewMode());
@@ -3491,6 +3398,10 @@ api("/api/state?session=" + encodeURIComponent(savedToken || "")).then((s) => {
 # Built once, at import time — same lifetime as the old plain-string PAGE, and
 # still one HTTP response with nothing left to fetch: the vendored library's
 # bytes are spliced in below rather than requested by the browser.
-PAGE = _TEMPLATE.replace(
-    "<!--CYTOSCAPE_VENDOR_SCRIPT-->",
-    "<script>\n" + _read_vendor_script() + "\n</script>")
+PAGE = (
+    _TEMPLATE
+    .replace("<!--UI_PURE_SCRIPT-->",
+             "<script>\n" + _read_pure_functions() + "\n</script>")
+    .replace("<!--CYTOSCAPE_VENDOR_SCRIPT-->",
+             "<script>\n" + _read_vendor_script() + "\n</script>")
+)
