@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.6.0](https://github.com/rudi193-cmd/Nestor/compare/v0.5.0...v0.6.0) (2026-08-18)
+
+
+### Added
+
+* fuzzy constraints_on — recover re-worded decisions (IDEAS §6.33/6.94/6.106) ([daf21a8](https://github.com/rudi193-cmd/Nestor/commit/daf21a8175f7add5c5733f0df5b399f4926a3da0))
+* fuzzy constraints_on — recover re-worded decisions (IDEAS §6.33/6.94/6.106) ([#135](https://github.com/rudi193-cmd/Nestor/issues/135)) ([d4f166d](https://github.com/rudi193-cmd/Nestor/commit/d4f166d1ecd4cbd61ebbc0302a4f301e322d20d4))
+
 ## [0.5.0](https://github.com/rudi193-cmd/Nestor/compare/v0.4.0...v0.5.0) (2026-08-17)
 
 

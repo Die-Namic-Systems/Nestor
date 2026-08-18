@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 421,
+    "pairs": 423,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-18T00:00:00+00:00",
-  "digest": "e64a48314f823f20b19acd1f4bfb5b839a5d7f0082c0d1990ce06e14eb2d148a",
+  "digest": "337d5351653795ed898f85bfa2e80f6cbe27c8cf8babf5a7796bb6fc95ed5538",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -32,6 +32,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. The decision files are out of corpus scope by design. The dogfood store is its own store with its own builder (scripts/dogfood_store.py + dogfood_common.py), reading the same checkout through a separate path. Documented in the module docstring of scripts/corpus/common.py, citing docs/two-stores.md for the boundary.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "d78b516e-f7e4-51b1-8fc8-bba5a729b9a8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what should the default fuzzy_bar be for decision check",
+      "source_text": "What should the default fuzzy_bar be for decision check?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "0.55 — the triage calibrate's knee for the full dogfood corpus. The rewording bench's 0.45 was measured on 24 distinct decisions; on 418 decisions with many similarly-shaped questions, 0.45 produces skeleton false-positives (the same finding nestor.triage recorded). 0.55 eliminates observed wrong-keys while recovering close paraphrases (0.68+ correct matches observed). Configurable via --fuzzy-bar on the CLI, and fuzzy_bar= on the DecisionMemory constructor.",
       "verifier": "",
       "weight": 1.0
     },
@@ -88,6 +102,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "It names them. This was fixed in commit 0f7d1a1 (PR #98). The serve.py handler computes ignored keys from the wire arguments, and answer.propose names them in the reply -- ignored_fields lists all unread keys, seal_authority_refused calls out the seal-boundary fields (status, verifier, verification_kind, sealed, seal_sig), and the note says why they were dropped. Tests in tests/test_fix_propose_names_refused.py verify the wire contract.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "5ed41de6-4937-5e86-a67b-02957293146d",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should constraints_on do fuzzy matching when exactnorm match fails",
+      "source_text": "Should constraints_on do fuzzy matching when exact-norm match fails?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — constraints_on now accepts a fuzzy_bar parameter. When exact-norm match via memory_find fails and fuzzy_bar is set (and >0), it scans all candidates with the matcher and returns the highest-scoring one above the bar. The result dict now includes 'match' ('exact'|'fuzzy'|'none') and 'similarity' fields so callers can see how the match was made. A fuzzy match also includes 'matched_question' in the live dict so the caller sees the actual stored question.",
       "verifier": "",
       "weight": 1.0
     },

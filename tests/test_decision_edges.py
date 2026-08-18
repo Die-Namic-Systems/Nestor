@@ -243,3 +243,56 @@ def test_constraints_on_reports_live_decision(store):
     on_b = dm.constraints_on("may the machine seal its own work?")
     assert on_b["live"]["commitment"] == "no — author != witness"
     assert on_b["live"]["sealed"] is False        # only proposed so far
+
+
+# -- fuzzy constraints_on (§6.33/6.94/6.106) ---------------------------------
+
+def test_exact_match_returns_exact(store):
+    dm, _, _ = _two_decisions(store)
+    result = dm.constraints_on("may the machine seal its own work?",
+                               fuzzy_bar=0.45)
+    assert result["match"] == "exact"
+    assert result["similarity"] == 1.0
+    assert result["live"]["commitment"] == "no — author != witness"
+
+
+def test_fuzzy_match_finds_close_paraphrase(store):
+    dm, _, _ = _two_decisions(store)
+    result = dm.constraints_on("can the machine seal its own work?",
+                               fuzzy_bar=0.45)
+    assert result["match"] == "fuzzy"
+    assert result["similarity"] >= 0.45
+    assert result["live"]["commitment"] == "no — author != witness"
+    assert result["live"]["matched_question"] == "may the machine seal its own work?"
+
+
+def test_fuzzy_bar_none_falls_back_to_exact_only(store):
+    dm, _, _ = _two_decisions(store)
+    result = dm.constraints_on("can the machine seal its own work?",
+                               fuzzy_bar=None)
+    assert result["match"] == "none"
+    assert result["live"] is None
+
+
+def test_fuzzy_bar_on_instance_is_used_when_no_override(store):
+    dm = DecisionMemory(store, fuzzy_bar=0.45)
+    dm.propose("was the joke authored cold?", "yes — witnessed")
+    dm.propose("may the machine seal its own work?", "no — author != witness")
+    result = dm.constraints_on("can the machine seal its own work?")
+    assert result["match"] == "fuzzy"
+    assert result["live"]["commitment"] == "no — author != witness"
+
+
+def test_fuzzy_match_too_distant_returns_none(store):
+    dm, _, _ = _two_decisions(store)
+    result = dm.constraints_on("how does the database handle transactions?",
+                               fuzzy_bar=0.55)
+    assert result["match"] == "none"
+    assert result["live"] is None
+
+
+def test_fuzzy_bar_zero_disables_fuzzy(store):
+    dm = DecisionMemory(store, fuzzy_bar=0)
+    dm.propose("was the joke authored cold?", "yes — witnessed")
+    result = dm.constraints_on("was the joke authored cold or warm?")
+    assert result["match"] == "none" or result["match"] == "exact"

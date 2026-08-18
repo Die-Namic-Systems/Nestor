@@ -107,10 +107,20 @@ def build(store) -> dict:
     return dogfood_common.assert_nothing_sealed(store)
 
 
-def _bundle_digest(bundle: dict) -> str:
-    """Over the rows, not the whole envelope — timestamps must not churn the diff."""
-    rows = sorted((p["source_text"], p["target_text"], p["status"])
-                  for p in bundle["pairs"])
+def _bundle_digest(store) -> str:
+    """Over the content fields — ids and timestamps must not churn the diff.
+
+    Reads from the store rather than from the exported bundle, because the
+    bundle's ``PAIR_FIELDS`` does not carry ``reason`` — the portable format's
+    omission is fine for transfers, but a digest that cannot see ``origin`` or
+    ``reason`` is the whole defect §6.43 is about: a decision file can change
+    where its rows claim to have come from and ``--verify`` still exits 0.
+    """
+    pairs = store.memory_list(limit=100_000)
+    rows = sorted((p["source_text"], p["target_text"], p["status"],
+                   p.get("origin", ""), p.get("reason", ""))
+                  for p in pairs
+                  if not p.get("superseded_by"))
     return hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode()).hexdigest()[:16]
 
 
@@ -148,7 +158,7 @@ def main() -> int:
         # Pin it to the latest decision date — deterministic, and the digest is
         # over the rows, not this, so nothing downstream shifts.
         _pin_bundle_time(bundle)
-        digest = _bundle_digest(bundle)
+        digest = _bundle_digest(fresh)
         built = pathlib.Path(root) / "nestor.db"
 
         print(f"{len(files)} decision file(s) -> {stats['total']} pair(s): "
@@ -173,7 +183,7 @@ def main() -> int:
     committed = SqliteStore(str(STORE_PATH))
     try:
         committed.memory_init()
-        got = _bundle_digest(portable.export_bundle(committed))
+        got = _bundle_digest(committed)
         stats_committed = memory.stats(store=committed)
     finally:
         committed.close()

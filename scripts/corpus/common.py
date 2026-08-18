@@ -4,6 +4,18 @@ The per-repo files declare *shapes* — the structures a particular repository
 actually repeats. Everything mechanical lives here: walking the documents,
 splitting tables, and the load loop.
 
+**Scope: repository corpora, not the decision record.** The decision files in
+``docs/dogfood/decisions/*.json`` are deliberately absent from this extractor
+set. They are not an oversight — the dogfood store (``scripts/dogfood_store.py``
++ ``dogfood_common.py``) is its own store with its own builder, reading the
+same checkout but through a separate path. The boundary is the two-stores
+boundary from ``docs/two-stores.md``: the corpus extractors read Markdown from
+external repositories and load drafts into a working memory, while the decision
+store reads JSON from *this* repository and builds a committed artifact whose
+rows are traceable to merged PRs. Mixing the two would let a corpus import
+carry a decision that never went through a PR, which is the thing the decision
+store's remote-to-local rule exists to prevent.
+
 Two behaviours in that loop are not incidental and should not be simplified
 away:
 
