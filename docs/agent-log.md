@@ -1696,7 +1696,7 @@ automatically?"* returned §6.30 at rank 1, whose fix text reads *"it is a revie
 queue, not a tier-1 server; do not wire `fix_for` in anger."* The recipe
 correctly warned me off itself.
 
-### 6.33 The memory has never been given the project's decisions — **measured**, fix **open**
+### 6.33 The memory has never been given the project's decisions — **measured**, corpus gap closed; matcher limitation tracked by §6.94/§6.106
 
 *Found 2026-08-06 doing what the operator asked: feeding a code review through
 Nestor before answering it.*
@@ -1764,6 +1764,15 @@ worth having is that a human put each row in it.
 > with this session's repeated decision to keep findings out of the commits that
 > found them. It scored 0.042, and the right row sat at rank 2 beneath a
 > nonsense score.
+
+**Corpus gap closed, 2026-08-18.** The store grew from 21 rows to 423 (105
+decision files, all drafts by covenant) through one decision file per merged PR
+— the curated ingest shape this entry was asking about. The scraper was
+correctly rejected; what shipped instead was a workflow. The matcher limitation
+(practice-naming questions fail) remains genuinely open and is tracked by
+§6.94/§6.106; decision `0154` settled the matcher question
+(`StringMatcher` + calibrated bar) and `constraints_on` fuzzy matching shipped
+at 0.55.
 
 ### 6.34 A ledger line that cannot exist was ignored by every reader — **shipped**
 
@@ -5669,7 +5678,7 @@ endpoints have no signature to authenticate against, and a session remains
 the only proof available for them. Stated in the page's own copy, not
 implied to be closed.
 
-### 6.94 The decision store answers its own questions well, except where its matcher cannot tell two decisions apart — **measured**, fix **open**
+### 6.94 The decision store answers its own questions well, except where its matcher cannot tell two decisions apart — **measured**, partially **shipped** (`constraints_on` fuzzy at 0.55; serve-path bar still at 0.92)
 
 *Measured 2026-08-09 by `demo/the_dogfooding.py`; decision `0079`.*
 
@@ -5717,6 +5726,17 @@ for a human to weigh the three real options — the identifier-weighted matcher
 (fewer wrong serves, no better recall), semantic embeddings via the
 `[semantic]` extra (recall, at a dependency), or shorter canonical questions
 (recall, by hand).
+
+**Partially shipped, 2026-08-18.** Decision `0154` (`fuzzy-constraints-on`)
+settled the matcher question this entry left open: `StringMatcher` is the right
+matcher for decisions; the bar is the dial. `nestor.decision.constraints_on()`
+now accepts `fuzzy_bar` (default 0.55 via `nestor decision check --fuzzy-bar`),
+recovering re-worded decisions at 75% recall with zero false constraints on
+the 418-decision corpus (`bench/bench_decision_n1.py`). The 0051/0053 collision
+(scored 0.94) still exists in the source files but is latent — nothing in the
+dogfood store is sealed. The `best_sealed` / serve path remains at
+`SEAL_THRESHOLD=0.92`, which is a separate product decision about how much
+unverified content to serve.
 
 ### 6.95 `nestor calibrate` warns about a too-small corpus in the README's prose, not in the output a parser reads — **measured**, fix **shipped**
 
@@ -5973,7 +5993,7 @@ The honest reading is that this is a **measuring instrument, not a backend**: it
 makes the seam's value visible where nothing else could, and it must not key a
 cache or key a seal.
 
-### 6.100 One gate for every change class, and what that costs a session with a human waiting in it — **measured**, fix **open**
+### 6.100 One gate for every change class, and what that costs a session with a human waiting in it — **measured**, fix **shipped**
 
 *Observed 2026-08-12, from the outside.* `AGENTS.md` prescribes one verification
 step and prescribes it unconditionally: `bash scripts/ci-lint.sh` and `python -m
@@ -6014,6 +6034,12 @@ anything over ~10s goes to the background rather than in front of the next
 prompt. The last one is a working agreement rather than code, which is exactly
 why it belongs written down where the next session reads it — nothing enforces
 it, and the agent that just learned it will not be the agent in the room.
+
+**Shipped 2026-08-18.** All three pieces landed: `scripts/ci-docs.sh` runs
+the 57 tests a docs-only change can break (~3 s vs full gate's ~100 s);
+`AGENTS.md`'s docs-only row now points to it; and a background-rule paragraph
+says anything over ~10 s should not block the human. The change-class table
+itself was already present from prior work.
 
 ### 6.101 The corpus extractors do not fail closed, and the test named for them covers a different family — **verified**, fix **shipped**
 
@@ -6208,7 +6234,7 @@ adoption argument starts there, not from a fresh model survey — and no licence
 reaches a dependency file without the registry metadata read by a human or a
 script.
 
-### 6.104 The jeles source registry's gaps live in a feeder's stdout, and I misreported one by reading the top of it — **measured**, fix **open**
+### 6.104 The jeles source registry's gaps live in a feeder's stdout, and I misreported one by reading the top of it — **measured**, fix **shipped**
 
 *Surfaced 2026-08-12 by re-running `scripts/feed_jeles_sources.py` in the jeles
 loop.* The registry declares **65 institutions across 71 subjects**. What the
@@ -6256,6 +6282,12 @@ every reader re-derives — or misreads — it privately. `IDEAS.md` §6's own r
 that a finding not written down did not happen, and this is the case where the
 finding *was* made, twice, and still has nowhere to live but a terminal.
 
+**Shipped 2026-08-18.** `feed_jeles_sources.py --findings PATH` writes all
+four analysis sections (identical subject tuples, host overlap, single-sourced
+subjects, corroboration hypotheses) as plain Markdown. The stdout output is
+untouched; the flag gives the findings a persistent destination that a reader
+can cite instead of re-deriving from terminal scrollback.
+
 ### 6.105 The fleet's own decision record is invisible to every corpus extractor — **verified**, fix **shipped**
 
 *Found 2026-08-12, in the second Nestor loop.* Three commits landed between loops
@@ -6288,7 +6320,7 @@ records" section (this session) stating the design choice, the two-store reason,
 and that any change should be written here before being discovered by diffing
 extractors.
 
-### 6.106 Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones — **measured**, fix **open**
+### 6.106 Where the decision store's retrieval actually fails: rank is fine for content-bearing questions and collapses for question-shaped ones — **measured**, partially **shipped** (same fix as §6.94)
 
 *Measured 2026-08-12 on a 263-decision corpus, extending §6.94 rather than
 contradicting it.* §6.94 measured paraphrase recall at 2/10 and first-sentence
@@ -6343,6 +6375,13 @@ The corrected answer is narrower and more useful: for a question carrying
 distinctive vocabulary, the store already finds its answer and is waiting on a
 human signature and a calibrated bar. For a short generic question, it does not,
 and no threshold rescues it.
+
+**Partially shipped, 2026-08-18 (same fix as §6.94).** Decision `0154`
+settled the matcher question. The two rank-1 cases (probes with distinctive
+vocabulary) are now recoverable via `constraints_on` fuzzy matching at 0.55.
+The rank-110 case (question-shaped probe sharing interrogative structure)
+remains: only a matcher that discounts shared stems moves it, and
+`StringMatcher` was chosen as sufficient when the bar is calibrated.
 
 ### 6.107 The UI was built for an operator who read the docstrings; the audience it is about to meet has not — **shipped**, one follow-up **open** (JS test harness)
 
