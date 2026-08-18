@@ -573,6 +573,41 @@ drops signatures, so use it to read a memory, not to move one.
 nestor serve --db data/nestor.db         # MCP over stdio, stdlib only
 ```
 
+That command is the server; it is not self-registering. A model reaches it only
+once its client is told the server exists, and where the store and the seal key
+live. In Claude Code:
+
+```bash
+claude mcp add nestor \
+  -e NESTOR_SEAL_KEY="$NESTOR_SEAL_KEY" \
+  -- nestor serve --db data/nestor.db
+```
+
+`--scope` decides who gets it: `local` (default) is this machine only, `user`
+spans your machines, `project` writes `.mcp.json` in the repo — shared with
+whoever clones it. Prefer `local` or `user` here. `--db` is a path, so a project
+entry is a path that has to be right on someone else's disk, and the seal key
+would be a secret in a tracked file.
+
+A client configured by file rather than by command takes the same three facts:
+
+```json
+{"mcpServers": {"nestor": {"command": "nestor",
+                           "args": ["serve", "--db", "data/nestor.db"],
+                           "env": {"NESTOR_SEAL_KEY": "..."}}}}
+```
+
+Where that file lives is the client's business, not Nestor's — check its own
+docs. What Nestor cares about is the shape: **the key is passed to the server,
+never written into the store.**
+
+Leaving `NESTOR_SEAL_KEY` out does not fail loudly. The server starts, answers,
+and degrades to trusting `status="sealed"` on the stored row alone — it warns
+once and serves. That is the wrong way round for a model-facing surface, because
+the one thing this server exists to protect is the difference between a human
+sealed this and a row says so. Set the key, or set `NESTOR_REQUIRE_SEAL_KEY=1`
+to turn the degrade into a refusal — see [Seal signatures](#seal-signatures).
+
 A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
 `nestor_provenance`, `nestor_ledger_verify` — and `nestor_propose`, which queues
 its answer for a human as a `draft`.
