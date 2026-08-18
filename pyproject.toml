@@ -234,3 +234,24 @@ no_implicit_optional = true
 module = ["willow_gate", "willow_gate.*", "fastembed", "anthropic",
           "cryptography.*"]
 ignore_missing_imports = true
+# ...and the same when the extra IS installed. `ignore_missing_imports` only
+# speaks to the absent case, so a dev env with an extra resolved sends mypy off
+# into that dependency's own stubs — `.[semantic]` pulls fastembed, which pulls
+# numpy, whose stubs use 3.12+ `type` statements and are a syntax error under
+# the 3.10 `python_version` above. One error in numpy's own .pyi aborts the run
+# before nestor is checked at all, so the gate went red locally while CI (lint
+# tools only, no extras) stayed green.
+#
+# That is §6.110 in the mirror. There a local `.[keys]` env resolved an import
+# and hid a gap until keys-absent CI turned red; here a local extra breaks a
+# gate that CI passes. Both are the same defect — the verdict moving with which
+# extras happen to be installed — and the fix is the same principle already
+# stated above: this gate checks nestor's own code. Skipping the import makes
+# these four `Any` whether present or absent, so local and CI agree by
+# construction rather than by everyone's venv matching the lint job's.
+#
+# `python_version` stays at 3.10 deliberately: it is the `requires-python`
+# floor and the low row of the test matrix, so the gate keeps catching code
+# that would break on the oldest Python still supported. Raising it to satisfy
+# numpy's stubs would trade a real check for a dependency we do not carry.
+follow_imports = "skip"
