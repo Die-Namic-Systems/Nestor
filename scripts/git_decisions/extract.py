@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import sqlite3
 import re
 import subprocess
 import sys
@@ -58,8 +59,30 @@ _SUFFIX = re.compile(r"-[a-z0-9]{6,8}$")
 _AGENT_PREFIXES = ("claude/", "codex/")
 
 
-def topic(branch: str) -> str:
-    """The subject a branch names, as words — the findable half of the pair.
+#: Conventional-commit type, with an optional scope: `feat(propagate):`.
+_CC_TYPE = re.compile(
+    r"^(feat|fix|chore|docs|test|refactor|perf|build|ci|style|revert)"
+    r"(\([^)]*\))?\s*:\s*", re.I)
+#: Words too common to count as shared subject matter between a branch and a
+#: title. Overlap on "the" is not evidence the branch describes the change.
+_STOP = frozenset((
+    "a", "an", "and", "the", "to", "of", "for", "in", "on", "with", "from",
+    "into", "at", "by", "is", "it", "its", "as", "that", "this", "add", "adds",
+    "new", "make", "makes", "use", "uses", "fix", "fixes", "up", "out", "off",
+    "over", "under", "not", "no", "so", "or", "but", "be", "do", "does"))
+#: How many words of a title make a topic. Long enough to carry the subject,
+#: short enough that a short query can still match it.
+_TOPIC_WORDS = 8
+
+
+def words(text: str) -> list[str]:
+    """Lowercase word tokens, punctuation and separators dropped."""
+    cleaned = re.sub(r"[^a-z0-9]+", " ", text.lower())
+    return [w for w in cleaned.split() if w]
+
+
+def branch_topic(branch: str) -> str:
+    """The subject a branch names, as words.
 
     `claude/soft-nestor-seam-ei08dl` is about a soft nestor seam. Strip the
     process prefix and the agent's random suffix, and turn the separators into
@@ -76,6 +99,43 @@ def topic(branch: str) -> str:
     if agent:
         branch = _SUFFIX.sub("", branch)
     return branch.replace("-", " ").replace("_", " ").replace("/", " ").strip()
+
+
+def title_topic(title: str) -> str:
+    """A findable subject taken from what the change was called when it landed.
+
+    Drop the conventional-commit type, keep the first clause, and cap the length:
+    the source is what a search has to match, and a whole sentence matches a
+    short query worse than the phrase it is about.
+    """
+    if not title:
+        return ""
+    body = _CC_TYPE.sub("", title.strip())
+    body = re.split(r"[,;]| — | -- ", body, maxsplit=1)[0]
+    return " ".join(words(body)[:_TOPIC_WORDS])
+
+
+def topic(branch: str, title: str = "") -> str:
+    """The findable half of the pair, from whichever half actually names it.
+
+    A branch name is a good proxy for the subject about three times in four. The
+    fourth is a branch named for the session rather than the change —
+    `llm-only-joke` carried a hash-chain tamper-evidence port, `struck-shot-smote`
+    carried an AGENTS.md propagation — and the row was then filed under a topic
+    that says nothing about what was decided. The evidence stayed correct and the
+    row became unfindable by its own subject, which is a retrieval failure rather
+    than a provenance one.
+
+    So the branch is used only when it shares real vocabulary with the title;
+    otherwise the title names the topic. Overlap ignores stopwords, because
+    agreeing on "the" is not evidence a branch describes anything.
+    """
+    from_branch = branch_topic(branch)
+    if not title:
+        return from_branch
+    shared = ({w for w in words(from_branch) if w not in _STOP}
+              & {w for w in words(title) if w not in _STOP})
+    return from_branch if shared else (title_topic(title) or from_branch)
 
 #: `Merge pull request #3 from owner/branch-name`
 _PR = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
@@ -169,7 +229,7 @@ def main() -> int:
         # An earlier draft used the title for both halves. That maps X to X:
         # asking the title returns the title, and the store learns nothing it
         # could serve. The branch is what makes the row findable by topic.
-        question = topic(r["branch"]) or r["title"]
+        question = topic(r["branch"], r["title"]) or r["title"]
         if not question:
             skipped += 1                      # neither a branch nor a title
             continue
@@ -198,17 +258,47 @@ def main() -> int:
                                 reason=reason, origin=fields["origin"])
             revised += 1
 
+    # Count what is in the store, not what we believe we put there. `add_pair`
+    # returns the stored draft without inserting when the same source AND target
+    # already exist — an identical decision merged twice — so counting calls that
+    # did not raise over-reported two repositories here by 55 and 6 rows. For a
+    # pipeline whose whole claim is that its gaps are not silent, the number it
+    # prints has to be the number on disk.
+    def counts() -> tuple[int, int]:
+        # A repository with no qualifying merge never writes a row, and the store
+        # creates its tables on first write — so "nothing to count" and "the
+        # count failed" reach here as the same missing table. Zero is the honest
+        # answer, and it is not an error: six of this box's twenty-two rungs are
+        # repositories the operator committed to but never merged in.
+        try:
+            con = sqlite3.connect(out)
+            try:
+                a = con.execute("SELECT COUNT(*) FROM tm_pairs").fetchone()[0]
+                b = con.execute("SELECT COUNT(*) FROM tm_pairs WHERE "
+                                "superseded_by IS NULL OR superseded_by = ''"
+                                ).fetchone()[0]
+                return a, b
+            finally:
+                con.close()
+        except sqlite3.OperationalError:
+            return 0, 0
+
+    stored, live = counts()
+    duplicates = written - live
+
     if not args.quiet:
         aside = []
-        if revised:
-            aside.append(f"{revised} revision(s) of an earlier decision")
+        if stored != live:
+            aside.append(f"{stored - live} revision(s) kept as history")
         if robots:
             aside.append(f"{robots} robot merge(s)")
         if housekeeping:
             aside.append(f"{housekeeping} back-merge(s)")
+        if duplicates:
+            aside.append(f"{duplicates} identical to one already recorded")
         if skipped:
             aside.append(f"{skipped} unnamed")
-        print(f"  {name:<34} {written:>4} decision(s)"
+        print(f"  {name:<34} {live:>4} decision(s)"
               + (f" · {', '.join(aside)}" if aside else ""))
         print(f"  {'':34} all drafts — a merge proves a person chose it once, "
               f"not that they would today")
