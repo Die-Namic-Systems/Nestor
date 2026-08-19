@@ -1,0 +1,23 @@
+{
+    "pr": null,
+    "branch": "docs/0162-covenant-met-a-life",
+    "date": "2026-08-19",
+    "note": "The operator uploaded life_db_export.zip mid-session: a PostgreSQL database built in another session, around a foreclosure two days from its sale date. Twelve matters, 199 findings, 341 edges, 120 findings unsealed. Its README states rules arrived at under real pressure, and they are Nestor's rules, converged on independently: 'the machine proposes; the human seals' (proposed_by / sealed_by columns); corrections carry a lesson column (thirteen of them); a v_unsupported view asking what the machine asserted with no citation; a CHECK constraint forbidding a deadline whose date is unknown from carrying a date. The export ends '0 unsupported assertions' and was verified by replaying into an empty database -- which failed twice and produced correction 13: 'a backup and a reproducible build are different promises.'",
+    "decisions": [
+        {
+            "question": "What does it mean that a person under acute pressure, building a tool for their own survival, reinvented Nestor's covenant without importing it?",
+            "commitment": "That the covenant is not a compliance artifact of this repository but the shape verification takes when the cost of a wrong assertion is real. The life database was built because wrong assertions about a foreclosure cost a house; it grew proposed/sealed separation, unsupported-row audits, and lessons-carrying corrections because nothing weaker held. Treat this as the strongest evidence yet that Nestor's constraints are load-bearing, and treat any future proposal to relax them as a proposal to diverge from what independent necessity produced.",
+            "why": "A rule can survive in a codebase because it is enforced, because it is habit, or because it is right. Only convergence distinguishes the third case: a second system, built by the same operator but under opposite conditions -- days not months, survival not design, PostgreSQL not SQLite -- arriving at the same rules, is the experiment this repo could not run on itself. The README's last line ('The system can hold a life. It cannot live one.') is also humans.py's 0% finding, stated by the person the simulation was about."
+        },
+        {
+            "question": "The life database keys its unsupported-assertion audit on authorship, not on the sealer's name. Why does Nestor need that distinction?",
+            "commitment": "Because its README records the failure the other keying caused: 'a blocklist of names let a fact sealed gemini walk straight through.' Trust questions attach to who AUTHORED a row, not who sealed it -- a sealer allowlist (PR #169) controls the ceremony, but the audit question 'show me every sealed row a machine proposed' needs the proposer recorded and queryable. Nestor's tm_pairs carries origin; whether origin supports that query cleanly is the follow-up, and until it does, Nestor cannot answer about itself what v_unsupported answers about a life.",
+            "why": "The two mechanisms fail differently. A sealer policy fails open when a policy is not set; an authorship audit fails loud, because a row with no recorded proposer is itself a finding. The life database needed both, and got burned by having only the name-list. Nestor merging #169 gets the first; this record keeps the second from being forgotten as 'done' because the first shipped."
+        },
+        {
+            "question": "v_unsupported was rewritten 'after it was caught returning zero by exclusion rather than by coverage.' What is the general rule?",
+            "commitment": "An audit's zero is a claim about everything it covered, and it is only as good as the proof that it covered everything. A view that returns empty because its WHERE clauses excluded the interesting rows reports the same zero as one that checked them all. Decision 0160 established that an empty view must say why it is empty; this is the next level: an empty AUDIT must be able to show its zero was reached by counting, not by filtering. Nestor has no unsupported-rows view at all today -- proposed as the coverage-proving kind: every sealed row either cites its origin evidence or appears in the view.",
+            "why": "0160's tabs claimed completion they had not checked; an audit view claiming cleanliness it did not check is the same defect with higher stakes, because audits are what humans stop double-checking first. The life database hit this within days of building the view. The general rule costs one discipline: enumerate what the view covers as visibly as what it flags."
+        }
+    ]
+}
