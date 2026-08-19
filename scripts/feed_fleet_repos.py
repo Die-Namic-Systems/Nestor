@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import subprocess
 import sys
 import tempfile
 
@@ -201,6 +202,35 @@ def is_checkout(path: pathlib.Path) -> bool:
     return (path / ".git").is_dir()
 
 
+def repo_name(path: pathlib.Path) -> str:
+    """What the repository is called, which is not what the directory is called.
+
+    ``SURVEY`` is keyed by the GitHub repository name, and presence used to be
+    tested with ``is_checkout(root / name)`` — a directory-name match. A clone
+    directory is whatever the person cloning it typed, and on this box that is
+    routinely not the repository name: ``willow`` holds ``Willow``, ``nestor``
+    holds ``Nestor``, ``dotgithub`` holds ``.github``, and ``.willow`` holds
+    ``willow-config``. Six repositories across the fleet were therefore surveyed
+    as absent AND reported under "on disk, not in the survey" — the branch whose
+    stated job is catching a repo the survey dropped. It fired correctly and
+    named the wrong cause: the survey had them, under the name they actually go
+    by.
+
+    So identity is the remote. Falls back to the directory name when there is no
+    ``origin`` — a local-only clone has no better answer, and guessing a remote
+    it does not have would be worse than using what is there.
+    """
+    try:
+        url = subprocess.run(
+            ["git", "-C", str(path), "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):        # git absent or wedged
+        return path.name
+    if not url:
+        return path.name
+    return url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--root", required=True, help="directory holding the clones")
@@ -230,9 +260,24 @@ def main() -> int:
     print(f"\n{BOLD}repo survey → nestor{OFF}  "
           f"{DIM}{DOMAIN}→{TARGET}, presence read from disk{OFF}")
 
+    # Read the disk once, keyed by what each clone actually is. A duplicate
+    # remote under one root would otherwise be decided by iteration order, so
+    # the first is kept and the rest fall through to `extra`, where a human sees
+    # them rather than one silently shadowing the other.
+    on_disk: dict[str, pathlib.Path] = {}
+    duplicates: list[str] = []
+    for child in sorted(root.iterdir()):
+        if not is_checkout(child):
+            continue
+        name = repo_name(child)
+        if name in on_disk:
+            duplicates.append(f"{child.name} (also {name})")
+            continue
+        on_disk[name] = child
+
     written, absent = 0, []
     for name, (brief, stack, check) in sorted(SURVEY.items()):
-        if not is_checkout(root / name):
+        if name not in on_disk:
             absent.append(name)
             continue
         memory.add_pair(name, brief, DOMAIN, TARGET, status="draft",
@@ -243,8 +288,7 @@ def main() -> int:
     # A clone the survey never covered. Reported louder than an absent one:
     # the pass that produced SURVEY dropped a repo silently, and a survey that
     # only reports what it remembered to look at cannot tell you what it missed.
-    extra = sorted(c.name for c in root.iterdir()
-                   if is_checkout(c) and c.name not in SURVEY)
+    extra = sorted(name for name in on_disk if name not in SURVEY) + duplicates
 
     print(f"   {written} repo(s) written, {GREEN}all drafts{OFF}")
     print(f"   {DIM}each row carries its verification note as `reason`; nothing "
