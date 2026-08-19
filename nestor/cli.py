@@ -22,6 +22,7 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor calibrate --from en --to es    # where the threshold belongs for this corpus
     nestor rejections                     # what the recorded "no"s say in aggregate
     nestor keys add rita                  # a key per verifier (list / add / revoke)
+    nestor policy add --from en --to es --verifier rita  # who may seal a domain
     nestor ui                             # the browser surface
     nestor serve                          # MCP over stdio, for a model
 
@@ -658,6 +659,60 @@ def cmd_keys(args) -> int:
     return EXIT_OK
 
 
+def cmd_policy(args) -> int:
+    """Who a domain will accept a seal from — the allowlist half of #167.
+
+    Opt-in: a domain with no rows here accepts any verifier, exactly as
+    before this existed. Enforcement lives in :mod:`nestor.memory`, at seal
+    time — this subcommand only manages the list.
+    """
+    store = _store(args)
+    if not storage.supports_verifier_policy(store):
+        print(f"{type(store).__name__} cannot enforce a verifier policy "
+              f"(see storage.supports_verifier_policy)", file=sys.stderr)
+        return EXIT_USAGE
+
+    if args.policy_command == "list":
+        rows = store.memory_policy_list(args.source_lang, args.target_lang)
+        human = [f"{len(rows)} policy row(s)" +
+                (f" for {args.source_lang}->{args.target_lang}"
+                 if args.source_lang or args.target_lang else "")]
+        for r in rows:
+            human.append(f"  {r['source_lang']}->{r['target_lang']}  {r['verifier']}")
+        if not rows:
+            human.append("  (unrestricted: no policy recorded for this domain)")
+        _emit({"policy": rows}, args.json, "\n".join(human))
+        return EXIT_OK
+
+    if not args.verifier:
+        print("--verifier is required for add/remove", file=sys.stderr)
+        return EXIT_USAGE
+    if not (args.source_lang and args.target_lang):
+        print("--from and --to are both required for add/remove — a policy "
+              "row always names one domain", file=sys.stderr)
+        return EXIT_USAGE
+
+    if args.policy_command == "add":
+        row = store.memory_policy_add(args.source_lang, args.target_lang, args.verifier)
+        _emit({"policy": row}, args.json,
+              f"{args.verifier!r} may now seal {args.source_lang}->{args.target_lang}\n"
+              f"  This domain is now RESTRICTED: only verifiers on its list "
+              f"may seal (nestor policy list --from {args.source_lang} --to "
+              f"{args.target_lang} to see the rest).")
+        return EXIT_OK
+
+    removed = store.memory_policy_remove(args.source_lang, args.target_lang, args.verifier)
+    remaining = store.memory_policy_list(args.source_lang, args.target_lang)
+    note = ("this domain is unrestricted again — no policy rows remain."
+            if removed and not remaining else
+            f"{len(remaining)} verifier(s) still allowed." if removed else
+            f"{args.verifier!r} was not on the list — nothing changed.")
+    _emit({"removed": removed, "remaining": remaining}, args.json,
+          f"{'removed' if removed else 'no-op:'} {args.verifier!r} for "
+          f"{args.source_lang}->{args.target_lang}\n  {note}")
+    return EXIT_OK
+
+
 def cmd_rejections(args) -> int:
     """What the accumulated "no"s say — the signal nothing used to read."""
     store = _store(args)
@@ -995,6 +1050,17 @@ def build_parser() -> argparse.ArgumentParser:
                       help="also trust NESTOR_SEAL_KEY, so seals made before this "
                            "keyring keep verifying (reported as 'legacy')")
     keys.set_defaults(func=cmd_keys)
+
+    pol = sub.add_parser("policy",
+                         help="per-domain verifier allowlist, enforced at seal time (#167)")
+    pol.add_argument("policy_command", choices=("list", "add", "remove"))
+    pol.add_argument("--source-lang", "--from", dest="source_lang", default="",
+                     help="the domain's source tag (required for add/remove)")
+    pol.add_argument("--target-lang", "--to", dest="target_lang", default="",
+                     help="the domain's target tag (required for add/remove)")
+    pol.add_argument("--verifier", default="",
+                     help="the verifier name to add/remove (required for add/remove)")
+    pol.set_defaults(func=cmd_policy)
 
     rej = sub.add_parser("rejections",
                          help="what the recorded 'no's say in aggregate")

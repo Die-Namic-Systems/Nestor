@@ -424,7 +424,10 @@ def test_conn_declares_no_schema_ready_default():
 #: construction, which is the vacuity `test_ledger_kinds.py` set the precedent
 #: against. Stable across interpreters: identical under 3.10/sqlite 3.45.1 and
 #: 3.11, because sqlite_master stores the DDL as written.
-PINNED_SCHEMA_DIGEST = "8c5220f4dc414b62"
+PINNED_SCHEMA_DIGEST = "3a2d2bb9d1663b62"
+#: Moved by the verifier_policy table (issue #167 piece 3, nestor/sqlite_store.py).
+#: docs/releasing.md's schema-restart rule applies: the release that ships this
+#: must tell operators that a long-lived process needs a restart to see it.
 
 
 def test_a_schema_change_has_to_be_a_deliberate_release_decision(tmp_path):
