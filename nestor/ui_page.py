@@ -75,17 +75,26 @@ _TEMPLATE = r"""<!doctype html>
 <title>Nestor</title>
 <style>
 :root {
-  --bg: #f1ece1; --panel: #ffffff; --ink: #1b1a17; --muted: #6b6862;
-  --line: #e4e0d9; --accent: #3b5f4a; --sealed: #2f6f4e; --draft: #9a6b16;
-  --pending: #6b6862; --rejected: #a33a2f; --shadow: 0 1px 2px rgba(0,0,0,.05);
-  --glow: #9a7830; --band: #e6ddcc; --warm: #5a5040;
+  --bg: #e9e0cf; --panel: #f6f0e4; --ink: #241f18; --muted: #6f6757;
+  --line: #d5c9b2; --accent: #3b5f4a; --sealed: #2f6f4e; --draft: #9a6b16;
+  --pending: #6f6757; --rejected: #a33a2f;
+  --shadow: 0 1px 2px rgba(60,44,20,.10), 0 8px 20px -12px rgba(60,44,20,.35);
+  --glow: #b08828; --band: #e0d4bc; --warm: #6a5432;
+  /* The shell: a curved panel catches light at the top and shades at the
+     bottom. Two stops, not a gradient anyone would notice as one. */
+  --shell: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0) 42%);
+  --rivet-hi: rgba(255,255,255,.85); --rivet-mid: #cdbb9c; --rivet-lo: rgba(80,60,28,.45);
+  --display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14150f; --panel: #1c1e17; --ink: #ece9e1; --muted: #9c988e;
-    --line: #2e3128; --accent: #8fbc9b; --sealed: #7fc39a; --draft: #d7a94f;
-    --pending: #9c988e; --rejected: #e08376; --shadow: none;
-    --glow: #c9a050; --band: #1a1510; --warm: #e8dcc8;
+    --bg: #17120c; --panel: #221a11; --ink: #ece0cc; --muted: #a1937c;
+    --line: #37291a; --accent: #8fbc9b; --sealed: #7fc39a; --draft: #d7a94f;
+    --pending: #a1937c; --rejected: #e08376;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 24px -14px rgba(0,0,0,.8);
+    --glow: #c8a45a; --band: #1a1510; --warm: #e8dcc8;
+    --shell: linear-gradient(180deg, rgba(255,238,208,.07), rgba(0,0,0,0) 44%);
+    --rivet-hi: rgba(255,236,200,.55); --rivet-mid: #4a3a24; --rivet-lo: rgba(0,0,0,.65);
   }
 }
 * { box-sizing: border-box; }
@@ -103,10 +112,14 @@ body.shell-memory main#view {
 code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
 header {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-  padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel);
+  padding: 15px 22px; border-bottom: 1px solid var(--line);
+  background: var(--panel); background-image: var(--shell);
 }
 .brand { display: flex; align-items: center; gap: 11px; }
-.brand b { font-size: 19px; letter-spacing: .02em; }
+.brand b {
+  font-family: var(--display); font-size: 22px; font-weight: 400;
+  letter-spacing: .07em; color: var(--ink);
+}
 .brand span { color: var(--muted); font-style: italic; font-size: 13px; }
 
 /* Nestor's face — the character, present in the header (IDEAS 6.107). His ink
@@ -149,7 +162,10 @@ header {
 .door { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; background: var(--panel);
   border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; box-shadow: var(--shadow);
   transition: border-color .15s, transform .15s; text-align: left; }
+.door { border-radius: 20px; background-image: var(--shell); }
 .door:hover { transform: translateY(-2px); }
+/* The eyebrow is the one place the atomic starburst earns a second outing. */
+.door-who::after { content: " ✦"; color: var(--glow); }
 .door-who { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--glow); font-weight: 700; }
 .door-q { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .door-what { font-size: 13px; color: var(--muted); flex: 1; }
@@ -163,6 +179,17 @@ header {
 .spacer { flex: 1; }
 .who { display: flex; align-items: center; gap: 8px; }
 .who label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+/* Controls get the same turned edge as everything else. A field is a slot in
+   the panel (inset), a button is a part fixed to it (raised) — the shadow says
+   which without a label. */
+input, select, textarea { border-radius: 12px; }
+input, textarea { box-shadow: inset 0 1px 2px rgba(60,44,20,.10); }
+button { border-radius: 999px; }
+button.primary {
+  background-image: var(--shell);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.35);
+}
+button.primary:active { box-shadow: inset 0 2px 4px rgba(0,0,0,.28); transform: translateY(1px); }
 input, select, textarea, button {
   font: inherit; color: inherit; background: var(--panel);
   border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px;
@@ -176,13 +203,24 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 button.danger { color: var(--rejected); }
 button.small { padding: 3px 8px; font-size: 13px; }
 a { color: inherit; text-decoration: none; }
-nav { display: flex; gap: 4px; padding: 10px 22px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+nav {
+  display: flex; gap: 6px; padding: 11px 22px 12px;
+  background: var(--panel); background-image: var(--shell);
+  border-bottom: 1px solid var(--line);
+  /* The brass hairline under the console. One line, doing the job the heavy
+     tab border was doing badly. */
+  box-shadow: 0 1px 0 var(--glow), 0 2px 0 rgba(0,0,0,.06);
+}
 nav button {
   border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0;
   background: none; padding: 8px 16px; color: var(--muted); margin-bottom: -1px;
 }
 nav button.on { color: var(--ink); background: var(--bg); border-color: var(--line); font-weight: 600; }
 nav button.on { position: relative; border-color: transparent; }
+/* Everything that reads as a control gets a turned edge. A rectangle with a
+   6px radius is a rectangle; these are lozenges. */
+nav button { border-radius: 999px; padding: 7px 15px; }
+nav button.on { background: var(--band); box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
 nav button.on::after {
   content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px;
   height: 2px; background: var(--accent);
@@ -194,13 +232,30 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
   padding: 12px 22px; border-bottom: 1px solid var(--line);
   background: var(--panel); flex-shrink: 0;
 }
+/* Two columns, and the right one is not a sidebar.
+   The list is scanned; the panel beside it is where the reading and the sealing
+   happen — provenance, the proposed answer, the reason it was proposed. Capping
+   that at 440px while the list took every remaining pixel left one column airy
+   and the other cramped, which is backwards for what each is asked to do.
+   `minmax(0, …)` on both tracks so a long unbroken token widens neither. */
 .mem-grid {
-  flex: 1; display: grid; grid-template-columns: 1fr min(440px, 42vw);
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
   min-height: 0; align-items: stretch;
 }
-@media (max-width: 900px) { .mem-grid { grid-template-columns: 1fr; } }
+/* Given the room, split it evenly. */
+@media (min-width: 1280px) { .mem-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 900px) { .mem-grid { grid-template-columns: minmax(0, 1fr); } }
 .mem-list { overflow-y: auto; padding: 8px 14px 20px; border-right: 1px solid var(--line); min-height: 0; }
-.mem-side { overflow-y: auto; padding: 16px 18px; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+/* A reading column, so it gets a reading measure: the panel may be half the
+   window, but the prose inside it stops at a comfortable line length rather
+   than running the full width. */
+.mem-side { overflow-y: auto; padding: 20px 24px; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+/* The measure belongs to the prose, not to the furniture. Capping the cards
+   themselves left the column half empty; capping only the reading text keeps
+   lines short enough to follow while the panel still fills the space it was
+   given. */
+.mem-side .context-body { max-width: 72ch; }
+.mem-side .context-body .md-p { max-width: 72ch; }
 .mem-oracle {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; color: var(--muted); padding: 28px; min-height: 200px;
@@ -218,11 +273,34 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
 .badge.warn { color: var(--draft); border-color: var(--draft); }
 .badge.bad { color: var(--rejected); border-color: var(--rejected); }
 .badge.good { color: var(--sealed); border-color: var(--sealed); }
+/* A panel, not a box: the corners are turned, the top catches light, and it is
+   fastened down. `--shell` is the light; `.card::after` is the hardware. Four
+   rivets in one pseudo-element rather than four elements — nothing here is
+   interactive, so it stays out of the tree and out of the tab order. */
 .card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-  padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow);
+  position: relative;
+  background: var(--panel); background-image: var(--shell);
+  border: 1px solid var(--line); border-radius: 20px;
+  padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow);
 }
-.card h2 { margin: 0 0 4px; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; background-repeat: no-repeat;
+  background-image:
+    radial-gradient(circle at 13px 13px, var(--rivet-hi) 0 22%, var(--rivet-mid) 23% 62%, var(--rivet-lo) 63% 85%, transparent 86%),
+    radial-gradient(circle at calc(100% - 13px) 13px, var(--rivet-hi) 0 22%, var(--rivet-mid) 23% 62%, var(--rivet-lo) 63% 85%, transparent 86%),
+    radial-gradient(circle at 13px calc(100% - 13px), var(--rivet-hi) 0 22%, var(--rivet-mid) 23% 62%, var(--rivet-lo) 63% 85%, transparent 86%),
+    radial-gradient(circle at calc(100% - 13px) calc(100% - 13px), var(--rivet-hi) 0 22%, var(--rivet-mid) 23% 62%, var(--rivet-lo) 63% 85%, transparent 86%);
+  background-size: 9px 9px;
+  background-position: 8px 8px, calc(100% - 17px) 8px, 8px calc(100% - 17px), calc(100% - 17px) calc(100% - 17px);
+}
+/* A section heading is set, not shouted: the serif and the tracking do the work
+   the uppercase was doing. */
+.card h2 {
+  margin: 0 0 8px; font-family: var(--display); font-size: 16px;
+  font-weight: 400; letter-spacing: .06em; text-transform: none; color: var(--warm);
+}
+.card h2::before { content: "✦ "; color: var(--glow); font-size: 12px; vertical-align: 2px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
@@ -262,9 +340,37 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
 .commitment-seal-preview { margin-left: 22px; font-size: 12px; color: var(--muted); }
 .seg { border-top: 1px solid var(--line); padding: 12px 2px; }
 .seg:first-of-type { border-top: none; }
+/* Rendered `reason` markdown. Inline code is the common case by an order of
+   magnitude, so it gets the brass and the panel rather than a loud box. */
+.md-p { margin: 0 0 8px; }
+.md-p:last-child { margin-bottom: 0; }
+.md-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em;
+  background: var(--band); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1px 5px; color: var(--warm); }
+.md-pre { margin: 0 0 10px; padding: 10px 12px; overflow-x: auto;
+  background: var(--band); border: 1px solid var(--line); border-radius: 12px; }
+.md-pre code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.md-h { font-family: var(--display); color: var(--warm); letter-spacing: .04em;
+  margin: 10px 0 6px; }
+.md-h1 { font-size: 17px; } .md-h2 { font-size: 16px; } .md-h3 { font-size: 15px; }
+.md-h4, .md-h5, .md-h6 { font-size: 14px; }
+.md-list { margin: 0 0 8px; padding-left: 20px; }
+.md-list li { margin: 2px 0; }
+.md-list li::marker { color: var(--glow); }
+.origin-strip { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.origin-link, .origin-copy {
+  text-decoration: none; color: var(--muted); cursor: pointer;
+  border-color: var(--line); background: var(--band); font: inherit; font-size: 12px;
+}
+.origin-link:hover, .origin-copy:hover { color: var(--ink); border-color: var(--glow); }
+/* The pull request is the one a reader wants most often, so it is the one that
+   looks like a destination rather than a label. */
+.origin-link.is-pr { color: var(--glow); border-color: var(--glow); font-weight: 600; }
+.origin-link.is-pr:hover { color: var(--ink); background: var(--glow); }
 .chip {
   display: inline-block; font-size: 12px; padding: 2px 7px; margin: 2px 4px 2px 0;
-  border: 1px solid var(--line); border-radius: 6px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; color: var(--muted);
+  padding: 3px 10px; background: var(--band);
 }
 .bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; width: 120px; }
 .bar > i { display: block; height: 100%; background: var(--accent); }
@@ -1684,18 +1790,90 @@ function fleetEchoBlock(echo) {
 }
 
 // Willow fleet-gap imports stash the Loki narrative in `reason` with file:// refs.
+/* A `reason` is written by a person or a tool that writes for people, so it
+   arrives with markdown in it: 851 of this box's 2,796 rows carry `code` and
+   163 carry **bold**. Rendering each line as flat text put those characters on
+   the screen literally, which is what made the panel hard to read.
+
+   Parsing happens in ui_pure.js (mdBlocks/mdInline, tested under Node); this
+   turns tokens into nodes. Every piece of the reason reaches the document
+   through `text`, never through innerHTML — a reason is data, and data that
+   builds markup is the injection this shape exists to avoid. */
+function inlineNodes(line) {
+  return mdInline(line).map((tok) => {
+    if (tok.type === "code") return h("code", { class: "md-code", text: tok.text });
+    if (tok.type === "strong") return h("b", { text: tok.text });
+    if (tok.type === "link") {
+      // Only http(s) and file: are followed. A `javascript:` href in a reason
+      // would otherwise be a link the reader is invited to click.
+      const safe = /^(https?:|file:)/i.test(tok.href);
+      return safe
+        ? h("a", { href: tok.href, target: "_blank", rel: "noopener noreferrer" }, tok.text)
+        : h("span", { text: tok.text });
+    }
+    return h("span", { text: tok.text });
+  });
+}
+
+/* An origin is evidence, and evidence you cannot open is a claim.
+   `owner/repo@sha:PR #41` becomes the three places a reader would actually go,
+   plus the command to read it locally when the network is not the answer. An
+   origin of any other shape stays the plain chip it always was. */
+function originChip(origin) {
+  const g = parseGitOrigin(origin);
+  if (!g) return h("span", { class: "chip", text: origin || "no origin" });
+  const strip = h("span", { class: "origin-strip" },
+    h("a", { class: "chip origin-link", href: g.repoUrl, target: "_blank",
+             rel: "noopener noreferrer", title: "the repository on GitHub" },
+      g.owner + "/" + g.repo));
+  if (g.prUrl) {
+    strip.append(h("a", { class: "chip origin-link is-pr", href: g.prUrl,
+      target: "_blank", rel: "noopener noreferrer",
+      title: "the pull request this decision was made in" }, "PR #" + g.pr));
+  }
+  strip.append(h("a", { class: "chip origin-link mono", href: g.commitUrl,
+    target: "_blank", rel: "noopener noreferrer",
+    title: "the merge commit" }, g.sha));
+  // Copy, not a link: reading it locally is a shell away and needs no network.
+  strip.append(h("button", {
+    class: "chip origin-copy", title: "copy " + g.showCmd,
+    onclick: (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(g.showCmd).then(
+        () => toast("Copied: " + g.showCmd),
+        () => toast(g.showCmd, "err"));
+    },
+  }, "copy git show"));
+  return strip;
+}
+
 function renderContextBody(text) {
   const kids = [];
-  for (const line of (text || "").split("\n")) {
-    const t = line.trim();
-    if (t.startsWith("file://")) {
-      const label = t.slice(7);
-      kids.push(h("div", {}, h("a", { href: t, target: "_blank", rel: "noopener noreferrer",
-        class: "mono small" }, label)));
+  let list = null;
+  for (const b of mdBlocks(text)) {
+    if (b.type !== "li" && list) { kids.push(list); list = null; }
+    if (b.type === "pre") {
+      kids.push(h("pre", { class: "md-pre" }, h("code", { text: b.text })));
+    } else if (b.type === "h") {
+      kids.push(h("div", { class: "md-h md-h" + b.level }, ...inlineNodes(b.text)));
+    } else if (b.type === "li") {
+      list = list || h("ul", { class: "md-list" });
+      list.append(h("li", {}, ...inlineNodes(b.text)));
+    } else if (b.type === "path") {
+      kids.push(h("div", {}, h("a", { href: b.href, target: "_blank",
+        rel: "noopener noreferrer", class: "mono small" }, b.text)));
     } else {
-      kids.push(h("div", { text: line }));
+      // Soft-wrapped lines join; a blank line already ended the block. See
+      // mdParagraph — rendering the author's 72-column wrap as real breaks
+      // shreds the prose against the panel's own width.
+      mdParagraph(b.lines).forEach((line) => {
+        const para = h("p", { class: "md-p" });
+        inlineNodes(line).forEach((n) => para.append(n));
+        kids.push(para);
+      });
     }
   }
+  if (list) kids.push(list);
   return h("div", { class: "context-body" }, ...kids);
 }
 
@@ -1748,9 +1926,10 @@ function pairRow(p) {
   },
     h("div", { class: "texts" },
       statusLamp(p.status),
-      h("span", { class: "src", text: p.source_text }),
+      // Scanned, not read: markers off, one line, one weight. See mdPlain.
+      h("span", { class: "src", text: mdPlain(p.source_text) }),
       h("span", { class: "arrow", text: "→" }),
-      h("span", { text: commitmentSummary(p.target_text) })),
+      h("span", { text: mdPlain(commitmentSummary(p.target_text)) })),
     h("div", { class: "row small muted", style: "margin-top:4px" },
       h("span", { class: "chip", text: p.status }),
       servableChip(p),
@@ -1926,7 +2105,7 @@ function detailPanel() {
         ? h("span", { class: "chip", text: p.signature_valid ? "signature valid" : "signature invalid" })
         : null,
       h("span", { class: "chip", text: "by " + (p.verifier || "—") }),
-      h("span", { class: "chip", text: p.origin || "no origin" }),
+      originChip(p.origin),
       h("span", { class: "chip mono", title: p.created_at || "",
         text: relativeAge(p.created_at) || "—" }),
       h("span", { class: "chip mono", text: p.id.slice(0, 8) })),

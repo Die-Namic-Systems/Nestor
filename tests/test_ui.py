@@ -538,6 +538,12 @@ def test_the_page_is_self_contained():
     """
     from nestor import ui_page
     own = ui_page.PAGE.replace(ui_page._read_vendor_script(), "")
+    # One exception, and it is a link target rather than a resource: the origin
+    # strip turns `owner/repo@sha:PR #n` into the pull request and commit a
+    # reader can open. `FORGE_BASE` is split across a concatenation in
+    # ui_pure.js precisely so this grep keeps its meaning — nothing here is
+    # fetched, and the CSP still forbids fetching (test_csp_header_is_unchanged).
+    own = own.replace('"https://" + "github.com/"', "")
     assert "http://" not in own and "https://" not in own
     assert "innerHTML =" not in ui_page.PAGE and "insertAdjacentHTML" not in ui_page.PAGE
 
