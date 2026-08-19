@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 451,
+    "pairs": 454,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-19T00:00:00+00:00",
-  "digest": "46e4318f7dac80fc1bdca044e2c3b62f00078c8b6a397db1d6ab0557066dac9b",
+  "digest": "5fd0c2da827aff143b27e954ef2a6928d65450e394ab88a930da62e96df9c9d0",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "f7e01874-42c4-53b9-865e-36acbaf30f43",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "v_unsupported was rewritten after it was caught returning zero by exclusion rather than by coverage what is the general rule",
+      "source_text": "v_unsupported was rewritten 'after it was caught returning zero by exclusion rather than by coverage.' What is the general rule?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "An audit's zero is a claim about everything it covered, and it is only as good as the proof that it covered everything. A view that returns empty because its WHERE clauses excluded the interesting rows reports the same zero as one that checked them all. Decision 0160 established that an empty view must say why it is empty; this is the next level: an empty AUDIT must be able to show its zero was reached by counting, not by filtering. Nestor has no unsupported-rows view at all today -- proposed as the coverage-proving kind: every sealed row either cites its origin evidence or appears in the view.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-19T00:00:00+00:00",
       "id": "dcf85c1d-79df-54ac-98e3-6d7b5e92a67c",
@@ -200,6 +214,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. A fixed event stays fixed and is written as a global event; what gets rolled is what the characters know about it when it lands. Understanding is the win condition, not occurrence.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "58eea598-5f9e-502b-ab21-610631fe8d50",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the life database keys its unsupportedassertion audit on authorship not on the sealers name why does nestor need that distinction",
+      "source_text": "The life database keys its unsupported-assertion audit on authorship, not on the sealer's name. Why does Nestor need that distinction?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because its README records the failure the other keying caused: 'a blocklist of names let a fact sealed gemini walk straight through.' Trust questions attach to who AUTHORED a row, not who sealed it -- a sealer allowlist (PR #169) controls the ceremony, but the audit question 'show me every sealed row a machine proposed' needs the proposer recorded and queryable. Nestor's tm_pairs carries origin; whether origin supports that query cleanly is the follow-up, and until it does, Nestor cannot answer about itself what v_unsupported answers about a life.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "5593a974-9c65-5d4d-8cec-31d0d63b1caa",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does it mean that a person under acute pressure building a tool for their own survival reinvented nestors covenant without importing it",
+      "source_text": "What does it mean that a person under acute pressure, building a tool for their own survival, reinvented Nestor's covenant without importing it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "That the covenant is not a compliance artifact of this repository but the shape verification takes when the cost of a wrong assertion is real. The life database was built because wrong assertions about a foreclosure cost a house; it grew proposed/sealed separation, unsupported-row audits, and lessons-carrying corrections because nothing weaker held. Treat this as the strongest evidence yet that Nestor's constraints are load-bearing, and treat any future proposal to relax them as a proposal to diverge from what independent necessity produced.",
       "verifier": "",
       "weight": 1.0
     },
@@ -6341,6 +6383,6 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": false
+    "enabled": true
   }
 }
