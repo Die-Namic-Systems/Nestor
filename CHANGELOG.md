@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.10.0](https://github.com/rudi193-cmd/Nestor/compare/v0.9.1...v0.10.0) (2026-08-19)
+
+
+### Added
+
+* **memory:** per-domain verifier policy, enforced at seal time ([dd366c6](https://github.com/rudi193-cmd/Nestor/commit/dd366c623c8d0297cc7406ab8b7f7da512556775))
+* **memory:** per-domain verifier policy, enforced at seal time ([#169](https://github.com/rudi193-cmd/Nestor/issues/169)) ([367700b](https://github.com/rudi193-cmd/Nestor/commit/367700bd08ff3c61be5b7d5e89e96720c5bb0932))
+
 ## [0.9.1](https://github.com/rudi193-cmd/Nestor/compare/v0.9.0...v0.9.1) (2026-08-19)
 
 
