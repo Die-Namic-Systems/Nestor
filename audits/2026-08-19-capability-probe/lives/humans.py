@@ -562,10 +562,12 @@ MAX_ROLLS = 30
 # =========================================================================
 
 def run_sprint(seed: int, *, verbose: bool = False,
-               shortcut: bool = False) -> dict:
+               shortcut: bool = False, no_cap: bool = False) -> dict:
     rng = random.Random(seed)
     yuki = make_yuki()
     life = Life()
+    if no_cap:
+        life.move_item_limit = len(BACKLOG)
     done: set[str] = set()
     shortcuts_taken: list[str] = []
     log: list[dict] = []
@@ -938,7 +940,8 @@ def _wrap(text: str, width: int) -> list[str]:
 # DISTRIBUTION
 # =========================================================================
 
-def distribution(n: int, *, shortcut: bool = False) -> None:
+def distribution(n: int, *, shortcut: bool = False,
+                 no_cap: bool = False) -> None:
     from collections import Counter
 
     completion_hist: Counter[int] = Counter()
@@ -948,7 +951,7 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
     life_event_counts: Counter[str] = Counter()
 
     for seed in range(n):
-        result = run_sprint(seed, shortcut=shortcut)
+        result = run_sprint(seed, shortcut=shortcut, no_cap=no_cap)
         completion_hist[len(result["done"])] += 1
         dis_hist[result["disillusionments"]] += 1
         fc_hist[result["life"]["foreclosure"]] += 1
@@ -962,8 +965,9 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
             else:
                 item_pcts[k].append(entry["pct"])
 
+    cap = " (no move cap)" if no_cap else ""
     label = " (with shortcuts)" if shortcut else ""
-    print(f"\nDistribution over {n} seeds — Humans{label}")
+    print(f"\nDistribution over {n} seeds — Humans{label}{cap}")
     print("=" * 70)
 
     full = completion_hist.get(len(BACKLOG), 0)
@@ -1020,14 +1024,17 @@ def main() -> int:
                     help="take the shortcut on items that offer one")
     ap.add_argument("--distribution", type=int, metavar="N",
                     help="run N seeds and report statistics")
+    ap.add_argument("--no-cap", action="store_true",
+                    help="lift the move item limit (5 -> 7)")
     args = ap.parse_args()
 
     if args.distribution:
-        distribution(args.distribution, shortcut=args.shortcut)
+        distribution(args.distribution, shortcut=args.shortcut,
+                     no_cap=args.no_cap)
         return 0
 
     result = run_sprint(args.seed, verbose=args.verbose,
-                        shortcut=args.shortcut)
+                        shortcut=args.shortcut, no_cap=args.no_cap)
     print(narrate(result))
     return 0
 
