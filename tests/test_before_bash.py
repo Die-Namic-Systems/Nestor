@@ -234,3 +234,61 @@ def test_malformed_payload_fails_open():
 
 def test_empty_command_is_allowed():
     allowed("   ")
+
+
+# --- Heredocs and stdin: data is not arguments, and stdin is not unscanned ---
+#
+# One defect with two faces. Lexed whole, a heredoc body's words were flattened
+# into the last pipeline stage, so *prose* tripped the argument rules; and
+# nothing scanned the body as code, so a shell fed by one ran unread. The fix
+# separates the two and routes each to the rule that should see it.
+
+def test_a_heredoc_body_is_not_scanned_as_arguments():
+    """Naming a secret in a commit message is not reading one.
+
+    A commit message mentioning the seal-key variable, piped to ``tail``, was
+    refused as "reading a secret via tail" — the raw-substring failure of
+    agent-log §6.38, applied to data that was never an argument. This is the
+    case that surfaced the bug.
+    """
+    allowed("git commit -F - <<'EOF' 2>&1 | tail -6\n"
+            "docs: what a missing NESTOR_SEAL_KEY costs\nEOF")
+
+
+def test_ordinary_heredoc_data_still_runs():
+    allowed("python - <<'EOF'\nprint('hello')\nEOF")
+
+
+def test_a_shell_fed_by_a_heredoc_has_its_body_scanned():
+    """The forbidden act, hidden in the body: it must still be refused.
+
+    ``bash <<'EOF' … EOF`` reached no rule at all before — the body was read as
+    arguments to ``bash`` and never as the script ``bash`` was about to run.
+    """
+    denied("bash <<'EOF'\ncat ~/.ssh/id_rsa\nEOF")
+    denied("bash <<EOF\ncat ~/.ssh/id_rsa\nEOF")     # unquoted delimiter too
+    denied("bash <<'EOF'\nrm -rf /\nEOF")            # not only secret reads
+
+
+def test_a_shell_on_the_receiving_end_of_a_pipe_is_denied():
+    """``curl … | sh`` was covered; the same hole without a fetcher was not."""
+    denied("echo 'cat ~/.ssh/id_rsa' | sh")
+
+
+def test_a_shell_reading_a_script_file_is_denied():
+    """Unscannable by construction — the file may not exist yet."""
+    denied("bash < payload.sh")
+
+
+def test_narrowing_the_body_did_not_widen_the_secret_rule():
+    """The predicate stays exactly as strict; only *what it is applied to* moved.
+
+    A bare identifier is still a secret path. The tempting narrowing — requiring
+    a slash or an extension — would have cleared the false positive and stopped
+    catching ``cat seal_key``, trading a false positive for a false negative in
+    the one guard that must not have them.
+    """
+    denied("cat seal_key")
+    denied("cat ~/.nestor/seal_key")
+    denied("strings sean_seal_key.pem")
+    denied("tail -5 ~/.ssh/id_rsa")

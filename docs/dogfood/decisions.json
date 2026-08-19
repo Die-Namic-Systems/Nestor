@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 423,
+    "pairs": 433,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-18T00:00:00+00:00",
-  "digest": "337d5351653795ed898f85bfa2e80f6cbe27c8cf8babf5a7796bb6fc95ed5538",
+  "digest": "0264523386afa9246eac88949fd79a911ea6a35f81846a452fe9d0d291d79c36",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -37,6 +37,34 @@
     },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "f30d7b63-ed84-5c1e-83fc-e9f6deea1d48",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "permissiondecision allow is the valid pretooluse affirmative why not emit that instead",
+      "source_text": "`permissionDecision: \"allow\"` is the valid PreToolUse affirmative. Why not emit that instead?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because it does not mean \"no objection\" -- it approves the tool call outright and skips the user's permission prompt. These hooks have no standing to grant that. They decline to block; the normal permission flow still decides. A test asserts stdout is empty rather than asserting a value, so the substitution cannot be made later without the test noticing.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "de92faed-45bd-51cb-960e-94f19e5eb635",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the false positive came from _is_secret_path matching a bare identifier narrow it",
+      "source_text": "The false positive came from _is_secret_path matching a bare identifier. Narrow it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The predicate is untouched. Requiring a slash or an extension would have cleared the false positive and stopped catching `cat seal_key`. What moved is what the predicate is applied to, not how strict it is, and a test pins that `cat seal_key`, `cat ~/.nestor/seal_key`, `strings sean_seal_key.pem` and `tail -5 ~/.ssh/id_rsa` are all still refused.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
       "id": "d78b516e-f7e4-51b1-8fc8-bba5a729b9a8",
       "origin": "pr:None",
       "seal_sig": "",
@@ -46,6 +74,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "0.55 — the triage calibrate's knee for the full dogfood corpus. The rewording bench's 0.45 was measured on 24 distinct decisions; on 418 decisions with many similarly-shaped questions, 0.45 produces skeleton false-positives (the same finding nestor.triage recorded). 0.55 eliminates observed wrong-keys while recovering close paraphrases (0.68+ correct matches observed). Configurable via --fuzzy-bar on the CLI, and fuzzy_bar= on the DecisionMemory constructor.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "c35ed4c8-ae29-52a6-b564-a87a5aad88a6",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a shell can also take its script from a pipe or a file what then",
+      "source_text": "A shell can also take its script from a pipe or a file. What then?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Refuse. `echo '...' | sh` runs whatever the left-hand side prints and `bash < payload.sh` runs a file that may not exist yet; neither is readable at hook time. sh -c '...' stays allowed because it is scannable and already re-scanned. No `| sh`, `| bash`, or `bash <` appears anywhere in the tree, so the new refusals break no documented workflow.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "aab1d4d0-539e-5bf6-945f-b6633dcae70d",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "claude codes hook schema has no decision value meaning yes what does a hook say when it does not object",
+      "source_text": "Claude Code's hook schema has no `decision` value meaning yes. What does a hook say when it does not object?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing. A clean allow writes no stdout at all, via a shared _emit_claude_allow(). Verified on the wire for all four allow paths (before_stop, before_bash, before_write, before_mcp): stdout empty, while the MCP fleet deny still carries permissionDecision: \"deny\", the Stop hard-claim still blocks, and the Stop soft-claim still arrives as additionalContext.",
       "verifier": "",
       "weight": 1.0
     },
@@ -65,6 +121,20 @@
     },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "99761c76-55e1-54db-a09b-3cec4cc6f11e",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do we know the gate still bites after being told to skip imports",
+      "source_text": "How do we know the gate still bites after being told to skip imports?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "By making it fail on purpose: an `int` returned as `str` was injected into nestor/triage, and mypy flagged it at nestor/triage/__init__.py:157 and exited 1. Then reverted. The file count before and after is identical (41), so nothing dropped out of coverage silently.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
       "id": "96c3befc-dea4-59c8-8037-222d11c9c028",
       "origin": "pr:None",
       "seal_sig": "",
@@ -74,6 +144,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both strengthened, neither built. Conflict-scan: Checkov and OPA both traverse policy graphs to find contradictions — the same operation a contradicts-edge traversal of the decision graph would perform. The rubric-self-contradiction defect documented in decision 0084 is exactly the failure mode this traversal catches. Inter-rater reliability: the education literature's kappa/alpha measures (do two raters applying the same rubric agree?) map directly to Nestor's matcher precision problem. This reframes nestor calibrate as rubric calibration — the same problem with a longer literature and a richer toolkit. Both are downstream build questions; the survey provides evidence, not implementations.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "92907cf4-b02d-5003-ae66-118d1b568e03",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is a heredoc body to a command scanner",
+      "source_text": "What is a heredoc body to a command scanner?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Data, and only data, unless something executes it. _strip_heredocs separates body from command before lexing, so body words never reach the argument rules. A shell fed by a heredoc gets its body re-scanned as commands, because the text is right there in the payload -- scan it rather than guess. Verified across 16 cases before and after, and end to end through the real hooks/nestor-hook wrapper.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "7e02caf8-bc3a-524b-b79d-8ef2c3faa55e",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a local extra makes a gate fail that ci passes which side is wrong",
+      "source_text": "A local extra makes a gate fail that CI passes. Which side is wrong?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither verdict is wrong; the gate is, for letting the environment decide. ignore_missing_imports only speaks to the absent case, so an installed extra sends mypy into that dependency's own stubs. follow_imports = \"skip\" on the same override block makes the four optional integrations Any whether installed or not, so local and CI agree by construction rather than by everyone's venv matching the lint job's. Verified in both environments -- local venv with extras present, and a CI-shaped venv with lint tools only -- each reporting no issues in the same 41 source files, so coverage did not shrink.",
       "verifier": "",
       "weight": 1.0
     },
@@ -93,6 +191,20 @@
     },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "7330bba8-be5b-580a-9de1-fbf77915d730",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does this say about how the gates get audited",
+      "source_text": "What does this say about how the gates get audited?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "That a gate's false positives are worth following. This bypass was open with tests passing, hook_guard reporting all five blocking gates proven, and nobody looking -- it surfaced only because the same defect also produced a visible nuisance. The six new tests in tests/test_before_bash.py assert the refusals as well as the allow, so the bypass cannot reopen quietly.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
       "id": "6bde5580-cf9f-5e94-82a5-dfc04685f290",
       "origin": "pr:None",
       "seal_sig": "",
@@ -102,6 +214,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "It names them. This was fixed in commit 0f7d1a1 (PR #98). The serve.py handler computes ignored keys from the wire arguments, and answer.propose names them in the reply -- ignored_fields lists all unread keys, seal_authority_refused calls out the seal-boundary fields (status, verifier, verification_kind, sealed, seal_sig), and the note says why they were dropped. Tests in tests/test_fix_propose_names_refused.py verify the wire contract.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "68a8f379-c536-5d42-8783-4d38919c5b9e",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the invariant pinned so the next emitter cannot reintroduce it",
+      "source_text": "How is the invariant pinned so the next emitter cannot reintroduce it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The test parametrizes all three Claude emitters against both verdicts and asserts that no emitter emits a `decision` outside {approve, block}. It pins the invariant rather than the one literal that shipped. scripts/hook_guard.py reads empty stdout as the empty envelope its own classify() already treats as an allow, so the harness proves the gates on the wire without a special case.",
       "verifier": "",
       "weight": 1.0
     },
@@ -130,6 +256,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Neither — it is the decision graph read as what it already is. constraints_on(question) at decision.py:196 is rubric evaluation: 'score this proposal against the criteria that touch it.' The 4 edge types (supersedes, refines, depends_on, contradicts) are the inter-criterion dependencies every graph-shaped rubric in the survey models. A rubric is not new machinery bolted beside the decision store; it is a view of the store. The fleet's assessment-visibility E1→E4 dependency graph (CC BY 4.0), willow-gate's trust ladder (Apache 2.0), prod-readiness's no-go gates (MIT), and the open world's Checkov policy-DAG and OPA/Rego rule-DAG (both Apache 2.0) all model criteria-as-graph — and none combine it with human-sealed verdicts. Nestor already does.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "id": "205a3a78-e963-51e4-a483-d76e313daba3",
+      "origin": "pr:148",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "raising python_version to 312 would also have made it pass why not",
+      "source_text": "Raising python_version to 3.12 would also have made it pass. Why not?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "3.10 is the requires-python floor and the low row of the test matrix, so the pin is what makes the gate catch code that would break on the oldest Python still supported. It stays. Trading that for silence about a dependency nestor does not carry would be paying a real check to settle a false alarm.",
       "verifier": "",
       "weight": 1.0
     },
@@ -5949,6 +6089,6 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": false
+    "enabled": true
   }
 }

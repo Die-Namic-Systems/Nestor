@@ -117,6 +117,12 @@ def _run(module: str, payload: dict, receipt: pathlib.Path) -> dict:
              review_receipt._ENV_PATH: str(receipt)})
     if done.returncode != 0:
         raise RuntimeError(f"{module}: hook exited {done.returncode}: {done.stderr}")
+    if not done.stdout.strip():
+        # Silence is the clean allow — the shape Claude Code's schema leaves for
+        # "no objection", since its ``decision`` enum has no word for yes. An
+        # empty envelope is what :func:`classify` already reads as an allow, so
+        # the harness parses it as one instead of dying on empty stdout.
+        return {}
     return json.loads(done.stdout)
 
 

@@ -53,6 +53,30 @@ def _emit_session_start(fmt: str, context: str) -> None:
     print(json.dumps({"additional_context": context}))
 
 
+def _emit_claude_allow() -> None:
+    """A clean allow for Claude Code is silence, not a word for 'yes'.
+
+    These hooks used to print ``{"decision": "allow"}``. Claude Code validates
+    hook stdout against one schema for every event, and there ``decision`` is
+    ``"approve" | "block"`` — ``"allow"`` is in neither, so every clean turn
+    ended in *Stop hook error: Hook JSON output validation failed*. The output
+    was discarded, so the gates never actually mis-fired; the bug was noise on
+    a passing path, on every allowed Bash, Write, MCP call and every Stop.
+
+    Emitting nothing is what the runner already meant. It is also the only
+    honest spelling here: for ``PreToolUse`` the valid affirmative is
+    ``permissionDecision: "allow"``, and that does *not* mean "no objection" —
+    it approves the call outright and skips the user's permission prompt. These
+    hooks have no standing to grant that. They decline to block; the normal
+    permission flow still decides. Silence says exactly that, and it is what the
+    discarded payload amounted to, so this restores no behavior that was lost.
+
+    The Cursor dialect keeps ``{"permission": "allow"}`` — a different schema,
+    where the affirmative is read and is not a self-grant.
+    """
+    return
+
+
 def _emit_before_mcp(fmt: str, allow: bool, user: str, agent: str) -> None:
     """Both dialects, and for Claude the deny spelling PreToolUse honors.
 
@@ -65,7 +89,7 @@ def _emit_before_mcp(fmt: str, allow: bool, user: str, agent: str) -> None:
     """
     if allow:
         if fmt == "claude":
-            print(json.dumps({"decision": "allow"}))
+            _emit_claude_allow()
         else:
             print(json.dumps({"permission": "allow"}))
         return
@@ -103,8 +127,10 @@ def _emit_before_write(fmt: str, allow: bool, user: str, agent: str) -> None:
     tripwire share this emitter — same PreToolUse deny shape.
     """
     if allow:
-        print(json.dumps({"decision": "allow"} if fmt == "claude"
-                         else {"permission": "allow"}))
+        if fmt == "claude":
+            _emit_claude_allow()
+        else:
+            print(json.dumps({"permission": "allow"}))
         return
     if fmt == "claude":
         print(json.dumps({
@@ -141,8 +167,10 @@ def _emit_before_stop(fmt: str, allow: bool, user: str, agent: str) -> None:
             {"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": agent}}
             if fmt == "claude" else {"additional_context": agent}))
         return
-    print(json.dumps({"decision": "allow"} if fmt == "claude"
-                     else {"permission": "allow"}))
+    if fmt == "claude":
+        _emit_claude_allow()
+        return
+    print(json.dumps({"permission": "allow"}))
 
 
 def _emit_reinject(fmt: str, event: str, context: str) -> None:

@@ -39,6 +39,7 @@ opposite defaults on purpose, exactly as ``before_write`` does.
 from __future__ import annotations
 
 import pathlib
+import re
 import shlex
 from typing import Any
 
@@ -229,14 +230,79 @@ def _is_secret_path(token: str) -> bool:
     return False
 
 
+#: ``<<WORD`` / ``<<-'WORD'`` — the opening of a heredoc. ``<<<`` (a here-string)
+#: does not match: after ``<<`` the next character must begin a delimiter word.
+_HEREDOC_OPEN = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+
+
+def _strip_heredocs(command: str) -> tuple[str, list[str]]:
+    """Separate a command from the heredoc bodies it carries.
+
+    A heredoc body is **data**, not arguments, and the scanner treated it as
+    both and neither. Lexed whole, the body's words were flattened into the last
+    pipeline stage — so a commit message that merely *names* a secret in prose
+    was refused as "reading a secret via tail", the raw-substring-inside-longer-
+    text failure of agent-log §6.38 applied to something that was never an
+    argument. Meanwhile nothing scanned the body as *code*, so a shell fed by one
+    ran unread.
+
+    Returning the two separately lets :func:`_scan` do the right thing with each:
+    scan the command without its data, and the data only where something runs it.
+    """
+    lines = command.split("\n")
+    kept: list[str] = []
+    bodies: list[str] = []
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx]
+        kept.append(line)
+        idx += 1
+        # One command line may open several heredocs; bash consumes them in order.
+        for match in _HEREDOC_OPEN.finditer(line):
+            delimiter = match.group(2)
+            body: list[str] = []
+            while idx < len(lines) and lines[idx].strip() != delimiter:
+                body.append(lines[idx])
+                idx += 1
+            idx += 1                      # drop the terminator line itself
+            bodies.append("\n".join(body))
+    return "\n".join(kept), bodies
+
+
+def _shell_reads_stdin(stage: list[str]) -> str:
+    """Rule X3: a shell taking its script from stdin, where we cannot read it.
+
+    ``sh -c '…'`` stays allowed — the command is right there in the argument, and
+    :func:`_scan` already re-scans it. These forms are not readable at all:
+    ``bash < payload.sh`` runs a file that may not exist yet. Refusing them keeps
+    the guard's guarantee honest; without this it reported on the visible half of
+    a command while the executed half went unread.
+
+    A heredoc into a shell is *not* refused here — its body is in the payload, so
+    :func:`_scan` re-scans it rather than guessing.
+    """
+    if _base(_dissect(stage)[0]) not in _SHELLS:
+        return ""
+    for pos, tok in enumerate(stage):
+        if tok == "<" and pos + 1 < len(stage):
+            return (f"a shell running a script from stdin ({stage[0]} < "
+                    f"{stage[pos + 1]}) — its contents cannot be scanned")
+    return ""
+
+
 def _pipeline_fetch_to_shell(stages: list[list[str]]) -> str:
-    """Rule X1: a fetch piped into a shell (``curl … | sh``) runs remote code."""
+    """Rule X1: anything piped into a shell runs text the guard never scanned."""
     fetched = False
-    for stage in stages:
+    for position, stage in enumerate(stages):
         cmd, _args, _tokens = _dissect(stage)
         base = _base(cmd)
         if base in _SHELLS and fetched:
             return "a fetched script piped straight into a shell (curl … | sh)"
+        if base in _SHELLS and position > 0:
+            # The same hole without a fetcher: whatever the left-hand side prints
+            # becomes the script. `echo '…' | sh` walked past the fetch-only form.
+            return ("a shell on the receiving end of a pipe — it runs whatever "
+                    "the left-hand side prints, which is not scannable")
         if base in _FETCHERS:
             fetched = True
     return ""
@@ -322,6 +388,7 @@ def _scan(command: str, depth: int) -> str:
     """Return the reason the command is dangerous, or '' if it is allowed."""
     if depth > 4:
         return ""
+    command, heredocs = _strip_heredocs(command)
     tokens = _lex(command)
     for segment in _split(tokens, _CONTROL_OPS):
         stages = _split(segment, {"|"})
@@ -332,7 +399,18 @@ def _scan(command: str, depth: int) -> str:
             reason = _redirect_to_device(stage)
             if reason:
                 return reason
+            reason = _shell_reads_stdin(stage)
+            if reason:
+                return reason
             cmd, args, full = _dissect(stage)
+            # A shell fed by a heredoc runs the body. The body is in the payload,
+            # so scan it rather than refuse it — this is what closes
+            # `bash <<'EOF' … EOF`, which reached no rule at all before.
+            if _base(cmd) in _SHELLS and "<<" in full:
+                for body in heredocs:
+                    reason = _scan(body, depth + 1)
+                    if reason:
+                        return reason
             # Unwrap sh -c "…" / bash -c '…' and re-scan the hidden command.
             if _base(cmd) in _SHELLS and "-c" in args:
                 idx = args.index("-c")
