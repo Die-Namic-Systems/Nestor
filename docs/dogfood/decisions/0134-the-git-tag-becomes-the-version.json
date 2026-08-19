@@ -1,0 +1,28 @@
+{
+    "pr": null,
+    "branch": "claude/repo-issues-8qydya",
+    "date": "2026-08-16",
+    "note": "Nestor's release path was the odd one out of four: willow-mcp, kartikeya and jeles all derive the version from the git tag (hatch-vcs) and cut releases with release-please behind a pr-title gate, while Nestor carried a literal `version = \"0.3.1\"` in pyproject, hand-written CHANGELOG sections, and a hand-pushed tag. Adopted the fleet pattern. Also fixed publish.yml's environment URL, which still pointed at https://pypi.org/p/nestor -- this project's own reserved-and-empty pre-rename name -- two releases after the rename to nestor-meaning.",
+    "decisions": [
+        {
+            "question": "docs/releasing.md argued against tag-derived versions: git state makes the number a function of the tree, so a dirty tree or shallow clone produces something other than what you meant. Was that wrong?",
+            "commitment": "No, and it was reproduced rather than dismissed. Adopted anyway, because both halves fail closed and the literal's failure does not.",
+            "why": "Measured while making the change: a dirty tree at tag v9.9.9 builds 9.9.10.dev0+g<sha>.d<date>, and this container's shallow clone warns and derives nothing usable. Neither can reach PyPI -- a dev-suffixed version is rejected outright, publish.yml checks out with fetch-depth 0 and fetch-tags, and its guard now compares the tag against the BUILT artefact rather than a pyproject literal, so a checkout that could not see the tags fails the release. The literal's failure mode is the opposite shape: it is silent, it is a human forgetting on release day, and it is what kartikeya's v0.0.8 shipped -- a tag that built a different version, caught only by PyPI refusing the duplicate. A wrong number that fails loudly beats a wrong number that uploads."
+        },
+        {
+            "question": "The written-once test compared nestor/__init__.py against the pyproject literal. With no literal, does the test die?",
+            "commitment": "It got stricter. Nothing tracked in this tree may carry the number, and the test now says so in three places.",
+            "why": "The old shape had a subtle limit nobody noticed while it passed: it only caught a copy that matched the CURRENT version, so a stale literal from two releases ago sailed through the very test meant to catch stale literals. Rewritten to assert `dynamic = [\"version\"]` is present, that no `version = \"...\"` literal is in the project table at all, and that the only __version__ literal in __init__.py is the uninstalled sentinel `0+unknown`. That last carve-out is deliberate and narrow -- the sentinel is asserted elsewhere to be unmistakable for a release -- and writing it as `literals <= {UNINSTALLED}` rather than a regex for digits was the second attempt; the first banned every numeric literal and fired on the sentinel."
+        },
+        {
+            "question": "release-please's tag format is a config flag that looks like noise. Comment it or test it?",
+            "commitment": "Test it. include-component-in-tag false is asserted against publish.yml's own `v*` trigger, read out of the workflow text.",
+            "why": "Dropped, release-please defaults to true and tags nestor-meaning-v0.4.0; publish.yml waits on `v*`, which does not match. The release PR merges, a tag appears, and no publish run ever starts -- with no error anywhere, which is the worst available failure for something irreversible. willow-mcp#256 shipped exactly that, and kartikeya's config carries a paragraph begging the reader not to drop the line. A paragraph did not stop it happening once. Proven by mutation: deleting the key turns the test red."
+        },
+        {
+            "question": "Arming auto-merge on the release PR removes the last human act before an irreversible publish. Keep the gate?",
+            "commitment": "No -- auto-merge is armed, matching willow-mcp and kartikeya. Raised as a governance concern, overruled by the operator, and recorded as their call rather than as a defect.",
+            "why": "The concern was real and is worth keeping in the record: this repo's first rule is that a machine proposes and only a human confirms, and docs/releasing.md had built a whole argument on the tag push being that gate. But that guarantee was resting on an accident -- a session's git credentials carry refs/heads/* and refuse refs/tags/*, which is why v0.3.1 took four attempts and an HTTP 403 each time -- not on a decision anybody made. release-please cuts the tag with a PAT, so the accident stops holding the line whichever way this went. The operator's judgement was that review of the feature PRs plus CI (suite on 3.10/3.12, ruff, bandit, detect-secrets, twine check --strict, and publish.yml installing the wheel into a clean venv to import it) is enough verification, and that a further manual step buys nothing. docs/releasing.md now says where the gate sits instead of describing one that had already stopped existing."
+        }
+    ]
+}

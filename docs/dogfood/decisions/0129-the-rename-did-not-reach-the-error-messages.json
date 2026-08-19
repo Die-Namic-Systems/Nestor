@@ -1,0 +1,23 @@
+{
+    "pr": null,
+    "branch": "claude/session-start-check-ta4sli",
+    "date": "2026-08-15",
+    "note": "Bringing the tree up to date after 0.3.0 found that the distribution rename reached pyproject, README and CHANGELOG but not the strings a user sees at runtime. Five shipped modules -- keyring.py, signing.py, semantic_matcher.py, answer.py, cloud_seal.py -- still told users `pip install nestor[keys]` / `[semantic]` / `[gate]`. Measured against the real index: `pip install nestor[semantic]` returns `ERROR: No matching distribution found for nestor[semantic] (from versions: none)`, because `nestor` on PyPI is a reserved project with zero files; `pip install nestor-meaning[keys]` resolves. Those strings are in the 0.3.0 wheel now. docs/releasing.md was separately stale in the other direction, still opening with 'Nestor has never been released ... nothing has been uploaded anywhere' and recording the 2026-08-06 `404 -- available` check as current.",
+    "decisions": [
+        {
+            "question": "What keeps an install hint in shipped code pointing at a distribution that exists?",
+            "commitment": "A test, not a habit. test_shipped_install_hints_name_the_distribution_that_exists reads `name` out of pyproject.toml and scans every .py under nestor/ for `<dist>[<extra>]`, failing on any that names something else. Scoped to nestor/ because that is what ships in the wheel; historical records (FINDINGS, agent-log) quote the old name to describe the past and are left alone. Shown to fail: restoring one string in keyring.py reports `nestor/keyring.py:94 nestor[keys]`.",
+            "why": "The rename was done carefully and still missed these, because the obvious places to update are the ones a release touches -- packaging metadata and the front door. An error message is the least-visited string in the codebase right up to the moment it is the only thing a user is reading, and by then they have already hit a failure and are being handed a second one. Nothing about the rename process would have caught it; only something that derives the name from the single declaration can."
+        },
+        {
+            "question": "How should the runbook record a decision that has since been taken?",
+            "commitment": "Keep the reasoning, state the outcome at the top, and add what was learned that the original could not know. Decision 1 now opens 'Taken: the distribution is nestor-meaning' and carries a three-row table showing `nestor` at 404 (08-06), then 200-with-zero-files (08-15), with the explanation that a *pending trusted publisher* creates a project before anything is uploaded. Decision 2 similarly records that 0.1.0 was left behind as 'the unreleased extraction', which is what its own last paragraph proposed.",
+            "why": "Deleting a taken decision loses the argument the next release has to answer; leaving it phrased as open makes the runbook lie about the state of the world -- it claimed the project had never been released, four days after it had. The middle reading is the one worth writing down: a 200 with zero files looks like a squatter and is usually your own reservation, and that misreading cost this session a wrong BLOCKED call before the run logs settled it."
+        },
+        {
+            "question": "Was the release rehearsed, and is that still true?",
+            "commitment": "No. 0.3.0 went straight to production PyPI on `twine check --strict` plus the workflow's install-and-import step, because TestPyPI's `nestor` is NIST's. That is the weaker of the two options the original Decision 1 laid out. Verified since: test.pypi.org/simple/nestor-meaning/ returns 404, so the name is free there and the next release can rehearse properly. The 'no rehearsal target' gap is rewritten to say this rather than to imply the blockage still stands.",
+            "why": "The gap was recorded against the old name and would have read as permanent. Naming what specifically is now unblocked turns a standing excuse into a one-line step somebody can take, which is the difference between a known gap and an accepted one."
+        }
+    ]
+}

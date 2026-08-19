@@ -1,0 +1,23 @@
+{
+    "pr": null,
+    "branch": "claude/session-start-check-ta4sli",
+    "date": "2026-08-15",
+    "note": "A cloud session reported the SessionStart boot as 'not fully working'. It was: `bash scripts/ci-lint.sh` -- the command hooks/seat.md, AGENTS.md and docs/agent-guide.md all name as the pre-push gate -- exited 123 on `No module named detect_secrets`. Decision 0101 wired the secret scan into ci-lint.sh and the tests.yml lint job but never into the [dev] extra, so the venv the web hook builds from `.[dev,keys]` cleared ruff and bandit and died at the third gate. Fixed by declaring detect-secrets==1.5.0 in [dev], and by adding a `[check] lint:` line to the boot context so the next such omission is a boot-time fact rather than a push-time surprise. Both new guards were shown to fail on the original defect before being trusted.",
+    "decisions": [
+        {
+            "question": "Where does a tool that scripts/ci-lint.sh runs get declared -- the [dev] extra, or the web SessionStart hook's install line?",
+            "commitment": "The [dev] extra. `.claude/hooks/session-start.sh` keeps installing plain `.[dev,keys]` and gains no tool-specific knowledge; detect-secrets==1.5.0 joins pytest, ruff and bandit in [dev]. It is pinned to the version .github/workflows/tests.yml installs, because the gate is judged against a committed .secrets.baseline and a scanner finding a different set from CI's is a gate that disagrees with the one branch protection runs.",
+            "why": "The break was not specific to the cloud seat -- any `pip install -e \".[dev,keys]\"` following AGENTS.md produced the same half-installed venv, so fixing it at the hook would have left every local dev install broken and put the same list in two places to drift apart again. The [dev] extra's own comment already stated the rule it was violating: 'a dev install that cannot run the documented lint commands is the docs lying by omission'. It had prose and no gate under it; now it has both."
+        },
+        {
+            "question": "How does the boot check stop reporting a readiness the agent's commands do not share?",
+            "commitment": "hooks/session_start.py gains a `[check] lint:` section beside `[check] pytest:`. It runs one subprocess in the repo interpreter and reports which of hooks.session_start.LINT_MODULES cannot be imported, naming the missing module and the one command that fixes it. Two tests read the `python -m <module>` invocations back out of scripts/ci-lint.sh: one fails if LINT_MODULES drifts from what the script runs, the other fails if [dev] does not declare one of them. Neither test carries a hand-written list.",
+            "why": "The boot check probed pytest and nothing else, so a venv missing the third of three lint gates booted green and the failure surfaced at push time, after the work was done. A check that looks at a subset of what the documented command runs is precisely how the gap stayed invisible for three days. Deriving the set from ci-lint.sh rather than restating it means a fourth gate added to that script fails the suite until the boot check and the [dev] extra both know about it -- the drift cannot recur silently."
+        },
+        {
+            "question": "Was the new readiness line shown to go red, not just green?",
+            "commitment": "Yes, three ways. `_lint_line` was run with LINT_MODULES monkeypatched to name an absent module and emitted `MISSING nestor_no_such_lint_module` with the pip fix and without accusing the installed one. Both drift guards were run against the defect as it actually shipped -- detect-secrets deleted from [dev] and dropped from LINT_MODULES -- and both failed, naming detect_secrets; both pass with the fix restored. The `[check] lint:` section is also covered by the existing fail-open contract: a helper that raises degrades to one status line and its neighbours survive.",
+            "why": "Decision 0101's own acceptance rule, turned on the check that would have caught 0101's omission: a guard that cannot be shown to fail is a ledger, not a gate. A readiness line that can only ever print 'ready' would have reproduced the original defect one level up -- a green boot over a broken command."
+        }
+    ]
+}

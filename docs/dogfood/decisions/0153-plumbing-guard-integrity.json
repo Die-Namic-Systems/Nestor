@@ -1,0 +1,26 @@
+{
+    "pr": null,
+    "branch": "claude/ideas-review-report-5e6y3m",
+    "date": "2026-08-18",
+    "note": "Three plumbing issues from the IDEAS backlog, all about guards or replies promising more than they check. Two required fixes (6.43 and 6.105); the third (6.44) was already shipped in commit 0f7d1a1 (PR #98) and is recorded here as confirmation of that finding's closure.",
+    "decisions": [
+        {
+            "question": "Should the dogfood store's verify digest cover origin and reason, not just source_text/target_text/status?",
+            "commitment": "Yes. _bundle_digest now reads from the store (which carries reason) instead of from the exported bundle (which does not), and hashes (source_text, target_text, status, origin, reason). The digest changed from its old value -- expected and correct, since the old one was blind to two fields it should have covered. Two tests mutate origin and reason on a built store and assert the digest moves; before the fix, both would have stayed green.",
+            "why": "A digest that does not go red when origin moves is the whole defect (IDEAS 6.43). A decision file could change where its rows claimed to have come from and --verify still exited 0. The same applied to reason: the rationale could be rewritten silently. Both fields are content that an auditor would care about, and a verify gate that cannot see them is a gate that cannot catch their mutation.",
+            "doors_closed": "A digest over only source_text/target_text/status. The old shape assumed the portable bundle's PAIR_FIELDS were the right scope for the dogfood digest; they are not -- the portable format omits reason because it is a transfer format, and the dogfood digest is an integrity check."
+        },
+        {
+            "question": "Should the corpus extractors read the decision record in docs/dogfood/decisions/*.json?",
+            "commitment": "No. The decision files are out of corpus scope by design. The dogfood store is its own store with its own builder (scripts/dogfood_store.py + dogfood_common.py), reading the same checkout through a separate path. Documented in the module docstring of scripts/corpus/common.py, citing docs/two-stores.md for the boundary.",
+            "why": "The two-stores boundary exists because a corpus import that carries a decision would bypass the PR-traceable audit trail the decision store is built on. The absence was correct but undocumented (IDEAS 6.105), so an agent or contributor encountering the gap could reasonably try to close it. The note prevents a well-intentioned fix from breaking the boundary.",
+            "doors_closed": "Adding a JSON decision extractor to scripts/corpus/. The boundary is a gate, not an oversight."
+        },
+        {
+            "question": "Does nestor_propose name the seal-authority fields it refuses, or does it silently discard them?",
+            "commitment": "It names them. This was fixed in commit 0f7d1a1 (PR #98). The serve.py handler computes ignored keys from the wire arguments, and answer.propose names them in the reply -- ignored_fields lists all unread keys, seal_authority_refused calls out the seal-boundary fields (status, verifier, verification_kind, sealed, seal_sig), and the note says why they were dropped. Tests in tests/test_fix_propose_names_refused.py verify the wire contract.",
+            "why": "IDEAS 6.44 was already shipped. Confirmed by reading the code and running the existing tests (20 passed). This decision records the closure so the backlog entry can be updated.",
+            "doors_closed": "Silently dropping seal-authority fields from nestor_propose. The fix is shipped and tested; the remaining question (receipt vs refusal shape) was settled in favour of the receipt, as docs/two-stores.md documents from the jeles comparison."
+        }
+    ]
+}

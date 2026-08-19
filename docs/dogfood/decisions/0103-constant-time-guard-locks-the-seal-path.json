@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "The open-internet survey named Trail of Bits' constant-time-analysis as an on-target idea for the asymmetric-seal path, but the suite is CC-BY-SA and C/Rust-oriented. Nestor's seal/edge/rejection/embedding verification already compares in constant time (hmac.compare_digest in nestor/signing.py; ed25519 via the library's verify). This lands a guard that locks that in, clean-room and stdlib-only.",
+  "decisions": [
+    {
+      "question": "Constant-time analysis of the seal path found no bug -- the comparison is already hmac.compare_digest. Land nothing, or lock it in?",
+      "commitment": "Lock it in. scripts/constant_time_guard.py parses nestor/signing.py as an AST and fails if a signature/MAC is compared with ==/!= instead of hmac.compare_digest -- flagging Name operands named like a secret (sig/digest/hmac/mac) and Calls that compute one (.hexdigest(), hmac.new(...)), never string literals, so entry_kind==\"ed25519\" and trust==\"unsigned\" do not trip it. tests/test_constant_time_guard.py asserts the real path is clean, that the guard flags a planted `mac == sig`, and that it does not false-positive on the kind/trust comparisons around it.",
+      "why": "A timing side channel is invisible to a correctness suite: a == swapped in for compare_digest passes every functional test while leaking the secret one byte at a time. The seal path is right today; the risk is a future edit quietly reopening it. A guard that reads the operator, not a substring, and is shown to fail on the exact leak it names turns 'we compare in constant time' from a claim into a mechanism -- the same posture as the mutation guard (0099). Scanning only signing.py, not the ledger's public hash-chain equality, keeps it on the surface where constant-time actually matters."
+    },
+    {
+      "question": "Trail of Bits' constant-time-analysis skill is the source. How is it used without a license breach?",
+      "commitment": "Clean-room, as with the mutation guard: the idea (verify the seal comparison is constant-time) is reused; none of ToB's CC-BY-SA text is copied, and the implementation is Nestor's own stdlib ast walk over its own module. ToB's version targets C/Rust binaries; this targets Python source, so there was nothing to lift even if the licence allowed it.",
+      "why": "CC-BY-SA's ShareAlike is incompatible with Nestor's permissive licensing, and the same PRIOR_ART discipline applies: reuse what an Apache-2.0 repo may depend on, reimplement the rest clean, and record the borrowed idea in the same commit."
+    }
+  ]
+}

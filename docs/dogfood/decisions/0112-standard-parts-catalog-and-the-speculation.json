@@ -1,0 +1,18 @@
+{
+  "pr": 89,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "PR #89 grew IDEAS §7 from the rubrics thread into a full standard-parts catalog (7.1 skills, 7.2 hooks, 7.3 rubrics, 7.4 the loop-derived list, 7.5 the verified gaps) and capped it with §8, a deliberately-labeled speculative section. Doc-only, one file, all entries status-tagged.",
+  "decisions": [
+    {
+      "question": "How should the 'five hundred standard parts' be organized in IDEAS — a flat list, or something the file can hold honestly?",
+      "commitment": "One umbrella §7, one sub-section per part, shipped ones first, each run through the same method: survey both ways (what's in the box, what's on the open internet), re-land the cream clean-room under a license gate, prove it can fail, record the choice as a draft for a human to seal. §7.4 is derived by walking Nestor's own 13-seam loop rather than guessed; §7.5 lists the parts verified-absent by a tree sweep, with the present ones named too so the gap-list cannot be accused of padding.",
+      "why": "The method is itself a rubric — a graph of criteria that constrain each other — which is why one section can hold parts as different as a bash guard and a classroom assessment: they are rows scored against the same rubric. Deriving the catalog from the loop, and the gaps from a sweep, keeps it a map of the tree rather than a wishlist."
+    },
+    {
+      "question": "Should speculation about where the field is going live in the same file as the tree-checked claims?",
+      "commitment": "Yes, but quarantined in its own §8 under a hypothesis tag, so a wager cannot be mistaken for a finding. 8.1 reads the field's three races, 8.2 states Nestor's inversion (memory as a brake and a record, unit = a decision not a fact), 8.3 makes the narrow missing-middle bet. Every §8 heading is tagged hypothesis on purpose.",
+      "why": "The whole file's credibility is that a reader can check any claim and it will be true. §8 is the deliberate exception; labeling it in its own section keeps the speculation from leaking upward. The difference between §8 and the rest is not confidence — it is that the rest can be run."
+    }
+  ]
+}

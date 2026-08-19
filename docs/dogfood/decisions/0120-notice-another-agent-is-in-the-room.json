@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-13",
+  "note": "Two sessions ran this repo at once. This one built the triage (#109, #110); another (claude/dispatches-pending-prs-kw5m3n, #108) hardened the boot hook. Both independently minted decision 0118 off the same master and both rebuilt the derived decisions.json/nestor.db. The model here read '#108' as an opaque token and only perked up when the operator said 'look at pr 108'. Captured as a gap (issue #111, IDEAS §7.5), deliberately NOT built — the operator's call.",
+  "decisions": [
+    {
+      "question": "What is the missing guard the 0118 collision exposed?",
+      "commitment": "Cross-session collision awareness — the sibling of the anti-rediscovery hook (#105). #105 asks 'what already exists before you build'; this asks 'who else is building right now'. The signals were structural and present the whole time: another open PR on the same base branch, a duplicate decision number in flight (the number-before-PR hazard 0054 names), the same derived artifacts rebuilt on a sibling claude/* branch. A guard would surface those before a number is minted or a PR opened — advisory and best-effort (it cannot serialize two agents, only make the collision loud), part seat-reminder ('you may not be the only agent — read the meta-data') and part concrete scan (open PRs, next free decision number, overlapping changed files). Recorded in issue #111 and IDEAS §7.5; not built, by the operator's call.",
+      "why": "The operator's sharper framing is the point: the failure was not the collision, it was reading PR numbers as tokens instead of as meta-data that should perk the model up. The fleet already holds the stance (safe-app-willow-grove: 'another instance may have already designed it'); Nestor's own before_build (#105) reads the past and has no counterpart for the concurrent present. Naming it a gap now, with a worked instance attached, is the search path for whoever builds it."
+    },
+    {
+      "question": "How was the collision resolved once it was noticed?",
+      "commitment": "Yield, don't fight for the number. #108 claimed 0118 first and was the older PR, so this session renumbered its own decision 0118 -> 0119, and #108 kept 0118. Merge order was #108 first (older, a boot fix that helps every session), then this branch rebased onto it and rebuilt the derived store from the union of decision files (0117 triage, 0118 boot, 0119 matcher) — the one honest way to resolve a decisions.json/nestor.db conflict, since they are derived, not authored. Both PRs' changes were verified to coexist (test_hook_wiring + before_build + triage all green) before either was trusted.",
+      "why": "Two agents adding decisions concurrently will always collide on the derived store; the resolution is deterministic — rebuild from the authored decision files, never hand-merge the binary. Yielding the number to the first claimant keeps the numbering an append-only record rather than a contest, which is the same discipline the store itself enforces."
+    }
+  ]
+}

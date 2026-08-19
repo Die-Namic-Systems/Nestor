@@ -1,0 +1,28 @@
+{
+  "pr": 108,
+  "branch": "claude/dispatches-pending-prs-kw5m3n",
+  "date": "2026-08-12",
+  "note": "Hardening the boot after a multi-repo web session found no .venv and no injected seat and walked straight past the cold-start (IDEAS \u00a76.108). Root cause: every hook in .claude/settings.json was addressed as `$CLAUDE_PROJECT_DIR/hooks/nestor-hook`, the runtime left CLAUDE_PROJECT_DIR unset, so the command expanded to a nonexistent `/hooks/nestor-hook` and no-op'd under the runner's check=False \u2014 the same silent-abort class as decision 0054, one layer up (the invocation, not the script body). The docs (confirmed against code.claude.com) say CLAUDE_PROJECT_DIR is 'always set' and settings are discovered by git-repo resolution, but a session rooted at a NON-git parent of sibling repos is an undocumented edge, and that is where it broke.",
+  "decisions": [
+    {
+      "question": "The boot depends on a runtime variable (CLAUDE_PROJECT_DIR) that was unset. Fix by trusting it harder, or by not trusting it at all?",
+      "commitment": "Not at all. hooks/nestor-hook and .claude/hooks/session-start.sh now resolve their repo root from their own file location (readlink -f on ${BASH_SOURCE[0]}, then ../ or ../../), with NESTOR_PROJECT_ROOT kept only as an explicit test override. Neither script reads CLAUDE_PROJECT_DIR or $PWD to find the repo anymore.",
+      "why": "A script's own path is the one anchor that is correct regardless of cwd, of which repo in a multi-repo checkout the session is rooted at, or of which variables the runtime chose to set. $PWD is the parent in a multi-repo web session and CLAUDE_PROJECT_DIR was simply absent; both are things done TO the script, and a boot step that hinges on them fails exactly when the layout is unusual. Verified: invoked from /tmp with all three project vars stripped, nestor-hook still produces the correct seat and the MCP deny, and session-start.sh still names the real repo root rather than /tmp."
+    },
+    {
+      "question": "settings.json still has to name nestor-hook somehow, and CLAUDE_PROJECT_DIR may be unset. What path does it use?",
+      "commitment": "A POSIX resolver, not a bare variable: `for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude <module>; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done`. It prefers the variable when set, else walks up from the working directory, and no-ops cleanly (exit 0) when it finds nothing.",
+      "why": "Self-location fixes the script once it is REACHED; this is what reaches it. It recovers every case that has an anchor the hook can see \u2014 var set and correct, var unset with cwd at the repo, cwd drifted into a subdir, and even a var pointing at the parent \u2014 measured across all four. It cannot invent an anchor that is not there, so it does not error the turn when there is none; it declines quietly, the same posture the runner already takes."
+    },
+    {
+      "question": "Does the resolver close the hole completely?",
+      "commitment": "No, and it says so. A session rooted ABOVE the repo with CLAUDE_PROJECT_DIR unset (the exact multi-repo web layout that produced \u00a76.108) has no anchor pointing into the sibling subdir, so no project-scoped hook command can locate itself from there. Recorded as the residual in \u00a76.108 and left to the runtime, not papered over.",
+      "why": "Overclaiming a fix is the failure this repo refuses more than it refuses the bug. The honest boundary is: the boot now survives an unset variable whenever the hook is invoked with cwd at or under the repo, which is the single-repo web case and the common drift cases; the parent-rooted multi-repo case is a platform gap (undocumented per the Claude Code docs) whose real fix is upstream \u2014 rooting the session at the repo, or a setup script the runtime runs before launch."
+    },
+    {
+      "question": "The bootstrap failed silently once already. How does the next failure announce itself?",
+      "commitment": "session-start.sh is loud on both non-outcomes: it prints to stderr (naming the resolved repo root) when it declines because CLAUDE_CODE_REMOTE != true, and exits non-zero after building if no interpreter landed at .venv/bin/python; it also warns when it built a venv but CLAUDE_ENV_FILE was unset so PATH could not be updated. The agent-facing signal is unchanged and independent: session_start's `[check] pytest:` line already reports a missing .venv.",
+      "why": "FINDINGS-2026-08-12 \u00a71.1: a setup step that declines is a different thing from one that ran, and a silent `exit 0` was indistinguishable from success \u2014 which is the cold-clone trap the script exists to prevent, arriving through the script itself. A gate nobody can watch fail is a decoration; the new test breaks the wiring on purpose (the bare `$CLAUDE_PROJECT_DIR/...` form) and watches it 127."
+    }
+  ]
+}

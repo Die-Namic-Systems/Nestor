@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "The in-session hook suite covered SessionStart, UserPromptSubmit, PreCompact, PreToolUse and Stop, but not SessionEnd. Two look-sees (the fleet's own session_stop_hook; the open internet + the official docs) converged: SessionEnd is cleanup-only. hooks/session_end.py runs a drift warning and a WAL checkpoint, and gates nothing. Idea shape from disler's session_end.py (license unverifiable -> reimplemented clean) and retro-skill's off-by-default reminder (MIT); the fleet precedent is willow-mcp's capture-only session_stop_hook.",
+  "decisions": [
+    {
+      "question": "What can a Nestor SessionEnd hook actually do?",
+      "commitment": "Warn and flush, never gate. Confirmed from the Claude Code hooks docs and the fleet's own code: SessionEnd cannot block termination and cannot inject context (exit 2 only shows stderr to the user; there is no next turn). So session_end.py does two side-effect/advisory jobs: `dogfood_store.py --verify` and, on drift, a stderr reminder to rebuild before pushing (which also fails on a sealed row, doubling as a covenant check); and a WAL checkpoint of the gitignored dev store (never the committed dogfood store, whose checkpoint the rebuild script owns). It always exits 0, warnings to stderr. Anything that must block stays on the Stop turn-gate (before_stop.py). It is excluded from the gate-proving harness's coverage pin because it is not a gate.",
+      "why": "Putting a blocking or steering concern on SessionEnd would be a ledger nothing routes through -- the event cannot honor a block. willow-mcp made the same split (capture on SessionEnd, block on Stop, closeout in a skill), and the docs make it a contract, not a preference. Naming it cleanup-only keeps it honest: say enforcement or ledger."
+    },
+    {
+      "question": "If SessionEnd is unreliable, is the drift check worth having?",
+      "commitment": "Yes, as a best-effort local reminder, not a guarantee. SessionEnd does not fire on Ctrl+C (suspend, not exit) and is unreliable on /clear (anthropics/claude-code#6428). CI's test_dogfood_store remains the real drift gate; this hook only turns a post-push CI failure into an earlier end-of-session notice for the sessions where it does fire.",
+      "why": "The single most common Nestor slip is adding a decision file and forgetting `--rebuild`, caught only after push today. An earlier reminder is worth having even if it misses some exits -- as long as it is framed as a reminder and never as the gate. Overselling a best-effort hook as a guarantee is the exact overclaim this repo refuses, so the docstring and the decision both say best-effort out loud."
+    }
+  ]
+}

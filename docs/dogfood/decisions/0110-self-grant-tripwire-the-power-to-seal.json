@@ -1,0 +1,18 @@
+{
+  "pr": null,
+  "branch": "claude/llm-only-joke-ei08dl",
+  "date": "2026-08-12",
+  "note": "hooks/before_authority.py — a self-grant tripwire. Two look-sees (willow-mcp's 7-guard pre_tool_use.py internally; the open internet) converged: Nestor's only authority is the power to seal, and nothing in-session gated the acts that mint it. The guard denies those acts and allows de-escalation/reads. Idea from willow-mcp's sudo-invariant guard; honesty framing ('a catch-net, not a security boundary') from dwarvesf/claude-guardrails (MIT). No text copied.",
+  "decisions": [
+    {
+      "question": "Nestor's covenant is 'the machine may not confirm'. Is that enforced in-session, or only stated?",
+      "commitment": "Only stated, until now — enforced by crypto ONLY in the strong deployment (an ed25519 keyring whose private half never touches the instance, a human signing in nestor ui). In the DEFAULT deployment (signing off, or a shared HMAC key) the covenant was purely advisory. before_authority denies the four minting acts that were ungated: `nestor keys add <name>` (default HMAC signs AS that name; --rotate retakes a key), assigning NESTOR_SEAL_KEY/NESTOR_KEYRING/NESTOR_CACHE_KEY, `nestor import --apply --verifier <human>`, a raw sqlite seal write, and a write to the keyring file. It allows de-escalation and reads (keys list/revoke, registering a peer's --public key, cat/stats/ledger). A pinning test binds the guard's env set to what signing/keyring actually read and its keys-verb knowledge to cli.py's choices, so a new key-env or keys verb cannot ship and skip the guard.",
+      "why": "before_write's own docstring is the argument: the seat arrived as advice, an agent read it and wrote a fixture anyway, so the detection kit became gates. The seal covenant was in exactly that pre-gate state. Minting sealing power is the one self-grant Nestor has — it confers no new tool, it lets the machine forge a human's ratification, which is Nestor#2 itself."
+    },
+    {
+      "question": "Is this guard a boundary?",
+      "commitment": "No, and it says so in its own docstring and refusal message: a tripwire, not a boundary. A PreToolUse hook lives in the agent's own harness, and Claude Code's permissions.deny is not even applied to Edit/Write (anthropics/claude-code#11226, closed 'not planned'). The durable controls are the crypto covenant and the managed-settings layer (/etc/claude-code/managed-settings.json, allowManagedHooksOnly) at an OS path outside the agent's reach.",
+      "why": "Say enforcement or ledger. Selling a tripwire as a boundary is the exact overclaim this repo refuses; naming it a ledger-with-a-siren keeps it honest. Its job is willow-mcp's sudo-invariant's job — make the crossing loud and unsealed at the moment it happens, so 'the command looked ordinary' stops being a defense — not to be unbreakable."
+    }
+  ]
+}

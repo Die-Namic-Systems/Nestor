@@ -1,0 +1,23 @@
+{
+    "pr": null,
+    "branch": "claude/session-start-check-ta4sli",
+    "date": "2026-08-15",
+    "note": "After v0.3.1 published, this session flagged the absence of a required reviewer on the `pypi` environment as a possible governance gap, because docs/releasing.md and publish.yml both instruct the operator to add one 'so every upload waits for a human click'. The operator rejected that reading: the reviewing had already happened -- PR #118 reviewed and merged, CI green on 3.10 and 3.12, twine check --strict, the artefact opened before and after upload -- and a reviewer prompt would ask the same person to approve their own work a second time. The docs were the source of the flag and would have produced it again next release, so the docs are what changed.",
+    "decisions": [
+        {
+            "question": "What is the human gate in the release path?",
+            "commitment": "The tag push. It is the trigger -- no tag, no build, no upload -- and it is not an act an agent in this repo can perform: a session's git credentials carry `refs/heads/*` and refuse `refs/tags/*`. Confirmed the hard way while preparing v0.3.1: four `git push origin v0.3.1` attempts with exponential backoff, HTTP 403 every time, across two containers, until a human pushed it. A required reviewer on the `pypi` environment is deliberately not used; the environment itself must still exist because the publish job is gated on it.",
+            "why": "The propose/confirm rule is already enforced at the credential boundary, which is a stronger control than a settings checkbox -- it cannot be clicked past by the agent that wants it, and it failed closed without anyone having configured it for that purpose. Adding a reviewer prompt on top does not add a decision; it adds a second click by the person who just made the decision. A gate that asks somebody to approve their own work teaches them to approve without looking, which costs more than it buys."
+        },
+        {
+            "question": "When would a required reviewer be right?",
+            "commitment": "When a *second* person should sign off on uploads. That is a real reason and the only one recorded here. It is never a substitute for the tag push, because nothing reaches the approval prompt without a tag, and the tag is the part an agent cannot do.",
+            "why": "Writing down the one legitimate case keeps this from reading as 'reviewer prompts are bad'. The objection is specifically to a self-approval step at the end of a path whose earlier steps were all already reviewed -- not to human sign-off, which is what this whole project is about."
+        },
+        {
+            "question": "Why change the documents rather than just accept the setting as-is?",
+            "commitment": "Because the documents produced the flag. docs/releasing.md said to add a required reviewer 'so every upload waits for a human click', and publish.yml's header said the same while also asserting 'nothing here can publish today ... there are no tags, and `git tag -l` is empty' -- describing a repository that had since published twice. Both now state that the tag push is the gate and that a reviewer is deliberately unused.",
+            "why": "An unchanged document does not stay silent; it re-raises the same objection through the next agent that reads it, and the operator answers it again. This is the third time on this branch that a stale document cost a round trip -- releasing.md claiming the project had never been released (0129), and the [dev] extra's comment describing a rule it did not enforce (0124). A decision that lives only in a conversation is a decision that gets re-litigated."
+        }
+    ]
+}
