@@ -344,7 +344,7 @@ DAYS_LEFT = 5           # matters he can attempt before the week is up
 # =========================================================================
 
 def run_week(seed: int, *, verbose: bool = False,
-             shortcut: bool = False) -> dict:
+             shortcut: bool = False, thisweek: bool = False) -> dict:
     rng = random.Random(seed)
     sean = Sean()
     done: set[str] = set()
@@ -353,13 +353,15 @@ def run_week(seed: int, *, verbose: bool = False,
     sale_clock = 0
     items_attempted = 0
 
-    for matter in MATTERS:
+    matters = [m for m in MATTERS if m.urgency == 1] if thisweek else MATTERS
+
+    for matter in matters:
         if sean.stopped:
             log.append({"matter": matter, "skipped": True,
                         "reason": "stopped — the body said no"})
             continue
 
-        if items_attempted >= DAYS_LEFT and matter.urgency > 1:
+        if not thisweek and items_attempted >= DAYS_LEFT and matter.urgency > 1:
             log.append({"matter": matter, "skipped": True,
                         "reason": "the week ran out — urgency-1 only from here"})
             continue
@@ -468,7 +470,7 @@ def run_week(seed: int, *, verbose: bool = False,
     return {
         "seed": seed,
         "done": done,
-        "total": len(MATTERS),
+        "total": len(matters),
         "burn": sean.burn,
         "collapses": sean.collapses,
         "conditions": list(sean.conditions),
@@ -608,11 +610,13 @@ def _wrap(text: str, width: int) -> list[str]:
 # DISTRIBUTION + BEST-SEED FINDER
 # =========================================================================
 
-def distribution(n: int, *, shortcut: bool = False) -> None:
+def distribution(n: int, *, shortcut: bool = False,
+                 thisweek: bool = False) -> None:
     from collections import Counter
 
+    run_matters = [m for m in MATTERS if m.urgency == 1] if thisweek else MATTERS
     comp_hist: Counter[int] = Counter()
-    matter_pcts: dict[str, list[float]] = {m.key: [] for m in MATTERS}
+    matter_pcts: dict[str, list[float]] = {m.key: [] for m in run_matters}
     collapse_hist: Counter[int] = Counter()
     life_counts: Counter[str] = Counter()
     best_seed = -1
@@ -620,7 +624,7 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
     best_ties: list[int] = []
 
     for seed in range(n):
-        result = run_week(seed, shortcut=shortcut)
+        result = run_week(seed, shortcut=shortcut, thisweek=thisweek)
         nd = len(result["done"])
         comp_hist[nd] += 1
         collapse_hist[result["collapses"]] += 1
@@ -634,6 +638,8 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
 
         for entry in result["log"]:
             k = entry["matter"].key
+            if k not in matter_pcts:
+                continue
             if entry.get("skipped"):
                 matter_pcts[k].append(0.0)
             else:
@@ -644,21 +650,23 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
             if le:
                 life_counts[le["key"]] += 1
 
+    scope = " (this week only)" if thisweek else ""
     label = " (with shortcuts)" if shortcut else ""
-    print(f"\nDistribution over {n} seeds — Sean's Week{label}")
+    print(f"\nDistribution over {n} seeds — Sean's Week{label}{scope}")
     print("=" * 70)
 
-    full = comp_hist.get(len(MATTERS), 0)
+    nm = len(run_matters)
+    full = comp_hist.get(nm, 0)
     print(f"\nAll matters resolved: {full}/{n} ({100 * full / n:.1f}%)")
-    print(f"Best seed: {best_seed} ({best_done}/{len(MATTERS)} matters)")
+    print(f"Best seed: {best_seed} ({best_done}/{nm} matters)")
     print(f"Seeds tying at {best_done}: {len(best_ties)}")
 
     print(f"\nMatters completed:")
-    for k in range(len(MATTERS) + 1):
+    for k in range(nm + 1):
         count = comp_hist.get(k, 0)
         pct = 100 * count / n
         bar_len = int(40 * count / n)
-        print(f"  {k:>2}/{len(MATTERS)}: {count:>5} ({pct:>5.1f}%) "
+        print(f"  {k:>2}/{nm}: {count:>5} ({pct:>5.1f}%) "
               f"{'#' * bar_len}")
 
     print(f"\nCollapses:")
@@ -674,7 +682,7 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
     print(f"\n{'Matter':<50} {'Avg%':>5} {'Done':>5} "
           f"{'>=50':>5} {'=0%':>5}")
     print("-" * 75)
-    for m in MATTERS:
+    for m in run_matters:
         pcts = matter_pcts[m.key]
         avg = sum(pcts) / len(pcts) if pcts else 0
         dc = sum(1 for p in pcts if p >= 1.0)
@@ -686,11 +694,13 @@ def distribution(n: int, *, shortcut: bool = False) -> None:
     print()
 
 
-def find_best(n: int, top: int = 5, *, shortcut: bool = False) -> None:
+def find_best(n: int, top: int = 5, *, shortcut: bool = False,
+              thisweek: bool = False) -> None:
+    run_matters = [m for m in MATTERS if m.urgency == 1] if thisweek else MATTERS
     results: list[tuple[int, int, set[str], list[str]]] = []
 
     for seed in range(n):
-        result = run_week(seed, shortcut=shortcut)
+        result = run_week(seed, shortcut=shortcut, thisweek=thisweek)
         nd = len(result["done"])
         events = [
             e.get("life_event", {}).get("key", "?")
@@ -700,24 +710,25 @@ def find_best(n: int, top: int = 5, *, shortcut: bool = False) -> None:
 
     results.sort(key=lambda x: (-x[0], x[1]))
 
+    nm = len(run_matters)
+    scope = " (this week only)" if thisweek else ""
     label = " (with shortcuts)" if shortcut else ""
-    print(f"\nTop {top} seeds out of {n} — Sean's Week{label}")
+    print(f"\nTop {top} seeds out of {n} — Sean's Week{label}{scope}")
     print("=" * 70)
 
     for i, (nd, seed, done, events) in enumerate(results[:top]):
-        print(f"\n  #{i+1}  Seed {seed}: {nd}/{len(MATTERS)} matters")
+        print(f"\n  #{i+1}  Seed {seed}: {nd}/{nm} matters")
         print(f"       Done: {', '.join(sorted(done))}")
         print(f"       Life: {' -> '.join(events)}")
-        not_done = set(m.key for m in MATTERS) - done
+        not_done = set(m.key for m in run_matters) - done
         if not_done:
             print(f"       Not done: {', '.join(sorted(not_done))}")
 
     print()
 
-    # What do the top seeds have in common?
     top_n = results[:min(top * 5, len(results))]
     all_done = set.intersection(*(r[2] for r in top_n)) if top_n else set()
-    never_done = set(m.key for m in MATTERS) - set.union(*(r[2] for r in top_n))
+    never_done = set(m.key for m in run_matters) - set.union(*(r[2] for r in top_n))
 
     print("Pattern in the best seeds:")
     if all_done:
@@ -754,18 +765,22 @@ def main() -> int:
                     help="run N seeds and report statistics")
     ap.add_argument("--best", type=int, metavar="N",
                     help="find the best seeds out of N runs")
+    ap.add_argument("--thisweek", action="store_true",
+                    help="scope to urgency-1 matters only")
     args = ap.parse_args()
 
     if args.distribution:
-        distribution(args.distribution, shortcut=args.shortcut)
+        distribution(args.distribution, shortcut=args.shortcut,
+                     thisweek=args.thisweek)
         return 0
 
     if args.best:
-        find_best(args.best, shortcut=args.shortcut)
+        find_best(args.best, shortcut=args.shortcut,
+                  thisweek=args.thisweek)
         return 0
 
     result = run_week(args.seed, verbose=args.verbose,
-                      shortcut=args.shortcut)
+                      shortcut=args.shortcut, thisweek=args.thisweek)
     print(narrate(result))
     return 0
 
