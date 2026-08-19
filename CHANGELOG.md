@@ -18,6 +18,20 @@ what moved.
 
 ---
 
+## [0.9.0](https://github.com/rudi193-cmd/Nestor/compare/v0.8.3...v0.9.0) (2026-08-19)
+
+
+### Added
+
+* **ui:** a review you can finish, and a tab that says why it is empty ([#159](https://github.com/rudi193-cmd/Nestor/issues/159)) ([5ad53bb](https://github.com/rudi193-cmd/Nestor/commit/5ad53bbc411a0cf08765294622e97e32f846cc4f))
+* **ui:** atomic-age panels, rendered reasons, and an origin you can open ([2b527da](https://github.com/rudi193-cmd/Nestor/commit/2b527da005141d9ce1bfbbd40e39e4ca009b7b10))
+* **ui:** the review has a bottom, and a decided row leaves the list ([01c155d](https://github.com/rudi193-cmd/Nestor/commit/01c155dd184d3ed89fcfd1de6625d3d8cdecb68e))
+
+
+### Fixed
+
+* **ui:** a tab with nothing in it says why, not that the work is done ([56019a7](https://github.com/rudi193-cmd/Nestor/commit/56019a70a6706bc36d979dea9c1e23e80ad70b6c))
+
 ## [0.8.3](https://github.com/rudi193-cmd/Nestor/compare/v0.8.2...v0.8.3) (2026-08-19)
 
 
