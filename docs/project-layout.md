@@ -35,6 +35,7 @@ nestor/
 ├── errors.py         NestorError — the shared base every policy refusal subclasses
 ├── ledger.py         verify() the hash chain — the fail-closed audit check
 ├── signing.py        bind a seal (and a rejection) to a key the store does not hold
+├── staleness.py      age_seals() and the kind constants — one definition for the API and the CLI listing
 ├── keyring.py        a key per verifier — so a seal names a person, not a deployment
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── home_paths.py     ~/.nestor/keep paths for household hosts (see docs/home-paths.md)

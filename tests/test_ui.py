@@ -678,6 +678,7 @@ def test_due_for_reverification_returns_rows_for_aged_seals(filled):
     assert status == 200
     assert out["chain_ok"] is True
     assert out["threshold_days"] == 0
+    assert out["total"] >= 1
     assert len(out["rows"]) >= 1
     row = out["rows"][0]
     assert "pair_id" in row and "verifier" in row and "last" in row
@@ -693,6 +694,16 @@ def test_due_for_reverification_older_than_filters(filled):
     assert out["threshold_days"] == 90
     # The sealed pair was created moments ago — it must NOT appear at 90 days.
     assert out["rows"] == []
+    assert out["total"] == 0
+
+
+def test_due_for_reverification_respects_limit(filled):
+    """The limit parameter caps the returned rows while total reflects all."""
+    status, out = get(filled, "/api/due-for-reverification",
+                      older_than="0", limit="1")
+    assert status == 200
+    assert len(out["rows"]) <= 1
+    assert out["total"] >= len(out["rows"])
 
 
 def test_due_for_reverification_survives_read_only(filled):
