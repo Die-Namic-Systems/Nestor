@@ -192,6 +192,27 @@ def merges(root: pathlib.Path,
     return rows, robots, housekeeping
 
 
+def ratified(out: pathlib.Path) -> int:
+    """How many rows in an existing store a human has already ratified.
+
+    Zero for a store that does not exist yet, or one whose tables were never
+    created — the ordinary first run, which must not be obstructed. Opened
+    read-only: counting must never be the thing that alters the file.
+    """
+    if not out.exists():
+        return 0
+    try:
+        con = sqlite3.connect(f"file:{out}?mode=ro", uri=True)
+        try:
+            return con.execute(
+                "SELECT COUNT(*) FROM tm_pairs WHERE status = ?",
+                ("sealed",)).fetchone()[0]
+        finally:
+            con.close()
+    except sqlite3.OperationalError:
+        return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--repo", required=True)
@@ -199,6 +220,9 @@ def main() -> int:
     ap.add_argument("--email", nargs="*", default=[])
     ap.add_argument("--out", required=True)
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--force", action="store_true",
+                    help="write even into a store holding ratified rows "
+                         "(those ratifications are lost)")
     args = ap.parse_args()
 
     root = pathlib.Path(args.repo).expanduser()
@@ -216,6 +240,29 @@ def main() -> int:
     rows, robots, housekeeping = merges(root, emails)
     out = pathlib.Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+
+    # Stop before writing into a store somebody has been ratifying in.
+    #
+    # Not because the ratifications would be lost — measured on a true copy
+    # (`VACUUM INTO`, because the store is WAL-mode and a plain `cp` under a live
+    # server silently takes a stale main file), a forced re-extraction leaves all
+    # 26 of them standing: `add_pair` returns a sealed row rather than replacing
+    # it. The reason is quieter. A re-extraction re-proposes every decision the
+    # repository still has, including ones a person already considered and left
+    # as drafts, and mixes fresh rows into a queue somebody is partway through.
+    # It is nearly always a mistake, and it is the kind that is invisible
+    # afterwards — the store looks like a store, and the reviewer has lost their
+    # place rather than their work.
+    #
+    # So this asks, rather than refuses: `--force` when you meant it.
+    settled = ratified(out)
+    if settled and not args.force:
+        print(f"{args.out} already holds {settled} ratified row(s) — somebody "
+              f"has been working in it.\n"
+              f"Those survive a re-extraction, but every open decision is "
+              f"re-proposed and the review\nloses its place. Write somewhere "
+              f"else, or pass --force if you meant it.", file=sys.stderr)
+        return 2
     storage.set_store(SqliteStore(str(out)))
 
     written, revised, skipped = 0, 0, 0
@@ -240,7 +287,10 @@ def main() -> int:
         pr = f"PR #{r['pr']}" if r["pr"] else "merge"
         reason = (f"merged {r['date']} by {r['author']} <{r['email']}>\n"
                   f"{pr}" + (f" · branch {r['branch']}" if r["branch"] else "")
-                  + (f"\n{r['body']}" if r["body"] else ""))
+                  # Blank line, not a newline: the metadata and the commit
+                  # body are separate paragraphs, and a reader's renderer should
+                  # not have to infer that from line lengths.
+                  + (f"\n\n{r['body']}" if r["body"] else ""))
         fields = dict(source_lang=DOMAIN, target_lang=TARGET, reason=reason,
                       origin=f"{name}@{r['sha']}:{pr}")
         try:
