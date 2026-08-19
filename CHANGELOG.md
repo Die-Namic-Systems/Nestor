@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.9.1](https://github.com/rudi193-cmd/Nestor/compare/v0.9.0...v0.9.1) (2026-08-19)
+
+
+### Fixed
+
+* **cli:** nestor ask matches its default domain to the store ([dac3c91](https://github.com/rudi193-cmd/Nestor/commit/dac3c915b6e38aa8c030d8c1f35d9bd969069085))
+* **cli:** nestor ask matches its default domain to the store ([#168](https://github.com/rudi193-cmd/Nestor/issues/168)) ([4a8dabd](https://github.com/rudi193-cmd/Nestor/commit/4a8dabd1d4314e336cf61ad53d4d629ab79d7dc4))
+
 ## [0.9.0](https://github.com/rudi193-cmd/Nestor/compare/v0.8.3...v0.9.0) (2026-08-19)
 
 
