@@ -357,6 +357,15 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
 .md-list { margin: 0 0 8px; padding-left: 20px; }
 .md-list li { margin: 2px 0; }
 .md-list li::marker { color: var(--glow); }
+.progress-readout { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; }
+.progress-bar {
+  display: inline-block; width: 96px; height: 6px; border-radius: 999px;
+  background: var(--band); border: 1px solid var(--line); overflow: hidden;
+}
+.progress-fill {
+  display: block; height: 100%; background: var(--sealed);
+  border-radius: 999px; transition: width .35s ease;
+}
 .origin-strip { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .origin-link, .origin-copy {
   text-decoration: none; color: var(--muted); cursor: pointer;
@@ -819,7 +828,14 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // above the Triage block) and creates a fresh one every call.
             triageConfirming: {},
             recipe: localStorage.getItem("nestor.recipe") || "translate",
-            filters: { status: "", contains: "", verifier: "", unverifiable: "",
+            // Open on what is still yours to decide. A curator arriving at a
+            // store of 70 rows where 26 are already settled was shown all 70,
+            // and sealing one changed nothing on the page: the row stayed put
+            // with a green lamp and the pile never shrank, so the work had no
+            // shape and no end. The status control is right there and one click
+            // returns the whole archive — this is a starting point, not a
+            // restriction.
+            filters: { status: "draft", contains: "", verifier: "", unverifiable: "",
                        source_lang: "", target_lang: "" },
             // Nestor#17's browser signer: an in-browser Ed25519 identity, live
             // only in this tab. `browserKey.privateKey` is a non-extractable
@@ -1575,6 +1591,7 @@ function viewMemory() {
       ...[["", "any status"], ["sealed", "sealed"], ["draft", "draft"], ["rejected", "rejected"]]
         .map(([v, t]) => h("option", { value: v, selected: f.status === v }, t))),
     h("input", { id: "f-verifier", placeholder: "verifier", value: f.verifier, size: 12 }),
+    progressReadout(),
     h("select", { id: "f-domain", title: "domain (source → target tags)" },
       h("option", { value: "", selected: !f.source_lang && !f.target_lang }, "every domain"),
       ...S.domains.map((d, i) => h("option", {
@@ -2149,6 +2166,14 @@ async function sealDraftInPlace(p) {
   const out = await sealWithOverride("/api/seal-draft",
     { pair_id: p.id, target, ...extra }, "Decision sealed.");
   if (!out) return;
+  // The row has been decided, so it leaves a list that is showing open work.
+  // Spliced locally rather than refetched: the answer is already known, and a
+  // round-trip here is a visible stall in the middle of a rhythm — Seal, gone,
+  // next. With the filter widened to every status it correctly stays put, now
+  // wearing a green lamp.
+  if (S.filters.status && S.filters.status !== out.pair?.status) {
+    S.pairs = (S.pairs || []).filter((r) => r.id !== p.id);
+  }
   if (nextDraft) { openPair(nextDraft.id); return; }
   if (out.pair) S.detail = out.pair;
   render();
@@ -3391,6 +3416,29 @@ function junkPairsCard() {
         h("span", { class: "small", text: p.query_norms.slice(0, 4).join(" · ") }))));
   }
   return card;
+}
+
+/* How much is left, in the toolbar where the work happens.
+   A queue with no count has no end: you seal, and the only evidence is that a
+   different row is selected. The header's own chips carry the same two numbers,
+   but they are across the room from the list and read as status rather than as
+   progress. Reads the counts the server already sends — nothing is recomputed
+   here, so it cannot disagree with the store. */
+function progressReadout() {
+  // Same two numbers the header badges read, by the same route: `summary` when
+  // the store computed one, `stats` otherwise. Reading them a second way would
+  // be a second answer to one question.
+  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
+  const sealed = c.sealed ?? base.sealed ?? 0;
+  const draft = c.draft ?? base.draft ?? 0;
+  const total = sealed + draft;
+  if (!total) return null;
+  const pct = Math.round((sealed / total) * 100);
+  return h("span", { class: "progress-readout", title: `${sealed} of ${total} decided` },
+    h("span", { class: "progress-bar" },
+      h("span", { class: "progress-fill", style: "width:" + pct + "%" })),
+    h("span", { class: "small muted",
+      text: draft ? `${draft} still yours` : "nothing left" }));
 }
 
 function applyFilters() {
