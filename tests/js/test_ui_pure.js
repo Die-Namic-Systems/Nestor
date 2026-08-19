@@ -381,3 +381,150 @@ describe("moodFromState", () => {
     assert.equal(P.moodFromState("memory", null, detail), "idle");
   });
 });
+
+// ---------------------------------------------------------------------------
+// mdInline / mdBlocks — the little markdown a `reason` actually carries
+//
+// Scope was measured, not guessed: across 2,796 rows of one box's stores, 851
+// carry `code` and 163 carry **bold**; links, bullets, headings and fences are
+// single figures, and italics, block quotes and ordered lists never appear.
+// These tests pin what is supported and, as importantly, that everything else
+// survives as plain text rather than being mangled by a half-implementation.
+// ---------------------------------------------------------------------------
+
+describe("mdInline", () => {
+  it("splits code, bold and links out of the surrounding text", () => {
+    const t = P.mdInline("set `--db` and **seal** it, see [docs](http://x/y)");
+    assert.deepEqual(t.map((x) => x.type),
+      ["text", "code", "text", "strong", "text", "link"]);
+    assert.equal(t[1].text, "--db");
+    assert.equal(t[3].text, "seal");
+    assert.equal(t[5].text, "docs");
+    assert.equal(t[5].href, "http://x/y");
+  });
+
+  it("returns one text token for a line with no markup", () => {
+    assert.deepEqual(P.mdInline("merged 2026-08-18 by Sean Campbell"),
+      [{ type: "text", text: "merged 2026-08-18 by Sean Campbell" }]);
+  });
+
+  it("never returns markup — only tokens the caller renders as text", () => {
+    // A reason is data. If it could produce markup, a row could script the page.
+    const t = P.mdInline("<script>alert(1)</script> and `<b>x</b>`");
+    assert.equal(t[0].type, "text");
+    assert.ok(t[0].text.includes("<script>"), "kept verbatim as text");
+    assert.equal(t.find((x) => x.type === "code").text, "<b>x</b>");
+  });
+
+  it("leaves an unmatched marker alone rather than eating the rest of the line", () => {
+    assert.deepEqual(P.mdInline("a ** dangling marker"),
+      [{ type: "text", text: "a ** dangling marker" }]);
+  });
+});
+
+describe("mdBlocks", () => {
+  it("groups headings, bullets and paragraphs", () => {
+    const b = P.mdBlocks("## Why\n\n- one\n- two\n\nbecause.");
+    assert.deepEqual(b.map((x) => x.type), ["h", "li", "li", "p"]);
+    assert.equal(b[0].level, 2);
+    assert.equal(b[1].text, "one");
+    assert.deepEqual(b[3].lines, ["because."]);
+  });
+
+  it("does not interpret markdown inside a fence", () => {
+    const b = P.mdBlocks("```\nraw **not** bold\n```");
+    assert.equal(b.length, 1);
+    assert.equal(b[0].type, "pre");
+    assert.equal(b[0].text, "raw **not** bold");
+  });
+
+  it("closes an unterminated fence rather than dropping its contents", () => {
+    const b = P.mdBlocks("```\nstill worth showing");
+    assert.equal(b[0].type, "pre");
+    assert.equal(b[0].text, "still worth showing");
+  });
+
+  it("collects a paragraph's lines for mdParagraph to join", () => {
+    const b = P.mdBlocks("merged 2026-08-18\nPR #157 · branch fix/x");
+    assert.equal(b.length, 1);
+    assert.deepEqual(b[0].lines, ["merged 2026-08-18", "PR #157 · branch fix/x"]);
+  });
+
+  it("keeps the file:// convention the gap importer writes", () => {
+    const b = P.mdBlocks("file:///home/x/notes.md");
+    assert.equal(b[0].type, "path");
+    assert.equal(b[0].text, "/home/x/notes.md");
+  });
+
+  it("treats an empty or absent reason as no blocks at all", () => {
+    assert.deepEqual(P.mdBlocks(""), []);
+    assert.deepEqual(P.mdBlocks(null), []);
+  });
+});
+
+
+describe("mdParagraph", () => {
+  it("joins soft-wrapped lines instead of breaking them again", () => {
+    // The defect this exists for, seen on screen: a reason hard-wrapped at ~72
+    // columns and re-broken at every newline wraps twice and shreds — two words
+    // on a line, then a long one, then two more. An earlier version of this
+    // renderer kept every break, on the theory that reasons are stacks of short
+    // facts. Some are; the prose ones are not, and those are the readable ones.
+    const wrapped = ["This commit was written for #154 and did not land",
+                     "with it. The merge took f7a6e06 plus a merge commit;",
+                     "the follow-up push arrived after the merge had"];
+    const out = P.mdParagraph(wrapped);
+    assert.equal(out.length, 1, "one paragraph, not three lines");
+    assert.ok(out[0].startsWith("This commit was written for #154 and did not land with it."));
+  });
+
+  it("keeps a break the author asked for with two trailing spaces", () => {
+    assert.deepEqual(P.mdParagraph(["merged 2026-08-18  ", "PR #157 · branch fix/x"]),
+      ["merged 2026-08-18", "PR #157 · branch fix/x"]);
+  });
+
+  it("drops empty runs rather than emitting blank paragraphs", () => {
+    assert.deepEqual(P.mdParagraph(["   ", ""]), []);
+  });
+});
+
+describe("mdPlain", () => {
+  it("takes the markers off a list row instead of rendering them", () => {
+    assert.equal(P.mdPlain("**This commit was written for #154.** The merge"),
+      "This commit was written for #154. The merge");
+    assert.equal(P.mdPlain("## Summary"), "Summary");
+    assert.equal(P.mdPlain("run the suite on `master`"), "run the suite on master");
+  });
+
+  it("flattens a row to one line so it cannot break the scan", () => {
+    assert.equal(P.mdPlain("first line\nsecond   line"), "first line second line");
+  });
+
+  it("drops a fenced block rather than dumping code into a row", () => {
+    assert.equal(P.mdPlain("before ```\nraw\n``` after"), "before after");
+  });
+});
+
+describe("parseGitOrigin", () => {
+  it("turns an origin into the places a reader would go", () => {
+    const g = P.parseGitOrigin("rudi193-cmd/Nestor@c68b8be:PR #41");
+    assert.equal(g.prUrl, "https://github.com/rudi193-cmd/Nestor/pull/41");
+    assert.equal(g.commitUrl, "https://github.com/rudi193-cmd/Nestor/commit/c68b8be");
+    assert.equal(g.repoUrl, "https://github.com/rudi193-cmd/Nestor");
+    assert.equal(g.showCmd, "git -C Nestor show c68b8be");
+  });
+
+  it("handles a merge with no pull request", () => {
+    const g = P.parseGitOrigin("owner/repo@abc1234");
+    assert.equal(g.prUrl, "", "no PR, no PR link");
+    assert.equal(g.commitUrl, "https://github.com/owner/repo/commit/abc1234");
+  });
+
+  it("returns null rather than guessing at an origin of another shape", () => {
+    // A wrong link into somebody's repository is worse than no link.
+    for (const bad of ["ui:seal-draft", "willow:gap#12", "", null,
+                       "not/a/thing@nothex:PR #1", "owner/repo@c68b8be:MR !41"]) {
+      assert.equal(P.parseGitOrigin(bad), null, JSON.stringify(bad));
+    }
+  });
+});

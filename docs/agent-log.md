@@ -6917,3 +6917,51 @@ a markdown reference document, both committed to the consuming repository
 
 ---
 
+### 6.113 An agent driving the UI in a browser is outside every gate this repo has — **measured**, control **exists**
+
+*Found 2026-08-19, mid-session, by the operator rather than by the agent. I had
+`nestor ui` live at `read_only = False` to look at CSS, with a working "Seal this
+decision" button on screen, and said so out loud. The operator's reply: "if so,
+you would be sealing a decision meant for me."*
+
+**The covenant is enforced on three surfaces, and a click is none of them.**
+`.claude/settings.json` wires `hooks/before_bash.py`, `hooks/before_write.py`,
+`hooks/before_authority.py` and `hooks/before_mcp.py` to `Bash`,
+`Write|Edit|MultiEdit|NotebookEdit` and `mcp__`. Those are the routes an agent
+takes with tools, and they are covered thoroughly — `before_authority` refuses a
+self-grant, `before_write` refuses gated code without a review receipt. An agent
+with browser automation reaches the same store through a fourth route that none
+of them observe. Nothing computes a verdict, so there is nothing to consume.
+
+**§6.93 covers half of it, and the half it does not cover is the easy half.**
+The browser signer generates a non-extractable WebCrypto key in IndexedDB, so a
+*client-signed* seal needs a key an agent cannot exfiltrate. But the typed-name
+path is untouched by that: `_verifier_for_seal` takes the name the page sends,
+and a store launched without `NESTOR_KEYRING` — which is exactly how the agent
+had launched it, `env -u NESTOR_KEYRING`, to dodge an unrelated permissions
+error — accepts it. The defended path is the one requiring a key. The
+undefended one requires typing a name.
+
+**The control already exists and was simply not used.** `nestor ui --read-only`
+refuses every mutating call at the API rather than in the page, which is the
+right layer: it does not depend on the page behaving, or on the agent driving it
+behaving. Read-only is also enough for every reason an agent has to open the UI
+at all — looking at a rendering, checking a layout, reading a row.
+
+**What this is an instance of.** Decision `0158` records a gate that was correct,
+tested, ran, and stopped nothing because no branch protection required it — *is
+the verdict computed, and is it consumed*. This is the same question one step
+earlier: not "is the verdict consumed" but "is the verdict computed at all on
+this route". A gate cannot be shown to cover a route nobody has walked, and
+`scripts/hook_guard.py` proves each gate denies the case it was written for
+without being able to say which routes reach it.
+
+**Standing practice, not a code change.** The agent's note to itself is to pass
+`--read-only` whenever it is the one opening the UI, and to say so and use a
+throwaway copy of the store on the rare occasion a write path genuinely needs
+exercising. Recorded here rather than fixed in code because the fix is a flag
+that already exists; what was missing was anybody writing down when to use it.
+
+*The covenant held on the day. It held because the agent read it and chose to,
+which is exactly the property this entry exists to stop relying on.*
+

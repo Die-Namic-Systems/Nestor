@@ -180,6 +180,7 @@ this map is not, CI fails. It cannot drift.
 | [6.110](docs/agent-log.md#6110-the-mypy-gate-passed-locally-and-failed-ci-because-its-ignore-list-was-calibrated-against-a-keys-present-env--measured-fix-shipped) | The mypy gate passed locally and failed CI, because its ignore-list was calibrated against a keys-present env | measured, fix shipped |
 | [6.111](docs/agent-log.md#6111-the-secret-scan-exclusion-lived-in-two-copies-and-only-one-learned-about-the-demo-transcript--measured-fix-shipped) | The secret-scan exclusion lived in two copies and only one learned about the demo transcript | measured, fix shipped |
 | [6.112](docs/agent-log.md#6112-cross-matching-audit-findings-against-each-other-and-the-score-range-that-lives-between-verified-and-noise--measured) | Cross-matching audit findings against each other, and the score range that lives between verified and noise | measured |
+| [6.113](docs/agent-log.md#6113-an-agent-driving-the-ui-in-a-browser-is-outside-every-gate-this-repo-has--measured-control-exists) | An agent driving the UI in a browser is outside every gate this repo has | measured, control exists |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
