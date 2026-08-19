@@ -272,3 +272,72 @@ def test_resume_does_not_redo_a_rung_already_extracted(tmp_path):
                 "--email", EMAIL, "--resume")
     assert again.returncode == 0, again.stderr
     assert "skipped" in again.stdout
+
+
+# --- the topic must name the decision, not the session ----------------------
+
+def test_a_branch_named_for_the_session_does_not_become_the_topic(tmp_path):
+    """Reading the smallest rungs found this: three rows in twelve were filed
+    under a topic that said nothing about what was decided.
+
+    ``llm-only-joke`` carried a hash-chain tamper-evidence port. The evidence,
+    date and SHA were all correct and the row was unfindable by its own subject
+    — a retrieval failure, not a provenance one. Someone searching "tamper
+    evidence" would never reach it.
+    """
+    repo = make_repo(tmp_path, "r", remote="owner/r")
+    merge_pr(repo, 1, "claude/llm-only-joke-ei08dl",
+             "receipts: add hash-chain tamper-evidence, pattern-ported from Nestor")
+    out = tmp_path / "r.db"
+    run("extract.py", "--repo", str(repo), "--email", EMAIL,
+        "--out", str(out), "--quiet")
+
+    (source, _, _), = pairs(out)
+    assert "joke" not in source, "the session's name is not the subject"
+    assert "tamper" in source and "hash" in source, "the decision's is"
+
+
+def test_a_branch_that_does_name_the_decision_is_kept(tmp_path):
+    """The other three-quarters. When the branch describes the change, it is a
+    better topic than the title: shorter, and what a person would search."""
+    repo = make_repo(tmp_path, "r", remote="owner/r")
+    merge_pr(repo, 1, "claude/soft-nestor-seam",
+             "fix: make the Nestor citation seam soft (optional dependency)")
+    out = tmp_path / "r.db"
+    run("extract.py", "--repo", str(repo), "--email", EMAIL,
+        "--out", str(out), "--quiet")
+
+    (source, _, _), = pairs(out)
+    assert source == "soft nestor seam"
+
+
+def test_sharing_only_a_stopword_is_not_sharing_a_subject(tmp_path):
+    """Overlap on "the" would keep every branch name, however unrelated."""
+    repo = make_repo(tmp_path, "r", remote="owner/r")
+    merge_pr(repo, 1, "claude/the-big-one",
+             "receipts: add hash-chain tamper-evidence to the vault")
+    out = tmp_path / "r.db"
+    run("extract.py", "--repo", str(repo), "--email", EMAIL,
+        "--out", str(out), "--quiet")
+
+    (source, _, _), = pairs(out)
+    assert "big" not in source
+    assert "tamper" in source
+
+
+def test_the_count_is_what_is_in_the_store_not_what_we_tried_to_write(tmp_path):
+    """``add_pair`` returns the stored draft without inserting when the same
+    source AND target already exist. Counting calls that did not raise
+    over-reported two repositories by 55 and 6 rows — in a pipeline whose whole
+    claim is that its gaps are not silent.
+    """
+    repo = make_repo(tmp_path, "r", remote="owner/r")
+    merge_pr(repo, 1, "claude/same-thing", "feat: the very same thing")
+    merge_pr(repo, 2, "claude/same-thing", "feat: the very same thing")
+    out = tmp_path / "r.db"
+
+    done = run("extract.py", "--repo", str(repo), "--email", EMAIL, "--out", str(out))
+    assert done.returncode == 0, done.stderr
+    assert len(pairs(out)) == 1, "one decision, however many times it was merged"
+    assert "1 decision(s)" in done.stdout, "and the count says one"
+    assert "identical to one already recorded" in done.stdout
