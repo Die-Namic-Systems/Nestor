@@ -2062,6 +2062,24 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   work, or a branch pushed since the last local fetch — it cannot serialize two
   agents, only make a visible collision loud.
 
+- **User preferences.** The system has product decisions (the dogfood corpus),
+  governance rules (the constitution, chokepoints, covenants), and session
+  context (which evaporates). It has no surface for *user preferences* — the
+  per-person, cross-session "I like it this way" that is neither a product
+  decision nor a governance rule. The worked instance: a user said "stop
+  producing artifacts" — a preference, not a policy — and the only place to
+  put it was a decision file, which was wrong (reverted within minutes). The
+  gap applies broadly: Willow MCP tool-behavior preferences, Nestor output
+  format choices, Claude Code session modes, any seat where a person wants
+  "remember I prefer X" without it becoming a rule for everyone. The closest
+  existing surface is `CLAUDE.md`, which is per-repo and per-project, not
+  per-user — a preference written there governs every session on that repo,
+  including other people's. What is absent is a per-user, cross-session
+  preference store that tools can consult, that the user can inspect and
+  revise, and that does not leak into product decisions or governance
+  constraints. **Status: open** — the gap is named, the worked instance is
+  on record, the design space is not.
+
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,
 and naming them verified-absent — with the present ones named too, so the gap-list
