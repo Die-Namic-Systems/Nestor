@@ -179,6 +179,7 @@ this map is not, CI fails. It cannot drift.
 | [6.109](docs/agent-log.md#6109-the-self-grant-tripwire-denied-the-read-only-consult-the-seat-tells-every-agent-to-run--measured-fix-shipped) | The self-grant tripwire denied the read-only consult the seat tells every agent to run | measured, fix shipped |
 | [6.110](docs/agent-log.md#6110-the-mypy-gate-passed-locally-and-failed-ci-because-its-ignore-list-was-calibrated-against-a-keys-present-env--measured-fix-shipped) | The mypy gate passed locally and failed CI, because its ignore-list was calibrated against a keys-present env | measured, fix shipped |
 | [6.111](docs/agent-log.md#6111-the-secret-scan-exclusion-lived-in-two-copies-and-only-one-learned-about-the-demo-transcript--measured-fix-shipped) | The secret-scan exclusion lived in two copies and only one learned about the demo transcript | measured, fix shipped |
+| [6.112](docs/agent-log.md#6112-cross-matching-audit-findings-against-each-other-and-the-score-range-that-lives-between-verified-and-noise--measured) | Cross-matching audit findings against each other, and the score range that lives between verified and noise | measured |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -786,6 +787,17 @@ Written from outside the package, with **zero changes to `nestor/`**:
 - **Schema mapping** — messy CSV headers → canonical field names, using
   `EntityResolver` **unchanged**, just with a token matcher. `'TOTAL DUE'` →
   `amount_due` at 1.0; `'Name of Customer'` correctly queued for review at 0.667.
+
+- **Audit-finding triage** — N findings seeded as `status="draft"` pairs
+  (`memory.add_pair`), then each finding's full `source_text` cross-matched
+  against every other via `memory.lookup(context_threshold=0.0)`. Union-find
+  over the score matrix at a cut (0.40) yields connected components — clusters
+  of structurally related findings. Scores between findings in *different*
+  coupling layers surface cross-layer connections invisible to the auditors who
+  produced them layer by layer. No changes to `nestor/`; measured on 30 MCP
+  coupling audit findings across 5 layers (§6.112). The matcher is the scan;
+  an agent is the microscope — the matcher surfaces candidates in milliseconds,
+  the agent deep-reads the ones that score.
 
 The README advertised three recipes; the seam supports a category. The UI's Ask
 view narrowed that gap by exposing the seam itself as a fourth choice — any two

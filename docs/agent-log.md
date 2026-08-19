@@ -6840,5 +6840,80 @@ same two files CI named, so the scan still catches high-entropy strings; the
 exclusion is what spares the transcript, and it is now spared in both places or
 neither.
 
+### 6.112 Cross-matching audit findings against each other, and the score range that lives between verified and noise — **measured**
+
+*Proposed 2026-08-19, during an MCP coupling audit of the SAFE App Store (41
+apps, 5 coupling layers, 30 finding/recommendation pairs).*
+
+30 audit findings were seeded into Nestor's memory as draft pairs via
+`memory.add_pair(status="draft")`. The original intent was keyword querying —
+ask Nestor "safe_integration copies" and get ranked results. **That failed.**
+Short natural-language queries against long finding descriptions scored
+0.20–0.39 under `StringMatcher`, well below `CONTEXT_THRESHOLD` (0.55). This
+is expected behavior for difflib character-level matching, not a bug, but it
+meant the standard query path returned nothing useful.
+
+**The pivot: cross-match each finding against every other.** Instead of short
+keyword queries, feed each finding's full `source_text` as the query against
+the entire memory via `memory.lookup(context_threshold=0.0)`. Full-text vs
+full-text scores 0.30–0.52 — still below the verification threshold, but the
+**relative ranking** is meaningful. Union-find over pairs scoring >= 0.40
+yielded 6 connected components:
+
+| Cluster | Findings | Peak score | Shape |
+|---|---|---|---|
+| Auth Gate | 2 | 0.523 | Highest pair in dataset; both reach into private fields |
+| safe_integration core | 3 | 0.464 | Triangle — same problem from three angles |
+| sys.path imports | 2 | 0.444 | Identical import anti-pattern |
+| Solved abstractions | 3 | 0.443 | Cross-layer: solved and unsolved share vocabulary |
+| Manifest evolution | 2 | 0.464 | Evolutionary path already defined in one app |
+| Invisible-to-grep | 3 | 0.423 | Cross-layer: linked by shared trait (invisible to scans) |
+
+15 findings remained standalone — structurally distinct from every other finding
+at the 0.40 cut. 10 cross-layer connections (score >= 0.35, different coupling
+layers) surfaced shared mechanics invisible to the per-layer auditors.
+
+**What this establishes about the matcher.**
+
+1. **There is a useful score range between "verified" and "noise."** The
+   0.30–0.52 band is below any threshold Nestor would serve at, but above
+   random noise. For structural analysis — clustering, cross-referencing,
+   triage — relative ranking is what matters, not absolute score. The matcher
+   was designed for verification; it turns out to do triage too.
+
+2. **Short queries are the wrong shape for `StringMatcher` on natural-language
+   corpora.** This is §3.1's "lossy by construction" in a new domain: the
+   normalizer collapses short queries to a handful of characters that share
+   little surface with multi-sentence finding descriptions. `score()` on raw
+   text helps (it sees the originals), but does not fix the length asymmetry.
+   A semantic matcher (§3.3) would handle keyword-to-description queries; the
+   cross-match technique sidesteps the problem entirely by making both
+   operands the same shape.
+
+3. **The matcher is the scan; the agent is the microscope.** Cross-matching
+   30 findings (30 × 29 = 870 scored pairs) completes in under a second.
+   Sending 30 findings to an LLM agent for pairwise analysis would cost
+   minutes and dollars. The right split: use the matcher to surface candidates
+   (which pairs score above threshold?), then hand the scored candidates to
+   an agent for semantic deep-read (is this structural similarity or lexical
+   coincidence?). The matcher is lossless in what it surfaces at a given
+   threshold; the agent is lossless in what it can understand about what was
+   surfaced. Neither replaces the other.
+
+**Recipe shape (§3.2).** The cross-match technique is a reusable recipe the
+seam already supports, with zero changes to `nestor/`:
+- Seed N findings as draft pairs
+- For each finding, `memory.lookup(source_text=finding, context_threshold=0.0)`
+- Build a score matrix, threshold it, extract connected components
+- Report clusters + cross-category links
+
+The technique generalizes to any domain where you have N items and want to
+know which ones the matcher thinks are structurally related — requirements
+triage, test-case dedup, documentation gap analysis.
+
+**Artifacts.** The analysis produced an interactive HTML decision artifact and
+a markdown reference document, both committed to the consuming repository
+(`safe-app-store/docs/nestor-cross-match-analysis.*`).
+
 ---
 
