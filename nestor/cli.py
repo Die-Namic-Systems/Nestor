@@ -79,8 +79,43 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 # asking
 # --------------------------------------------------------------------------
 
+#: `nestor ask` with no `--from`/`--to` opens on this pair. A store seeded with
+#: `decision → commitment` and never `en → es` answers nothing asked against it
+#: — silence that reads as "the memory is empty" when it is really "the wrong
+#: two words were asked". See _ask_domain().
+_DEFAULT_SOURCE_LANG, _DEFAULT_TARGET_LANG = "en", "es"
+
+
+def _ask_domain(store, source_lang: Optional[str], target_lang: Optional[str]) -> tuple:
+    """The domain `nestor ask` actually queries, preferring one the store holds.
+
+    Mirrors askDomain() in nestor/ui_page.py (landed for the UI in #159; this
+    is the CLI half, issue #167 piece 2): the configured domain wins when the
+    store actually has rows in it; otherwise the largest domain present does,
+    because that is the one being asked about. An empty store keeps the
+    configured default — there is nothing yet to prefer instead.
+
+    Only engages when *neither* --source-lang/--from nor --target-lang/--to was
+    given: an explicit flag is the human typing a domain directly, same as
+    editing the UI's source/target boxes, and is used as-is rather than
+    second-guessed.
+    """
+    configured = (source_lang or _DEFAULT_SOURCE_LANG, target_lang or _DEFAULT_TARGET_LANG)
+    if source_lang is not None or target_lang is not None:
+        return configured
+    held = memory.stats(store=store).get("lang_pairs", [])  # already ORDER BY count DESC
+    if not held:
+        return configured
+    if any((sl, tl) == configured for sl, tl, _ in held):
+        return configured
+    biggest_sl, biggest_tl, _ = held[0]
+    return (biggest_sl, biggest_tl)
+
+
 def cmd_ask(args) -> int:
-    result = answer.ask(_store(args), args.text, args.source_lang, args.target_lang,
+    store = _store(args)
+    source_lang, target_lang = _ask_domain(store, args.source_lang, args.target_lang)
+    result = answer.ask(store, args.text, source_lang, target_lang,
                         engine_name=args.engine,
                         matcher=answer.load_matcher(args.matcher))
     p = result["passage"]
@@ -806,7 +841,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask = sub.add_parser("ask", help="run the cascade over a phrase")
     ask.add_argument("text")
-    domain_args(ask)
+    # No `default="en"/"es"` here on purpose: cmd_ask needs to tell "left at the
+    # configured default" apart from "the human typed --from/--to", and only the
+    # former is eligible for _ask_domain()'s store-aware fallback (issue #167
+    # piece 2 — see _ask_domain for the rule, mirrored from askDomain() in
+    # nestor/ui_page.py, landed for the UI in #159).
+    ask.add_argument("--source-lang", "--from", dest="source_lang", default=None,
+                     help="source domain tag (default: en, or the store's "
+                          "largest domain if en→es holds nothing)")
+    ask.add_argument("--target-lang", "--to", dest="target_lang", default=None,
+                     help="target domain tag (default: es, or the store's "
+                          "largest domain if en→es holds nothing)")
     ask.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"))
     ask.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     ask.set_defaults(func=cmd_ask)
