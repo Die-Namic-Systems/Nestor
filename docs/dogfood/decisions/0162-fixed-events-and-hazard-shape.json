@@ -1,0 +1,16 @@
+{
+  "pr": 162,
+  "date": "2026-08-19",
+  "decisions": [
+    {
+      "question": "When a session has a predetermined narrative event, should the dice decide whether it happens?",
+      "commitment": "No. A fixed event stays fixed and is written as a global event; what gets rolled is what the characters know about it when it lands. Understanding is the win condition, not occurrence.",
+      "why": "Rolling whether the premise is true is a coin-flip on the premise, not a game — a 50% chance of 'the aliens do not come' makes the session incoherent rather than uncertain. The bombardment was already modelled this way and nobody objected to it: it happened to everyone, and the dice decided who survived it. The compound session extends the same shape to the arrival. Measured at N=400, the characters reach CERTAIN or CONVINCED about what is coming in 40.3% of runs and are BLIND in 7.5%, so the tension is real and lives entirely in the knowledge track."
+    },
+    {
+      "question": "Should a hazard's severity scale with how exposed a character is?",
+      "commitment": "No. Severity belongs to the physical event and is the same for everyone standing in it; exposure controls how many separate incidents a character is in. A collapsing wall does not hit a trained person more gently.",
+      "why": "The first NPC model put severity in the exposure tier and measured badly in both directions: four NPCs recorded zero deaths in 500 runs because their hit-point pool exceeded any single hazard's maximum roll and they could not be reduced to 0 at all, while a 4 HP commoner was killed by the SRD massive-damage rule before a death save was ever rolled. The SRD block choice was deciding every outcome and the exposure field was inert. Moving severity to the event and frequency to exposure (high = 3 incidents with a long rest between) made both ends behave: everyone can now die, and exposure is what drives the difference."
+    }
+  ]
+}
