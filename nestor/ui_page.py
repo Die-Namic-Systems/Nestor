@@ -1497,7 +1497,7 @@ function viewQueue() {
     h("p", { class: "muted small", text: q.pending
       ? q.pending + " segment(s) the cascade could not serve from the sealed memory. " +
         "Sealing one enters it into tier 1; rejecting one means that candidate is never offered for this text again."
-      : "Nothing queued. Every segment the cascade has seen was either served from the sealed memory or already decided." })));
+      : queueEmptyLine() })));
 
   for (const doc of q.documents) {
     const card = h("div", { class: "card" },
@@ -1508,6 +1508,25 @@ function viewQueue() {
     for (const seg of doc.segments) card.append(segmentRow(doc, seg));
     $("view").append(card);
   }
+}
+
+/* What an empty queue means depends on what is in the store.
+   This tab reads *segments* — text the cascade ingested through a document. A
+   store filled by `memory.add_pair` has none, so the queue is empty while the
+   memory is full: 44 rows were awaiting a human here, two inches under a header
+   badge that said so, and this card claimed everything had been decided. An
+   empty room is not the same as a finished job, and only one of those is
+   something a person should be told. */
+function queueEmptyLine() {
+  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
+  const draft = c.draft ?? base.draft ?? 0;
+  if (draft) {
+    return `No segments are queued — this tab reads text the cascade ingested `
+      + `through a document, and this store has none. ${draft} row(s) are still `
+      + `awaiting a human in Memory, which is where they were added directly.`;
+  }
+  return "Nothing queued. Every segment the cascade has seen was either served "
+    + "from the sealed memory or already decided.";
 }
 
 function segmentRow(doc, seg) {
@@ -2428,17 +2447,39 @@ function domainList(id) {
       ? d.source_lang : d.source_lang + " → " + d.target_lang })));
 }
 
+/* The domain to ask in, preferring one the store actually holds.
+   `S.state.domain` is what this *surface* was configured with — en→es unless a
+   flag said otherwise — and a store of `decision → commitment` answers nothing
+   asked in it. A reader types a real question, gets silence, and concludes the
+   memory is empty while 26 sealed answers sit behind the wrong two words. The
+   configured domain wins when the store actually has rows in it; otherwise the
+   largest domain present does, because that is the one being asked about. */
+function askDomain() {
+  const configured = (S.state && S.state.domain) || { source_lang: "en", target_lang: "es" };
+  const held = S.domains || [];
+  if (!held.length) return configured;
+  const match = held.find((d) => d.source_lang === configured.source_lang
+                              && d.target_lang === configured.target_lang);
+  if (match) return configured;
+  const biggest = held.slice().sort((a, b) => (b.count || 0) - (a.count || 0))[0];
+  return { ...configured, source_lang: biggest.source_lang, target_lang: biggest.target_lang };
+}
+
 /* --- translate: the three-tier cascade ------------------------------------ */
 function translateForm() {
-  const d = S.state.domain, q = asked();
+  const d = askDomain(), q = asked();
   return h("div", { class: "card" },
     // The asked text stays in the box across the re-render: a reviewer reads the
     // answer against the question, and after sealing they usually ask it again.
     h("textarea", { id: "ask-text", placeholder: "text to look up…" }, q.text || ""),
     h("div", { class: "row", style: "margin-top:8px" },
-      h("input", { id: "ask-sl", value: q.source_lang || d.source_lang, size: 4 }),
+      h("input", { id: "ask-sl", value: q.source_lang || d.source_lang,
+                   // Sized to the tag, not to "en": a domain tag is any word,
+                   // and `decision` truncated to `decisio` in a four-column box.
+                   size: Math.max(4, (q.source_lang || d.source_lang || "").length + 1) }),
       h("span", { class: "muted", text: "→" }),
-      h("input", { id: "ask-tl", value: q.target_lang || d.target_lang, size: 4 }),
+      h("input", { id: "ask-tl", value: q.target_lang || d.target_lang,
+                   size: Math.max(4, (q.target_lang || d.target_lang || "").length + 1) }),
       h("span", { class: "chip", text: "engine: " + S.state.engine }),
       /* Which matcher keys this domain, where the human deciding can see it.
          Two surfaces keyed differently used to describe themselves identically,
@@ -2452,7 +2493,24 @@ function translateForm() {
                     : "the process-wide default — no matcher was given to this surface",
                   text: "matcher: " + d.matcher }),
       h("span", { class: "spacer" }),
-      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitAsk }, "Ask")));
+      // Stays disabled under --read-only, and now says why. Asking is not a
+      // read: `_ask` appends a passage to the ledger exactly as any other serve
+      // does, because an answer served without a trail is the thing Nestor
+      // exists to prevent. A button that simply does nothing when pressed
+      // teaches that the page is broken; one that explains itself teaches what
+      // the store is.
+      h("button", {
+        class: "primary", disabled: S.state.read_only, onclick: submitAsk,
+        title: S.state.read_only
+          ? "This store is open --read-only. Asking records a passage in the "
+            + "ledger — every served answer leaves a trail — so it needs a "
+            + "writable store."
+          : "",
+      }, "Ask"),
+      S.state.read_only
+        ? h("span", { class: "small muted", style: "margin-left:8px",
+            text: "read-only: an answer would leave no trail" })
+        : null));
 }
 
 async function submitAsk() {
@@ -2975,6 +3033,26 @@ function graphDetail(n) {
     h("div", { class: "c", text: n.commitment }));
 }
 
+/* "No decisions" from a tab that means something narrower than the word.
+   Graph and Triage read the decision recipe — `nestor.decision`'s questions and
+   the signed edges between them (N6/N8) — not every sealed pair in the store. A
+   store of 70 `decision → commitment` rows has none of those, so both tabs said
+   "No decisions in this store yet" directly under a header badge reading
+   `26 sealed`. The emptiness was true; the sentence was not, because it used a
+   word the rest of the page uses for something else. Name the thing that is
+   missing and say where the other thing lives. */
+function noDecisionGraphLine(what) {
+  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
+  const total = (c.sealed ?? base.sealed ?? 0) + (c.draft ?? base.draft ?? 0);
+  const tail = total
+    ? ` This store's ${total} pair(s) live in Memory — they are sealed answers, `
+      + `not decision-graph entries, and nothing has related them to each other yet.`
+    : "";
+  return `No decision-graph entries yet — ${what} fills in as questions are `
+    + `recorded with nestor.decision and edges are proposed between them. `
+    + `This view only ever reads; it cannot propose or seal one for you.${tail}`;
+}
+
 function viewGraph() {
   const g = S.graph || { nodes: [], edges: [] };
   const view = $("view");
@@ -2989,9 +3067,7 @@ function viewGraph() {
   if (!g.nodes.length) {
     view.append(h("div", { class: "card" },
       h("p", { class: "empty",
-        text: "No decisions in this store yet — the graph fills in as decisions "
-          + "are proposed and sealed. This view only ever reads; it cannot "
-          + "propose or seal one for you." })));
+        text: noDecisionGraphLine("the graph") })));
     return;
   }
 
@@ -3229,8 +3305,7 @@ function viewTriage() {
 
   if (!c.decisions) {
     view.append(h("div", { class: "card" }, h("p", { class: "empty",
-      text: "No decisions in this store yet — triage fills in as decisions are proposed "
-        + "and sealed. This view only ever reads; it cannot propose or resolve one for you." })));
+      text: noDecisionGraphLine("triage") })));
     return;
   }
 
