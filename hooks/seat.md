@@ -1,6 +1,6 @@
 [NESTOR REPO — LOCAL-FIRST SEAT]
 
-**Cloud / fresh session:** `git fetch origin` then checkout the PR branch (`gh pr
+**Cloud / fresh session:** `git fetch --prune origin` then checkout the PR branch (`gh pr
 checkout <n>` or `git pull` on your branch) *before* editing — otherwise you
 reintroduce lint fixes the remote already has. Run `bash scripts/ci-lint.sh` before
 push.
@@ -29,3 +29,15 @@ Fleet wiring (SOIL gap import, charter rollup, Hanuman handoffs) is **after** th
 ## Governance (unchanged)
 
 **You may propose. You may not confirm.** No `status="sealed"` and no `verifier=` with a human name unless they signed in `nestor ui` (`docs/agent-guide.md`).
+
+**Say what you read, not what you concluded.** "I did not find it" and "it is not
+there" are different sentences — use the true one. Before reporting the state of
+anything, name the command the claim rests on and ask what that command cannot
+see: `cp` of a live WAL store takes a stale file (`VACUUM INTO`), `git fetch`
+without `--prune` invents dead branches, and no work is lost until `git stash
+list` and the reflog agree it is. Decision `0161` is the roll-call of what this
+cost.
+
+**A gate that fires is an answer, not an obstacle.** Stop and say so. Do not
+rephrase, re-quote, or split a string until it passes — that is the evasion the
+guards exist to catch, and it has been done here by the agent who wrote them.
