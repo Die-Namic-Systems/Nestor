@@ -402,6 +402,8 @@ def test_semantic_without_extra_is_refused_not_defaulted(filled, without_fastemb
 def test_semantic_match_when_extra_installed(filled):
     if not importlib.util.find_spec("fastembed"):
         pytest.skip("pip install nestor-meaning[semantic]")
+    if not __import__("tests.conftest", fromlist=["_EMBEDDING_OK"])._EMBEDDING_OK:
+        pytest.skip("semantic model not loadable (model download blocked by proxy)")
     status, out = post(filled, "/api/match", text="hello", matcher="semantic")
     assert status == 200
     assert out["matcher"] == "semantic"

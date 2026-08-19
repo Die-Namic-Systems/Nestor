@@ -1,0 +1,442 @@
+<title>Nestor Inference Gap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap');
+
+  :root {
+    --ground: #f6f5f0;
+    --surface: #ffffff;
+    --ink: #1a1a18;
+    --ink-muted: #5c5b55;
+    --ink-faint: #8a8880;
+    --accent: #6b4a8a;
+    --accent-light: #e0d5eb;
+    --accent-dim: #9880ad;
+    --border: #d8d6ce;
+    --border-light: #ebe9e3;
+    --code-bg: #eceae4;
+    --shadow: rgba(26, 26, 24, 0.06);
+    --claimed: #2d6e46;
+    --claimed-bg: #e2f0e8;
+    --gap: #b44a2d;
+    --gap-bg: #f5e6df;
+    --inferred: #6b4a8a;
+    --inferred-bg: #ede5f4;
+    --confirmed: #2d6e46;
+    --contradicted: #b44a2d;
+    --silent: #8a7030;
+    --silent-bg: #f0eadb;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #161614;
+      --surface: #1e1e1b;
+      --ink: #e4e3dd;
+      --ink-muted: #a09f98;
+      --ink-faint: #6e6d68;
+      --accent: #a883c5;
+      --accent-light: #2d2338;
+      --accent-dim: #7a6590;
+      --border: #333330;
+      --border-light: #282825;
+      --code-bg: #24241f;
+      --shadow: rgba(0, 0, 0, 0.25);
+      --claimed: #5db87a;
+      --claimed-bg: #1e2e24;
+      --gap: #d4714f;
+      --gap-bg: #2e201a;
+      --inferred: #a883c5;
+      --inferred-bg: #2a2240;
+      --confirmed: #5db87a;
+      --contradicted: #d4714f;
+      --silent: #c4a96e;
+      --silent-bg: #2a2518;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #161614;
+    --surface: #1e1e1b;
+    --ink: #e4e3dd;
+    --ink-muted: #a09f98;
+    --ink-faint: #6e6d68;
+    --accent: #a883c5;
+    --accent-light: #2d2338;
+    --accent-dim: #7a6590;
+    --border: #333330;
+    --border-light: #282825;
+    --code-bg: #24241f;
+    --shadow: rgba(0, 0, 0, 0.25);
+    --claimed: #5db87a;
+    --claimed-bg: #1e2e24;
+    --gap: #d4714f;
+    --gap-bg: #2e201a;
+    --inferred: #a883c5;
+    --inferred-bg: #2a2240;
+    --confirmed: #5db87a;
+    --contradicted: #d4714f;
+    --silent: #c4a96e;
+    --silent-bg: #2a2518;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .header { margin-bottom: 48px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+
+  .header-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 30px; font-weight: 700; line-height: 1.25;
+    text-wrap: balance; margin-bottom: 14px;
+  }
+
+  .header-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--ink-faint);
+  }
+
+  .lede {
+    font-size: 18px; line-height: 1.55; color: var(--ink-muted);
+    margin-top: 20px; max-width: 640px;
+  }
+
+  h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 22px; font-weight: 700; line-height: 1.3;
+    text-wrap: balance; margin-bottom: 16px; margin-top: 48px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border-light);
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 10px; margin-top: 28px;
+  }
+
+  p { margin-bottom: 14px; max-width: 65ch; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; background: var(--code-bg);
+    padding: 2px 5px; border-radius: 3px;
+  }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+    white-space: nowrap; display: inline-block;
+  }
+  .tag-claimed { color: var(--claimed); background: var(--claimed-bg); }
+  .tag-gap { color: var(--gap); background: var(--gap-bg); }
+  .tag-inferred { color: var(--inferred); background: var(--inferred-bg); }
+  .tag-silent { color: var(--silent); background: var(--silent-bg); }
+
+  .row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .row-head {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;
+  }
+
+  .row-title {
+    font-weight: 600; font-size: 16px; line-height: 1.35;
+  }
+
+  .row-body {
+    font-size: 15px; color: var(--ink-muted); line-height: 1.6;
+  }
+
+  .quote {
+    border-left: 3px solid var(--accent-dim);
+    padding: 10px 16px; margin: 12px 0;
+    font-style: italic; font-size: 15px;
+    color: var(--ink-muted); background: var(--code-bg);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .quote-src {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--ink-faint);
+    font-style: normal; display: block; margin-top: 6px;
+  }
+
+  .verdict {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 600;
+    margin-top: 10px; padding: 6px 10px;
+    border-radius: 4px; display: inline-block;
+  }
+  .verdict-confirmed { color: var(--confirmed); background: var(--claimed-bg); }
+  .verdict-contradicted { color: var(--contradicted); background: var(--gap-bg); }
+  .verdict-silent { color: var(--silent); background: var(--silent-bg); }
+
+  .summary-grid {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 4px 16px; margin: 20px 0;
+    font-size: 15px;
+  }
+  .summary-grid dt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right; color: var(--accent);
+  }
+  .summary-grid dd {
+    color: var(--ink-muted);
+    padding-top: 4px;
+  }
+
+  .footer {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--ink-faint);
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 28px 16px 60px; }
+    h1 { font-size: 24px; }
+    .row { padding: 16px; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="header">
+    <div class="header-label">Inference Analysis</div>
+    <h1>What the Probes Proved That the Corpus Doesn't Say</h1>
+    <div class="header-meta">449 recorded decisions vs. ~200 runtime probe commands</div>
+    <p class="lede">
+      The dogfood decision store holds 449 draft decisions. Roughly 118 touch runtime/product behavior; the rest are dev process. The probes tested actual runtime behavior across every surface. This is what falls in the gap between the two.
+    </p>
+  </header>
+
+  <dl class="summary-grid">
+    <dt>449</dt><dd>Decisions in the corpus (all draft, 0 sealed)</dd>
+    <dt>118</dt><dd>Touch runtime behavior at all</dd>
+    <dt>~20</dt><dd>Probe findings checked against the corpus</dd>
+    <dt>3</dt><dd>Confirmed by the probes (corpus claim matches observed behavior)</dd>
+    <dt>2</dt><dd>Contradicted or incomplete (corpus claim doesn't match what was observed)</dd>
+    <dt>15+</dt><dd>Silent &mdash; no decision on record for behaviors the probes discovered</dd>
+  </dl>
+
+  <h2>Where the Corpus Speaks and the Probes Tested</h2>
+  <p>Three decisions have direct probe evidence. The corpus claims something; the probes checked whether it's true.</p>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-claimed">Claimed</span>
+      <span class="row-title">"What happens to an argument the chosen matcher cannot honour?"</span>
+    </div>
+    <div class="row-body">
+      <div class="quote">
+        Refuse it. Do not accept a number that changes nothing.
+        <span class="quote-src">Decision corpus, exact match</span>
+      </div>
+      <p>The cascade probe confirmed this: <code>match "Please hold." --abs-tol 5 --pct-tol 0.5</code> (tolerances on a string matcher) emits an explicit <code>RuntimeWarning</code> naming the ignored flags. The corpus claim holds.</p>
+      <p>But the probe also found: <code>--abs-tol -1</code> is silently accepted, falls back to pct-based tolerance, and the JSON <em>still echoes the rejected value</em> under <code>tolerance.abs_tol</code>. The refusal exists for wrong-type arguments but not for wrong-value arguments.</p>
+      <div class="verdict verdict-confirmed">Confirmed, with a gap: type mismatch is refused, value mismatch is silent</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-claimed">Claimed</span>
+      <span class="row-title">"Is this guard a boundary?"</span>
+    </div>
+    <div class="row-body">
+      <div class="quote">
+        No, and it says so in its own docstring and refusal message: a tripwire, not a boundary. A PreToolUse hook lives in the agent's own harness&hellip; The durable controls are the crypto covenant and the managed-settings layer.
+        <span class="quote-src">Decision corpus, exact match</span>
+      </div>
+      <p>The decisions probe confirmed this twice: the tripwire fired on <code>NESTOR_SEAL_KEY</code> assignment, and the Claude Code auto-mode classifier independently blocked a <code>reject_match()</code> call with a human verifier name. Two layers, both working, neither one the "boundary."</p>
+      <p>The internals probe also confirmed the tripwire's blast radius: <code>before_authority.py</code> false-positived on a read-only <code>import sqlite3; SELECT ...</code> because the regex matches column names in SELECT lists. The tripwire is explicitly not a boundary &mdash; and the probes showed exactly how its roughness manifests.</p>
+      <div class="verdict verdict-confirmed">Confirmed: the tripwire is a tripwire, not a boundary, and behaves like one</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-claimed">Claimed</span>
+      <span class="row-title">"Is tooling a gap at all, when Nestor already has a 16-verb CLI and a 7-tool MCP server?"</span>
+    </div>
+    <div class="row-body">
+      <div class="quote">
+        Yes &mdash; the gap is the missing finish, not a missing surface. Present: the nestor CLI, nestor serve (tools/list + call), --json on some verbs. Absent: no --version, no shell completions, --json on some verbs but not all&hellip; an MCP server exposing tools only &mdash; no resources&hellip;
+        <span class="quote-src">Decision corpus, exact match</span>
+      </div>
+      <p>The MCP probe confirmed every specific claim: 7 tools, no resources, no prompts, no completions. The probe also confirmed the <code>--json</code> inconsistency: <code>--json</code> works on some commands but is silently ignored on others (e.g. <code>ledger verify</code> produces plain text under <code>--json</code>). And <code>--json ask ""</code> breaks the JSON contract entirely (prints a bare <code>ValueError</code>).</p>
+      <p>The corpus said "the gap is the missing finish." The probes found the finish is indeed missing &mdash; and in more places than the corpus enumerated.</p>
+      <div class="verdict verdict-confirmed">Confirmed, and the gap is wider than claimed</div>
+    </div>
+  </div>
+
+  <h2>Where the Corpus Speaks But the Probes Found Something Different</h2>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-gap">Contradicted</span>
+      <span class="row-title">"Should Ask be made to work under --read-only, since it reads like a read?"</span>
+    </div>
+    <div class="row-body">
+      <div class="quote">
+        No &mdash; reverted after reading _ask's own docstring: 'A write endpoint despite reading like a read: a passage is appended to the ledger&hellip; An answer served without a trail is the thing Nestor exists to prevent.'
+        <span class="quote-src">Decision corpus, exact match</span>
+      </div>
+      <p>This decision captures a real design rationale. But the probes revealed a deeper problem the decision doesn't address: <code>ask</code> silently defaults to <code>en&rarr;es</code>, making sealed entries in other domains invisible. The decision asked "should ask work under read-only?" and answered no. It never asked "does ask work correctly when it <em>does</em> run?" The domain-scoping silence means ask is serving answers without a trail for a different reason: it's not finding the answer at all.</p>
+      <div class="verdict verdict-contradicted">The rationale holds; the implementation has a different problem the decision doesn't see</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-gap">Incomplete</span>
+      <span class="row-title">"What does it mean to validate a matcher at load time?"</span>
+    </div>
+    <div class="row-body">
+      <div class="quote">
+        Every way the load can fail becomes a refusal naming the spec &mdash; not just the one you thought of.
+        <span class="quote-src">Decision corpus, exact match</span>
+      </div>
+      <p>The edge-cases probe confirmed: bad module specs, missing modules, and failing constructors all produce clean single-line <code>ValueError</code>s naming the spec. The load path is validated.</p>
+      <p>But the decision's scope is "at load time." The probes found a different gap: <em>after</em> load, the wrong matcher applied to the wrong domain silently corrupts scores. <code>StringMatcher</code> on a numeric domain scores exact match <code>"412"=="412"</code> as 0.75. No warning, no refusal. The load is validated; the <em>use</em> is not.</p>
+      <div class="verdict verdict-contradicted">Load validation confirmed; runtime domain-matcher mismatch is unguarded</div>
+    </div>
+  </div>
+
+  <h2>Where the Corpus Is Silent</h2>
+  <p>These behaviors were discovered by the probes. None has a recorded decision, not even a draft. Every <code>nestor decision check</code> returned "no decision on record."</p>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should <code>--db</code> and <code>--ledger</code> be independent or paired?</span>
+    </div>
+    <div class="row-body">
+      <p>Three separate probes hit this independently. The corpus has no decision on it. The behavior directly undermines the audit promise: <code>stats</code> reports "ledger: intact" for a chain belonging to a different store. This is the probe's single most impactful finding, and the corpus is completely silent on it.</p>
+      <p><em>Inference:</em> the independence is likely an implementation artifact (two argparse flags, two defaults) rather than a deliberate design choice. No decision was ever made because the question was never asked.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should a typo'd <code>--db</code> path create an empty database?</span>
+    </div>
+    <div class="row-body">
+      <p>SQLite auto-creates on first touch. Nestor inherits this. The corpus has no decision on whether to guard it. The probes showed: a misspelled path produces indistinguishable-from-success output.</p>
+      <p><em>Inference:</em> this is an inherited SQLite default that was never surfaced as a design question. The corpus talks about what "nothing sealed here yet" means but never about how a caller distinguishes it from "I'm looking at the wrong file."</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should <code>ask</code>/<code>match</code> default to a specific domain?</span>
+    </div>
+    <div class="row-body">
+      <p>The default is <code>en&rarr;es</code>, hardcoded in <code>cli.py:domain_args()</code>. The corpus has decisions about what domains <em>are</em>, how matchers bind to domains, and what "near-miss" means. It has nothing about the default scoping.</p>
+      <p><em>Inference:</em> the default was set when Nestor was a translation memory only. Entity and numeric domains came later. The default never followed.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should the keyring validate key length on write?</span>
+    </div>
+    <div class="row-body">
+      <p>The probes found: write accepts any hex, read validates and throws. One malformed key poisons the entire file. The corpus has decisions about keyring <em>authority</em> (who can seal, what a revocation means, compromised vs. rotated) but nothing about keyring <em>integrity</em>.</p>
+      <p><em>Inference:</em> the keyring design focused on trust semantics (who, not how). The write path was never adversarially tested until now.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should <code>decision check</code> require a sealed match?</span>
+    </div>
+    <div class="row-body">
+      <p>The probes showed: <code>decision check</code> calls an exact match to a pure <code>draft</code> "clear" (exit 0), while <code>match</code>/<code>ask</code> refuse the same row as unverified. The corpus talks about what "clear" means (no rejection, no contradicts edge) but never whether draft-match-clear is the right answer.</p>
+      <p><em>Inference:</em> this is intentional ("a CI gate over committed constraints, not a verified-answer server") but the design intent was never written down as a decision. It's code behavior that reads as a deliberate choice but has no record of the deliberation.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should the UI's ~20 HTTP endpoints appear in <code>--help</code>?</span>
+    </div>
+    <div class="row-body">
+      <p><code>/api/graph</code>, <code>/api/triage</code>, <code>/api/normalize</code>, <code>/api/gate-echo</code>, WebCrypto seal signing &mdash; all real, tested, working endpoints. None mentioned in <code>nestor ui --help</code>. The "tooling gap" decision acknowledges "no resources" on MCP but doesn't address the HTTP surface at all.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should export/import preserve the audit chain?</span>
+    </div>
+    <div class="row-body">
+      <p>Import starts a fresh chain from genesis. The source chain is embedded as advisory-only. The probes confirmed this is enforced. But no decision records <em>why</em> &mdash; a tool whose mission is "has a human checked this?" deliberately discards the chain proving they did.</p>
+      <p><em>Inference:</em> the design choice is sound (a new instance starts its own provenance; replaying someone else's chain is a different trust claim). But it's the kind of choice that should be written down, because the intuitive expectation is the opposite.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">Should non-SQLite <code>--db</code> files get a clean error?</span>
+    </div>
+    <div class="row-body">
+      <p>The sole path that leaks a raw Python traceback. Every other CLI error is a clean single-line message. The corpus has no decision on error handling conventions at all.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="tag tag-silent">Silent</span>
+      <span class="row-title">How robust should concurrent writes be?</span>
+    </div>
+    <div class="row-body">
+      <p>The probes proved: genuinely robust. 10 simultaneous writers, 20x SIGKILL storm, zero corruption. WAL mode + Nestor's connection handling is solid. But the corpus has no decision about concurrency guarantees at all &mdash; this robustness is an unremarked emergent property, not a documented commitment.</p>
+    </div>
+  </div>
+
+  <h2>The Shape of the Gap</h2>
+
+  <p>The 449 decisions are predominantly about how Nestor gets <em>built</em> (sessions, hooks, gates, test infrastructure, doc drift, naming conventions). The 118 that touch runtime behavior mostly ask "should X exist?" and "what authority does X carry?" &mdash; the ontology of the product.</p>
+
+  <p>What the probes tested is different: "given that X exists, does it behave correctly at boundaries?" The gap between the two is <strong>operational semantics</strong> &mdash; the behavior that emerges from the code as written, independently of what any decision says.</p>
+
+  <p>The corpus captured <em>why</em> things were built and <em>what</em> authority they carry. The probes found <em>how</em> they actually behave when pushed. The inferential gap is the space between those two questions &mdash; and it's where the bugs live.</p>
+
+  <p>This is the first time the probes and the decision store have been cross-referenced. The fact that 15+ discovered behaviors have no decision on record doesn't mean they're wrong &mdash; some are clearly deliberate (concurrent robustness, export chain non-preservation). It means the <em>decision</em> was never recorded, so the next agent looking at the same behavior will have to rediscover the rationale from the code rather than from the store.</p>
+
+  <footer class="footer">
+    <p>Cross-reference run: 2026-08-19 &middot; ~20 <code>nestor decision check</code> queries against <code>docs/dogfood/nestor.db</code> (449 draft decisions) &middot; Probe evidence from 6 Sonnet agents, ~200 commands</p>
+  </footer>
+
+</div>

@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 449,
+    "pairs": 451,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
   "created_at": "2026-08-19T00:00:00+00:00",
-  "digest": "4d7110b7fd64c1720455c2f6de18f32f08f81c203ba133d0bfe4204ccd19fc45",
+  "digest": "46e4318f7dac80fc1bdca044e2c3b62f00078c8b6a397db1d6ab0557066dac9b",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "dcf85c1d-79df-54ac-98e3-6d7b5e92a67c",
+      "origin": "pr:162",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should a hazards severity scale with how exposed a character is",
+      "source_text": "Should a hazard's severity scale with how exposed a character is?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Severity belongs to the physical event and is the same for everyone standing in it; exposure controls how many separate incidents a character is in. A collapsing wall does not hit a trained person more gently.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-19T00:00:00+00:00",
       "id": "d7950355-5190-538c-898b-ec46ec4b4c67",
@@ -172,6 +186,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Smallest first, by the number of decisions a person would be asked to read. The first rung was three -- a number you can read in full and say 'yes, that is what I decided.' Every later rung is judged against a shape already confirmed by eye, and --stop-after exists so the run can be halted to think.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "65ba23b8-532a-5b21-81c2-a79910793475",
+      "origin": "pr:162",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when a session has a predetermined narrative event should the dice decide whether it happens",
+      "source_text": "When a session has a predetermined narrative event, should the dice decide whether it happens?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. A fixed event stays fixed and is written as a global event; what gets rolled is what the characters know about it when it lands. Understanding is the win condition, not occurrence.",
       "verifier": "",
       "weight": 1.0
     },
@@ -6313,6 +6341,6 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": true
+    "enabled": false
   }
 }

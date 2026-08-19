@@ -29,6 +29,27 @@ CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_K
                      "WILLOW_MCP_COMMAND", "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
 
 
+def _semantic_model_loadable() -> bool:
+    """True when fastembed is installed AND the default model can embed."""
+    if importlib.util.find_spec("fastembed") is None:
+        return False
+    try:
+        from nestor.semantic_matcher import SemanticMatcher
+        m = SemanticMatcher()
+        m.scores_against("probe", ["other"])
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+_EMBEDDING_OK = _semantic_model_loadable()
+
+requires_embedding = pytest.mark.skipif(
+    not _EMBEDDING_OK,
+    reason="semantic model not loadable (fastembed absent or model download blocked)",
+)
+
+
 @pytest.fixture
 def seal_key():
     """A signing key for tests that seal or verify signatures."""
