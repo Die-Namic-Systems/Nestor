@@ -14,9 +14,9 @@ def make_id():
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-def compose_from_json(data, dry_run=False):
+def compose_from_json(data, dry_run=False, origin_prefix="round4"):
     domain = data["domain"]
-    origin = f"round4:{domain}"
+    origin = f"{origin_prefix}:{domain}"
     ts = now_iso()
 
     pairs = []
@@ -104,12 +104,12 @@ def compose_from_json(data, dry_run=False):
     return {"pairs": inserted_pairs, "edges": inserted_edges, "evidence": inserted_ev, "domain": domain}
 
 
-def compose_all(json_files, dry_run=False):
+def compose_all(json_files, dry_run=False, origin_prefix="round4"):
     results = []
     for path in json_files:
         with open(path) as f:
             data = json.load(f)
-        r = compose_from_json(data, dry_run=dry_run)
+        r = compose_from_json(data, dry_run=dry_run, origin_prefix=origin_prefix)
         results.append(r)
         action = "Would insert" if dry_run else "Inserted"
         print(f"  [{r['domain']}] {action}: {r['pairs']} pairs, {r['edges']} edges, {r['evidence']} evidence")
@@ -191,14 +191,19 @@ def store_totals():
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python auto_compose.py <file1.json> [file2.json ...] [--dry-run]")
+        print("Usage: python auto_compose.py <file1.json> [file2.json ...] [--dry-run] [--origin-prefix=round5]")
         sys.exit(1)
 
     dry_run = "--dry-run" in sys.argv
-    files = [f for f in sys.argv[1:] if f != "--dry-run"]
+    origin_prefix = "round4"
+    for arg in sys.argv[1:]:
+        if arg.startswith("--origin-prefix="):
+            origin_prefix = arg.split("=", 1)[1]
+    flags = {"--dry-run", "--origin-prefix"}
+    files = [f for f in sys.argv[1:] if not any(f == flag or f.startswith(flag + "=") for flag in flags)]
 
-    print(f"Auto-composing {len(files)} domain(s){'  [DRY RUN]' if dry_run else ''}...")
-    results = compose_all(files, dry_run=dry_run)
+    print(f"Auto-composing {len(files)} domain(s) [origin: {origin_prefix}:]{'  [DRY RUN]' if dry_run else ''}...")
+    results = compose_all(files, dry_run=dry_run, origin_prefix=origin_prefix)
 
     totals = {"pairs": 0, "edges": 0, "evidence": 0}
     for r in results:
