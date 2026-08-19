@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.8.2](https://github.com/rudi193-cmd/Nestor/compare/v0.8.1...v0.8.2) (2026-08-19)
+
+
+### Fixed
+
+* deduplicate staleness logic, cap reverification endpoint, ship ui_pure.js ([dac48ca](https://github.com/rudi193-cmd/Nestor/commit/dac48ca4f435fe3c6908b4ca615a1c1e43427c14))
+* deduplicate staleness logic, cap reverification endpoint, ship ui_pure.js ([#150](https://github.com/rudi193-cmd/Nestor/issues/150)) ([6aabde3](https://github.com/rudi193-cmd/Nestor/commit/6aabde3a8136a16a563f95b842082495bf2fc278))
+
 ## [0.8.1](https://github.com/rudi193-cmd/Nestor/compare/v0.8.0...v0.8.1) (2026-08-19)
 
 
