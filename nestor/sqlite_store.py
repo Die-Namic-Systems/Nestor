@@ -154,6 +154,33 @@ CREATE TABLE IF NOT EXISTS decision_evidence (
     created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_decision_evidence_pair ON decision_evidence(pair_id);
+
+-- Per-domain verifier policy (issue #167 piece 3). Today the sign-off field on
+-- a seal accepts any string a caller types, and no domain can say whose name
+-- is even eligible to be on it. This table lets a domain OPT IN to a
+-- allowlist: one row per (domain, verifier) it accepts. `domain` reuses
+-- tm_pairs' own domain tags -- `source_lang`/`target_lang` -- rather than a
+-- new vocabulary, on the precedent set throughout this file (decision_evidence
+-- rides the same pair of columns for the same reason: one fewer concept a
+-- caller has to learn.
+--
+-- Opt-in, not opt-out: a domain with NO rows here is unrestricted -- exactly
+-- today's behavior -- so a store written before this table existed, or a
+-- domain nobody has bothered to configure, keeps sealing exactly as before.
+-- Enforcement reads this table at seal time (nestor.memory) and refuses a
+-- verifier that is off the list for a domain that HAS at least one row; see
+-- memory.VerifierNotAllowedError.
+CREATE TABLE IF NOT EXISTS verifier_policy (
+    id          TEXT PRIMARY KEY,
+    source_lang TEXT NOT NULL,
+    target_lang TEXT NOT NULL,
+    verifier    TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+-- One row per (domain, verifier): re-adding an already-listed verifier is a
+-- no-op, not a duplicate that would make "is this domain policed" ambiguous.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_verifier_policy_key
+    ON verifier_policy(source_lang, target_lang, verifier);
 """
 
 
@@ -935,6 +962,67 @@ class SqliteStore:
         with self._db() as conn:
             return [dict(r) for r in conn.execute(q + " ORDER BY source_norm, id",
                                                   args)]
+
+    # --- verifier policy (optional; issue #167 piece 3) --------------------
+
+    def memory_policy_add(self, source_lang: str, target_lang: str,
+                          verifier: str) -> dict:
+        """Add ``verifier`` to the allowlist for one domain. Idempotent.
+
+        The unique index makes re-adding an already-listed name a no-op
+        rather than a duplicate row, so ``policy add`` is safe to script.
+        """
+        row = dict(id=_uid(), source_lang=source_lang, target_lang=target_lang,
+                  verifier=verifier, created_at=_now())
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO verifier_policy (id, source_lang, target_lang, "
+                "verifier, created_at) VALUES (:id,:source_lang,:target_lang,"
+                ":verifier,:created_at) ON CONFLICT(source_lang, target_lang, "
+                "verifier) DO NOTHING", row)
+            existing = conn.execute(
+                "SELECT * FROM verifier_policy WHERE source_lang=? AND "
+                "target_lang=? AND verifier=?",
+                (source_lang, target_lang, verifier)).fetchone()
+        return dict(existing) if existing else row
+
+    def memory_policy_remove(self, source_lang: str, target_lang: str,
+                             verifier: str) -> bool:
+        """Remove ``verifier`` from a domain's allowlist.
+
+        Returns whether a row was actually removed, so a caller can tell
+        "removed" from "was never listed". Removing the LAST row for a domain
+        returns that domain to unrestricted — the opt-in nature of this
+        policy, not a special case here.
+        """
+        with self._db() as conn:
+            cur = conn.execute(
+                "DELETE FROM verifier_policy WHERE source_lang=? AND "
+                "target_lang=? AND verifier=?",
+                (source_lang, target_lang, verifier))
+            return cur.rowcount > 0
+
+    def memory_policy_list(self, source_lang: str = "",
+                           target_lang: str = "") -> list[dict]:
+        """Every policy row, optionally narrowed to one domain.
+
+        Empty-string filters mean "no filter on this field" — the same
+        convention every other list method in this store follows. An empty
+        result for a fully-specified domain is the signal
+        :func:`nestor.memory` reads as "unrestricted": no rows, no policy.
+        """
+        where: list[str] = []
+        params: list[str] = []
+        for col, val in (("source_lang", source_lang), ("target_lang", target_lang)):
+            if val:
+                where.append(f"{col}=?")
+                params.append(val)
+        sql = "SELECT * FROM verifier_policy"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY source_lang, target_lang, verifier"
+        with self._db() as conn:
+            return [dict(r) for r in conn.execute(sql, params)]
 
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 
