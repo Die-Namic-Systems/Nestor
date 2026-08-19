@@ -902,24 +902,48 @@ def resolve_one(
     }
 
 
-def resolve_all(seed: int = 42) -> list[dict]:
-    """Resolve all four characters. Returns list of outcome dicts."""
+def resolve_all(seed: int = 42, ally_context: dict | None = None) -> list[dict]:
+    """Resolve all four characters. Returns list of outcome dicts.
+
+    ``ally_context`` overrides who is standing there when a protagonist
+    drops.  Pass the dict from ``npcs.build_ally_context()`` to resolve
+    against the people who actually survived; omit it for the
+    everyone-lives baseline in ALLY_CONTEXT.
+    """
     rng = random.Random(seed)
+    ctx = dict(ALLY_CONTEXT)
+    if ally_context:
+        ctx.update(ally_context)
 
     characters = [
-        (make_marcus(), MARCUS_HAZARDS, ALLY_CONTEXT["marcus"]),
-        (make_june(), JUNE_HAZARDS, ALLY_CONTEXT["june"]),
-        (make_damon(), DAMON_HAZARDS, ALLY_CONTEXT["damon"]),
-        (make_yuki(), YUKI_HAZARDS, ALLY_CONTEXT["yuki"]),
+        (make_marcus(), MARCUS_HAZARDS, "marcus"),
+        (make_june(), JUNE_HAZARDS, "june"),
+        (make_damon(), DAMON_HAZARDS, "damon"),
+        (make_yuki(), YUKI_HAZARDS, "yuki"),
     ]
 
     results = []
-    for char, hazards, ally_ctx in characters:
+    alive_pcs = {}
+    for char, hazards, key in characters:
+        ally_ctx = ctx[key]
+
+        # Yuki's stabiliser is Damon, who rolls his own hazards first.
+        # A dead man cannot make a Medicine check.
+        if key == "yuki" and ally_ctx.get("ally_name") == "Damon" \
+                and not alive_pcs.get("damon", True):
+            ally_ctx = {
+                "allies_present": True, "ally_name": "kitchen staff",
+                "medicine_mod": 0,
+                "note": "Damon is dead. Two hundred people and nobody trained.",
+            }
+
         portent = None
         if char.char_class == "Wizard" and char.subclass == "School of Divination":
             portent = get_portent_dice(rng)
 
         result = resolve_one(char, hazards, ally_ctx, rng, portent_dice=portent)
+        result["ally"] = ally_ctx
+        alive_pcs[key] = result["status"] == "alive"
         results.append(result)
 
     return results

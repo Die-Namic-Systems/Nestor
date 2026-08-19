@@ -159,13 +159,58 @@ def run_bombardment(verify: bool = False):
 # PHASE 3: RESOLUTION (D&D 5e)
 # =========================================================================
 
-def run_resolution(seed: int, verify: bool = False) -> list[dict]:
-    phase_banner("PHASE 3: HAZARD RESOLUTION",
+def run_npcs(seed: int, verify: bool = False) -> tuple[dict, dict]:
+    phase_banner("PHASE 3: THE PEOPLE AROUND THEM",
+                 "Twenty-one NPCs under the same sky. They roll first, "
+                 "because the protagonists depend on them.")
+
+    import npcs
+
+    outcomes = npcs.resolve_npcs(seed)
+    npcs.print_npc_summary(outcomes)
+
+    dead = [r for r in outcomes.values() if r["status"] != "alive"]
+    alive = [r for r in outcomes.values() if r["status"] == "alive"]
+
+    section(f"NPC RESOLUTION — {len(alive)} survived, {len(dead)} dead")
+    for r in dead:
+        npc = r["npc"]
+        print(f"  ☠  {npc.name} — {npcs.death_cause(r).replace('_', ' ')}")
+        print(f"     {npc.death_fact}")
+        print(f"     Opens: {npc.death_gap}")
+
+    ally_ctx = npcs.build_ally_context(outcomes)
+    section("WHO IS THERE WHEN THE PROTAGONIST GOES DOWN")
+    for k in ["marcus", "june", "damon", "yuki"]:
+        c = ally_ctx[k]
+        mod = c["medicine_mod"]
+        who = c["ally_name"] or "nobody"
+        modtxt = f"Medicine {mod:+d}" if mod is not None else "no check"
+        print(f"  {k:<8} {who:<18} {modtxt}")
+        print(f"           {c['note']}")
+
+    section("APPLYING NPC OUTCOMES TO DATABASES")
+    stats = npcs.apply_npcs(outcomes)
+    for db_key, s in stats.items():
+        print(f"  {db_key}: {s['dead']} dead, {s['alive']} alive — "
+              f"+{s['facts']} DRAFT facts, +{s['gaps']} PENDING gaps")
+
+    if verify:
+        print()
+        for key in ["marcus", "june", "damon", "yuki"]:
+            verify_db(db_path(key), key)
+
+    return outcomes, ally_ctx
+
+
+def run_resolution(seed: int, ally_ctx: dict | None = None,
+                   verify: bool = False) -> list[dict]:
+    phase_banner("PHASE 4: HAZARD RESOLUTION",
                  f"D&D 5e SRD 5.1 — seed={seed}. The dice don't care.")
 
     import resolution
 
-    results = resolution.resolve_all(seed)
+    results = resolution.resolve_all(seed, ally_context=ally_ctx)
 
     for r in results:
         resolution.print_result(r)
@@ -223,7 +268,7 @@ def run_progression(resolution_results: list[dict], verify: bool = False):
     dead_names = {r["db_key"]: r["name"] for r in resolution_results if r["status"] != "alive"}
     alive_names = {r["db_key"]: r["name"] for r in resolution_results if r["status"] == "alive"}
 
-    phase_banner("PHASE 4: PROGRESSION",
+    phase_banner("PHASE 5: PROGRESSION",
                  f"{len(alive_keys)} show up. {len(dead_keys)} do not.")
 
     for key in dead_keys:
@@ -279,7 +324,8 @@ def run_progression(resolution_results: list[dict], verify: bool = False):
 # FINAL REPORT
 # =========================================================================
 
-def final_report(resolution_results: list[dict], progression_results: list[dict]):
+def final_report(resolution_results: list[dict], progression_results: list[dict],
+                 npc_outcomes: dict | None = None):
     phase_banner("SESSION COMPLETE", "The data is the data.")
 
     alive = [r for r in resolution_results if r["status"] == "alive"]
@@ -294,6 +340,10 @@ def final_report(resolution_results: list[dict], progression_results: list[dict]
             exh = f"exhaustion {r['exhaustion']}"
             print(f"  {name:20s}  {cls:35s}")
             print(f"    Survived. HP: {hp}. {exh.title()}.")
+            ally = r.get("ally") or {}
+            if ally.get("ally_name"):
+                print(f"    Stabiliser available: {ally['ally_name']} "
+                      f"(Medicine {ally['medicine_mod']:+d})")
 
             prog = next((p for p in progression_results
                         if p.get("name") == name and not p.get("dead")), None)
@@ -313,6 +363,25 @@ def final_report(resolution_results: list[dict], progression_results: list[dict]
             print(f"    Dead. Cause: {cause.replace('_', ' ')}.")
             print(f"    Did not show up. Decisions stay PENDING.")
         print()
+
+    if npc_outcomes:
+        import npcs as npc_mod
+        npc_dead = [r for r in npc_outcomes.values() if r["status"] != "alive"]
+        npc_alive = [r for r in npc_outcomes.values() if r["status"] == "alive"]
+        section(f"THE PEOPLE AROUND THEM — {len(npc_alive)} of "
+                f"{len(npc_outcomes)} survived")
+        if npc_dead:
+            for r in npc_dead:
+                npc = r["npc"]
+                whose = "/".join(npc.lives)
+                print(f"  ☠  {npc.name:<28} ({whose})")
+                print(f"     {npc.death_gap}")
+        else:
+            print("  Everyone made it. That happens 0.8% of the time.")
+        print()
+        print(f"  Their deaths are DRAFT facts and PENDING questions.")
+        print(f"  The machine can take someone's friend away.")
+        print(f"  Only the person decides what that means.")
 
     section("DATABASE STATE")
     for key in ["marcus", "june", "damon", "yuki"]:
@@ -410,9 +479,10 @@ def main(argv=None):
 
     run_provision()
     run_bombardment(verify=verify)
-    resolution_results = run_resolution(seed, verify=verify)
+    npc_outcomes, ally_ctx = run_npcs(seed, verify=verify)
+    resolution_results = run_resolution(seed, ally_ctx=ally_ctx, verify=verify)
     progression_results = run_progression(resolution_results, verify=verify)
-    final_report(resolution_results, progression_results)
+    final_report(resolution_results, progression_results, npc_outcomes)
 
     elapsed = time.time() - t0
     print(f"  Session completed in {elapsed:.1f}s.\n")
