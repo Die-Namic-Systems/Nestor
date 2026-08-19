@@ -18,6 +18,13 @@ what moved.
 
 ---
 
+## [0.8.1](https://github.com/rudi193-cmd/Nestor/compare/v0.8.0...v0.8.1) (2026-08-19)
+
+
+### Build
+
+* **mypy:** an installed extra must not move the type gate's verdict ([ecb6217](https://github.com/rudi193-cmd/Nestor/commit/ecb6217bf7ff9507a9d5cabcc1f4e565c797597c))
+
 ## [0.8.0](https://github.com/rudi193-cmd/Nestor/compare/v0.7.0...v0.8.0) (2026-08-18)
 
 
