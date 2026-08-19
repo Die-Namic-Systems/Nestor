@@ -50,6 +50,13 @@ bench/results/local/
 # above). A local seal keyring must never be committed.
 keyring.json
 
+# The same rule, stated by shape rather than by filename. A seal key generated
+# by hand lands wherever the operator ran the command — usually the repo root —
+# and `keyring.json` above only catches the one name we happened to think of.
+# Private key material is never source in this repository.
+*.pem
+*.key
+
 # Session-local seal ledger for the joke store (audit chain, runtime like *.db).
 # Targeted so the docs/dogfood/**/ledger.jsonl exception above is untouched.
 docs/llm-only-joke/ledger.jsonl
