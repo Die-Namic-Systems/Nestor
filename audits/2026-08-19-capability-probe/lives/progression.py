@@ -1028,6 +1028,23 @@ LIVES = {
 }
 
 
+def is_dead(db_path: str) -> bool:
+    """Check whether resolution.py recorded a death in this database."""
+    con = sqlite3.connect(db_path)
+    row = con.execute(
+        "SELECT state FROM ledger WHERE kind='session_close' "
+        "AND state LIKE '%\"dead\"%' ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    con.close()
+    if row:
+        try:
+            s = json.loads(row[0])
+            return s.get("status") == "dead"
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return False
+
+
 def run_one(name: str, verify: bool = False) -> dict:
     box_name, fn = LIVES[name]
     db_path = str(SCRATCHPAD / box_name / "campaign.db")
@@ -1035,6 +1052,17 @@ def run_one(name: str, verify: bool = False) -> dict:
     if not Path(db_path).exists():
         print(f"ERROR: {db_path} not found — run the life module first")
         return {}
+
+    if is_dead(db_path):
+        print(f"\n{'=' * 60}")
+        print(f"  {name.title()} — DEAD (resolution)")
+        print(f"{'=' * 60}")
+        print(f"  Skipped. The dead do not show up.")
+        print(f"  Their PENDING decisions stay PENDING forever.")
+        return {"name": name.title(), "dead": True, "sealed": 0,
+                "rejected": 0, "signed": 0, "gaps_resolved": 0,
+                "gaps_left_open": 0}
+
     shutil.copy2(db_path, backup)
 
     before = collect_metrics(db_path)
@@ -1079,22 +1107,27 @@ def main(argv=None):
         all_results.append(result)
 
     if len(all_results) > 1:
+        alive = [r for r in all_results if not r.get("dead")]
+        dead = [r for r in all_results if r.get("dead")]
         print(f"\n{'=' * 60}")
-        print("  SUMMARY — all four lives")
+        print(f"  SUMMARY — {len(alive)} survived, {len(dead)} dead")
         print(f"{'=' * 60}")
-        total_sealed = sum(r.get("sealed", 0) for r in all_results)
-        total_rejected = sum(r.get("rejected", 0) for r in all_results)
-        total_signed = sum(r.get("signed", 0) for r in all_results)
-        total_gaps_resolved = sum(r.get("gaps_resolved", 0) for r in all_results)
-        total_gaps_open = sum(r.get("gaps_left_open", 0) for r in all_results)
+        total_sealed = sum(r.get("sealed", 0) for r in alive)
+        total_rejected = sum(r.get("rejected", 0) for r in alive)
+        total_signed = sum(r.get("signed", 0) for r in alive)
+        total_gaps_resolved = sum(r.get("gaps_resolved", 0) for r in alive)
+        total_gaps_open = sum(r.get("gaps_left_open", 0) for r in alive)
         print(f"  Sealed:   {total_sealed}")
         print(f"  Rejected: {total_rejected}")
         print(f"  Signed:   {total_signed} rulings")
         print(f"  Gaps:     {total_gaps_resolved} resolved, {total_gaps_open} left open")
-        for r in all_results:
+        for r in alive:
             n = r.get("name", "?")
             print(f"    {n}: sealed={r.get('sealed',0)} rejected={r.get('rejected',0)} "
                   f"signed={r.get('signed',0)} gaps_open={r.get('gaps_left_open',0)}")
+        for r in dead:
+            n = r.get("name", "?")
+            print(f"    {n}: DEAD — did not show up")
 
     return 0
 
