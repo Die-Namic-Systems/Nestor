@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 433,
+    "pairs": 437,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-18T00:00:00+00:00",
-  "digest": "0264523386afa9246eac88949fd79a911ea6a35f81846a452fe9d0d291d79c36",
+  "created_at": "2026-08-19T00:00:00+00:00",
+  "digest": "32d85a1104b6beba2c71bcad4612f93ae646a5f0b1bc66bd393a3379234ead0e",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,62 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "d7950355-5190-538c-898b-ec46ec4b4c67",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was anything actually harmed and should the empty release be corrected",
+      "source_text": "Was anything actually harmed, and should the empty release be corrected?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing was published wrongly -- v0.8.3 is a correct build of a tree whose packaged surface did not change. It is a version number with no code behind it, which costs an installer a download and nothing else. The operator's ruling was to leave it: 'it's fine as is'. The record is the deliverable, not a repair.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "c4003db4-5f50-51e4-a019-98bd8fcd645a",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the same shape recorded anywhere else and does that make it a class rather than an incident",
+      "source_text": "Is the same shape recorded anywhere else, and does that make it a class rather than an incident?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes -- decision 0157 closes on hook_guard proving a gate denies the case it was written for and being unable to prove the gate sees every route to that case. This is that observation one level up: there the gate was reachable and blind to a route, here the gate is sighted and unreachable. Both are the same question asked about a different link in the chain -- is the verdict computed, and is it consumed -- and neither is answered by the gate's own tests, which necessarily pass in both worlds.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "52d0dcb7-8be1-5fd0-9776-035a8bb372f8",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does an agent look to find out whether a gate here actually blocks",
+      "source_text": "Where does an agent look to find out whether a gate here actually blocks?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`gh api repos/<owner>/<repo>/branches/<branch>/protection` -- a 404 means nothing is required and every check is advice. Do not infer enforcement from a workflow existing, from it being named like a gate, or from it passing: those establish that a rule is computed, not that anything consumes the result. On this repository today the answer is 404, and that is the state this record exists to make findable rather than rediscoverable.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-19T00:00:00+00:00",
+      "id": "267e4218-a0eb-54c6-bb97-0f8a53e50d26",
+      "origin": "pr:None",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the prtitle gate is correct tested and ran why did it not stop anything",
+      "source_text": "The pr-title gate is correct, tested, and ran. Why did it not stop anything?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because master has no branch protection, so no check is required and every one of them is advisory. A red mark next to a mergeable button is a decoration. The gate did not fail -- it was never wired to anything that could act on its verdict, and a verdict nothing consumes is not enforcement however right it is.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-18T00:00:00+00:00",
       "id": "fed262ac-bce2-533c-96ea-65f346564514",
