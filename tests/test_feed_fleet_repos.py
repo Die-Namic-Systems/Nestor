@@ -135,3 +135,73 @@ def test_it_does_not_write_into_the_box_it_reads(tmp_path):
 
     run(root, tmp_path / "nestor.db")
     assert sorted(p.relative_to(root) for p in root.rglob("*")) == before
+
+
+# --- Identity is the remote, not the directory ------------------------------
+#
+# SURVEY is keyed by the GitHub repository name; a clone directory is whatever
+# the person cloning it typed. On the fleet box those disagree constantly --
+# `willow` holds `Willow`, `dotgithub` holds `.github`, `.willow` holds
+# `willow-config`, `willow-grove` holds `safe-app-willow-grove`. Matching on the
+# directory surveyed eight repositories as absent and simultaneously reported
+# them under "on disk, not in the survey", the branch whose stated job is
+# catching a repo the survey dropped: it fired correctly and named the wrong
+# cause.
+
+def real_clone(root: pathlib.Path, directory: str, remote: str) -> pathlib.Path:
+    """A clone whose directory name and repository name differ, as on the box."""
+    repo = root / directory
+    repo.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "remote", "add", "origin",
+                    f"https://github.com/someone/{remote}.git"],
+                   cwd=repo, check=True)
+    return repo
+
+
+def test_a_clone_is_found_under_its_repository_name_not_its_directory(tmp_path):
+    """The case that was silently missing every flagship repo in the fleet."""
+    root = tmp_path / "box"
+    root.mkdir()
+    real_clone(root, "some-local-name", A_SURVEYED_REPO)
+
+    done = run(root)
+    assert done.returncode == 0, done.stderr
+    assert "1 repo(s) written" in done.stdout
+    # and it must NOT be reported as an uncovered clone
+    assert "on disk, not in the survey" not in done.stdout
+
+
+def test_a_clone_with_no_remote_falls_back_to_its_directory_name(tmp_path):
+    """A local-only clone has no better answer than the directory it sits in.
+
+    The fallback is what keeps this change from turning every remote-less
+    checkout into an unsurveyed one.
+    """
+    root = tmp_path / "box"
+    root.mkdir()
+    repo = root / A_SURVEYED_REPO
+    repo.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+
+    done = run(root)
+    assert done.returncode == 0, done.stderr
+    assert "1 repo(s) written" in done.stdout
+
+
+def test_two_clones_of_one_repository_do_not_silently_shadow_each_other(tmp_path):
+    """Keeping the first and hiding the second would be a survey that lies.
+
+    The duplicate is surfaced under the uncovered-clone branch instead, where a
+    person sees it.
+    """
+    root = tmp_path / "box"
+    root.mkdir()
+    real_clone(root, "first", A_SURVEYED_REPO)
+    real_clone(root, "second", A_SURVEYED_REPO)
+
+    done = run(root)
+    assert done.returncode == 0, done.stderr
+    assert "1 repo(s) written" in done.stdout
+    assert "on disk, not in the survey" in done.stdout
+    assert "second" in done.stdout

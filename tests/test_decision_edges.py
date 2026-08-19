@@ -143,10 +143,16 @@ def test_a_tampered_sealed_edge_falls_out_of_constraints(store, sean):
     dm, a, b = _two_decisions(store)
     sig = _sign_edge(sean, b, a, "depends_on")
     dm.seal_edge(b, a, "depends_on", "sean", sig)
-    # corrupt the stored signature directly, as a store-writer might
+    # corrupt the stored signature directly, as a store-writer might. Flip the
+    # leading byte to something it is not: a flat `"00" + sig[2:]` leaves the
+    # ~1/256 of signatures already starting with "00" untouched, so the edge
+    # keeps verifying and the assertions below read as a pass when nothing was
+    # corrupted at all. Same defect as tests/test_cli.py's tamper.
+    tampered = ("01" if sig.startswith("00") else "00") + sig[2:]
+    assert tampered != sig, "the tamper must actually change the signature"
     with store._db() as conn:
         conn.execute("UPDATE decision_edges SET edge_sig=? WHERE src_id=?",
-                     ("00" + sig[2:], b))
+                     (tampered, b))
     on_b = dm.constraints_on("may the machine seal its own work?")
     assert on_b["constraints"] == []          # no longer traversed as fact
     assert len(on_b["proposed"]) == 1         # surfaced instead
