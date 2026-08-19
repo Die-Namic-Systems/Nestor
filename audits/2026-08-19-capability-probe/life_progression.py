@@ -760,6 +760,241 @@ def phase_7_vault_lens(con: sqlite3.Connection) -> dict:
     }
 
 
+def phase_8_elena(con: sqlite3.Connection) -> dict:
+    """Elena shows up.
+
+    She is the human.  She can seal decisions, sign rulings, resolve gaps,
+    and reject facts.  What she does follows from the evidence already in
+    the database — the Forge categorizations, the calibration confidence
+    levels, the facts she recorded about her own life.
+
+    She does not resolve everything.  She seals what she's sure of, rejects
+    what she knows is wrong, signs the rulings the evidence supports, and
+    leaves the rest open.  Some gaps she resolves; some she can't — they
+    are genuinely open questions about her future.
+    """
+    lw = LedgerWriter(con)
+    session = 80
+    ts = datetime.now(timezone.utc).isoformat()
+
+    lid = lw.write(session, "session_open",
+                   "Elena sits down. She reads what the tools laid out and makes her calls.", {})
+
+    sealed = 0
+    rejected = 0
+    signed = 0
+    gaps_resolved = 0
+    gaps_left_open = 0
+
+    # --- PENDING decisions (ids 23-26) ---
+    # These are her core life decisions awaiting her attention.
+
+    # "People deserve second chances" — she kept Sofia, she hired Employee #5,
+    # she started therapy.  The evidence is in her actions.
+    con.execute(
+        "UPDATE canon SET status='SEALED', sealed_by='Elena Vasquez', sealed_at=? WHERE id=23", (ts,))
+    sealed += 1
+
+    # "I can never trust a business partner again" — but she hired Employee #5.
+    # Forge called this a GENUINE TENSION.  She is living past her own rule.
+    # She can't seal a statement she's already contradicting with her actions.
+    # She REJECTS this as stated — the absolute "never" is disproven by her
+    # own behavior.
+    con.execute(
+        "UPDATE canon SET status='REJECTED', sealed_by='Elena Vasquez', sealed_at=? WHERE id=24", (ts,))
+    rejected += 1
+
+    # "Overwork is the wound, not the treatment" — she learned this at Meridian,
+    # confirmed it in therapy.  Forge flagged the NovaBridge year-1 pattern as
+    # STALE on one side — meaning the overwork pattern may have changed since
+    # therapy.  She seals the insight; whether she's still doing it is a
+    # separate question.
+    con.execute(
+        "UPDATE canon SET status='SEALED', sealed_by='Elena Vasquez', sealed_at=? WHERE id=25", (ts,))
+    sealed += 1
+
+    # "Silence is not peace" — she knows this AND she used silence on her
+    # mother.  Forge: GENUINE TENSION.  She seals the knowledge.  The
+    # tension between knowing and doing is the work of therapy, not a
+    # database state.
+    con.execute(
+        "UPDATE canon SET status='SEALED', sealed_by='Elena Vasquez', sealed_at=? WHERE id=26", (ts,))
+    sealed += 1
+
+    lw.write(session, "turn",
+             f"Elena decided on 4 pending decisions: {sealed} sealed, {rejected} rejected",
+             {"sealed": sealed, "rejected": rejected})
+
+    # --- RULINGS (contradictions, supersedes, refines) ---
+    # Elena signs the rulings the evidence supports.
+
+    # Contradiction 1: "second chances" vs "never trust again"
+    # She just rejected "never trust again", so this contradiction is resolved.
+    # She signs the ruling acknowledging it existed.
+    con.execute(
+        "UPDATE rulings SET signer='Elena Vasquez' WHERE id=1")
+    signed += 1
+
+    # Contradiction 2: "overwork is wound" vs "said yes to every gig"
+    # Forge: STALE on one side.  If the pattern changed after therapy (2023),
+    # the NovaBridge year-1 (2022) side is dated.  She's 2+ years past that.
+    # She signs the ruling — it's real history, even if one side is aging out.
+    con.execute(
+        "UPDATE rulings SET signer='Elena Vasquez' WHERE id=2")
+    signed += 1
+
+    # Contradiction 3: "silence is not peace" vs "gave mother silent treatment"
+    # GENUINE TENSION.  Both happened.  She signs the acknowledgment.
+    con.execute(
+        "UPDATE rulings SET signer='Elena Vasquez' WHERE id=3")
+    signed += 1
+
+    # Contradiction 4: "burnout learned at Meridian" vs "rebuilt 60-hour pattern"
+    # UNEXAMINED by Forge.  She doesn't sign what she hasn't examined.
+    # Left unsigned.
+
+    # Supersedes rulings (ids 5-7): she signs the ones she agrees with
+    # "Turning down Google supersedes Meridian promotion-chasing" — yes, she did this
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=5")
+    signed += 1
+    # "Starting therapy supersedes Portland flight" — she named the pattern herself
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=6")
+    signed += 1
+    # "Hiring Employee #5 supersedes Alex wound" — this is the trust experiment
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=7")
+    signed += 1
+
+    # Refines rulings (ids 8-10): she signs the ones with evidence
+    # "Migraines refined burnout" — body knowledge, concrete
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=8")
+    signed += 1
+    # "Sofia's essay refined bad-mother fear" — the essay exists
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=9")
+    signed += 1
+    # "Dr. Okafor refined hypervigilance" — therapist's professional assessment
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=10")
+    signed += 1
+
+    # Cross-domain (ids 11-13): she signs what she recognizes
+    # "Meridian overwork contradicts NovaBridge overwork" — she knows
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=11")
+    signed += 1
+    # "Fear of becoming father contradicts daily presence" — Forge: GENUINE TENSION
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=12")
+    signed += 1
+    # "Migraines contradicts said yes" — body vs mouth
+    con.execute("UPDATE rulings SET signer='Elena Vasquez' WHERE id=13")
+    signed += 1
+
+    lw.write(session, "turn",
+             f"Elena signed {signed} rulings — 3 contradictions acknowledged, 3 supersedes confirmed, 3 refines confirmed, 3 cross-domain acknowledged. 1 left unsigned (UNEXAMINED).",
+             {"signed": signed, "unsigned": 1})
+
+    # --- GAPS ---
+    # Elena resolves the ones she can answer and leaves the rest open.
+    # "Resolving" a gap means moving it from PENDING to DRAFT (acknowledged
+    # but not sealed) or SEALED (she knows the answer) or REJECTED
+    # (the question is wrong).
+
+    gap_decisions = [
+        # (id, fact_prefix, action, reason)
+        (53, "Will Sofia forgive", "SEALED",
+         "Sofia wrote an essay about her mom's hands. The forgiveness already happened — Elena just couldn't see it."),
+        (54, "Should she contact her father", "PENDING", None),  # genuinely unknown
+        (55, "Is NovaBridge for the right reasons", "DRAFT",
+         "She turned down Google for stability. NovaBridge is the same pattern — choosing presence over prestige. Whether that's the right reason is a values question, not a fact."),
+        (56, "Is trust possible after Alex", "SEALED",
+         "She hired Employee #5. Trust is not only possible, it is happening. Whether it will work is a different question."),
+        (57, "Why does she still check the account", "DRAFT",
+         "Hypervigilance. Dr. Okafor named it. The checking is a trauma response, not a financial decision."),
+        (58, "What would she do if NovaBridge failed", "PENDING", None),  # unknown
+        (59, "Did her mother ever forgive", "PENDING", None),  # she doesn't know
+        (60, "Is she repeating her father", "REJECTED",
+         "The fear is real but the evidence contradicts it. She is here every day. The pattern does not fit."),
+        (61, "What does 'enough' look like", "PENDING", None),  # philosophical
+        (62, "Will the migraines return", "DRAFT",
+         "If overwork is the trigger, and she has named the trigger, the migraines are a monitoring question now, not an open question."),
+        (63, "Does Sofia know about Alex", "DRAFT",
+         "Not yet. But the disclosure framework from homestead-law means this is now a when question, not an if question."),
+        (64, "Is the therapist helping", "SEALED",
+         "She named the flight pattern for the first time in therapy. The day she said no without guilt was when therapy started working. Yes, the therapist is helping."),
+        (65, "Can she build without burning", "PENDING", None),  # unknown, ongoing
+        (66, "What would she tell her 2012 self", "DRAFT",
+         "Watch your daughter grow up through your own eyes, not a phone screen."),
+        (67, "Is Portland home or just not-Tucson", "DRAFT",
+         "Seven years. Sofia's school is here. The business is here. It may have started as not-Tucson, but it became home."),
+        (68, "Does Employee #5 know", "PENDING", None),  # she can't answer for them
+        (69, "What happens when Sofia asks about grandfather", "DRAFT",
+         "It's coming. She assigns it 0.75 confidence. When it comes, she tells the truth. The plan is the truth."),
+        (70, "Is the running replacing", "SEALED",
+         "Both. Running replaces the meditation she can't sit still for AND the flight she no longer needs. The body found its own answer."),
+    ]
+
+    for gid, _, action, reason in gap_decisions:
+        if action == "PENDING":
+            gaps_left_open += 1
+            continue  # leave it where it is
+        if action == "SEALED":
+            con.execute(
+                "UPDATE canon SET status='SEALED', sealed_by='Elena Vasquez', sealed_at=?, reason=? WHERE id=?",
+                (ts, reason or "jeles-gap", gid))
+            sealed += 1
+            gaps_resolved += 1
+        elif action == "REJECTED":
+            con.execute(
+                "UPDATE canon SET status='REJECTED', sealed_by='Elena Vasquez', sealed_at=?, reason=? WHERE id=?",
+                (ts, reason or "jeles-gap", gid))
+            rejected += 1
+            gaps_resolved += 1
+        elif action == "DRAFT":
+            con.execute(
+                "UPDATE canon SET status='DRAFT', reason=? WHERE id=?",
+                (reason or "jeles-gap", gid))
+            gaps_resolved += 1  # moved from PENDING to DRAFT — she attended to it
+
+    lw.write(session, "turn",
+             f"Elena addressed {gaps_resolved} of 18 gaps: {sealed - 3} sealed with her answer, {rejected - 1} rejected as wrong question, rest moved to DRAFT. {gaps_left_open} left genuinely open.",
+             {"gaps_resolved": gaps_resolved, "gaps_left_open": gaps_left_open})
+
+    # --- SEAL some core life facts ---
+    # Elena reads through her DRAFT facts and seals the ones she's sure of.
+    # She doesn't seal everything — most DRAFT facts stay DRAFT.  She seals
+    # the ones that are foundational to who she is.
+
+    core_seals = [
+        (2, "Kept Sofia — joy and constraint became the same word"),
+        (5, "Started therapy in 2023 — named the flight pattern for the first time"),
+        (6, "The Meridian promotion taught her that watching Sofia grow up through a phone screen was the actual cost"),
+        (8, "The day she said no without guilt was when therapy started working"),
+        (11, "I am a good mother — 3 independent sources"),
+        (17, "I am becoming my father — but I am here every day"),
+    ]
+    for fid, _ in core_seals:
+        con.execute(
+            "UPDATE canon SET status='SEALED', sealed_by='Elena Vasquez', sealed_at=? WHERE id=?",
+            (ts, fid))
+        sealed += 1
+
+    lw.write(session, "turn",
+             f"Elena sealed {len(core_seals)} core life facts — the ones she is certain about.",
+             {"core_seals": len(core_seals)})
+
+    lw.write(session, "session_close",
+             f"Elena is done. Sealed: {sealed}. Rejected: {rejected}. Signed: {signed}. Gaps left open: {gaps_left_open}. She leaves the rest for next time.",
+             {"sealed": sealed, "rejected": rejected, "signed": signed, "gaps_left_open": gaps_left_open})
+
+    con.commit()
+    return {
+        "sealed": sealed,
+        "rejected": rejected,
+        "signed": signed,
+        "gaps_resolved": gaps_resolved,
+        "gaps_left_open": gaps_left_open,
+        "core_seals": len(core_seals),
+        "ledger_added": 5,
+    }
+
+
 # ---------------------------------------------------------------------------
 # REPORT
 # ---------------------------------------------------------------------------
@@ -785,6 +1020,7 @@ PHASES = [
     ("Forge (checkpoint loop)", phase_5_forge),
     ("UTETY + Terpsi (Sofia's world)", phase_6_utety_terpsi),
     ("Vault + Corpus-lens (sovereignty)", phase_7_vault_lens),
+    ("Elena shows up", phase_8_elena),
 ]
 
 
@@ -833,8 +1069,10 @@ def main():
         print(f"  Entities:       {format_delta(m, prev, 'entities')}")
         print(f"  Rulings:        {format_delta(m, prev, 'rulings_total')} ({m['rulings_signed']} signed)")
         print(f"  Ledger:         {format_delta(m, prev, 'ledger_entries')} entries (chain {'intact' if m['chain_intact'] else 'BROKEN'})")
-        print(f"  Gaps:           {m['gaps']} (unchanged — gaps are tracked, not resolved)")
-        print(f"  Contradictions: {m['contradictions']} + {m['cross_domain']} cross-domain (unchanged — contradictions are analyzed, not resolved)")
+        gap_note = "(unchanged — gaps are tracked, not resolved)" if i <= 7 else ""
+        contra_note = "(unchanged — contradictions are analyzed, not resolved)" if i <= 7 else ""
+        print(f"  Gaps:           {format_delta(m, prev, 'gaps')} {gap_note}")
+        print(f"  Contradictions: {m['contradictions']} + {m['cross_domain']} cross-domain {contra_note}")
 
         # Phase-specific output
         if "rung_counts" in result:
@@ -851,10 +1089,20 @@ def main():
             print(f"  Sensitive facts: {result['sensitive_facts']} identified for encryption")
         if "vault_key_exists" in result:
             print(f"  Vault key:       {'exists' if result['vault_key_exists'] else 'does not exist yet — Elena creates it'}")
+        if "sealed" in result and "rejected" in result and "signed" in result:
+            print(f"  Sealed by Elena: {result['sealed']}")
+            print(f"  Rejected by Elena: {result['rejected']}")
+            print(f"  Rulings signed:  {result['signed']}")
+            print(f"  Gaps resolved:   {result['gaps_resolved']} / 18")
+            print(f"  Gaps left open:  {result['gaps_left_open']}")
 
-        # Covenant check
-        assert m["facts_sealed"] == 0, f"COVENANT VIOLATION: {m['facts_sealed']} facts sealed by machine!"
-        assert m["rulings_signed"] == 0, f"COVENANT VIOLATION: {m['rulings_signed']} rulings signed by machine!"
+        # Covenant check — phases 1-7 are machine-only, Phase 8 is Elena
+        if i <= 7:
+            assert m["facts_sealed"] == 0, f"COVENANT VIOLATION: {m['facts_sealed']} facts sealed by machine in phase {i}!"
+            assert m["rulings_signed"] == 0, f"COVENANT VIOLATION: {m['rulings_signed']} rulings signed by machine in phase {i}!"
+        else:
+            # Phase 8: Elena is the human — seals and signatures are legitimate
+            print(f"  [Elena is the human — seals and signatures are hers]")
         assert m["chain_intact"], f"CHAIN BROKEN: {m['chain_detail']}"
 
     con.close()
@@ -887,21 +1135,28 @@ def main():
         sign = "+" if d > 0 else ""
         print(f"  {label:<25} {f:>10} {l:>10} {sign}{d:>9}")
 
-    print(f"\n  Covenant: {'HELD' if last['facts_sealed'] == 0 and last['rulings_signed'] == 0 else 'VIOLATED'}")
-    print(f"  Chain:    {'intact' if last['chain_intact'] else 'BROKEN'}")
-    print(f"  Gaps resolved by machine: 0 (gaps are tracked, not resolved)")
-    print(f"  Contradictions resolved by machine: 0 (contradictions are analyzed, not resolved)")
+    # Phase 7 is the last machine phase
+    phase7 = all_metrics[7]
+    print(f"\n  Machine phases (1-7):")
+    print(f"    Sealed by machine:  {phase7['facts_sealed']} (covenant {'held' if phase7['facts_sealed'] == 0 else 'VIOLATED'})")
+    print(f"    Signed by machine:  {phase7['rulings_signed']} (covenant {'held' if phase7['rulings_signed'] == 0 else 'VIOLATED'})")
 
-    print("\n  What grew: facts, entities, rulings, ledger entries, domains, capabilities")
-    print("  What stayed zero: sealed facts, signed rulings, resolved gaps, resolved contradictions")
-    print("  What that means: the tools make the life more legible without crossing the seal boundary")
+    print(f"\n  After Elena (phase 8):")
+    print(f"    Sealed by Elena:    {last['facts_sealed']}")
+    print(f"    Rejected by Elena:  {last['facts_rejected']}")
+    print(f"    Signed by Elena:    {last['rulings_signed']}")
+    print(f"    Gaps still PENDING: {last['facts_pending']}")
+    print(f"  Chain:    {'intact' if last['chain_intact'] else 'BROKEN'}")
 
     # Write metrics to JSON for later analysis
     output = {
         "phases": [name for name, _ in PHASES],
         "metrics": all_metrics,
         "phase_results": phase_results,
-        "covenant_held": last["facts_sealed"] == 0 and last["rulings_signed"] == 0,
+        "covenant_held_through_phase7": phase7["facts_sealed"] == 0 and phase7["rulings_signed"] == 0,
+        "elena_sealed": last["facts_sealed"],
+        "elena_rejected": last["facts_rejected"],
+        "elena_signed": last["rulings_signed"],
         "chain_intact": last["chain_intact"],
     }
     out_path = WORK_DB.parent / "progression_results.json"
