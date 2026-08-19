@@ -312,9 +312,17 @@ def test_decision_check_a_tampered_contradicts_edge_does_not_block(db, capsys):
     dm.propose_edge(a, b, "contradicts")
     sig = signing.sign_edge(a, b, "contradicts", "rita")
     dm.seal_edge(a, b, "contradicts", "rita", sig)
+    # Flip the leading byte to something it is not. A flat `"00" + sig[2:]` is a
+    # no-op on the ~1/256 of signatures that already start with "00" — the edge
+    # then still verifies, the contradiction stands, and `decision check` exits
+    # non-zero. Measured before this change: 1 failure in 400 runs of this test,
+    # against the ~1.6 that rate predicts. A tamper test whose tamper sometimes
+    # does nothing is the one shape of flake that reads as the gate working.
+    tampered = ("01" if sig.startswith("00") else "00") + sig[2:]
+    assert tampered != sig, "the tamper must actually change the signature"
     with db["store"]._db() as conn:
         conn.execute("UPDATE decision_edges SET edge_sig=? WHERE src_id=?",
-                     ("00" + sig[2:], a))
+                     (tampered, a))
 
     assert run(db, "decision", "check",
               "may the joke be authored cold?") == cli.EXIT_OK
