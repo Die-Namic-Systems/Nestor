@@ -20,12 +20,12 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are **nine optional capabilities**, each
+Beyond the core Protocol there are **ten optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
 working and the surfaces that need it say so rather than showing an empty list.
-Six live here; the last three are declared beside the recipes that use them
+Seven live here; the last three are declared beside the recipes that use them
 (``supports_edges`` and ``supports_evidence`` below, ``supports_embedding_store``
-in :mod:`nestor.embedding_store`) — if you add a tenth, add a row here:
+in :mod:`nestor.embedding_store`) — if you add an eleventh, add a row here:
 
 ==================  =====================================  =====================================
 Capability          Predicate                              Without it
@@ -46,6 +46,8 @@ Decision edges      :func:`supports_edges`                 decisions still seal,
                                                            related — no graph neighbours
 Evidence            :func:`supports_evidence`              a sealed claim cannot carry what it
                                                            rests on, and the report is empty
+Verifier policy     :func:`supports_verifier_policy`       every verifier name is accepted at
+                                                           seal time, for every domain
 Embedding store     :func:`nestor.embedding_store.supports_embedding_store`
                                                            the semantic matcher recomputes each
                                                            vector rather than caching it
@@ -533,6 +535,40 @@ def supports_evidence(store: "Storage") -> bool:
     return supports(store, "evidence")
 
 
+_VERIFIER_POLICY_OPS = ("memory_policy_add", "memory_policy_remove",
+                        "memory_policy_list")
+
+
+class VerifierPolicyStorage(Storage, Protocol):
+    """``Storage`` plus the verifier-policy capability — a ``cast`` target on
+    the same terms as :class:`EdgeStorage`; see :func:`supports_verifier_policy`."""
+
+    def memory_policy_add(self, source_lang: str, target_lang: str,
+                          verifier: str) -> dict: ...
+
+    def memory_policy_remove(self, source_lang: str, target_lang: str,
+                             verifier: str) -> bool: ...
+
+    def memory_policy_list(self, source_lang: str = "",
+                           target_lang: str = "") -> list[dict]: ...
+
+
+def supports_verifier_policy(store: "Storage") -> bool:
+    """Whether ``store`` can enforce a per-domain verifier allowlist
+    (issue #167 piece 3).
+
+    Its own predicate on :func:`supports_evidence`'s precedent. Without it,
+    :func:`nestor.memory.add_pair` / :func:`nestor.memory.supersede_pair`
+    skip the check entirely and every verifier name is accepted at seal
+    time, exactly as before this capability existed — a host store predating
+    it, or one that never opted in, keeps working unchanged. With it, a
+    domain that has recorded at least one policy row refuses a seal from any
+    verifier not on that row's list; a domain with none is unrestricted (the
+    opt-in semantics live in :mod:`nestor.memory`, not here).
+    """
+    return supports(store, "verifier_policy")
+
+
 # --------------------------------------------------------------------------
 # The capability registry
 # --------------------------------------------------------------------------
@@ -561,6 +597,7 @@ _CAPABILITY_OPS: dict[str, tuple[str, ...]] = {
     "atomic_supersede": _ATOMIC_SUPERSEDE_OPS,
     "edges": _EDGE_OPS,
     "evidence": _EVIDENCE_OPS,
+    "verifier_policy": _VERIFIER_POLICY_OPS,
     "embedding_store": ("embedding_load", "embedding_save", "embedding_drop"),
 }
 

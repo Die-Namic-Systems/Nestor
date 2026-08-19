@@ -50,7 +50,8 @@ from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
 from .errors import NestorError
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
 from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
-                      get_store, require_capability, supports_rejection)
+                      VerifierPolicyStorage, get_store, require_capability,
+                      supports_rejection, supports_verifier_policy)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -265,6 +266,27 @@ class ConflictingSealError(NestorError):
     """
 
 
+class VerifierNotAllowedError(NestorError):
+    """Refusing to seal because ``verifier`` is not on this domain's policy
+    (issue #167 piece 3).
+
+    Today the sign-off field on a seal accepts any name a caller types, and
+    no domain can say whose name is even eligible to be on it. This is the
+    enforcement half of a per-domain verifier allowlist recorded in the store
+    (``SqliteStore.memory_policy_add`` / ``nestor policy add``): a domain
+    that has recorded at least one policy row refuses a seal from any
+    verifier not on that list.
+
+    Opt-in and backward compatible, same posture as :mod:`nestor.signing`'s
+    default: a domain with NO policy rows is unrestricted — this is checked
+    BEFORE any store read or write, mirroring
+    :class:`InvalidSealSignatureError`, so a refused seal leaves no row
+    behind, sealed or otherwise. Raised from the API layer (this module),
+    never screened in a page — a UI that skips this check still hits it the
+    moment it calls ``add_pair``/``supersede_pair``.
+    """
+
+
 class InvalidSealSignatureError(NestorError):
     """Refusing to record a seal under a CLIENT-PROVIDED signature that does
     not verify (Nestor#17, the client-signing seam).
@@ -308,6 +330,34 @@ def _same_verifier(a: str, b: str) -> bool:
 # decisions instead of one long function; see add_pair's docstring for the
 # rationale behind each check.
 # --------------------------------------------------------------------------
+
+def _check_verifier_policy(store: Storage, source_lang: str, target_lang: str,
+                           verifier: str) -> None:
+    """Refuse a seal whose verifier is off this domain's allowlist.
+
+    Called at seal time, before any store read or write — see
+    :class:`VerifierNotAllowedError`. A store without the capability, or a
+    domain with no policy rows recorded, is unrestricted: this is an opt-in
+    gate, not a new requirement every deployment must configure before it can
+    seal anything.
+    """
+    if not supports_verifier_policy(store):
+        return
+    store = cast(VerifierPolicyStorage, store)
+    rows = store.memory_policy_list(source_lang, target_lang)
+    if not rows:
+        return
+    allowed = sorted({r["verifier"] for r in rows})
+    if verifier not in allowed:
+        raise VerifierNotAllowedError(
+            f"{verifier or 'an unknown verifier'!r} is not on the verifier "
+            f"policy for domain {source_lang}->{target_lang}: allowed "
+            f"verifier(s) are {allowed}. Nothing was sealed. Add "
+            f"{verifier or '<name>'!r} to the policy first (nestor policy add "
+            f"--from {source_lang} --to {target_lang} --verifier ..., or "
+            f"store.memory_policy_add) or seal as one of the names above."
+        )
+
 
 def _resolve_seal_sig(status: str, norm: str, target_text: str, verifier: str,
                       seal_sig: str) -> str:
@@ -574,6 +624,11 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     store = get_store(store)
     matcher = get_matcher(matcher)
     store.memory_init()
+    # Verifier policy is checked before anything else that follows a "sealed"
+    # status — same rung as the ledger preflight below, and for the same
+    # reason: a refusal here must leave no row behind, sealed or otherwise.
+    if status == "sealed":
+        _check_verifier_policy(store, source_lang, target_lang, verifier)
     # A seal has to be auditable to be a seal. Refuse before touching the store,
     # so a broken or unwritable chain cannot leave a verified row with no trail.
     if status == "sealed" and audit:
@@ -718,6 +773,7 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
     if not verifier:
         raise ValueError("supersede_pair requires a verifier — replacing a "
                          "sealed decision is itself a decision")
+    _check_verifier_policy(store, source_lang, target_lang, verifier)
     if audit:
         _ledger_preflight()   # a supersede is a seal; refuse before writing
     norm = matcher.normalize(source_text)
