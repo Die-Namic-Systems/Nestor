@@ -18,6 +18,10 @@ def _fastembed_installed() -> bool:
     not integration_tests_enabled() or not _fastembed_installed(),
     reason="set NESTOR_SEMANTIC_TEST=1 and pip install nestor-meaning[semantic]",
 )
+@pytest.mark.skipif(
+    not __import__("tests.conftest", fromlist=["_EMBEDDING_OK"])._EMBEDDING_OK,
+    reason="semantic model not loadable (model download blocked by proxy)",
+)
 def test_aws_amazon_web_services_beats_string_matcher():
     """IDEAS §3.1 motivating case — character ratio ~0.273, semantic should win."""
     sm = StringMatcher()

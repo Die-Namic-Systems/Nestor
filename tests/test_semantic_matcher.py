@@ -85,6 +85,10 @@ def test_score_matcher_warns_on_default_seal_threshold(store, seal_key):
 
 
 @requires_semantic
+@pytest.mark.skipif(
+    not __import__("tests.conftest", fromlist=["_EMBEDDING_OK"])._EMBEDDING_OK,
+    reason="semantic model not loadable (model download blocked by proxy)",
+)
 def test_scores_against_batches_uncached_texts():
     m = SemanticMatcher()
     scores = m.scores_against("hello world", ["hello there", "completely different topic"])
