@@ -18,6 +18,14 @@ what moved.
 
 ---
 
+## [0.8.3](https://github.com/rudi193-cmd/Nestor/compare/v0.8.2...v0.8.3) (2026-08-19)
+
+
+### Fixed
+
+* **survey:** a repo identity is its remote, not the directory it sits in ([#153](https://github.com/rudi193-cmd/Nestor/issues/153)) ([46a2bd3](https://github.com/rudi193-cmd/Nestor/commit/46a2bd31d76668d0cf86a6039c24d7d09524704a))
+* **survey:** a repo's identity is its remote, not the directory it sits in ([0423fd5](https://github.com/rudi193-cmd/Nestor/commit/0423fd50d1fa6454cad8a98d3f89dcd38d2c02ec))
+
 ## [0.8.2](https://github.com/rudi193-cmd/Nestor/compare/v0.8.1...v0.8.2) (2026-08-19)
 
 
