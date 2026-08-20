@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import shlex
 from typing import Any
 
 #: Env vars that ARE seal-key material. Pinned to what the modules actually read
@@ -50,9 +51,30 @@ _IMPORT_APPLY_RE = re.compile(r"\bnestor\b[^\n|;&]*\bimport\b", re.IGNORECASE)
 _APPLY_RE = re.compile(r"--apply\b", re.IGNORECASE)
 _VERIFIER_RE = re.compile(r"--verifier\b", re.IGNORECASE)
 # A raw sqlite write that sets a seal — `sqlite3 store.db "… status='sealed' …"`.
+#
+# Two false positives, one cause: the rule read the whole command as a bag of
+# words. `\bsqlite3\b` matched Python's stdlib module name, so a heredoc that
+# merely *counted* sealed rows was denied, and with it every read-only audit
+# of the seal column — including the unsupported-rows view issue #167 asks
+# for, which is by definition a query over sealed rows. Then the narrowed
+# version denied `git commit` for a message that *described* the fix. The
+# tripwire's own text ends "and reads are fine"; the pattern did not agree.
+#
+# So the signal is now the command's **executable**, not any mention of it:
+# `_invokes_sqlite` walks the pipeline stages and asks whether sqlite3 is the
+# program being run. Prose about sqlite3 is prose. This is §6.109's lesson —
+# match what a command *does*, not every appearance of the word — applied to
+# the one check that was deliberately exempted from it. A write verb is
+# required too, so a `SELECT` through the real CLI stays allowed.
 _SQLITE_RE = re.compile(r"\bsqlite3\b", re.IGNORECASE)
 _SEAL_WRITE_RE = re.compile(r"seal_sig|status\s*=?\s*['\"]?sealed|['\"]sealed['\"]",
                             re.IGNORECASE)
+#: SQL that changes rows. A seal is written by one of these or it is not
+#: written; `REPLACE`/`ATTACH` are in because each is a route to the same row.
+#: A read has none of them.
+_SQL_WRITE_VERB_RE = re.compile(
+    r"\b(insert|update|replace|delete|attach|drop|"
+    r"create\s+table|alter\s+table)\b", re.IGNORECASE)
 # A quoted span in the command line. Blanked before the *structural* mint
 # checks below, so a mint pattern matches the command's own tokens and not a
 # phrase quoted as an argument — e.g. the read-only decision-store consult the
@@ -67,6 +89,67 @@ _QUOTED_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
 def _unquoted(command: str) -> str:
     """``command`` with quoted spans blanked to spaces (see ``_QUOTED_RE``)."""
     return _QUOTED_RE.sub(" ", command)
+
+
+#: Wrappers that run another program; the real executable is the token after.
+_WRAPPERS = frozenset({
+    "sudo", "env", "command", "builtin", "exec", "nohup", "time", "xargs",
+    "nice", "ionice", "stdbuf", "timeout", "doas",
+})
+#: Tokens that separate one pipeline stage from the next.
+_STAGE_SEPS = frozenset({";", "&", "&&", "|", "||", "(", ")", "\n"})
+
+
+def _invokes_sqlite(command: str) -> bool:
+    """Is ``sqlite3`` the program this command actually runs?
+
+    The seal-write check needs to look inside quotes — a hand-written seal
+    lives in the SQL string — so it cannot use ``_unquoted``. That left it
+    matching any *mention* of sqlite3, which denied Python heredocs importing
+    the stdlib module and git commits describing this very guard.
+
+    Splitting into pipeline stages and reading each stage's executable
+    separates "runs sqlite3" from "says sqlite3". Wrappers (``sudo``, ``env``,
+    ``timeout`` …) and leading ``NAME=value`` assignments are stepped over so
+    ``sudo sqlite3 store.db …`` still counts. Unparseable input (an unbalanced
+    quote) falls back to the old substring test: a guard that cannot read a
+    command must assume the worst about it, not the best.
+    """
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()")
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return bool(_SQLITE_RE.search(command))
+
+    stage: list[str] = []
+    stages: list[list[str]] = []
+    for tok in tokens:
+        if tok in _STAGE_SEPS:
+            if stage:
+                stages.append(stage)
+            stage = []
+        else:
+            stage.append(tok)
+    if stage:
+        stages.append(stage)
+
+    for st in stages:
+        for i, tok in enumerate(st):
+            base = tok.rsplit("/", 1)[-1]
+            if base == "sqlite3":
+                return True
+            # Step over everything that can sit left of the executable:
+            # wrappers, their flags and numeric arguments (`timeout 5 …`), and
+            # `NAME=value` assignments — which `env` accepts at any position,
+            # not just the first. Anything else is the executable, and it is
+            # not sqlite3, so this stage is done.
+            if base in _WRAPPERS or tok.startswith("-") or tok.isdigit():
+                continue
+            if "=" in tok and not tok.startswith("="):
+                continue
+            break
+    return False
 
 _USER = ("Minting sealing authority is disabled in this seat. You may propose, "
          "not confirm.")
@@ -108,8 +191,12 @@ def _check_command(command: str) -> tuple[bool, str, str]:
     if _IMPORT_APPLY_RE.search(structural) and _APPLY_RE.search(structural) and _VERIFIER_RE.search(structural):
         return _deny()
     # The raw command on purpose: a hand-written seal lives *inside* the SQL
-    # string, so this is the one check whose signal is quoted content.
-    if _SQLITE_RE.search(command) and _SEAL_WRITE_RE.search(command):
+    # string, so this is the one check whose signal is quoted content. Three
+    # things must hold together — sqlite3 is what the stage actually *runs*,
+    # a seal is being written, and a write verb carries it — because any two
+    # of them alone describe honest work (see _invokes_sqlite).
+    if (_invokes_sqlite(command) and _SEAL_WRITE_RE.search(command)
+            and _SQL_WRITE_VERB_RE.search(command)):
         return _deny()
     return True, "", ""
 

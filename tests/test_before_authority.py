@@ -12,6 +12,8 @@ from __future__ import annotations
 import pathlib
 import re
 
+import pytest
+
 from hooks import before_authority as ba
 from hooks.before_authority import evaluate_authority
 
@@ -98,6 +100,74 @@ def test_the_sqlite_seal_write_guard_still_reads_quoted_sql():
     # signal is the sealed status *inside* the SQL string.
     assert evaluate_authority(
         _bash("sqlite3 store.db \"UPDATE pairs SET status='sealed'\""), REPO)[0] is False
+
+
+@pytest.mark.parametrize("command", [
+    # The shell CLI, every write route to a seal. None of these may pass.
+    "sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "sqlite3 store.db \"INSERT INTO pairs (status) VALUES ('sealed')\"",
+    "sqlite3 store.db \"REPLACE INTO pairs (status) VALUES ('sealed')\"",
+    "sqlite3 store.db \"INSERT OR REPLACE INTO pairs VALUES ('sealed')\"",
+    "sqlite3 store.db \"UPDATE pairs SET seal_sig='x'\"",
+    "sqlite3 store.db \"DELETE FROM pairs WHERE status='sealed'\"",
+])
+def test_every_sqlite_write_route_to_a_seal_is_still_denied(command):
+    """The half of the narrowing that matters: the mint stays caught.
+
+    Requiring a write verb alongside `sealed` is only safe if every verb that
+    can reach the row is in the list. Each case here is a different route to
+    the same act, and each must deny — a narrowing that let one through would
+    be worse than the false positives it fixed.
+    """
+    assert evaluate_authority(_bash(command), REPO)[0] is False
+
+
+@pytest.mark.parametrize("command", [
+    # Reached through a wrapper or an env assignment, sqlite3 is still the
+    # program being run. Matching the *executable* must not become a way to
+    # hide behind one.
+    "sudo sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "env FOO=bar sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "TZ=UTC sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "/usr/bin/sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "timeout 5 sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    # Not the first stage of the pipeline — every stage is read, not just one.
+    "echo hi | sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+    "true && sqlite3 store.db \"UPDATE pairs SET status='sealed'\"",
+])
+def test_a_wrapped_or_piped_sqlite_seal_write_is_still_denied(command):
+    """Matching the executable must not hand back an evasion route.
+
+    `sudo`, `env`, `timeout`, an absolute path, a leading `NAME=value`, or a
+    position later in the pipeline all still run sqlite3 — the thing the guard
+    is about. Each of these was denied by the old substring rule for the wrong
+    reason (the word appeared); each must stay denied for the right one.
+    """
+    assert evaluate_authority(_bash(command), REPO)[0] is False
+
+
+@pytest.mark.parametrize("command", [
+    # Reads. `import sqlite3` is Python's module, not the shell CLI, and
+    # counting seals is the audit #167 piece 6 asks for.
+    "python3 -c \"import sqlite3; print('sealed')\"",
+    "sqlite3 store.db \"SELECT status, COUNT(*) FROM pairs GROUP BY status\"",
+    "sqlite3 store.db \"SELECT COUNT(*) FROM pairs WHERE status='sealed'\"",
+    "python3 audit.py  # counts rows whose status is sealed but cite nothing",
+    # Prose about the guard is prose. This commit message was denied by the
+    # narrowed-but-still-substring rule, which is how the second false
+    # positive was found: writing about sqlite3, sealed and UPDATE together.
+    "git commit -m \"fix: sqlite3 UPDATE status='sealed' was denying reads\"",
+    "grep -rn \"status='sealed'\" nestor/ | head",
+    "echo \"sqlite3 does an UPDATE ... status='sealed' when you seal by hand\"",
+])
+def test_a_read_only_query_over_the_seal_column_is_allowed(command):
+    """Reads are fine — the tripwire's own message says so, and now so does it.
+
+    `\\bsqlite3\\b` matched Python's stdlib module, so a heredoc that merely
+    counted sealed rows was denied, and with it every read-only audit of the
+    seal column. Nothing here changes a row.
+    """
+    assert evaluate_authority(_bash(command), REPO)[0] is True
 
 
 def test_a_real_enrol_with_a_quoted_display_name_is_still_denied():
