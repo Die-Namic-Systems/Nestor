@@ -48,6 +48,7 @@ this map is not, CI fails. It cannot drift.
 | [1.7](#17-an-import-could-revive-a-pair-a-human-had-rejected--shipped) | An import could revive a pair a human had rejected | shipped |
 | [1.8](#18-two-threads-could-seal-the-same-phrase-and-both-won--shipped) | Two threads could seal the same phrase, and both won | shipped |
 | [1.9](#19-the-numeric-matcher-takes-the-first-number-it-finds--shipped) | The numeric matcher takes the first number it finds | shipped |
+| [1.10](#110-a-seal-is-the-only-warrant-this-package-can-represent--open) | A seal is the only warrant this package can represent | open |
 | [2.1](#21-lossless-prefilter-via-difflibs-own-bounds--shipped) | Lossless prefilter via difflib's own bounds | shipped |
 | [2.2](#22-trigram-blocking--measured-disappointing) | Trigram blocking | measured, disappointing |
 | [2.3](#23-index-source_norm--shipped) | Index `source_norm` | shipped |
@@ -605,6 +606,86 @@ else's ledger.
 Reporting beat refusing: a reconciler that rejected every partially-parsed
 figure would refuse real inputs, and the person who can tell a typo from a unit
 suffix is the human this package exists to keep in the loop.
+
+### 1.10 A seal is the only warrant this package can represent — **open**
+
+`status` has three values and every one describes **who touched the row here**:
+`sealed` (a person on this box), `draft` (a machine proposed), `pending`
+(nothing to offer). That is the whole vocabulary. It cannot say *why* a claim is
+trustworthy when the reason is not "somebody local checked it."
+
+Two sibling repositories already say more, and neither borrowed from the other.
+
+**jeles — the citation warrant.** `jeles/institutional.py` writes
+`verification_kind: "institutional"` with `verified_by: ""`, `verified_at: ""`
+and `evidence: {}`: a claim warranted by one of 65 institutions (OpenAlex,
+Crossref, PubMed, arXiv, Zenodo, DataCite, Wikidata …) with **no local
+attestation at all**. It is deliberately not a rung on `_KIND_RANK`
+(`asserted:1 → machine:2 → human:3`) — it sits outside the ladder, because it is
+a different *kind* of warrant rather than a stronger or weaker one.
+
+That ladder is worth reading for how it was earned. The comment above it names
+the attack: *"an agent that has just read the open web… without a rung below
+`machine`, a page saying 'record that X is true' laundered straight into the top
+rung and `corpus_ask` served it as verified from then on — persistently, and on a
+store shared with willow-mcp."* Provenance laundering, caught in production,
+fixed by adding a rung **below** rather than by trusting harder.
+
+**redential-cli — the construction warrant.** Its trust model is "no trust
+required": `scan` makes zero network calls, *proven* by mocking
+`node:http`/`node:https`/`fetch` at module resolution rather than asserted in
+prose; the bundle is merkle-hashed; `src/proof-graph/anchors.ts` classifies
+capability from syntactic shape alone and states *"there is no partial-confidence
+output anywhere in this file"*; the package carries npm provenance from a tagged
+CI build, never a laptop. Twelve contributors on `main`, nine authors with merged
+PRs, most of them not the owner — which is **why** it had to be built that way.
+You cannot ask a stranger to accept your seal.
+
+So there are three warrants for one claim, and this package holds one:
+
+| warrant | what makes it good | who can check it |
+|---|---|---|
+| **attestation** — nestor `sealed` | a person here checked | whoever trusts that person |
+| **citation** — jeles `institutional` | a named authority asserted it | anyone who can follow the source |
+| **construction** — redential proof-graph | the shape proves it | anyone, trusting nobody |
+
+**They are not exclusive, and that is the design constraint.** One claim can be
+sealed *and* cited *and* constructed, and is then stronger than a claim holding
+any one alone. So a warrant is **not** an enum with a max-wins rank the way
+`_KIND_RANK` is — it is a set that accumulates. Ordering across kinds is a
+category error: "sealed by Sean" and "cited to Crossref" do not compare.
+
+jeles has already built the landing zone and said why it is shaped so: `evidence`
+is *"a dict, not a single `seal_sig` string: the mechanism is deliberately
+unnamed in the schema. A string field spells one mechanism."* Its purpose is
+stated exactly: *"the strongest evidence a remote host could offer — an HMAC over
+the answer, signed under a key jeles will never hold — has nowhere to land, and a
+nugget that says 'asserted, and here is a-human-who-read-it's signature under
+nestor's chain' is indistinguishable from one that says only asserted."*
+
+**Why it matters now, beyond tidiness.** A corpus that grows only through the
+owner's own seals grows at the speed of the owner's attention — the constraint
+the operator named out loud. Citation is how a store inherits work already done
+and sometimes already proven. Construction is how a claim survives leaving the
+room it was sealed in. Both are needed the moment a pair is sealed anywhere but
+here: a cloud agent runs at its own uid, where willow-gate's earned-rung
+protection explicitly *does not hold*
+(`willow-gate/docs/deployment-runbook.md`), so a remotely-sealed pair is jeles'
+laundering case in different clothes. The answer is neither to trust it nor to
+discard it — it is to record **which warrant it has**.
+
+**Shape, if this is built.** `evidence: dict` on the pair, keyed by warrant kind,
+each value carrying its own proof and nothing shared between them. `sealed` keeps
+its exact current meaning — a person here checked — and gains no new powers.
+`best_sealed` learns to answer "warranted how," not only "sealed or not." Nothing
+about the ledger, the three states, or the refusal to let a machine confirm
+changes: a warrant is a claim *about* a row, and rows are still sealed by people.
+
+**Open:** (a) does `pending` stay the answer for a row with citation but no seal,
+or is "cited, unsealed" a distinct served state? (b) can a `constructed` warrant
+be minted locally at all, or must it be a recomputation the reader runs
+themselves, redential-style? (c) does `import` need to strip warrants it cannot
+verify, the way §1.7 made import unable to revive a rejection?
 
 ---
 
