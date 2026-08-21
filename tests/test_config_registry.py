@@ -27,6 +27,7 @@ from nestor.config import ConfigError, Resolver, VarSpec
 #: is meant to be exhaustive, not a lower bound.
 EXPECTED_NAMES = {
     "NESTOR_HOME",
+    "NESTOR_DB",
     "NESTOR_LEDGER",
     "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
     "NESTOR_KEYRING",

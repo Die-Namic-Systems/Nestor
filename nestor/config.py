@@ -362,8 +362,16 @@ REGISTRY: dict[str, VarSpec] = {
             "Household root for embedding hosts (nestor.home_paths). Default "
             "is computed at call time (`~/.nestor`), not a static literal — "
             "see home_paths.home().")),
+        VarSpec("NESTOR_DB", "path", default=None, doc=(
+            "Pinned corpus — the SQLite store `nestor` opens when nobody passes "
+            "--db (home_paths.db_path). Wins over NESTOR_HOME; an explicit --db "
+            "wins over both. A pin naming a directory, or one whose parent is "
+            "missing, RAISES PinRefused rather than falling back to the "
+            "cwd-relative default: reverting silently would write a second "
+            "corpus somewhere nobody looks and report success.")),
         VarSpec("NESTOR_LEDGER", "path", default="data/ledger.jsonl", doc=(
-            "Hash-chained ledger location (nestor.cascade).")),
+            "Hash-chained ledger location (nestor.cascade). Unset, the chain "
+            "follows the corpus — see home_paths.ledger_for.")),
         VarSpec("NESTOR_LEDGER_VERIFY_INTERVAL_SEC", "float", default=0.0, doc=(
             "Seconds between full ledger chain walks; 0 = once per process, "
             "<0 = every append (nestor.cascade).")),

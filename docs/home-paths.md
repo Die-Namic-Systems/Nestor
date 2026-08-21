@@ -44,6 +44,37 @@ directories and `layout.json`, and clobbers nothing that is already there.
 | Variable | Meaning |
 |----------|---------|
 | `NESTOR_HOME` | Household root (default `~/.nestor`) |
+| `NESTOR_DB` | Pinned corpus — one **file**, what `nestor` opens without `--db` |
+
+### Pinning the corpus
+
+`NESTOR_HOME` names a root; **`NESTOR_DB` names one file**, and wins over it.
+
+| set | `nestor` opens |
+|---|---|
+| `NESTOR_DB=/path/corpus.db` | that file |
+| `NESTOR_HOME=/path` only | `/path/keep/nestor.db` |
+| neither | `./data/nestor.db`, relative to cwd — unchanged |
+| `--db` passed | the flag, always. A pin never overrides a person at a terminal. |
+
+The chain follows the corpus: with `NESTOR_LEDGER` unset, `ledger_for()` takes
+`<db>.ledger.jsonl` or `<db-without-suffix>.ledger.jsonl`, whichever exists.
+Pinning a store while its chain stayed on the old default is how `stats` came to
+report *"ledger: no ledger yet"* against an intact one.
+
+**A bad pin raises `PinRefused`; it does not fall back.** A pin naming a
+directory, or one whose parent is missing, is an operator mistake — a typo in a
+service file, a stale path after a layout move. Reverting to the cwd-relative
+default would write a second corpus where nobody looks and report success. Same
+argument as `HomeRelocationRefused`: two plausible locations, so refuse and say
+which.
+
+> **Why this was needed.** The willow fleet exported `NESTOR_DB` for weeks while
+> no code here had heard of the variable. `nestor stats`, from a directory
+> without `data/`, reported *"0 pairs, no ledger yet"* against a store holding
+> eleven sealed rows and a valid chain. An empty corpus and a wrong location
+> printed the same words — this package's own failure mode, in its own path
+> resolution.
 
 ## Embedding Nestor in another face
 
