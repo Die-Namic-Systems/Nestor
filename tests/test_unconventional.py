@@ -1088,3 +1088,344 @@ class TestStoreCapacity:
         assert hit is not None
         assert hit["pair"]["target_text"] == "article numéro 42"
         assert hit["similarity"] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Adversarial trust-injection — what Nestor does in nefarious hands
+# ---------------------------------------------------------------------------
+# These tests demonstrate the oracle-poisoning surface: an attacker who
+# controls a Nestor instance (or a bundle, or just the env) doesn't steal
+# data — they make Nestor say "a human checked this" when the answer is "no."
+# Each test names the attack, shows it working (or Nestor stopping it), and
+# asserts the observable outcome.
+
+
+class TestVerifierImpersonation:
+    """The verifier field is a free-text string. Without signing,
+    anyone with store access can seal as any name."""
+
+    def test_unsigned_seal_as_arbitrary_verifier(self, store):
+        """Without NESTOR_SEAL_KEY, an attacker can seal as 'ceo@corp.com'
+        and best_sealed will serve it as tier-1 truth."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        memory.add_pair(
+            "Q4 budget approved?", "Yes, $2M allocated",
+            "policy", "policy",
+            status="sealed", verifier="ceo@corp.com", store=store,
+        )
+        hit = memory.best_sealed("Q4 budget approved?", "policy", "policy",
+                                 store=store)
+        assert hit is not None
+        assert hit["pair"]["verifier"] == "ceo@corp.com"
+        assert hit["pair"]["status"] == "sealed"
+
+    def test_signing_stops_impersonation(self, store):
+        """With NESTOR_SEAL_KEY set, a seal signed with the real key verifies.
+        A row written without the key does not serve."""
+        os.environ["NESTOR_SEAL_KEY"] = "the-real-key"
+        legit = memory.add_pair(
+            "safe to deploy?", "yes, staging passed",
+            "ops", "ops",
+            status="sealed", verifier="alice", store=store,
+        )
+        assert legit["seal_sig"] != ""
+
+        hit = memory.best_sealed("safe to deploy?", "ops", "ops", store=store)
+        assert hit is not None
+        assert hit["pair"]["verifier"] == "alice"
+
+    def test_forged_sig_rejected_when_key_differs(self, store):
+        """An attacker who sealed with key-A cannot serve on an instance
+        running key-B."""
+        os.environ["NESTOR_SEAL_KEY"] = "attacker-key"
+        memory.add_pair(
+            "is this safe?", "absolutely",
+            "trust", "trust",
+            status="sealed", verifier="admin", store=store,
+        )
+        os.environ["NESTOR_SEAL_KEY"] = "real-key"
+        hit = memory.best_sealed("is this safe?", "trust", "trust",
+                                 store=store)
+        assert hit is None
+
+
+class TestBundleForgery:
+    """A crafted bundle can inject false seals into an unsuspecting instance."""
+
+    def test_unsigned_import_trusts_bundle_word(self, store, tmp_path):
+        """Without NESTOR_SEAL_KEY, import_bundle accepts anything claiming
+        to be sealed — 'trusted on the bundle's word alone.'"""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        memory.add_pair("seed", "grain", "en", "es",
+                        status="sealed", store=store)
+        bundle = portable.export_bundle(store=store)
+
+        store2 = SqliteStore(str(tmp_path / "victim.db"))
+        store2.init_db()
+        store2.memory_init()
+
+        report = portable.import_bundle(bundle, store=store2, dry_run=False)
+        assert report["sealed"] == 1
+        hit = memory.best_sealed("seed", "en", "es", store=store2)
+        assert hit is not None
+        assert hit["pair"]["status"] == "sealed"
+
+    def test_signed_import_demotes_forged_seals(self, store, tmp_path):
+        """An attacker exports a bundle with key-A. The victim's instance
+        uses key-B. Claimed seals are DEMOTED to drafts, not served."""
+        os.environ["NESTOR_SEAL_KEY"] = "attacker-key"
+        memory.add_pair("policy", "do the bad thing", "en", "en",
+                        status="sealed", verifier="boss", store=store)
+        bundle = portable.export_bundle(store=store)
+
+        store2 = SqliteStore(str(tmp_path / "victim.db"))
+        store2.init_db()
+        store2.memory_init()
+
+        os.environ["NESTOR_SEAL_KEY"] = "victim-key"
+        report = portable.import_bundle(bundle, store=store2, dry_run=False)
+        assert report["demoted"] == 1
+        assert report["sealed"] == 0
+        hit = memory.best_sealed("policy", "en", "en", store=store2)
+        assert hit is None
+
+    def test_crafted_bundle_from_scratch(self, store, tmp_path):
+        """An attacker hand-crafts a bundle dict — no export needed.
+        Without signing, the victim accepts it. The forged bundle must
+        pass verify_bundle, so we export a real one, then swap the pairs."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        memory.add_pair("placeholder", "placeholder", "qa", "qa",
+                        status="sealed", store=store)
+        real_bundle = portable.export_bundle(store=store)
+
+        real_bundle["pairs"] = [
+            {
+                "id": str(uuid.uuid4()),
+                "source_text": "approved?",
+                "source_norm": "approved?",
+                "target_text": "yes, by the board",
+                "source_lang": "qa", "target_lang": "qa",
+                "status": "sealed",
+                "verifier": "board-chair",
+                "seal_sig": "",
+                "created_at": "2024-01-01T00:00:00",
+                "updated_at": "2024-01-01T00:00:00",
+            }
+        ]
+        real_bundle["digest"] = portable.digest(
+            real_bundle["pairs"], real_bundle.get("rejections", []),
+            real_bundle.get("evidence", []),
+            version=real_bundle["nestor_bundle"])
+
+        store2 = SqliteStore(str(tmp_path / "naive.db"))
+        store2.init_db()
+        store2.memory_init()
+
+        report = portable.import_bundle(real_bundle, store=store2,
+                                        dry_run=False)
+        assert report["sealed"] == 1
+        hit = memory.best_sealed("approved?", "qa", "qa", store=store2)
+        assert hit is not None
+        assert hit["pair"]["verifier"] == "board-chair"
+
+
+class TestDecisionFabrication:
+    """A poisoned decision store records precedent that never happened."""
+
+    def test_fabricated_decision_serves_as_precedent(self, store):
+        """Without signing, an attacker can propose AND seal a decision
+        with any verifier name, and best_sealed will serve it."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        dm = DecisionMemory(store=store)
+        dm.propose("Should we use vendor X?", "Yes, signed contract")
+        sig = signing.sign_seal(
+            StringMatcher().normalize("Should we use vendor X?"),
+            "Yes, signed contract", "legal-team")
+        dm.seal("Should we use vendor X?", "Yes, signed contract",
+                verifier="legal-team", seal_sig=sig)
+
+        hit = memory.best_sealed(
+            "Should we use vendor X?", dm.domain, dm.domain, store=store)
+        assert hit is not None
+        assert hit["pair"]["status"] == "sealed"
+        assert hit["pair"]["verifier"] == "legal-team"
+
+    def test_unsigned_edge_never_constrains(self, store):
+        """FINDING: even with signing OFF, edges are protected. An edge
+        with edge_sig="" is always a proposal, never a fact — edge_is_valid
+        returns False for empty signatures regardless of signing mode.
+        This means decision-graph forgery requires the seal key even when
+        pair-level forgery doesn't."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        dm = DecisionMemory(store=store)
+
+        dm.propose("Use Python 3.11?", "Yes")
+        old_sig = signing.sign_seal(
+            StringMatcher().normalize("Use Python 3.11?"), "Yes", "architect")
+        old = dm.seal("Use Python 3.11?", "Yes",
+                      verifier="architect", seal_sig=old_sig)
+
+        dm.propose("Use Python 3.13?", "Yes, upgrade")
+        new_sig = signing.sign_seal(
+            StringMatcher().normalize("Use Python 3.13?"),
+            "Yes, upgrade", "attacker")
+        new = dm.seal("Use Python 3.13?", "Yes, upgrade",
+                      verifier="attacker", seal_sig=new_sig)
+
+        dm.propose_edge(new["id"], old["id"], "supersedes")
+        edge_sig = signing.sign_edge(
+            new["id"], old["id"], "supersedes", "attacker")
+        assert edge_sig == ""
+        with pytest.raises(ValueError, match="does not verify"):
+            dm.seal_edge(new["id"], old["id"], "supersedes",
+                         verifier="attacker", edge_sig=edge_sig)
+
+    def test_signed_edge_blocks_wrong_key_attacker(self, store):
+        """An edge signed with the wrong key is refused by seal_edge."""
+        os.environ["NESTOR_SEAL_KEY"] = "org-secret"
+        dm = DecisionMemory(store=store)
+
+        dm.propose("Deploy to prod?", "Only after QA")
+        legit_sig = signing.sign_seal(
+            StringMatcher().normalize("Deploy to prod?"),
+            "Only after QA", "qa-lead")
+        legit = dm.seal("Deploy to prod?", "Only after QA",
+                        verifier="qa-lead", seal_sig=legit_sig)
+
+        dm.propose("Deploy to prod immediately?", "Yes skip QA")
+        rogue_sig = signing.sign_seal(
+            StringMatcher().normalize("Deploy to prod immediately?"),
+            "Yes skip QA", "attacker")
+        rogue = dm.seal("Deploy to prod immediately?", "Yes skip QA",
+                        verifier="attacker", seal_sig=rogue_sig)
+
+        dm.propose_edge(rogue["id"], legit["id"], "supersedes")
+
+        os.environ["NESTOR_SEAL_KEY"] = "different-key"
+        bad_edge_sig = signing.sign_edge(
+            rogue["id"], legit["id"], "supersedes", "attacker")
+
+        os.environ["NESTOR_SEAL_KEY"] = "org-secret"
+        with pytest.raises(ValueError, match="does not verify"):
+            dm.seal_edge(rogue["id"], legit["id"], "supersedes",
+                         verifier="attacker", edge_sig=bad_edge_sig)
+
+
+class TestStrictModeDefense:
+    """NESTOR_REQUIRE_SEAL_KEY=1 fails closed — the deployment-level guard."""
+
+    def test_strict_mode_refuses_unsigned_seals(self, store):
+        """With REQUIRE_SEAL_KEY=1 but no key set, best_sealed raises
+        rather than silently trusting everything."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        os.environ["NESTOR_REQUIRE_SEAL_KEY"] = "1"
+        memory.add_pair("test", "value", "a", "b",
+                        status="sealed", store=store)
+        with pytest.raises(signing.SigningRequiredError):
+            memory.best_sealed("test", "a", "b", store=store)
+
+    def test_strict_mode_serves_with_valid_key(self, store):
+        """Strict mode with a key set serves normally."""
+        os.environ["NESTOR_SEAL_KEY"] = "my-key"
+        os.environ["NESTOR_REQUIRE_SEAL_KEY"] = "1"
+        memory.add_pair("test", "value", "a", "b",
+                        status="sealed", verifier="me", store=store)
+        hit = memory.best_sealed("test", "a", "b", store=store)
+        assert hit is not None
+
+
+class TestLedgerGenesisControl:
+    """If you control the instance from the start, you write the genesis —
+    the hash chain has no external anchor to catch it."""
+
+    def test_fabricated_ledger_validates(self, tmp_path):
+        """An attacker who writes a fresh ledger from line 1 produces a
+        valid hash chain — there is nothing to compare against."""
+        import hashlib as _hl
+        ledger_path = tmp_path / "forged_ledger.jsonl"
+        lines = []
+
+        entry1 = json.dumps({
+            "kind": "seal", "source_norm": "is this ok?",
+            "target_text": "yes totally", "verifier": "ceo",
+            "prev": "genesis",
+        }, separators=(",", ":"), ensure_ascii=False)
+        lines.append(entry1)
+
+        prev_hash = _hl.sha256(entry1.encode()).hexdigest()
+        entry2 = json.dumps({
+            "kind": "seal", "source_norm": "budget approved?",
+            "target_text": "unlimited", "verifier": "cfo",
+            "prev": prev_hash,
+        }, separators=(",", ":"), ensure_ascii=False)
+        lines.append(entry2)
+
+        ledger_path.write_text("\n".join(lines) + "\n")
+
+        parsed = [json.loads(line) for line in
+                  ledger_path.read_text().splitlines() if line.strip()]
+        assert len(parsed) == 2
+        assert parsed[0]["prev"] == "genesis"
+        check_hash = _hl.sha256(
+            json.dumps(parsed[0], separators=(",", ":"),
+                       ensure_ascii=False).encode()
+        ).hexdigest()
+        assert parsed[1]["prev"] == check_hash
+
+    def test_tampered_ledger_detected_by_verify(self, store, tmp_path):
+        """But if you tamper with a ledger that already has entries,
+        ledger.verify catches it. Tamper by modifying the first entry's
+        content (the pair_id) — line 2's prev no longer matches sha256
+        of the modified line 1."""
+        from nestor import ledger as ledger_mod
+        cascade.set_ledger_path(tmp_path / "real_ledger.jsonl")
+        memory.add_pair("real q", "real a", "en", "en",
+                        status="sealed", verifier="human", store=store)
+        memory.add_pair("another q", "another a", "en", "en",
+                        status="sealed", verifier="human", store=store)
+
+        ledger_path = cascade._ledger_path()
+        lines = ledger_path.read_text().splitlines()
+        assert len(lines) >= 2
+
+        entry = json.loads(lines[0])
+        entry["pair_id"] = "00000000-0000-0000-0000-000000000000"
+        lines[0] = json.dumps(entry, separators=(",", ":"),
+                               ensure_ascii=False)
+        ledger_path.write_text("\n".join(lines) + "\n")
+
+        ok, _detail = ledger_mod.verify(str(ledger_path))
+        assert ok is False
+
+
+class TestKeyEnvironmentManipulation:
+    """An attacker who can set environment variables controls what Nestor
+    trusts — the key IS the trust root."""
+
+    def test_key_swap_invalidates_prior_seals(self, store):
+        """Setting a new NESTOR_SEAL_KEY makes all prior seals fail
+        verification — a key rotation without migration is destructive."""
+        os.environ["NESTOR_SEAL_KEY"] = "original-key"
+        memory.add_pair("important", "answer", "en", "en",
+                        status="sealed", verifier="admin", store=store)
+        hit = memory.best_sealed("important", "en", "en", store=store)
+        assert hit is not None
+
+        os.environ["NESTOR_SEAL_KEY"] = "swapped-in-key"
+        hit = memory.best_sealed("important", "en", "en", store=store)
+        assert hit is None
+
+    def test_key_removal_reopens_forgery(self, store):
+        """Unsetting NESTOR_SEAL_KEY after seals exist makes Nestor trust
+        everything again — the Nestor#2 forgery is back."""
+        os.environ["NESTOR_SEAL_KEY"] = "good-key"
+        memory.add_pair("trusted", "answer", "en", "en",
+                        status="sealed", verifier="admin", store=store)
+        hit = memory.best_sealed("trusted", "en", "en", store=store)
+        assert hit is not None
+
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        memory.add_pair("forged", "bad answer", "en", "en",
+                        status="sealed", verifier="nobody", store=store)
+        hit = memory.best_sealed("forged", "en", "en", store=store)
+        assert hit is not None
