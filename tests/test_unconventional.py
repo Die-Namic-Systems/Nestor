@@ -2244,3 +2244,536 @@ class TestConflictingSeals:
         hit = memory.best_sealed("hello", "en", "es", store=store)
         assert hit is not None
         assert hit["pair"]["target_text"] == "ola"
+
+
+# ---------------------------------------------------------------------------
+# Fantastical data — mythology, fictional languages, impossible measurements,
+# emoji narratives, and other content nobody would expect a TM to hold
+# ---------------------------------------------------------------------------
+
+
+class TestMythologyTranslation:
+    """Nestor as a mythological bestiary — creatures, gods, and legends
+    stored as verified translations across pantheons."""
+
+    def test_dragon_names_across_cultures(self, store):
+        """The same archetype named in different mythologies."""
+        pairs = [
+            ("dragon", "龍", "en", "zh"),
+            ("dragon", "дракон", "en", "ru"),
+            ("dragon", "Drache", "en", "de"),
+            ("dragon", "竜", "en", "ja"),
+            ("dragon", "용", "en", "ko"),
+        ]
+        for src, tgt, sl, tl in pairs:
+            memory.add_pair(src, tgt, sl, tl, status="sealed", store=store)
+
+        for src, tgt, sl, tl in pairs:
+            hit = memory.best_sealed(src, sl, tl, store=store)
+            assert hit is not None
+            assert hit["pair"]["target_text"] == tgt
+            assert hit["similarity"] == 1.0
+
+    def test_mythological_creatures_fuzzy_match(self, store):
+        """Close variants of mythological names — 'a phoenix rising from
+        the ashes' vs 'the phoenix rises from its ashes'. The word changes
+        (a/the, rising/rises, the/its) drop difflib below 0.92, so
+        best_sealed returns None. lookup() still finds it though."""
+        memory.add_pair(
+            "the phoenix rises from its ashes",
+            "le phénix renaît de ses cendres",
+            "en", "fr", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "a phoenix rising from the ashes",
+            "en", "fr", store=store)
+        assert hit is None
+        results = memory.lookup(
+            "a phoenix rising from the ashes",
+            "en", "fr", store=store)
+        assert len(results) >= 1
+        assert results[0]["similarity"] >= 0.55
+
+    def test_gods_across_pantheons_as_entity_resolution(self, store):
+        """Greek and Roman gods are aliases for the same entity."""
+        er = EntityResolver(store=store, domain="mythology")
+        er.seal("Zeus", "Sky Father", verifier="scholar")
+        er.seal("Jupiter", "Sky Father", verifier="scholar")
+        er.seal("Thor", "Sky Father", verifier="scholar")
+
+        for name in ["Zeus", "Jupiter", "Thor"]:
+            result = er.resolve(name)
+            assert result["canonical"] == "Sky Father"
+            assert result["sealed"]
+
+    def test_long_epic_passage_as_pair(self, store):
+        """A full paragraph from a mythological text stored and retrieved."""
+        source = (
+            "In the beginning there was only Chaos, the Abyss. "
+            "Then came Gaia, the Earth, and Eros, the source of desire. "
+            "From Chaos emerged Erebus and Nyx, darkness and night.")
+        target = (
+            "Au commencement il n'y avait que le Chaos, l'Abîme. "
+            "Puis vint Gaïa, la Terre, et Éros, la source du désir. "
+            "Du Chaos émergèrent l'Érèbe et Nyx, les ténèbres et la nuit.")
+        memory.add_pair(source, target, "en", "fr",
+                        status="sealed", store=store)
+        hit = memory.best_sealed(source, "en", "fr", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == target
+        assert hit["similarity"] == 1.0
+
+
+class TestFictionalLanguages:
+    """Nestor storing translations to/from languages that don't exist."""
+
+    def test_elvish_translation_pairs(self, store):
+        """Sindarin (Tolkien's Elvish) stored as a real language pair."""
+        pairs = [
+            ("friend", "mellon", "en", "sindarin"),
+            ("star", "elenath", "en", "sindarin"),
+            ("shadow", "gwath", "en", "sindarin"),
+            ("fire", "naur", "en", "sindarin"),
+            ("water", "nen", "en", "sindarin"),
+        ]
+        for src, tgt, sl, tl in pairs:
+            memory.add_pair(src, tgt, sl, tl, status="sealed", store=store)
+
+        for src, tgt, sl, tl in pairs:
+            hit = memory.best_sealed(src, sl, tl, store=store)
+            assert hit is not None
+            assert hit["pair"]["target_text"] == tgt
+
+    def test_klingon_phrases(self, store):
+        """Klingon (Star Trek) — entirely invented phonology."""
+        memory.add_pair("success", "Qapla'", "en", "klingon",
+                        status="sealed", store=store)
+        memory.add_pair("today is a good day to die",
+                        "Heghlu'meH QaQ jajvam",
+                        "en", "klingon", status="sealed", store=store)
+        hit = memory.best_sealed("success", "en", "klingon", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "Qapla'"
+
+    def test_invented_language_roundtrip(self, store):
+        """A completely made-up language pair — both sides are gibberish."""
+        memory.add_pair("zxqvbn plmkj", "wrtyu asdgh",
+                        "nonsense_a", "nonsense_b",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("zxqvbn plmkj",
+                                 "nonsense_a", "nonsense_b", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "wrtyu asdgh"
+
+    def test_fictional_domain_isolation(self, store):
+        """Elvish pairs shouldn't leak into Klingon lookups."""
+        memory.add_pair("hello", "mae govannen", "en", "sindarin",
+                        status="sealed", store=store)
+        memory.add_pair("hello", "nuqneH", "en", "klingon",
+                        status="sealed", store=store)
+
+        sindarin = memory.best_sealed("hello", "en", "sindarin", store=store)
+        klingon = memory.best_sealed("hello", "en", "klingon", store=store)
+        assert sindarin["pair"]["target_text"] == "mae govannen"
+        assert klingon["pair"]["target_text"] == "nuqneH"
+
+
+class TestEmojiNarratives:
+    """Emoji sequences as source text — can Nestor store and retrieve
+    entire stories told in emoji?"""
+
+    def test_emoji_only_story_normalizes_to_empty(self, store):
+        """FINDING: a pure-emoji source normalizes to '' because emoji
+        are not \\w characters. The pair is stored but any other emoji-only
+        query also normalizes to '' and collides."""
+        memory.add_pair(
+            "\U0001f466\U0001f6b6\U0001f332\U0001f43b\U0001f3c3\U0001f3e0",
+            "A boy walked through the forest, met a bear, ran home",
+            "emoji", "en", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "\U0001f466\U0001f6b6\U0001f332\U0001f43b\U0001f3c3\U0001f3e0",
+            "emoji", "en", store=store)
+        assert hit is not None
+
+        diff_emoji = "\U0001f680\U0001f31f\U0001f4ab"
+        hit2 = memory.best_sealed(diff_emoji, "emoji", "en", store=store)
+        assert hit2 is not None
+        assert hit2["pair"]["target_text"] == hit["pair"]["target_text"]
+
+    def test_single_emoji_all_normalize_to_empty(self, store):
+        """FINDING: single emoji are NOT \\w characters in Python regex, so
+        normalize() strips them entirely. All emoji keys collide on the
+        empty string. Only the first one can be sealed; the rest conflict."""
+        from nestor.memory import ConflictingSealError
+        memory.add_pair("❤️", "unconditional love",
+                        "emoji", "philosophy",
+                        status="sealed", store=store)
+        with pytest.raises(ConflictingSealError):
+            memory.add_pair("\U0001f4a1", "sudden inspiration",
+                            "emoji", "philosophy",
+                            status="sealed", store=store)
+
+    def test_emoji_with_text_anchor(self, store):
+        """Emoji work when combined with text that survives normalize()."""
+        concepts = [
+            ("heart ❤️", "unconditional love"),
+            ("bulb \U0001f4a1", "sudden inspiration"),
+            ("globe \U0001f30d", "global interconnectedness"),
+        ]
+        for emoji_text, concept in concepts:
+            memory.add_pair(emoji_text, concept, "emoji", "philosophy",
+                            status="sealed", store=store)
+        for emoji_text, concept in concepts:
+            hit = memory.best_sealed(emoji_text, "emoji", "philosophy",
+                                     store=store)
+            assert hit is not None
+            assert hit["pair"]["target_text"] == concept
+
+    def test_emoji_with_text_prefix_differentiates(self, store):
+        """Emoji alone collide, but prefixed with text they differentiate.
+        This is the workaround for the emoji-normalization finding."""
+        memory.add_pair(
+            "story: \U0001f466\U0001f332\U0001f43b",
+            "A boy met a bear in the forest",
+            "emoji", "en", status="sealed", store=store)
+        memory.add_pair(
+            "family: \U0001f468\U0001f469\U0001f467\U0001f466",
+            "A family of four",
+            "emoji", "en", status="sealed", store=store)
+        hit1 = memory.best_sealed(
+            "story: \U0001f466\U0001f332\U0001f43b",
+            "emoji", "en", store=store)
+        hit2 = memory.best_sealed(
+            "family: \U0001f468\U0001f469\U0001f467\U0001f466",
+            "emoji", "en", store=store)
+        assert hit1 is not None
+        assert hit2 is not None
+        assert hit1["pair"]["target_text"] != hit2["pair"]["target_text"]
+
+
+class TestImpossibleMeasurements:
+    """The Reconciler handling measurements that can't exist in reality —
+    magic power levels, dragon wingspans, paradox counts."""
+
+    def test_magic_power_levels(self, store):
+        """Reconcile a wizard's power level against a sealed baseline."""
+        r = Reconciler(store=store, domain="magic")
+        r.seal_baseline("Gandalf power level", 9001, verifier="council")
+        result = r.check("Gandalf power level", 9050)
+        assert result["within_tolerance"]
+
+    def test_negative_dragon_wingspans(self, store):
+        """A negative wingspan is physically impossible but numerically valid."""
+        r = Reconciler(store=store, domain="dragons")
+        r.seal_baseline("baby dragon wingspan", -3.5, verifier="dragonkeeper")
+        result = r.check("baby dragon wingspan", -3.2)
+        assert result is not None
+        assert "variation" in result
+
+    def test_astronomical_numbers(self, store):
+        """Numbers at the edge of floating point — distances to fictional stars."""
+        r = Reconciler(store=store, domain="starmap")
+        r.seal_baseline("distance to Mordor", 1e18, verifier="cartographer")
+        result = r.check("distance to Mordor", 1.0000001e18)
+        assert result["within_tolerance"]
+
+    def test_zero_baseline(self, store):
+        """Zero as a sealed baseline — the void's measurement."""
+        r = Reconciler(store=store, domain="void")
+        r.seal_baseline("nothing count", 0, verifier="philosopher")
+        result = r.check("nothing count", 0)
+        assert result["within_tolerance"]
+
+    def test_pi_precision_reconciliation(self, store):
+        """How closely does Nestor track irrational numbers?"""
+        import math
+        r = Reconciler(store=store, domain="constants")
+        r.seal_baseline("circle ratio", math.pi, verifier="euclid")
+        result = r.check("circle ratio", 3.14159)
+        assert result["within_tolerance"]
+
+
+class TestDecisionMemoryForFantasy:
+    """Decision memory for a fantasy kingdom's governance —
+    alliances, quests, and magical policy."""
+
+    def test_quest_decisions(self, store):
+        """A fantasy council making quest-assignment decisions."""
+        dm = DecisionMemory(store=store, domain="quests")
+        dm.propose("Who should slay the dragon?",
+                   "Send the knight with the enchanted sword")
+        result = dm.constraints_on("Who should slay the dragon?")
+        assert result["live"] is not None
+        assert "knight" in result["live"]["commitment"]
+
+    def test_contradicting_prophecies(self, store):
+        """Two prophecies that contradict each other — sealed as decisions,
+        then linked with a contradicts edge."""
+        dm = DecisionMemory(store=store, domain="prophecy")
+        import os
+        os.environ["NESTOR_SEAL_KEY"] = "oracle-key"
+        try:
+            p1_sig = signing.sign_seal(
+                StringMatcher().normalize("Will the hero survive?"),
+                "The hero shall triumph", "oracle")
+            p1 = dm.seal("Will the hero survive?",
+                         "The hero shall triumph",
+                         verifier="oracle", seal_sig=p1_sig)
+
+            p2_sig = signing.sign_seal(
+                StringMatcher().normalize("Will the hero fall?"),
+                "The hero shall fall in battle", "oracle")
+            p2 = dm.seal("Will the hero fall?",
+                         "The hero shall fall in battle",
+                         verifier="oracle", seal_sig=p2_sig)
+
+            edge_sig = signing.sign_edge(
+                p1["id"], p2["id"], "contradicts", "oracle")
+            dm.seal_edge(p1["id"], p2["id"], "contradicts",
+                         verifier="oracle", edge_sig=edge_sig)
+
+            constraints = dm.constraints_on("Will the hero survive?")
+            assert len(constraints["constraints"]) == 1
+            assert constraints["constraints"][0]["kind"] == "contradicts"
+        finally:
+            os.environ.pop("NESTOR_SEAL_KEY", None)
+
+    def test_superseding_royal_decrees(self, store):
+        """A new king supersedes the old king's decree. Uses add_pair
+        directly because DecisionMemory.seal() doesn't expose override_conflict."""
+        import os
+        os.environ["NESTOR_SEAL_KEY"] = "crown-key"
+        try:
+            matcher = StringMatcher()
+            old_sig = signing.sign_seal(
+                matcher.normalize("Tax policy?"),
+                "10% tithe on all harvests", "old_king")
+            memory.add_pair("Tax policy?", "10% tithe on all harvests",
+                            "kingdom", "kingdom", status="sealed",
+                            verifier="old_king", seal_sig=old_sig,
+                            store=store)
+
+            new_sig = signing.sign_seal(
+                matcher.normalize("Tax policy?"),
+                "5% tithe, exemptions for farmers", "new_king")
+            memory.add_pair("Tax policy?", "5% tithe, exemptions for farmers",
+                            "kingdom", "kingdom", status="sealed",
+                            verifier="new_king", seal_sig=new_sig,
+                            override_conflict=True, store=store)
+
+            dm = DecisionMemory(store=store, domain="kingdom")
+            result = dm.constraints_on("Tax policy?")
+            assert result["live"] is not None
+            assert "5%" in result["live"]["commitment"]
+        finally:
+            os.environ.pop("NESTOR_SEAL_KEY", None)
+
+
+class TestPoetryAndLiterature:
+    """Nestor storing and matching poetic forms — haiku, sonnets, limericks."""
+
+    def test_haiku_translation(self, store):
+        """A haiku in Japanese matched to its English translation."""
+        memory.add_pair(
+            "古池や蛙飛び込む水の音",
+            "An old silent pond / A frog jumps into the pond / Splash! Silence again",
+            "ja", "en", status="sealed", store=store)
+        hit = memory.best_sealed("古池や蛙飛び込む水の音", "ja", "en",
+                                 store=store)
+        assert hit is not None
+        assert "frog" in hit["pair"]["target_text"]
+
+    def test_multiline_poem_preserved(self, store):
+        """A multi-line poem stored with its line breaks intact."""
+        poem = "Shall I compare thee to a summer's day?\nThou art more lovely and more temperate."
+        gloss = "Te compararé con un día de verano?\nEres más hermoso y más templado."
+        memory.add_pair(poem, gloss, "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed(poem, "en", "es", store=store)
+        assert hit is not None
+        assert "\n" in hit["pair"]["target_text"]
+
+    def test_limerick_word_transposition_below_seal_bar(self, store):
+        """FINDING: 'There once was' vs 'There was once' — a single word
+        transposition in an 8-word phrase scores 0.886, below the 0.92
+        seal threshold. The pair is found by lookup() but not best_sealed()."""
+        memory.add_pair(
+            "There once was a man from Nantucket",
+            "a classic limerick opening",
+            "en", "en", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "There was once a man from Nantucket",
+            "en", "en", store=store)
+        assert hit is None
+        results = memory.lookup(
+            "There was once a man from Nantucket",
+            "en", "en", store=store)
+        assert len(results) >= 1
+        assert 0.85 <= results[0]["similarity"] <= 0.92
+
+    def test_palindrome_pairs(self, store):
+        """Palindromes — text that reads the same forwards and backwards."""
+        memory.add_pair("A man a plan a canal Panama",
+                        "palindrome: geographic",
+                        "en", "en", status="sealed", store=store)
+        memory.add_pair("Was it a car or a cat I saw",
+                        "palindrome: automotive",
+                        "en", "en", status="sealed", store=store)
+        hit = memory.best_sealed("A man a plan a canal Panama",
+                                 "en", "en", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "palindrome: geographic"
+
+
+class TestAbsurdButValidContent:
+    """Content that is semantically absurd but structurally valid —
+    Nestor doesn't judge meaning, only matches."""
+
+    def test_colorless_green_ideas(self, store):
+        """Chomsky's famous grammatically correct but meaningless sentence."""
+        memory.add_pair(
+            "Colorless green ideas sleep furiously",
+            "Las ideas verdes incoloras duermen furiosamente",
+            "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "Colorless green ideas sleep furiously",
+            "en", "es", store=store)
+        assert hit is not None
+        assert hit["similarity"] == 1.0
+
+    def test_time_travel_paradox_as_decision(self, store):
+        """A logically paradoxical decision — Nestor stores it without judgment."""
+        dm = DecisionMemory(store=store, domain="paradox")
+        dm.propose(
+            "If you go back in time and prevent your own birth, do you exist?",
+            "Yes and no simultaneously — the bootstrap paradox is unresolvable")
+        result = dm.constraints_on(
+            "If you go back in time and prevent your own birth, do you exist?")
+        assert result["live"] is not None
+        assert "bootstrap" in result["live"]["commitment"]
+
+    def test_very_long_number_as_entity(self, store):
+        """A 200-digit number as an entity name — extreme but valid."""
+        big_num = "1" * 200
+        er = EntityResolver(store=store, domain="math")
+        er.seal(big_num, "repunit(200)", verifier="number_theorist")
+        result = er.resolve(big_num)
+        assert result["canonical"] == "repunit(200)"
+
+    def test_empty_meaning_full_structure(self, store):
+        """Structurally complete but semantically empty — placeholder text."""
+        memory.add_pair(
+            "Lorem ipsum dolor sit amet consectetur adipiscing elit",
+            "placeholder text with no real meaning in any language",
+            "la", "en", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "Lorem ipsum dolor sit amet consectetur adipiscing elit",
+            "la", "en", store=store)
+        assert hit is not None
+
+    def test_tautology_as_translation(self, store):
+        """Translating something to itself — a valid tautological pair."""
+        memory.add_pair("the sky is blue", "the sky is blue",
+                        "en", "en", status="sealed", store=store)
+        hit = memory.best_sealed("the sky is blue", "en", "en", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "the sky is blue"
+        assert hit["similarity"] == 1.0
+
+
+class TestCulturalCrossReferences:
+    """The same concept expressed across vastly different cultural frames."""
+
+    def test_flood_myth_across_cultures(self, store):
+        """The flood myth exists in nearly every culture. Store several
+        versions and retrieve each independently."""
+        myths = [
+            ("Great Flood", "Noah built an ark", "en", "bible"),
+            ("Great Flood", "Utnapishtim survived on a boat", "en", "sumerian"),
+            ("Great Flood", "Manu was warned by a fish", "en", "hindu"),
+            ("Great Flood", "Deucalion and Pyrrha repopulated", "en", "greek"),
+        ]
+        for src, tgt, sl, tl in myths:
+            memory.add_pair(src, tgt, sl, tl, status="sealed", store=store)
+
+        for src, tgt, sl, tl in myths:
+            hit = memory.best_sealed(src, sl, tl, store=store)
+            assert hit is not None
+            assert hit["pair"]["target_text"] == tgt
+
+    def test_love_in_twenty_scripts(self, store):
+        """The word 'love' in many scripts — each a distinct domain pair."""
+        love_words = [
+            ("love", "愛", "en", "ja"),
+            ("love", "사랑", "en", "ko"),
+            ("love", "любовь", "en", "ru"),
+            ("love", "حب", "en", "ar"),
+            ("love", "אהבה", "en", "he"),
+            ("love", "ความรัก", "en", "th"),
+            ("love", " प्रेम", "en", "hi"),
+            ("love", "amore", "en", "it"),
+            ("love", "amour", "en", "fr"),
+            ("love", "liebe", "en", "de"),
+            ("love", "amor", "en", "es"),
+            ("love", "кохання", "en", "uk"),
+            ("love", "rakkaus", "en", "fi"),
+            ("love", "kärlek", "en", "sv"),
+            ("love", "láska", "en", "cs"),
+            ("love", "miłość", "en", "pl"),
+            ("love", "dragoste", "en", "ro"),
+            ("love", "αγάπη", "en", "el"),
+            ("love", "sevgi", "en", "tr"),
+            ("love", "tình yêu", "en", "vi"),
+        ]
+        for src, tgt, sl, tl in love_words:
+            memory.add_pair(src, tgt, sl, tl, status="sealed", store=store)
+
+        retrieved = 0
+        for src, tgt, sl, tl in love_words:
+            hit = memory.best_sealed(src, sl, tl, store=store)
+            assert hit is not None, f"failed for {tl}"
+            assert hit["pair"]["target_text"] == tgt
+            retrieved += 1
+        assert retrieved == 20
+
+
+class TestSciFiDataPatterns:
+    """Data patterns from science fiction — starship registries,
+    alien taxonomies, warp coordinates."""
+
+    def test_starship_registry(self, store):
+        """Federation starship registry numbers as entity aliases."""
+        er = EntityResolver(store=store, domain="starfleet")
+        ships = [
+            ("NCC-1701", "USS Enterprise"),
+            ("NCC-1701-D", "USS Enterprise-D"),
+            ("NCC-74656", "USS Voyager"),
+            ("NX-01", "Enterprise"),
+        ]
+        for reg, name in ships:
+            er.seal(reg, name, verifier="starfleet_records")
+
+        for reg, name in ships:
+            result = er.resolve(reg)
+            assert result["canonical"] == name
+
+    def test_alien_taxonomy(self, store):
+        """Classifying fictional alien species — Nestor as a xenobiologist's
+        reference database."""
+        memory.add_pair("Vulcan", "Class M humanoid, copper-based blood, "
+                        "telepathic, lifespan 200+ years",
+                        "species", "taxonomy",
+                        status="sealed", store=store)
+        memory.add_pair("Klingon", "Class M humanoid, redundant organs, "
+                        "warrior culture, cranial ridges",
+                        "species", "taxonomy",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("Vulcan", "species", "taxonomy", store=store)
+        assert hit is not None
+        assert "copper-based" in hit["pair"]["target_text"]
+
+    def test_warp_coordinates_as_reconciliation(self, store):
+        """Reconciling navigational readings against sealed star charts."""
+        r = Reconciler(store=store, domain="navigation")
+        r.seal_baseline("bearing to Vulcan", 247.65, verifier="navigator")
+        result = r.check("bearing to Vulcan", 247.70)
+        assert result["within_tolerance"]
