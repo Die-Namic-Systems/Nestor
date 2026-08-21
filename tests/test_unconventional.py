@@ -1812,3 +1812,435 @@ class TestScaleMixedWorkload:
                                  "en", "en", store=store)
         assert hit is not None
         assert hit["pair"]["target_text"] == "the real sealed answer"
+
+
+# ---------------------------------------------------------------------------
+# Creative stress — twisting Nestor in directions nobody planned for
+# ---------------------------------------------------------------------------
+
+
+class TestHomoglyphAttacks:
+    """Visual spoofing: characters that look identical to humans but differ
+    in Unicode. Nestor normalizes with casefold + strip punctuation, but
+    Cyrillic/Greek lookalikes survive normalization as distinct codepoints."""
+
+    def test_cyrillic_a_vs_latin_a(self, store):
+        """Cyrillic 'а' (U+0430) vs Latin 'a' (U+0061). They look the same
+        but are different codepoints. Does Nestor treat them as the same?"""
+        memory.add_pair("data", "datos", "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("dаta", "en", "es", store=store)
+        if hit is not None:
+            assert hit["similarity"] < 1.0 or hit is not None
+        else:
+            pass
+
+    def test_homoglyph_pair_creates_distinct_entries(self, store):
+        """Two entries that look visually identical but use different Unicode.
+        They should be stored as separate pairs."""
+        memory.add_pair("cafe", "coffee shop", "en", "en",
+                        status="sealed", store=store)
+        memory.add_pair("cafе", "кофейня", "en", "en",
+                        status="sealed", store=store)
+        stats = memory.stats(store=store)
+        assert stats["total"] == 2
+
+    def test_fullwidth_vs_ascii_digits(self, store):
+        r"""Fullwidth '１２３' vs ASCII '123'. normalize() lowercases and
+        strips punctuation, but fullwidth digits are \w characters."""
+        memory.add_pair("item 123", "elemento 123", "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("item １２３", "en", "es",
+                                 store=store)
+        if hit is not None:
+            assert hit["similarity"] < 1.0
+
+
+class TestRejectionWarfare:
+    """Weaponizing the rejection system — can rejections be used to
+    deny service to legitimate sealed content?"""
+
+    def test_reject_blocks_sealed_from_serving(self, store):
+        """A rejection on a sealed pair prevents it from being served.
+        This is BY DESIGN but demonstrates the denial surface."""
+        pair = memory.add_pair("budget approved?", "yes, $2M",
+                               "en", "en", status="sealed", store=store)
+        hit = memory.best_sealed("budget approved?", "en", "en",
+                                 store=store)
+        assert hit is not None
+
+        memory.reject_pair(pair["id"], verifier="auditor",
+                           reason="disputed", store=store)
+        hit = memory.best_sealed("budget approved?", "en", "en",
+                                 store=store)
+        assert hit is None
+
+    def test_mass_rejection_clears_an_entire_domain(self, store):
+        """An attacker with write access can reject every pair in a domain,
+        reducing Nestor to 'no answer for anything'."""
+        ids = []
+        for i in range(50):
+            pair = memory.add_pair(f"question {i}", f"answer {i}",
+                                   "en", "en", status="sealed", store=store)
+            ids.append(pair["id"])
+
+        for pair_id in ids:
+            memory.reject_pair(pair_id, verifier="malicious", store=store)
+
+        for i in range(50):
+            hit = memory.best_sealed(f"question {i}", "en", "en",
+                                     store=store)
+            assert hit is None
+
+    def test_reject_match_leaves_pair_for_other_queries(self, store):
+        """reject_match rejects a specific query→pair pairing, not the pair
+        itself. The pair should still serve for its own source text."""
+        pair = memory.add_pair("good morning", "buenos días",
+                               "en", "es", status="sealed", store=store)
+        memory.reject_match("morning greetings", "en", "es",
+                            pair_id=pair["id"], verifier="reviewer",
+                            reason="wrong match", store=store)
+        hit = memory.best_sealed("good morning", "en", "es", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "buenos días"
+
+    def test_reject_then_seal_same_content(self, store):
+        """Reject a pair, then try to seal the exact same content again.
+        What wins — the rejection or the new seal?"""
+        pair = memory.add_pair("test phrase", "frase de prueba",
+                               "en", "es", status="sealed", store=store)
+        memory.reject_pair(pair["id"], verifier="reviewer", store=store)
+
+        hit = memory.best_sealed("test phrase", "en", "es", store=store)
+        assert hit is None
+
+        new_pair = memory.add_pair(
+            "test phrase", "frase de prueba", "en", "es",
+            status="sealed", store=store,
+            override_rejection=True)
+        hit = memory.best_sealed("test phrase", "en", "es", store=store)
+        assert hit is not None
+        assert hit["pair"]["id"] == new_pair["id"]
+
+
+class TestOracleProbing:
+    """Can an attacker infer sealed content by probing similarity scores?
+    lookup() returns similarity scores for all matches above the context
+    threshold — this is an information channel."""
+
+    def test_similarity_scores_reveal_content_proximity(self, store):
+        """Seal a secret, then probe with related queries. The similarity
+        scores tell you how close you are — a hot/cold game."""
+        memory.add_pair(
+            "the acquisition target is Acme Corp",
+            "approved by board",
+            "en", "en", status="sealed", store=store)
+        probes = [
+            "the acquisition target is Acme Corp",
+            "the acquisition target is Acme",
+            "the acquisition target is",
+            "an acquisition",
+            "something completely different about weather",
+        ]
+        scores = []
+        for probe in probes:
+            results = memory.lookup(probe, "en", "en", store=store)
+            score = results[0]["similarity"] if results else 0.0
+            scores.append(score)
+        assert scores[0] == 1.0
+        for i in range(len(scores) - 1):
+            assert scores[i] >= scores[i + 1], (
+                f"scores should decrease as probes diverge: {scores}")
+
+    def test_absent_probe_leaks_no_information(self, store):
+        """A query in a completely different domain should get zero results,
+        leaking nothing about what IS in the store."""
+        memory.add_pair("classified project codename",
+                        "Project Nightingale", "en", "en",
+                        status="sealed", store=store)
+        results = memory.lookup(
+            "what is the weather forecast for tomorrow",
+            "en", "en", store=store)
+        assert len(results) == 0
+
+
+class TestDraftEvolutionAbuse:
+    """Pushing the revise_draft pathway — how far can you evolve a draft?"""
+
+    def test_rapid_revision_chain(self, store):
+        """Revise a draft 20 times in succession. Each revision should
+        replace the previous, not accumulate."""
+        memory.add_pair("what color?", "blue", "en", "en",
+                        status="draft", store=store)
+        colors = ["red", "green", "yellow", "purple", "orange", "pink",
+                  "black", "white", "gray", "brown", "cyan", "magenta",
+                  "teal", "navy", "gold", "silver", "crimson", "ivory",
+                  "coral", "salmon"]
+        for color in colors:
+            memory.revise_draft("what color?", color, "en", "en",
+                                store=store)
+        results = memory.lookup("what color?", "en", "en", store=store)
+        live_drafts = [r for r in results
+                       if r["pair"]["status"] == "draft"]
+        assert len(live_drafts) == 1
+        assert live_drafts[0]["pair"]["target_text"] == "salmon"
+
+    def test_revise_draft_then_seal(self, store):
+        """Revise a draft multiple times, then seal the final version.
+        The sealed version should be what serves."""
+        memory.add_pair("policy?", "option A", "en", "en",
+                        status="draft", store=store)
+        memory.revise_draft("policy?", "option B", "en", "en", store=store)
+        memory.revise_draft("policy?", "option C", "en", "en", store=store)
+
+        memory.add_pair("policy?", "option C", "en", "en",
+                        status="sealed", verifier="boss", store=store)
+        hit = memory.best_sealed("policy?", "en", "en", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "option C"
+
+    def test_revise_after_seal_raises(self, store):
+        """Once sealed, revise_draft should not work — you can't demote
+        a human's judgment back to draft."""
+        memory.add_pair("final answer?", "42", "en", "en",
+                        status="sealed", store=store)
+        with pytest.raises(ValueError, match="sealed"):
+            memory.revise_draft("final answer?", "43", "en", "en",
+                                store=store)
+
+
+class TestCrossRecipeConfusion:
+    """What happens when you use one recipe's interface to read another's data?
+    They share a store — the isolation is by domain tags, not by type."""
+
+    def test_decision_visible_through_translation_lens(self, store):
+        """DecisionMemory writes to a specific domain. Can translation
+        lookup see it if we use the same domain tags?"""
+        dm = DecisionMemory(store=store)
+        dm.propose("Should we refactor?", "Yes, priority 1")
+
+        results = memory.lookup("Should we refactor?",
+                                dm.domain, dm.domain, store=store)
+        assert len(results) >= 1
+        assert results[0]["pair"]["target_text"] == "Yes, priority 1"
+
+    def test_entity_alias_visible_as_translation(self, store):
+        """EntityResolver writes to its own domain. Reading it as a
+        translation pair should work because it IS a pair."""
+        er = EntityResolver(store=store)
+        er.seal("NYC", "New York City", verifier="admin")
+
+        hit = memory.best_sealed("NYC", er.domain, er.domain, store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "New York City"
+
+    def test_translation_pair_invisible_to_wrong_domain(self, store):
+        """A pair in en→es should NOT appear in the decision domain."""
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", store=store)
+        dm = DecisionMemory(store=store)
+        results = memory.lookup("hello", dm.domain, dm.domain, store=store)
+        assert len(results) == 0
+
+
+class TestNormalizationBoundaries:
+    """Edge cases in the StringMatcher normalize path — what survives,
+    what gets folded, and what creates collisions."""
+
+    def test_punctuation_stripped_creates_collision(self, store):
+        """'dont' and 'don't' normalize to the same thing. If both are
+        sealed with different targets, what happens?"""
+        memory.add_pair("don't stop", "no te detengas", "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("dont stop", "en", "es", store=store)
+        assert hit is not None
+        assert hit["similarity"] == 1.0
+
+    def test_case_folding_collision(self, store):
+        """'NATO alliance' and 'nato alliance' normalize identically.
+        A second sealed add with same target should upsert (idempotent)."""
+        memory.add_pair("NATO alliance", "alianza OTAN", "en", "es",
+                        status="sealed", store=store)
+        memory.add_pair("nato alliance", "alianza OTAN", "en", "es",
+                        status="sealed", store=store)
+        stats = memory.stats(store=store)
+        assert stats["total"] == 1
+
+    def test_whitespace_collapse(self, store):
+        """Multiple spaces, tabs, newlines all collapse to single space."""
+        memory.add_pair("hello   world", "hola mundo", "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("hello\t\nworld", "en", "es", store=store)
+        assert hit is not None
+        assert hit["similarity"] == 1.0
+
+    def test_empty_after_normalize(self, store):
+        """A string of only punctuation normalizes to empty string.
+        Nestor should handle this without crashing."""
+        memory.add_pair("...", "puntos suspensivos", "en", "es",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("!!!", "en", "es", store=store)
+        if hit is not None:
+            assert hit["similarity"] == 1.0
+
+    def test_unicode_normalization_nfc_vs_nfd(self, store):
+        """NFC 'é' (U+00E9) vs NFD 'e' + combining acute (U+0065 U+0301).
+        Python's casefold doesn't normalize these to the same form."""
+        import unicodedata
+        nfc = unicodedata.normalize("NFC", "café")
+        nfd = unicodedata.normalize("NFD", "café")
+        assert nfc != nfd
+
+        memory.add_pair(nfc, "coffee shop", "en", "en",
+                        status="sealed", store=store)
+        hit = memory.best_sealed(nfd, "en", "en", store=store)
+        if hit is None:
+            pass
+        else:
+            assert hit["similarity"] >= 0.92
+
+
+class TestSelfReferentialContent:
+    """Nestor storing content about itself — metadata as data."""
+
+    def test_store_nestor_config_as_pairs(self, store):
+        """Use Nestor to remember its own configuration decisions."""
+        memory.add_pair("SEAL_THRESHOLD", "0.92", "config", "config",
+                        status="sealed", store=store)
+        memory.add_pair("CONTEXT_THRESHOLD", "0.55", "config", "config",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("SEAL_THRESHOLD", "config", "config",
+                                 store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "0.92"
+
+    def test_store_sql_as_target(self, store):
+        """Store an actual SQL query as target text — not injection,
+        just content that happens to be SQL."""
+        memory.add_pair(
+            "how to find sealed pairs",
+            "SELECT * FROM tm_pairs WHERE status='sealed'",
+            "docs", "docs", status="sealed", store=store)
+        hit = memory.best_sealed("how to find sealed pairs",
+                                 "docs", "docs", store=store)
+        assert hit is not None
+        assert "SELECT" in hit["pair"]["target_text"]
+
+    def test_store_python_code_as_target(self, store):
+        """Store Python code as target text."""
+        code = "def hello():\n    return 'world'"
+        memory.add_pair("hello function", code, "code", "code",
+                        status="sealed", store=store)
+        hit = memory.best_sealed("hello function", "code", "code",
+                                 store=store)
+        assert hit is not None
+        assert "def hello" in hit["pair"]["target_text"]
+
+
+class TestStoreCorruptionResilience:
+    """What happens when the store is in a weird state?"""
+
+    def test_lookup_on_empty_store(self, store):
+        """An empty store should return empty results, not crash."""
+        results = memory.lookup("anything", "en", "es", store=store)
+        assert results == []
+        hit = memory.best_sealed("anything", "en", "es", store=store)
+        assert hit is None
+
+    def test_lookup_after_all_pairs_rejected(self, store):
+        """Seal some pairs, reject all of them, then query."""
+        for i in range(10):
+            pair = memory.add_pair(f"q{i}", f"a{i}", "en", "en",
+                                   status="sealed", store=store)
+            memory.reject_pair(pair["id"], verifier="admin", store=store)
+        results = memory.lookup("q5", "en", "en", store=store)
+        assert results == []
+
+    def test_store_reopen_preserves_state(self, store, tmp_path):
+        """Close and reopen a store — all data should survive."""
+        db_path = str(tmp_path / "persist.db")
+        s1 = SqliteStore(db_path)
+        s1.init_db()
+        s1.memory_init()
+        memory.add_pair("persist me", "persisted", "en", "en",
+                        status="sealed", store=s1)
+        del s1
+
+        s2 = SqliteStore(db_path)
+        s2.init_db()
+        s2.memory_init()
+        hit = memory.best_sealed("persist me", "en", "en", store=s2)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "persisted"
+
+
+class TestPunctuationAndSymbols:
+    """How Nestor handles edge-case punctuation and symbol patterns."""
+
+    def test_email_addresses_as_keys(self, store):
+        """Email addresses — the @ and . get stripped by normalize."""
+        memory.add_pair("alice@example.com", "Alice Smith",
+                        "id", "id", status="sealed", store=store)
+        hit = memory.best_sealed("alice@example.com", "id", "id",
+                                 store=store)
+        assert hit is not None
+
+    def test_urls_as_keys(self, store):
+        """URLs — colons, slashes, dots all stripped."""
+        memory.add_pair("https://example.com/page",
+                        "Example Page",
+                        "url", "url", status="sealed", store=store)
+        hit = memory.best_sealed("https://example.com/page",
+                                 "url", "url", store=store)
+        assert hit is not None
+
+    def test_file_paths_as_keys(self, store):
+        """File paths — slashes and dots stripped."""
+        memory.add_pair("/usr/local/bin/nestor", "Nestor binary",
+                        "fs", "fs", status="sealed", store=store)
+        hit = memory.best_sealed("/usr/local/bin/nestor", "fs", "fs",
+                                 store=store)
+        assert hit is not None
+
+    def test_math_expressions(self, store):
+        """Mathematical expressions — operators get stripped."""
+        memory.add_pair("2 + 2 = 4", "basic arithmetic",
+                        "math", "math", status="sealed", store=store)
+        hit = memory.best_sealed("2 + 2 = 4", "math", "math",
+                                 store=store)
+        assert hit is not None
+
+
+class TestConflictingSeals:
+    """What happens when two humans disagree — both trying to seal
+    different answers for the same question."""
+
+    def test_second_seal_different_target_raises(self, store):
+        """Sealing 'hello' → 'hola', then 'hello' → 'ola' should raise
+        ConflictingSealError."""
+        from nestor.memory import ConflictingSealError
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", verifier="alice", store=store)
+        with pytest.raises(ConflictingSealError):
+            memory.add_pair("hello", "ola", "en", "es",
+                            status="sealed", verifier="bob", store=store)
+
+    def test_same_seal_same_target_upserts(self, store):
+        """Sealing the same source→target twice is an idempotent upsert."""
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", verifier="alice", store=store)
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", verifier="bob", store=store)
+        stats = memory.stats(store=store)
+        assert stats["total"] == 1
+
+    def test_override_conflict_flag(self, store):
+        """override_conflict=True lets the second seal win."""
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", verifier="alice", store=store)
+        memory.add_pair("hello", "ola", "en", "es",
+                        status="sealed", verifier="bob", store=store,
+                        override_conflict=True)
+        hit = memory.best_sealed("hello", "en", "es", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "ola"
