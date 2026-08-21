@@ -136,6 +136,23 @@ def db_path() -> Path | None:
     return None
 
 
+def cli_db_default() -> str:
+    """The ``--db`` default for every surface: cli, serve, ui.
+
+    One function because there were three copies of the literal
+    ``"data/nestor.db"`` — in :mod:`nestor.cli`, :mod:`nestor.serve` and
+    :mod:`nestor.ui` — and ``cli.main`` delegates ``serve``/``ui`` to their own
+    parsers BEFORE the main one runs. Pinning only the first left the other two
+    resolving from cwd, and ``serve`` is the surface an MCP client launches:
+    every project would have served a different, usually empty corpus while its
+    config looked correct.
+
+    A rule written out three times is a rule enforced nowhere.
+    """
+    pinned = db_path()
+    return str(pinned) if pinned else "data/nestor.db"
+
+
 def ledger_for(db: str | Path) -> Path:
     """The chain that belongs to ``db``.
 

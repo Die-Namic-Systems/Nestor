@@ -79,7 +79,8 @@ from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Mapping, Optional, Union
 
-from . import answer, cascade, config, keyring, ledger as ledger_mod, memory, portable, signing, storage
+from . import (answer, cascade, config, home_paths, keyring, ledger as ledger_mod,
+               memory, portable, signing, storage)
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
 from .entity import EntityResolver
@@ -1611,10 +1612,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="nestor-ui",
         description="Nestor's review queue, curated memory and ledger, in a browser.")
-    p.add_argument("--db", default="data/nestor.db",
-                   help="SQLite database for the reference store (default: data/nestor.db)")
+    # Same resolver as cli and serve (home_paths.cli_db_default). The ui is
+    # where a human seals, so it must open the corpus the model was served from
+    # — three copies of "data/nestor.db" meant it could quietly open a fourth.
+    p.add_argument("--db", default=home_paths.cli_db_default(),
+                   help=("SQLite database for the reference store (default: "
+                         "$NESTOR_DB, else $NESTOR_HOME/keep, else data/nestor.db)"))
     p.add_argument("--ledger", default="",
-                   help="hash-chained ledger path (default: NESTOR_LEDGER or data/ledger.jsonl)")
+                   help="hash-chained ledger path (default: NESTOR_LEDGER or alongside --db)")
     p.add_argument("--host", default="127.0.0.1", help="bind address (default: 127.0.0.1)")
     p.add_argument("--port", type=int, default=8765, help="bind port (default: 8765)")
     p.add_argument("--source-lang", default="en", help="default source domain tag")
@@ -1668,6 +1673,10 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
+    else:
+        # The chain follows the corpus — the seat where a human seals must
+        # verify the same chain the served corpus appends to.
+        cascade.set_ledger_path(home_paths.ledger_for(args.db))
     # `source_of` covers both layers `cascade.ledger_verify_interval_sec` now
     # reads (env or config file); the plain `"... in os.environ"` presence
     # check this replaced only ever saw the first.

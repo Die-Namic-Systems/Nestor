@@ -44,7 +44,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, Optional, TextIO
 
-from . import answer, cascade, keyring, ledger as ledger_mod, memory, signing, storage
+from . import answer, cascade, home_paths, keyring, ledger as ledger_mod, memory, signing, storage
 from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
 from .storage import Storage
@@ -466,8 +466,14 @@ def build_parser() -> argparse.ArgumentParser:
         prog="nestor serve",
         description="Serve Nestor's verified memory to a model over MCP (stdio). "
                     "The model can ask and propose; it cannot seal.")
-    p.add_argument("--db", default="data/nestor.db", help="SQLite database (default: data/nestor.db)")
-    p.add_argument("--ledger", default="", help="ledger path (default: NESTOR_LEDGER or data/ledger.jsonl)")
+    # $NESTOR_DB / $NESTOR_HOME win over the cwd default — one resolver shared
+    # by cli, serve and ui (home_paths.cli_db_default). `serve` is the surface an
+    # MCP client launches, so an unpinned default here means every project
+    # serves a different, usually empty corpus while its config looks correct.
+    p.add_argument("--db", default=home_paths.cli_db_default(),
+                   help=("SQLite database (default: $NESTOR_DB, else "
+                         "$NESTOR_HOME/keep/nestor.db, else data/nestor.db)"))
+    p.add_argument("--ledger", default="", help="ledger path (default: NESTOR_LEDGER or alongside --db)")
     p.add_argument("--source-lang", default="en", help="default source domain tag")
     p.add_argument("--target-lang", default="es", help="default target domain tag")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
@@ -487,6 +493,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ledger:
         cascade.set_ledger_path(args.ledger)
+    else:
+        # The chain follows the corpus. Without this, a pinned store ran against
+        # whatever cascade's default was, and `stats` reported "no ledger yet"
+        # against an intact chain.
+        cascade.set_ledger_path(home_paths.ledger_for(args.db))
     # Before the protocol stream opens: a KeyringError raised mid-session would
     # surface to the model as a broken tool call rather than as a configuration
     # problem somebody can fix.
