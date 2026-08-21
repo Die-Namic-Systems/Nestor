@@ -1429,3 +1429,386 @@ class TestKeyEnvironmentManipulation:
                         status="sealed", verifier="nobody", store=store)
         hit = memory.best_sealed("forged", "en", "en", store=store)
         assert hit is not None
+
+
+# ---------------------------------------------------------------------------
+# Pattern-matching at scale — how many patterns can Nestor hold and still
+# find the right answer?
+# ---------------------------------------------------------------------------
+# Nestor's lookup is an O(n) scan over all candidates in a domain, scoring
+# each with difflib. These tests push it: how many can it hold, how fast
+# does it degrade, and when does disambiguation start failing?
+
+
+class TestScaleExactMatch:
+    """Exact-match retrieval at increasing scale."""
+
+    def test_1k_pairs_exact_lookup(self, store):
+        """1,000 sealed pairs: exact match for a random entry."""
+        for i in range(1000):
+            memory.add_pair(f"sentence number {i:04d}",
+                            f"translation number {i:04d}",
+                            "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed("sentence number 0742", "en", "es",
+                                 store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "translation number 0742"
+        assert hit["similarity"] == 1.0
+
+    def test_5k_pairs_exact_lookup(self, store):
+        """5,000 sealed pairs: exact match still works."""
+        for i in range(5000):
+            memory.add_pair(f"phrase {i:05d}", f"frase {i:05d}",
+                            "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed("phrase 04321", "en", "es", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "frase 04321"
+        assert hit["similarity"] == 1.0
+
+    def test_10k_pairs_exact_lookup(self, store):
+        """10,000 sealed pairs: exact match retrieval."""
+        for i in range(10000):
+            memory.add_pair(f"item {i:05d}", f"elemento {i:05d}",
+                            "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed("item 09999", "en", "es", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "elemento 09999"
+        assert hit["similarity"] == 1.0
+
+    def test_10k_pairs_absent_probe(self, store):
+        """10,000 pairs, query that matches nothing — confirms the scan
+        completes and returns None, not an accident."""
+        for i in range(10000):
+            memory.add_pair(f"item {i:05d}", f"elemento {i:05d}",
+                            "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "this sentence is completely unrelated to anything stored",
+            "en", "es", store=store)
+        assert hit is None
+
+
+class TestScaleFuzzyDiscrimination:
+    """Can Nestor find the RIGHT fuzzy match among many similar candidates?"""
+
+    def test_needle_in_1k_similar_entries(self, store):
+        """1,000 entries of the form 'The quick brown fox jumped over N'.
+        Query a close variant of one specific N — should find it."""
+        for i in range(1000):
+            memory.add_pair(
+                f"The quick brown fox jumped over {i} lazy dogs",
+                f"El rápido zorro marrón saltó sobre {i} perros perezosos",
+                "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "The quick brown fox jumped over 500 lazy dogs",
+            "en", "es", store=store)
+        assert hit is not None
+        assert "500" in hit["pair"]["target_text"]
+
+    def test_distinguishing_one_word_variants(self, store):
+        """500 entries that differ by exactly one word. Can Nestor pick
+        the right one?"""
+        animals = ["cat", "dog", "bird", "fish", "horse", "snake", "bear",
+                   "wolf", "deer", "frog", "hawk", "lion", "seal", "crab",
+                   "goat", "duck", "moth", "wasp", "worm", "mole"]
+        for i in range(500):
+            animal = animals[i % len(animals)]
+            memory.add_pair(
+                f"I saw a {animal} in the garden today number {i}",
+                f"Vi un {animal} en el jardín hoy número {i}",
+                "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "I saw a hawk in the garden today number 7",
+            "en", "es", store=store)
+        assert hit is not None
+        assert "hawk" in hit["pair"]["target_text"]
+        assert "7" in hit["pair"]["target_text"]
+
+    def test_2k_highly_similar_entries_fuzzy_precision(self, store):
+        """2,000 entries like 'Process order XXXX for customer Y'. Query with
+        a specific order number — the matched entry must have the right one."""
+        for i in range(2000):
+            memory.add_pair(
+                f"Process order {i:04d} for customer alpha",
+                f"Procesar orden {i:04d} para cliente alfa",
+                "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed(
+            "Process order 1337 for customer alpha",
+            "en", "es", store=store)
+        assert hit is not None
+        assert "1337" in hit["pair"]["target_text"]
+        assert hit["similarity"] == 1.0
+
+    def test_close_but_different_should_not_match(self, store):
+        """Seal 'The project is approved' but query 'The project is rejected'.
+        Similar text, opposite meaning — should NOT serve as tier-1."""
+        memory.add_pair("The project is approved", "El proyecto está aprobado",
+                        "en", "es", status="sealed", store=store)
+        hit = memory.best_sealed("The project is rejected", "en", "es",
+                                 store=store)
+        assert hit is None
+
+
+class TestScaleLookupDepth:
+    """Does lookup return useful ranked results at scale?"""
+
+    def test_lookup_ranks_correctly_in_5k_corpus(self, store):
+        """5,000 entries. lookup should return the closest matches first,
+        with the exact match on top."""
+        for i in range(5000):
+            memory.add_pair(f"configure setting {i:04d}",
+                            f"configurar ajuste {i:04d}",
+                            "en", "es", status="sealed", store=store)
+        results = memory.lookup("configure setting 2500", "en", "es",
+                                store=store, limit=10)
+        assert len(results) >= 1
+        assert results[0]["pair"]["target_text"] == "configurar ajuste 2500"
+        assert results[0]["similarity"] == 1.0
+
+    def test_lookup_returns_near_matches(self, store):
+        """Entries that differ by one character should still appear in
+        lookup results as context matches."""
+        memory.add_pair("update the configuration file",
+                        "actualizar el archivo de configuración",
+                        "en", "es", status="sealed", store=store)
+        memory.add_pair("update the configuration files",
+                        "actualizar los archivos de configuración",
+                        "en", "es", status="sealed", store=store)
+        memory.add_pair("update the application file",
+                        "actualizar el archivo de la aplicación",
+                        "en", "es", status="sealed", store=store)
+        results = memory.lookup("update the configuration file",
+                                "en", "es", store=store, limit=5)
+        assert len(results) >= 2
+        assert results[0]["similarity"] == 1.0
+        assert results[1]["similarity"] > 0.8
+
+
+class TestScaleMultiDomain:
+    """Multiple domains with many pairs each — isolation under pressure."""
+
+    def test_1k_per_domain_five_domains(self, store):
+        """5 domains, 1,000 pairs each = 5,000 total. Each domain should
+        only see its own entries."""
+        langs = [("en", "es"), ("en", "fr"), ("en", "de"),
+                 ("en", "it"), ("en", "pt")]
+        for source_lang, target_lang in langs:
+            for i in range(1000):
+                memory.add_pair(
+                    f"word {i:04d}", f"translated_{target_lang}_{i:04d}",
+                    source_lang, target_lang, status="sealed", store=store)
+
+        for source_lang, target_lang in langs:
+            hit = memory.best_sealed("word 0500", source_lang, target_lang,
+                                     store=store)
+            assert hit is not None
+            assert hit["pair"]["target_text"] == f"translated_{target_lang}_0500"
+
+        stats = memory.stats(store=store)
+        assert stats["total"] == 5000
+
+    def test_cross_domain_no_leakage(self, store):
+        """Same source text, different target in each domain. Each domain
+        should return its own target, never another domain's."""
+        memory.add_pair("hello", "hola", "en", "es",
+                        status="sealed", store=store)
+        memory.add_pair("hello", "bonjour", "en", "fr",
+                        status="sealed", store=store)
+        memory.add_pair("hello", "hallo", "en", "de",
+                        status="sealed", store=store)
+        memory.add_pair("hello", "ciao", "en", "it",
+                        status="sealed", store=store)
+
+        assert memory.best_sealed("hello", "en", "es",
+                                  store=store)["pair"]["target_text"] == "hola"
+        assert memory.best_sealed("hello", "en", "fr",
+                                  store=store)["pair"]["target_text"] == "bonjour"
+        assert memory.best_sealed("hello", "en", "de",
+                                  store=store)["pair"]["target_text"] == "hallo"
+        assert memory.best_sealed("hello", "en", "it",
+                                  store=store)["pair"]["target_text"] == "ciao"
+
+
+class TestScaleTiming:
+    """Rough performance characterization — not benchmarks, but guards
+    against catastrophic O(n^2) or worse behavior."""
+
+    def test_1k_lookup_under_5_seconds(self, store):
+        """1,000 pairs: a single best_sealed should complete in <5s."""
+        import time
+        for i in range(1000):
+            memory.add_pair(f"entry number {i:04d} in the database",
+                            f"entrada número {i:04d} en la base de datos",
+                            "en", "es", status="sealed", store=store)
+        start = time.monotonic()
+        hit = memory.best_sealed("entry number 0500 in the database",
+                                 "en", "es", store=store)
+        elapsed = time.monotonic() - start
+        assert hit is not None
+        assert elapsed < 5.0, f"1K lookup took {elapsed:.2f}s"
+
+    def test_5k_lookup_under_30_seconds(self, store):
+        """5,000 pairs: a single best_sealed should still be reasonable."""
+        import time
+        for i in range(5000):
+            memory.add_pair(f"record {i:05d} in the system",
+                            f"registro {i:05d} en el sistema",
+                            "en", "es", status="sealed", store=store)
+        start = time.monotonic()
+        hit = memory.best_sealed("record 02500 in the system",
+                                 "en", "es", store=store)
+        elapsed = time.monotonic() - start
+        assert hit is not None
+        assert elapsed < 30.0, f"5K lookup took {elapsed:.2f}s"
+
+    def test_absent_probe_not_catastrophically_slow(self, store):
+        """2,000 pairs, absent query. This is the worst case for the scan
+        since nothing can short-circuit. Should still complete."""
+        import time
+        for i in range(2000):
+            memory.add_pair(f"known phrase {i:04d}",
+                            f"frase conocida {i:04d}",
+                            "en", "es", status="sealed", store=store)
+        start = time.monotonic()
+        hit = memory.best_sealed(
+            "a completely unrelated query about quantum mechanics",
+            "en", "es", store=store)
+        elapsed = time.monotonic() - start
+        assert hit is None
+        assert elapsed < 30.0, f"2K absent probe took {elapsed:.2f}s"
+
+
+class TestScaleEntityResolver:
+    """Entity resolution at scale — many aliases, many canonicals."""
+
+    def test_500_entities_3_aliases_each(self, store):
+        """500 canonical entities with 3 aliases each. Resolution
+        should find the correct canonical even in a crowded space."""
+        er = EntityResolver(store=store)
+        for i in range(500):
+            canonical = f"Entity_{i:03d}"
+            for j in range(3):
+                er.seal(f"alias_{i:03d}_{j}", canonical, verifier="admin")
+        result = er.resolve("alias_250_1")
+        assert result["canonical"] == "Entity_250"
+        assert result["sealed"] is True
+
+    def test_similar_aliases_different_canonicals(self, store):
+        """Aliases that look almost identical but map to different entities.
+        The resolver should pick the exact match."""
+        er = EntityResolver(store=store)
+        er.seal("John Smith", "PERSON_001", verifier="admin")
+        er.seal("John Smithe", "PERSON_002", verifier="admin")
+        er.seal("John Smyth", "PERSON_003", verifier="admin")
+        er.seal("Jon Smith", "PERSON_004", verifier="admin")
+        er.seal("John Smith Jr", "PERSON_005", verifier="admin")
+
+        result = er.resolve("John Smith")
+        assert result["canonical"] == "PERSON_001"
+        assert result["sealed"] is True
+
+
+class TestScaleReconciler:
+    """Numeric reconciliation with many baselines."""
+
+    def test_100_metrics_each_with_baseline(self, store):
+        """100 different metrics sealed. Each should reconcile independently."""
+        rec = Reconciler(store=store)
+        for i in range(100):
+            rec.seal_baseline(f"metric_{i:03d}", float(i * 100),
+                              verifier="admin")
+        for i in [0, 25, 50, 75, 99]:
+            result = rec.check(f"metric_{i:03d}", float(i * 100))
+            assert result["within_tolerance"] is True
+
+        result = rec.check("metric_050", 99999.0)
+        assert result["within_tolerance"] is False
+
+
+class TestScaleDecisionMemory:
+    """Decision memory at scale — many decisions, graph traversal."""
+
+    def test_200_decisions_lookup(self, store):
+        """200 sealed decisions. Should retrieve the right one by question."""
+        os.environ.pop("NESTOR_SEAL_KEY", None)
+        dm = DecisionMemory(store=store)
+        for i in range(200):
+            dm.propose(f"Should we adopt approach {i:03d}?",
+                       f"Yes, approach {i:03d} is approved")
+            sig = signing.sign_seal(
+                StringMatcher().normalize(
+                    f"Should we adopt approach {i:03d}?"),
+                f"Yes, approach {i:03d} is approved", "committee")
+            dm.seal(f"Should we adopt approach {i:03d}?",
+                    f"Yes, approach {i:03d} is approved",
+                    verifier="committee", seal_sig=sig)
+
+        hit = memory.best_sealed(
+            "Should we adopt approach 150?",
+            dm.domain, dm.domain, store=store)
+        assert hit is not None
+        assert "150" in hit["pair"]["target_text"]
+
+    def test_chained_supersedes_at_depth(self, store):
+        """A chain of 20 decisions each superseding the previous. The
+        constraints on the oldest should show the full lineage."""
+        os.environ["NESTOR_SEAL_KEY"] = "chain-key"
+        dm = DecisionMemory(store=store)
+        ids = []
+        for i in range(20):
+            q = f"Version policy v{i}"
+            c = f"Use version {i}"
+            dm.propose(q, c)
+            sig = signing.sign_seal(
+                StringMatcher().normalize(q), c, "architect")
+            pair = dm.seal(q, c, verifier="architect", seal_sig=sig)
+            ids.append(pair["id"])
+
+        for i in range(1, 20):
+            dm.propose_edge(ids[i], ids[i - 1], "supersedes")
+            edge_sig = signing.sign_edge(
+                ids[i], ids[i - 1], "supersedes", "architect")
+            dm.seal_edge(ids[i], ids[i - 1], "supersedes",
+                         verifier="architect", edge_sig=edge_sig)
+
+        constraints = dm.constraints_on("Version policy v0")
+        assert len(constraints["constraints"]) >= 1
+
+
+class TestScaleMixedWorkload:
+    """Mixed sealed/draft pairs — does the draft noise affect sealed lookups?"""
+
+    def test_1k_sealed_1k_drafts_sealed_wins(self, store):
+        """1,000 sealed + 1,000 drafts (different keys). best_sealed should
+        only return sealed entries, ignoring the draft noise."""
+        for i in range(1000):
+            memory.add_pair(f"sealed entry {i:04d}",
+                            f"entrada sellada {i:04d}",
+                            "en", "es", status="sealed", store=store)
+        for i in range(1000):
+            memory.add_pair(f"draft entry {i:04d}",
+                            f"entrada borrador {i:04d}",
+                            "en", "es", status="draft", store=store)
+        hit = memory.best_sealed("sealed entry 0500", "en", "es",
+                                 store=store)
+        assert hit is not None
+        assert hit["pair"]["status"] == "sealed"
+        assert "sellada" in hit["pair"]["target_text"]
+
+        hit_draft = memory.best_sealed("draft entry 0500", "en", "es",
+                                       store=store)
+        assert hit_draft is None
+
+    def test_many_drafts_exact_sealed_still_found(self, store):
+        """One sealed pair buried under 2,000 drafts with similar keys.
+        best_sealed should find the needle."""
+        for i in range(2000):
+            memory.add_pair(f"configure the deployment pipeline step {i}",
+                            f"draft answer {i}",
+                            "en", "en", status="draft", store=store)
+        memory.add_pair("configure the deployment pipeline",
+                        "the real sealed answer",
+                        "en", "en", status="sealed", store=store)
+        hit = memory.best_sealed("configure the deployment pipeline",
+                                 "en", "en", store=store)
+        assert hit is not None
+        assert hit["pair"]["target_text"] == "the real sealed answer"
