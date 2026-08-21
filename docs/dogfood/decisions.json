@@ -7,7 +7,7 @@
     "servable": 0
   },
   "created_at": "2026-08-19T00:00:00+00:00",
-  "digest": "5fd0c2da827aff143b27e954ef2a6928d65450e394ab88a930da62e96df9c9d0",
+  "digest": "b2576209d7bf8ddf5e4ecf3f78f5a47bdaf50d8433bbd673c14a68c67b1729ea",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -233,7 +233,7 @@
     },
     {
       "created_at": "2026-08-19T00:00:00+00:00",
-      "id": "5593a974-9c65-5d4d-8cec-31d0d63b1caa",
+      "id": "53ee54c2-778e-5f11-985f-bd5c49c56ce6",
       "origin": "pr:None",
       "seal_sig": "",
       "source_lang": "decision",
@@ -241,7 +241,7 @@
       "source_text": "What does it mean that a person under acute pressure, building a tool for their own survival, reinvented Nestor's covenant without importing it?",
       "status": "draft",
       "target_lang": "decision",
-      "target_text": "That the covenant is not a compliance artifact of this repository but the shape verification takes when the cost of a wrong assertion is real. The life database was built because wrong assertions about a foreclosure cost a house; it grew proposed/sealed separation, unsupported-row audits, and lessons-carrying corrections because nothing weaker held. Treat this as the strongest evidence yet that Nestor's constraints are load-bearing, and treat any future proposal to relax them as a proposal to diverge from what independent necessity produced.",
+      "target_text": "That the covenant is not a compliance artifact of this repository but the shape verification takes when the cost of a wrong assertion is real. That database was built because a wrong assertion carried an irreversible real-world cost; it grew proposed/sealed separation, unsupported-row audits, and lessons-carrying corrections because nothing weaker held. Treat this as the strongest evidence yet that Nestor's constraints are load-bearing, and treat any future proposal to relax them as a proposal to diverge from what independent necessity produced.",
       "verifier": "",
       "weight": 1.0
     },
