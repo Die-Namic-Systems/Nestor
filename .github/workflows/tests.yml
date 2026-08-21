@@ -71,7 +71,23 @@ jobs:
 
   test-matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 10 was survivable at 1,641 tests and is not at 1,818. test_unconventional
+    # (#180 — 2,779 lines, 177 cases) pushed the suite past it: both legs died at
+    # exactly 10m15s having reached 91%, on this branch AND on master, which is
+    # why it read as intermittent rather than obvious.
+    #
+    # NOT coverage. CI runs `coverage run --include='nestor/*'`, so the test
+    # file's own hot loops are uninstrumented — measured 10.60s under coverage
+    # against 10.47s without, for test_10k_pairs_exact_lookup. The whole stress
+    # file is 41s locally; a 2-core runner is simply ~3-4x this hardware.
+    #
+    # Raised rather than marking the scale tests slow and skipping them on PRs:
+    # the 10k-pair lookups are exactly the cases worth running on a change to
+    # lookup, and a gate that drops its most informative tests to stay fast is
+    # the wrong trade. If this ever needs revisiting, the four TestScale*
+    # heavies are ~27s of the file's 41s, and the top two are
+    # TestScaleExactMatch::test_10k_pairs_{exact_lookup,absent_probe}.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
