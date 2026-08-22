@@ -46,6 +46,8 @@ Decision edges      :func:`supports_edges`                 decisions still seal,
                                                            related — no graph neighbours
 Evidence            :func:`supports_evidence`              a sealed claim cannot carry what it
                                                            rests on, and the report is empty
+Warrants            :func:`supports_warrants`              a claim cannot record why a stranger
+                                                           should believe it — only who sealed it
 Verifier policy     :func:`supports_verifier_policy`       every verifier name is accepted at
                                                            seal time, for every domain
 Embedding store     :func:`nestor.embedding_store.supports_embedding_store`
@@ -535,6 +537,36 @@ def supports_evidence(store: "Storage") -> bool:
     return supports(store, "evidence")
 
 
+
+_WARRANT_OPS = ("memory_add_warrant", "memory_warrants_for")
+
+
+class WarrantStorage(Storage, Protocol):
+    """``Storage`` plus the warrants capability (docs/warrants.md, decision
+    0164) — a ``cast`` target on the same terms as :class:`EvidenceStorage`;
+    see :func:`supports_warrants`."""
+
+    def memory_add_warrant(self, w: dict) -> None: ...
+
+    def memory_warrants_for(self, pair_id: str) -> list[dict]: ...
+
+
+def supports_warrants(store: "Storage") -> bool:
+    """Whether ``store`` implements the optional warrants capability
+    (docs/warrants.md).
+
+    Its own predicate on :func:`supports_evidence`' precedent — a host store
+    without it still seals, serves and carries evidence exactly as before; it
+    simply cannot record *why a stranger should believe* a claim, so
+    :func:`nestor.warrant.attach` raises rather than dropping the warrant.
+
+    Note there is no third op for a report here, unlike evidence's
+    ``memory_unevidenced_seals``: what "unwarranted" means is not settled
+    (docs/warrants.md, "What this memo does not settle"), and a capability is
+    the wrong place to guess it.
+    """
+    return supports(store, "warrants")
+
 _VERIFIER_POLICY_OPS = ("memory_policy_add", "memory_policy_remove",
                         "memory_policy_list")
 
@@ -597,6 +629,7 @@ _CAPABILITY_OPS: dict[str, tuple[str, ...]] = {
     "atomic_supersede": _ATOMIC_SUPERSEDE_OPS,
     "edges": _EDGE_OPS,
     "evidence": _EVIDENCE_OPS,
+    "warrants": _WARRANT_OPS,
     "verifier_policy": _VERIFIER_POLICY_OPS,
     "embedding_store": ("embedding_load", "embedding_save", "embedding_drop"),
 }

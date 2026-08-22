@@ -18,6 +18,33 @@ what moved.
 
 ---
 
+## Unreleased
+
+### Added
+
+* **Warrants** — `nestor/warrant.py`, a `decision_warrants` table, the
+  `warrants` storage capability, and the `attach_warrant` ledger kind. A pair
+  can now record *why a stranger should believe it* — a `citation` (a named
+  authority asserted it) or a `construction` (a recipe and the digest it must
+  produce) — separately from who sealed it. `attestation` is not storable: a
+  sealed pair already is one, and `warrants_for()` composes it in on read.
+  Nothing marks a warrant satisfied; the store holds the recipe, never the
+  verdict. See [`docs/warrants.md`](docs/warrants.md), IDEAS §1.10, decision 0164.
+
+### Upgrading
+
+* **This release changes the schema, so long-lived processes must be
+  restarted.** `_SCHEMA` gains `decision_warrants`. Since IDEAS §6.8
+  `memory_init` skips its work on a connection that has already done it, so a
+  process holding warm pooled connections will **not** create the new table
+  until it restarts — the store upgrades on process start, not on package
+  upgrade (`docs/releasing.md`, "A release that touches the schema requires a
+  restart"). Nothing breaks in the meantime: `nestor.warrant.attach` raises on
+  a store without the capability rather than dropping the warrant, and every
+  other path seals and serves exactly as before.
+
+---
+
 ## [0.10.0](https://github.com/rudi193-cmd/Nestor/compare/v0.9.1...v0.10.0) (2026-08-19)
 
 

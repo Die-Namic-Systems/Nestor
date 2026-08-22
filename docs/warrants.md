@@ -2,9 +2,21 @@
 
 *Design memo for [IDEAS §1.10](../IDEAS.md#110-a-seal-is-the-only-warrant-this-package-can-represent--open),
 "A seal is the only warrant this package can represent" (open). Written
-2026-08-22. The argument below is one a human can reject. Nothing here is
-implemented; recorded as
+2026-08-22. The argument below is one a human can reject. Recorded as
 [decision 0164](dogfood/decisions/0164-warrants-are-not-evidence.json), draft.*
+
+
+> **Core relation landed 2026-08-22, after the memo was merged.** `nestor/warrant.py`,
+> a `decision_warrants` table, the `warrants` storage capability, and the
+> `attach_warrant` ledger kind. **One refinement the memo did not state and the
+> code forced:** `attestation` is *not* a storable kind. A sealed pair already is
+> one, carrying a signature bound to a key the store does not hold — storing it
+> again would be two representations of one fact, and the second one forgeable.
+> `warrants_for()` composes the seal in on read, marked `stored: False` so a seal
+> never travels twice. What stayed open stayed open: **no report** (what
+> "unwarranted" means is not settled, and a capability is the wrong place to
+> guess it), no `best_sealed` change, no bundle carriage yet — so §4's import
+> rule is argued and not yet enforced. The demand caution below still stands.
 
 §1.10 says Nestor holds one warrant — **attestation**, "a person here checked"
 — while two sibling repositories hold others: jeles' **citation** (a named

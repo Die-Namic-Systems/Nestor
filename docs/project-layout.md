@@ -28,6 +28,7 @@ nestor/
 ├── reconcile.py      recipe — figure → sealed baseline, with tolerance and variation
 ├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
 ├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
+├── warrant.py       why a stranger should believe a claim — citation and construction warrants, composed with the seal (docs/warrants.md)
 ├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
