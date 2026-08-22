@@ -6965,3 +6965,89 @@ that already exists; what was missing was anybody writing down when to use it.
 *The covenant held on the day. It held because the agent read it and chose to,
 which is exactly the property this entry exists to stop relying on.*
 
+
+---
+
+### 6.114 `scripts/ci-lint.sh` says it matches the workflow and does not pin what the workflow pins — **measured**, fix **shipped**
+
+The script's first line is *"Match `.github/workflows/tests.yml` — run before
+push"*, and its ruff step is `python -m ruff check nestor tests hooks`. The
+workflow's step is the same string, but the line above it is
+`pip install ruff==0.15.0 …`. The script inherits whatever ruff the local
+`.venv` happens to hold. Here that was **0.16.3**, and the difference is not
+cosmetic:
+
+| ruff | result on an untouched tree |
+|---|---|
+| 0.15.0 (CI's pin) | `All checks passed!` |
+| 0.16.3 (this `.venv`) | **530 errors**, 383 auto-fixable |
+
+Every one of the 530 is pre-existing and repo-wide — `PIE810` in
+`hooks/before_bash.py`, `UP035` in `nestor/ui.py`, import-sorting through
+`nestor/cli.py`. None of them is a finding about the change in front of you.
+
+**Why it is worth an entry rather than a shrug.** A pre-push gate that fails on
+work nobody did is the exact failure the version-gated bundle digest exists to
+avoid, described in `portable.py` in almost these words: an integrity check that
+fails on an untouched payload trains people to ignore it. A lint gate that
+reports 530 findings on a clean tree trains an agent to stop reading the gate —
+and the run where it actually has something to say is indistinguishable from the
+528 before it. The pin is what makes the check mean something, and it is on the
+side of the pair that CI runs, not the side an agent runs before push.
+
+**Measured, not inferred:** `uvx ruff@0.15.0 check nestor tests hooks` →
+`All checks passed!` on the same working tree that `python -m ruff check` (0.16.3)
+reported 530 errors on. `bandit`, `mypy`, `secret-scan.sh` and `dep-audit.sh` all
+pass either way; ruff is the only step that diverges.
+
+**Fix, not applied here** because it changes how every agent in this repo runs a
+gate and that is worth being deliberate about: pin the versions in the script the
+way the workflow pins them (`uvx ruff@0.15.0 …`, or a `requirements-dev.txt` both
+read), so "match the workflow" is enforced rather than asserted. This is
+§6.111's lesson — a rule kept in two copies drifts, and the copy that drifts is
+the one with no CI in front of it — arriving in a third place.
+
+**Fix shipped in the same session, after the operator chose it over logging it
+or moving CI forward** (decision 0168). `scripts/lint-pins.txt` is now the one
+place the five versions live; `.github/workflows/tests.yml` installs from it,
+and `scripts/ci-lint.sh` calls `scripts/lint-pins-check.sh` before any check
+runs. A local environment that differs **refuses**, naming each differing tool
+and the one command that fixes it:
+
+```
+ci-lint: refusing to run — this environment's lint tools are not CI's.
+
+Different version than CI runs:
+  ruff: this environment has 0.16.3, CI pins 0.15.0
+```
+
+Two things it deliberately does **not** do. It does not warn and continue — a
+warning printed above 530 findings is not read, which is the failure this entry
+is about. And it does not quietly run the pinned version out of an isolated
+sandbox: mypy resolves *this project's* imports, pip-audit audits the very
+environment it runs in, and detect-secrets is invoked as `python -m` by
+`secret-scan.sh`, so three of the five would answer a question about a different
+environment and print it as though it were about this one. Refusing is the
+honest move; `pip install -r scripts/lint-pins.txt` is the fix.
+
+*Verified after syncing this checkout's venv to the pins: `bash scripts/ci-lint.sh`
+exits 0, all five gates clean.*
+
+**And the fix moved a premise the boot check was resting on.** `hooks/session_start.py`
+probed importability and said so in its own docstring: *"`find_spec` is also the
+honest question — ci-lint.sh invokes these as `python -m`, so 'does it import
+here' is precisely what the script needs and no more."* True until this change,
+and false the moment ci-lint.sh grew a gate ahead of its first check. A boot line
+reading `lint: … ready` for an environment the script now refuses is the
+silently-absent third gate all over again, one layer up — the exact failure that
+check was built after. So the probe buys both facts in the same single
+subprocess, and the line has a third state:
+
+```
+[check] lint: PINS DIFFER ruff 0.16.3!=0.15.0 — `bash scripts/ci-lint.sh` refuses
+before its first check (agent-log §6.114). Fix with: .venv/bin/pip install -r scripts/lint-pins.txt
+```
+
+*The lesson, which is not new here: a fix that adds a gate has to be checked
+against every check that was reporting on the old one. The docstring said what
+it assumed, which is the only reason this was findable at all.*

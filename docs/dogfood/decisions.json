@@ -1,13 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 460,
+    "pairs": 475,
     "rejections": 0,
     "sealed": 0,
-    "servable": 0
+    "servable": 0,
+    "warrants": 0
   },
   "created_at": "2026-08-22T00:00:00+00:00",
-  "digest": "2c12631f0b2b20f6c7499896a34219d8ee66299311fa143c5600dd462cf08fa0",
+  "digest": "f50f44a32978fa605a3793aa73a213b2b918a385bbfdb8f6f1d6ba12b81cf16a",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -19,7 +20,7 @@
     "unreadable": []
   },
   "matcher": "StringMatcher",
-  "nestor_bundle": 3,
+  "nestor_bundle": 4,
   "pairs": [
     {
       "created_at": "2026-08-22T00:00:00+00:00",
@@ -37,6 +38,48 @@
     },
     {
       "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "ec44a12d-0a9c-5502-83c9-0b99e58d4da4",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when the local versions differ from cis does the gate warn and continue or refuse",
+      "source_text": "When the local versions differ from CI's, does the gate warn and continue, or refuse?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Refuse, before any check runs, naming each differing tool and the one command that fixes it. Not a warning, and not a quiet fallback to running the pinned version out of an isolated sandbox.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "eb127497-6b67-538b-8499-8f18a862e9a1",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "bump the bundle version to 4 or add warrants beside the digest",
+      "source_text": "Bump the bundle version to 4, or add `warrants` beside the digest?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Bump, and fold `warrants` into the digest gated on version >= 4, exactly as evidence was gated at 3 and `reopen_when` at 2. The three bundles checked into this repository keep verifying byte-for-byte, and they are not all one version — docs/research-corpus is v3, docs/llm-only-joke and docs/ideas-store are v2, which is the point: two gates, both still holding, and each verified by running verify_bundle over the actual file rather than by assuming.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "d3379910-5d72-569e-98bf-a489c1a087fc",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where do the refusal rules live now that two paths enforce them",
+      "source_text": "Where do the refusal rules live, now that two paths enforce them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One function — `warrant.refuse_reason(kind, authority, locator, check, expected_digest)` — returning a reason or the empty string. `attach` raises it at a local caller who can fix the argument; `_import_warrants` records it against the row and imports the rest. `attach`'s validation was moved into it rather than copied.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
       "id": "caf18dce-3835-5392-884d-be5a44b5f410",
       "origin": "pr:",
       "seal_sig": "",
@@ -46,6 +89,76 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Proposed rule, stronger than stripping: import may carry a warrant, and may never carry a CONCLUSION about it. By kind — attestation: unchanged, is_verified_seal already decides on import as everywhere else. Citation: carry it, marked unverified-here, because a citation's whole nature is that a stranger can follow it and stripping it destroys the only warrant that survives leaving the room. Construction: carry the recipe, never a verdict — which falls out of the previous row automatically, since there is no verdict to carry.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "c9d72127-e2e9-550a-9cf3-0f42f7894d33",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where do the lint gates tool versions live now that the script and the workflow both need them",
+      "source_text": "Where do the lint gate's tool versions live, now that the script and the workflow both need them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`scripts/lint-pins.txt`, a requirements file the workflow installs from (`pip install -r scripts/lint-pins.txt`) and `scripts/ci-lint.sh` checks the local environment against. One file, two callers, neither keeping its own copy — the shape `secret-scan.sh` and `dep-audit.sh` already use, applied to the thing they did not cover. The ordering constraint that used to be a comment in the workflow (pip-audit before detect-secrets, or the latter flags the pin line on itself) moved into the file, next to the order it constrains.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "b16c1a6f-667d-5d59-9883-ac581039e7bc",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does import strip warrants as 110c asked or carry them",
+      "source_text": "Does import strip warrants, as §1.10(c) asked, or carry them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Carry, and refuse selectively — which is 0164's rule, now enforced. A citation or construction row lands as-is; the reader checks it or nobody does. Refused, per row and named in `report['refused_warrants']`: an `attestation` kind, an unknown kind, an empty authority or locator, an over-long field, a construction with no expected digest, a citation carrying one. Dropped separately, as evidence is: a row naming a pair the bundle does not carry (`report['dangling_warrants']`).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "af41c164-089f-5b2a-9f8c-f6139bac6700",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does adding warrants to provenance settle ideas 110a the served state for cited unsealed",
+      "source_text": "Does adding warrants to provenance settle IDEAS §1.10(a) — the served state for 'cited, unsealed'?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it was shaped so it could not. Provenance is the audit view, reached by pair id after somebody already has the row. `best_sealed` and `Passage.state` are untouched; nothing about what gets served, or about what `pending` means, moves here.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "a61e296f-1570-5531-9068-13dca047bde2",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the version read from each tools version output or from installed metadata",
+      "source_text": "Is the version read from each tool's `--version` output or from installed metadata?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`importlib.metadata.version(<dist>)` — the installed distribution's version, which is the thing pip pinned. Import names that differ from distribution names (`pip-audit`/`pip_audit`, `detect-secrets`/`detect_secrets`) are mapped in one place.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "6453ba75-19cd-59bd-82ed-bf6d463de0a0",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the cli refuse kind attestation",
+      "source_text": "How does the CLI refuse `--kind attestation`?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "By argparse `choices=sorted(WARRANT_KINDS)`, so the word is rejected by name before a store is opened, with the two real kinds in the message. Not by accepting it and letting `warrant.attach` raise.",
       "verifier": "",
       "weight": 1.0
     },
@@ -88,6 +201,104 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Proposed: no. A constructed warrant stores a RECIPE and an EXPECTED DIGEST — what to run, against what input, what it must produce — and Nestor never marks it satisfied. It reports 'recomputable: here is how'; the reader who cares runs it. Nestor holds the recipe and not the verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "3b7efb9f-a844-5d6b-afeb-362bed858f05",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is never a conclusion actually kept",
+      "source_text": "How is 'never a conclusion' actually kept?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "By the schema, not by the importer. `WARRANT_FIELDS` has no column a verdict could go in — no `verified`, no `verified_at`, no `holds` — so there is nothing for an import to set and nothing for a bundle to assert. The test asserts the absence over the landed row's own keys, so a future column that did hold a verdict fails it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "398b3baf-566b-55e0-ba9b-f6755bc1c4a5",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does nestor warrant for show the attestation that warrants_for composes rather than stores",
+      "source_text": "How does `nestor warrant for` show the attestation that `warrants_for` composes rather than stores?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Marked in the line: `(from the seal, not stored as a warrant)`, keyed off the row's `stored: False`. The JSON output carries the row as-is, `stored` field included, and adds a sorted `kinds` list.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "3860e2c3-f104-50d0-9388-b4c119a08417",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does nestor warrant get a report subcommand the way nestor evidence has one for unevidenced seals",
+      "source_text": "Does `nestor warrant` get a `report` subcommand, the way `nestor evidence` has one for unevidenced seals?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `attach` and `for`, and nothing else. The parallel is tempting and the shape is already written next door, which is exactly why it needed refusing on purpose rather than by omission.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "2c8458eb-8ddc-5680-b5b5-add8a2031a77",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does provenance return for a store that does not implement one of the optional relations",
+      "source_text": "What does provenance return for a store that does not implement one of the optional relations?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The key is omitted entirely, not set to an empty list. Present-and-empty means 'nothing is attached'; absent means 'this store cannot say'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "2c70734d-3b68-547b-94c2-8daacda20c92",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the boot check hookssession_startpy reported lint readiness from importability does adding a gate ahead of cilintshs first check change what ready means",
+      "source_text": "The boot check (`hooks/session_start.py`) reported lint readiness from importability. Does adding a gate ahead of ci-lint.sh's first check change what 'ready' means?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and the boot check moved with it. Its probe now buys both facts in one subprocess — does each gate import, and is it CI's pinned version — and the line has a third state, `PINS DIFFER`, that is not 'ready'. Absence is still reported once, by the module probe; the pin loop skips a distribution it cannot find rather than naming the same problem twice in two spellings.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "2b206dea-ae76-59e3-ae33-4ec76674a9b7",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does an export carry the composed attestation warrant that warrants_for returns",
+      "source_text": "Does an export carry the composed `attestation` warrant that `warrants_for()` returns?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Export reads the stored rows through `memory_warrants_for` rather than through `warrant.warrants_for`, so only `citation` and `construction` travel in `bundle['warrants']`. The seal travels where it already travelled — on the pair in `bundle['pairs']`, carrying `seal_sig`.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "18b556f5-6681-53e8-adec-2add7ac1bfee",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should curatorget the provenance call carry evidence and warrants when it carried only rejections",
+      "source_text": "Should `Curator.get` — the provenance call — carry evidence and warrants, when it carried only rejections?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, both. Not warrants alone: evidence's absence there was not an argued decision, it was the shape the evidence edge happened to land in, and adding the newer relation while leaving the older one out would have made the audit view asymmetric for no reason anybody could point at.",
       "verifier": "",
       "weight": 1.0
     },
@@ -6468,5 +6679,6 @@
   "signing": {
     "algorithm": "hmac-sha256",
     "enabled": true
-  }
+  },
+  "warrants": []
 }

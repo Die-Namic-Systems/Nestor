@@ -1,0 +1,23 @@
+{
+  "branch": "claude/warrants-relation",
+  "date": "2026-08-22",
+  "note": "Decisions from widening `Curator.get` — the call `answer.provenance` returns and `nestor_provenance` serves over MCP — to carry the evidence a pair points at and the warrants that say why a stranger should believe it. Proposed by the agent, chosen by the operator over the narrower 'warrants only' and over leaving it open. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Checked against the tree, not recalled: Curator.get at curator.py:116 returning pair + signature validity + rejections and nothing else, the nestor_provenance tool description at serve.py:243, and storage.supports_evidence / supports_warrants as optional capabilities.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should `Curator.get` — the provenance call — carry evidence and warrants, when it carried only rejections?",
+      "commitment": "Yes, both. Not warrants alone: evidence's absence there was not an argued decision, it was the shape the evidence edge happened to land in, and adding the newer relation while leaving the older one out would have made the audit view asymmetric for no reason anybody could point at.",
+      "why": "The two relations answer the two questions an auditor actually arrives with — what does this claim point at, and what entitles me to believe it — and provenance is the one call that is supposed to answer 'why should I trust this'. Both were reachable, but only through `nestor evidence for` and `nestor warrant for`, which means the single call named provenance was the one place they were invisible. That matters most for the MCP caller: a model quoting `nestor_provenance` instead of asserting confidence was quoting the thinnest available answer."
+    },
+    {
+      "question": "What does provenance return for a store that does not implement one of the optional relations?",
+      "commitment": "The key is omitted entirely, not set to an empty list. Present-and-empty means 'nothing is attached'; absent means 'this store cannot say'.",
+      "why": "Nestor's standing rule is that silence from a check means nothing (decision 0127), and an empty list is not silence — it is a positive claim that nothing is there. A store without the warrants capability has made no such claim and cannot. Collapsing the two would let a caller conclude 'unwarranted' from a store that was never asked, which is the same shape as reporting a skipped dependency as clean (dep-audit.sh) and as §6.46's absent empty-run branch."
+    },
+    {
+      "question": "Does adding warrants to provenance settle IDEAS §1.10(a) — the served state for 'cited, unsealed'?",
+      "commitment": "No, and it was shaped so it could not. Provenance is the audit view, reached by pair id after somebody already has the row. `best_sealed` and `Passage.state` are untouched; nothing about what gets served, or about what `pending` means, moves here.",
+      "why": "0164's proposal for (a) goes further than this — warrants surfacing on the served answer and on the display state — and it is still a proposal. Answering an open design question as a side effect of a convenience addition is how a decision gets taken without anybody deciding it. The audit view widening is the part that needed no new argument; the serve path still needs one."
+    }
+  ]
+}

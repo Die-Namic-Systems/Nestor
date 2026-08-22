@@ -70,6 +70,19 @@ exactly this the day this file was written.
   the asymmetric suite runs instead of skipping. Do **not** add `[semantic]`
   unless the task needs it — see "Before you finish".
 
+- **`ci-lint.sh` refuses to run against tool versions CI does not use.** The
+  pins live in `scripts/lint-pins.txt`, which the workflow installs from; if
+  your environment differs the gate stops and names the tool and the fix:
+
+  ```bash
+  pip install -r scripts/lint-pins.txt
+  ```
+
+  This is not fussiness. A ruff one minor ahead of the pin reported 530
+  pre-existing findings on a tree CI called clean (agent-log §6.114) — a gate
+  that answers under a different version has not answered about your push, and
+  a gate that cries wolf 530 times is one nobody reads on the run that matters.
+
 ---
 
 ## The one rule that is not a guideline

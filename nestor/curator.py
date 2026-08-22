@@ -114,12 +114,30 @@ class Curator:
         return [self._annotate(r) for r in rows]
 
     def get(self, pair_id: str) -> Optional[dict]:
-        """One pair with full provenance, signature validity and its rejections.
+        """One pair with full provenance: signature validity, rejections, what
+        it rests on, and what entitles a stranger to believe it.
 
         ``rejections`` lists every query this pair was refused for. A pair
         rejected against many different queries is probably junk — that is a
         curator's cue to unseal or reject it outright, and it is not visible
         anywhere else.
+
+        ``evidence`` and ``warrants`` answer the two different questions the
+        auditor actually arrives with. Evidence is what the claim points at and
+        carries no authority (:mod:`nestor.evidence`); a warrant names an
+        authority and says how to check it (:mod:`nestor.warrant`). Both were
+        reachable only through their own commands until now, which meant the one
+        call named "provenance" — the call an auditor makes months later, and
+        the one ``nestor_provenance`` serves to a model over MCP — answered
+        "who sealed this and who argued with it" and nothing about what it rests
+        on. Each is omitted, rather than empty, on a store lacking that optional
+        capability: an empty list would read as "nothing attached" where the
+        truth is "this store cannot say".
+
+        ``warrants`` includes the ``attestation`` composed from the pair's own
+        seal, marked ``stored: False``. Nothing here reports a warrant as
+        satisfied, and no field could: a warrant row is the claim that a warrant
+        exists plus what a reader needs to check it themselves.
         """
         pair = self.store.memory_get(pair_id)
         if not pair:
@@ -135,6 +153,20 @@ class Curator:
             for r in self.store.memory_rejections_for_pair(pair_id)
         ]
         out["rejection_count"] = len(out["rejections"])
+        # Local imports: both relations are optional capabilities, and neither
+        # may become a hard dependency of the curator surface.
+        from .storage import supports_evidence, supports_warrants
+        if supports_evidence(self.store):
+            from . import evidence as evidence_mod
+            out["evidence"] = evidence_mod.evidence_for(pair_id, store=self.store)
+            out["evidence_count"] = len(out["evidence"])
+        if supports_warrants(self.store):
+            from . import warrant as warrant_mod
+            out["warrants"] = warrant_mod.warrants_for(pair_id, store=self.store)
+            # A sorted set, said out loud, because the list's order is
+            # presentation and a reader must not take the first row for the
+            # strongest one. There is no strongest one.
+            out["warrant_kinds"] = sorted({w["kind"] for w in out["warrants"]})
         return out
 
     def unverifiable(self, limit: int = 200) -> builtins.list[dict]:

@@ -27,6 +27,16 @@ Rejections import unconditionally. Honoring a rejection only ever withholds an
 answer, which is the safe direction — the asymmetry ``memory.rejected_ids``
 documents, applied to files.
 
+**Warrants carry, and conclusions about them do not.** Evidence rides the import
+path because it is powerless. A warrant is not — it names an authority and says
+how to check one — so it travels under a different rule (docs/warrants.md §4):
+the *claim* that a warrant exists moves, together with everything a reader needs
+to check it, and no field travels that could say whether it holds. Import
+refuses every warrant row ``warrant.attach`` would refuse locally, through the
+same function, and says which ones in its report. ``attestation`` is refused
+outright: a seal travels on the pair, with its signature, and a bundle must not
+have a second unsigned way to say a person checked something.
+
 **The ledger does not merge.** A hash chain has one history by construction, and
 splicing another instance's entries into it would produce a chain that verifies
 while describing events that never happened here. A bundle carries the source
@@ -45,9 +55,9 @@ from typing import Any, Optional, cast
 
 from . import cascade, ledger as ledger_mod, memory, signing
 from .matcher import Matcher, matcher_audit_fields
-from .storage import (EvidenceStorage, Storage, get_store, supports_curation,
-                      supports_evidence, supports_rejection,
-                      supports_rejection_listing)
+from .storage import (EvidenceStorage, Storage, WarrantStorage, get_store,
+                      supports_curation, supports_evidence, supports_rejection,
+                      supports_rejection_listing, supports_warrants)
 
 #: Version 2 carries ``reopen_when`` on rejections. Bumped rather than added
 #: silently because the field changes the payload the digest is taken over, and
@@ -56,12 +66,14 @@ from .storage import (EvidenceStorage, Storage, get_store, supports_curation,
 #: Version 3 carries ``evidence`` (docs/evidence-edge.md). Bumped, not added
 #: silently, for the same reason 2 was: evidence joins the payload the digest is
 #: taken over, so a bundle's integrity check depends on which build wrote it.
-BUNDLE_VERSION = 3
+#: Version 4 carries ``warrants`` (docs/warrants.md §4, IDEAS §1.10(c)), on the
+#: same terms and for the same reason.
+BUNDLE_VERSION = 4
 
 #: All are readable. Writing is always the current version; a version-1 or -2
 #: bundle keeps verifying against the fields it was hashed with, so upgrading
 #: this build does not invalidate bundles already in circulation.
-SUPPORTED_BUNDLE_VERSIONS = (1, 2, 3)
+SUPPORTED_BUNDLE_VERSIONS = (1, 2, 3, 4)
 
 PAIR_FIELDS = ("id", "source_text", "source_norm", "source_lang", "target_text",
                "target_lang", "status", "verifier", "weight", "origin",
@@ -75,13 +87,25 @@ _REJECTION_FIELDS_V1 = ("id", "query_norm", "source_lang", "target_lang", "pair_
 REJECTION_FIELDS = _REJECTION_FIELDS_V1 + ("reopen_when",)
 
 _REJECTION_FIELDS_BY_VERSION = {1: _REJECTION_FIELDS_V1, 2: REJECTION_FIELDS,
-                                3: REJECTION_FIELDS}
+                                3: REJECTION_FIELDS, 4: REJECTION_FIELDS}
 
 #: Evidence carried in a version-3+ bundle (docs/evidence-edge.md). No signature
 #: field: evidence holds no authority, so unlike a pair there is nothing to
 #: verify on import — the row is a reference, re-added as-is.
 EVIDENCE_FIELDS = ("id", "pair_id", "kind", "locator", "attaches_to", "reason",
                    "attached_by", "created_at")
+
+#: Warrants carried in a version-4+ bundle (docs/warrants.md §4). Also no
+#: signature field, but for the opposite reason to evidence's: evidence rides
+#: the import path *because* it is powerless, and a warrant is not — so what
+#: makes the carriage safe has to be something else. It is this: the row travels
+#: as the *claim* that a warrant exists, plus the locator and procedure a reader
+#: needs to check it themselves, and there is no column here that could hold a
+#: conclusion about whether it holds. "Import may carry a warrant, and may never
+#: carry a conclusion about it" is kept by the schema, not remembered by the
+#: importer.
+WARRANT_FIELDS = ("id", "pair_id", "kind", "authority", "locator", "check",
+                  "expected_digest", "attached_by", "created_at")
 
 #: Rejections get their own default cap, deliberately not `limit`'s. A cap
 #: sized for pairs says nothing about how many times those pairs were argued
@@ -122,6 +146,7 @@ def _canonical(value: Any) -> str:
 
 def digest(pairs: list[dict], rejections: list[dict],
            evidence: Optional[list[dict]] = None,
+           warrants: Optional[list[dict]] = None,
            version: int = BUNDLE_VERSION) -> str:
     """A stable sha256 over the bundle's payload, as ``version`` defines it.
 
@@ -160,6 +185,12 @@ def digest(pairs: list[dict], rejections: list[dict],
     # reopen_when bump was gated. Only v3+ folds evidence into the payload.
     if version >= 3:
         payload_dict["evidence"] = rows(evidence or [], EVIDENCE_FIELDS)
+    # Same gate, same reason, one version later. The three bundles already in
+    # this repository (docs/*/nestor.bundle.json) are v2, v2 and v3 — both
+    # earlier gates are still load-bearing, and each must keep recomputing to
+    # the digest it carries.
+    if version >= 4:
+        payload_dict["warrants"] = rows(warrants or [], WARRANT_FIELDS)
     payload = json.dumps(payload_dict, sort_keys=True, separators=(",", ":"),
                          ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -312,6 +343,20 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
             evidence.extend(_row(e, EVIDENCE_FIELDS)
                             for e in ev_store.memory_evidence_for(p["id"]))
         evidence.sort(key=lambda e: (e.get("created_at", ""), e.get("id", "")))
+    # Warrants for the exported pairs (docs/warrants.md §4, v4+). Read through
+    # the store rather than through ``warrant.warrants_for``, which composes the
+    # pair's seal in as a synthetic ``attestation`` row: that row is a rendering
+    # of the seal, and the seal already travels in ``pairs`` with its signature.
+    # Carrying it here too would put one fact in the bundle twice, once signed
+    # and once not — and the unsigned copy would be the forgeable path into a
+    # destination's "a person checked this". Stored warrants only.
+    warrant_rows: list[dict] = []
+    if supports_warrants(store):
+        w_store = cast(WarrantStorage, store)
+        for p in pairs:
+            warrant_rows.extend(_row(w, WARRANT_FIELDS)
+                                for w in w_store.memory_warrants_for(p["id"]))
+        warrant_rows.sort(key=lambda w: (w.get("created_at", ""), w.get("id", "")))
     if pairs_truncated:
         warnings.warn(
             f"export hit its pair limit ({limit}); this bundle is a prefix of the "
@@ -339,11 +384,14 @@ def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
             "servable": sum(1 for p in pairs if memory.is_verified_seal(p)),
             "rejections": len(rejections),
             "evidence": len(evidence),
+            "warrants": len(warrant_rows),
         },
-        "digest": digest(pairs, rejections, evidence, version=BUNDLE_VERSION),
+        "digest": digest(pairs, rejections, evidence, warrant_rows,
+                         version=BUNDLE_VERSION),
         "pairs": pairs,
         "rejections": rejections,
         "evidence": evidence,
+        "warrants": warrant_rows,
     }
     if include_ledger:
         # Carried for reading, never for splicing — see the module docstring.
@@ -380,16 +428,18 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
     version = int(version)
     pairs, rejections = bundle.get("pairs"), bundle.get("rejections", [])
     evidence = bundle.get("evidence", [])
+    warrant_rows = bundle.get("warrants", [])
     if not isinstance(pairs, list) or not isinstance(rejections, list) \
-            or not isinstance(evidence, list):
-        return False, "'pairs', 'rejections' and 'evidence' must be lists"
+            or not isinstance(evidence, list) or not isinstance(warrant_rows, list):
+        return False, ("'pairs', 'rejections', 'evidence' and 'warrants' must "
+                       "be lists")
     for row in pairs:
         missing = [f for f in ("id", "source_norm", "source_lang", "target_lang",
                                "target_text", "status") if f not in row]
         if missing:
             return False, f"pair {row.get('id', '?')} is missing {', '.join(missing)}"
     want = bundle.get("digest")
-    got = digest(pairs, rejections, evidence, version=version)
+    got = digest(pairs, rejections, evidence, warrant_rows, version=version)
     if want and want != got:
         return False, (f"digest mismatch: the payload is not the one exported "
                        f"(expected {want[:16]}…, computed {got[:16]}…)")
@@ -399,8 +449,9 @@ def verify_bundle(bundle: Any) -> tuple[bool, str]:
     short = f" — SHORT: the exporter flagged missing {' and '.join(missing)}" \
         if missing else ""
     ev_note = f", {len(evidence)} evidence row(s)" if version >= 3 else ""
+    w_note = f", {len(warrant_rows)} warrant(s)" if version >= 4 else ""
     return True, (f"{len(pairs)} pair(s), {len(rejections)} rejection(s)"
-                  f"{ev_note}, digest {got[:16]}…{short}")
+                  f"{ev_note}{w_note}, digest {got[:16]}…{short}")
 
 
 class _PairDisposition:
@@ -590,6 +641,56 @@ def _import_evidence(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
                 report["evidence"] -= 1
 
 
+def _import_warrants(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
+                     report: dict) -> None:
+    """Import the bundle's warrant rows — the claims, never a conclusion.
+
+    Three ways a row does not land, and they are different facts:
+
+    * **dangling** — it names a pair this bundle does not carry, so there is
+      nothing here to warrant. Dropped, like a dangling evidence row.
+    * **refused** — it breaks a rule :func:`nestor.warrant.attach` enforces
+      locally: an unknown kind, an empty authority, a construction with no
+      expected digest. The commonest one that matters is ``attestation``: export
+      never writes it (a seal travels as a seal, signed), so a bundle carrying
+      one is a file claiming "a person checked this" with no signature to check.
+      Refusing it here is what keeps the seal the only way to say that.
+    * **duplicate id** — already present; not an error, as elsewhere.
+
+    Nothing in the accepted rows is verified by this instance, and nothing can
+    be: :data:`WARRANT_FIELDS` has no column for a verdict. The row says who
+    vouches, where to look, and what to do when you get there — the reader
+    checks it, or nobody does.
+    """
+    if not supports_warrants(store):
+        return
+    from .warrant import refuse_reason        # local, as evidence's ledger is
+    w_store = cast(WarrantStorage, store)
+    for raw in bundle.get("warrants", []):
+        named = raw.get("pair_id") or ""
+        if named and named not in id_map:
+            report["dangling_warrants"].append(named)
+            continue
+        w = _row(raw, WARRANT_FIELDS)
+        reason = refuse_reason(str(w["kind"]), str(w["authority"]),
+                               str(w["locator"]), str(w["check"]),
+                               str(w["expected_digest"]))
+        if reason:
+            report["refused_warrants"].append(
+                {"id": w.get("id", ""), "kind": w.get("kind", ""),
+                 "reason": reason})
+            continue
+        report["warrants"] += 1
+        if not dry_run:
+            w["id"] = w.get("id") or str(uuid.uuid4())
+            if named:
+                w["pair_id"] = id_map[named]
+            try:
+                w_store.memory_add_warrant(w)
+            except Exception:                  # noqa: BLE001 — a duplicate id is not a failure
+                report["warrants"] -= 1
+
+
 def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
                   verifier: str = "", override_conflicts: bool = False,
                   override_rejections: bool = False,
@@ -667,6 +768,8 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
                               "conflicts": [], "rejected_here": [], "rejections": 0,
                               "dangling_rejections": [],
                               "evidence": 0, "dangling_evidence": [],
+                              "warrants": 0, "dangling_warrants": [],
+                              "refused_warrants": [],
                               "partial_source": bool(bundle.get("partial_rejections")
                                                      or bundle.get("partial_pairs")),
                               "source_matcher": source_matcher,
@@ -718,6 +821,7 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
 
     _import_rejections(store, bundle, id_map, dry_run, report)
     _import_evidence(store, bundle, id_map, dry_run, report)
+    _import_warrants(store, bundle, id_map, dry_run, report)
 
     if not dry_run:
         cascade._ledger_append({
@@ -726,8 +830,18 @@ def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = 
             "demoted": report["demoted"], "drafts": report["drafts"],
             "existing": report["existing"], "conflicts": len(report["conflicts"]),
             "rejections": report["rejections"], "evidence": report["evidence"],
+            "warrants": report["warrants"],
+            "refused_warrants": len(report["refused_warrants"]),
             "source_created_at": bundle.get("created_at", ""),
         })
+        if report["refused_warrants"]:
+            kinds = sorted({str(r["kind"]) for r in report["refused_warrants"]})
+            warnings.warn(
+                f"{len(report['refused_warrants'])} warrant(s) in this bundle "
+                f"were refused and NOT imported (kind(s): {', '.join(kinds)}). "
+                f"A warrant this build will not write locally is not one it "
+                f"will accept from a file; report['refused_warrants'] says why "
+                f"for each.", RuntimeWarning, stacklevel=2)
         if report["rejected_here"] and not override_rejections:
             warnings.warn(
                 f"{len(report['rejected_here'])} pair(s) in this bundle were "

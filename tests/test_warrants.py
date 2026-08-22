@@ -219,3 +219,215 @@ def test_kinds_held_is_a_set_with_no_ordering(store):
     # There is no strongest-warrant accessor, and this test exists to say that
     # is deliberate: "sealed by Rita" and "cited to Crossref" do not compare.
     assert not hasattr(warrant, "strongest")
+
+
+# -- carriage: a warrant crosses the instance boundary (IDEAS 1.10(c),
+#    docs/warrants.md section 4) ---------------------------------------------
+#
+# The rule the memo settled on is stronger than "strip": import MAY carry a
+# warrant, and may NEVER carry a conclusion about it. These gates hold both
+# halves — the citation survives the trip (stripping would destroy the only
+# warrant that survives leaving the room), and nothing that arrives is marked
+# checked here, because there is no field that could mark it.
+
+def _fresh_dest(tmp_path, name):
+    """A second instance: its own store, its own ledger."""
+    cascade.set_ledger_path(tmp_path / f"{name}.jsonl")
+    dest = SqliteStore(":memory:")
+    dest.memory_init()
+    return dest
+
+
+def test_a_citation_survives_an_export_import_round_trip(store, tmp_path):
+    from nestor import portable
+    pair = _draft(store, "who owns the arrears clause")
+    warrant.attach(pair["id"], "citation", "Crossref",
+                   "https://doi.org/10.1000/xyz", check="follow the DOI",
+                   attached_by="agent-7", store=store)
+    bundle = portable.export_bundle(store=store)
+    assert bundle["nestor_bundle"] == 4
+    assert bundle["counts"]["warrants"] == 1
+    ok, detail = portable.verify_bundle(bundle)
+    assert ok, detail
+    assert "1 warrant(s)" in detail
+
+    dest = _fresh_dest(tmp_path, "dest_citation")
+    report = portable.import_bundle(bundle, store=dest, dry_run=False,
+                                    verifier="sam")
+    assert report["warrants"] == 1
+    landed = [w for w in warrant.warrants_for(pair["id"], store=dest)
+              if w["stored"]]
+    assert len(landed) == 1
+    assert landed[0]["authority"] == "Crossref"
+    assert landed[0]["locator"] == "https://doi.org/10.1000/xyz"
+    assert landed[0]["check"] == "follow the DOI"
+    # The conclusion half: nothing that arrived says it was checked, and there
+    # is no column that could say so. Asserted over the stored row's own keys
+    # rather than over a list this test wrote, so a future column that DID hold
+    # a verdict would fail here.
+    assert not ({"verified", "verified_at", "verified_by", "holds", "confirmed"}
+                & set(landed[0]))
+    dest.close()
+
+
+def test_a_construction_warrant_carries_its_recipe_and_no_verdict(store, tmp_path):
+    from nestor import portable
+    pair = _draft(store, "the scan makes no network calls")
+    warrant.attach(pair["id"], "construction", "redential",
+                   "npx redential scan --json", check="compare the merkle root",
+                   expected_digest="ab" * 16, store=store)
+    bundle = portable.export_bundle(store=store)
+    dest = _fresh_dest(tmp_path, "dest_construction")
+    portable.import_bundle(bundle, store=dest, dry_run=False, verifier="sam")
+    landed = [w for w in warrant.warrants_for(pair["id"], store=dest)
+              if w["stored"]][0]
+    # What the reader needs to run it themselves, intact: what to run, and what
+    # it must produce. Nestor holds the recipe; it does not hold the verdict.
+    assert landed["locator"] == "npx redential scan --json"
+    assert landed["expected_digest"] == "ab" * 16
+    dest.close()
+
+
+def test_the_seal_does_not_travel_twice(store, tmp_path):
+    """``warrants_for`` composes an attestation on read, and export must NOT
+    put that composed row in the bundle: the seal already travels in ``pairs``
+    WITH its signature. An unsigned second copy would be a forgeable path into
+    a destination's 'a person here checked'."""
+    from nestor import portable
+    pair = _sealed(store, "sealed and cited")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    assert [w["kind"] for w in bundle["warrants"]] == ["citation"]
+    assert not any(w["kind"] == "attestation" for w in bundle["warrants"])
+    # The seal itself is still carried, on the pair, where it is signed.
+    assert bundle["pairs"][0]["status"] == "sealed"
+
+
+def test_import_refuses_a_bundle_claiming_an_attestation_warrant(store, tmp_path):
+    """The laundering case. Export cannot write this row; a hand-edited or
+    hostile bundle can. Accepting it would let a file assert 'a person checked
+    this' with no signature for the destination to check — which is exactly the
+    power the seal is the only thing allowed to carry."""
+    from nestor import portable
+    pair = _draft(store, "trust me")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    forged = dict(bundle["warrants"][0], id="forged-1", kind="attestation",
+                  authority="rita")
+    bundle["warrants"].append(forged)
+    bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                       bundle["evidence"], bundle["warrants"],
+                                       version=bundle["nestor_bundle"])
+    dest = _fresh_dest(tmp_path, "dest_forged")
+    with pytest.warns(RuntimeWarning, match="warrant"):
+        report = portable.import_bundle(bundle, store=dest, dry_run=False,
+                                        verifier="sam")
+    assert report["warrants"] == 1                      # the citation, and only it
+    assert [r["kind"] for r in report["refused_warrants"]] == ["attestation"]
+    assert "attestation is not a stored warrant" in \
+        report["refused_warrants"][0]["reason"]
+    kinds = {w["kind"] for w in warrant.warrants_for(pair["id"], store=dest)}
+    assert kinds == {"citation"}                        # the pair is a draft there
+    dest.close()
+
+
+def test_import_refuses_the_same_rows_attach_refuses(store, tmp_path):
+    """A rule enforced locally and not on the import path is not a rule. Both
+    call ``warrant.refuse_reason``; this pins that they agree on the three
+    cases most worth agreeing on."""
+    from nestor import portable
+    pair = _draft(store, "agreement")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    good = bundle["warrants"][0]
+    bundle["warrants"] += [
+        dict(good, id="bad-kind", kind="vibes"),
+        dict(good, id="bad-authority", authority="   "),
+        dict(good, id="bad-construction", kind="construction",
+             expected_digest=""),
+    ]
+    bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                       bundle["evidence"], bundle["warrants"],
+                                       version=bundle["nestor_bundle"])
+    dest = _fresh_dest(tmp_path, "dest_rules")
+    with pytest.warns(RuntimeWarning, match="refused"):
+        report = portable.import_bundle(bundle, store=dest, dry_run=False,
+                                        verifier="sam")
+    assert report["warrants"] == 1
+    assert {r["id"] for r in report["refused_warrants"]} == {
+        "bad-kind", "bad-authority", "bad-construction"}
+    # And each one is refused locally too, by the same function.
+    for kind, authority, digest_ in (("vibes", "Crossref", ""),
+                                     ("citation", "   ", ""),
+                                     ("construction", "redential", "")):
+        with pytest.raises(ValueError):
+            warrant.attach(pair["id"], kind, authority, "somewhere",
+                           expected_digest=digest_, store=store)
+    dest.close()
+
+
+def test_the_digest_covers_warrants_so_an_edit_is_caught(store):
+    """A warrant is inside the v4 integrity digest, not bolted on beside it —
+    the same gate evidence earned at v3."""
+    from nestor import portable
+    pair = _draft(store, "tamper")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/real",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    assert portable.verify_bundle(bundle)[0]
+    bundle["warrants"][0]["locator"] = "https://doi.org/forged"
+    ok, detail = portable.verify_bundle(bundle)
+    assert not ok and "digest mismatch" in detail
+
+
+def test_import_drops_a_warrant_naming_a_pair_the_bundle_does_not_carry(store,
+                                                                       tmp_path):
+    from nestor import portable
+    pair = _draft(store, "carried")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    bundle["warrants"][0]["pair_id"] = "ghost-pair-id-not-in-bundle"
+    bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                       bundle["evidence"], bundle["warrants"],
+                                       version=bundle["nestor_bundle"])
+    dest = _fresh_dest(tmp_path, "dest_dangling")
+    report = portable.import_bundle(bundle, store=dest, dry_run=False,
+                                    verifier="sam")
+    assert report["warrants"] == 0
+    assert report["dangling_warrants"] == ["ghost-pair-id-not-in-bundle"]
+    dest.close()
+
+
+def test_a_dry_run_import_reports_warrants_and_writes_none(store, tmp_path):
+    from nestor import portable
+    pair = _draft(store, "dry")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    dest = _fresh_dest(tmp_path, "dest_dry")
+    report = portable.import_bundle(bundle, store=dest, dry_run=True)
+    assert report["warrants"] == 1
+    assert warrant.warrants_for(pair["id"], store=dest) == []
+    dest.close()
+
+
+def test_a_version_3_bundle_still_verifies_after_the_bump(store):
+    """The gate the v2->v3 bump earned, one version on: three bundles in this
+    repository were written at 3, and a digest that fails on an untouched
+    payload trains people to ignore it."""
+    from nestor import portable
+    pair = _draft(store, "legacy")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    bundle = portable.export_bundle(store=store)
+    legacy = {k: v for k, v in bundle.items() if k != "warrants"}
+    legacy["nestor_bundle"] = 3
+    legacy["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
+                                       bundle["evidence"], version=3)
+    ok, detail = portable.verify_bundle(legacy)
+    assert ok, detail
+    assert "warrant(s)" not in detail
