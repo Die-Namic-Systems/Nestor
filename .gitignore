@@ -60,3 +60,8 @@ keyring.json
 # Session-local seal ledger for the joke store (audit chain, runtime like *.db).
 # Targeted so the docs/dogfood/**/ledger.jsonl exception above is untouched.
 docs/llm-only-joke/ledger.jsonl
+
+# Coverage data — rewritten by every local test run; a tracked binary here is a
+# permanent phantom diff and an unresolvable merge conflict waiting.
+.coverage
+.coverage.*
