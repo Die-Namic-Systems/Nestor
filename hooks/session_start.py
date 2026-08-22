@@ -198,9 +198,18 @@ def _cli_default_db(root: Path) -> Path:
     probed a different path from the one the agent's next command opens would
     report on a store nobody uses — the same divergence :func:`_venv_python`
     exists to prevent between the pytest check and the shell.
+
+    An **absolute** default means the corpus is pinned (``$NESTOR_DB`` /
+    ``$NESTOR_HOME``), and the pin is what the next command opens — so it is
+    returned as-is rather than joined onto ``root``. Joining an absolute path
+    onto a root yields the absolute path on POSIX but breaks every
+    ``relative_to`` downstream, and conceptually it would report "no nestor
+    stood up" beside a live pinned store: this function's own divergence,
+    arriving from the other side.
     """
     from nestor.cli import build_parser
-    return root / str(build_parser().get_default("db"))
+    default = Path(str(build_parser().get_default("db")))
+    return default if default.is_absolute() else root / default
 
 
 def _nestor_section(root: Path) -> str:

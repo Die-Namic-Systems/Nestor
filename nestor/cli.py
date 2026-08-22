@@ -46,6 +46,7 @@ from typing import Optional
 
 from . import (answer, cascade, config, keyring as keyring_mod, ledger as ledger_mod, memory,
                portable, seed as seed_mod, serve, signing, storage, ui)
+from .errors import NestorError
 from .sqlite_store import SqliteStore
 
 EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
@@ -62,6 +63,12 @@ _MATCHER_HELP = ("the matcher that keys this domain: a shipped name "
 def _store(args) -> SqliteStore:
     if getattr(args, "ledger", ""):
         cascade.set_ledger_path(args.ledger)
+    else:
+        # A pinned corpus with an unpinned chain reports "no ledger yet" against
+        # an intact eleven-entry chain, because the db moved and the ledger
+        # default did not follow it. Bind the chain that belongs to this db.
+        from . import home_paths as _hp
+        cascade.set_ledger_path(_hp.ledger_for(args.db))
     store = SqliteStore(args.db)
     store.init_db()
     store.memory_init()
@@ -885,7 +892,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = _HintingParser(
         prog="nestor",
         description="Nestor — meaning infrastructure. Has a human checked this?")
-    p.add_argument("--db", default="data/nestor.db", help="SQLite database (default: data/nestor.db)")
+    # $NESTOR_DB / $NESTOR_HOME win over the cwd-relative default, and an
+    # unusable pin raises rather than reverting to it (home_paths.PinRefused).
+    # An explicit --db still wins over both: the flag is a person at a terminal
+    # saying "this one", and a pin must never override that.
+    from . import home_paths as _hp
+    _pinned = _hp.db_path()
+    p.add_argument("--db", default=str(_pinned) if _pinned else "data/nestor.db",
+                   help=("SQLite database (default: $NESTOR_DB, else "
+                         "$NESTOR_HOME/keep/nestor.db, else data/nestor.db"
+                         + (f"; currently {_pinned}" if _pinned else "") + ")"))
     p.add_argument("--ledger", default="", help="ledger path (default: NESTOR_LEDGER or data/ledger.jsonl)")
     p.add_argument("--json", action="store_true", help="machine-readable output")
     sub = p.add_subparsers(dest="command", required=True)
@@ -1144,7 +1160,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     name, rest = split_delegated(argv)
     if name:
         return {"ui": ui.main, "serve": serve.main}[name](rest)
-    args = build_parser().parse_args(argv)
+    try:
+        # build_parser() resolves the pinned corpus, so a bad $NESTOR_DB raises
+        # HERE — before parsing. Outside this try it escaped as a traceback,
+        # which is a refusal the operator has to decode rather than read.
+        parser = build_parser()
+    except NestorError as exc:
+        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        return 2
+    args = parser.parse_args(argv)
     try:
         return args.func(args)
     except (ValueError, RuntimeError) as exc:

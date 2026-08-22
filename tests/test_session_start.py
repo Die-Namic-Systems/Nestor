@@ -22,6 +22,36 @@ from hooks.session_start import build_context
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def _unpinned_corpus(monkeypatch):
+    """These tests assert the UNPINNED convention — ``<tree>/data/nestor.db``.
+
+    Made explicit rather than inherited from the shell. The willow fleet exports
+    ``$NESTOR_DB``, so on an operator box these were silently probing the
+    fleet's corpus instead of their own tmp tree: they passed for a reason
+    unrelated to what they assert, and would fail wherever the pin differed. A
+    test whose result depends on ambient environment is the same defect the pin
+    itself exists to fix.
+
+    The pinned path has its own test below.
+    """
+    monkeypatch.delenv("NESTOR_DB", raising=False)
+    monkeypatch.delenv("NESTOR_HOME", raising=False)
+
+
+def test_a_pinned_corpus_is_reported_as_is(tmp_path, monkeypatch):
+    """A pin is what the next command opens, so the boot check must report IT.
+
+    Joining an absolute pin onto the tree root would report "no nestor stood up"
+    beside a live pinned store — ``_cli_default_db``'s own divergence, arriving
+    from the other side.
+    """
+    db = tmp_path / "pinned.db"
+    db.touch()
+    monkeypatch.setenv("NESTOR_DB", str(db))
+    assert session_start._cli_default_db(tmp_path / "some" / "tree") == db
+
+
 def test_seat_and_checks_are_always_present():
     ctx = build_context(REPO)
     assert "[NESTOR REPO — LOCAL-FIRST SEAT]" in ctx

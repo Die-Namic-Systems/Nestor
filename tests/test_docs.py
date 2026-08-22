@@ -51,7 +51,13 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
     for rel in ("bench/README.md", "docs/agent-guide.md",
                 "docs/matcher-seam.md", "docs/frank.md",
                 "docs/storage-protocol.md", "docs/the-name.md",
-                "docs/accuracy.md")}
+                "docs/accuracy.md",
+                # home-paths.md owns NESTOR_HOME and NESTOR_DB. The
+                # authoritative page for path resolution sat outside the scanned
+                # corpus, so the env gate could not see the doc that documents
+                # the knobs — exactly the coverage hole the note above predicts
+                # when content moves out of the README.
+                "docs/home-paths.md")}
 
 
 def slugify(heading: str) -> str:
