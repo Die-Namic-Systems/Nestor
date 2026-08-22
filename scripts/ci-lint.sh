@@ -1,6 +1,12 @@
 # Match .github/workflows/tests.yml — run before push (local or cloud).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# "Match the workflow" is now enforced rather than asserted. The workflow
+# installs from scripts/lint-pins.txt; this refuses to run against anything
+# else, because a gate answering under a different version has not answered
+# about this push (agent-log §6.114, and the §6.111 one-file-two-callers
+# pattern applied to the versions themselves).
+bash "$(dirname "$0")/lint-pins-check.sh"
 python -m ruff check nestor tests hooks
 python -m bandit -r nestor -ll -q
 # Type gate (IDEAS §7.5) — pragmatic baseline, `nestor` only; see [tool.mypy]

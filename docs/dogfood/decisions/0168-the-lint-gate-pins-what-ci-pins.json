@@ -1,0 +1,28 @@
+{
+  "branch": "claude/warrants-relation",
+  "date": "2026-08-22",
+  "note": "Decisions from fixing agent-log §6.114 — `scripts/ci-lint.sh` opened with 'Match .github/workflows/tests.yml' and ran whatever ruff the local .venv held. Measured on an untouched tree: ruff 0.15.0 (CI's pin) said `All checks passed!`; ruff 0.16.3 (this .venv) reported 530 errors, none about the change in front of the author. The operator chose to pin the script rather than log it or move CI forward. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Where do the lint gate's tool versions live, now that the script and the workflow both need them?",
+      "commitment": "`scripts/lint-pins.txt`, a requirements file the workflow installs from (`pip install -r scripts/lint-pins.txt`) and `scripts/ci-lint.sh` checks the local environment against. One file, two callers, neither keeping its own copy — the shape `secret-scan.sh` and `dep-audit.sh` already use, applied to the thing they did not cover. The ordering constraint that used to be a comment in the workflow (pip-audit before detect-secrets, or the latter flags the pin line on itself) moved into the file, next to the order it constrains.",
+      "why": "§6.111 is the same lesson one layer down: the secret-scan exclusion list lived in two copies and only one learned about the demo transcript. The versions were the copy nobody had noticed was a copy, because the script did not name a version at all — it named none and inherited whichever. A rule that is inherited rather than stated cannot drift visibly; it drifts silently, which is worse."
+    },
+    {
+      "question": "When the local versions differ from CI's, does the gate warn and continue, or refuse?",
+      "commitment": "Refuse, before any check runs, naming each differing tool and the one command that fixes it. Not a warning, and not a quiet fallback to running the pinned version out of an isolated sandbox.",
+      "why": "Two reasons, and the second is the load-bearing one. First, Nestor's standing rule: silence from a check means nothing (0127), and neither does a check that ran under something else — a warning above 530 findings is not read. Second, an isolated `uvx`-style run would be wrong for three of the five tools: mypy resolves this project's imports, pip-audit audits the very environment it runs in, and detect-secrets is invoked as `python -m` by secret-scan.sh. Running those outside this environment answers a question about a different environment and prints it as though it were about this one, which is a worse failure than refusing."
+    },
+    {
+      "question": "Is the version read from each tool's `--version` output or from installed metadata?",
+      "commitment": "`importlib.metadata.version(<dist>)` — the installed distribution's version, which is the thing pip pinned. Import names that differ from distribution names (`pip-audit`/`pip_audit`, `detect-secrets`/`detect_secrets`) are mapped in one place.",
+      "why": "Four of the five print a version string in one format and the fifth in another, so parsing `--version` would make the drift check itself five parsers — a fifth place for this to drift, inside the thing built to stop drift. Metadata is one call with one shape for all five."
+    },
+    {
+      "question": "The boot check (`hooks/session_start.py`) reported lint readiness from importability. Does adding a gate ahead of ci-lint.sh's first check change what 'ready' means?",
+      "commitment": "Yes, and the boot check moved with it. Its probe now buys both facts in one subprocess — does each gate import, and is it CI's pinned version — and the line has a third state, `PINS DIFFER`, that is not 'ready'. Absence is still reported once, by the module probe; the pin loop skips a distribution it cannot find rather than naming the same problem twice in two spellings.",
+      "why": "That check exists because `[dev]` once shipped ruff and bandit but not detect-secrets, so `bash scripts/ci-lint.sh` cleared two gates and died at push on the third, and nothing at boot had looked at the gate that was missing. A boot line reading 'ready' for an environment the script now refuses at its FIRST line is that same failure, one layer up and introduced by the fix for a different one. The probe's own docstring named the assumption it was resting on ('ci-lint.sh invokes these as python -m, so does it import here is precisely what the script needs and no more') — which is the only reason the staleness was findable. A fix that adds a gate has to be checked against every check that was reporting on the old one."
+    }
+  ]
+}

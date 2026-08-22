@@ -80,6 +80,51 @@ def _require_warrants(store: Storage) -> None:
         f"nestor.storage).")
 
 
+def refuse_reason(kind: str, authority: str, locator: str, check: str,
+                  expected_digest: str) -> str:
+    """Why this warrant may not be written, or ``""`` if it may.
+
+    Returns rather than raises because it has two callers with two duties.
+    :func:`attach` raises the string at a local caller who can fix the argument.
+    :func:`nestor.portable.import_bundle` cannot — the row came from another
+    instance and there is nobody here to correct — so it refuses that one row,
+    names the reason in its report, and imports the rest.
+
+    Both must refuse the *same* set, which is the whole reason this is one
+    function. A rule enforced on the local path and not on the import path is
+    not a rule; it is a preference with a hole in it, and the hole is the side
+    a stranger's file arrives on.
+    """
+    if kind == ATTESTATION:
+        return ("attestation is not a stored warrant — a sealed pair already "
+                "is one, signed under a key this store does not hold. Seal the "
+                "pair; warrants_for() composes it in on read.")
+    if kind not in WARRANT_KINDS:
+        return f"unknown warrant kind {kind!r} — one of {sorted(WARRANT_KINDS)}"
+    if not authority or not authority.strip():
+        return ("a warrant needs an authority — who vouches (the naming "
+                "institution, or the tool that would recompute). A warrant "
+                "with nobody behind it is evidence; use nestor.evidence.attach.")
+    if not locator or not locator.strip():
+        return "a warrant needs a locator — where a reader goes to check it"
+    if len(authority) > _MAX_AUTHORITY or len(locator) > _MAX_LOCATOR \
+            or len(check) > _MAX_CHECK:
+        return (f"authority (max {_MAX_AUTHORITY}), locator (max "
+                f"{_MAX_LOCATOR}) or check (max {_MAX_CHECK}) is too long; a "
+                f"warrant is a pointer and a procedure, not the document")
+    if kind == "construction" and not expected_digest.strip():
+        return ("a construction warrant needs an expected_digest — what the "
+                "recomputation must produce. Without it the warrant asserts "
+                "that the shape proves the claim while giving a reader no way "
+                "to run the shape, which is an assertion, not a proof.")
+    if kind == "citation" and expected_digest.strip():
+        return ("a citation warrant takes no expected_digest — there is "
+                "nothing here to recompute, and carrying one would read as "
+                "though Nestor had checked the source. It has not; that is the "
+                "reader's to do.")
+    return ""
+
+
 def attach(pair_id: str, kind: str, authority: str, locator: str, *,
            check: str = "", expected_digest: str = "", attached_by: str = "",
            store: Optional[Storage] = None) -> dict:
@@ -111,39 +156,9 @@ def attach(pair_id: str, kind: str, authority: str, locator: str, *,
             f"memory_get, which attach() needs to confirm a pair exists before "
             f"warranting it (the curation capability — see "
             f"nestor.storage.supports_curation).")
-    if kind == ATTESTATION:
-        raise ValueError(
-            "attestation is not a stored warrant — a sealed pair already is "
-            "one, signed under a key this store does not hold. Seal the pair; "
-            "warrants_for() composes it in on read.")
-    if kind not in WARRANT_KINDS:
-        raise ValueError(
-            f"unknown warrant kind {kind!r} — one of {sorted(WARRANT_KINDS)}")
-    if not authority or not authority.strip():
-        raise ValueError(
-            "a warrant needs an authority — who vouches (the naming "
-            "institution, or the tool that would recompute). A warrant with "
-            "nobody behind it is evidence; use nestor.evidence.attach.")
-    if not locator or not locator.strip():
-        raise ValueError(
-            "a warrant needs a locator — where a reader goes to check it")
-    if len(authority) > _MAX_AUTHORITY or len(locator) > _MAX_LOCATOR \
-            or len(check) > _MAX_CHECK:
-        raise ValueError(
-            f"authority (max {_MAX_AUTHORITY}), locator (max {_MAX_LOCATOR}) "
-            f"or check (max {_MAX_CHECK}) is too long; a warrant is a pointer "
-            f"and a procedure, not the document")
-    if kind == "construction" and not expected_digest.strip():
-        raise ValueError(
-            "a construction warrant needs an expected_digest — what the "
-            "recomputation must produce. Without it the warrant asserts that "
-            "the shape proves the claim while giving a reader no way to run "
-            "the shape, which is an assertion, not a proof.")
-    if kind == "citation" and expected_digest.strip():
-        raise ValueError(
-            "a citation warrant takes no expected_digest — there is nothing "
-            "here to recompute, and carrying one would read as though Nestor "
-            "had checked the source. It has not; that is the reader's to do.")
+    refusal = refuse_reason(kind, authority, locator, check, expected_digest)
+    if refusal:
+        raise ValueError(refusal)
     pair = store.memory_get(pair_id)
     if pair is None:
         raise ValueError(f"no pair {pair_id!r} in this store")

@@ -43,6 +43,14 @@ BRAIN_DB = ("docs", "dogfood", "nestor.db")
 #: broken.
 LINT_MODULES = ("ruff", "bandit", "mypy", "detect_secrets", "pip_audit")
 
+#: The pins ``scripts/ci-lint.sh`` now refuses to run without (agent-log
+#: §6.114). Read at boot for the same reason the module list is: the script
+#: gained a gate *before* its first check, and a boot line reporting "ready" for
+#: an environment that script will refuse is the drift this whole check exists
+#: to catch, one layer up. Distribution names, not import names — the file is
+#: pip's, and the two differ for two of the five.
+LINT_PINS_FILE = "scripts/lint-pins.txt"
+
 #: What proves a household home was laid out rather than merely existing.
 #: ``nestor.home_init`` writes it once and never overwrites it, so its presence
 #: is the marker — the directory itself is not, because unrelated tooling
@@ -132,16 +140,40 @@ def _lint_line(root: Path) -> str:
     ``No module named detect_secrets``, at push time, after the work was done.
     Nothing at boot had looked at the gate that was missing.
 
-    One subprocess in the repo interpreter, importability only: this runs before
-    the first prompt, and three ``--version`` shell-outs to buy the same fact is
-    latency an agent pays on every session. ``find_spec`` is also the honest
-    question — ci-lint.sh invokes these as ``python -m``, so "does it import
-    here" is precisely what the script needs and no more.
+    Still **one** subprocess in the repo interpreter, and it now buys two facts
+    rather than one: does each gate import here, and is it the version CI pins.
+    ``find_spec`` answers the first and is still the honest question for it —
+    ci-lint.sh invokes these as ``python -m``. The second became part of "can
+    this script run" only when ci-lint.sh gained ``lint-pins-check.sh`` ahead of
+    its first check (agent-log §6.114): before that, a version was nothing the
+    gate looked at, and this docstring correctly said importability was the
+    whole question. It is not any more, and a boot line still reporting "ready"
+    for an environment the script refuses would be the third-gate omission
+    repeated one layer up — which is the failure this check exists for.
+
+    Absence is reported once, by the module probe, not twice: the pin loop skips
+    a distribution it cannot find rather than adding a second name for the same
+    fact in different spelling (``pip_audit`` missing and ``pip-audit`` missing
+    are one problem, and the fix line differs between them).
     """
     py = _venv_python(root)
-    probe = ("import importlib.util;"
-             f"mods = {LINT_MODULES!r};"
-             "print(' '.join(m for m in mods if importlib.util.find_spec(m) is None))")
+    probe = (
+        "import importlib.util, pathlib;"
+        "from importlib.metadata import version;"
+        f"mods = {LINT_MODULES!r}; pins = pathlib.Path({LINT_PINS_FILE!r});"
+        "missing = [m for m in mods if importlib.util.find_spec(m) is None];"
+        "lines = [l.split('#')[0].strip() for l in "
+        "pins.read_text(encoding='utf-8').splitlines()] if pins.exists() else [];"
+        "wrong = []\n"
+        "for line in [l for l in lines if '==' in l]:\n"
+        "    name, want = line.split('==', 1)\n"
+        "    try:\n"
+        "        got = version(name)\n"
+        "    except Exception:\n"
+        "        continue                 # absent: the module probe above owns that\n"
+        "    if got != want: wrong.append(name + ' ' + got + '!=' + want)\n"
+        "print('MISSING ' + ' '.join(missing));"
+        "print('WRONG ' + ' '.join(wrong))")
     try:
         proc = subprocess.run(
             [str(py), "-c", probe],
@@ -152,17 +184,26 @@ def _lint_line(root: Path) -> str:
         detail = (proc.stderr or proc.stdout).strip().splitlines()
         hint = detail[-1] if detail else f"exit {proc.returncode}"
         return f"[check] lint: could not probe {py.name} — {hint}"
-    missing = proc.stdout.split()
-    if not missing:
-        # Named from LINT_MODULES itself, not retyped here — a retyped list is
-        # exactly how ci-lint.sh's fourth gate (this one) could drift from the
-        # "ready" line the same way the third gate once drifted from the boot
-        # check that was supposed to cover it.
-        return (f"[check] lint: {', '.join(LINT_MODULES)} ready — "
-                "`bash scripts/ci-lint.sh` before push")
-    return ("[check] lint: MISSING " + ", ".join(missing) +
-            " — `bash scripts/ci-lint.sh` will fail at that gate. Fix with: "
-            ".venv/bin/pip install -e '.[dev]'")
+    lines = {ln.split(" ", 1)[0]: ln.split(" ", 1)[1].split() if " " in ln else []
+             for ln in proc.stdout.strip().splitlines() if ln}
+    missing, wrong = lines.get("MISSING", []), lines.get("WRONG", [])
+    if missing:
+        return ("[check] lint: MISSING " + ", ".join(missing) +
+                " — `bash scripts/ci-lint.sh` will fail at that gate. Fix with: "
+                ".venv/bin/pip install -e '.[dev]'")
+    if wrong:
+        # Not "ready". ci-lint.sh refuses outright on a version CI does not
+        # pin, so reporting readiness here would be the same lie the missing
+        # module once was: a boot line that clears a gate the script stops at.
+        return ("[check] lint: PINS DIFFER " + ", ".join(wrong) +
+                f" — `bash scripts/ci-lint.sh` refuses before its first check "
+                f"(agent-log §6.114). Fix with: .venv/bin/pip install -r {LINT_PINS_FILE}")
+    # Named from LINT_MODULES itself, not retyped here — a retyped list is
+    # exactly how ci-lint.sh's fourth gate could drift from the "ready" line
+    # the same way the third gate once drifted from the boot check that was
+    # supposed to cover it.
+    return (f"[check] lint: {', '.join(LINT_MODULES)} ready at CI's pins — "
+            "`bash scripts/ci-lint.sh` before push")
 
 
 def _ask_prompt(tag: str, condition: str, why: str, fix: str, doc: str) -> str:
