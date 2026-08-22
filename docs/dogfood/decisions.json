@@ -1,13 +1,13 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 454,
+    "pairs": 460,
     "rejections": 0,
     "sealed": 0,
     "servable": 0
   },
-  "created_at": "2026-08-19T00:00:00+00:00",
-  "digest": "b2576209d7bf8ddf5e4ecf3f78f5a47bdaf50d8433bbd673c14a68c67b1729ea",
+  "created_at": "2026-08-22T00:00:00+00:00",
+  "digest": "2c12631f0b2b20f6c7499896a34219d8ee66299311fa143c5600dd462cf08fa0",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -21,6 +21,90 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 3,
   "pairs": [
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "f06b9ead-335c-5a92-bbbf-85c03b0840e3",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "110a does pending stay the answer for a row with citation but no seal or is cited unsealed a distinct served state",
+      "source_text": "§1.10(a): does `pending` stay the answer for a row with citation but no seal, or is 'cited, unsealed' a distinct served state?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed: `pending` stays; 'cited, unsealed' is said ALONGSIDE it, never as a fourth status value. `status` means who touched the row HERE, and best_sealed's tier-1 gate is built on exactly that (`if row['status'] != 'sealed': continue`, memory.py:1126). Warrants surface on the served answer and on Passage.state's display fact (cascade.py:245), which is already separate from the stored status. best_sealed keeps gating on `sealed` alone and gains §1.10's actual ask — answering 'warranted how' — by returning the warrants of the row it found, not by widening what it will find.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "caf18dce-3835-5392-884d-be5a44b5f410",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "110c must import strip warrants it cannot verify as 17 made import unable to revive a rejection",
+      "source_text": "§1.10(c): must `import` strip warrants it cannot verify, as §1.7 made import unable to revive a rejection?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed rule, stronger than stripping: import may carry a warrant, and may never carry a CONCLUSION about it. By kind — attestation: unchanged, is_verified_seal already decides on import as everywhere else. Citation: carry it, marked unverified-here, because a citation's whole nature is that a stranger can follow it and stripping it destroys the only warrant that survives leaving the room. Construction: carry the recipe, never a verdict — which falls out of the previous row automatically, since there is no verdict to carry.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "59c7a515-06e2-5faa-a7f0-88a3d1e134ca",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "110 proposes evidence dict on the pair keyed by warrant kind is evidence the right name given the evidence edge shipped since 110 was written",
+      "source_text": "§1.10 proposes `evidence: dict` on the pair, keyed by warrant kind. Is `evidence` the right name, given the evidence edge shipped since §1.10 was written?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — proposed name is `warrants` (nestor/warrant.py, pair['warrants'], WARRANT_KINDS), leaving the evidence edge's name, weakness and meaning untouched. Proposed shape: a table beside evidence sharing its append-only form, NOT a dict column on the pair. A dict column loses what the edge already has — a ledger line per attachment, and `attaches_to` recording which status the reference was offered against.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "4d305602-0b0e-5db9-ae53-dadf3369b580",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the citation warrant a new relation or the evidence edge extended",
+      "source_text": "Is the citation warrant a new relation, or the evidence edge extended?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed: the evidence edge is most of it already, in the wrong register. `attach(pair_id, kind='url', locator=...)` records a citation today. Two things it cannot record: WHO VOUCHES (jeles carries the naming institution as a field distinct from the url; an institution written into the edge's free-text `reason` is not queryable) and HOW A STRANGER CHECKS (the edge is a pointer by design; a citation with no check procedure is a bookmark). So: not a new relation — the edge's shape plus a vouching authority and a check procedure.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "3e2c596f-a8dd-5155-acca-478ac7ef2606",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "110b can a constructed warrant be minted locally at all",
+      "source_text": "§1.10(b): can a `constructed` warrant be minted locally at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed: no. A constructed warrant stores a RECIPE and an EXPECTED DIGEST — what to run, against what input, what it must produce — and Nestor never marks it satisfied. It reports 'recomputable: here is how'; the reader who cares runs it. Nestor holds the recipe and not the verdict.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "09436666-0052-5c74-8209-612b122c7f0d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the accumulating warrant set ever acquire an ordering",
+      "source_text": "Should the accumulating warrant set ever acquire an ordering?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed: never, not even a convenience max() for display. §1.10 is right that 'sealed by Sean' and 'cited to Crossref' do not compare, and jeles' code settles how to act on that: it resolved the category error by SEGREGATION (the unrankable warrant lives on a different object — search hits, not nuggets). Accumulation on one object is the better answer here because segregation costs a second object per kind and makes 'sealed AND cited' unrepresentable, which §1.10 correctly identifies as the point. But jeles' precedent is why the set must stay unordered.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-19T00:00:00+00:00",
       "id": "f7e01874-42c4-53b9-865e-36acbaf30f43",

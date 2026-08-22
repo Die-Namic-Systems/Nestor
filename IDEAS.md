@@ -609,6 +609,8 @@ suffix is the human this package exists to keep in the loop.
 
 ### 1.10 A seal is the only warrant this package can represent — **open**
 
+> **Memo written 2026-08-22 — [`docs/warrants.md`](docs/warrants.md), decision [0164](docs/dogfood/decisions/0164-warrants-are-not-evidence.json), draft. Still open; the memo argues it, it does not settle it.** One correction it makes to this entry: the field proposed below as `evidence: dict` must **not** be called `evidence`. This entry predates the evidence edge (0142/0143/0145), and `nestor/evidence.py` now defines `evidence` as the relation that carries *no* authority — "there is no power to forge". A warrant is the opposite property. Proposed name: `warrants`.
+
 `status` has three values and every one describes **who touched the row here**:
 `sealed` (a person on this box), `draft` (a machine proposed), `pending`
 (nothing to offer). That is the whole vocabulary. It cannot say *why* a claim is

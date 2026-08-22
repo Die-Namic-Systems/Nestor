@@ -95,6 +95,7 @@ docs/releasing.md     the release runbook — the decisions before a first relea
 docs/install.md        the install story, verified — pipx/pip, from PyPI or a checkout, wired to the first run (§7.5)
 docs/seal-staleness-and-quorum.md  design memo (§1.4): does a seal expire, and is one enough — an argument, unimplemented
 docs/evidence-edge.md  what a sealed claim rests on, distinct from who sealed it — memo + landed core relation/report/CLI (decision 0142/0143)
+docs/warrants.md  the three warrants a claim can hold — attestation, citation, construction — and why only the first is Nestor's; memo, unimplemented (IDEAS §1.10, decision 0164)
 docs/carried-strings.md  design memo (§6.22): a name is not a word — unimplemented, no reporter yet
 docs/detection-kit-as-gates.md  design memo (§6.12): Sagan's baloney-detection kit as exit codes, not advice
 docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos (§6.50–§6.55)
