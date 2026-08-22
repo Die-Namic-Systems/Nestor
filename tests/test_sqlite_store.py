@@ -424,7 +424,13 @@ def test_conn_declares_no_schema_ready_default():
 #: construction, which is the vacuity `test_ledger_kinds.py` set the precedent
 #: against. Stable across interpreters: identical under 3.10/sqlite 3.45.1 and
 #: 3.11, because sqlite_master stores the DDL as written.
-PINNED_SCHEMA_DIGEST = "3a2d2bb9d1663b62"
+#: The digest is a sha256 prefix of this project's own DDL, not a credential.
+#: The allowlist pragma sits on the line rather than in .secrets.baseline
+#: because this line holds a NEW digest on every schema change, so a baseline
+#: entry would have to be regenerated each time. The previous digest passed the
+#: scan only by scoring under detect-secrets' entropy threshold, which was luck
+#: rather than a property of what the value is.
+PINNED_SCHEMA_DIGEST = "feda9cdef46324d0"  # pragma: allowlist secret
 #: Moved by the verifier_policy table (issue #167 piece 3, nestor/sqlite_store.py).
 #: docs/releasing.md's schema-restart rule applies: the release that ships this
 #: must tell operators that a long-lived process needs a restart to see it.

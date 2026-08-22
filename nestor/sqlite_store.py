@@ -155,6 +155,32 @@ CREATE TABLE IF NOT EXISTS decision_evidence (
 );
 CREATE INDEX IF NOT EXISTS idx_decision_evidence_pair ON decision_evidence(pair_id);
 
+-- Warrants: why a stranger should believe a claim, when the reason is not
+-- "someone here checked" (docs/warrants.md, decision 0164). Distinct from
+-- `decision_evidence`, which is a pointer that carries no authority: a warrant
+-- names an AUTHORITY and says how to CHECK it, which is why the two cross an
+-- instance boundary under different rules.
+--
+-- No `*_sig`, and no `verified` column -- deliberately, and they are different
+-- omissions. No signature, because a warrant row is the claim that a warrant
+-- exists, not a ratification of it. No `verified`, because nothing in Nestor
+-- may ever mark one satisfied: the store holds the recipe and does not hold the
+-- verdict, the same posture as holding a signature without holding the key.
+-- `attestation` is not storable here at all -- a sealed pair already is one,
+-- and a second representation would be the forgeable one.
+CREATE TABLE IF NOT EXISTS decision_warrants (
+    id              TEXT PRIMARY KEY,
+    pair_id         TEXT NOT NULL,
+    kind            TEXT NOT NULL,
+    authority       TEXT NOT NULL,
+    locator         TEXT NOT NULL,
+    check_procedure TEXT NOT NULL DEFAULT '',
+    expected_digest TEXT NOT NULL DEFAULT '',
+    attached_by     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_decision_warrants_pair ON decision_warrants(pair_id);
+
 -- Per-domain verifier policy (issue #167 piece 3). Today the sign-off field on
 -- a seal accepts any string a caller types, and no domain can say whose name
 -- is even eligible to be on it. This table lets a domain OPT IN to a
@@ -962,6 +988,43 @@ class SqliteStore:
         with self._db() as conn:
             return [dict(r) for r in conn.execute(q + " ORDER BY source_norm, id",
                                                   args)]
+
+    # --- warrants (optional; docs/warrants.md, decision 0164) -------------
+
+    def memory_add_warrant(self, w: dict) -> None:
+        """Insert one warrant verbatim, append-only.
+
+        The recipe (:mod:`nestor.warrant`) owns the ceremony — which kinds are
+        legal, that a construction carries its expected digest, that the pair
+        exists, the ledger entry — exactly as ``memory_add_evidence`` delegates
+        to :mod:`nestor.evidence`. There is no update or delete path, and no
+        method that could mark a warrant satisfied: warrants accumulate, and
+        the verdict is never the store's to hold.
+
+        ``check`` is stored as ``check_procedure``; ``CHECK`` is a SQL keyword.
+        """
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO decision_warrants (id, pair_id, kind, authority, "
+                "locator, check_procedure, expected_digest, attached_by, "
+                "created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                (w["id"], w["pair_id"], w["kind"], w["authority"],
+                 w["locator"], w.get("check", ""), w.get("expected_digest", ""),
+                 w.get("attached_by", ""), w["created_at"]))
+
+    def memory_warrants_for(self, pair_id: str) -> list[dict]:
+        """Every warrant attached to ``pair_id``, newest first.
+
+        ``check_procedure`` is renamed back to ``check`` on the way out, so the
+        column name never leaks into the recipe's vocabulary.
+        """
+        with self._db() as conn:
+            rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM decision_warrants WHERE pair_id=? "
+                "ORDER BY created_at DESC, id", (pair_id,))]
+        for r in rows:
+            r["check"] = r.pop("check_procedure", "")
+        return rows
 
     # --- verifier policy (optional; issue #167 piece 3) --------------------
 
