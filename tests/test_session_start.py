@@ -421,7 +421,17 @@ def test_the_lint_line_goes_red_when_a_pin_differs_from_cis(monkeypatch, tmp_pat
     pins.write_text("# a pin nothing can satisfy\njson5==0.0.0\npytest==0.0.0\n",
                     encoding="utf-8")
     monkeypatch.setattr(session_start, "LINT_PINS_FILE", str(pins))
+    # LINT_MODULES is patched to stdlib for the same reason the missing-gate
+    # test above patches it — and this was learned the same way that test's
+    # author learned it, by watching CI fail on both matrix legs. The test job
+    # installs `.[keys] pytest coverage` and NOT the five lint tools (those
+    # live in the lint job), so the real module probe reports all five missing,
+    # returns the MISSING line first, and never reaches the branch under test.
+    # A test for a readiness check must not depend on what happens to be ready.
+    monkeypatch.setattr(session_start, "LINT_MODULES", ("json",))
     line = session_start._lint_line(REPO)
+    assert "MISSING" not in line, (
+        "the module probe must be clean for this test to reach the pin branch")
     assert "PINS DIFFER" in line
     assert "pytest 0.0.0" not in line          # the *installed* version is named
     assert "!=0.0.0" in line
