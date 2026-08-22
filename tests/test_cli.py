@@ -605,3 +605,83 @@ def test_check_omits_the_tolerance_when_nothing_was_compared(db, capsys):
 
     assert run(db, "check", "never-sealed", "1", "--domain", "q") == cli.EXIT_ANSWER_IS_NO
     assert "tolerance" not in capsys.readouterr().out
+
+
+# --- warrants: attaching one, and reading the set back ----------------------
+
+def _pair_id(db, contains):
+    rows = db["store"].memory_list(contains=contains)
+    assert len(rows) == 1, f"expected one pair matching {contains!r}, got {len(rows)}"
+    return rows[0]["id"]
+
+
+def _sealed_pair_id(db):
+    return _pair_id(db, "Good evening")
+
+
+def test_warrant_attach_records_a_citation_and_claims_nothing(db, capsys):
+    pid = _sealed_pair_id(db)
+    assert run(db, "warrant", "attach", pid, "--kind", "citation",
+               "--authority", "Crossref", "--locator", "https://doi.org/10.1000/xyz",
+               "--check", "follow the DOI", "--by", "agent-7") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "citation warrant" in out
+    # The sentence matters as much as the row: a CLI that says "attached" and
+    # stops reads as a confirmation, which is the one thing this cannot do.
+    assert "nothing here says it holds" in out
+
+
+def test_warrant_for_shows_the_seal_as_an_attestation_it_did_not_store(db, capsys):
+    """``warrants_for`` composes the seal in, and the terminal must not let that
+    read as a row somebody wrote into the warrants table — there is no such row,
+    and a stored one would be the forgeable copy."""
+    pid = _sealed_pair_id(db)
+    run(db, "warrant", "attach", pid, "--kind", "citation",
+        "--authority", "Crossref", "--locator", "https://doi.org/1")
+    capsys.readouterr()
+    assert run(db, "warrant", "for", pid) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "attestation" in out and "rita" in out
+    assert "from the seal, not stored as a warrant" in out
+    assert "citation" in out
+    assert "a set, in no order" in out
+
+
+def test_warrant_json_reports_the_kinds_held(db, capsys):
+    pid = _sealed_pair_id(db)
+    run(db, "warrant", "attach", pid, "--kind", "construction",
+        "--authority", "redential", "--locator", "npx redential scan",
+        "--expected-digest", "ab" * 16)
+    capsys.readouterr()
+    run(db, "--json", "warrant", "for", pid)
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["kinds"] == ["attestation", "construction"]
+    assert payload["count"] == 2
+
+
+def test_the_cli_cannot_be_asked_for_an_attestation_warrant(db):
+    """Refused by argparse, before a store is opened: a seal is the only way to
+    say a person here checked, and the CLI must not offer a second one."""
+    pid = _sealed_pair_id(db)
+    with pytest.raises(SystemExit) as exc:
+        run(db, "warrant", "attach", pid, "--kind", "attestation",
+            "--authority", "rita", "--locator", "x")
+    assert exc.value.code == 2
+
+
+def test_a_refused_warrant_exits_usage_and_writes_nothing(db, capsys):
+    pid = _sealed_pair_id(db)
+    assert run(db, "warrant", "attach", pid, "--kind", "construction",
+               "--authority", "redential",
+               "--locator", "npx redential scan") == cli.EXIT_USAGE
+    assert "needs an expected_digest" in capsys.readouterr().err
+    assert run(db, "warrant", "for", pid) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "construction" not in out
+
+
+def test_warrant_for_on_an_unwarranted_draft_says_so_plainly(db, capsys):
+    pid = _pair_id(db, "a draft phrase")
+    assert run(db, "warrant", "for", pid) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "no warrant" in out and "not cited" in out

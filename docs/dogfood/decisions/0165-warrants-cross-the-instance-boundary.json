@@ -1,0 +1,33 @@
+{
+  "branch": "claude/warrants-relation",
+  "date": "2026-08-22",
+  "note": "Implementation decisions from building bundle carriage for the warrant relation (IDEAS §1.10(c), docs/warrants.md §4). 0164 proposed the rule — 'import may carry a warrant, and may never carry a conclusion about it' — and the core relation landed without it, so the memo's §4 was argued and unenforced for one commit. These are the decisions the enforcement forced. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Checked against the tree, not recalled: portable.py's version-gated digest (the v1→v2 `reopen_when` bump and the v2→v3 evidence bump both gated so an untouched payload keeps its hash), `_import_evidence`'s dangling-drop, `warrant.warrants_for`'s `stored: False` marker on the composed attestation, and jeles' `put_nugget` refusal at corpus.py:449-452.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Does an export carry the composed `attestation` warrant that `warrants_for()` returns?",
+      "commitment": "No. Export reads the stored rows through `memory_warrants_for` rather than through `warrant.warrants_for`, so only `citation` and `construction` travel in `bundle['warrants']`. The seal travels where it already travelled — on the pair in `bundle['pairs']`, carrying `seal_sig`.",
+      "why": "The composed attestation is a rendering of the seal, and the seal is the one warrant this package carries a signature for. Putting it in the warrants list too would put one fact in the bundle twice, once signed and once not — and the unsigned copy is the one a hand-edited file can forge. It is the same two-representations-of-one-fact defect that made `attestation` unstorable in the first place (0164), arriving one layer out. `stored: False` on the composed row exists precisely so the export path can tell the difference; this is the path it was for."
+    },
+    {
+      "question": "Does import strip warrants, as §1.10(c) asked, or carry them?",
+      "commitment": "Carry, and refuse selectively — which is 0164's rule, now enforced. A citation or construction row lands as-is; the reader checks it or nobody does. Refused, per row and named in `report['refused_warrants']`: an `attestation` kind, an unknown kind, an empty authority or locator, an over-long field, a construction with no expected digest, a citation carrying one. Dropped separately, as evidence is: a row naming a pair the bundle does not carry (`report['dangling_warrants']`).",
+      "why": "Stripping destroys the only warrant that survives leaving the room — a citation's whole nature is that a stranger can follow it. But an unrefused `attestation` row would let a file assert 'a person here checked' with no signature for the destination to check, which is exactly the power the seal is the only thing allowed to carry. Refusing is not stripping: the difference is that a refusal is reported. A dropped claim nobody is told about is the failure mode the empty-run discipline (§6.46) exists to prevent."
+    },
+    {
+      "question": "Where do the refusal rules live, now that two paths enforce them?",
+      "commitment": "One function — `warrant.refuse_reason(kind, authority, locator, check, expected_digest)` — returning a reason or the empty string. `attach` raises it at a local caller who can fix the argument; `_import_warrants` records it against the row and imports the rest. `attach`'s validation was moved into it rather than copied.",
+      "why": "A rule enforced on the local path and not on the import path is not a rule; it is a preference with a hole in it, and the hole is the side a stranger's file arrives on. Two copies of six conditions drift, and the copy that drifts is the one with no human standing in front of it. The return-a-reason shape is what lets one rule serve two duties: the local caller can be corrected, and the remote one cannot, so import must be able to continue past a refusal rather than abort the bundle."
+    },
+    {
+      "question": "How is 'never a conclusion' actually kept?",
+      "commitment": "By the schema, not by the importer. `WARRANT_FIELDS` has no column a verdict could go in — no `verified`, no `verified_at`, no `holds` — so there is nothing for an import to set and nothing for a bundle to assert. The test asserts the absence over the landed row's own keys, so a future column that did hold a verdict fails it.",
+      "why": "A rule kept by code that remembers to keep it is kept until somebody adds a field. A rule kept by there being no field is kept by construction. This is the same posture the store already takes with the seal — it holds the signature and does not hold the key — and it is why a warrant is safe to carry between instances while a conclusion about one is not."
+    },
+    {
+      "question": "Bump the bundle version to 4, or add `warrants` beside the digest?",
+      "commitment": "Bump, and fold `warrants` into the digest gated on version >= 4, exactly as evidence was gated at 3 and `reopen_when` at 2. The three bundles checked into this repository keep verifying byte-for-byte, and they are not all one version — docs/research-corpus is v3, docs/llm-only-joke and docs/ideas-store are v2, which is the point: two gates, both still holding, and each verified by running verify_bundle over the actual file rather than by assuming.",
+      "why": "A bundle whose integrity check depends on which build wrote it is not an integrity check — the reason the file gives for the two bumps before this one. And the mirror of it, which the same file learned the hard way: an integrity check that fails on an untouched payload trains people to ignore it. Both are satisfied only by gating, so gating is not a compatibility nicety here, it is what makes the digest mean anything."
+    }
+  ]
+}

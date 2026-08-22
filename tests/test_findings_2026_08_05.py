@@ -209,9 +209,9 @@ class TestTheVersionBumpDoesNotOrphanOlderBundles:
 
     def test_the_current_build_writes_the_new_version(self, store):
         _decision(store, "q", "a")
-        assert portable.export_bundle(store)["nestor_bundle"] == 3
-        assert portable.BUNDLE_VERSION == 3
-        assert set(portable.SUPPORTED_BUNDLE_VERSIONS) == {1, 2, 3}
+        assert portable.export_bundle(store)["nestor_bundle"] == 4
+        assert portable.BUNDLE_VERSION == 4
+        assert set(portable.SUPPORTED_BUNDLE_VERSIONS) == {1, 2, 3, 4}
 
     def test_an_unknown_version_is_still_refused(self):
         ok, detail = portable.verify_bundle({"nestor_bundle": 99, "pairs": [],

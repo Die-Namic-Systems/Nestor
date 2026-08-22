@@ -242,8 +242,11 @@ class Server:
             {
                 "name": "nestor_provenance",
                 "description":
-                    "Who verified a pair, when, with what origin, and every rejection recorded "
-                    "against it. Quote this instead of asserting confidence.",
+                    "Who verified a pair, when, with what origin, every rejection recorded "
+                    "against it, the evidence it points at, and the warrants that say why a "
+                    "stranger should believe it. Quote this instead of asserting confidence. "
+                    "A warrant is a claim that a warrant exists and how to check it — never a "
+                    "report that anyone checked it.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"pair_id": {"type": "string"}},

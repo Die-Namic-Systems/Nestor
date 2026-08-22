@@ -405,3 +405,40 @@ def test_session_start_emits_valid_claude_json_end_to_end():
 def _env() -> dict:
     import os
     return dict(os.environ)
+
+
+def test_the_lint_line_goes_red_when_a_pin_differs_from_cis(monkeypatch, tmp_path):
+    """The same rule as the missing-gate test, applied to the gate ci-lint.sh
+    gained ahead of its first check (agent-log §6.114).
+
+    `scripts/ci-lint.sh` now refuses outright on a tool version CI does not
+    pin, so a boot line saying "ready" for such an environment clears a gate
+    the script stops at — which is exactly the shape of the silently-absent
+    third gate this whole check was built after. Driven by pointing the probe
+    at a pins file demanding a version nothing has, so the test does not depend
+    on what happens to be installed."""
+    pins = tmp_path / "impossible-pins.txt"
+    pins.write_text("# a pin nothing can satisfy\njson5==0.0.0\npytest==0.0.0\n",
+                    encoding="utf-8")
+    monkeypatch.setattr(session_start, "LINT_PINS_FILE", str(pins))
+    line = session_start._lint_line(REPO)
+    assert "PINS DIFFER" in line
+    assert "pytest 0.0.0" not in line          # the *installed* version is named
+    assert "!=0.0.0" in line
+    assert "json5" not in line, "an absent distribution is the module probe's to report"
+    assert "pip install -r" in line
+    assert "ready" not in line
+
+
+def test_the_boot_check_probes_every_pin_ci_installs(monkeypatch):
+    """The §6.111 drift guard, one file further out: the workflow installs from
+    scripts/lint-pins.txt and ci-lint.sh refuses against it, so the boot check
+    must read that same file rather than a copy of its contents."""
+    pins = (REPO / session_start.LINT_PINS_FILE).read_text(encoding="utf-8")
+    pinned = {ln.split("==")[0].strip() for ln in pins.splitlines()
+              if "==" in ln and not ln.strip().startswith("#")}
+    workflow = (REPO / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+    assert f"pip install -r {session_start.LINT_PINS_FILE}" in workflow, (
+        "the workflow must install from the pins file the boot check reads")
+    # And the five distributions map onto the five modules ci-lint.sh runs.
+    assert len(pinned) == len(session_start.LINT_MODULES)

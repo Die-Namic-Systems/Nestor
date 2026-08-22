@@ -31,6 +31,43 @@ what moved.
   Nothing marks a warrant satisfied; the store holds the recipe, never the
   verdict. See [`docs/warrants.md`](docs/warrants.md), IDEAS §1.10, decision 0164.
 
+* **Warrants travel — bundle version 4.** An export carries the warrants on the
+  pairs it carries, inside the integrity digest, and an import brings them in.
+  The rule is *carry the warrant, never a conclusion about it*: import refuses
+  every row `warrant.attach` refuses locally (an unknown kind, an empty
+  authority, a construction with no expected digest — and `attestation`, which
+  a bundle must never be able to assert without a signature), naming each
+  refusal in the report instead of dropping it in silence. `nestor import`
+  prints the counts and any refusals. See `docs/warrants.md` §4, IDEAS §1.10(c).
+
+* **`nestor warrant attach|for`** — the terminal surface for the relation, which
+  shipped without one. `for` lists the set a pair holds, including the
+  `attestation` composed from its seal, marked as coming from the seal rather
+  than from the warrants table. There is no `--kind attestation`: argparse
+  refuses the word before a store is opened, because a seal is the only way to
+  say a person here checked. There is deliberately no `report` subcommand the
+  way `nestor evidence` has one — what "unwarranted" means is not settled, and
+  a queue naming rows as lacking something is a definition of that something.
+
+* **Provenance answers what a claim rests on.** `Curator.get` — what
+  `answer.provenance` returns and what `nestor_provenance` serves over MCP —
+  now carries the pair's `evidence` and its `warrants` (including the
+  `attestation` composed from its seal) alongside its rejections. A store
+  lacking either optional capability gets the key **omitted**, not empty:
+  present-and-empty means "nothing attached", absent means "this store cannot
+  say". Nothing here reports a warrant as satisfied. `best_sealed` and the
+  served state are untouched — IDEAS §1.10(a) stays open. Decision 0167.
+
+### Changed
+
+* **`scripts/ci-lint.sh` now enforces "match the workflow" instead of asserting
+  it.** The five tool versions live in `scripts/lint-pins.txt`; the workflow
+  installs from it and the script refuses to run against anything else, naming
+  each differing tool. Measured cause: a local ruff one minor ahead of CI's pin
+  reported 530 pre-existing findings on a tree CI called clean. Run
+  `pip install -r scripts/lint-pins.txt` to sync. See agent-log §6.114,
+  decision 0168.
+
 ### Upgrading
 
 * **This release changes the schema, so long-lived processes must be
@@ -42,6 +79,12 @@ what moved.
   restart"). Nothing breaks in the meantime: `nestor.warrant.attach` raises on
   a store without the capability rather than dropping the warrant, and every
   other path seals and serves exactly as before.
+
+* **Bundles written by this build declare version 4 and older readers will
+  refuse them.** Bundles *already written* are unaffected: version 1, 2 and 3
+  still verify here, byte-for-byte, because the digest stays version-gated —
+  a v3 payload is hashed over the v3 field set exactly as before. Upgrade the
+  reader before sending it a v4 bundle.
 
 ---
 

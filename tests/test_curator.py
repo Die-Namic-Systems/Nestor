@@ -239,3 +239,89 @@ def test_store_without_curation_raises_clearly(tmp_path, seal_key):
 
 def test_reference_store_supports_curation(store):
     assert storage.supports_curation(store)
+
+
+# --- provenance carries what the claim rests on and what warrants it --------
+#
+# The one call named "provenance" is what an auditor makes months later, and
+# what `nestor_provenance` serves to a model over MCP. It answered "who sealed
+# this and who argued with it" while the two relations that say what it rests
+# on and why a stranger should believe it were reachable only through their own
+# commands — so the auditor's single call was the one place they were invisible.
+
+def test_get_carries_evidence_and_warrants(filled):
+    from nestor import evidence, warrant
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    evidence.attach(pair["id"], "document", "MSA.pdf#cl.4", reason="the def",
+                    store=filled)
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=filled)
+
+    detail = c.get(pair["id"])
+    assert detail["evidence_count"] == 1
+    assert detail["evidence"][0]["locator"] == "MSA.pdf#cl.4"
+    # The seal composes in, so a sealed and cited pair holds two warrants.
+    assert detail["warrant_kinds"] == ["attestation", "citation"]
+    assert {w["kind"] for w in detail["warrants"]} == {"attestation", "citation"}
+
+
+def test_provenance_reports_no_warrant_as_satisfied(filled):
+    """A warrant row is the claim that a warrant exists plus how to check it.
+    Provenance is the call most likely to be quoted as though it were a
+    verdict, so it is the one that must not carry one."""
+    from nestor import warrant
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    warrant.attach(pair["id"], "construction", "redential", "npx redential scan",
+                   expected_digest="ab" * 16, store=filled)
+    row = [w for w in c.get(pair["id"])["warrants"] if w["kind"] == "construction"][0]
+    assert not ({"verified", "verified_at", "verified_by", "holds", "confirmed",
+                 "satisfied"} & set(row))
+    assert row["expected_digest"] == "ab" * 16      # the recipe, not the verdict
+
+
+def test_the_composed_attestation_is_marked_as_not_stored(filled):
+    from nestor import warrant
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=filled)
+    by_kind = {w["kind"]: w for w in c.get(pair["id"])["warrants"]}
+    assert by_kind["attestation"]["stored"] is False
+    assert by_kind["attestation"]["authority"] == "rita"
+    assert by_kind["citation"]["stored"] is True
+
+
+def test_a_draft_with_nothing_attached_reports_empty_not_absent(filled):
+    """Empty means 'nothing attached'. The keys are omitted only when the store
+    cannot answer at all — the two are different facts and must not collapse."""
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="draft phrase")[0]
+    detail = c.get(pair["id"])
+    assert detail["evidence"] == [] and detail["evidence_count"] == 0
+    assert detail["warrants"] == [] and detail["warrant_kinds"] == []
+
+
+def test_a_store_without_the_relations_omits_the_keys_rather_than_lying(filled):
+    """A store lacking the optional capability gets no key at all. An empty
+    list there would read as 'nothing attached' where the truth is 'this store
+    cannot say' — the silence-means-nothing rule, in a dict."""
+    from nestor import storage as storage_mod
+    c = Curator(filled, "en", "es")
+    pair_id = c.list(contains="invoice")[0]["id"]
+
+    class _NoRelations:
+        """Delegates everything except the two capability probes."""
+        def __init__(self, inner): self._inner = inner
+        def __getattr__(self, name):
+            if name in ("memory_add_evidence", "memory_evidence_for",
+                        "memory_add_warrant", "memory_warrants_for"):
+                raise AttributeError(name)
+            return getattr(self._inner, name)
+
+    bare = _NoRelations(filled)
+    assert not storage_mod.supports_evidence(bare)
+    assert not storage_mod.supports_warrants(bare)
+    detail = Curator(bare, "en", "es").get(pair_id)
+    assert "evidence" not in detail and "warrants" not in detail

@@ -182,6 +182,7 @@ this map is not, CI fails. It cannot drift.
 | [6.111](docs/agent-log.md#6111-the-secret-scan-exclusion-lived-in-two-copies-and-only-one-learned-about-the-demo-transcript--measured-fix-shipped) | The secret-scan exclusion lived in two copies and only one learned about the demo transcript | measured, fix shipped |
 | [6.112](docs/agent-log.md#6112-cross-matching-audit-findings-against-each-other-and-the-score-range-that-lives-between-verified-and-noise--measured) | Cross-matching audit findings against each other, and the score range that lives between verified and noise | measured |
 | [6.113](docs/agent-log.md#6113-an-agent-driving-the-ui-in-a-browser-is-outside-every-gate-this-repo-has--measured-control-exists) | An agent driving the UI in a browser is outside every gate this repo has | measured, control exists |
+| [6.114](docs/agent-log.md#6114-scriptsci-lintsh-says-it-matches-the-workflow-and-does-not-pin-what-the-workflow-pins--measured-fix-shipped) | `scripts/ci-lint.sh` says it matches the workflow and does not pin what the workflow pins | measured, fix shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -688,6 +689,18 @@ or is "cited, unsealed" a distinct served state? (b) can a `constructed` warrant
 be minted locally at all, or must it be a recomputation the reader runs
 themselves, redential-style? (c) does `import` need to strip warrants it cannot
 verify, the way §1.7 made import unable to revive a rejection?
+
+**(b) and (c) are answered in the tree; (a) is not.** (b): a construction
+warrant is minted locally *only* as a recipe — `attach` refuses one without an
+`expected_digest`, and nothing here ever marks it satisfied. (c): **not strip —
+carry, and never carry a conclusion.** Bundle version 4 (`portable.py`,
+2026-08-22) carries `warrants` inside the digest; export carries stored rows
+only, so the seal never travels twice unsigned; import refuses exactly what
+`attach` refuses, through one shared `warrant.refuse_reason`, and refusals are
+named in the report rather than dropped in silence. Stripping would have
+destroyed the one warrant that survives leaving the room. (a) — the served state
+for "cited, unsealed" — is untouched: `best_sealed` still asks only whether a
+human sealed it.
 
 ---
 

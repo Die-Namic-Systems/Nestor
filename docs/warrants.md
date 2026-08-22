@@ -18,6 +18,24 @@
 > guess it), no `best_sealed` change, no bundle carriage yet — so §4's import
 > rule is argued and not yet enforced. The demand caution below still stands.
 
+> **Bundle carriage landed 2026-08-22, immediately after.** Bundle version **4**
+> carries `warrants`, inside the integrity digest and version-gated so the
+> bundles already in this repository — two v2, one v3 — keep verifying
+> byte-for-byte. §4's rule is now
+> enforced rather than argued: export carries **stored warrants only** (the
+> composed `attestation` row is a rendering of the seal, and the seal already
+> travels in `pairs` *with its signature* — an unsigned second copy would be the
+> forgeable path into a destination's "a person here checked"), and import
+> refuses every row `attach` would refuse locally, through one shared
+> `warrant.refuse_reason`. A rule enforced on the local path and not on the
+> import path is not a rule; it is a preference with a hole in it, and the hole
+> is the side a stranger's file arrives on. The "never a conclusion" half is kept
+> by the schema, not by the importer: `WARRANT_FIELDS` has no column a verdict
+> could go in. `nestor warrant attach|for` landed with it — the relation had no
+> terminal surface, so until then a warrant could only be attached from Python.
+> `--kind attestation` is refused by argparse, before a store is opened. Still
+> open, unchanged: the report, `best_sealed`, and demand.
+
 §1.10 says Nestor holds one warrant — **attestation**, "a person here checked"
 — while two sibling repositories hold others: jeles' **citation** (a named
 institution asserted it) and redential-cli's **construction** (the shape proves

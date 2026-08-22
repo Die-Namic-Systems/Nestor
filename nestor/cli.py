@@ -353,6 +353,80 @@ def cmd_evidence(args) -> int:
     return EXIT_OK
 
 
+def cmd_warrant(args) -> int:
+    """``nestor warrant`` — record why a stranger should believe a claim, and
+    read back what is recorded (docs/warrants.md, decision 0164).
+
+    ``attach`` writes a citation or a construction on a pair; ``for`` lists the
+    warrants a pair holds, including the ``attestation`` composed from its seal.
+    Neither confirms anything — there is no verb here that could, and that is
+    the point of the relation. A warrant says who vouches and how to check;
+    whether it holds is the reader's to determine, and Nestor never records the
+    answer.
+
+    No ``report`` subcommand, unlike ``nestor evidence``: what "unwarranted"
+    means is not settled (docs/warrants.md, "What this memo does not settle"),
+    and a queue that names rows as lacking something is a definition of that
+    something. It is not this command's to guess.
+    """
+    from . import warrant
+    store = _store(args)
+    if args.warrant_command == "attach":
+        if not args.pair_id:
+            print("a pair id is required: nestor warrant attach <pair_id> "
+                  "--kind <kind> --authority <who> --locator <where>",
+                  file=sys.stderr)
+            return EXIT_USAGE
+        if not args.kind:
+            print(f"--kind is required — one of {sorted(warrant.WARRANT_KINDS)}. "
+                  f"There is no 'attestation' kind: a sealed pair already is "
+                  f"one. Seal the pair in `nestor ui` instead.", file=sys.stderr)
+            return EXIT_USAGE
+        try:
+            w = warrant.attach(args.pair_id, args.kind, args.authority,
+                               args.locator, check=args.check,
+                               expected_digest=args.expected_digest,
+                               attached_by=args.attached_by, store=store)
+        except ValueError as e:                     # refusal: nothing written
+            print(str(e), file=sys.stderr)
+            return EXIT_USAGE
+        if args.json:
+            _emit(w, True)
+        else:
+            print(f"attached a {args.kind} warrant to {args.pair_id}  ({w['id']})\n"
+                  f"a claim that a warrant exists, and what a reader needs to "
+                  f"check it — nothing here says it holds.")
+        return EXIT_OK
+
+    # for — read-only
+    if not args.pair_id:
+        print("a pair id is required: nestor warrant for <pair_id>", file=sys.stderr)
+        return EXIT_USAGE
+    held = warrant.warrants_for(args.pair_id, store=store)
+    if args.json:
+        _emit({"pair_id": args.pair_id, "warrants": held, "count": len(held),
+               "kinds": sorted({w["kind"] for w in held})}, True)
+    elif not held:
+        print(f"no warrant on {args.pair_id} — not sealed here, not cited, not "
+              f"constructed.")
+    else:
+        print(f"{len(held)} warrant(s) on {args.pair_id} — a set, in no order:")
+        for w in held:
+            line = f"  {w.get('kind', ''):14} {w.get('authority', '') or '—'}"
+            if w.get("locator"):
+                line += f"  {w['locator']}"
+            if not w.get("stored", True):
+                # The composed seal. Say where it came from, so nobody reads it
+                # as a row somebody wrote into the warrants table.
+                line += "   (from the seal, not stored as a warrant)"
+            print(line)
+            if w.get("check"):
+                print(f"                 check: {w['check']}")
+            if w.get("expected_digest"):
+                print(f"                 must produce: {w['expected_digest']}")
+    return EXIT_OK
+
+
 # --------------------------------------------------------------------------
 # moving the memory
 # --------------------------------------------------------------------------
@@ -474,7 +548,14 @@ def cmd_import(args) -> int:
         head = "would import" if report["dry_run"] else "imported"
         print(f"{head}: {report['sealed']} sealed, {report['demoted']} demoted to draft "
               f"(signature does not verify here), {report['drafts']} draft, "
-              f"{report['existing']} already present, {report['rejections']} rejection(s)")
+              f"{report['existing']} already present, {report['rejections']} rejection(s), "
+              f"{report.get('evidence', 0)} evidence, "
+              f"{report.get('warrants', 0)} warrant(s)")
+        # Refusals, one line each: a dropped warrant is a claim the source
+        # instance made and this one will not repeat, and the JSON caller sees
+        # it in the report. A terminal caller should not have to diff counts.
+        for w in report.get("refused_warrants", []):
+            print(f"  REFUSED warrant {w['kind']!r} ({w['id'] or '—'}): {w['reason']}")
         for c in report["conflicts"]:
             print(f"  conflict  {c['source_text']!r}: here {c['here']['target_text']!r} "
                   f"({c['here']['verifier'] or '—'}) vs incoming "
@@ -985,6 +1066,34 @@ def build_parser() -> argparse.ArgumentParser:
                     help="report only: scope the queue to one domain (default: all)")
     ev.add_argument("--target-lang", "--to", dest="target_lang", default="")
     ev.set_defaults(func=cmd_evidence)
+
+    from .warrant import WARRANT_KINDS
+    wt = sub.add_parser("warrant",
+                        help="why a stranger should believe a claim — attach a "
+                             "citation or a construction recipe, and list them")
+    wt.add_argument("warrant_command", choices=("attach", "for"))
+    wt.add_argument("pair_id", nargs="?",
+                    help="the pair the warrant attaches to (attach), or whose "
+                         "warrants to list (for)")
+    # `attestation` is deliberately absent from the choices, not filtered later:
+    # argparse refuses it by name, with the kind list in the message, before any
+    # store is opened. A seal is the only way to say a person here checked.
+    wt.add_argument("--kind", choices=sorted(WARRANT_KINDS),
+                    help="citation (a named authority asserted it) or "
+                         "construction (a recipe and the digest it must produce)")
+    wt.add_argument("--authority", default="",
+                    help="who vouches — the naming institution, or the tool "
+                         "that would recompute")
+    wt.add_argument("--locator", default="",
+                    help="where a reader goes: a URL or DOI, or the recipe to run")
+    wt.add_argument("--check", default="",
+                    help="what a reader does when they get there, in prose")
+    wt.add_argument("--expected-digest", dest="expected_digest", default="",
+                    help="construction only, and required for it: what the "
+                         "recomputation must produce")
+    wt.add_argument("--by", dest="attached_by", default="",
+                    help="who attached it — a label, not a credential")
+    wt.set_defaults(func=cmd_warrant)
 
     exp = sub.add_parser("export", help="write a portable, re-importable bundle")
     exp.add_argument("--out", default="", help="file to write (default: stdout)")

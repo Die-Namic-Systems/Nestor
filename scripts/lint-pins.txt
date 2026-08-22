@@ -1,0 +1,30 @@
+# Single source of truth for the lint gate's tool versions, read by BOTH
+# scripts/ci-lint.sh and .github/workflows/tests.yml — the same "one file, two
+# callers, neither keeps its own copy" pattern as scripts/secret-scan.sh and
+# scripts/dep-audit.sh (agent-log §6.111), applied to the thing those two did
+# not cover: the versions themselves.
+#
+# WHY THIS FILE EXISTS (agent-log §6.114). ci-lint.sh opened with "Match
+# .github/workflows/tests.yml" and ran whatever ruff the local .venv happened
+# to hold. Measured on an untouched tree: ruff 0.15.0 (CI's pin) reported
+# `All checks passed!` where ruff 0.16.3 reported 530 errors, none of them
+# about the change in front of the author. A pre-push gate that fails on work
+# nobody did is the failure portable.py names in almost these words — an
+# integrity check that fails on an untouched payload trains people to ignore
+# it — and the run where it has something real to say is then
+# indistinguishable from the 528 before it.
+#
+# ORDER IS LOAD-BEARING. pip-audit sits before detect-secrets on purpose:
+# appended after it, detect-secrets' own KeywordDetector reads the pinned
+# version plus the next token as one high-entropy "secret" and flags this line
+# on itself. Reordering avoids the false positive without an inline
+# `pragma: allowlist secret` or a baseline entry.
+#
+# UPGRADING: change a version here and nowhere else, then run
+# `pip install -r scripts/lint-pins.txt` locally and fix what the new version
+# finds. Both callers move together or neither does.
+ruff==0.15.0
+bandit==1.9.4
+mypy==2.3.1
+pip-audit==2.10.1
+detect-secrets==1.5.0

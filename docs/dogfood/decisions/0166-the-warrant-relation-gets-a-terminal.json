@@ -1,0 +1,23 @@
+{
+  "branch": "claude/warrants-relation",
+  "date": "2026-08-22",
+  "note": "Decisions from giving the warrant relation a terminal surface (`nestor warrant attach|for`). The relation and its bundle carriage landed first, both reachable only from Python — so a warrant was a thing the package could represent and nobody could record. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Checked against the tree, not recalled: `cmd_evidence` and its `attach|report|for` shape at cli.py:279, `warrant.warrants_for`'s `stored: False` marker, and docs/warrants.md's 'What this memo does not settle'.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Does `nestor warrant` get a `report` subcommand, the way `nestor evidence` has one for unevidenced seals?",
+      "commitment": "No. `attach` and `for`, and nothing else. The parallel is tempting and the shape is already written next door, which is exactly why it needed refusing on purpose rather than by omission.",
+      "why": "`unevidenced_seals` is a queue of rows that lack evidence, and it can exist because 'has no evidence attached' is a fact with no judgement in it. 'Unwarranted' is not that: docs/warrants.md explicitly does not settle what it means, and `storage.supports_warrants` already refused to guess it by declining to include a listing op in the capability. A queue that names rows as lacking something IS a definition of that something — shipping the report would settle the open question silently, in the one place nobody would look for a definition."
+    },
+    {
+      "question": "How does the CLI refuse `--kind attestation`?",
+      "commitment": "By argparse `choices=sorted(WARRANT_KINDS)`, so the word is rejected by name before a store is opened, with the two real kinds in the message. Not by accepting it and letting `warrant.attach` raise.",
+      "why": "Both refuse, so the difference is only in what a person learns. Argparse refuses at the earliest possible point, with no db path resolved and no ledger touched, and its message names what IS allowed. The deeper refusal is still there and still tested — this is a second gate at the front door, not a replacement for the one in the room. `attach`'s refusal is what a Python caller and an importing bundle hit; the CLI's is what a person typing hits."
+    },
+    {
+      "question": "How does `nestor warrant for` show the attestation that `warrants_for` composes rather than stores?",
+      "commitment": "Marked in the line: `(from the seal, not stored as a warrant)`, keyed off the row's `stored: False`. The JSON output carries the row as-is, `stored` field included, and adds a sorted `kinds` list.",
+      "why": "The composed row exists so a caller sees the whole set; the risk it carries is that a reader takes it for a row somebody wrote into the warrants table. There is no such row, and a stored one would be the forgeable copy of a fact the seal already holds a signature for — the reason `attestation` is unstorable at all. A terminal that renders a composed row and a written row identically undoes that distinction at the last step, which is where every reader actually is."
+    }
+  ]
+}

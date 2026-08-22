@@ -40,14 +40,18 @@ jobs:
         # project. Upgrading is the honest remediation, and it keeps CI green
         # deterministically rather than at the mercy of the runner image.
         #
-        # pip-audit sits before detect-secrets==1.5.0 on purpose: appended
-        # after it, detect-secrets' own KeywordDetector reads the pinned
-        # version plus the next token as one high-entropy "secret" value and
-        # flags this line on itself — reordering avoids the false positive
-        # without an inline `pragma: allowlist secret` or a baseline entry.
+        # The versions live in scripts/lint-pins.txt, which scripts/ci-lint.sh
+        # checks the local environment against before it runs anything — one
+        # file, two callers, neither keeping its own copy (the §6.111 pattern
+        # secret-scan.sh and dep-audit.sh already follow, applied to the
+        # versions after §6.114 measured what their absence cost: 530 findings
+        # locally on a tree CI called clean). The ordering rationale that used
+        # to live in this comment — pip-audit before detect-secrets, so the
+        # latter's KeywordDetector does not flag the pin line on itself — lives
+        # in that file now, next to the order it constrains.
         run: |
           python -m pip install --upgrade pip setuptools
-          pip install ruff==0.15.0 bandit==1.9.4 mypy==2.3.1 pip-audit==2.10.1 detect-secrets==1.5.0
+          pip install -r scripts/lint-pins.txt
 
       - name: Ruff (enforced)
         run: ruff check nestor tests hooks

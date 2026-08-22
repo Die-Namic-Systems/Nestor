@@ -246,14 +246,14 @@ def test_attach_records_a_content_hash_in_the_ledger(store):
 
 
 def test_evidence_survives_an_export_import_round_trip(store, tmp_path):
-    """Carriage: a reference attached here is carried in the v3 bundle and lands
-    on the pair after importing into a fresh instance (decision 0144)."""
+    """Carriage: a reference attached here is carried in the bundle (v3+) and
+    lands on the pair after importing into a fresh instance (decision 0144)."""
     from nestor import portable
     pair = _sealed(store, "round trip")
     evidence.attach(pair["id"], "document", "MSA.pdf#cl.4", reason="the def",
                     attached_by="rita", store=store)
     bundle = portable.export_bundle(store=store)
-    assert bundle["nestor_bundle"] == 3
+    assert bundle["nestor_bundle"] == portable.BUNDLE_VERSION >= 3
     assert bundle["counts"]["evidence"] == 1
     ok, detail = portable.verify_bundle(bundle)
     assert ok, detail
@@ -292,7 +292,8 @@ def test_import_drops_evidence_naming_a_pair_the_bundle_does_not_carry(store, tm
     bundle = portable.export_bundle(store=store)
     bundle["evidence"][0]["pair_id"] = "ghost-pair-id-not-in-bundle"
     bundle["digest"] = portable.digest(bundle["pairs"], bundle["rejections"],
-                                       bundle["evidence"], version=3)
+                                       bundle["evidence"], bundle["warrants"],
+                                       version=bundle["nestor_bundle"])
     cascade.set_ledger_path(tmp_path / "dest2_ledger.jsonl")
     dest = SqliteStore(":memory:")
     dest.memory_init()

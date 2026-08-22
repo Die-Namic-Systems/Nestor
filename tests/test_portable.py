@@ -52,7 +52,7 @@ def test_export_carries_pairs_rejections_signatures_and_a_digest(source):
     b = portable.export_bundle(source)
     assert b["nestor_bundle"] == portable.BUNDLE_VERSION
     assert b["counts"] == {"pairs": 3, "sealed": 2, "servable": 2,
-                           "rejections": 1, "evidence": 0}
+                           "rejections": 1, "evidence": 0, "warrants": 0}
     assert all(p["seal_sig"] for p in b["pairs"] if p["status"] == "sealed")
     json.dumps(b)                                   # must round-trip
     ok, detail = portable.verify_bundle(b)
@@ -213,3 +213,29 @@ def test_the_digest_still_notices_an_actual_edit(source):
     before = bundle["digest"]
     bundle["pairs"][0]["verifier"] = "mallory"
     assert portable.digest(bundle["pairs"], bundle["rejections"]) != before
+
+
+def test_the_bundles_checked_into_this_repository_still_verify():
+    """The version gate, tested against the payloads it exists for.
+
+    Three bundles live in the tree (`docs/*/nestor.bundle.json`), and they are
+    not all one version — two v2, one v3. Every version bump since has been
+    gated so an untouched payload keeps its digest, and the argument for gating
+    is that an integrity check which fails on an untouched file trains people to
+    ignore it. Until now that argument was defended only by synthetic bundles
+    built inside the test run, which are written by the same build that reads
+    them. These files were written by earlier builds; they are the only real
+    evidence the gate holds, and nothing was checking them.
+    """
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    found = sorted(root.glob("docs/*/nestor.bundle.json"))
+    assert found, "no checked-in bundles found — this test just stopped testing"
+    for path in found:
+        bundle = json.loads(path.read_text(encoding="utf-8"))
+        version = bundle.get("nestor_bundle")
+        assert version < portable.BUNDLE_VERSION, (
+            f"{path.name} is at the current version, so it no longer exercises "
+            f"the compatibility gate this test exists for")
+        ok, detail = portable.verify_bundle(bundle)
+        assert ok, f"{path}: {detail}"
