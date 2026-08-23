@@ -31,7 +31,7 @@ needing to fake a stream at all.
 from __future__ import annotations
 
 import sys
-from typing import IO, Optional
+from typing import IO
 
 from . import seed as seed_mod
 from .answer import match as answer_match
@@ -134,10 +134,10 @@ def finale(out: IO[str], db_path: str) -> None:
         "person checking anything.\n")
 
 
-def run(store: Storage, *, db_path: str = "", out: Optional[IO[str]] = None,
-       in_stream: Optional[IO[str]] = None, yes: bool = False,
-       question: Optional[str] = None, commitment: Optional[str] = None,
-       rationale: Optional[str] = None) -> dict:
+def run(store: Storage, *, db_path: str = "", out: IO[str] | None = None,
+       in_stream: IO[str] | None = None, yes: bool = False,
+       question: str | None = None, commitment: str | None = None,
+       rationale: str | None = None) -> dict:
     """The whole guided walk: ask, watch it resolve, propose. Never seals.
 
     ``yes=True`` (or supplying ``question``/``commitment``/``rationale``

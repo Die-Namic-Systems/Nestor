@@ -34,8 +34,8 @@ import hashlib
 import hmac
 import os
 import time
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, Sequence
 
 try:  # FAIL-CLOSED ON THE GATE — no willow-gate at this end means no cloud path.
     from willow_gate import GateError, canonical_header_bytes  # noqa: F401
@@ -108,7 +108,7 @@ def seal_through_gate(
     secret: bytes,
     items: Iterable[tuple[str, str]],
     *,
-    custody: "CustodyLedger",
+    custody: CustodyLedger,
     trust_level: int = 1,
     tools: Sequence[str] = ("read",),
     agent_name: str = "",

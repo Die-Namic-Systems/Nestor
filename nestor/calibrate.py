@@ -36,7 +36,6 @@ memory contains no record of the paraphrases nobody asked yet.
 from __future__ import annotations
 
 import random
-from typing import Optional
 
 from . import memory
 from .matcher import Matcher, match_similarity, matcher_audit_fields, uses_raw_score
@@ -56,10 +55,10 @@ DEFAULT_TARGET = 0.01
 STABLE_SAMPLE_FLOOR = 30
 
 
-def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
+def calibrate(store: Storage | None = None, source_lang: str = "en",
               target_lang: str = "es", target_rate: float = DEFAULT_TARGET,
               sample: int = 300, thresholds=THRESHOLDS,
-              matcher: Optional[Matcher] = None, seed: int = 0,
+              matcher: Matcher | None = None, seed: int = 0,
               examples: int = 5) -> dict:
     """Measure this memory's own collision rate across the threshold sweep.
 
@@ -166,8 +165,8 @@ def calibrate(store: Optional[Storage] = None, source_lang: str = "en",
 def summarize(result: dict) -> str:
     """The calibration as a human reads it, verdict first."""
     d = result["domain"]
-    lines = [f"{result['corpus']} sealed pair(s) in {d['source_lang']}→"
-             f"{d['target_lang']}; sampled {result['sampled']}"]
+    lines = [(f"{result['corpus']} sealed pair(s) in {d['source_lang']}→"
+              f"{d['target_lang']}; sampled {result['sampled']}")]
     if not result["corpus"]:
         return lines[0] + "\n  nothing sealed here yet — nothing to calibrate against."
     lines.append("")

@@ -1,10 +1,9 @@
 import json
 
 import pytest
+from conftest import read_ledger
 
 from nestor.reconcile import Reconciler
-
-from conftest import read_ledger
 
 
 def test_in_tolerance_observation_not_flagged(store):
@@ -54,7 +53,7 @@ def test_reconcile_is_ledgered(store):
     kinds = [e["kind"] for e in read_ledger()]
     assert "baseline_seal" in kinds
     assert "reconcile" in kinds
-    flagged = [e for e in read_ledger() if e["kind"] == "reconcile"][0]
+    flagged = next(e for e in read_ledger() if e["kind"] == "reconcile")
     assert flagged["flagged"] is True
 
 

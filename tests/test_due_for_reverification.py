@@ -34,7 +34,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import due_for_reverification as DUE            # noqa: E402
+import due_for_reverification as DUE
 
 SCRIPT = ROOT / "scripts" / "due_for_reverification.py"
 NOW = dt.datetime(2027, 1, 1, tzinfo=dt.timezone.utc)
@@ -131,7 +131,8 @@ def test_a_missing_chain_is_none_not_an_empty_list(tmp_path):
 def test_a_missing_chain_exits_nonzero_and_says_which_nothing(tmp_path):
     done = subprocess.run([sys.executable, str(SCRIPT), "--ledger",
                            str(tmp_path / "absent.jsonl")],
-                          capture_output=True, text=True, timeout=180)
+                          capture_output=True, text=True, timeout=180,
+                          check=False)
     assert done.returncode == 1
     assert DUE.UNREADABLE in done.stdout
     assert "Not 'nothing is stale'" in done.stdout
@@ -158,14 +159,14 @@ for i in range(3):
 def _chain(tmp_path) -> pathlib.Path:
     done = subprocess.run(
         [sys.executable, "-c", _BUILD.format(root=str(ROOT), work=str(tmp_path))],
-        capture_output=True, text=True, timeout=180)
+        capture_output=True, text=True, timeout=180, check=False)
     assert done.returncode == 0, done.stderr[-800:]
     return tmp_path / "ledger.jsonl"
 
 
 def _run(path, *extra):
     done = subprocess.run([sys.executable, str(SCRIPT), "--ledger", str(path), *extra],
-                          capture_output=True, text=True, timeout=180)
+                          capture_output=True, text=True, timeout=180, check=False)
     done.stdout = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout)
     return done
 
@@ -194,7 +195,7 @@ rows = s.memory_candidates('source', 'serves')
 print('VERIFIES' if all(memory.is_verified_seal(r) for r in rows) else 'REFUSED')
 """
     done = subprocess.run([sys.executable, "-c", probe], capture_output=True,
-                          text=True, timeout=180)
+                          text=True, timeout=180, check=False)
     assert "VERIFIES" in done.stdout, (
         "if this ever prints REFUSED the signature has started covering "
         "created_at, and the listing could read the row's clock after all")

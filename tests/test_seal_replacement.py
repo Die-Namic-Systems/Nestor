@@ -15,9 +15,8 @@ overwrite was neither raised nor recorded.
 """
 from __future__ import annotations
 
-import os
-
 import json
+import os
 
 import pytest
 

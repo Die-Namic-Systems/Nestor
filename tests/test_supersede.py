@@ -108,11 +108,11 @@ class TestSupersede:
                               verifier="loki", store=store)
         # History shares the key; a THIRD live row is refused by the partial
         # index itself, guards or no guards.
-        row = dict(id="x", source_text="hello",
-                   source_norm=memory._norm("hello"), source_lang="en",
-                   target_text="another", target_lang="es", status="sealed",
-                   verifier="", weight=1.0, origin="", created_at="now",
-                   seal_sig="")
+        row = {"id": "x", "source_text": "hello",
+               "source_norm": memory._norm("hello"), "source_lang": "en",
+               "target_text": "another", "target_lang": "es", "status": "sealed",
+               "verifier": "", "weight": 1.0, "origin": "", "created_at": "now",
+               "seal_sig": ""}
         with pytest.raises(sqlite3.IntegrityError):
             store.memory_insert(row)
 
@@ -160,9 +160,9 @@ class TestSupersede:
         kinds = [json.loads(ln)["kind"] for ln in
                  (tmp_path / "ledger.jsonl").read_text().splitlines()]
         assert "supersede" in kinds
-        entry = [json.loads(ln) for ln in
-                 (tmp_path / "ledger.jsonl").read_text().splitlines()
-                 if json.loads(ln)["kind"] == "supersede"][0]
+        entry = next(json.loads(ln) for ln in
+                     (tmp_path / "ledger.jsonl").read_text().splitlines()
+                     if json.loads(ln)["kind"] == "supersede")
         assert entry["replaced_verifier"] == "rita"
         assert entry["verifier"] == "loki"
         assert entry["same_verifier"] is False

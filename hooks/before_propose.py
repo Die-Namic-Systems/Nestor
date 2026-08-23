@@ -125,7 +125,7 @@ def _git(root: pathlib.Path, *args: str) -> str | None:
     try:
         proc = subprocess.run(
             ["git", "-C", str(root), *args],
-            capture_output=True, text=True, timeout=15)
+            capture_output=True, text=True, timeout=15, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:
@@ -267,18 +267,20 @@ def advisory(root: pathlib.Path | None = None) -> str:
         result = scan(root)
     except Exception as exc:  # noqa: BLE001 — a broken scan must not crash a reminder
         return "\n".join([
-            "[NESTOR collision] You may not be the only agent in this tree "
-            "right now (issue #111, IDEAS §7.5).",
-            f"  [collision] scan crashed ({type(exc).__name__}: {exc}) — "
-            f"collision state UNKNOWN, not clear. Check by hand: "
-            f"`git branch -a --no-merged origin/master`.",
+            ("[NESTOR collision] You may not be the only agent in this tree "
+             "right now (issue #111, IDEAS §7.5)."),
+            (f"  [collision] scan crashed ({type(exc).__name__}: {exc}) — "
+             f"collision state UNKNOWN, not clear. Check by hand: "
+             f"`git branch -a --no-merged origin/master`."),
             f"  [collision] {limits()}",
         ])
 
     lines = [
-        "[NESTOR collision] You may not be the only agent in this tree right "
-        "now — before minting a decision number or opening a PR, check who "
-        "else is building (issue #111, IDEAS §7.5).",
+        (
+            "[NESTOR collision] You may not be the only agent in this tree right "
+            "now — before minting a decision number or opening a PR, check who "
+            "else is building (issue #111, IDEAS §7.5)."
+        ),
     ]
     if not result.ok:
         lines.append(f"  [collision] scan incomplete ({result.error}) — "

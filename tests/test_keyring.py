@@ -435,9 +435,8 @@ def test_isolated_restores_state_even_if_the_block_raises(tmp_path):
     ring.add("rita")
     ring.save()
     os.environ["NESTOR_KEYRING"] = str(ring.path)
-    with pytest.raises(ValueError):
-        with keyring.isolated():
-            assert keyring.get_keyring() is None
-            raise ValueError("boom")
+    with pytest.raises(ValueError), keyring.isolated():
+        assert keyring.get_keyring() is None
+        raise ValueError("boom")
     assert keyring.get_keyring() is not None
     assert keyring.get_keyring().names() == ["rita"]

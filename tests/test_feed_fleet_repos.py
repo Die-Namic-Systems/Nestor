@@ -13,10 +13,10 @@ reports one is the branch most worth a test.
 """
 from __future__ import annotations
 
-import subprocess
-import sys
 import pathlib
 import sqlite3
+import subprocess
+import sys
 
 import pytest
 
@@ -38,7 +38,8 @@ def run(root: pathlib.Path, db: pathlib.Path | None = None) -> subprocess.Comple
     argv = [sys.executable, str(SCRIPT), "--root", str(root)]
     if db is not None:
         argv += ["--db", str(db)]
-    return subprocess.run(argv, capture_output=True, text=True, cwd=str(ROOT))
+    return subprocess.run(argv, capture_output=True, text=True, cwd=str(ROOT),
+                          check=False)
 
 
 def test_a_missing_root_says_it_could_not_look(tmp_path):

@@ -30,7 +30,8 @@ SCRIPT = REPO / "scripts" / "two_instances.py"
 
 def run(*args):
     return subprocess.run([sys.executable, str(SCRIPT), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=300)
+                          capture_output=True, text=True, cwd=REPO, timeout=300,
+                          check=False)
 
 
 def test_the_two_boxes_stay_independent_and_the_seal_does_not_cross():

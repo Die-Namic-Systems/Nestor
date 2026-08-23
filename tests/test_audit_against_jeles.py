@@ -32,8 +32,9 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
-import audit_against_jeles as AUDIT           # noqa: E402
-from tests._fleet_paths import jeles_checkout  # noqa: E402
+import audit_against_jeles as AUDIT
+
+from tests._fleet_paths import jeles_checkout
 
 JELES = jeles_checkout()
 SCRIPT = REPO / "scripts" / "audit_against_jeles.py"
@@ -152,7 +153,7 @@ def test_a_checkout_missing_one_file_reads_none(tmp_path):
 
 def test_a_missing_repo_exits_nonzero(tmp_path):
     done = subprocess.run([sys.executable, str(SCRIPT), "--repo", str(tmp_path)],
-                          capture_output=True, text=True, timeout=180)
+                          capture_output=True, text=True, timeout=180, check=False)
     assert done.returncode == 1
     assert "could not read" in done.stdout
 
@@ -210,7 +211,8 @@ def test_an_ambient_keyring_does_not_produce_a_false_fails(tmp_path):
 
     done = subprocess.run([sys.executable, str(SCRIPT), "--repo",
                            str(_fake_jeles_repo(tmp_path))],
-                          capture_output=True, text=True, timeout=180, env=env)
+                          capture_output=True, text=True, timeout=180, env=env,
+                          check=False)
     out = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout + done.stderr)
     assert "the probe itself raised" not in out, (
         "a probe died and the audit reported it as an ordinary verdict: " + out)
@@ -248,7 +250,7 @@ def test_the_witness_probe_runs_both_signing_configurations():
     call is refused before the store is touched. A verdict of FAILS here means
     the probe found an unnamed verifier accepted in *both* modes."""
     done = subprocess.run([sys.executable, str(SCRIPT), "--repo", str(JELES)],
-                          capture_output=True, text=True, timeout=600)
+                          capture_output=True, text=True, timeout=600, check=False)
     out = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout)
     assert "single shared key:" in out and "keyring:" in out, (
         "both configurations must be reported, or the verdict is about whichever "

@@ -4,7 +4,6 @@ from nestor import memory, storage
 from nestor.cascade import translate_segment
 from nestor.segment import _split_segments
 
-
 # --- _split_segments: must match the host's original behavior ---------------
 
 def test_split_segments_paragraphs_when_three_or_more():

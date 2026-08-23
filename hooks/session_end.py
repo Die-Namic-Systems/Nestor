@@ -54,7 +54,7 @@ def verify_drift(root: pathlib.Path) -> str | None:
     try:
         proc = subprocess.run(
             [sys.executable, str(script), "--verify"],
-            capture_output=True, text=True, cwd=str(root), timeout=60)
+            capture_output=True, text=True, cwd=str(root), timeout=60, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return None if proc.returncode == 0 else _DRIFT

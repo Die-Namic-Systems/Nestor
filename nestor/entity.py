@@ -19,7 +19,6 @@ single store can hold several disjoint entity graphs (e.g. ``"company"``,
 from __future__ import annotations
 
 import hashlib
-from typing import Optional
 
 from . import memory
 from .cascade import _ledger_append
@@ -31,9 +30,9 @@ class EntityResolver:
     """Alias -> canonical-entity resolution over a StringMatcher-backed memory."""
 
     def __init__(self, store: Storage, domain: str = "entity",
-                 matcher: Optional[Matcher] = None,
-                 seal_threshold: Optional[float] = None,
-                 context_threshold: Optional[float] = None) -> None:
+                 matcher: Matcher | None = None,
+                 seal_threshold: float | None = None,
+                 context_threshold: float | None = None) -> None:
         self.store = store
         self.domain = domain
         self.matcher = matcher or StringMatcher()

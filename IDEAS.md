@@ -188,6 +188,9 @@ this map is not, CI fails. It cannot drift.
 | [6.117](docs/agent-log.md#6117-the-migration-ladder-had-eleven-tests-and-zero-real-steps--shipped) | The migration ladder had eleven tests and zero real steps | shipped |
 | [6.118](docs/agent-log.md#6118-the-suite-was-example-based-the-three-surfaces-that-earned-a-property-test-had-none--shipped) | The suite was example-based; the three surfaces that earned a property test had none | shipped |
 | [6.119](docs/agent-log.md#6119-the-test-job-had-the-same-drift-the-lint-job-did-and-the-tool-built-to-catch-it-committed-it-first--measured-tool-shipped) | The test job had the same drift the lint job did, and the tool built to catch it committed it first | measured, tool shipped |
+| [6.120](docs/agent-log.md#6120-the-cli-had-no---version-no-shell-completions-and-two-verbs-without---json--shipped) | The CLI had no --version, no shell completions, and two verbs without --json | shipped |
+| [6.121](docs/agent-log.md#6121-the-system-had-no-surface-for-i-like-it-this-way--shipped) | The system had no surface for "I like it this way" | shipped |
+| [6.122](docs/agent-log.md#6122-the-contributor-path-was-scattered-across-four-documents-and-had-no-front-door--shipped) | The contributor path was scattered across four documents and had no front door | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -2111,7 +2114,11 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   (determinism, JSON round-trip, domain separation across all four message types).
   25 property tests in `tests/test_property.py`. **Status: shipped.**
 - **Contributor onboarding.** A PR template and pre-commit exist; `CONTRIBUTING.md`
-  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status: open.**
+  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status:
+  shipped** — `CONTRIBUTING.md` consolidates the path from clone to merged PR
+  (setup, gate table, conventional commits, the one rule, pre-PR checklist);
+  `.github/ISSUE_TEMPLATE/` adds bug-report and feature-request templates plus a
+  `config.yml` linking the contributing guide.
 - **Reproducible dev environment.** No `Dockerfile`, no devcontainer; the venv is
   the whole story. **Status: hypothesis** — the CCR session-start bootstrap already
   does most of what a devcontainer would, so the fleet may answer this a different
@@ -2164,8 +2171,11 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   propose → resolve → seal flow is a natural one), and no published **manifest** for
   discovery or packaging. The CLI/MCP split is itself the standard-parts method in
   miniature — one core, two surfaces (§5.1, §5.7) — so the gap here is not a missing
-  surface but the missing *finish* on the two that exist. **Status: open** for the
-  mechanical parts (`--version`, completions, uniform `--json`); **hypothesis** for
+  surface but the missing *finish* on the two that exist. **Status: shipped** for the
+  mechanical parts — `--version` (from `importlib.metadata`, matching `nestor/__init__.py`),
+  `nestor completions {bash,zsh,tcsh}` (via `shtab`, guarded behind an `ImportError`
+  when not installed), and uniform `--json` on every verb (the two that lacked it — `db`
+  and `export` — now emit structured payloads through `_emit()`); **hypothesis** for
   MCP resources/prompts — worth adding only once a consumer needs the store *as a
   resource* rather than through the tool verbs.
 - **Cross-session collision awareness — notice another agent is in the room (#111).**
@@ -2214,8 +2224,10 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   including other people's. What is absent is a per-user, cross-session
   preference store that tools can consult, that the user can inspect and
   revise, and that does not leak into product decisions or governance
-  constraints. **Status: open** — the gap is named, the worked instance is
-  on record, the design space is not.
+  constraints. **Status: shipped** — `nestor/preferences.py` implements the
+  store (`~/.nestor/preferences.json`); CLI verb `nestor prefs` (list /
+  get / set / clear / reset); read-only MCP tool `nestor_prefs`. Design
+  doc: `docs/drafts/user-preferences.md`.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,

@@ -16,7 +16,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-import mutation_guard  # noqa: E402  (scripts/ is not an installed package)
+import mutation_guard
 
 
 def test_all_shipped_guards_are_proven():
@@ -24,7 +24,7 @@ def test_all_shipped_guards_are_proven():
     broken. Run through the script end-to-end, the way CI would."""
     done = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "mutation_guard.py")],
-        capture_output=True, text=True, cwd=REPO, timeout=300)
+        capture_output=True, text=True, cwd=REPO, timeout=300, check=False)
     assert done.returncode == 0, f"a guard survived or went stale:\n{done.stdout}\n{done.stderr}"
     assert f"{len(mutation_guard.MUTATIONS)}/{len(mutation_guard.MUTATIONS)} guards proven" in done.stdout
 
@@ -32,7 +32,7 @@ def test_all_shipped_guards_are_proven():
 def test_list_mode_names_every_mutation_and_runs_nothing():
     done = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "mutation_guard.py"), "--list"],
-        capture_output=True, text=True, cwd=REPO, timeout=30)
+        capture_output=True, text=True, cwd=REPO, timeout=30, check=False)
     assert done.returncode == 0
     for m in mutation_guard.MUTATIONS:
         assert m.name in done.stdout

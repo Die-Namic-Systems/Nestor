@@ -92,8 +92,8 @@ def test_rejecting_a_pair_retires_it_everywhere(store):
 
 def test_reject_segment_stops_the_candidate_coming_back(store):
     memory.add_pair("hola", "hello", "es", "en", status="draft")
-    doc, passages = cascade.translate_text("Hola.", target_lang="en",
-                                           source_lang="es", store=store)
+    _doc, passages = cascade.translate_text("Hola.", target_lang="en",
+                                            source_lang="es", store=store)
     seg_id = passages[0].segment_id
     assert seg_id, "precondition: the draft must have been queued for review"
     candidate = passages[0].target

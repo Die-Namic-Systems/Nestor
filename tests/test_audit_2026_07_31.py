@@ -17,9 +17,8 @@ store without passing it.
 """
 from __future__ import annotations
 
-import os
-
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -148,7 +147,7 @@ def test_the_reference_store_enforces_one_row_per_source(signed):
     store = fresh()
     memory.add_pair("hello", "hola", "en", "es", store=store)
     row = store.memory_find(memory._norm("hello"), "en", "es")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017 — any uniqueness error is acceptable
         store.memory_insert({**row, "id": "a-second-row"})
 
 

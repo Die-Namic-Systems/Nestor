@@ -18,7 +18,6 @@ import pytest
 from nestor import config
 from nestor.config import ConfigError, Resolver, VarSpec
 
-
 # --- the catalog: every var this tree reads, once ---------------------------
 
 #: Every NESTOR_* name this task's audit confirmed a call site reads (or, for
@@ -130,7 +129,7 @@ def test_every_entry_documents_itself():
 
 def test_varspec_is_a_plain_frozen_dataclass():
     spec = VarSpec("NESTOR_TEST_ONLY", "str", default="x")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017 — any frozen-instance error is fine
         spec.name = "changed"  # type: ignore[misc]
 
 

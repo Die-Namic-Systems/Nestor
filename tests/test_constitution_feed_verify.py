@@ -21,7 +21,7 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
-import feed_willow_constitution as FEED     # noqa: E402
+import feed_willow_constitution as FEED
 
 
 def _row(file: str, trace: str, clause: str, forbidden: str, doc: str = "doc line") -> dict:

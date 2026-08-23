@@ -27,7 +27,8 @@ pytestmark = pytest.mark.skipif(
 
 def run(*args):
     return subprocess.run([sys.executable, str(HARNESS), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180)
+                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          check=False)
 
 
 def test_it_captures_the_fast_run_and_every_beat_is_in_the_transcript(tmp_path):

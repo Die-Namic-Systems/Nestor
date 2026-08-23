@@ -53,7 +53,7 @@ def _run(cmd: str, *, cwd: pathlib.Path, stdin: str, **env) -> subprocess.Comple
     # run in shell form under whatever /bin/sh the runtime provides.
     return subprocess.run(
         ["sh", "-c", cmd], input=stdin, capture_output=True, text=True,
-        cwd=str(cwd), env=_stripped_env(**env), timeout=120)
+        cwd=str(cwd), env=_stripped_env(**env), timeout=120, check=False)
 
 
 def test_no_command_hard_depends_on_claude_project_dir():
@@ -110,7 +110,7 @@ def test_nestor_hook_self_locates_from_a_foreign_cwd(tmp_path):
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_mcp"],
         input='{"tool_name":"mcp__willow-mcp__store_get","tool_input":{}}',
         capture_output=True, text=True, cwd=str(tmp_path),
-        env=_stripped_env(), timeout=60)
+        env=_stripped_env(), timeout=60, check=False)
     assert proc.returncode == 0, proc.stderr
     assert json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
 
@@ -124,7 +124,7 @@ def test_session_start_script_self_locates_and_is_loud_when_declining(tmp_path):
     env = _stripped_env()
     env.pop("CLAUDE_CODE_REMOTE", None)
     proc = subprocess.run(["bash", str(script)], capture_output=True, text=True,
-                          cwd=str(tmp_path), env=env, timeout=60)
+                          cwd=str(tmp_path), env=env, timeout=60, check=False)
     assert proc.returncode == 0
     assert str(REPO) in proc.stderr           # resolved its own root, not tmp
     assert "skipping venv bootstrap" in proc.stderr

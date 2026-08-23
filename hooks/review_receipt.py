@@ -50,7 +50,7 @@ def receipt_path(root: pathlib.Path) -> pathlib.Path:
     try:                                    # Nestor's household root, if present
         from nestor.home_paths import home
         base = pathlib.Path(home()) / "nestor-review"
-    except Exception:
+    except Exception:  # noqa: BLE001 — optional import, fall back to tempdir
         base = pathlib.Path(tempfile.gettempdir()) / "nestor-review"
     key = hashlib.sha256(str(pathlib.Path(root).resolve()).encode()).hexdigest()[:16]
     return base / f"{key}.json"

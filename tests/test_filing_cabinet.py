@@ -29,7 +29,8 @@ DEMO = REPO / "demo" / "filing_cabinet.py"
 
 def run(*args):
     return subprocess.run([sys.executable, str(DEMO), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180)
+                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          check=False)
 
 
 def test_every_claim_still_holds():

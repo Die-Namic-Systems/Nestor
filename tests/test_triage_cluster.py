@@ -33,7 +33,7 @@ def _instrumented() -> bool:
     if cov is not None:
         try:
             return cov.Coverage.current() is not None
-        except Exception:                     # present but API shifted: assume so
+        except Exception:                     # noqa: BLE001 — present but API shifted: assume so
             return True
     return False
 

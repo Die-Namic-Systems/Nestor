@@ -38,10 +38,10 @@ import pytest
 
 pytest.importorskip("playwright")
 
-from playwright.sync_api import sync_playwright  # noqa: E402
+from playwright.sync_api import sync_playwright
 
-from nestor import cascade, keyring, memory, signing, storage, ui  # noqa: E402
-from nestor.sqlite_store import SqliteStore  # noqa: E402
+from nestor import cascade, keyring, memory, signing, storage, ui
+from nestor.sqlite_store import SqliteStore
 
 
 def _chromium_missing_reason() -> str:

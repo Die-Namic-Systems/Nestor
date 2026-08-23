@@ -53,9 +53,9 @@ import os
 import pathlib
 import secrets
 import stat
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Iterator, Optional
 
 from .errors import NestorError
 
@@ -88,10 +88,8 @@ def _now() -> str:
 def _ed25519_generate() -> tuple[bytes, bytes]:
     """(private, public) raw bytes — behind the ``[keys]`` extra, loudly."""
     try:
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-            Ed25519PrivateKey)
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
     except ImportError as exc:
         raise KeyringError(
             "ed25519 keys need the [keys] extra: pip install 'nestor-meaning[keys]'. "
@@ -153,7 +151,7 @@ class VerifierKey:
         return out
 
     @classmethod
-    def from_json(cls, raw: dict) -> "VerifierKey":
+    def from_json(cls, raw: dict) -> VerifierKey:
         name = str(raw.get("name", "")).strip()
         if not name:
             raise KeyringError("a keyring entry needs a 'name'")
@@ -198,8 +196,8 @@ class Keyring:
     the stricter and slower road to the same place.
     """
 
-    def __init__(self, verifiers: Optional[list[VerifierKey]] = None,
-                 legacy_key: Optional[bytes] = None, path: str = "") -> None:
+    def __init__(self, verifiers: list[VerifierKey] | None = None,
+                 legacy_key: bytes | None = None, path: str = "") -> None:
         self._by_name: dict[str, VerifierKey] = {v.name: v for v in (verifiers or [])}
         self.legacy_key = legacy_key
         self.path = path
@@ -212,7 +210,7 @@ class Keyring:
     def __len__(self) -> int:
         return len(self._by_name)
 
-    def get(self, name: str) -> Optional[VerifierKey]:
+    def get(self, name: str) -> VerifierKey | None:
         return self._by_name.get(name)
 
     def names(self) -> list[str]:
@@ -221,7 +219,7 @@ class Keyring:
     def entries(self) -> list[VerifierKey]:
         return [self._by_name[n] for n in self.names()]
 
-    def signing_entry(self, name: str) -> "VerifierKey":
+    def signing_entry(self, name: str) -> VerifierKey:
         """The entry ``name`` signs under, or a refusal saying why they cannot.
 
         Raises rather than returning ``None``: this is called on the path to
@@ -244,7 +242,7 @@ class Keyring:
         entry = self.signing_entry(name)
         return entry.private if entry.kind == "ed25519" else entry.key
 
-    def _require_signable(self, name: str) -> "VerifierKey":
+    def _require_signable(self, name: str) -> VerifierKey:
         entry = self._by_name.get(name)
         if entry is None:
             raise UnknownVerifierError(
@@ -262,7 +260,7 @@ class Keyring:
                 f"seals. Issue a new key with `nestor keys add {name} --rotate`.")
         return entry
 
-    def verifying_entry(self, name: str) -> Optional["VerifierKey"]:
+    def verifying_entry(self, name: str) -> VerifierKey | None:
         """The entry a seal by ``name`` must verify under, or ``None`` for
         "it cannot be trusted at all" — same trust rules as
         :meth:`verifying_key`, with the key type attached."""
@@ -271,7 +269,7 @@ class Keyring:
             return None
         return entry
 
-    def verifying_key(self, name: str) -> Optional[bytes]:
+    def verifying_key(self, name: str) -> bytes | None:
         """The key a seal by ``name`` must verify under, or ``None`` for "it
         cannot be trusted at all".
 
@@ -296,7 +294,7 @@ class Keyring:
 
     # -- writing ----------------------------------------------------------
 
-    def add(self, name: str, key: Optional[bytes] = None,
+    def add(self, name: str, key: bytes | None = None,
             rotate: bool = False, kind: str = "hmac") -> VerifierKey:
         """Register ``name`` with ``key`` (a fresh random one by default).
 
@@ -366,7 +364,7 @@ class Keyring:
             out["legacy_key"] = self.legacy_key.hex()
         return out
 
-    def save(self, path: Optional[str] = None) -> str:
+    def save(self, path: str | None = None) -> str:
         """Write the keyring, readable by its owner only.
 
         This file holds every seal key in the deployment. It is written 0600 and
@@ -396,7 +394,7 @@ def load(path: str) -> Keyring:
         raise KeyringError(f"no keyring at {p}. Create one with `nestor keys add NAME`.")
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
-    except Exception as exc:                              # noqa: BLE001
+    except Exception as exc:
         raise KeyringError(f"{p} is not valid JSON: {exc}") from exc
     if not isinstance(raw, dict):
         raise KeyringError(f"{p} must contain a JSON object")
@@ -432,12 +430,12 @@ def load(path: str) -> Keyring:
 # environment. Keeping them apart is what makes the precedence below decidable:
 # with one variable for both, "installed" and "happens to be cached" are the
 # same state and the environment can overwrite an injection.
-_injected: Optional[Keyring] = None
-_from_env: Optional[Keyring] = None
-_loaded_from: Optional[str] = None
+_injected: Keyring | None = None
+_from_env: Keyring | None = None
+_loaded_from: str | None = None
 
 
-def set_keyring(k: Optional[Keyring]) -> None:
+def set_keyring(k: Keyring | None) -> None:
     """Install the process-wide keyring. **Wins over ``NESTOR_KEYRING``.**
 
     ``None`` removes the injection, after which the environment is consulted
@@ -460,7 +458,7 @@ def keyring_path() -> str:
     return os.environ.get("NESTOR_KEYRING", "")
 
 
-def get_keyring() -> Optional[Keyring]:
+def get_keyring() -> Keyring | None:
     """The installed keyring, the one at ``NESTOR_KEYRING``, or ``None``.
 
     **An injected keyring wins.** It used to be the other way around whenever
@@ -503,7 +501,7 @@ def get_keyring() -> Optional[Keyring]:
     return _from_env
 
 
-def preflight() -> Optional[Keyring]:
+def preflight() -> Keyring | None:
     """Resolve the keyring now, so a broken configuration refuses at startup.
 
     Everything else reaches the keyring lazily, from inside a serve path. That

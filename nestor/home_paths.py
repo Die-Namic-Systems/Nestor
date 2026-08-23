@@ -22,8 +22,15 @@ from pathlib import Path
 
 from .errors import NestorError
 
-__all__ = ["HomeRelocationRefused", "PinRefused", "home", "keep_dir",
-           "ledger_path", "bind_ledger", "db_path"]
+__all__ = [
+    "HomeRelocationRefused",
+    "PinRefused",
+    "bind_ledger",
+    "db_path",
+    "home",
+    "keep_dir",
+    "ledger_path",
+]
 
 _ROOT_ENV = "NESTOR_HOME"
 _ROOT_NAME = ".nestor"

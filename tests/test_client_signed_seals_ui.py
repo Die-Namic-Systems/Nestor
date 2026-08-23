@@ -22,8 +22,7 @@ import pytest
 pytest.importorskip("cryptography")
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding, NoEncryption, PrivateFormat, PublicFormat)
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from nestor import cascade, keyring, memory, signing, storage, ui
 from nestor.sqlite_store import SqliteStore
@@ -137,8 +136,8 @@ class TestClientSignedSealThroughDispatch:
 
         norm = memory.get_matcher(None).normalize("good evening")
         sig = _client_sign(priv, norm, "buenas noches", "bob")
-        status, body = post(app, "/api/seal", source="good evening", target="buenas noches",
-                            verifier="bob", seal_sig=sig)
+        status, _body = post(app, "/api/seal", source="good evening", target="buenas noches",
+                             verifier="bob", seal_sig=sig)
         assert status == 200
 
     def test_a_forged_signature_is_refused_before_any_write(self, ring, app):

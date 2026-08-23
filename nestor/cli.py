@@ -23,6 +23,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor rejections                     # what the recorded "no"s say in aggregate
     nestor keys add rita                  # a key per verifier (list / add / revoke)
     nestor policy add --from en --to es --verifier rita  # who may seal a domain
+    nestor --version                       # the installed version
+    nestor completions bash               # shell completions (bash, zsh, tcsh)
     nestor ui                             # the browser surface
     nestor serve                          # MCP over stdio, for a model
 
@@ -42,10 +44,13 @@ import os
 import pathlib
 import shutil
 import sys
-from typing import Optional
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _dist_version
 
-from . import (answer, cascade, config, keyring as keyring_mod, ledger as ledger_mod, memory,
-               portable, seed as seed_mod, serve, signing, storage, ui)
+from . import answer, cascade, config, memory, portable, serve, signing, storage, ui
+from . import keyring as keyring_mod
+from . import ledger as ledger_mod
+from . import seed as seed_mod
 from .errors import NestorError
 from .sqlite_store import SqliteStore
 
@@ -94,7 +99,7 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 _DEFAULT_SOURCE_LANG, _DEFAULT_TARGET_LANG = "en", "es"
 
 
-def _ask_domain(store, source_lang: Optional[str], target_lang: Optional[str]) -> tuple:
+def _ask_domain(store, source_lang: str | None, target_lang: str | None) -> tuple:
     """The domain `nestor ask` actually queries, preferring one the store holds.
 
     Mirrors askDomain() in nestor/ui_page.py (landed for the UI in #159; this
@@ -210,7 +215,7 @@ def cmd_match(args) -> int:
     return EXIT_OK if result["served"] else EXIT_ANSWER_IS_NO
 
 
-def _print_live_commitment(live: Optional[dict]) -> None:
+def _print_live_commitment(live: dict | None) -> None:
     """Show the recorded answer a clear consult found, if it found one.
 
     ``exit 0`` from ``decision check`` means "nothing on record BLOCKS this",
@@ -542,10 +547,12 @@ def cmd_db(args) -> int:
                           file=sys.stderr)
                 # Nothing was written here, so nothing may remain here.
                 ledger_out.unlink(missing_ok=True)
-            print(f"wrote {' and '.join(parts)}", file=sys.stderr)
+            _emit({"action": "backup", "files": parts},
+                  args.json, f"wrote {' and '.join(parts)}")
         else:
             store.checkpoint_wal()
-            print(f"checkpointed {args.db}", file=sys.stderr)
+            _emit({"action": "checkpoint", "db": args.db},
+                  args.json, f"checkpointed {args.db}")
         return EXIT_OK
     return EXIT_USAGE
 
@@ -565,9 +572,12 @@ def cmd_export(args) -> int:
     if args.out:
         pathlib.Path(args.out).write_text(text, encoding="utf-8")
         c = bundle["counts"]
-        print(f"wrote {args.out} — {c['pairs']} pair(s), {c['sealed']} sealed "
-              f"({c['servable']} servable), {c['rejections']} rejection(s), "
-              f"digest {bundle['digest'][:16]}…", file=sys.stderr)
+        summary = {"file": args.out, "format": args.format, "counts": c,
+                   "digest": bundle["digest"]}
+        human = (f"wrote {args.out} — {c['pairs']} pair(s), {c['sealed']} sealed "
+                 f"({c['servable']} servable), {c['rejections']} rejection(s), "
+                 f"digest {bundle['digest'][:16]}…")
+        _emit(summary, args.json, human)
     else:
         print(text)
     return EXIT_OK
@@ -668,7 +678,8 @@ def cmd_ledger(args) -> int:
 
 def cmd_calibrate(args) -> int:
     """Where the threshold should sit for this corpus. See :mod:`nestor.calibrate`."""
-    from . import answer, calibrate as calibrate_mod
+    from . import answer
+    from . import calibrate as calibrate_mod
     # `load_matcher`, not `build_matcher`: `memory.py` tells a user to "measure
     # with `nestor calibrate --matcher …` on your corpus before trusting serves
     # at the shipped default", and this was the one --matcher flag in the package
@@ -861,8 +872,8 @@ def cmd_rejections(args) -> int:
     from .curator import Curator
     out = Curator(store, args.source_lang, args.target_lang).rejection_signals(
         min_query=args.min_query, min_pair=args.min_pair)
-    lines = [f"{out['rejections']} rejection(s) in the chain for "
-             f"{out['domain']['source_lang']}→{out['domain']['target_lang']}"]
+    lines = [(f"{out['rejections']} rejection(s) in the chain for "
+              f"{out['domain']['source_lang']}→{out['domain']['target_lang']}")]
     if out["queries"]:
         lines.append(f"\n  queries refused {args.min_query}+ times — the threshold "
                      f"may be wrong for this domain (nestor calibrate):")
@@ -991,6 +1002,78 @@ def cmd_demo(args) -> int:
 
 
 # --------------------------------------------------------------------------
+# completions
+# --------------------------------------------------------------------------
+
+
+def cmd_prefs(args) -> int:
+    from . import preferences
+
+    sub = getattr(args, "prefs_command", None)
+    home = getattr(args, "prefs_home", None)
+
+    if sub == "set":
+        if not args.key or args.value is None:
+            print("usage: nestor prefs set KEY VALUE", file=sys.stderr)
+            return EXIT_USAGE
+        try:
+            preferences.set_pref(args.key, args.value, home=home)
+        except preferences.PreferencesError as exc:
+            print(str(exc), file=sys.stderr)
+            return EXIT_USAGE
+        _emit({"action": "set", "key": args.key,
+               "value": preferences.get(args.key, home=home)},
+              args.json, f"{args.key} = {preferences.get(args.key, home=home)!r}")
+        return EXIT_OK
+
+    if sub == "get":
+        if not args.key:
+            print("usage: nestor prefs get KEY", file=sys.stderr)
+            return EXIT_USAGE
+        val = preferences.get(args.key, home=home)
+        _emit({"key": args.key, "value": val}, args.json, f"{args.key} = {val!r}")
+        return EXIT_OK
+
+    if sub == "clear":
+        if not args.key:
+            print("usage: nestor prefs clear KEY", file=sys.stderr)
+            return EXIT_USAGE
+        existed = preferences.clear(args.key, home=home)
+        msg = f"cleared {args.key}" if existed else f"{args.key} was not set"
+        _emit({"action": "clear", "key": args.key, "existed": existed},
+              args.json, msg)
+        return EXIT_OK
+
+    if sub == "reset":
+        existed = preferences.reset(home=home)
+        msg = "preferences file deleted" if existed else "no preferences file"
+        _emit({"action": "reset", "existed": existed}, args.json, msg)
+        return EXIT_OK
+
+    # Default: list all
+    prefs = preferences.load(home=home)
+    if not prefs:
+        _emit({"preferences": {}}, args.json, "no preferences set")
+        return EXIT_OK
+    if args.json:
+        _emit({"preferences": prefs}, True)
+    else:
+        for k in sorted(prefs):
+            print(f"{k} = {prefs[k]!r}")
+    return EXIT_OK
+
+
+def cmd_completions(args) -> int:
+    try:
+        import shtab
+    except ImportError:
+        print("shtab is not installed — pip install shtab", file=sys.stderr)
+        return EXIT_USAGE
+    print(shtab.complete(build_parser(), args.shell))
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------
 # parser
 # --------------------------------------------------------------------------
 
@@ -1023,6 +1106,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = _HintingParser(
         prog="nestor",
         description="Nestor — meaning infrastructure. Has a human checked this?")
+    try:
+        _ver = _dist_version("nestor-meaning")
+    except PackageNotFoundError:
+        _ver = "0+unknown"
+    p.add_argument("--version", action="version", version=f"nestor {_ver}")
     # $NESTOR_DB / $NESTOR_HOME win over the cwd-relative default, and an
     # unusable pin raises rather than reverting to it (home_paths.PinRefused).
     # An explicit --db still wins over both: the flag is a person at a terminal
@@ -1264,6 +1352,21 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--rationale", default="", help="skip that prompt: why, one line")
     ini.set_defaults(func=cmd_init)
 
+    prf = sub.add_parser("prefs", help="per-user preferences (list, get, set, clear, reset)")
+    prf.add_argument("prefs_command", nargs="?",
+                     choices=("get", "set", "clear", "reset"), default=None,
+                     metavar="ACTION", help="get|set|clear|reset (omit to list all)")
+    prf.add_argument("key", nargs="?", default="", help="dotted preference key")
+    prf.add_argument("value", nargs="?", default=None, help="value (for set)")
+    prf.add_argument("--home", dest="prefs_home", type=pathlib.Path, default=None,
+                     help=argparse.SUPPRESS)
+    prf.set_defaults(func=cmd_prefs)
+
+    comp = sub.add_parser("completions", help="print a shell completion script (requires shtab)")
+    comp.add_argument("shell", choices=("bash", "zsh", "tcsh"),
+                      help="target shell")
+    comp.set_defaults(func=cmd_completions)
+
     # These two own their own flags; hand the rest of argv straight over.
     sub.add_parser("ui", help="the browser surface (see: nestor ui --help)", add_help=False)
     sub.add_parser("serve", help="MCP over stdio, for a model (see: nestor serve --help)",
@@ -1277,7 +1380,7 @@ DELEGATED = {"ui": "the browser surface", "serve": "the model surface"}
 SHARED_FLAGS = ("--db", "--ledger")
 
 
-def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
+def split_delegated(argv: list[str]) -> tuple[str | None, list[str]]:
     """``(name, sub_argv)`` when this invocation targets ``ui`` or ``serve``.
 
     ``nestor --db x.db ui --port 9000`` has to work: a user who has typed
@@ -1311,7 +1414,7 @@ def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
     return None, argv
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     # `ui` and `serve` are whole programs with their own parsers; delegating the
     # remaining argv keeps one set of flags per surface instead of mirroring

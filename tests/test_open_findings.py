@@ -16,7 +16,6 @@ import nestor
 from nestor import glossary, memory
 from nestor.sqlite_store import SqliteStore
 
-
 # --- §6.25: init_db on a pre-lineage database ------------------------------
 
 def _pre_lineage_db(path: str) -> None:

@@ -136,7 +136,7 @@ class TestAPersonaIsAllOrNothing:
 
     def test_a_duck_typed_stand_in_cannot_be_installed(self):
         class Sneaky:
-            renderings: dict = {}
+            renderings: dict = {}  # noqa: RUF012 — intentional duck-type test
 
             def say(self, act, /, **facts):
                 return "here you go!"
@@ -152,7 +152,7 @@ class TestARefusalStillReadsAsOne:
     knob. Every act is a not-served outcome; a rendering that reads as
     reassuring is the exact lie this package exists not to tell."""
 
-    CASES = {
+    CASES = {  # noqa: RUF012 — test data, not a mutable default
         "below_threshold": {"count": 20_000, "best": 0.71, "threshold": 0.92,
                             "shown": 8},
         "nothing_sealed": {"best": 1.0, "threshold": 0.92, "kinds": "draft"},

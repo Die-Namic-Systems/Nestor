@@ -44,7 +44,6 @@ from __future__ import annotations
 
 import builtins
 from datetime import datetime, timezone
-from typing import Optional
 
 from . import keyring, ledger, memory, signing
 from .errors import NestorError
@@ -62,7 +61,7 @@ class Curator:
     them empty to curate across every domain in the store at once.
     """
 
-    def __init__(self, store: Optional[Storage] = None, source_lang: str = "",
+    def __init__(self, store: Storage | None = None, source_lang: str = "",
                  target_lang: str = "") -> None:
         self.store = get_store(store)
         require_capability(
@@ -114,7 +113,7 @@ class Curator:
             limit=limit, offset=offset)
         return [self._annotate(r) for r in rows]
 
-    def get(self, pair_id: str) -> Optional[dict]:
+    def get(self, pair_id: str) -> dict | None:
         """One pair with full provenance: signature validity, rejections, what
         it rests on, and what entitles a stranger to believe it.
 
@@ -178,7 +177,7 @@ class Curator:
             out["seal_age"] = age
         return out
 
-    def _seal_age(self, pair_id: str) -> Optional[dict]:
+    def _seal_age(self, pair_id: str) -> dict | None:
         """How long ago a human last vouched for this row — IDEAS §1.4.
 
         ``{"days": int, "last": iso, "verifier": str, "kind": "seal"|"countersign"}``,
@@ -394,7 +393,7 @@ class Curator:
 
     # -- revoking ---------------------------------------------------------
 
-    def unseal(self, pair_id: str, verifier: str = "", reason: str = "") -> Optional[dict]:
+    def unseal(self, pair_id: str, verifier: str = "", reason: str = "") -> dict | None:
         """Demote a sealed pair back to ``draft`` for re-verification.
 
         The pair stops being served as tier 1 and re-enters the review queue; it
@@ -420,7 +419,7 @@ class Curator:
         return self._annotate(self.store.memory_get(pair_id) or {})
 
     def restore(self, pair_id: str, verifier: str = "",
-                reason: str = "") -> Optional[dict]:
+                reason: str = "") -> dict | None:
         """Undo a rejection: return a ``rejected`` pair to ``draft``.
 
         Rejection is deliberate, so undoing it is deliberate too — ``add_pair``

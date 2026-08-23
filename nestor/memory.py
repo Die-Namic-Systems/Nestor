@@ -42,16 +42,24 @@ from __future__ import annotations
 import hashlib
 import uuid
 import warnings
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable, Optional, cast
+from typing import cast
 
 from . import signing
 from .embedding_store import EmbeddingCapableStorage, supports_embedding_store
 from .errors import NestorError
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
-from .storage import (AtomicSupersedeStorage, LineageStorage, Storage,
-                      VerifierPolicyStorage, get_store, require_capability,
-                      supports_rejection, supports_verifier_policy)
+from .storage import (
+    AtomicSupersedeStorage,
+    LineageStorage,
+    Storage,
+    VerifierPolicyStorage,
+    get_store,
+    require_capability,
+    supports_rejection,
+    supports_verifier_policy,
+)
 
 EXACT = 1.0
 SEAL_THRESHOLD = 0.92   # fuzzy similarity at/above which a sealed pair serves as tier 1
@@ -61,7 +69,7 @@ _warned_score_threshold = False
 
 
 def _warn_score_matcher_default_threshold(matcher: Matcher,
-                                        seal_threshold: Optional[float]) -> None:
+                                        seal_threshold: float | None) -> None:
     """Once per process: default SEAL_THRESHOLD is tuned for StringMatcher."""
     global _warned_score_threshold
     if _warned_score_threshold or seal_threshold is not None:
@@ -98,13 +106,13 @@ def set_matcher(m: Matcher) -> None:
     _matcher = m
 
 
-def get_matcher(m: Optional[Matcher] = None) -> Matcher:
+def get_matcher(m: Matcher | None = None) -> Matcher:
     """Resolve the matcher to use — an explicit argument wins, else the global."""
     return m if m is not None else _matcher
 
 
 def _raw_score_sims(matcher: Matcher, query_text: str,
-                    rows: list[dict], store: Optional[Storage] = None) -> tuple[bool, dict[str, float]]:
+                    rows: list[dict], store: Storage | None = None) -> tuple[bool, dict[str, float]]:
     """Map row id → raw similarity, batching ``scores_against`` when offered.
 
     Rows with no ``source_text`` are omitted from the map; they must be scored
@@ -176,7 +184,7 @@ def set_bilingual_loader(fn: Callable[[], list[dict]]) -> None:
 # Translation-memory operations
 # --------------------------------------------------------------------------
 
-def init_tm(store: Optional[Storage] = None) -> None:
+def init_tm(store: Storage | None = None) -> None:
     store = get_store(store)
     store.memory_init()
 
@@ -531,7 +539,7 @@ def _log_seal_countersign(existing: dict, verifier: str, source_lang: str,
 def _retry_insert_race(source_text: str, target_text: str, source_lang: str,
                        target_lang: str, status: str, verifier: str, weight: float,
                        origin: str, reason: str, store: Storage,
-                       matcher: Optional[Matcher], override_rejection: bool,
+                       matcher: Matcher | None, override_rejection: bool,
                        override_conflict: bool, audit: bool, seal_sig: str,
                        norm: str, _racing: bool) -> dict:
     """Recover from a losing race on ``store.memory_insert``.
@@ -546,12 +554,8 @@ def _retry_insert_race(source_text: str, target_text: str, source_lang: str,
     correct outcome: re-run, take the existing-row path, and let the
     ordinary guards decide — which raises ConflictingSealError when the
     winner is a different verifier with a different answer. ``_racing``
-    bounds it to one retry, so a genuine insert error still surfaces. Must be
-    called from within the ``except`` block it recovers, so the bare
-    ``raise`` below re-raises that original exception.
+    bounds it to one retry, so a genuine insert error still surfaces.
     """
-    if _racing or not store.memory_find(norm, source_lang, target_lang):
-        raise
     return add_pair(source_text, target_text, source_lang, target_lang,
                     status=status, verifier=verifier, weight=weight,
                     origin=origin, reason=reason, store=store, matcher=matcher,
@@ -570,8 +574,8 @@ def _retry_insert_race(source_text: str, target_text: str, source_lang: str,
 def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: str,
              status: str = "draft", verifier: str = "", weight: float = 1.0,
              origin: str = "", reason: str = "",
-             store: Optional[Storage] = None,
-             matcher: Optional[Matcher] = None,
+             store: Storage | None = None,
+             matcher: Matcher | None = None,
              override_rejection: bool = False,
              override_conflict: bool = False,
              audit: bool = True, seal_sig: str = "",
@@ -657,15 +661,19 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     # passes deterministic values instead, so the artifact does not churn every
     # rebuild. A seal signature covers (source_norm, target_text, verifier), never
     # the id or timestamp, so pinning them cannot affect what verifies.
-    pair = dict(id=pair_id or str(uuid.uuid4()), source_text=source_text, source_norm=norm,
-                source_lang=source_lang, target_text=target_text, target_lang=target_lang,
-                status=status, verifier=verifier, weight=weight, origin=origin,
-                reason=reason, created_at=created_at or _now(), seal_sig=seal_sig)
+    pair = {"id": pair_id or str(uuid.uuid4()), "source_text": source_text,
+            "source_norm": norm, "source_lang": source_lang,
+            "target_text": target_text, "target_lang": target_lang,
+            "status": status, "verifier": verifier, "weight": weight,
+            "origin": origin, "reason": reason,
+            "created_at": created_at or _now(), "seal_sig": seal_sig}
     try:
         store.memory_insert(pair)
     except Exception:
-        # See _retry_insert_race: a losing race on a uniqueness constraint is
-        # recovered by re-running through the existing-row path above.
+        # A losing race on a uniqueness constraint is recovered by re-running
+        # through the existing-row path above. _racing bounds it to one retry.
+        if _racing or not store.memory_find(norm, source_lang, target_lang):
+            raise
         return _retry_insert_race(
             source_text, target_text, source_lang, target_lang, status, verifier,
             weight, origin, reason, store, matcher, override_rejection,
@@ -705,7 +713,7 @@ def rejected_ids(query_norm: str, source_lang: str, target_lang: str,
 
 def rejection_signature_report(query_norm: str, source_lang: str,
                                target_lang: str,
-                               store: Optional[Storage] = None) -> list[dict]:
+                               store: Storage | None = None) -> list[dict]:
     """Per-rejection signature validity, for audit and curator surfaces.
 
     Serving never consults this — see :func:`rejected_ids` — but an unverifiable
@@ -742,8 +750,8 @@ def _require_lineage(store: Storage) -> None:
 def supersede_pair(source_text: str, target_text: str, source_lang: str,
                    target_lang: str, verifier: str, reason: str = "",
                    weight: float = 1.0, origin: str = "",
-                   store: Optional[Storage] = None,
-                   matcher: Optional[Matcher] = None,
+                   store: Storage | None = None,
+                   matcher: Matcher | None = None,
                    audit: bool = True) -> dict:
     """Replace the live sealed pair for ``source_text`` WITHOUT destroying it.
 
@@ -798,12 +806,12 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
     # `object` and the id needs its own `str` type to be used as one (string
     # concat, a str parameter) after it goes in.
     new_id: str = str(uuid.uuid4())
-    new_pair = dict(id=new_id, source_text=source_text,
-                    source_norm=norm, source_lang=source_lang,
-                    target_text=target_text, target_lang=target_lang,
-                    status="sealed", verifier=verifier, weight=weight,
-                    origin=origin, reason=reason, created_at=_now(),
-                    seal_sig=seal_sig)
+    new_pair = {"id": new_id, "source_text": source_text,
+                "source_norm": norm, "source_lang": source_lang,
+                "target_text": target_text, "target_lang": target_lang,
+                "status": "sealed", "verifier": verifier, "weight": weight,
+                "origin": origin, "reason": reason, "created_at": _now(),
+                "seal_sig": seal_sig}
     # The old row must leave the live index before the successor can enter it
     # (the partial unique index correctly refuses two live rows for one key).
     # Mark first, insert second, then point the marker at the real successor;
@@ -841,8 +849,8 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
 
 def revise_draft(source_text: str, target_text: str, source_lang: str,
                  target_lang: str, reason: str = "", weight: float = 1.0,
-                 origin: str = "", store: Optional[Storage] = None,
-                 matcher: Optional[Matcher] = None,
+                 origin: str = "", store: Storage | None = None,
+                 matcher: Matcher | None = None,
                  audit: bool = True) -> dict:
     """Replace a live **draft** with a revised one, keeping the old as history.
 
@@ -922,12 +930,12 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
     # keeps the id a `str` for the string concat and store calls below,
     # where `new_pair["id"]` would type as `object`.
     new_id: str = str(uuid.uuid4())
-    new_pair = dict(id=new_id, source_text=source_text,
-                    source_norm=norm, source_lang=source_lang,
-                    target_text=target_text, target_lang=target_lang,
-                    status="draft", verifier="", weight=weight,
-                    origin=origin, reason=reason, created_at=_now(),
-                    seal_sig="")
+    new_pair = {"id": new_id, "source_text": source_text,
+                "source_norm": norm, "source_lang": source_lang,
+                "target_text": target_text, "target_lang": target_lang,
+                "status": "draft", "verifier": "", "weight": weight,
+                "origin": origin, "reason": reason, "created_at": _now(),
+                "seal_sig": ""}
     pending = "pending:" + new_id
     # COMPARE-AND-SET, not mark-and-hope. Every guard above ran against a read
     # from before this line, and the write that acts on them used to be an
@@ -952,7 +960,7 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
         # also raise on its own and mask the real failure, so it is suppressed.
         try:
             store.memory_mark_superseded_if(old["id"], "", "draft", pending)
-        except Exception:                        # noqa: BLE001 — never mask the cause
+        except Exception:                        # noqa: BLE001, S110 — never mask the cause
             pass
         raise
     store.memory_mark_superseded_if(old["id"], new_id, "draft", pending)
@@ -980,9 +988,9 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
 
 
 def lookup(source_text: str, source_lang: str, target_lang: str,
-           limit: int = 5, store: Optional[Storage] = None,
-           matcher: Optional[Matcher] = None,
-           context_threshold: Optional[float] = None) -> list[dict]:
+           limit: int = 5, store: Storage | None = None,
+           matcher: Matcher | None = None,
+           context_threshold: float | None = None) -> list[dict]:
     """Ranked matches: [{pair, similarity}], best first. Sealed and draft both returned.
 
     Scoring is delegated to the injected ``matcher`` (default StringMatcher, so
@@ -1074,10 +1082,10 @@ _ROUNDING_SLACK = 0.001
 
 
 def best_sealed(source_text: str, source_lang: str, target_lang: str,
-                store: Optional[Storage] = None,
-                matcher: Optional[Matcher] = None,
-                seal_threshold: Optional[float] = None,
-                context_threshold: Optional[float] = None) -> Optional[dict]:
+                store: Storage | None = None,
+                matcher: Matcher | None = None,
+                seal_threshold: float | None = None,
+                context_threshold: float | None = None) -> dict | None:
     """Tier-1 check: the best sealed match at/above the seal threshold, else None.
 
     ``seal_threshold`` overrides the module-level :data:`SEAL_THRESHOLD`.
@@ -1119,7 +1127,7 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         # Bounds are defined on normalized keys; invalid when score() sees raw text.
         bound = None
 
-    best: Optional[dict] = None
+    best: dict | None = None
     best_sim = 0.0
     candidates: list[dict] = []
     for row in store.memory_candidates(source_lang, target_lang):
@@ -1292,8 +1300,8 @@ def _require_rejection(store: Storage) -> None:
 def reject_match(source_text: str, source_lang: str, target_lang: str,
                  pair_id: str = "", target_text: str = "", verifier: str = "",
                  reason: str = "", reopen_when: str = "",
-                 store: Optional[Storage] = None,
-                 matcher: Optional[Matcher] = None) -> dict:
+                 store: Storage | None = None,
+                 matcher: Matcher | None = None) -> dict:
     """Record that a candidate is the WRONG answer for ``source_text``.
 
     Identify what is being rejected by ``pair_id`` (a memory pair that matched
@@ -1319,13 +1327,13 @@ def reject_match(source_text: str, source_lang: str, target_lang: str,
         raise ValueError("reject_match needs pair_id or target_text — "
                          "otherwise there is nothing to suppress")
     norm = matcher.normalize(source_text)
-    rejection = dict(
-        id=str(uuid.uuid4()), query_norm=norm, source_lang=source_lang,
-        target_lang=target_lang, pair_id=pair_id, target_text=target_text,
-        verifier=verifier, reason=reason, reopen_when=reopen_when,
-        created_at=_now(),
-        reject_sig=signing.sign_rejection(norm, pair_id, target_text, verifier),
-    )
+    rejection = {
+        "id": str(uuid.uuid4()), "query_norm": norm, "source_lang": source_lang,
+        "target_lang": target_lang, "pair_id": pair_id, "target_text": target_text,
+        "verifier": verifier, "reason": reason, "reopen_when": reopen_when,
+        "created_at": _now(),
+        "reject_sig": signing.sign_rejection(norm, pair_id, target_text, verifier),
+    }
     store.memory_add_rejection(rejection)
     _log_rejection({"kind": "reject_match", "query_norm": norm,
                     "source_lang": source_lang, "target_lang": target_lang,
@@ -1336,7 +1344,7 @@ def reject_match(source_text: str, source_lang: str, target_lang: str,
 
 
 def reject_pair(pair_id: str, verifier: str = "", reason: str = "",
-                store: Optional[Storage] = None) -> None:
+                store: Storage | None = None) -> None:
     """Mark a pair's mapping itself wrong — never served or offered again.
 
     Use for a bad seal or a bad draft. For "right pair, wrong query" — which is
@@ -1356,8 +1364,8 @@ def reject_pair(pair_id: str, verifier: str = "", reason: str = "",
                     "verifier": verifier, "reason": reason})
 
 
-def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
-                     store: Optional[Storage] = None) -> int:
+def seed_from_corpus(loader: Callable[[], list[dict]] | None = None,
+                     store: Storage | None = None) -> int:
     """Seed sealed pairs from bilingual lessons supplied by an injected loader.
 
     ``loader`` (or the one set via :func:`set_bilingual_loader`) returns the
@@ -1450,7 +1458,7 @@ def seed_from_corpus(loader: Optional[Callable[[], list[dict]]] = None,
     return count
 
 
-def stats(store: Optional[Storage] = None) -> dict:
+def stats(store: Storage | None = None) -> dict:
     store = get_store(store)
     store.memory_init()
     return store.memory_stats()

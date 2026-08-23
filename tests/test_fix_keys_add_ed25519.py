@@ -23,8 +23,9 @@ import pytest
 # fail on an unrelated import.
 pytest.importorskip("cryptography")
 
-from nestor import cli, keyring as keyring_mod  # noqa: E402
-from nestor.ui import ApiError, Sessions  # noqa: E402
+from nestor import cli
+from nestor import keyring as keyring_mod
+from nestor.ui import ApiError, Sessions
 
 
 def _add_ed25519(name: str, path, capsys, *, as_json: bool = True) -> str:

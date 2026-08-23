@@ -279,8 +279,8 @@ def test_a_construction_warrant_carries_its_recipe_and_no_verdict(store, tmp_pat
     bundle = portable.export_bundle(store=store)
     dest = _fresh_dest(tmp_path, "dest_construction")
     portable.import_bundle(bundle, store=dest, dry_run=False, verifier="sam")
-    landed = [w for w in warrant.warrants_for(pair["id"], store=dest)
-              if w["stored"]][0]
+    landed = next(w for w in warrant.warrants_for(pair["id"], store=dest)
+                  if w["stored"])
     # What the reader needs to run it themselves, intact: what to run, and what
     # it must produce. Nestor holds the recipe; it does not hold the verdict.
     assert landed["locator"] == "npx redential scan --json"
@@ -558,9 +558,9 @@ def test_there_is_still_no_fourth_state(store):
     from nestor.cascade import Passage
     assert set(Passage(source="", target="", tier=0, state="pending").mark) == {"!"}
     for state in ("sealed", "draft", "pending"):
-        Passage(source="", target="", tier=0, state=state).mark      # maps
+        Passage(source="", target="", tier=0, state=state).mark      # noqa: B018 — verifying attribute access succeeds
     with pytest.raises(KeyError):
-        Passage(source="", target="", tier=0, state="cited").mark
+        Passage(source="", target="", tier=0, state="cited").mark  # noqa: B018 — verifying this raises
 
 
 def test_a_pending_answer_can_say_a_candidate_is_cited(store):

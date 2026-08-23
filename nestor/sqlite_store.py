@@ -18,10 +18,11 @@ import sqlite3
 import threading
 import uuid
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional
+from typing import ClassVar
 
 from .errors import NestorError
 
@@ -390,7 +391,7 @@ class SqliteStore:
     #:
     #: A class attribute so a test can override it per instance; the read
     #: below tolerates an instance override.
-    _FORWARD_MIGRATIONS: "list[tuple[int, Callable[[sqlite3.Connection], None]]]" = [
+    _FORWARD_MIGRATIONS: ClassVar[list[tuple[int, Callable[[sqlite3.Connection], None]]]] = [
         (2, _migrate_v2),
     ]
 
@@ -398,7 +399,7 @@ class SqliteStore:
         self.db_path = db_path
         # A ":memory:" database only survives for the life of one connection,
         # so hold a persistent connection open in that case.
-        self._shared: Optional[sqlite3.Connection] = None
+        self._shared: sqlite3.Connection | None = None
         # In-memory: one shared connection, serialized with _lock (IDEAS §2.4).
         # File-backed: a bounded pool of idle connections (see _POOL_MAX).
         self._pool: list[sqlite3.Connection] = []
@@ -684,9 +685,9 @@ class SqliteStore:
 
     def create_document(self, title: str, source_lang: str,
                         target_lang: str) -> dict:
-        doc = dict(id=_uid(), title=title, source_lang=source_lang,
-                   target_lang=target_lang, status="pending_review",
-                   created_at=_now())
+        doc = {"id": _uid(), "title": title, "source_lang": source_lang,
+               "target_lang": target_lang, "status": "pending_review",
+               "created_at": _now()}
         with self._db() as conn:
             conn.execute(
                 "INSERT INTO documents VALUES "
@@ -695,7 +696,7 @@ class SqliteStore:
             )
         return doc
 
-    def get_document(self, document_id: str) -> Optional[dict]:
+    def get_document(self, document_id: str) -> dict | None:
         with self._db() as conn:
             r = conn.execute("SELECT * FROM documents WHERE id=?",
                              (document_id,)).fetchone()
@@ -723,9 +724,9 @@ class SqliteStore:
     def create_segment(self, document_id: str, position: int,
                        source_text: str, candidate: str,
                        jeles_score: float) -> dict:
-        seg = dict(id=_uid(), document_id=document_id, position=position,
-                   source_text=source_text, candidate=candidate,
-                   jeles_score=jeles_score, status="pending", created_at=_now())
+        seg = {"id": _uid(), "document_id": document_id, "position": position,
+               "source_text": source_text, "candidate": candidate,
+               "jeles_score": jeles_score, "status": "pending", "created_at": _now()}
         with self._db() as conn:
             conn.execute(
                 "INSERT INTO segments VALUES "
@@ -735,7 +736,7 @@ class SqliteStore:
             )
         return seg
 
-    def get_segment(self, segment_id: str) -> Optional[dict]:
+    def get_segment(self, segment_id: str) -> dict | None:
         with self._db() as conn:
             r = conn.execute("SELECT * FROM segments WHERE id=?",
                              (segment_id,)).fetchone()
@@ -773,7 +774,7 @@ class SqliteStore:
     # --- translation memory ---------------------------------------------
 
     def memory_find(self, source_norm: str, source_lang: str,
-                   target_lang: str) -> Optional[dict]:
+                   target_lang: str) -> dict | None:
         # Live rows only: a superseded row is history, and history must not
         # answer for the present — the successor is the one row this key has.
         with self._db() as conn:
@@ -1054,8 +1055,8 @@ class SqliteStore:
         The unique index makes re-adding an already-listed name a no-op
         rather than a duplicate row, so ``policy add`` is safe to script.
         """
-        row = dict(id=_uid(), source_lang=source_lang, target_lang=target_lang,
-                  verifier=verifier, created_at=_now())
+        row = {"id": _uid(), "source_lang": source_lang, "target_lang": target_lang,
+               "verifier": verifier, "created_at": _now()}
         with self._db() as conn:
             conn.execute(
                 "INSERT INTO verifier_policy (id, source_lang, target_lang, "
@@ -1109,7 +1110,7 @@ class SqliteStore:
     # --- semantic embeddings (optional; IDEAS §6.4) -----------------------
 
     def embedding_load(self, pair_id: str,
-                       model_name: str) -> Optional[tuple[str, bytes, str]]:
+                       model_name: str) -> tuple[str, bytes, str] | None:
         """``(source_sha, packed_vector, sig)`` — the packed bytes, not floats.
 
         The MAC is taken over exactly these bytes, so unpacking here and
@@ -1222,7 +1223,7 @@ class SqliteStore:
         with self._db() as conn:
             return [dict(r) for r in conn.execute(sql, params)]
 
-    def memory_get(self, pair_id: str) -> Optional[dict]:
+    def memory_get(self, pair_id: str) -> dict | None:
         with self._db() as conn:
             r = conn.execute("SELECT * FROM tm_pairs WHERE id=?",
                              (pair_id,)).fetchone()
