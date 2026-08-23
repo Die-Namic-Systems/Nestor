@@ -11,10 +11,10 @@ import math
 
 import pytest
 
-hypothesis = pytest.importorskip("hypothesis")
-given = hypothesis.given
-settings = hypothesis.settings
-st = hypothesis.strategies
+pytest.importorskip("hypothesis")
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from nestor.matcher import NumericMatcher, StringMatcher
 from nestor.signing import (
