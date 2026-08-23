@@ -79,7 +79,7 @@ def test_pythonpath_is_pinned_so_the_invocation_cannot_matter():
     existed. It did not. Now it does."""
     import re
     text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
-    m = re.search(r"^pythonpath\s*=\s*\[([^\]]*)\]", text, re.M)
+    m = re.search(r"^pythonpath\s*=\s*\[([^\]]*)\]", text, re.MULTILINE)
     assert m, ("pyproject.toml no longer pins `pythonpath` — bare `pytest` and "
                "`python -m pytest` now collect different suites, and the "
                "bench-coverage guards are the ones that disappear")
