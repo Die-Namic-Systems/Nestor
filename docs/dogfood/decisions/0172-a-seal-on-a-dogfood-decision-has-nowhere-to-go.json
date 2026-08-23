@@ -1,0 +1,28 @@
+{
+  "branch": "claude/seal-has-nowhere-to-go",
+  "date": "2026-08-23",
+  "note": "Found by the operator asking how to run the review server so they could seal the decisions this session recorded. The answer is `nestor ui`; the finding is what happens afterwards. Read, not assumed: dogfood_store.py's one-directional rule and its `--verify` refusal of any sealed row; nestor.triage.Decision's field list; apply_sealed_fleet_gaps.py's origin pattern; ui.py:860-875 declining to use load_decisions(). Every row here is a draft proposal for a human to weigh at `nestor ui` — which is, this time, the joke and the point.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Where does a human's seal on a dogfood decision persist?",
+      "commitment": "Nowhere the repository can see. Not in the committed store (`--verify` fails on a sealed row however it got there), not in the decision file (`Decision` has no verifier or signature field), and not through any reader (nothing consumes sealed dogfood rows; apply_sealed_fleet_gaps.py is a different corpus flowing outward to Willow). A seal made at `nestor ui` lives exactly as long as the store the browser was pointed at, and the next `--rebuild` regenerates an all-draft store that knows nothing about it.",
+      "why": "Recorded because it was nobody's bug and therefore nobody's to notice. Each of the five parts is right on its own terms — especially the one-directional rule, which exists so that no row's content comes from somewhere a reviewer cannot read in a diff. What was missing is the consequence: a package whose single claim is 'has a human checked this', dogfooded against its own decisions, is structurally incapable of recording that a human agreed with one. 486 rows across 122 files, all draft, and the boot line will keep saying so truthfully forever."
+    },
+    {
+      "question": "Should the one-directional rule be relaxed so seals can flow back into the committed store?",
+      "commitment": "Proposed: no. Whatever the fix is, the `.db` must stay derivable from text a reviewer read.",
+      "why": "The rule is the load-bearing one. Letting a seal reach the committed store from a developer's instance puts state in a binary artifact that no diff shows, which is exactly the property the exercise exists to have — 'a memory whose rows came from somewhere nobody can see is not an audit trail'. The gap is worth fixing; it is not worth fixing by removing the reason the store is trustworthy."
+    },
+    {
+      "question": "What shape could a fix take?",
+      "commitment": "Proposed, unbuilt, in preference order: (a) a seal file beside the decision file — `docs/dogfood/seals/<id>.json` carrying verifier, timestamp and signature, one file per seal, folded in at `--rebuild`, with `--verify` admitting a sealed row ONLY when it traces to such a file; (b) state plainly that seals are local, and change the boot line from 'none human-sealed' to something that does not read as a fixable absence; (c) export a bundle from the review instance and commit it.",
+      "why": "(a) is the same shape the decision files already have and for the same reasons: separate files never collide, the artifact is regenerated rather than merged, and the seal becomes reviewable text like everything else. It also keeps the signature doing its job — the store would hold a claim anyone can verify against the verifier's key rather than a status somebody typed. (c) fights the one-file-per-decision rule rather than joining it: it commits a binary the repo has twice refused to merge. (b) is not a fix but may be the honest answer, and is cheaper than pretending a fix is coming."
+    },
+    {
+      "question": "Does any of this change whether an agent may seal?",
+      "commitment": "No. It may not, under any of the three shapes. A seal file would carry a signature made by a human's key at `nestor ui`, and an agent writing one would be forging a signature rather than skipping a formality.",
+      "why": "Worth stating because a mechanism for getting seals into the repository is exactly the mechanism an agent would misuse, and because the gap looks superficially like 'the store cannot record seals' rather than 'the store cannot record OTHER PEOPLE'S seals'. The covenant is unchanged: propose, never confirm."
+    }
+  ]
+}

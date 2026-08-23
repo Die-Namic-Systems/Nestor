@@ -7355,3 +7355,69 @@ and `.github/ISSUE_TEMPLATE` do not. The contributor guidance lived in
   instance (a concrete scenario, not an abstract case), optional proposal.
 - **`.github/ISSUE_TEMPLATE/config.yml`** — blank issues enabled, contact link
   to the contributing guide.
+
+---
+
+### 6.123 A seal on a dogfood decision has nowhere to go — **measured**, design **open**
+
+*Found by the operator asking the most ordinary question available — "what is
+the command to get the server running so I can make the decisions" — after 486
+rows had accumulated across 122 files and nine of them were written today.*
+
+The answer is `nestor ui`. The problem is what happens next.
+
+**The chain, read rather than assumed:**
+
+1. `scripts/dogfood_store.py --rebuild` derives the committed store from
+   `docs/dogfood/decisions/*.json` **and nothing else**. That direction is
+   deliberate, argued, and enforced by a test that poisons an ambient store and
+   proves none of it arrives: *"a memory whose rows came from somewhere nobody
+   can see is not an audit trail."*
+2. `--verify` **fails if a sealed row appears** in the committed store —
+   *"however it got there"* (`docs/agent-guide.md`). So a seal cannot live in
+   `docs/dogfood/nestor.db`.
+3. `nestor.triage.Decision` is `id, file, question, commitment, why,
+   consolidated_onto`. **There is no verifier field and no signature field.** So
+   a seal cannot live in the decision file either.
+4. Nothing reads sealed dogfood rows. `scripts/apply_sealed_fleet_gaps.py` is
+   the closest thing and it is a different corpus (`willow:gap:<id>:<dispatch>`
+   origin) flowing the other way — outward, to Willow SOIL.
+5. `nestor ui`'s Triage tab explicitly does **not** use `load_decisions()`, and
+   writes nothing back to the files (`ui.py:860-875`).
+
+**So the seal persists exactly as long as whatever store the browser was pointed
+at.** Point it at the committed store and CI fails. Point it at a copy — which
+is what you must do — and the next `--rebuild` regenerates an all-draft store
+that knows nothing about it. The boot check will keep printing *"all draft —
+proposed, none human-sealed"* forever, and it will keep being true.
+
+**This is not a bug in any of the five things above.** Each is right on its own
+terms, and the one-directional rule is the load-bearing one — relaxing it would
+put state in a committed binary that no reviewer can read in a diff, which is
+the property the whole exercise exists to have. What is missing is that
+**nobody wrote down the consequence**: the project's own decision memory is
+structurally incapable of recording that a human agreed with it.
+
+For a package whose single claim is *has a human checked this*, dogfooded
+against its own decisions, that is worth stating out loud even if the answer is
+"and we accept it".
+
+**Shapes a fix could take**, none built, all subject to the constraint that the
+`.db` stays derivable from reviewed text:
+
+* **A seal file beside the decision file.** `docs/dogfood/seals/<id>.json`
+  carrying verifier, timestamp and signature — reviewable in a diff, one file
+  per seal so nothing collides, folded in at `--rebuild`, with `--verify`
+  admitting a sealed row *only* when it traces to such a file. This is the same
+  shape the decision files already have, and for the same reasons.
+* **Say the seals are local and mean it.** Drop the implication that the
+  committed store could ever hold one; make the boot line say "proposals — seals
+  live in your own instance" rather than "none human-sealed", which reads as an
+  absence someone could fix.
+* **Export a bundle from the review instance.** Now possible with warrants and
+  seals travelling (v4), but it commits a binary the repo has twice refused to
+  merge, so it fights the one-file-per-decision rule rather than joining it.
+
+**What is NOT open:** whether an agent may seal. It may not, and none of this
+changes that. The question is only where a *human's* seal goes after they make
+it.
