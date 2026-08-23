@@ -183,6 +183,8 @@ this map is not, CI fails. It cannot drift.
 | [6.112](docs/agent-log.md#6112-cross-matching-audit-findings-against-each-other-and-the-score-range-that-lives-between-verified-and-noise--measured) | Cross-matching audit findings against each other, and the score range that lives between verified and noise | measured |
 | [6.113](docs/agent-log.md#6113-an-agent-driving-the-ui-in-a-browser-is-outside-every-gate-this-repo-has--measured-control-exists) | An agent driving the UI in a browser is outside every gate this repo has | measured, control exists |
 | [6.114](docs/agent-log.md#6114-scriptsci-lintsh-says-it-matches-the-workflow-and-does-not-pin-what-the-workflow-pins--measured-fix-shipped) | `scripts/ci-lint.sh` says it matches the workflow and does not pin what the workflow pins | measured, fix shipped |
+| [6.115](docs/agent-log.md#6115-the-quorum-memos-step-2-has-been-run-against-a-real-chain-and-its-answer-is-that-the-chain-cannot-answer-it--measured) | The quorum memo's step 2 has been run, against a real chain | measured |
+| [6.116](docs/agent-log.md#6116-14s-own-first-suggestion-was-shipped-in-the-browser-and-nowhere-else--measured-fix-shipped) | §1.4's own first suggestion was shipped in the browser and nowhere else | measured, fix shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -450,10 +452,29 @@ Still open, and named as open in the memo: how old is too old, and whether any
 buyer actually asks for either. The third item this once named — that a quorum of
 HMACs is a quorum only against outsiders — has since closed: per-verifier Ed25519
 signing landed (decisions `0074`/`0077`/`0078`, `signing.py`), so a
-countersignature can no longer be forged by anyone holding a shared key. What
-stays open is deeper and unchanged by that: a quorum is still not *recorded* at
-all (§6.26), so N-of-M has no history to compute from regardless of the signature
-scheme.
+countersignature can no longer be forged by anyone holding a shared key.
+
+> **Corrected again, 2026-08-22.** This entry used to end: *"a quorum is still
+> not recorded at all (§6.26), so N-of-M has no history to compute from
+> regardless of the signature scheme."* That has been false since 2026-08-06 —
+> §6.26 **shipped**, and a concurring verifier writes a `countersign` entry. The
+> premise was corrected once, in the other direction, and then went stale the
+> same way a second time. The history exists; what was missing was anybody
+> reading it.
+>
+> **So step 2 was run, on 2026-08-22, against the first real chain available to
+> it** (§6.115). Verdict: **`no second reviewer`** — one named actor in the whole
+> chain, so its zero is not evidence that reviewers decline to concur, it is
+> evidence that nobody was asked. That is a sharper blocker than "nobody has run
+> it", and it is still a blocker: N-of-M is a schema change to the audited path,
+> and designing one for users not shown to exist is what §6.42 exists to stop.
+>
+> **Staleness, by contrast, is built** — age from the ledger and never a column,
+> a curator queue rather than a decay multiplier, and nothing withdrawn silently:
+> all three of the memo's conclusions. `scripts/due_for_reverification.py`, the
+> UI's queue, and now `Curator.get`'s `seal_age` (§1.4's own first suggestion,
+> which §6.10 only ever delivered in the browser). What stays open there is one
+> number — *how old is too old* — and that is a buyer's to choose, not code's.
 
 ### 1.5 A numeric label could hold several baselines — **shipped**
 

@@ -325,3 +325,82 @@ def test_a_store_without_the_relations_omits_the_keys_rather_than_lying(filled):
     assert not storage_mod.supports_warrants(bare)
     detail = Curator(bare, "en", "es").get(pair_id)
     assert "evidence" not in detail and "warrants" not in detail
+
+
+# --- seal age in provenance: IDEAS §1.4's first bullet ----------------------
+#
+# "Seal age surfaced in provenance" is §1.4's first suggestion, and §6.10 —
+# which reads as though it shipped — is about the browser's memory-list chips.
+# The API call an auditor makes months later, and the one `nestor_provenance`
+# serves to a model, could not say how old the seal was.
+
+def test_provenance_reports_how_long_ago_a_human_vouched(filled):
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    age = c.get(pair["id"])["seal_age"]
+    assert age["days"] == 0                    # sealed by the fixture just now
+    assert age["verifier"] == "rita"
+    assert age["kind"] == "seal"
+    assert age["uncorroborated_tail"] in (True, False)
+    assert age["last"]
+
+
+def test_a_draft_has_no_seal_age_at_all(filled):
+    """Not zero, not null-with-a-key: absent. A draft has no moment at which a
+    human vouched for it, so there is no age to report and no field to hold
+    one — the same present-vs-absent distinction the evidence and warrant keys
+    make one block up."""
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="draft phrase")[0]
+    assert "seal_age" not in c.get(pair["id"])
+
+
+def test_a_countersignature_resets_the_clock(filled):
+    """A second person deciding the row is good *now* is a fresher decision than
+    the first person's, which is why `staleness.FRESHENING` holds both kinds and
+    why this reads the rule from there rather than restating it."""
+    from nestor import cascade as cascade_mod
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    before = c.get(pair["id"])["seal_age"]
+    assert before["kind"] == "seal" and before["verifier"] == "rita"
+
+    cascade_mod._ledger_append({"kind": "countersign", "pair_id": pair["id"],
+                                "verifier": "sam", "countersigned": "rita"})
+    after = c.get(pair["id"])["seal_age"]
+    assert after["kind"] == "countersign"
+    assert after["verifier"] == "sam"
+
+
+def test_seal_age_withdraws_nothing(filled):
+    """§1.4's memo turns on this: a decay multiplier would turn 'a human checked
+    this' back into a confidence score and withdraw a verified answer on a date
+    nobody chose. Reading the age must not be able to do either."""
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+    served_before = memory.best_sealed("the annual invoice", "en", "es", store=filled)
+    detail = c.get(pair["id"])
+    assert detail["seal_age"]["days"] >= 0
+    served_after = memory.best_sealed("the annual invoice", "en", "es", store=filled)
+    assert served_before["pair"]["id"] == served_after["pair"]["id"]
+    assert served_before["similarity"] == served_after["similarity"]
+    assert filled.memory_get(pair["id"])["status"] == "sealed"
+    # And no age was written anywhere near the row it governs.
+    assert "seal_age" not in filled.memory_get(pair["id"])
+
+
+def test_an_unreadable_chain_does_not_make_provenance_unreadable(filled,
+                                                                 monkeypatch):
+    """A curator looking at a pair *because* something is wrong is exactly who
+    a raising audit view would fail."""
+    from nestor import ledger as ledger_mod
+    c = Curator(filled, "en", "es")
+    pair = c.list(contains="invoice")[0]
+
+    def boom(*a, **k):
+        raise RuntimeError("the chain is unreadable")
+    monkeypatch.setattr(ledger_mod, "entries", boom)
+    detail = c.get(pair["id"])
+    assert detail is not None
+    assert detail["id"] == pair["id"]
+    assert "seal_age" not in detail

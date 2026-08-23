@@ -43,6 +43,7 @@ Usage::
 from __future__ import annotations
 
 import builtins
+from datetime import datetime, timezone
 from typing import Optional
 
 from . import keyring, ledger, memory, signing
@@ -134,6 +135,11 @@ class Curator:
         capability: an empty list would read as "nothing attached" where the
         truth is "this store cannot say".
 
+        ``seal_age`` answers the auditor's other question — *how long ago did a
+        human vouch for this?* — for sealed rows only, read from the chain and
+        never from a column (IDEAS §1.4). It is display only: no answer is
+        withdrawn, no score moves, nothing expires.
+
         ``warrants`` includes the ``attestation`` composed from the pair's own
         seal, marked ``stored: False``. Nothing here reports a warrant as
         satisfied, and no field could: a warrant row is the claim that a warrant
@@ -167,7 +173,65 @@ class Curator:
             # presentation and a reader must not take the first row for the
             # strongest one. There is no strongest one.
             out["warrant_kinds"] = sorted({w["kind"] for w in out["warrants"]})
+        age = self._seal_age(pair_id) if pair["status"] == "sealed" else None
+        if age is not None:
+            out["seal_age"] = age
         return out
+
+    def _seal_age(self, pair_id: str) -> Optional[dict]:
+        """How long ago a human last vouched for this row — IDEAS §1.4.
+
+        ``{"days": int, "last": iso, "verifier": str, "kind": "seal"|"countersign"}``,
+        or ``None`` when the chain holds no decision for this pair (or cannot be
+        read). Display only: **nothing here withdraws an answer**, changes a
+        score, or expires a seal. §1.4's memo is explicit that a decay
+        multiplier turns "a human checked this" back into a confidence score —
+        the thing the README's first paragraph refuses — and withdraws a
+        verified answer on a date nobody chose. Age belongs in front of a
+        curator, not in the serving path.
+
+        **Read from the ledger, never from a column**, which is the memo's other
+        conclusion. A stored age would be unsigned mutable state beside the data
+        it governs: ``weight`` is written by every seal path and absent from
+        ``signing._message``, so anyone with write access could reset a decayed
+        value while every signature still verified. The chain covers its own
+        timestamps.
+
+        A ``countersign`` resets the clock, because it is a second person
+        deciding the row is good *now* — which is why the rule lives in
+        :mod:`nestor.staleness` and is not written a second time here. The UI's
+        queue and the CLI listing already read it from there; a third copy of
+        "what counts as freshening" is how the three would come to disagree.
+        """
+        from .staleness import age_seals
+        try:
+            entries = ledger.entries(limit=100_000)
+            now = datetime.now(timezone.utc)
+            for row in age_seals(entries, now):
+                if row["pair_id"] == pair_id:
+                    return {
+                        "days": row["days"],
+                        # ISO, not the datetime `age_seals` works in: this dict
+                        # goes out through `Curator.export` and every JSON
+                        # transport, and a datetime here made `export` raise.
+                        "last": row["last"].isoformat(),
+                        "verifier": row.get("verifier", ""),
+                        "kind": row.get("kind", ""),
+                        # Carried, not dropped: True means this pair's freshest
+                        # decision IS the chain's final line, which is the one
+                        # line the hash chain does not vouch for (IDEAS §5.5).
+                        # An age resting on it is an age nothing corroborates,
+                        # and an audit view that knows that and says nothing is
+                        # the silence this repo keeps making into a sentence.
+                        "uncorroborated_tail": bool(row.get("tail", False)),
+                    }
+        except Exception:                  # noqa: BLE001 — an audit view must open
+            # The same posture the warrant annotation takes one block up: an
+            # unreadable or absent chain must not make the row's provenance
+            # unreadable too. A curator looking at a pair *because* something is
+            # wrong is exactly who this would fail.
+            return None
+        return None
 
     def unverifiable(self, limit: int = 200) -> builtins.list[dict]:
         # `builtins.list`, not the bare `list[dict]` every other signature in

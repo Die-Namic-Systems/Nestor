@@ -1,5 +1,5 @@
 {
-  "branch": "claude/warrants-served-state",
+  "branch": "claude/warranted-how",
   "date": "2026-08-22",
   "note": "Building IDEAS §1.10(a), the last of the memo's three open questions. This one was NOT reopened: decision 0164 already recorded a commitment for it, and these rows are the implementation decisions that fell out of building what 0164 proposed. The consult that surfaced 0164 also surfaced a defect in the consult itself — `nestor decision check` matched at similarity 1.0, printed `✓ clear`, and showed the commitment only under `--json`; that is fixed here too. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Checked against the tree, not recalled: best_sealed's status gate and is_verified_seal call in memory.py, the three Passage constructions at cascade.py:493/517/520, and Passage.mark's three-key dict.",
   "pr": "",

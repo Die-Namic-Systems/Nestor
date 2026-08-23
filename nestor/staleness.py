@@ -29,7 +29,13 @@ def _when(entry: dict) -> datetime | None:
 
 
 def age_seals(entries: list[dict], now: datetime) -> list[dict]:
-    """``[{pair_id, verifier, last, days, tail}]``, newest decision per pair.
+    """``[{pair_id, verifier, last, kind, days, tail}]``, newest decision per pair.
+
+    ``kind`` was in the returned dict and missing from this list, which is how
+    a caller comes to read ``tail`` — a bool — expecting the entry kind.
+
+    ``last`` is a ``datetime``, not an ISO string: callers that serialise it
+    (``Curator.get`` does) convert at their own edge.
 
     Retired pairs are dropped: a superseded row is finished, not overdue.  The
     freshest freshening entry wins, so a re-verification resets the clock —

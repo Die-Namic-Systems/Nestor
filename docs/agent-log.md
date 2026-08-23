@@ -7051,3 +7051,89 @@ before its first check (agent-log §6.114). Fix with: .venv/bin/pip install -r s
 *The lesson, which is not new here: a fix that adds a gate has to be checked
 against every check that was reporting on the old one. The docstring said what
 it assumed, which is the only reason this was findable at all.*
+
+---
+
+### 6.115 The quorum memo's step 2 has been run, against a real chain, and its answer is that the chain cannot answer it — **measured**
+
+*IDEAS §1.4, and the follow-on to §6.42 — which ended "it has **not** been run
+against a deployment, because there is no deployment chain in this checkout."
+There is one on the machine, next to it.*
+
+`scripts/count_countersignatures.py` had been exercised only against fixture
+chains since 2026-08-06. The Nestor instance exposed over MCP keeps a real one
+at `~/github/willow-memory/.willow/nestor/nestor.db.ledger.jsonl` — 21 entries,
+11 seals, chain verifies. Read-only, no store, no writes; the tool cannot
+disturb what it counts.
+
+```
+   21 entrie(s), chain verifies, 1 named actor(s), 11 seal(s)
+
+   countersignatures
+      0 entrie(s)                    what `grep -c countersign` would say
+      0 distinct (pair, verifier)    what step 2 asks for
+
+   verdict
+      no second reviewer — 1 named actor(s) in the whole chain
+```
+
+**The tool's whole reason for existing is the sentence under that verdict**, and
+it earned it on the first real run: *"its zero is not evidence that reviewers
+decline to concur — it is evidence that nobody was asked."* A `grep -c` would
+have returned 0 and been read as "no demand for quorum". The discriminator —
+count the distinct people who ever decided anything in the chain — was written
+in before anybody ran it, and the first real chain is exactly the case it was
+written for.
+
+**What this licenses, precisely.** Step 2 is no longer *unrun*; it is *run, and
+inconclusive for a stated reason*. That is a better blocker than the one it
+replaces, and it is still a blocker. N-of-M is a schema change to the audited
+path, and the memo's rule stands: designing one for users who have not been
+shown to exist is how a field ends up carrying a distinction nothing else makes.
+The question moves from "does anyone countersign?" to "is there a chain anywhere
+with two reviewers in it?" — and on this machine, today, there is not.
+
+**And it corrected §1.4 on the way.** That entry closed with *"a quorum is still
+not recorded at all (§6.26)"* — false since 2026-08-06, when §6.26 shipped and
+concurrence stopped being discarded. §1.4's premise had already been corrected
+once, in the other direction, and went stale the same way a second time. An
+entry that is *argued* rather than *checked* drifts on the side its author was
+not looking at.
+
+---
+
+### 6.116 §1.4's own first suggestion was shipped in the browser and nowhere else — **measured**, fix **shipped**
+
+§1.4 proposes three things, the first being *"seal age surfaced in provenance"*.
+§6.10 reads as though that landed — **"Seal age in provenance (display only) —
+shipped"** — and what it actually says, in full, is: *"Memory list chips show
+relative age; full ISO timestamp on hover (`title`)."* That is
+`nestor ui`'s memory list. `answer.provenance` — the call an auditor makes
+months later, and the one `nestor_provenance` serves to a model over MCP —
+carried who sealed it and never when.
+
+The entry title says provenance; the body says chips. Nothing was wrong in
+either, and for three months the map said §1.4's first bullet was covered.
+
+**Shipped:** `Curator.get` gains `seal_age` for sealed rows —
+`{days, last, verifier, kind, uncorroborated_tail}` — read from the chain and
+never from a column, which is the memo's own conclusion (a stored age is
+unsigned mutable state beside the data it governs; `weight` is written by every
+seal path and absent from `signing._message`). A `countersign` resets the clock,
+because the rule for that lives in `nestor.staleness.FRESHENING` and is read
+from there rather than restated — the UI queue, the CLI listing and this now
+share one definition instead of three.
+
+Display only, and tested as such: reading the age withdraws no answer, moves no
+score, and writes nothing near the row it governs. A draft gets **no key at
+all** rather than a zero — it has no moment at which a human vouched for it.
+
+**Two bugs found by writing the tests, both mine, both in the first draft.**
+`age_seals` returns `tail`, a bool meaning "this pair's freshest decision is the
+chain's final line" — I read it as the entry kind, because the function's
+docstring listed `{pair_id, verifier, last, days, tail}` and omitted the `kind`
+the dict actually carries. And `last` is a `datetime`, which made
+`Curator.export` raise on JSON. The docstring is fixed; `tail` is now carried
+deliberately as `uncorroborated_tail`, because a freshest-decision resting on
+the one line the hash chain does not vouch for (§5.5) is a caveat an audit view
+should say rather than swallow.

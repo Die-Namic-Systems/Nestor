@@ -78,6 +78,16 @@ what moved.
   agents to run *before proposing* could answer "clear" over a recorded answer.
   Found by that happening, on §1.10(a) itself.
 
+* **Provenance carries the seal's age** — IDEAS §1.4's own first suggestion,
+  which had shipped in the browser and nowhere else (agent-log §6.116, decision
+  0170). `Curator.get` — and so `answer.provenance` and `nestor_provenance` —
+  gains `seal_age` for sealed rows: `{days, last, verifier, kind,
+  uncorroborated_tail}`, read from the ledger and never from a column, with a
+  `countersign` resetting the clock. Display only: no answer is withdrawn, no
+  score moves, nothing expires, and a draft gets no key at all rather than a
+  zero. `uncorroborated_tail` says when the freshest decision is the chain's
+  final line — the one line the chain does not vouch for.
+
 ### Changed
 
 * **`scripts/ci-lint.sh` now enforces "match the workflow" instead of asserting

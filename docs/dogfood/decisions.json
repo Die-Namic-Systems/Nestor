@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 480,
+    "pairs": 486,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-22T00:00:00+00:00",
-  "digest": "ba4326dafc268d35c41dd4a77a2b9cad2c7c2bceaed36db065bc48ad5b0078bb",
+  "digest": "2ff0617a6541e391e937b892338ae62df0c1fe9bc7bd049e3a97475ffe78fff5",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -66,6 +66,20 @@
     },
     {
       "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "eb3cf0a7-3522-5764-9b29-5234b3ad3157",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does what counts as a freshening decision live now that three callers need it",
+      "source_text": "Where does 'what counts as a freshening decision' live, now that three callers need it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "In `nestor.staleness.FRESHENING`, read by the UI queue, the CLI listing and `Curator.get` alike. Not restated in the curator.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
       "id": "eb127497-6b67-538b-8499-8f18a862e9a1",
       "origin": "pr:",
       "seal_sig": "",
@@ -80,6 +94,20 @@
     },
     {
       "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "de1cdc2d-bb05-5498-b900-195771f51c4d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ideas 14 says a quorum is still not recorded at all 626 is that true",
+      "source_text": "IDEAS §1.4 says 'a quorum is still not recorded at all (§6.26)'. Is that true?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — false since 2026-08-06, when §6.26 shipped and a concurring verifier began writing a `countersign` entry. The entry is corrected in place rather than rewritten, in the same shape as its 2026-08-06 correction, so both driftings stay visible.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
       "id": "d3379910-5d72-569e-98bf-a489c1a087fc",
       "origin": "pr:",
       "seal_sig": "",
@@ -89,6 +117,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "One function — `warrant.refuse_reason(kind, authority, locator, check, expected_digest)` — returning a reason or the empty string. `attach` raises it at a local caller who can fix the argument; `_import_warrants` records it against the row and imports the rest. `attach`'s validation was moved into it rather than copied.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "cedbb40d-bfcf-5056-a4c1-74dda4aab3bc",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "step 2 of the quorum memo does anyone countersign has never been run against a deployment can it be run here",
+      "source_text": "Step 2 of the quorum memo — does anyone countersign? — has never been run against a deployment. Can it be run here?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and it was. The Nestor instance exposed over MCP keeps a real chain outside this checkout (21 entries, 11 seals, chain verifies). The verdict is `no second reviewer`: one named actor in the whole chain, so its zero is evidence that nobody was asked, not that reviewers decline to concur.",
       "verifier": "",
       "weight": 1.0
     },
@@ -173,6 +215,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "`pending` stays, exactly as 0164 proposed, and the implementation is deliberately small: `best_sealed` still gates on `status == 'sealed'` and `is_verified_seal` and nothing else. What it gained is `warrant_kinds` for the row it already found, carried onto `Passage.meta`, through `answer.ask` to the served payload, and into the ledger's `passage` line. No fourth state; `Passage.mark` still maps exactly three.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "8e3d1f4f-429e-5f36-9151-54c2f79aadea",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the age report when the pairs freshest decision is the chains last line",
+      "source_text": "What does the age report when the pair's freshest decision is the chain's last line?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It says so: `uncorroborated_tail: true`. The field is carried rather than dropped, and named for what it means rather than for the `tail` flag it comes from.",
       "verifier": "",
       "weight": 1.0
     },
@@ -341,6 +397,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, both. Not warrants alone: evidence's absence there was not an argued decision, it was the shape the evidence edge happened to land in, and adding the newer relation while leaving the older one out would have made the audit view asymmetric for no reason anybody could point at.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "15caf8d0-4f59-566b-8dbc-45b5b25965ab",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does that verdict license designing nofm",
+      "source_text": "Does that verdict license designing N-of-M?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The question moves from 'does anyone countersign?' to 'is there a chain anywhere with two reviewers in it?', and on this machine today there is not. N-of-M stays unbuilt.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "12192ae9-84b1-55b5-8df2-9d693be06093",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "14s first suggestion is seal age surfaced in provenance and 610 is titled seal age in provenance display only shipped was it shipped",
+      "source_text": "§1.4's first suggestion is 'seal age surfaced in provenance', and §6.10 is titled 'Seal age in provenance (display only) — shipped'. Was it shipped?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "In the browser only. §6.10's body is about `nestor ui`'s memory-list chips; `answer.provenance` carried who sealed a row and never when. Shipped now: `Curator.get` gains `seal_age` — `{days, last, verifier, kind, uncorroborated_tail}` — for sealed rows, read from the chain, display only, with no key at all on a draft.",
       "verifier": "",
       "weight": 1.0
     },
