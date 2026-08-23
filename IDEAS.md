@@ -185,6 +185,7 @@ this map is not, CI fails. It cannot drift.
 | [6.114](docs/agent-log.md#6114-scriptsci-lintsh-says-it-matches-the-workflow-and-does-not-pin-what-the-workflow-pins--measured-fix-shipped) | `scripts/ci-lint.sh` says it matches the workflow and does not pin what the workflow pins | measured, fix shipped |
 | [6.115](docs/agent-log.md#6115-the-quorum-memos-step-2-has-been-run-against-a-real-chain-and-its-answer-is-that-the-chain-cannot-answer-it--measured) | The quorum memo's step 2 has been run, against a real chain | measured |
 | [6.116](docs/agent-log.md#6116-14s-own-first-suggestion-was-shipped-in-the-browser-and-nowhere-else--measured-fix-shipped) | §1.4's own first suggestion was shipped in the browser and nowhere else | measured, fix shipped |
+| [6.117](docs/agent-log.md#6117-the-migration-ladder-had-eleven-tests-and-zero-real-steps--shipped) | The migration ladder had eleven tests and zero real steps | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
