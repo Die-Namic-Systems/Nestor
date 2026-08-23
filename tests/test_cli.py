@@ -739,3 +739,58 @@ def test_a_sealed_commitment_is_labelled_differently_from_a_draft(db, capsys):
     out = capsys.readouterr().out
     assert "SEALED by rita" in out
     assert "draft — proposed" not in out
+
+
+# --- --version ---------------------------------------------------------------
+
+def test_version_flag_prints_and_exits():
+    done = _run_cli_subprocess(["--version"])
+    assert done.returncode == 0
+    assert done.stdout.startswith("nestor ")
+
+
+# --- completions (shtab) -----------------------------------------------------
+
+def test_completions_bash():
+    pytest.importorskip("shtab")
+    done = _run_cli_subprocess(["completions", "bash"])
+    assert done.returncode == 0
+    assert "nestor" in done.stdout
+    assert "_shtab_" in done.stdout or "complete" in done.stdout
+
+
+def test_completions_zsh():
+    pytest.importorskip("shtab")
+    done = _run_cli_subprocess(["completions", "zsh"])
+    assert done.returncode == 0
+    assert "#compdef nestor" in done.stdout
+
+
+# --- uniform --json on db and export -----------------------------------------
+
+def test_db_checkpoint_json_output(db, capsys):
+    assert cli.main(["--db", db["db"], "--ledger", db["ledger"],
+                     "--json", "db", "checkpoint"]) == cli.EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["action"] == "checkpoint"
+    assert payload["db"] == db["db"]
+
+
+def test_db_checkpoint_out_json_output(db, tmp_path, capsys):
+    out = tmp_path / "backup.db"
+    assert cli.main(["--db", db["db"], "--ledger", db["ledger"],
+                     "--json", "db", "checkpoint",
+                     "--out", str(out)]) == cli.EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["action"] == "backup"
+    assert str(out) in payload["files"]
+
+
+def test_export_out_json_output(db, tmp_path, capsys):
+    out = tmp_path / "bundle.json"
+    assert cli.main(["--db", db["db"], "--ledger", db["ledger"],
+                     "--json", "export", "--out", str(out)]) == cli.EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["file"] == str(out)
+    assert "counts" in payload
+    assert "digest" in payload

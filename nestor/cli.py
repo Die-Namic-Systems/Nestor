@@ -23,6 +23,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor rejections                     # what the recorded "no"s say in aggregate
     nestor keys add rita                  # a key per verifier (list / add / revoke)
     nestor policy add --from en --to es --verifier rita  # who may seal a domain
+    nestor --version                       # the installed version
+    nestor completions bash               # shell completions (bash, zsh, tcsh)
     nestor ui                             # the browser surface
     nestor serve                          # MCP over stdio, for a model
 
@@ -42,6 +44,8 @@ import os
 import pathlib
 import shutil
 import sys
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _dist_version
 from typing import Optional
 
 from . import (answer, cascade, config, keyring as keyring_mod, ledger as ledger_mod, memory,
@@ -542,10 +546,12 @@ def cmd_db(args) -> int:
                           file=sys.stderr)
                 # Nothing was written here, so nothing may remain here.
                 ledger_out.unlink(missing_ok=True)
-            print(f"wrote {' and '.join(parts)}", file=sys.stderr)
+            _emit({"action": "backup", "files": parts},
+                  args.json, f"wrote {' and '.join(parts)}")
         else:
             store.checkpoint_wal()
-            print(f"checkpointed {args.db}", file=sys.stderr)
+            _emit({"action": "checkpoint", "db": args.db},
+                  args.json, f"checkpointed {args.db}")
         return EXIT_OK
     return EXIT_USAGE
 
@@ -565,9 +571,12 @@ def cmd_export(args) -> int:
     if args.out:
         pathlib.Path(args.out).write_text(text, encoding="utf-8")
         c = bundle["counts"]
-        print(f"wrote {args.out} — {c['pairs']} pair(s), {c['sealed']} sealed "
-              f"({c['servable']} servable), {c['rejections']} rejection(s), "
-              f"digest {bundle['digest'][:16]}…", file=sys.stderr)
+        summary = {"file": args.out, "format": args.format, "counts": c,
+                   "digest": bundle["digest"]}
+        human = (f"wrote {args.out} — {c['pairs']} pair(s), {c['sealed']} sealed "
+                 f"({c['servable']} servable), {c['rejections']} rejection(s), "
+                 f"digest {bundle['digest'][:16]}…")
+        _emit(summary, args.json, human)
     else:
         print(text)
     return EXIT_OK
@@ -991,6 +1000,21 @@ def cmd_demo(args) -> int:
 
 
 # --------------------------------------------------------------------------
+# completions
+# --------------------------------------------------------------------------
+
+
+def cmd_completions(args) -> int:
+    try:
+        import shtab
+    except ImportError:
+        print("shtab is not installed — pip install shtab", file=sys.stderr)
+        return EXIT_USAGE
+    print(shtab.complete(build_parser(), args.shell))
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------
 # parser
 # --------------------------------------------------------------------------
 
@@ -1023,6 +1047,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = _HintingParser(
         prog="nestor",
         description="Nestor — meaning infrastructure. Has a human checked this?")
+    try:
+        _ver = _dist_version("nestor-meaning")
+    except PackageNotFoundError:
+        _ver = "0+unknown"
+    p.add_argument("--version", action="version", version=f"nestor {_ver}")
     # $NESTOR_DB / $NESTOR_HOME win over the cwd-relative default, and an
     # unusable pin raises rather than reverting to it (home_paths.PinRefused).
     # An explicit --db still wins over both: the flag is a person at a terminal
@@ -1263,6 +1292,11 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--commitment", default="", help="skip that prompt: the answer to propose")
     ini.add_argument("--rationale", default="", help="skip that prompt: why, one line")
     ini.set_defaults(func=cmd_init)
+
+    comp = sub.add_parser("completions", help="print a shell completion script (requires shtab)")
+    comp.add_argument("shell", choices=("bash", "zsh", "tcsh"),
+                      help="target shell")
+    comp.set_defaults(func=cmd_completions)
 
     # These two own their own flags; hand the rest of argv straight over.
     sub.add_parser("ui", help="the browser surface (see: nestor ui --help)", add_help=False)

@@ -7260,3 +7260,24 @@ verified is not a step, it is a hope.
 *Say what you read, not what you concluded — including about your own tools.
 This one said "python 3.12" because it had passed `3.12` to a function, not
 because anything had looked.*
+
+### 6.120 The CLI had no --version, no shell completions, and two verbs without --json — **shipped**
+
+§7.5 names the mechanical CLI finish: `--version`, shell completions, and
+uniform `--json` across all verbs. Present: `--json` on 16 of 18 verbs. Absent:
+`--version`, any completion support, and `--json` on `db` and `export`.
+
+**Shipped:** three additions in `nestor/cli.py`, one new dev dependency, and
+six tests in `tests/test_cli.py`:
+
+- **`--version`** — `nestor --version` prints `nestor {version}` using
+  `importlib.metadata.version("nestor-meaning")`, the same source as
+  `nestor.__version__`.
+- **`nestor completions {bash,zsh,tcsh}`** — generates shell completion scripts
+  via `shtab` (added to `[project.optional-dependencies] dev`). Guarded behind
+  `ImportError` so the subcommand prints a clear install message when `shtab` is
+  absent.
+- **Uniform `--json`** — `db` now emits `{"action": "checkpoint", "db": "..."}` or
+  `{"action": "backup", "files": [...]}` through `_emit()`. `export` now emits
+  `{"file": "...", "format": "...", "counts": {...}, "digest": "..."}` when
+  `--out` is used (without `--out`, stdout is already the bundle).

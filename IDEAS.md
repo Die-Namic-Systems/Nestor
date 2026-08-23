@@ -188,6 +188,7 @@ this map is not, CI fails. It cannot drift.
 | [6.117](docs/agent-log.md#6117-the-migration-ladder-had-eleven-tests-and-zero-real-steps--shipped) | The migration ladder had eleven tests and zero real steps | shipped |
 | [6.118](docs/agent-log.md#6118-the-suite-was-example-based-the-three-surfaces-that-earned-a-property-test-had-none--shipped) | The suite was example-based; the three surfaces that earned a property test had none | shipped |
 | [6.119](docs/agent-log.md#6119-the-test-job-had-the-same-drift-the-lint-job-did-and-the-tool-built-to-catch-it-committed-it-first--measured-tool-shipped) | The test job had the same drift the lint job did, and the tool built to catch it committed it first | measured, tool shipped |
+| [6.120](docs/agent-log.md#6120-the-cli-had-no---version-no-shell-completions-and-two-verbs-without---json--shipped) | The CLI had no --version, no shell completions, and two verbs without --json | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -2164,8 +2165,11 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   propose → resolve → seal flow is a natural one), and no published **manifest** for
   discovery or packaging. The CLI/MCP split is itself the standard-parts method in
   miniature — one core, two surfaces (§5.1, §5.7) — so the gap here is not a missing
-  surface but the missing *finish* on the two that exist. **Status: open** for the
-  mechanical parts (`--version`, completions, uniform `--json`); **hypothesis** for
+  surface but the missing *finish* on the two that exist. **Status: shipped** for the
+  mechanical parts — `--version` (from `importlib.metadata`, matching `nestor/__init__.py`),
+  `nestor completions {bash,zsh,tcsh}` (via `shtab`, guarded behind an `ImportError`
+  when not installed), and uniform `--json` on every verb (the two that lacked it — `db`
+  and `export` — now emit structured payloads through `_emit()`); **hypothesis** for
   MCP resources/prompts — worth adding only once a consumer needs the store *as a
   resource* rather than through the tool verbs.
 - **Cross-session collision awareness — notice another agent is in the room (#111).**

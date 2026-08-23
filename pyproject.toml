@@ -96,6 +96,7 @@ dev = [
     # handling.
     "pip-audit",
     "hypothesis",
+    "shtab",
 ]
 cloud = [
     "anthropic>=0.60",
