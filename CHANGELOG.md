@@ -58,6 +58,26 @@ what moved.
   say". Nothing here reports a warrant as satisfied. `best_sealed` and the
   served state are untouched — IDEAS §1.10(a) stays open. Decision 0167.
 
+* **A served answer says *warranted how*** — IDEAS §1.10(a), the last of the
+  warrants memo's three open questions, decision 0169. **`pending` stays:**
+  `best_sealed` still gates on `sealed` and nothing else, so a cited-but-unsealed
+  row is served exactly as often as before — never. What it gained is
+  `warrant_kinds` for the row it *did* find, carried onto `Passage.meta`, through
+  `answer.ask` to `nestor_ask` and `nestor ask`, and into the ledger's `passage`
+  entry (a warrant attached tomorrow is not one this answer went out with).
+  Ranked candidates in `matches` carry it too, so a `pending` answer can say that
+  a row beside it is cited and merely unsealed here — next to the
+  `servable: false` that was always there. There is no fourth state; `Passage.mark`
+  still maps exactly three.
+
+* **`nestor decision check` shows the commitment it matched.** A clear consult
+  that found a recorded decision now prints it, its rationale, and whether it is
+  draft or sealed. Exit codes are unchanged — clear still exits 0. Previously an
+  exact match printed a line a glance could not tell from "nothing on record",
+  with the commitment visible only under `--json`, so the consult this repo tells
+  agents to run *before proposing* could answer "clear" over a recorded answer.
+  Found by that happening, on §1.10(a) itself.
+
 ### Changed
 
 * **`scripts/ci-lint.sh` now enforces "match the workflow" instead of asserting

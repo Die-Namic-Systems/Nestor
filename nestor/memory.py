@@ -1146,7 +1146,44 @@ def best_sealed(source_text: str, source_lang: str, target_lang: str,
         # row that cannot win does not need its signature verified.
         if is_verified_seal(row):
             best, best_sim = row, sim
-    return {"pair": best, "similarity": best_sim} if best is not None else None
+    if best is None:
+        return None
+    return {"pair": best, "similarity": best_sim,
+            "warrant_kinds": warrant_kinds_for(best["id"], store)}
+
+
+def warrant_kinds_for(pair_id: str, store: Storage) -> list[str]:
+    """The warrant kinds the served row holds — *"warranted how"*, sorted.
+
+    IDEAS §1.10(a), decided in 0164: this is the whole of what warrants change
+    about serving. ``best_sealed`` still gates on ``sealed`` and nothing else,
+    so a cited-but-unsealed row is found here exactly as often as before —
+    never. A fourth status, or a warrant admitted into the field tier 1 reads,
+    would put a claim no local human vouched for into the top rung: jeles'
+    laundering case arriving by a different door, and jeles fixed that by
+    adding a rung *below*, never by widening what the top rung admits.
+
+    So this is said **alongside** the seal, never instead of it. It is a
+    display fact about a row that already won on its seal.
+
+    Empty on a store without the warrants capability — which is the same fact
+    as "this row holds none" and, unlike the provenance view, is safe to
+    collapse here: the serve path is not making a claim about what is attached,
+    it is annotating what it is already serving on other grounds. A caller who
+    needs the distinction, the authority or the locator asks
+    :func:`nestor.answer.provenance`, which keeps them apart.
+    """
+    from .storage import supports_warrants
+    if not supports_warrants(store):
+        return []
+    from . import warrant
+    try:
+        return sorted(warrant.kinds_held(pair_id, store=store))
+    except Exception:                      # noqa: BLE001 — never fail a served answer
+        # An annotation must not be able to withhold a verified answer. The
+        # seal is what entitles this row to be served; the warrant set is
+        # commentary on it, and commentary that raises is dropped, not fatal.
+        return []
 
 
 def _sha(text: str) -> str:

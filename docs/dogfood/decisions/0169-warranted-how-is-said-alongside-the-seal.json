@@ -1,0 +1,33 @@
+{
+  "branch": "claude/warrants-served-state",
+  "date": "2026-08-22",
+  "note": "Building IDEAS §1.10(a), the last of the memo's three open questions. This one was NOT reopened: decision 0164 already recorded a commitment for it, and these rows are the implementation decisions that fell out of building what 0164 proposed. The consult that surfaced 0164 also surfaced a defect in the consult itself — `nestor decision check` matched at similarity 1.0, printed `✓ clear`, and showed the commitment only under `--json`; that is fixed here too. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Checked against the tree, not recalled: best_sealed's status gate and is_verified_seal call in memory.py, the three Passage constructions at cascade.py:493/517/520, and Passage.mark's three-key dict.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "IDEAS §1.10(a): does a cited-but-unsealed row become servable, or does `pending` stay?",
+      "commitment": "`pending` stays, exactly as 0164 proposed, and the implementation is deliberately small: `best_sealed` still gates on `status == 'sealed'` and `is_verified_seal` and nothing else. What it gained is `warrant_kinds` for the row it already found, carried onto `Passage.meta`, through `answer.ask` to the served payload, and into the ledger's `passage` line. No fourth state; `Passage.mark` still maps exactly three.",
+      "why": "A warrant is a claim about a row, and `status` answers a different question — did a human HERE check this. Admitting a citation into the field tier 1 reads would let anything that can attach a warrant promote its own draft, which is `nestor_propose` with extra steps and is jeles' provenance-laundering case arriving by a different door. jeles fixed that by adding a rung BELOW the machine rung, never by widening what the top rung admits."
+    },
+    {
+      "question": "How is §1.10(a) actually pinned by a test, given the state an unsealed row produces is tier 2's business?",
+      "commitment": "As a before/after on one query: record the cascade's answer, attach a citation, assert the state, tier and target are unchanged. Not as an assertion that the state equals `pending`.",
+      "why": "The first version asserted `pending` and failed — with the offline engine and a near TM row, tier 2 drafts, so the answer was `draft` before the warrant existed and `draft` after. That assertion was testing tier 2's behavior while claiming to test this feature's. What §1.10(a) turns on is not which non-sealed state comes back; it is that attaching a warrant moves nothing. The before/after says that and cannot be satisfied by accident."
+    },
+    {
+      "question": "Should the ledger's `passage` entry record the warrant kinds?",
+      "commitment": "Yes, tier 1 only. A warrant attached tomorrow is not one this answer went out with, and reading the pair's warrants later tells you what it holds now, never what it held when the answer was served.",
+      "why": "This is the same property the trail already exists for. The row is mutable in the sense that warrants accumulate; the answer that went out is not. Without the entry, an audit of a served answer can only reconstruct 'warranted how' as of the moment of the audit, which is precisely the substitution the ledger prevents everywhere else."
+    },
+    {
+      "question": "What happens if reading the warrants raises while serving?",
+      "commitment": "The answer still goes out, with an empty warrant set. `_warrant_kinds_for` catches and returns `[]`.",
+      "why": "The seal is what entitles the row to be served; the warrant set is commentary on it. A serve path that an optional relation can break is worse than one that says nothing about it — a verified answer withheld because an annotation failed is a strictly worse outcome than a verified answer served without its annotation. This is the one place in the warrant code that swallows an exception, and it is swallowed because the alternative is withholding something a human vouched for."
+    },
+    {
+      "question": "`nestor decision check` printed `✓ clear` on an exact match and showed the commitment only under `--json`. Is that a defect?",
+      "commitment": "Yes, and fixed: a clear consult now prints the matched commitment, its rationale, and whether it is draft or sealed. Exit codes are untouched — clear still exits 0, because a recorded commitment that does not block genuinely does not block.",
+      "why": "`exit 0` means 'nothing on record BLOCKS this', which is not the sentence 'nothing is on record' — and the text output rendered the two almost identically, so the second was routinely read as the first. The seat rule is consult before you propose; a consult that answers 'clear' over a recorded answer defeats the rule it exists to serve. Measured, not supposed: a consult on §1.10(a) matched 0164 at similarity 1.0 and printed a line indistinguishable from silence. §6.54's lesson was that silence from the store means nothing; this is the inverse and worse — a hit rendered AS silence."
+    }
+  ]
+}

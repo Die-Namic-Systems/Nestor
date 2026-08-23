@@ -127,10 +127,21 @@ def cmd_ask(args) -> int:
                         engine_name=args.engine,
                         matcher=answer.load_matcher(args.matcher))
     p = result["passage"]
-    verifier = (p.get("meta") or {}).get("verifier", "")
+    meta = p.get("meta") or {}
+    verifier = meta.get("verifier", "")
+    # "Warranted how", printed only when there is something beyond the seal to
+    # say (IDEAS §1.10(a), decision 0164). A sealed row always holds
+    # `attestation`, composed from the seal — printing "warranted: attestation"
+    # beside "verified by rita" would be the same fact twice, and a line that
+    # repeats itself is one readers learn to skip.
+    beyond_seal = [k for k in meta.get("warrant_kinds", []) if k != "attestation"]
+    warranted = f"\n  warranted: {', '.join(beyond_seal)} "\
+                f"(claims, not confirmations — `nestor warrant for {meta.get('pair_id', '')}`)" \
+        if beyond_seal else ""
     _emit(result, args.json,
           f"{p['mark']} {p['state']}  {p['target'] or '—'}"
-          + (f"   (verified by {verifier}, similarity {p['confidence']})" if verifier else ""))
+          + (f"   (verified by {verifier}, similarity {p['confidence']})" if verifier else "")
+          + warranted)
     return EXIT_OK if result["verified"] else EXIT_ANSWER_IS_NO
 
 
@@ -199,6 +210,37 @@ def cmd_match(args) -> int:
     return EXIT_OK if result["served"] else EXIT_ANSWER_IS_NO
 
 
+def _print_live_commitment(live: Optional[dict]) -> None:
+    """Show the recorded answer a clear consult found, if it found one.
+
+    ``exit 0`` from ``decision check`` means "nothing on record BLOCKS this",
+    which is not the same as "nothing is on record" — and the text output used
+    to render the two almost identically, so the second sentence was routinely
+    read as the first. That is exactly what a consult exists to prevent: an
+    agent about to propose an answer to a question this repository already
+    answered.
+
+    Printed for a clear result only. The blocked branch prints the constraint
+    that blocks, which is the more urgent thing and already has the reader's
+    attention; adding the live commitment under it would bury it.
+    """
+    if not live:
+        return
+    commitment = (live.get("commitment") or "").strip()
+    if not commitment:
+        return
+    print(f"\n  A commitment IS on record for this question — read it before "
+          f"proposing:\n    {commitment}")
+    why = (live.get("reason") or "").strip()
+    if why:
+        print(f"    why: {why}")
+    # Said every time, because a draft commitment read at a glance is the one
+    # most likely to be mistaken for settled. Nothing in this store is verified
+    # unless a human signed it in `nestor ui`.
+    print("    (draft — proposed, not human-sealed)" if not live.get("sealed")
+          else f"    (SEALED by {live.get('verifier') or '—'})")
+
+
 def cmd_decision(args) -> int:
     """``nestor decision check`` — a CI gate over the decision graph
     (docs/decision-memory.md N9(1)).
@@ -253,6 +295,14 @@ def cmd_decision(args) -> int:
                 print(f"✓ clear — no recorded rejection or contradicts edge on {question!r}")
             else:
                 print(f"✓ clear — no decision on record for {question!r}")
+            # The commitment itself, whenever one was found. Without this, an
+            # exact hit printed a line a glance could not tell from "nothing on
+            # record" — and the whole point of the consult is to put a recorded
+            # answer in front of someone before they propose a fresh one.
+            # Measured the hard way: a consult on IDEAS §1.10(a) returned
+            # similarity 1.0 against decision 0164, printed "clear", and the
+            # commitment was visible only under --json.
+            _print_live_commitment(result.get("live"))
         else:
             if match_kind == "fuzzy":
                 live = result["live"]

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 475,
+    "pairs": 480,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-22T00:00:00+00:00",
-  "digest": "f50f44a32978fa605a3793aa73a213b2b918a385bbfdb8f6f1d6ba12b81cf16a",
+  "digest": "ba4326dafc268d35c41dd4a77a2b9cad2c7c2bceaed36db065bc48ad5b0078bb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -33,6 +33,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Proposed: `pending` stays; 'cited, unsealed' is said ALONGSIDE it, never as a fourth status value. `status` means who touched the row HERE, and best_sealed's tier-1 gate is built on exactly that (`if row['status'] != 'sealed': continue`, memory.py:1126). Warrants surface on the served answer and on Passage.state's display fact (cascade.py:245), which is already separate from the stored status. best_sealed keeps gating on `sealed` alone and gains §1.10's actual ask — answering 'warranted how' — by returning the warrants of the row it found, not by widening what it will find.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "ee4708bc-bd24-5cfe-af33-0846e4a0b32c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the ledgers passage entry record the warrant kinds",
+      "source_text": "Should the ledger's `passage` entry record the warrant kinds?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, tier 1 only. A warrant attached tomorrow is not one this answer went out with, and reading the pair's warrants later tells you what it holds now, never what it held when the answer was served.",
       "verifier": "",
       "weight": 1.0
     },
@@ -150,6 +164,20 @@
     },
     {
       "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "8fcab7f9-22db-56c9-b485-920cca9ce766",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ideas 110a does a citedbutunsealed row become servable or does pending stay",
+      "source_text": "IDEAS §1.10(a): does a cited-but-unsealed row become servable, or does `pending` stay?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`pending` stays, exactly as 0164 proposed, and the implementation is deliberately small: `best_sealed` still gates on `status == 'sealed'` and `is_verified_seal` and nothing else. What it gained is `warrant_kinds` for the row it already found, carried onto `Passage.meta`, through `answer.ask` to the served payload, and into the ledger's `passage` line. No fourth state; `Passage.mark` still maps exactly three.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
       "id": "6453ba75-19cd-59bd-82ed-bf6d463de0a0",
       "origin": "pr:",
       "seal_sig": "",
@@ -187,6 +215,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Proposed: the evidence edge is most of it already, in the wrong register. `attach(pair_id, kind='url', locator=...)` records a citation today. Two things it cannot record: WHO VOUCHES (jeles carries the naming institution as a field distinct from the url; an institution written into the edge's free-text `reason` is not queryable) and HOW A STRANGER CHECKS (the edge is a pointer by design; a citation with no check procedure is a bookmark). So: not a new relation — the edge's shape plus a vouching authority and a check procedure.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "3ea2e1d6-6076-5b2d-a417-86122386df8d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happens if reading the warrants raises while serving",
+      "source_text": "What happens if reading the warrants raises while serving?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The answer still goes out, with an empty warrant set. `_warrant_kinds_for` catches and returns `[]`.",
       "verifier": "",
       "weight": 1.0
     },
@@ -299,6 +341,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, both. Not warrants alone: evidence's absence there was not an argued decision, it was the shape the evidence edge happened to land in, and adding the newer relation while leaving the older one out would have made the audit view asymmetric for no reason anybody could point at.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "0b67af53-356b-5162-bce8-dc0405319afa",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "nestor decision check printed clear on an exact match and showed the commitment only under json is that a defect",
+      "source_text": "`nestor decision check` printed `✓ clear` on an exact match and showed the commitment only under `--json`. Is that a defect?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and fixed: a clear consult now prints the matched commitment, its rationale, and whether it is draft or sealed. Exit codes are untouched — clear still exits 0, because a recorded commitment that does not block genuinely does not block.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-22T00:00:00+00:00",
+      "id": "0ad00483-1a2d-50e5-94a4-087b662c9342",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is 110a actually pinned by a test given the state an unsealed row produces is tier 2s business",
+      "source_text": "How is §1.10(a) actually pinned by a test, given the state an unsealed row produces is tier 2's business?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "As a before/after on one query: record the cascade's answer, attach a citation, assert the state, tier and target are unchanged. Not as an assertion that the state equals `pending`.",
       "verifier": "",
       "weight": 1.0
     },

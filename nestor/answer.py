@@ -173,12 +173,33 @@ def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
     return found
 
 
-def _candidate(m: dict) -> dict:
+def _candidate(m: dict, store: Optional[Storage] = None) -> dict:
+    """One ranked row, as a caller sees it — including *warranted how*.
+
+    ``warrant_kinds`` is the second half of IDEAS §1.10(a) (docs/warrants.md
+    §2): a `pending` answer that says "nothing verified matched" is more useful,
+    without being any less true, if it can also say that one of the candidates
+    beside it is cited to Crossref and merely unsealed here.
+
+    It is safe to say precisely because of what is already in this dict. The
+    row's ``target_text`` is here regardless — this annotation exposes nothing
+    a caller could not already read — and it arrives beside ``status`` and
+    ``servable``, which have said "do not serve this" all along. What changes is
+    that a reader can now tell an unsealed row nobody has ever vouched for from
+    an unsealed row a named institution stands behind. Neither is servable, and
+    ``servable`` remains the only field that decides that.
+
+    ``store`` is optional so the older one-argument call keeps working; without
+    it the warrant set is simply absent rather than wrong.
+    """
     pair = m["pair"]
-    return {"similarity": m["similarity"], "status": pair["status"],
-            "servable": memory.is_verified_seal(pair), "id": pair["id"],
-            "source_text": pair["source_text"], "target_text": pair["target_text"],
-            "verifier": pair.get("verifier", "")}
+    out = {"similarity": m["similarity"], "status": pair["status"],
+           "servable": memory.is_verified_seal(pair), "id": pair["id"],
+           "source_text": pair["source_text"], "target_text": pair["target_text"],
+           "verifier": pair.get("verifier", "")}
+    if store is not None:
+        out["warrant_kinds"] = memory.warrant_kinds_for(pair["id"], store)
+    return out
 
 
 #: How many candidates `match` shows. A display page, deliberately not the set
@@ -342,7 +363,7 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
                     "engine": passage.engine, "confidence": passage.confidence,
                     "meta": passage.meta},
         "verified": passage.state == "sealed",
-        "matches": [_candidate(m) for m in
+        "matches": [_candidate(m, store) for m in
                     memory.lookup(text, source_lang, target_lang, limit=5, store=store,
                                   matcher=matcher)],
         "threshold": memory.SEAL_THRESHOLD,
