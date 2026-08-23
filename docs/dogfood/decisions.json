@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 492,
+    "pairs": 496,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-23T00:00:00+00:00",
-  "digest": "2a851ff0972b3e9226a6eba363df445f11286d4b71bd04324051e6ae75a21ea4",
+  "digest": "3d75089651516da6a66f8cc2eb79688e82e14c55d472444472ee8d544c734d75",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -38,6 +38,34 @@
     },
     {
       "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "d9899519-648e-57d8-9103-bc713b1a9c86",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what shape could a fix take",
+      "source_text": "What shape could a fix take?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed, unbuilt, in preference order: (a) a seal file beside the decision file — `docs/dogfood/seals/<id>.json` carrying verifier, timestamp and signature, one file per seal, folded in at `--rebuild`, with `--verify` admitting a sealed row ONLY when it traces to such a file; (b) state plainly that seals are local, and change the boot line from 'none human-sealed' to something that does not read as a fixable absence; (c) export a bundle from the review instance and commit it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "8db68694-a3e3-5ad9-b742-fb1f31438f07",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the onedirectional rule be relaxed so seals can flow back into the committed store",
+      "source_text": "Should the one-directional rule be relaxed so seals can flow back into the committed store?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Proposed: no. Whatever the fix is, the `.db` must stay derivable from text a reviewer read.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
       "id": "824cf3c1-cf4c-573b-bd1e-67921db122b8",
       "origin": "pr:",
       "seal_sig": "",
@@ -52,6 +80,20 @@
     },
     {
       "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "7c2ff46a-3b68-5f90-a602-8e608bf6e002",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does any of this change whether an agent may seal",
+      "source_text": "Does any of this change whether an agent may seal?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. It may not, under any of the three shapes. A seal file would carry a signature made by a human's key at `nestor ui`, and an agent writing one would be forging a signature rather than skipping a formality.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
       "id": "7781d5b0-877f-58ef-8be3-5b913a04eec6",
       "origin": "pr:",
       "seal_sig": "",
@@ -61,6 +103,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "It resolves `command -v pytest` in the same shell and environment the command will run in, prints the path and the interpreter version, and REFUSES if that path is not inside the venv for the version it named. `build()` separately verifies the venv imports pytest, coverage and nestor before returning.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "6b635288-54c5-5235-839c-8760e4f6ba49",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does a humans seal on a dogfood decision persist",
+      "source_text": "Where does a human's seal on a dogfood decision persist?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nowhere the repository can see. Not in the committed store (`--verify` fails on a sealed row however it got there), not in the decision file (`Decision` has no verifier or signature field), and not through any reader (nothing consumes sealed dogfood rows; apply_sealed_fleet_gaps.py is a different corpus flowing outward to Willow). A seal made at `nestor ui` lives exactly as long as the store the browser was pointed at, and the next `--rebuild` regenerates an all-draft store that knows nothing about it.",
       "verifier": "",
       "weight": 1.0
     },
