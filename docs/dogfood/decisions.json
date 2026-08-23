@@ -8,7 +8,7 @@
     "warrants": 0
   },
   "created_at": "2026-08-23T00:00:00+00:00",
-  "digest": "35aa2e3198a10b4e5d7866ab7d7bad3f89223b0240a6a80a558a1f21781a33bf",
+  "digest": "2a851ff0972b3e9226a6eba363df445f11286d4b71bd04324051e6ae75a21ea4",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -33,20 +33,6 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "`~/.cache/nestor-ci/pyX.Y`, outside the repository.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-23T00:00:00+00:00",
-      "id": "aaa5b0f1-cce3-5253-b80c-8da779c5899d",
-      "origin": "pr:",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "agentsmd tells an agent python m pytest q ci runs bare pytest under coverage and the workflow comments on the difference should the doc change",
-      "source_text": "`AGENTS.md` tells an agent `python -m pytest -q`; CI runs bare `pytest` under coverage, and the workflow comments on the difference. Should the doc change?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "NOT decided here, and deliberately left alone. The difference is measured and recorded; changing the instruction every agent in this repository follows is an operator's call, not a side effect of building a tool.",
       "verifier": "",
       "weight": 1.0
     },
@@ -103,6 +89,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "It refuses, naming which of the three patterns failed, and exits 2. No defaults, no last-known-good, no partial run on two facts out of three.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "008c6c81-63c0-5644-bcb8-b5328264bf59",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "agentsmd tells an agent python m pytest q ci runs bare pytest under coverage do the two commands collect different sets",
+      "source_text": "`AGENTS.md` tells an agent `python -m pytest -q`; CI runs bare `pytest` under coverage. Do the two commands collect different sets?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Measured properly — one tree, one venv, one command changed — both give 1875 passed, 13 skipped. `AGENTS.md` needs no change, and the eleven-test gap this row originally asserted was my measurement error, not a property of the repository.",
       "verifier": "",
       "weight": 1.0
     },

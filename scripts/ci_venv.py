@@ -9,8 +9,8 @@
 `scripts/lint-pins.txt` fixed this for the **lint** job: the versions live in one
 file that both the workflow and `scripts/ci-lint.sh` read, so a local gate cannot
 answer under tools CI does not use (agent-log §6.114). The **test** job had the
-same gap and three ways to fall into it, all measured on 2026-08-23 while
-verifying a branch:
+same gap in two places, both measured on 2026-08-23 while verifying a branch —
+plus a third that turned out already fixed, and is read anyway:
 
 * **Python version.** The matrix is 3.10 and 3.12. A developer venv is whatever
   `python3` happens to be — 3.14 on the machine this was written on. Two of
@@ -19,11 +19,14 @@ verifying a branch:
   else; the lint tools live in the lint job. A local `.[dev]` venv has five
   packages CI's test job does not, and a test that reads what happens to be
   installed passes locally and fails on both matrix legs. That happened.
-* **The command itself.** CI runs bare ``pytest`` under coverage. `AGENTS.md`
-  tells an agent ``python -m pytest -q``, which puts the repo root on
-  ``sys.path`` where bare ``pytest`` does not — the workflow's own comment names
-  this and says the disagreement once meant CI ran five tests a developer
-  silently skipped.
+* **The command itself** — read, but **not** a gap. CI runs bare ``pytest``
+  under coverage; `AGENTS.md` says ``python -m pytest -q``. That once mattered —
+  the workflow comments that the disagreement hid five tests — and the repo
+  closed it on 2026-07-31 in ``319292a`` with ``pythonpath = ["."]``: *"pin the
+  path so the invocation stops mattering."* Measured on one tree, one venv, one
+  command changed: identical counts. The command is still read from the workflow
+  rather than assumed, because a fix that holds today is exactly the kind that
+  regresses unwatched, and this is what would notice.
 
 **Everything here is read out of `.github/workflows/tests.yml`.** Not restated,
 not defaulted: if a pattern stops matching, this refuses and says which one

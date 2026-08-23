@@ -7213,12 +7213,33 @@ demonstration of the failure than the argument for it did.*
 | installed | `-e '.[keys]' pytest coverage` | `.[dev]`, five extra packages |
 | command | `coverage run --include='nestor/*' "$(command -v pytest)" -q` | `python -m pytest -q`, per `AGENTS.md` |
 
-Each had already cost something. The version gap is why §6.114's ruff finding
-existed at all. The installed-set gap put **both matrix legs red** the day
-before (§6.114's own follow-up commit: a new test read what happened to be
-installed). And the command gap is named in the workflow's own comment — `-m`
-puts the repo root on `sys.path` where bare `pytest` does not, and that
-disagreement once meant CI ran five tests a developer silently skipped.
+Two of the three had already cost something. The version gap is why §6.114's
+ruff finding existed at all. The installed-set gap put **both matrix legs red**
+the day before (§6.114's own follow-up commit: a new test read what happened to
+be installed).
+
+**The third one is not a gap, and the way I came to believe it was is the
+correction this entry is really for.** `-m` does put the repo root on
+`sys.path` where bare `pytest` does not, and that once meant CI ran five tests a
+developer silently skipped — but the repo **fixed that on 2026-07-31**, in
+`319292a`, *"`pytest` and `python -m pytest` must run the same suite"*:
+`pythonpath = ["."]` in `pyproject.toml`, with a comment saying *"pin the path
+so the invocation stops mattering."* It has been there ever since.
+
+I reported an eleven-test gap between the two commands anyway. It came from
+comparing a `python -m pytest` run taken **before** I wrote
+`tests/test_ci_venv.py` against a CI-command run taken **after** it —
+`1862 + 11 = 1873`, and `tests/test_ci_venv.py` has exactly eleven tests. Two
+different trees, one variable of interest, and the delta credited to the
+variable. Run properly — same tree, same venv, one command changed — both give
+**1875 passed, 13 skipped**. There is no command gap.
+
+That is the *second* time in this one piece of work: the same mistake produced a
+"28-test gap" earlier (below), which was two different venvs. Once is a slip;
+twice in one afternoon is a method problem. The method that fails is *measure,
+then measure again later, then subtract* — it silently assumes everything else
+held still, and while building a tool the thing that never holds still is the
+tree. Change one variable, in one run, or do not claim a delta.
 
 `scripts/ci_venv.py` closes all three by **reading them out of
 `.github/workflows/tests.yml`** — matrix versions, install line, test command —

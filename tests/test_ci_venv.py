@@ -47,17 +47,43 @@ def test_the_parsed_facts_appear_verbatim_in_the_workflow(workflow):
 
 
 def test_the_test_command_is_not_python_dash_m_pytest(workflow):
-    """The reason this script exists at all.
+    """CI runs bare `pytest` under coverage while `AGENTS.md` says
+    `python -m pytest -q` — and that is *not* a gap, which is worth pinning
+    precisely because it looks like one.
 
-    CI runs bare `pytest` under coverage. `AGENTS.md` tells an agent
-    `python -m pytest -q`, which puts the repo root on `sys.path` where bare
-    `pytest` does not — the workflow keeps a comment saying that disagreement
-    once meant CI ran five tests a developer silently skipped. If CI ever moves
-    to `python -m`, this test fails and the docs need revisiting rather than the
-    script."""
+    `-m` puts the repo root on `sys.path` where bare `pytest` does not, and the
+    workflow comments that the disagreement once hid five tests. The repo closed
+    it on 2026-07-31 in `319292a` with `pythonpath = ["."]` in pyproject.toml —
+    "pin the path so the invocation stops mattering" — and measured on one tree
+    with one command changed, the two now give identical counts.
+
+    So this test guards the shape, not a difference: if CI ever moves to
+    `python -m`, the script's premise about which command to run changes and
+    this fails. The test below guards `pythonpath` itself staying put."""
     command = ci_venv.test_command(workflow)
     assert "python -m pytest" not in command
     assert "pytest" in command
+
+
+def test_pythonpath_is_pinned_so_the_invocation_cannot_matter():
+    """The line that makes the two commands equivalent, and nothing guarded it.
+
+    `pythonpath = ["."]` (pyproject.toml, `319292a`) is why bare `pytest` and
+    `python -m pytest` collect the same suite. Delete it and they diverge again
+    — silently, and in the direction where a developer's green is a subset of
+    CI's. `tests/test_bench_coverage.py` is the file that suffered it: five
+    guards that "must not be skippable" vanished for anyone typing the bare
+    command, and nothing said so.
+
+    Written while correcting a claim in the test above that said this guard
+    existed. It did not. Now it does."""
+    import re
+    text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+    m = re.search(r"^pythonpath\s*=\s*\[([^\]]*)\]", text, re.MULTILINE)
+    assert m, ("pyproject.toml no longer pins `pythonpath` — bare `pytest` and "
+               "`python -m pytest` now collect different suites, and the "
+               "bench-coverage guards are the ones that disappear")
+    assert '"."' in m.group(1) or "'.'" in m.group(1), m.group(0)
 
 
 def test_the_install_line_is_the_test_jobs_and_not_the_lint_jobs(workflow):
