@@ -7421,3 +7421,53 @@ against its own decisions, that is worth stating out loud even if the answer is
 **What is NOT open:** whether an agent may seal. It may not, and none of this
 changes that. The question is only where a *human's* seal goes after they make
 it.
+
+---
+
+### 6.124 Eight red releases, one permission, and a check that asked the wrong question — **measured**, guard **shipped**, token **operator's**
+
+*Noticed by the operator in passing — "releaseplease #67 (and a few before
+that) failed" — while merging something else.*
+
+Every `Release Please` run since 2026-08-22 had failed. Eight of them, each
+after ~5m40s, each ending in a ~200-line octokit dump. The useful part was three
+lines in:
+
+```
+POST /repos/OWNER/REPO/git/refs   ->  403
+'Resource not accessible by personal access token'
+x-accepted-github-permissions: contents=write
+```
+
+Creating the release PR's branch is a `git/refs` **write**. A PAT without
+`Contents: write` gets all the way to *"Successfully found branch HEAD sha"* and
+then dies at *"Error when creating branch"* — the ~5m40s is the action retrying
+before it gives up. GitHub names the missing permission in a response header,
+and nothing surfaced it.
+
+**The workflow's first step already guards the neighbouring case** and says why:
+*"A missing secret degrades to GITHUB_TOKEN, which still opens a release PR — so
+everything looks healthy right up until nothing reaches PyPI. Fail here, where
+the message can say what to do."* Exactly right, and it checks that the token
+**exists**. Nothing checked that it **works**, and those are different
+questions — the same distinction as §6.114's boot check (importable ≠ the
+version CI pins), `dep-audit.sh` on a skipped dependency, and 0127's *silence
+from a check means nothing*. Present-but-underscoped is the case between them,
+and it is the one that happened.
+
+**Shipped here:** `continue-on-error` on the action plus a step that translates
+the failure into the run summary — which permission to add, where GitHub named
+it, that expiry and resource-owner are the other two causes, and that nothing is
+lost because release-please reads commit history rather than events, so the next
+push after the token is fixed picks up everything merged meanwhile. It re-fails
+the job, so nothing is tolerated, only translated; *"Arm auto-merge"* has no
+`if:` and is therefore skipped, which is correct.
+
+**Not shipped, because it cannot be:** the token. No commit fixes a repository
+secret. The guard makes the ninth failure legible in the summary rather than 200
+lines down; a human still has to reissue the PAT with `Contents: read/write` and
+`Pull requests: read/write`.
+
+*A check that answers "it exists" to the question "does it work" is not a weaker
+check. It is a check that reports success in the failing case, which is worse
+than none — and this is the fourth place in this repository that has been true.*

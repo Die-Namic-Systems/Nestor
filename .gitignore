@@ -71,3 +71,16 @@ docs/llm-only-joke/ledger.jsonl
 # `.~lock.IDEAS.md#` rode into #189 and merged. It names a host and a PID, so it
 # is meaningless to anyone else and conflicts with itself between machines.
 .~lock.*#
+
+# The reviewer's own copy of the dogfood store. Sealing must NOT happen in
+# `docs/dogfood/nestor.db` — that file is derived from the decision files and
+# `dogfood_store.py --verify` fails on a sealed row in it, however it got there
+# (agent-log §6.123). So a human reviewing the queue takes a copy:
+#
+#     python -c "import sqlite3; sqlite3.connect('docs/dogfood/nestor.db').execute(\"VACUUM INTO 'review.db'\")"
+#     nestor --db review.db ui --verifier <you>
+#
+# `VACUUM INTO` rather than `cp`, because a plain copy of a live WAL store takes
+# a stale file. The glob covers the ledger nestor writes alongside it
+# (`review.db.ledger.jsonl`) and SQLite's own `-wal` / `-shm` companions.
+review.db*
