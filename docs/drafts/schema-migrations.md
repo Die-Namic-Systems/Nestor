@@ -3,7 +3,9 @@
 *Filling the gap §7.5 names: `memory_init` creates the schema; a store from
 before a change is handled by ad-hoc prose, not a versioned path.*
 
-**Status: draft — proposed, not decided.**
+**Status: draft — the first real migration (v1 → v2, visibility column)
+shipped in `sqlite_store.py`.  The design rules below are proposed, not
+decided.**
 
 ---
 
@@ -76,26 +78,22 @@ SCHEMA_VERSION = 2
    (a constraint change, a normalization) is: export from old, create new, import.
    The migration step handles the common case; the bundle handles the edge case.
 
-## The first real migration (proposal)
+## The first real migration (shipped)
 
-The visibility field §6.53 names as blocked on this decision:
+The visibility field §6.53 names — now shipped as `_migrate_v2` in
+`sqlite_store.py`.  The step adds `visibility TEXT NOT NULL DEFAULT
+'internal'` to `tm_pairs`, guarded by a `PRAGMA table_info` check so it
+is idempotent.
 
-```python
-def _migrate_v2(conn: sqlite3.Connection) -> None:
-    # §6.53: origin says what produced the row; visibility says who should
-    # see it. A row extracted from a private document should not appear in
-    # a public-facing MCP serve, even if the extraction is correct.
-    conn.execute("""
-        ALTER TABLE tm_pairs ADD COLUMN visibility TEXT NOT NULL DEFAULT 'internal'
-    """)
-    # 'internal' = operator only (the dogfood default)
-    # 'serve'    = available through nestor serve / MCP
-    # 'public'   = available in a published bundle
-```
+Every existing row defaults to `'internal'` (operator only).  The values
+are `internal`, `serve` (available through `nestor serve` / MCP), and
+`public` (available in a published bundle).
 
-This unblocks the visibility field without touching existing data — every
-existing row defaults to `'internal'`, which is conservative (the operator
-sees it, a model does not until someone promotes it).
+Tests: `test_the_first_real_migration_adds_visibility_to_a_v1_store`
+creates a v1 fixture, opens it with v2 code, and verifies the column
+exists with the right default.
+`test_a_non_idempotent_migration_step_is_caught_by_replay` injects a
+deliberately non-idempotent step and confirms it explodes on replay.
 
 ## What this does NOT cover
 

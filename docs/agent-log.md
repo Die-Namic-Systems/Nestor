@@ -7137,3 +7137,37 @@ the dict actually carries. And `last` is a `datetime`, which made
 deliberately as `uncorroborated_tail`, because a freshest-decision resting on
 the one line the hash chain does not vouch for (§5.5) is a caveat an audit view
 should say rather than swallow.
+
+---
+
+### 6.117 The migration ladder had eleven tests and zero real steps — **shipped**
+
+§7.5 names schema migrations as the gap: `memory_init` creates the schema, but
+a store from before a change is handled by ad-hoc prose, not a versioned path.
+The machinery was already there — `SCHEMA_VERSION`, `_FORWARD_MIGRATIONS`,
+`_apply_schema`, `StoreSchemaTooNewError`, and eleven tests that proved the
+ladder worked by injecting synthetic steps. What was missing: a real migration
+step that ships with the product, and the non-idempotent guard test from
+issue #91's acceptance criteria.
+
+**Shipped:** `SCHEMA_VERSION = 2`, with `_migrate_v2` adding
+`visibility TEXT NOT NULL DEFAULT 'internal'` to `tm_pairs`. The column is
+§6.53's visibility field: who should see a pair (`internal` / `serve` /
+`public`). Every existing row defaults to `internal`, which is conservative —
+the operator sees it, a model behind `nestor serve` does not until someone
+promotes it. The step is idempotent via a `PRAGMA table_info` guard, matching
+the pattern `_ensure_lineage_schema` already uses.
+
+Two tests added: `test_the_first_real_migration_adds_visibility_to_a_v1_store`
+creates a v1 fixture store (schema without the visibility column,
+`user_version=1`), opens it with current code, and verifies version 2, column
+presence, and the `internal` default.
+`test_a_non_idempotent_migration_step_is_caught_by_replay` injects a
+deliberately non-idempotent step (`CREATE TABLE` without `IF NOT EXISTS`),
+confirms it succeeds once, stamps back to the prior version, and confirms
+replay raises `sqlite3.OperationalError`. This is the missing acceptance
+criterion from issue #91.
+
+Migration test count: 11 → 13, all passing. Pinned schema digest updated.
+`docs/drafts/schema-migrations.md` updated to reflect that the first migration
+shipped.
