@@ -261,6 +261,20 @@ class Server:
                     "broken chain means the trail has been tampered with; say so plainly.",
                 "inputSchema": {"type": "object", "properties": {}},
             },
+            {
+                "name": "nestor_prefs",
+                "description":
+                    "Read the user's preferences (read-only from MCP). Returns per-user, "
+                    "cross-session preferences such as output format and UI theme. "
+                    "Writing preferences is CLI-only (nestor prefs set).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "key": {"type": "string",
+                                "description": "dotted preference key, or omit for all"},
+                    },
+                },
+            },
         ]
         if not self.read_only:
             out.append({
@@ -333,6 +347,12 @@ class Server:
             return {"intact": ok, "detail": detail, "path": str(cascade._ledger_path()),
                     "signing_enabled": signing.signing_enabled(),
                     "memory": memory.stats(store=store)}
+        if name == "nestor_prefs":
+            from . import preferences
+            key = str(args.get("key") or "")
+            if key:
+                return {"key": key, "value": preferences.get(key)}
+            return {"preferences": preferences.load()}
         if name == "nestor_propose":
             if self.read_only:
                 raise PermissionError("this server is running --read-only; even a "

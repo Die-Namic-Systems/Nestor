@@ -189,6 +189,7 @@ this map is not, CI fails. It cannot drift.
 | [6.118](docs/agent-log.md#6118-the-suite-was-example-based-the-three-surfaces-that-earned-a-property-test-had-none--shipped) | The suite was example-based; the three surfaces that earned a property test had none | shipped |
 | [6.119](docs/agent-log.md#6119-the-test-job-had-the-same-drift-the-lint-job-did-and-the-tool-built-to-catch-it-committed-it-first--measured-tool-shipped) | The test job had the same drift the lint job did, and the tool built to catch it committed it first | measured, tool shipped |
 | [6.120](docs/agent-log.md#6120-the-cli-had-no---version-no-shell-completions-and-two-verbs-without---json--shipped) | The CLI had no --version, no shell completions, and two verbs without --json | shipped |
+| [6.121](docs/agent-log.md#6121-the-system-had-no-surface-for-i-like-it-this-way--shipped) | The system had no surface for "I like it this way" | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -2218,8 +2219,10 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   including other people's. What is absent is a per-user, cross-session
   preference store that tools can consult, that the user can inspect and
   revise, and that does not leak into product decisions or governance
-  constraints. **Status: open** — the gap is named, the worked instance is
-  on record, the design space is not.
+  constraints. **Status: shipped** — `nestor/preferences.py` implements the
+  store (`~/.nestor/preferences.json`); CLI verb `nestor prefs` (list /
+  get / set / clear / reset); read-only MCP tool `nestor_prefs`. Design
+  doc: `docs/drafts/user-preferences.md`.
 
 None of these is a crisis: a store that refuses to serve a near-miss does not fall
 over for want of `mypy`. But each is a row the catalog was always going to reach,

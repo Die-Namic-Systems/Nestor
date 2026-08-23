@@ -7281,3 +7281,33 @@ six tests in `tests/test_cli.py`:
   `{"action": "backup", "files": [...]}` through `_emit()`. `export` now emits
   `{"file": "...", "format": "...", "counts": {...}, "digest": "..."}` when
   `--out` is used (without `--out`, stdout is already the bundle).
+
+### 6.121 The system had no surface for "I like it this way" — **shipped**
+
+§7.5 names the gap: product decisions live in the dogfood corpus, governance
+rules live in the constitution and covenants, session context evaporates. A user
+who said "stop producing artifacts" had nowhere to put it except a decision file,
+which was wrong (reverted within minutes). The gap is a per-user, cross-session
+preference store that does not leak into product decisions or governance.
+
+**Shipped:** `nestor/preferences.py`, a CLI verb, a read-only MCP tool, and 29
+tests.
+
+- **`nestor/preferences.py`** — JSON file at `~/.nestor/preferences.json`
+  (follows `NESTOR_HOME`). Atomic writes (tempfile + `os.replace`). Eight known
+  keys across `output.*`, `serve.*`, `ui.*`, `cli.*` namespaces, each with type,
+  default, and optional choices. Unknown keys are preserved, not stripped —
+  plugins can use their own namespace. Structural guard: the module never imports
+  signing, cascade, ledger, or seal machinery.
+- **`nestor prefs`** CLI verb — five actions: `list` (default), `get`, `set`,
+  `clear`, `reset`. Uses `_emit()` for `--json` / human output, same pattern as
+  every other verb. First subcommand that does not open a SQLite store.
+- **`nestor_prefs`** MCP tool — read-only by design (a model should not set
+  preferences on the user's behalf). Returns all preferences or one by key.
+- **29 tests** in `tests/test_preferences.py` — load/save round-trip, get/set/
+  clear with coercion and validation, reset, unknown-key preservation, error
+  handling (corrupt file, non-object JSON), CLI integration via subprocess, MCP
+  integration with `NESTOR_HOME` isolation, and a `TestNeverSeals` structural
+  guard (no `verifier=`, no `status=`, no seal-machinery imports).
+
+Design doc: `docs/drafts/user-preferences.md`.

@@ -1006,6 +1006,63 @@ def cmd_demo(args) -> int:
 # --------------------------------------------------------------------------
 
 
+def cmd_prefs(args) -> int:
+    from . import preferences
+
+    sub = getattr(args, "prefs_command", None)
+    home = getattr(args, "prefs_home", None)
+
+    if sub == "set":
+        if not args.key or args.value is None:
+            print("usage: nestor prefs set KEY VALUE", file=sys.stderr)
+            return EXIT_USAGE
+        try:
+            preferences.set_pref(args.key, args.value, home=home)
+        except preferences.PreferencesError as exc:
+            print(str(exc), file=sys.stderr)
+            return EXIT_USAGE
+        _emit({"action": "set", "key": args.key,
+               "value": preferences.get(args.key, home=home)},
+              args.json, f"{args.key} = {preferences.get(args.key, home=home)!r}")
+        return EXIT_OK
+
+    if sub == "get":
+        if not args.key:
+            print("usage: nestor prefs get KEY", file=sys.stderr)
+            return EXIT_USAGE
+        val = preferences.get(args.key, home=home)
+        _emit({"key": args.key, "value": val}, args.json, f"{args.key} = {val!r}")
+        return EXIT_OK
+
+    if sub == "clear":
+        if not args.key:
+            print("usage: nestor prefs clear KEY", file=sys.stderr)
+            return EXIT_USAGE
+        existed = preferences.clear(args.key, home=home)
+        msg = f"cleared {args.key}" if existed else f"{args.key} was not set"
+        _emit({"action": "clear", "key": args.key, "existed": existed},
+              args.json, msg)
+        return EXIT_OK
+
+    if sub == "reset":
+        existed = preferences.reset(home=home)
+        msg = "preferences file deleted" if existed else "no preferences file"
+        _emit({"action": "reset", "existed": existed}, args.json, msg)
+        return EXIT_OK
+
+    # Default: list all
+    prefs = preferences.load(home=home)
+    if not prefs:
+        _emit({"preferences": {}}, args.json, "no preferences set")
+        return EXIT_OK
+    if args.json:
+        _emit({"preferences": prefs}, True)
+    else:
+        for k in sorted(prefs):
+            print(f"{k} = {prefs[k]!r}")
+    return EXIT_OK
+
+
 def cmd_completions(args) -> int:
     try:
         import shtab
@@ -1294,6 +1351,16 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--commitment", default="", help="skip that prompt: the answer to propose")
     ini.add_argument("--rationale", default="", help="skip that prompt: why, one line")
     ini.set_defaults(func=cmd_init)
+
+    prf = sub.add_parser("prefs", help="per-user preferences (list, get, set, clear, reset)")
+    prf.add_argument("prefs_command", nargs="?",
+                     choices=("get", "set", "clear", "reset"), default=None,
+                     metavar="ACTION", help="get|set|clear|reset (omit to list all)")
+    prf.add_argument("key", nargs="?", default="", help="dotted preference key")
+    prf.add_argument("value", nargs="?", default=None, help="value (for set)")
+    prf.add_argument("--home", dest="prefs_home", type=pathlib.Path, default=None,
+                     help=argparse.SUPPRESS)
+    prf.set_defaults(func=cmd_prefs)
 
     comp = sub.add_parser("completions", help="print a shell completion script (requires shtab)")
     comp.add_argument("shell", choices=("bash", "zsh", "tcsh"),

@@ -41,6 +41,7 @@ nestor/
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── home_paths.py     ~/.nestor/keep paths for household hosts (see docs/home-paths.md)
 ├── home_init.py      idempotent scaffolder for the Nestor home — creates the keep tree if absent, never clobbers
+├── preferences.py    per-user, cross-session preference store (~/.nestor/preferences.json) — not config, not a decision
 ├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
