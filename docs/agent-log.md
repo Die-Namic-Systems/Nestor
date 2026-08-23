@@ -7171,3 +7171,28 @@ criterion from issue #91.
 Migration test count: 11 → 13, all passing. Pinned schema digest updated.
 `docs/drafts/schema-migrations.md` updated to reflect that the first migration
 shipped.
+
+---
+
+### 6.118 The suite was example-based; the three surfaces that earned a property test had none — **shipped**
+
+§7.5 names property-based testing as the gap and points at the three surfaces:
+the normalizer, the matcher, and the frozen sign-message encoding. `hypothesis`
+was not in the dependency set and no `@given` appeared in the tree.
+
+**Shipped:** `hypothesis` added to `[project.optional-dependencies] dev` and
+25 property tests in `tests/test_property.py`, covering:
+
+- **Normalizer** — `StringMatcher.normalize` is idempotent, deterministic,
+  outputs only lowercase alphanumerics/underscores/spaces, never has
+  leading/trailing whitespace or consecutive spaces. `NumericMatcher.normalize`
+  round-trips through `repr(float)`.
+- **Matcher** — `StringMatcher.similarity` and `NumericMatcher.similarity` are
+  symmetric, produce scores in `[0, 1]`, and self-similarity is 1.0.
+  `StringMatcher.similarity_bound` is an upper bound on `similarity`.
+- **Signing** — all four frozen message encodings (`_message`, `_rejection_message`,
+  `_edge_message`, `_embedding_message`) are deterministic. The three text-only
+  encodings round-trip through `json.loads` to recover their exact fields.
+  Domain separation holds across every pair of message types: a seal message can
+  never equal a rejection, an edge, or an embedding message, because the array
+  lengths and tag prefixes differ.

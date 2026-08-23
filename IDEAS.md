@@ -186,6 +186,7 @@ this map is not, CI fails. It cannot drift.
 | [6.115](docs/agent-log.md#6115-the-quorum-memos-step-2-has-been-run-against-a-real-chain-and-its-answer-is-that-the-chain-cannot-answer-it--measured) | The quorum memo's step 2 has been run, against a real chain | measured |
 | [6.116](docs/agent-log.md#6116-14s-own-first-suggestion-was-shipped-in-the-browser-and-nowhere-else--measured-fix-shipped) | §1.4's own first suggestion was shipped in the browser and nowhere else | measured, fix shipped |
 | [6.117](docs/agent-log.md#6117-the-migration-ladder-had-eleven-tests-and-zero-real-steps--shipped) | The migration ladder had eleven tests and zero real steps | shipped |
+| [6.118](docs/agent-log.md#6118-the-suite-was-example-based-the-three-surfaces-that-earned-a-property-test-had-none--shipped) | The suite was example-based; the three surfaces that earned a property test had none | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -2097,15 +2098,17 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   CLI — but the bench and the hooks already emit findings a structured log would
   make queryable. **Status: hypothesis** — worth it only once the loop runs
   unattended (cron, CCR, the fleet).
-- **Schema migrations.** `memory_init` creates the schema; a store from before a
-  change is handled by ad-hoc "migration" prose (`keyring.py`, `curator.py`), not
-  a versioned path (`user_version`, an Alembic-shaped ladder). The portable bundle
-  is the current escape hatch. **Status: open** — it bites the day a store on disk
-  outlives a schema change.
-- **Property-based testing.** The suite is example-based; no `hypothesis`. The
-  matcher, the normalizer, and the frozen sign-message encoding are exactly the
-  surfaces where a property test (round-trips, invariants under permutation) earns
-  its keep. **Status: open.**
+- **Schema migrations.** The ladder now has its first real step: `_migrate_v2`
+  adds `visibility` to `tm_pairs` (§6.117). The machinery (`SCHEMA_VERSION`,
+  `_FORWARD_MIGRATIONS`, `StoreSchemaTooNewError`) was already tested; the gap
+  was that no real migration had shipped. **Status: shipped** — the ladder works
+  by use, not just by test.
+- **Property-based testing.** `hypothesis` now covers the three surfaces this
+  entry named: the normalizer (idempotency, output charset, no leading/trailing
+  whitespace, no consecutive spaces), the matcher (symmetry, self-similarity,
+  unit-interval scores, bound ≥ score), and the frozen signing encodings
+  (determinism, JSON round-trip, domain separation across all four message types).
+  25 property tests in `tests/test_property.py`. **Status: shipped.**
 - **Contributor onboarding.** A PR template and pre-commit exist; `CONTRIBUTING.md`
   and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status: open.**
 - **Reproducible dev environment.** No `Dockerfile`, no devcontainer; the venv is
