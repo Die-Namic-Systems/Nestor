@@ -235,7 +235,7 @@ no_implicit_optional = true
 # nestor's own code. This ignores only the *import*; the rest of cloud_seal.py,
 # semantic_matcher.py, engine.py, keyring.py and signing.py stays type-checked.
 module = ["willow_gate", "willow_gate.*", "fastembed", "anthropic",
-          "cryptography.*"]
+          "cryptography.*", "shtab"]
 ignore_missing_imports = true
 # ...and the same when the extra IS installed. `ignore_missing_imports` only
 # speaks to the absent case, so a dev env with an extra resolved sends mypy off
