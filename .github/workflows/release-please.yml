@@ -96,10 +96,66 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
       - uses: googleapis/release-please-action@v5
+        id: release
+        # Allowed to fail so the step below can say what went wrong. The step
+        # below re-fails the job — nothing is being tolerated here, only
+        # translated.
+        continue-on-error: true
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Say what a failed release-please actually means
+        # The step above checks the token EXISTS. Nothing checked that it
+        # WORKS, and the two are different questions — the distinction this
+        # repository keeps having to draw (§6.114's boot check; dep-audit.sh on
+        # a skipped dependency; "silence from a check means nothing", 0127).
+        #
+        # Measured on 2026-08-23: eight consecutive runs failed, each after
+        # ~5m40s of the action retrying, ending in a ~200-line octokit dump
+        # whose one useful line was
+        #
+        #   POST /repos/OWNER/REPO/git/refs -> 403
+        #   'Resource not accessible by personal access token'
+        #   x-accepted-github-permissions: contents=write
+        #
+        # Creating the release PR's branch is a `git/refs` write, so a PAT
+        # without Contents: write gets all the way to "Successfully found
+        # branch HEAD sha" and dies at "Error when creating branch". Eight runs
+        # went red before anybody read far enough to see which permission was
+        # named. This does not fix the token — nothing in a commit can — it
+        # makes the next one legible in the run summary rather than 200 lines
+        # down.
+        if: steps.release.outcome == 'failure'
+        run: |
+          echo "::error::release-please failed. The commonest cause by far is"
+          echo "::error::RELEASE_PLEASE_TOKEN lacking a permission, NOT a bad commit."
+          cat <<'MSG'
+
+          The token must be a fine-grained PAT scoped to THIS repository with:
+
+              Contents:      read/write     <- creating the release branch needs this
+              Pull requests: read/write     <- opening and updating the release PR
+
+          A token that is merely PRESENT passes the first step of this job and
+          then fails here, because "exists" and "works" are different questions.
+
+          Read the failing step's log and look for a 403 whose body says
+          "Resource not accessible by personal access token". The response
+          header `x-accepted-github-permissions` names the permission GitHub
+          wanted — that is the one to add.
+
+          Also check the PAT has not expired, and that its resource owner still
+          covers this repository.
+
+          Nothing was released, and nothing is lost: release-please reads commit
+          history rather than events, so once the token is fixed the next push
+          to the default branch picks up everything merged in the meantime.
+
+          See docs/releasing.md and the SETUP note at the top of this file.
+          MSG
+          exit 1
 
       # Arm auto-merge, so a release ships when CI goes green rather than when
       # someone remembers the PR is open. Re-armed on every push to master,

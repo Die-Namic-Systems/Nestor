@@ -1,0 +1,28 @@
+{
+  "branch": "claude/exists-vs-works",
+  "date": "2026-08-23",
+  "note": "Four small things left implicit by the session that produced them, gathered because they are one theme: a rule stated in a comment with nothing enforcing it, a command that existed only in chat, an artifact nothing ignored, and a check that asked whether a token exists when the question was whether it works. Measured, not recalled: `git check-ignore` on the three review.db companions; the pin-agreement guard shown failing with {'ruff': ('0.16.3', '0.15.0')} before being kept; the docs gate rejecting a `nestor --db … ui` example; and the release-please 403 naming `contents=write` in a response header. Every row is a draft proposal for a human to weigh at `nestor ui`.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "`lint-pins.txt` and `pyproject.toml`'s dev extra both pin `ruff` and `detect-secrets`, and lint-pins.txt's header says they must agree. Should anything enforce that?",
+      "commitment": "Yes — a test that every version named in both files matches. It deliberately does NOT require the two files to pin the same SET: the dev extra leaves bandit, mypy and pip-audit unpinned on purpose, with a comment saying why. Only the overlap has to agree, and the test refuses to pass vacuously if the overlap ever becomes empty.",
+      "why": "The rule was written down and held by nobody. Bump one file and forget the other and `pip install -e '.[dev]'` produces a venv whose boot check reports PINS DIFFER on a *fresh install* — which reads as a broken checkout rather than a stale pyproject. This is the §6.111 shape for the fourth time (secret-scan exclusions, dep-audit invocation, lint versions across workflow and script, now this): one rule, two copies, and the copy with no gate in front of it is the one that drifts."
+    },
+    {
+      "question": "Where should the command for reviewing the decision queue live?",
+      "commitment": "In `docs/agent-guide.md`, beside the sentence that already says the queue at `nestor.ui` is where a draft changes — with the copy step, the reason it is `VACUUM INTO` and not `cp`, and the caveat that the seals stay in that copy (§6.123).",
+      "why": "The operator asked for it and it existed nowhere: not in the guide, not in the README, not in §6.123, which explains the gap and never gives the command. A workflow whose only written form is a chat message is a workflow that has to be rediscovered. The docs gate then caught the first version — `nestor --db review.db ui …` reads its first word after `nestor` as a subcommand — which is the gate doing exactly its job on a documented command that would not have run."
+    },
+    {
+      "question": "`review.db` is the reviewer's own copy. Should it be gitignored, and under what pattern?",
+      "commitment": "`review.db*`, verified with `git check-ignore` against the file, the ledger `nestor` writes beside it (`review.db.ledger.jsonl`) and SQLite's `-wal` / `-shm` companions.",
+      "why": "The glob rather than the bare name because the companions are the ones that get swept up — nobody types `git add review.db-wal`, they type `git add -A`. Which is how `.~lock.IDEAS.md#` reached master in #189, one PR before this."
+    },
+    {
+      "question": "Release-please has failed on every push since 2026-08-22 with a 403. Can a commit fix it?",
+      "commitment": "No. The PAT lacks `Contents: write`, which creating the release branch requires, and no commit fixes a repository secret. What ships instead is a translation step: `continue-on-error` on the action plus a step that surfaces which permission GitHub named, where it named it, and that nothing is lost. It re-fails the job — nothing is tolerated, only translated.",
+      "why": "The job's first step already guards the neighbouring case and says why: a missing secret degrades to GITHUB_TOKEN and everything looks healthy until nothing reaches PyPI. It checks the token EXISTS. Nothing checked that it WORKS, and present-but-underscoped is the case between them. Eight runs went red, each burying `x-accepted-github-permissions: contents=write` about 200 lines into an octokit dump, before anyone read far enough. A check that answers 'it exists' to the question 'does it work' is not a weaker check — it reports success in the failing case, which is worse than none."
+    }
+  ]
+}

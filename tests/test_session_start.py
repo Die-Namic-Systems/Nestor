@@ -452,3 +452,46 @@ def test_the_boot_check_probes_every_pin_ci_installs(monkeypatch):
         "the workflow must install from the pins file the boot check reads")
     # And the five distributions map onto the five modules ci-lint.sh runs.
     assert len(pinned) == len(session_start.LINT_MODULES)
+
+
+def test_the_two_places_a_lint_version_is_pinned_agree():
+    """`scripts/lint-pins.txt` and `pyproject.toml`'s dev extra both pin `ruff`
+    and `detect-secrets`. That rule was written down and not guarded.
+
+    lint-pins.txt says it in its own header — *"the pin and pyproject.toml's dev
+    extra must agree — a dev install that runs a different ruff from CI's is a
+    gate that disagrees with the one branch protection actually runs"* — and
+    nothing checked. Bump one and forget the other and `pip install -e '.[dev]'`
+    produces a venv whose boot check reports PINS DIFFER *on a fresh install*,
+    which reads as a broken checkout rather than a stale pyproject.
+
+    This is the §6.111 shape once more — one rule, two copies, the copy with no
+    gate in front of it being the one that drifts. The repository has now fixed
+    it for the secret-scan exclusion list, the dep-audit invocation, the lint
+    tool versions across workflow and script, and here.
+
+    Deliberately does NOT require the two files to pin the same SET. The dev
+    extra leaves bandit, mypy and pip-audit unpinned on purpose, with a comment
+    saying why (nothing there is judged against a committed baseline). Only the
+    versions named in both places have to match.
+    """
+    import re
+    pins = dict(re.findall(
+        r"^([\w-]+)==([\d.]+)",
+        (REPO / "scripts" / "lint-pins.txt").read_text(encoding="utf-8"),
+        re.MULTILINE))
+    project = dict(re.findall(
+        r'"([\w-]+)==([\d.]+)"',
+        (REPO / "pyproject.toml").read_text(encoding="utf-8")))
+    assert pins, "lint-pins.txt parsed to nothing — the check would pass vacuously"
+
+    overlap = sorted(set(pins) & set(project))
+    assert overlap, (
+        "pyproject.toml's dev extra no longer pins any tool that "
+        "scripts/lint-pins.txt pins. If that is deliberate this test is now "
+        "vacuous and should be deleted rather than left passing.")
+    disagree = {name: (pins[name], project[name])
+                for name in overlap if pins[name] != project[name]}
+    assert not disagree, (
+        f"pinned in two places and disagreeing (lint-pins.txt, pyproject): "
+        f"{disagree}. A dev install would run a different version from CI.")

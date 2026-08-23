@@ -267,6 +267,31 @@ from somewhere nobody can see is not an audit trail.
 Every row goes in as a **draft**. You may propose. The queue at `nestor.ui` is
 where that changes, and `--verify` fails on a sealed row however it got there.
 
+### Reviewing the queue — the command, and why it is not the obvious one
+
+`--verify` failing on a sealed row means you cannot seal **in** the committed
+store. Take a copy and point the browser at that:
+
+```bash
+python -c "import sqlite3; sqlite3.connect('docs/dogfood/nestor.db').execute(\"VACUUM INTO 'review.db'\")"
+nestor ui --db review.db --verifier <you>          # 127.0.0.1:8765
+```
+
+`VACUUM INTO` rather than `cp`: a plain copy of a live WAL store takes a stale
+file. `review.db*` is gitignored, which covers the ledger `nestor` writes
+beside it and SQLite's own `-wal`/`-shm` companions.
+
+**Know what this does and does not do.** The seals live in `review.db` and
+nowhere else. The next `--rebuild` regenerates an all-draft store that knows
+nothing about them, because the builder reads the decision files and nothing
+else — deliberately, and it is the rule that makes the store trustworthy. So
+the project's decision memory currently cannot record that a human agreed with
+it. That is written up as [agent-log §6.123](agent-log.md) with three proposed
+shapes and none built; until one is, sealing here is for your own reading.
+
+An agent may not seal in that copy either. Nothing about a local database
+changes the one rule.
+
 ## Tooling you built to answer a question ships with the answer
 
 **If you wrote a script, a harness or a fixture to reach a finding, it goes in
