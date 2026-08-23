@@ -50,13 +50,13 @@ eager = sorted(m for m in sys.modules if m in %r or m in %r)
 print("VERSION", nestor.__version__)
 print("THIRD_PARTY", ",".join(third_party))
 print("EAGER", ",".join(eager))
-""" % (FORBIDDEN_SUBMODULES, FORBIDDEN_SERVERS)
+""" % (FORBIDDEN_SUBMODULES, FORBIDDEN_SERVERS)  # noqa: UP031 — %r in embedded code, format() would clash with braces
 
 
 def _probe() -> dict:
     """Import nestor in a clean interpreter and report what it pulled in."""
     done = subprocess.run([sys.executable, "-c", _PROBE],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, check=False)
     assert done.returncode == 0, (
         f"`import nestor` failed in a clean interpreter:\n{done.stderr}")
     out = {}
@@ -94,9 +94,9 @@ def test_the_probe_would_notice_a_regression():
     eager-transport assertion catch it. A test that cannot fail is not a gate."""
     probe = _PROBE.replace("import nestor\n", "import nestor\nimport nestor.serve\n")
     done = subprocess.run([sys.executable, "-c", probe],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, check=False)
     assert done.returncode == 0, done.stderr
-    eager_line = [ln for ln in done.stdout.splitlines() if ln.startswith("EAGER")][0]
+    eager_line = next(ln for ln in done.stdout.splitlines() if ln.startswith("EAGER"))
     assert "nestor.serve" in eager_line, (
         "the probe did not observe an eagerly-imported nestor.serve even when "
         "it was imported outright — the purity check is not actually watching "

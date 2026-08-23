@@ -207,7 +207,7 @@ def test_the_ui_ledger_view_reports_the_damage(torn):
     """The UI already joins ``verify`` and ``entries``. ``verify`` names the
     first bad line and stops; the table shows the rest. Neither answers "how
     many are missing from what I am looking at"."""
-    path, lineno = torn
+    _path, lineno = torn
     store = SqliteStore(":memory:")
     store.init_db()
     store.memory_init()

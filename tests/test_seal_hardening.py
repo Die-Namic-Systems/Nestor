@@ -6,6 +6,7 @@
 """
 
 import os
+
 import pytest
 
 from nestor import engine, memory, signing
@@ -16,12 +17,12 @@ from nestor.sqlite_store import SqliteStore
 
 def _forged(source, target, verifier, sig, *, src_lang="en", tgt_lang="es",
             source_norm=None):
-    return dict(
-        id=f"forged-{source}-{verifier}", source_text=source,
-        source_norm=source_norm if source_norm is not None else StringMatcher().normalize(source),
-        source_lang=src_lang, target_text=target, target_lang=tgt_lang,
-        status="sealed", verifier=verifier, weight=1.0, origin="",
-        created_at="2026-07-24T00:00:00+00:00", seal_sig=sig)
+    return {
+        "id": f"forged-{source}-{verifier}", "source_text": source,
+        "source_norm": source_norm if source_norm is not None else StringMatcher().normalize(source),
+        "source_lang": src_lang, "target_text": target, "target_lang": tgt_lang,
+        "status": "sealed", "verifier": verifier, "weight": 1.0, "origin": "",
+        "created_at": "2026-07-24T00:00:00+00:00", "seal_sig": sig}
 
 
 def test_delimiter_collision_is_no_longer_a_valid_seal():

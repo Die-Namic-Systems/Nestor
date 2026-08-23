@@ -31,10 +31,10 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import threading
 import time
-import sys
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from . import config
 from .errors import NestorError
@@ -56,10 +56,10 @@ class FrankUnavailable(NestorError):
     """The FRANK mirror could not be written. Never fatal to a translation."""
 
 
-_FORWARDER: Optional[Forwarder] = None
+_FORWARDER: Forwarder | None = None
 
 
-def set_forwarder(fn: Optional[Forwarder]) -> None:
+def set_forwarder(fn: Forwarder | None) -> None:
     """Install (or clear, with ``None``) the process-wide FRANK forwarder."""
     global _FORWARDER
     if fn is not None and not callable(fn):
@@ -67,7 +67,7 @@ def set_forwarder(fn: Optional[Forwarder]) -> None:
     _FORWARDER = fn
 
 
-def get_forwarder() -> Optional[Forwarder]:
+def get_forwarder() -> Forwarder | None:
     return _FORWARDER
 
 
@@ -133,12 +133,12 @@ class WillowForwarder:
 
     def __init__(
         self,
-        command: Optional[list[str]] = None,
+        command: list[str] | None = None,
         *,
         app_id: str = "",
         project: str = "",
         timeout: float = 30.0,
-        env: Optional[dict[str, str]] = None,
+        env: dict[str, str] | None = None,
     ) -> None:
         self._command = command or _default_command()
         # WILLOW_APP_ID is not a NESTOR_* var and stays a plain env read — see
@@ -153,7 +153,7 @@ class WillowForwarder:
                          or DEFAULT_PROJECT)
         self._timeout = timeout
         self._env = env
-        self._proc: Optional[subprocess.Popen] = None
+        self._proc: subprocess.Popen | None = None
         self._next_id = 0
         # One request in flight at a time. The forwarder owns a single stdio
         # pipe, and nestor.ui appends to the ledger from a thread pool, so two
@@ -314,7 +314,7 @@ class WillowForwarder:
         except subprocess.TimeoutExpired:
             proc.kill()
 
-    def __enter__(self) -> "WillowForwarder":
+    def __enter__(self) -> WillowForwarder:  # noqa: PYI034 — Self needs typing_extensions on 3.10
         self._connect()
         return self
 
@@ -324,7 +324,7 @@ class WillowForwarder:
     def __del__(self) -> None:
         try:
             self.close()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — best-effort cleanup in finalizer
             pass
 
 

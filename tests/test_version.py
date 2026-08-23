@@ -24,7 +24,8 @@ import json
 import pathlib
 import re
 from fnmatch import fnmatch
-from importlib.metadata import PackageNotFoundError, version as dist_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as dist_version
 
 import pytest
 
@@ -93,10 +94,10 @@ def test_the_version_is_written_once():
     literal anywhere is a pending disagreement with the tag that nothing checks,
     and the copy that loses is always the one somebody forgot on release day.
     """
-    assert re.search(r'^dynamic = \["version"\]', PROJECT, re.M), (
+    assert re.search(r'^dynamic = \["version"\]', PROJECT, re.MULTILINE), (
         '[project] must declare `dynamic = ["version"]` — the version comes '
         "from the git tag via [tool.hatch.version], not from this file")
-    assert not re.search(r'^version = "', PROJECT, re.M), (
+    assert not re.search(r'^version = "', PROJECT, re.MULTILINE), (
         "[project] carries a literal `version = ...`; that is the second source "
         "of truth hatch-vcs was adopted to remove")
 
@@ -187,7 +188,7 @@ def test_the_environment_url_names_the_distribution_that_is_published():
     reviewer at the wrong project during a release is not a good place to be
     cosmetically wrong.
     """
-    name = re.search(r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+    name = re.search(r'^name = "([^"]+)"', PROJECT, re.MULTILINE).group(1)
     assert f"https://pypi.org/p/{name}" in WORKFLOW, (
         f"publish.yml's environment url must name {name}")
 
@@ -225,7 +226,7 @@ def test_the_produced_tag_matches_the_publish_trigger():
 
 def test_the_manifest_names_the_same_distribution_pyproject_does():
     assert RP_PACKAGE["package-name"] == re.search(
-        r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+        r'^name = "([^"]+)"', PROJECT, re.MULTILINE).group(1)
 
 
 def test_release_please_bumps_nothing_in_the_tree():
@@ -257,7 +258,7 @@ def test_the_pr_title_gate_reads_the_types_from_the_config():
     "readme", "license", "license-files", "classifiers", "keywords",
 ])
 def test_pyproject_carries_what_pypi_renders(promise):
-    assert re.search(rf"^{re.escape(promise)} = ", PROJECT, re.M), promise
+    assert re.search(rf"^{re.escape(promise)} = ", PROJECT, re.MULTILINE), promise
 
 
 def test_no_license_classifier_beside_a_license_expression():
@@ -271,9 +272,9 @@ def test_no_license_classifier_beside_a_license_expression():
     lines for `system=` in favour of an AST walk. A text check has to be told
     what it is allowed to look at.
     """
-    assert re.search(r'^license = "', PROJECT, re.M), (
+    assert re.search(r'^license = "', PROJECT, re.MULTILINE), (
         "license should be a PEP 639 SPDX string, not a table")
-    classifiers = re.search(r"^classifiers = \[(.*?)^\]", PROJECT, re.M | re.S).group(1)
+    classifiers = re.search(r"^classifiers = \[(.*?)^\]", PROJECT, re.MULTILINE | re.DOTALL).group(1)
     assert "License ::" not in classifiers
 
 
@@ -281,8 +282,8 @@ def test_the_publish_extra_is_not_folded_into_dev():
     """CI's dev install would otherwise carry a build backend and an upload
     client it never uses."""
     extras = table("project.optional-dependencies")
-    assert re.search(r"^publish = \[", extras, re.M)
-    dev = re.search(r"^dev = \[(.*?)\]", extras, re.M | re.S).group(1)
+    assert re.search(r"^publish = \[", extras, re.MULTILINE)
+    dev = re.search(r"^dev = \[(.*?)\]", extras, re.MULTILINE | re.DOTALL).group(1)
     assert "build" not in dev and "twine" not in dev
 
 
@@ -306,7 +307,7 @@ def test_shipped_install_hints_name_the_distribution_that_exists():
     Scoped to `nestor/` — what actually ships in the wheel. Docs quoting the old
     name in a historical record (FINDINGS, agent-log) are describing the past
     and are left alone."""
-    declared = re.search(r'^name = "([^"]+)"', PROJECT, re.M).group(1)
+    declared = re.search(r'^name = "([^"]+)"', PROJECT, re.MULTILINE).group(1)
     pattern = re.compile(r"([A-Za-z0-9_.-]+)\[(" + "|".join(_EXTRAS) + r")\]")
     wrong = []
     for path in sorted((ROOT / "nestor").rglob("*.py")):
@@ -334,7 +335,7 @@ def test_dev_installs_every_gate_ci_lint_runs():
     modules = {m.split(".")[0] for m in re.findall(r"python -m ([\w.]+)", script)}
     assert modules, "no `python -m` gates found — did ci-lint.sh change shape?"
     dev = re.search(r"^dev = \[(.*?)^\]", table("project.optional-dependencies"),
-                    re.M | re.S).group(1)
+                    re.MULTILINE | re.DOTALL).group(1)
     # Requirement lines only: the block is half comment, and the prose names the
     # very modules being looked for (the §6.13 trap test_no_license_classifier
     # already records — a text check has to be told what it may look at).

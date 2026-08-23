@@ -26,9 +26,9 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from nestor import cascade, memory, storage           # noqa: E402
-from nestor.sqlite_store import SqliteStore           # noqa: E402
-from recipes import jeles_bridge as JB                # noqa: E402
+from nestor import cascade, memory, storage
+from nestor.sqlite_store import SqliteStore
+from recipes import jeles_bridge as JB
 
 HUMAN = {"question": "What does a seal bind to?",
          "answer": "A key the store does not hold.",
@@ -67,7 +67,7 @@ def test_a_human_verified_nugget_crosses_as_a_draft(store):
 def test_what_jeles_believed_is_kept_beside_the_row(store):
     """Demoting is not discarding — a reviewer must see what was claimed."""
     JB.bridge_nuggets([HUMAN], store=store)
-    row = list(store.memory_candidates(JB.DOMAIN, JB.DOMAIN))[0]
+    row = next(iter(store.memory_candidates(JB.DOMAIN, JB.DOMAIN)))
     reason = row.get("reason") or ""
     assert "human" in reason and "sean" in reason
     assert "docs/seal.md" in reason, "the citations must survive the crossing"

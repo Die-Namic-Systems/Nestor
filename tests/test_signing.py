@@ -8,6 +8,7 @@ cannot produce one, so the poisoned row is refused.
 """
 
 import os
+
 from nestor import memory
 from nestor.matcher import StringMatcher
 from nestor.sqlite_store import SqliteStore
@@ -15,13 +16,13 @@ from nestor.sqlite_store import SqliteStore
 
 def _forged_sealed_row(source, target, verifier, sig):
     """A sealed row written directly to the store (the attacker's move)."""
-    return dict(
-        id=f"forged-{source}", source_text=source,
-        source_norm=StringMatcher().normalize(source),
-        source_lang="en", target_text=target, target_lang="es",
-        status="sealed", verifier=verifier, weight=1.0, origin="",
-        created_at="2026-07-24T00:00:00+00:00", seal_sig=sig,
-    )
+    return {
+        "id": f"forged-{source}", "source_text": source,
+        "source_norm": StringMatcher().normalize(source),
+        "source_lang": "en", "target_text": target, "target_lang": "es",
+        "status": "sealed", "verifier": verifier, "weight": 1.0, "origin": "",
+        "created_at": "2026-07-24T00:00:00+00:00", "seal_sig": sig,
+    }
 
 
 def test_forged_seal_is_rejected_when_signing_enabled():

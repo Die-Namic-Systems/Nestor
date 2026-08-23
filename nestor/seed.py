@@ -164,6 +164,4 @@ def is_empty(store: Storage) -> bool:
     """
     if int(memory.stats(store=store).get("total", 0)) != 0:
         return False
-    if supports_queue(store) and store.list_documents(limit=1):
-        return False
-    return True
+    return not (supports_queue(store) and store.list_documents(limit=1))

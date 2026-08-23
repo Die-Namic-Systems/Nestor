@@ -38,7 +38,8 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 def run(*args):
     return subprocess.run([sys.executable, str(DEMO), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180)
+                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          check=False)
 
 
 def plain(text: str) -> str:
@@ -100,7 +101,7 @@ def test_it_does_not_touch_an_ambient_corpus(tmp_path, monkeypatch):
     done = subprocess.run([sys.executable, str(DEMO)], capture_output=True,
                           text=True, cwd=REPO, timeout=180,
                           env={**dict(__import__("os").environ),
-                               "WILLOW_STORE_ROOT": str(poisoned)})
+                               "WILLOW_STORE_ROOT": str(poisoned)}, check=False)
     assert done.returncode == 0, done.stdout + done.stderr
     assert not list(poisoned.rglob("*.db")), \
         "the fixture must not write into the corpus it was pointed at"

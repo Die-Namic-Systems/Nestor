@@ -33,7 +33,7 @@ from __future__ import annotations
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import cast
 
 from .storage import EvidenceStorage, Storage, get_store, require_capability
 
@@ -65,7 +65,7 @@ def _require_evidence(store: Storage) -> None:
 
 def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
            attached_by: str = "", attaches_to: str = "",
-           store: Optional[Storage] = None) -> dict:
+           store: Storage | None = None) -> dict:
     """Attach one reference to ``pair_id`` and record it in the ledger.
 
     ``kind`` must be one of :data:`EVIDENCE_KINDS`; ``locator`` is the thing the
@@ -87,7 +87,7 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
     # so say so honestly rather than letting the check below read every pair as
     # absent and refuse everything with a false "no pair".
     if not callable(getattr(store, "memory_get", None)):
-        raise RuntimeError(
+        raise TypeError(
             f"{type(store).__name__} implements the evidence capability but not "
             f"memory_get, which attach() needs to confirm a pair exists before "
             f"referencing it (the curation capability — see "
@@ -138,17 +138,17 @@ def attach(pair_id: str, kind: str, locator: str, *, reason: str = "",
 def _content_sha(kind: str, locator: str, reason: str) -> str:
     """A stable hash of an evidence row's mutable content fields."""
     return hashlib.sha256(
-        "\n".join((kind, locator, reason)).encode("utf-8")).hexdigest()
+        f"{kind}\n{locator}\n{reason}".encode()).hexdigest()
 
 
-def evidence_for(pair_id: str, store: Optional[Storage] = None) -> list[dict]:
+def evidence_for(pair_id: str, store: Storage | None = None) -> list[dict]:
     """Every reference attached to ``pair_id``, newest first."""
     store = get_store(store)
     _require_evidence(store)
     return cast(EvidenceStorage, store).memory_evidence_for(pair_id)
 
 
-def unevidenced_seals(store: Optional[Storage] = None, *,
+def unevidenced_seals(store: Storage | None = None, *,
                       source_lang: str = "", target_lang: str = "") -> list[dict]:
     """Live sealed pairs with no evidence attached — the curator queue.
 

@@ -7,18 +7,17 @@ rather than both meaning "the program ran". These tests pin that, and pin that
 """
 from __future__ import annotations
 
+import json
 import os
 import pathlib
+import re
+import socket
 import subprocess
 import sys
 
-import json
-import re
-import socket
-
 import pytest
-
 from conftest import CONFIGURED_BY_ENV
+
 from nestor import cli, memory, signing, storage
 from nestor.decision import DecisionMemory
 from nestor.sqlite_store import SqliteStore
@@ -52,6 +51,7 @@ def _run_cli_subprocess(argv: list[str], *, timeout: float = 10.0) -> subprocess
         capture_output=True,
         text=True,
         timeout=timeout,
+        check=False,
     )
 
 
@@ -506,6 +506,7 @@ def test_ui_refuses_malformed_ledger_verify_interval_in_subprocess(tmp_path):
         capture_output=True,
         text=True,
         timeout=10,
+        check=False,
     )
     assert done.returncode == 2
     assert "NESTOR_LEDGER_VERIFY_INTERVAL_SEC" in done.stderr

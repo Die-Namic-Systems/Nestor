@@ -85,16 +85,16 @@ def advisory(root: pathlib.Path | None = None) -> str:
     db = "/".join(BRAIN_DB)
     box = _guard("box", lambda: _decision_count(root))
     return "\n".join([
-        "[NESTOR before-build] Reads as a build request. Check what already "
-        "exists first — the house has a history of rebuilding what it already had "
-        "(safe-app-store/docs/the-house-already-knew.md, issue #105).",
-        f"  [box] {box} -> `nestor --db {db} decision check \"<the question "
-        f"you're about to answer>\"`; scan IDEAS §7 (shipped standard parts) and "
-        f"the §6 log before writing.",
-        "  [fleet] Jeles `conflict_scan` — search for what refutes, not what "
-        "resembles; willow-mcp `nest/selflearn` clusters. Don't re-land a built organ.",
-        "  [both lenses] Survey the box AND the open internet before the first "
-        "line; license-gate anything re-landed. Advisory tripwire, not a boundary.",
+        ("[NESTOR before-build] Reads as a build request. Check what already "
+         "exists first — the house has a history of rebuilding what it already had "
+         "(safe-app-store/docs/the-house-already-knew.md, issue #105)."),
+        (f"  [box] {box} -> `nestor --db {db} decision check \"<the question "
+         f"you're about to answer>\"`; scan IDEAS §7 (shipped standard parts) and "
+         f"the §6 log before writing."),
+        ("  [fleet] Jeles `conflict_scan` — search for what refutes, not what "
+         "resembles; willow-mcp `nest/selflearn` clusters. Don't re-land a built organ."),
+        ("  [both lenses] Survey the box AND the open internet before the first "
+         "line; license-gate anything re-landed. Advisory tripwire, not a boundary."),
     ])
 
 

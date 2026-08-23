@@ -42,9 +42,10 @@ import contextlib
 import json
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Optional, TextIO
+from typing import Any, TextIO
 
-from . import answer, cascade, home_paths, keyring, ledger as ledger_mod, memory, signing, storage
+from . import answer, cascade, home_paths, keyring, memory, signing, storage
+from . import ledger as ledger_mod
 from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
 from .storage import Storage
@@ -81,7 +82,7 @@ class Server:
     source_lang: str = "en"
     target_lang: str = "es"
     engine_name: str = "offline"
-    matcher: Optional[Matcher] = None
+    matcher: Matcher | None = None
     #: The spec ``matcher`` was built from, when it came from ``--matcher``.
     #: Kept because throwing it away costs two things: a caller naming the same
     #: shipped matcher the server is using gets refused (the tool schema offers
@@ -94,7 +95,7 @@ class Server:
     client: str = "unknown-client"
     _initialized: bool = field(default=False, repr=False)
 
-    def domain_matcher(self, source_lang: str, target_lang: str) -> Optional[Matcher]:
+    def domain_matcher(self, source_lang: str, target_lang: str) -> Matcher | None:
         """This server's matcher — but only for the domain it describes.
 
         Same rule as ``ui.App``, and it is here for the same reason: a matcher
@@ -124,7 +125,7 @@ class Server:
         return None
 
     def _resolve_matcher(self, source_lang: str, target_lang: str, named: str,
-                         tolerances: bool = False) -> "str | Matcher":
+                         tolerances: bool = False) -> str | Matcher:
         """What `nestor_match` should score with, or a refusal saying why not.
 
         Three things have to come out right at once, and the first version got
@@ -351,7 +352,7 @@ class Server:
 
     # -- JSON-RPC ---------------------------------------------------------
 
-    def handle(self, request: Any) -> Optional[dict]:
+    def handle(self, request: Any) -> dict | None:
         """One JSON-RPC message in, one response out (``None`` for notifications)."""
         if not isinstance(request, dict):
             return _error(None, -32600, "invalid request: not an object")
@@ -492,7 +493,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ledger:
         cascade.set_ledger_path(args.ledger)

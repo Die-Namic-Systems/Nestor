@@ -14,9 +14,8 @@ Prose is not checked and cannot be. These pin the parts that rot silently.
 """
 from __future__ import annotations
 
-import os
-
 import io
+import os
 import pathlib
 import re
 import warnings
@@ -72,7 +71,7 @@ def slugify(heading: str) -> str:
 
 
 def fenced(text: str, language: str) -> list[str]:
-    return re.findall(r"```" + language + r"\n(.*?)```", text, re.S)
+    return re.findall(r"```" + language + r"\n(.*?)```", text, re.DOTALL)
 
 
 # --- the file list ---------------------------------------------------------
@@ -108,7 +107,7 @@ def test_the_project_layout_lists_every_doc_and_no_ghosts():
 # --- the links -------------------------------------------------------------
 
 def test_every_in_page_link_resolves():
-    headings = re.findall(r"^#{1,6} (.+)$", README, re.M)
+    headings = re.findall(r"^#{1,6} (.+)$", README, re.MULTILINE)
     slugs = {slugify(h) for h in headings}
     broken = sorted(a for a in set(re.findall(r"\]\(#([\w\-]+)\)", README)) if a not in slugs)
     assert not broken, f"anchors pointing at nothing: {broken}"
@@ -132,7 +131,7 @@ def test_every_documented_subcommand_exists():
     documented = set()
     for text in DOCS.values():
         for block in fenced(text, "bash"):
-            documented |= set(re.findall(r"^\s*nestor ([a-z-]+)", block, re.M))
+            documented |= set(re.findall(r"^\s*nestor ([a-z-]+)", block, re.MULTILINE))
     unknown = sorted(c for c in documented if c not in known)
     assert not unknown, f"documented but not a subcommand: {unknown} (have {sorted(known)})"
 
@@ -275,7 +274,7 @@ def test_every_ideas_entry_carries_a_status():
     known = ("measured", "verified", "hypothesis", "open", "shipped", "partly",
              "falsified", "mitigated", "addressed")
     bare = [h for text in (DOCS["IDEAS.md"], AGENT_LOG)
-            for h in re.findall(r"^### (.+)$", text, re.M)
+            for h in re.findall(r"^### (.+)$", text, re.MULTILINE)
             if not any(k in h.lower() for k in known)]
     assert not bare, f"IDEAS/agent-log entries with no status: {bare}"
 
@@ -292,12 +291,12 @@ def test_the_map_indexes_every_subsection_and_no_ghosts():
     ideas = DOCS["IDEAS.md"]
     heads = {num: _subsection_status(body)
              for text in (ideas, AGENT_LOG)
-             for num, body in re.findall(r"^### (\d+\.\d+) (.+)$", text, re.M)}
+             for num, body in re.findall(r"^### (\d+\.\d+) (.+)$", text, re.MULTILINE)}
 
     # The Map is the table between "## Map" and the next "## " section.
     map_block = ideas.split("## Map", 1)[1].split("\n## ", 1)[0]
     indexed = dict(re.findall(
-        r"^\| \[(\d+\.\d+)\]\([^)]*\) \|.*\| ([^|]+?) \|\s*$", map_block, re.M))
+        r"^\| \[(\d+\.\d+)\]\([^)]*\) \|.*\| ([^|]+?) \|\s*$", map_block, re.MULTILINE))
 
     missing = sorted(set(heads) - set(indexed), key=lambda n: tuple(map(int, n.split("."))))
     ghosts = sorted(set(indexed) - set(heads), key=lambda n: tuple(map(int, n.split("."))))
@@ -310,7 +309,7 @@ def test_the_map_indexes_every_subsection_and_no_ghosts():
 
 def test_every_question_carries_a_status():
     questions = DOCS["QUESTIONS.md"]
-    headings = re.findall(r"^### (\d+)\. (.+)$", questions, re.M)
+    headings = re.findall(r"^### (\d+)\. (.+)$", questions, re.MULTILINE)
     assert len(headings) >= 17, f"only {len(headings)} questions found"
     bare = [h for _, h in headings if "**" not in h]
     assert not bare, f"questions with no status: {bare}"
@@ -336,8 +335,8 @@ def runnable_examples() -> list[tuple[str, str, str]]:
     """
     out = []
     for name, rest in re.findall(r"Save this as `([\w.]+)`(.*?)(?=Save this as `|\Z)",
-                                 README, re.S):
-        found = re.search(r"```python\n(.*?)```.*?```\n(.*?)```", rest, re.S)
+                                 README, re.DOTALL):
+        found = re.search(r"```python\n(.*?)```.*?```\n(.*?)```", rest, re.DOTALL)
         if found:
             out.append((name, found.group(1), found.group(2)))
     return out
@@ -364,7 +363,7 @@ def test_the_readme_examples_print_what_the_readme_says_they_print(
             # The README documents this warning in the paragraph below the block.
             warnings.simplefilter("ignore", RuntimeWarning)
             with redirect_stdout(printed):
-                exec(compile(demo, "README quick start", "exec"), {"__name__": "__main__"})
+                exec(compile(demo, "README quick start", "exec"), {"__name__": "__main__"})  # noqa: S102 — running documented examples
     finally:
         storage_module._store = saved
         os.chdir(prev_cwd)

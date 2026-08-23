@@ -20,7 +20,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from hooks.before_bash import evaluate_bash       # noqa: E402
+from hooks.before_bash import evaluate_bash
 
 
 def bash(command: str) -> dict:

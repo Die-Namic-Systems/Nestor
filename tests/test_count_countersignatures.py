@@ -30,7 +30,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
 
-import count_countersignatures as COUNT       # noqa: E402
+import count_countersignatures as COUNT
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "count_countersignatures.py"
@@ -189,7 +189,7 @@ def _real_chain(tmp_path) -> pathlib.Path:
     """
     done = subprocess.run(
         [sys.executable, "-c", _BUILD.format(root=str(ROOT), work=str(tmp_path))],
-        capture_output=True, text=True, timeout=180)
+        capture_output=True, text=True, timeout=180, check=False)
     assert done.returncode == 0, f"fixture chain failed: {done.stderr[-800:]}"
     return tmp_path / "ledger.jsonl"
 
@@ -224,7 +224,7 @@ def test_it_refuses_to_count_over_a_tampered_chain(tmp_path):
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     done = subprocess.run([sys.executable, str(SCRIPT), "--ledger", str(path)],
-                          capture_output=True, text=True, timeout=180)
+                          capture_output=True, text=True, timeout=180, check=False)
     assert done.returncode == 1
     assert COUNT.BROKEN in done.stdout
 
@@ -232,7 +232,7 @@ def test_it_refuses_to_count_over_a_tampered_chain(tmp_path):
 def test_a_missing_ledger_exits_nonzero_and_says_which_kind_of_nothing(tmp_path):
     done = subprocess.run(
         [sys.executable, str(SCRIPT), "--ledger", str(tmp_path / "absent.jsonl")],
-        capture_output=True, text=True, timeout=180)
+        capture_output=True, text=True, timeout=180, check=False)
     assert done.returncode == 1
     assert COUNT.UNREADABLE in done.stdout
     assert "Not 'nobody countersigns'" in done.stdout
@@ -244,5 +244,5 @@ def test_it_writes_nothing_to_the_chain_it_reads(tmp_path):
     path = _real_chain(tmp_path)
     before = path.read_bytes()
     subprocess.run([sys.executable, str(SCRIPT), "--ledger", str(path)],
-                   capture_output=True, text=True, timeout=180)
+                   capture_output=True, text=True, timeout=180, check=False)
     assert path.read_bytes() == before

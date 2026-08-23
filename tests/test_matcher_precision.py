@@ -14,7 +14,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "bench"))
 
-import matcher_precision as mp  # noqa: E402  (bench/ is not an installed package)
+import matcher_precision as mp
 
 
 def test_precision_is_perfect_at_the_calibrated_knee():

@@ -120,7 +120,7 @@ def _pytest_line(root: Path) -> str:
     try:
         proc = subprocess.run(
             [str(py), "-m", "pytest", "--version"],
-            capture_output=True, text=True, cwd=str(root), timeout=15)
+            capture_output=True, text=True, cwd=str(root), timeout=15, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return f"[check] pytest: not ready — {type(exc).__name__} launching {py.name}"
     if proc.returncode == 0 and (proc.stdout or proc.stderr).strip():
@@ -177,7 +177,7 @@ def _lint_line(root: Path) -> str:
     try:
         proc = subprocess.run(
             [str(py), "-c", probe],
-            capture_output=True, text=True, cwd=str(root), timeout=15)
+            capture_output=True, text=True, cwd=str(root), timeout=15, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return f"[check] lint: not ready — {type(exc).__name__} launching {py.name}"
     if proc.returncode != 0:

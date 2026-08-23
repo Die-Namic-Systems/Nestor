@@ -62,7 +62,8 @@ def test_the_wired_hook_cannot_block_and_exits_zero():
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "session_end"],
         input=json.dumps({"reason": "exit"}), capture_output=True, text=True,
-        cwd=REPO, timeout=60, env={**_env(), "NESTOR_PROJECT_ROOT": str(REPO)})
+        cwd=REPO, timeout=60, env={**_env(), "NESTOR_PROJECT_ROOT": str(REPO)},
+        check=False)
     assert done.returncode == 0, done.stderr
     assert "block" not in done.stdout and "\"decision\"" not in done.stdout
     assert done.stdout.strip() == ""   # SessionEnd has no envelope to emit

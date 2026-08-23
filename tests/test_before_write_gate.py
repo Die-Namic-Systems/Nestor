@@ -35,8 +35,8 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from hooks.before_write import evaluate_write, is_gated       # noqa: E402
-from hooks.review_receipt import is_fresh, record             # noqa: E402
+from hooks.before_write import evaluate_write, is_gated
+from hooks.review_receipt import is_fresh, record
 
 
 @pytest.fixture()
@@ -118,7 +118,7 @@ def test_the_hook_emits_a_deny_both_dialects_understand(receipt):
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_write"],
         input=json.dumps(write_of("nestor/memory.py")),
-        capture_output=True, text=True, cwd=REPO, timeout=60)
+        capture_output=True, text=True, cwd=REPO, timeout=60, check=False)
     assert done.returncode == 0, done.stderr
     out = json.loads(done.stdout)
     assert out["decision"] == "block"
@@ -135,6 +135,6 @@ def test_the_gate_fails_open_on_its_own_bugs(receipt):
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_write"],
         input="this is not json at all",
-        capture_output=True, text=True, cwd=REPO, timeout=60)
+        capture_output=True, text=True, cwd=REPO, timeout=60, check=False)
     assert done.returncode == 0
     assert done.stdout.strip() == "", "failing open is silence, not a blocking verdict"

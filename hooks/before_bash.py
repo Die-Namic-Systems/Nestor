@@ -364,8 +364,8 @@ def _check_command(cmd: str, args: list[str], stage: list[str]) -> str:
         # Rule G4 — bare force-push. --force-with-lease is what Nestor uses and
         # is ALLOWED; only an unguarded --force / -f is denied.
         if "push" in operands:
-            lease = any(a.startswith("--force-with-lease")
-                        or a.startswith("--force-if-includes") for a in args)
+            lease = any(a.startswith(("--force-with-lease", "--force-if-includes"))
+                        for a in args)
             bare_force = "--force" in args or any(
                 a.startswith("-") and not a.startswith("--") and "f" in a[1:]
                 for a in args)
@@ -452,5 +452,5 @@ def evaluate_bash(payload: dict[str, Any], root: pathlib.Path) -> tuple[bool, st
             f"See hooks/before_bash.py for the rule that matched."
         )
         return False, user, agent
-    except Exception:          # fail OPEN on our own bugs — see before_write
+    except Exception:          # noqa: BLE001 — fail OPEN on our own bugs
         return True, "", ""

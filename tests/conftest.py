@@ -1,7 +1,7 @@
-import json
-import os
 import builtins
 import importlib.util
+import json
+import os
 import sys
 
 import pytest

@@ -20,8 +20,8 @@ import io
 import json
 
 import pytest
-
 from conftest import read_ledger
+
 from nestor import cli, memory, onboarding, storage
 from nestor.sqlite_store import SqliteStore
 

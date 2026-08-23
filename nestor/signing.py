@@ -61,7 +61,6 @@ import hashlib
 import hmac
 import json
 import warnings
-from typing import Optional
 
 from . import config
 from . import keyring as keyring_mod
@@ -82,8 +81,7 @@ def _load_ed25519():
     dependency error as its accomplice."""
     try:
         from cryptography.exceptions import InvalidSignature
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-            Ed25519PrivateKey, Ed25519PublicKey)
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
         return Ed25519PrivateKey, Ed25519PublicKey, InvalidSignature
     except ImportError as exc:
         raise SigningRequiredError(
@@ -115,7 +113,7 @@ def _verifies_with(entry_kind: str, key_bytes: bytes, message: bytes,
         hmac.new(key_bytes, message, hashlib.sha256).hexdigest(), sig)
 
 
-def _key(key: Optional[bytes] = None) -> Optional[bytes]:
+def _key(key: bytes | None = None) -> bytes | None:
     if key is not None:
         return key
     env = config.get_secret("NESTOR_SEAL_KEY")
@@ -123,7 +121,7 @@ def _key(key: Optional[bytes] = None) -> Optional[bytes]:
 
 
 def _signing_ref(verifier: str,
-                 key: Optional[bytes] = None) -> Optional[tuple[str, bytes]]:
+                 key: bytes | None = None) -> tuple[str, bytes] | None:
     """``(kind, secret)`` ``verifier`` signs with. Raises if a keyring refuses
     them — including an ed25519 entry holding only the public half, because
     an instance that can verify a peer must not be able to sign as them.
@@ -144,7 +142,7 @@ def _signing_ref(verifier: str,
 
 
 def _verifying_refs(verifier: str,
-                    key: Optional[bytes] = None) -> list[tuple[str, bytes]]:
+                    key: bytes | None = None) -> list[tuple[str, bytes]]:
     """Every key a seal by ``verifier`` may legitimately have been signed with.
 
     Usually one. Two only during migration: a keyring with a ``legacy_key`` also
@@ -220,7 +218,7 @@ def _strict() -> bool:
                                  frozenset({"1", "true", "yes", "on"}))
 
 
-def signing_enabled(key: Optional[bytes] = None) -> bool:
+def signing_enabled(key: bytes | None = None) -> bool:
     """True iff seals are signed at all — a keyring, or a shared key."""
     return _key(key) is not None or keyring_mod.enabled()
 
@@ -284,7 +282,7 @@ def _embedding_message(pair_id: str, model_name: str, source_sha: str,
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def cache_key(key: Optional[bytes] = None) -> Optional[bytes]:
+def cache_key(key: bytes | None = None) -> bytes | None:
     """The key a cached embedding is MAC'd with — deployment-wide, not per-person.
 
     A seal names a verifier and so is signed with *their* key. Nothing about a
@@ -312,7 +310,7 @@ def cache_key(key: Optional[bytes] = None) -> Optional[bytes]:
     return None
 
 
-def cache_trust(key: Optional[bytes] = None) -> str:
+def cache_trust(key: bytes | None = None) -> str:
     """How far a stored embedding may be trusted: the cache's serve policy.
 
     * ``"signed"`` — a key is available; a cached vector is used iff it verifies.
@@ -330,7 +328,7 @@ def cache_trust(key: Optional[bytes] = None) -> str:
 
 
 def sign_embedding(pair_id: str, model_name: str, source_sha: str, blob: bytes,
-                   key: Optional[bytes] = None) -> str:
+                   key: bytes | None = None) -> str:
     """HMAC-SHA256 over a cached embedding. ``""`` when no cache key exists."""
     k = cache_key(key)
     if not k:
@@ -340,7 +338,7 @@ def sign_embedding(pair_id: str, model_name: str, source_sha: str, blob: bytes,
 
 
 def embedding_is_valid(pair_id: str, model_name: str, source_sha: str,
-                       blob: bytes, sig: str, key: Optional[bytes] = None) -> bool:
+                       blob: bytes, sig: str, key: bytes | None = None) -> bool:
     """Whether a cached vector may be used instead of recomputing it.
 
     Unlike :func:`seal_is_valid` this never raises and never warns: a cache miss
@@ -371,8 +369,8 @@ def _rejection_message(query_norm: str, pair_id: str, target_text: str,
                       separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def _rejection_sign_ref(verifier: str, key: Optional[bytes] = None
-                        ) -> Optional[tuple[str, bytes]]:
+def _rejection_sign_ref(verifier: str, key: bytes | None = None
+                        ) -> tuple[str, bytes] | None:
     """``(kind, secret)`` a rejection by ``verifier`` is signed with — and never a refusal.
 
     Deliberately not :func:`_signing_key`. A seal by an unregistered verifier
@@ -399,7 +397,7 @@ def _rejection_sign_ref(verifier: str, key: Optional[bytes] = None
 
 
 def sign_rejection(query_norm: str, pair_id: str, target_text: str,
-                   verifier: str, key: Optional[bytes] = None) -> str:
+                   verifier: str, key: bytes | None = None) -> str:
     """HMAC-SHA256 over a rejection's bound fields. ``""`` when signing is off."""
     ref = _rejection_sign_ref(verifier, key)
     if ref is None or not ref[1]:
@@ -411,7 +409,7 @@ def sign_rejection(query_norm: str, pair_id: str, target_text: str,
 
 def rejection_is_valid(query_norm: str, pair_id: str, target_text: str,
                        verifier: str, reject_sig: str,
-                       key: Optional[bytes] = None) -> bool:
+                       key: bytes | None = None) -> bool:
     """Whether ``reject_sig`` is a valid rejection signature.
 
     NOTE: unlike :func:`seal_is_valid`, this is *reporting only* — Nestor honors
@@ -430,7 +428,7 @@ def rejection_is_valid(query_norm: str, pair_id: str, target_text: str,
 
 
 def sign_seal(source_norm: str, target_text: str, verifier: str,
-              key: Optional[bytes] = None) -> str:
+              key: bytes | None = None) -> str:
     """HMAC-SHA256 over the seal's bound fields. Returns ``""`` when no key is
     configured (unsigned — signing disabled).
 
@@ -448,7 +446,7 @@ def sign_seal(source_norm: str, target_text: str, verifier: str,
 
 
 def seal_is_valid(source_norm: str, target_text: str, verifier: str,
-                  seal_sig: str, key: Optional[bytes] = None) -> bool:
+                  seal_sig: str, key: bytes | None = None) -> bool:
     """Whether ``seal_sig`` is a valid seal signature.
 
     With nothing configured, signing is OFF and every seal is accepted (the
@@ -504,7 +502,7 @@ def _edge_message(src_id: str, dst_id: str, kind: str) -> bytes:
 
 
 def sign_edge(src_id: str, dst_id: str, kind: str, verifier: str,
-              key: Optional[bytes] = None) -> str:
+              key: bytes | None = None) -> str:
     """Signature over an edge's bound fields. ``""`` when signing is off.
 
     An edge — "this decision supersedes / refines / depends_on / contradicts
@@ -522,7 +520,7 @@ def sign_edge(src_id: str, dst_id: str, kind: str, verifier: str,
 
 
 def edge_is_valid(src_id: str, dst_id: str, kind: str, verifier: str,
-                  edge_sig: str, key: Optional[bytes] = None) -> bool:
+                  edge_sig: str, key: bytes | None = None) -> bool:
     """Whether ``edge_sig`` verifies this edge under ``verifier``'s key.
 
     Unlike a seal, an edge carries no ``status`` column — the signature *is* the

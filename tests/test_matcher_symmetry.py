@@ -8,9 +8,8 @@ was untested.
 """
 from __future__ import annotations
 
-import os
-
 import difflib
+import os
 import random
 import string
 

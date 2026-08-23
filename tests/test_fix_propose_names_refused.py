@@ -45,8 +45,8 @@ def call(server, name, **args):
     return json.loads(text)
 
 
-SEAL_ATTEMPT = dict(source_text="Good afternoon.", candidate="Buenas tardes.",
-                    status="sealed", verifier="x", verification_kind="human")
+SEAL_ATTEMPT = {"source_text": "Good afternoon.", "candidate": "Buenas tardes.",
+                "status": "sealed", "verifier": "x", "verification_kind": "human"}
 
 
 def test_a_seal_attempt_is_named_in_the_reply(server):

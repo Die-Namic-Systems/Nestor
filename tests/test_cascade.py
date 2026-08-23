@@ -1,11 +1,10 @@
 import hashlib
 
+from conftest import read_ledger
 
 from nestor import cascade, memory
 from nestor.cascade import Passage, graduate_segment, translate_segment, translate_text
 from nestor.engine import OfflineEngine
-
-from conftest import read_ledger
 
 
 def test_translate_segment_returns_passage_and_ledgers(store):

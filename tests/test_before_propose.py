@@ -224,6 +224,7 @@ def test_the_advisory_states_its_limits_every_time(tmp_path):
 
 def test_before_propose_is_a_known_module_but_not_a_blocking_gate():
     import sys
+
     from hooks.hook_runner import MODULES
     assert "before_propose" in MODULES
     sys.path.insert(0, str(REPO / "scripts"))
@@ -248,4 +249,4 @@ def _run(payload: dict) -> subprocess.CompletedProcess:
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_propose"],
         input=json.dumps(payload), capture_output=True, text=True,
         cwd=REPO, timeout=60,
-        env={**os.environ, "NESTOR_PROJECT_ROOT": str(REPO)})
+        env={**os.environ, "NESTOR_PROJECT_ROOT": str(REPO)}, check=False)

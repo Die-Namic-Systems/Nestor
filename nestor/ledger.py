@@ -17,7 +17,6 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Optional, Tuple
 
 from .errors import NestorError
 
@@ -27,14 +26,14 @@ class LedgerError(NestorError):
     audit trail) or its hash-chain is broken."""
 
 
-def _path(path: Optional[str] = None) -> Path:
+def _path(path: str | None = None) -> Path:
     if path is None:
         from .cascade import _ledger_path  # lazy: avoid an import cycle
         return _ledger_path()
     return Path(path)
 
 
-def head(path: Optional[str] = None) -> str:
+def head(path: str | None = None) -> str:
     """SHA-256 of the last line — the chain's current tip.
 
     The value the **next** entry will carry as its ``prev``, and the one thing
@@ -51,8 +50,8 @@ def head(path: Optional[str] = None) -> str:
     return hashlib.sha256(last.encode("utf-8")).hexdigest() if last else "genesis"
 
 
-def verify(path: Optional[str] = None,
-           expected_head: Optional[str] = None) -> Tuple[bool, str]:
+def verify(path: str | None = None,
+           expected_head: str | None = None) -> tuple[bool, str]:
     """Walk the chain: line N's ``prev`` must equal SHA-256 of line N-1's bytes,
     rooted at ``"genesis"``. Returns ``(ok, detail)``.
 
@@ -91,7 +90,7 @@ def verify(path: Optional[str] = None,
             continue
         try:
             rec = json.loads(line)
-        except Exception as e:  # a line that won't parse breaks the audit
+        except Exception as e:  # noqa: BLE001 — a line that won't parse breaks the audit
             return False, f"line {i}: not valid JSON ({e})"
         if rec.get("prev") != prev:
             return False, (f"broken chain at line {i}: prev={rec.get('prev')!r} "
@@ -105,7 +104,7 @@ def verify(path: Optional[str] = None,
     return True, f"intact — {count} entries"
 
 
-def entries(kind: Optional[str] = None, path: Optional[str] = None,
+def entries(kind: str | None = None, path: str | None = None,
             limit: int = 500) -> list[dict]:
     """Ledger entries, newest last, optionally filtered by ``kind``.
 
@@ -133,14 +132,14 @@ def entries(kind: Optional[str] = None, path: Optional[str] = None,
             continue
         try:
             rec = json.loads(line)
-        except Exception:                      # noqa: BLE001 — the other walk's, see unreadable()
+        except Exception:                      # noqa: BLE001, S112 — skip unparsable lines, see unreadable()
             continue
         if kind is None or rec.get("kind") == kind:
             out.append(rec)
     return out[-limit:]
 
 
-def unreadable(path: Optional[str] = None) -> list[dict]:
+def unreadable(path: str | None = None) -> list[dict]:
     """The lines this ledger holds that are not valid JSON — ``{"line", "error"}``.
 
     Only writers of JSON append here, so a line that will not parse is a thing

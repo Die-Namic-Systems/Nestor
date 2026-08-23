@@ -46,10 +46,11 @@ import shutil
 import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _dist_version
-from typing import Optional
 
-from . import (answer, cascade, config, keyring as keyring_mod, ledger as ledger_mod, memory,
-               portable, seed as seed_mod, serve, signing, storage, ui)
+from . import answer, cascade, config, memory, portable, serve, signing, storage, ui
+from . import keyring as keyring_mod
+from . import ledger as ledger_mod
+from . import seed as seed_mod
 from .errors import NestorError
 from .sqlite_store import SqliteStore
 
@@ -98,7 +99,7 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 _DEFAULT_SOURCE_LANG, _DEFAULT_TARGET_LANG = "en", "es"
 
 
-def _ask_domain(store, source_lang: Optional[str], target_lang: Optional[str]) -> tuple:
+def _ask_domain(store, source_lang: str | None, target_lang: str | None) -> tuple:
     """The domain `nestor ask` actually queries, preferring one the store holds.
 
     Mirrors askDomain() in nestor/ui_page.py (landed for the UI in #159; this
@@ -214,7 +215,7 @@ def cmd_match(args) -> int:
     return EXIT_OK if result["served"] else EXIT_ANSWER_IS_NO
 
 
-def _print_live_commitment(live: Optional[dict]) -> None:
+def _print_live_commitment(live: dict | None) -> None:
     """Show the recorded answer a clear consult found, if it found one.
 
     ``exit 0`` from ``decision check`` means "nothing on record BLOCKS this",
@@ -677,7 +678,8 @@ def cmd_ledger(args) -> int:
 
 def cmd_calibrate(args) -> int:
     """Where the threshold should sit for this corpus. See :mod:`nestor.calibrate`."""
-    from . import answer, calibrate as calibrate_mod
+    from . import answer
+    from . import calibrate as calibrate_mod
     # `load_matcher`, not `build_matcher`: `memory.py` tells a user to "measure
     # with `nestor calibrate --matcher …` on your corpus before trusting serves
     # at the shipped default", and this was the one --matcher flag in the package
@@ -870,8 +872,8 @@ def cmd_rejections(args) -> int:
     from .curator import Curator
     out = Curator(store, args.source_lang, args.target_lang).rejection_signals(
         min_query=args.min_query, min_pair=args.min_pair)
-    lines = [f"{out['rejections']} rejection(s) in the chain for "
-             f"{out['domain']['source_lang']}→{out['domain']['target_lang']}"]
+    lines = [(f"{out['rejections']} rejection(s) in the chain for "
+              f"{out['domain']['source_lang']}→{out['domain']['target_lang']}")]
     if out["queries"]:
         lines.append(f"\n  queries refused {args.min_query}+ times — the threshold "
                      f"may be wrong for this domain (nestor calibrate):")
@@ -1311,7 +1313,7 @@ DELEGATED = {"ui": "the browser surface", "serve": "the model surface"}
 SHARED_FLAGS = ("--db", "--ledger")
 
 
-def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
+def split_delegated(argv: list[str]) -> tuple[str | None, list[str]]:
     """``(name, sub_argv)`` when this invocation targets ``ui`` or ``serve``.
 
     ``nestor --db x.db ui --port 9000`` has to work: a user who has typed
@@ -1345,7 +1347,7 @@ def split_delegated(argv: list[str]) -> tuple[Optional[str], list[str]]:
     return None, argv
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     # `ui` and `serve` are whole programs with their own parsers; delegating the
     # remaining argv keeps one set of flags per surface instead of mirroring

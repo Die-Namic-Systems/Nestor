@@ -15,8 +15,6 @@ CI-for-the-bench would catch is a coverage gap nobody catches.
 """
 from __future__ import annotations
 
-from nestor.matcher import StringMatcher
-
 # A plain import, deliberately. This was `pytest.importorskip("bench.corpora")`,
 # which is the polite thing to write and exactly wrong here: the module docstring
 # above says these tests exist so a blind spot cannot *silently* return, and an
@@ -24,7 +22,8 @@ from nestor.matcher import StringMatcher
 # rather than `python -m pytest` — the command the README gives — and CI ran the
 # other one, so nothing said so. If the path setup ever breaks again this fails
 # loudly instead. See `pythonpath` in pyproject.toml.
-import bench.corpora as bench_corpora  # noqa: E402
+import bench.corpora as bench_corpora
+from nestor.matcher import StringMatcher
 
 
 def test_corpora_span_the_autojunk_threshold():

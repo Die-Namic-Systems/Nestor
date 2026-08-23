@@ -32,7 +32,7 @@ from typing import Any
 
 from . import home_paths
 
-__all__ = ["SUBDIRS", "required_dirs", "layout_manifest_path", "ensure_home_layout"]
+__all__ = ["SUBDIRS", "ensure_home_layout", "layout_manifest_path", "required_dirs"]
 
 _LAYOUT_VERSION = "nestor_household_v1"
 

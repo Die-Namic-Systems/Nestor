@@ -21,7 +21,7 @@ import sqlite3
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
-from git_decisions.run_all import next_rung, review_state  # noqa: E402
+from git_decisions.run_all import next_rung, review_state
 
 
 def _store(path: pathlib.Path, **counts: int) -> pathlib.Path:

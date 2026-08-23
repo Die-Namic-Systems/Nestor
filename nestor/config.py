@@ -29,27 +29,28 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal, Mapping, Optional
+from typing import Any, Literal
 
 from .errors import NestorError
 
 __all__ = [
+    "CONFIG_PATH_ENV",
+    "DEFAULT_CONFIG_FILENAME",
+    "ENV_PREFIX",
+    "REGISTRY",
     "ConfigError",
     "Resolver",
     "VarSpec",
+    "configurable_names",
+    "default_config_path",
+    "get_bool_loose",
+    "get_secret",
     "load",
     "load_file",
-    "default_config_path",
-    "get_secret",
-    "get_bool_loose",
     "secret_names",
-    "configurable_names",
-    "REGISTRY",
-    "ENV_PREFIX",
-    "CONFIG_PATH_ENV",
-    "DEFAULT_CONFIG_FILENAME",
 ]
 
 #: Env-var prefix for auto-derived names: file key ``ledger`` -> ``NESTOR_LEDGER``.
@@ -85,7 +86,7 @@ def default_config_path() -> Path:
     return Path.cwd() / DEFAULT_CONFIG_FILENAME
 
 
-def load_file(path: Optional[Path]) -> dict[str, Any]:
+def load_file(path: Path | None) -> dict[str, Any]:
     """Read the file layer as a flat mapping. The heart of the missing/broken
     distinction:
 
@@ -155,7 +156,7 @@ class Resolver:
     file_data: Mapping[str, Any] = field(default_factory=dict)
 
     # -- layer resolution ---------------------------------------------------
-    def _raw(self, key: str, env_name: Optional[str]) -> tuple[str, Any]:
+    def _raw(self, key: str, env_name: str | None) -> tuple[str, Any]:
         """Return ``(source, value)`` for the winning layer, or
         ``("default", _MISSING)`` when neither env nor file supplies the key.
         ``source`` is one of ``"env"``, ``"file"``, ``"default"``."""
@@ -167,13 +168,13 @@ class Resolver:
             return "file", self.file_data[key]
         return "default", _MISSING
 
-    def source_of(self, key: str, *, env: Optional[str] = None) -> str:
+    def source_of(self, key: str, *, env: str | None = None) -> str:
         """Which layer would answer ``key``: ``"env"``, ``"file"`` or ``"default"``.
         Handy for logging where a value came from without leaking the value."""
         return self._raw(key, env)[0]
 
     # -- typed accessors ----------------------------------------------------
-    def get_str(self, key: str, default: str, *, env: Optional[str] = None) -> str:
+    def get_str(self, key: str, default: str, *, env: str | None = None) -> str:
         source, value = self._raw(key, env)
         if source == "default":
             return default
@@ -183,7 +184,7 @@ class Resolver:
             raise self._cast_error(key, source, value, "string")
         return value
 
-    def get_int(self, key: str, default: int, *, env: Optional[str] = None) -> int:
+    def get_int(self, key: str, default: int, *, env: str | None = None) -> int:
         source, value = self._raw(key, env)
         if source == "default":
             return default
@@ -191,12 +192,12 @@ class Resolver:
             if source == "env":
                 return int(value.strip())
             if isinstance(value, bool):  # bool is an int subclass — reject it explicitly
-                raise ValueError("boolean is not an integer")
+                raise TypeError("boolean is not an integer")
             return int(value)
         except (ValueError, TypeError) as exc:
             raise self._cast_error(key, source, value, "integer") from exc
 
-    def get_float(self, key: str, default: float, *, env: Optional[str] = None) -> float:
+    def get_float(self, key: str, default: float, *, env: str | None = None) -> float:
         source, value = self._raw(key, env)
         if source == "default":
             return default
@@ -204,12 +205,12 @@ class Resolver:
             if source == "env":
                 return float(value.strip())
             if isinstance(value, bool):
-                raise ValueError("boolean is not a float")
+                raise TypeError("boolean is not a float")
             return float(value)
         except (ValueError, TypeError) as exc:
             raise self._cast_error(key, source, value, "float") from exc
 
-    def get_bool(self, key: str, default: bool, *, env: Optional[str] = None) -> bool:
+    def get_bool(self, key: str, default: bool, *, env: str | None = None) -> bool:
         source, value = self._raw(key, env)
         if source == "default":
             return default
@@ -225,7 +226,7 @@ class Resolver:
             f"boolean (one of {sorted(_TRUE | (_FALSE - {''}))})",
         )
 
-    def get_path(self, key: str, default: Any, *, env: Optional[str] = None) -> Path:
+    def get_path(self, key: str, default: Any, *, env: str | None = None) -> Path:
         """Resolve a filesystem path, ``~`` expanded. ``default`` may be a str or
         Path. Never touches disk — resolves the string only."""
         source, value = self._raw(key, env)
@@ -257,8 +258,8 @@ _MISSING = _Missing()
 
 def load(
     *,
-    env: Optional[Mapping[str, str]] = None,
-    path: Optional[Path] = None,
+    env: Mapping[str, str] | None = None,
+    path: Path | None = None,
 ) -> Resolver:
     """Build a :class:`Resolver` from the live environment and the config file.
 
@@ -272,7 +273,7 @@ def load(
     return Resolver(env=dict(resolved_env), file_data=load_file(resolved_path))
 
 
-def get_secret(env_name: str, *, env: Optional[Mapping[str, str]] = None) -> Optional[str]:
+def get_secret(env_name: str, *, env: Mapping[str, str] | None = None) -> str | None:
     """Single seam for secret retrieval, ported from njord: **env only**. Secrets
     are never read from the config file and never stored in this module — only
     the env-var *name* is passed in. An OS-keyring lookup can be added here later
@@ -285,7 +286,7 @@ def get_secret(env_name: str, *, env: Optional[Mapping[str, str]] = None) -> Opt
 
 
 def get_bool_loose(name: str, default: bool, true_tokens: frozenset[str],
-                    *, env: Optional[Mapping[str, str]] = None) -> bool:
+                    *, env: Mapping[str, str] | None = None) -> bool:
     """A second, **permissive** boolean reader, kept apart from
     :meth:`Resolver.get_bool` on purpose.
 

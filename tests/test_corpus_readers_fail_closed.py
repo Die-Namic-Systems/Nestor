@@ -56,7 +56,8 @@ TRUE_EMPTY = "true empty"
 
 def run(script: str, repo: pathlib.Path) -> subprocess.CompletedProcess:
     done = subprocess.run([sys.executable, str(SCRIPTS / script), "--repo", str(repo)],
-                          capture_output=True, text=True, timeout=300, cwd=str(ROOT))
+                          capture_output=True, text=True, timeout=300, cwd=str(ROOT),
+                          check=False)
     done.stdout = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout)
     done.stderr = re.sub(r"\x1b\[[0-9;]*m", "", done.stderr)
     return done

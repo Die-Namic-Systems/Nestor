@@ -1,9 +1,8 @@
 import pytest
+from conftest import read_ledger
 
 from nestor.entity import EntityResolver
 from nestor.memory import ConflictingDraftError
-
-from conftest import read_ledger
 
 
 def _amazon_resolver(store):

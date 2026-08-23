@@ -8,10 +8,9 @@ called every tool this server has, the sealed memory is exactly as it was.
 """
 from __future__ import annotations
 
-import os
-
 import io
 import json
+import os
 
 import pytest
 

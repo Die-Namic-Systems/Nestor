@@ -14,7 +14,6 @@ independently.
 """
 from __future__ import annotations
 
-
 import warnings
 
 from . import memory

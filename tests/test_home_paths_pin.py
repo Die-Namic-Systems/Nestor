@@ -12,7 +12,6 @@ import pytest
 
 from nestor import home_paths
 
-
 # --- honoured -------------------------------------------------------------
 
 def test_nestor_db_is_honoured(tmp_path, monkeypatch):

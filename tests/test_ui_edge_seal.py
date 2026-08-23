@@ -383,11 +383,11 @@ def test_triage_and_graph_endpoints_are_still_read_only(ring, app, two_decisions
     ``test_ui_triage.py``/``test_ui_graph.py`` already make, re-run here so a
     regression introduced alongside this endpoint is caught in the same file
     that introduces the risk."""
-    status, out = post(app, "/api/triage")
+    status, _out = post(app, "/api/triage")
     assert status == 404
-    status, out = post(app, "/api/graph")
+    status, _out = post(app, "/api/graph")
     assert status == 404
-    status, out = get(app, "/api/triage")
+    status, _out = get(app, "/api/triage")
     assert status == 200
-    status, out = get(app, "/api/graph")
+    status, _out = get(app, "/api/graph")
     assert status == 200

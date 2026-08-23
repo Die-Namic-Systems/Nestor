@@ -73,27 +73,28 @@ import sys
 import threading
 import urllib.parse
 import webbrowser
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any
 
-from . import (answer, cascade, config, home_paths, keyring, ledger as ledger_mod,
-               memory, portable, signing, storage)
+from . import answer, cascade, config, home_paths, keyring, memory, portable, signing, storage
+from . import ledger as ledger_mod
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
 from .entity import EntityResolver
 from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
+from .staleness import age_seals as _age_seals
 from .storage import Storage, supports_curation, supports_queue, supports_rejection
 from .triage import DEFAULT_BAR as TRIAGE_BAR
 from .triage import Decision as TriageDecision
 from .triage import triage as run_triage
 from .triage.report import _population as _triage_population
 from .triage.report import _resolved as _triage_resolved
-from .staleness import age_seals as _age_seals
 from .ui_page import PAGE
 
 MAX_BODY = 1 << 20          # 1 MiB — a review decision is never larger than this
@@ -200,7 +201,7 @@ class Sessions:
         with self._lock:
             self._tokens.pop(token, None)
 
-    def whois(self, token: str) -> Optional[str]:
+    def whois(self, token: str) -> str | None:
         """The verifier this token names, or ``None`` if it is unknown or stale."""
         with self._lock:
             found = self._tokens.get(token or "")
@@ -236,7 +237,7 @@ class App:
     source_lang: str = "en"
     target_lang: str = "es"
     engine_name: str = "offline"
-    matcher: Optional[Matcher] = None
+    matcher: Matcher | None = None
     read_only: bool = False
     verifier_hint: str = ""
     db_path: str = ""
@@ -267,7 +268,7 @@ class App:
 # Request helpers
 # --------------------------------------------------------------------------
 
-def _domain_matcher(app: "App", source_lang: str, target_lang: str) -> Optional[Matcher]:
+def _domain_matcher(app: App, source_lang: str, target_lang: str) -> Matcher | None:
     """``app.matcher`` — but only for the domain it actually describes.
 
     A matcher keys **one** domain. ``App`` holds the tags of one and the matcher
@@ -1141,7 +1142,7 @@ def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
                 f"{matcher_audit_fields(own)['matcher']!r}; it cannot score "
                 f"{named!r} as well",
                 code="bad_request")
-        chosen: "str | Matcher" = own
+        chosen: str | Matcher = own
     else:
         chosen = named or "string"
     return answer.match(app.store, text, source_lang, target_lang,
@@ -1435,7 +1436,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
 
 
 def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
-             payload: Optional[Mapping[str, Any]] = None) -> tuple[int, dict]:
+             payload: Mapping[str, Any] | None = None) -> tuple[int, dict]:
     """Route one API call. Pure over ``app`` — no sockets, so it is testable.
 
     Every failure comes back as ``{"error": ...}`` with a status, including the
@@ -1473,8 +1474,8 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
 # Transport
 # --------------------------------------------------------------------------
 
-def csrf_reason(method: str, headers: Union[Mapping[str, str], Message],
-                host: str) -> Optional[str]:
+def csrf_reason(method: str, headers: Mapping[str, str] | Message,
+                host: str) -> str | None:
     """Why this mutating request must be refused, or ``None`` to allow it.
 
     ``headers`` accepts a plain mapping (tests) or the
@@ -1508,11 +1509,11 @@ def _make_handler(app: App) -> type[BaseHTTPRequestHandler]:
 
         # -- plumbing --------------------------------------------------------
 
-        def log_message(self, fmt: str, *args) -> None:      # noqa: A003
-            sys.stderr.write("  %s %s\n" % (self.address_string(), fmt % args))
+        def log_message(self, fmt: str, *args) -> None:
+            sys.stderr.write(f"  {self.address_string()} {fmt % args}\n")
 
         def _send(self, status: int, body: bytes, content_type: str,
-                  extra: Optional[dict[str, str]] = None) -> None:
+                  extra: dict[str, str] | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
@@ -1534,13 +1535,13 @@ def _make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 self.wfile.write(body)
 
         def _send_json(self, status: int, payload: dict,
-                       extra: Optional[dict[str, str]] = None) -> None:
+                       extra: dict[str, str] | None = None) -> None:
             body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
             self._send(status, body, "application/json; charset=utf-8", extra)
 
         # -- routing ---------------------------------------------------------
 
-        def do_GET(self) -> None:                              # noqa: N802
+        def do_GET(self) -> None:
             parsed = urllib.parse.urlsplit(self.path)
             if parsed.path in ("/", "/index.html"):
                 self._send(200, PAGE.encode("utf-8"), "text/html; charset=utf-8")
@@ -1556,10 +1557,10 @@ def _make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 extra = {"Content-Disposition": f'attachment; filename="{name}"'}
             self._send_json(status, payload, extra)
 
-        def do_HEAD(self) -> None:                             # noqa: N802
+        def do_HEAD(self) -> None:
             self.do_GET()
 
-        def do_POST(self) -> None:                             # noqa: N802
+        def do_POST(self) -> None:
             parsed = urllib.parse.urlsplit(self.path)
             refusal = csrf_reason("POST", self.headers, self.headers.get("Host", ""))
             if refusal:
@@ -1661,7 +1662,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     if not _is_loopback(args.host) and not args.allow_remote:

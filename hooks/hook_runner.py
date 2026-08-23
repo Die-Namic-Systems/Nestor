@@ -195,7 +195,7 @@ def _first_block(payload: dict, root, *evaluators):
     for ev in evaluators:
         try:
             allow, user, agent = ev(payload, root)
-        except Exception:          # fail OPEN on our own bug, never on the subject
+        except Exception:          # noqa: BLE001 — fail OPEN on our own bug
             allow, user, agent = True, "", ""
         if not allow:
             return allow, user, agent
@@ -279,7 +279,7 @@ def main() -> None:
     if args.module == "before_authority":
         try:
             allow, user, agent = evaluate_authority(payload, root)
-        except Exception:          # fail OPEN on our own bugs, closed on subject
+        except Exception:          # noqa: BLE001 — fail OPEN on our own bugs
             allow, user, agent = True, "", ""
         _emit_before_write(args.format, allow, user, agent)
         return
@@ -287,7 +287,7 @@ def main() -> None:
     if args.module == "before_stop":
         try:
             allow, user, agent = evaluate_stop(payload, root)
-        except Exception:          # fail OPEN on our own bugs
+        except Exception:          # noqa: BLE001 — fail OPEN on our own bugs
             allow, user, agent = True, "", ""
         _emit_before_stop(args.format, allow, user, agent)
         return

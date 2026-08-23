@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import pytest
 
-from nestor import answer
+from nestor import answer, ollama_embed
 from nestor.matcher import StringMatcher
-from nestor import ollama_embed
 from nestor.semantic_matcher import SemanticMatcher
 
 requires_ollama = pytest.mark.skipif(

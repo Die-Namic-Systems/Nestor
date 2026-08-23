@@ -49,7 +49,7 @@ from __future__ import annotations
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import cast
 
 from .storage import Storage, WarrantStorage, get_store, require_capability
 
@@ -127,7 +127,7 @@ def refuse_reason(kind: str, authority: str, locator: str, check: str,
 
 def attach(pair_id: str, kind: str, authority: str, locator: str, *,
            check: str = "", expected_digest: str = "", attached_by: str = "",
-           store: Optional[Storage] = None) -> dict:
+           store: Storage | None = None) -> dict:
     """Record that ``pair_id`` holds a warrant of ``kind``. Confirms nothing.
 
     ``authority`` is who vouches — the naming institution for a ``citation``,
@@ -151,7 +151,7 @@ def attach(pair_id: str, kind: str, authority: str, locator: str, *,
     store = get_store(store)
     _require_warrants(store)
     if not callable(getattr(store, "memory_get", None)):
-        raise RuntimeError(
+        raise TypeError(
             f"{type(store).__name__} implements the warrants capability but not "
             f"memory_get, which attach() needs to confirm a pair exists before "
             f"warranting it (the curation capability — see "
@@ -191,12 +191,11 @@ def attach(pair_id: str, kind: str, authority: str, locator: str, *,
 def _content_sha(kind: str, authority: str, locator: str, check: str,
                  expected_digest: str) -> str:
     """A stable hash of a warrant row's mutable content fields."""
-    return hashlib.sha256("\n".join(
-        (kind, authority, locator, check, expected_digest)).encode(
-            "utf-8")).hexdigest()
+    return hashlib.sha256(
+        f"{kind}\n{authority}\n{locator}\n{check}\n{expected_digest}".encode()).hexdigest()
 
 
-def warrants_for(pair_id: str, store: Optional[Storage] = None) -> list[dict]:
+def warrants_for(pair_id: str, store: Storage | None = None) -> list[dict]:
     """Every warrant ``pair_id`` holds — the stored rows, plus its seal.
 
     The seal is composed in as a synthetic ``attestation`` row rather than read
@@ -226,7 +225,7 @@ def warrants_for(pair_id: str, store: Optional[Storage] = None) -> list[dict]:
     return rows
 
 
-def kinds_held(pair_id: str, store: Optional[Storage] = None) -> set[str]:
+def kinds_held(pair_id: str, store: Storage | None = None) -> set[str]:
     """The set of warrant kinds ``pair_id`` holds. A set, deliberately —
     there is no ordering over warrant kinds and no strongest one."""
     return {w["kind"] for w in warrants_for(pair_id, store)}

@@ -77,11 +77,11 @@ def anchor(root: pathlib.Path | None = None) -> str:
     return "\n".join([
         "[NESTOR ANCHOR] seat rules re-emitted so they survive a long session and a compaction:",
         _guard("seat", lambda: _governance_line(root)),
-        "[decisions] Worth keeping? -> docs/dogfood/decisions/, then "
-        "`python scripts/dogfood_store.py --rebuild`.",
-        f"[brain] Consult before you propose: "
-        f"`nestor --db {db} decision check \"<your question>\"` "
-        f"(exits non-zero on a recorded rejection or contradiction).",
+        ("[decisions] Worth keeping? -> docs/dogfood/decisions/, then "
+         "`python scripts/dogfood_store.py --rebuild`."),
+        (f"[brain] Consult before you propose: "
+         f"`nestor --db {db} decision check \"<your question>\"` "
+         f"(exits non-zero on a recorded rejection or contradiction)."),
     ])
 
 

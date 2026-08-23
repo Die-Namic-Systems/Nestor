@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from nestor import cascade, keyring, ledger, signing, storage
-from nestor.decision import DecisionMemory, EDGE_KINDS
+from nestor.decision import EDGE_KINDS, DecisionMemory
 from nestor.sqlite_store import SqliteStore
 
 
@@ -169,7 +169,7 @@ def test_a_seal_signature_cannot_be_replayed_as_an_edge(store, sean):
 
 
 def test_an_edge_signature_cannot_be_replayed_as_a_seal(store, sean):
-    dm, a, b = _two_decisions(store)
+    _dm, a, b = _two_decisions(store)
     edge_sig = _sign_edge(sean, b, a, "depends_on")
     # the same bytes must not verify as a seal over any fields
     assert not signing.seal_is_valid(b, a, "sean", edge_sig)
@@ -178,9 +178,9 @@ def test_an_edge_signature_cannot_be_replayed_as_a_seal(store, sean):
 # -- the machine cannot seal an edge -----------------------------------------
 
 def test_a_public_only_instance_cannot_sign_an_edge(store, sean):
-    dm, a, b = _two_decisions(store)
+    _dm, a, b = _two_decisions(store)
     # sean's private key never reached the keyring, so server-side signing raises
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017 — any signing failure is acceptable
         signing.sign_edge(b, a, "depends_on", "sean")
 
 
@@ -198,7 +198,7 @@ def test_propose_edge_leaves_it_unsealed(store):
 # security-review follow-up from the edge-confirmation ceremony).
 
 def test_seal_edge_refuses_a_self_relation_even_with_a_valid_signature(store, sean):
-    dm, a, b = _two_decisions(store)
+    dm, a, _b = _two_decisions(store)
     sig = _sign_edge(sean, a, a, "depends_on")     # a real signature over a->a
     with pytest.raises(ValueError, match="cannot relate to itself"):
         dm.seal_edge(a, a, "depends_on", "sean", sig)
@@ -206,7 +206,7 @@ def test_seal_edge_refuses_a_self_relation_even_with_a_valid_signature(store, se
 
 
 def test_seal_edge_refuses_an_edge_to_a_decision_that_does_not_exist(store, sean):
-    dm, a, b = _two_decisions(store)
+    dm, a, _b = _two_decisions(store)
     ghost = "00000000-0000-0000-0000-000000000000"
     sig = _sign_edge(sean, a, ghost, "depends_on")  # signature verifies over the ids
     assert signing.edge_is_valid(a, ghost, "depends_on", "sean", sig)  # the sig is real
@@ -237,7 +237,7 @@ def test_seal_edge_refuses_when_the_store_cannot_look_up_endpoints(store, sean):
     dm2 = DecisionMemory(blind)
     sig = _sign_edge(sean, a, b, "depends_on")             # a real signature
     assert signing.edge_is_valid(a, b, "depends_on", "sean", sig)
-    with pytest.raises(RuntimeError, match="memory_get"):
+    with pytest.raises(TypeError, match="memory_get"):
         dm2.seal_edge(a, b, "depends_on", "sean", sig)
     assert dm.all_edges([a, b]) == []                       # nothing sealed
 
@@ -245,7 +245,7 @@ def test_seal_edge_refuses_when_the_store_cannot_look_up_endpoints(store, sean):
 # -- constraints_on carries the rest of the record ---------------------------
 
 def test_constraints_on_reports_live_decision(store):
-    dm, a, b = _two_decisions(store)
+    dm, _a, _b = _two_decisions(store)
     on_b = dm.constraints_on("may the machine seal its own work?")
     assert on_b["live"]["commitment"] == "no — author != witness"
     assert on_b["live"]["sealed"] is False        # only proposed so far

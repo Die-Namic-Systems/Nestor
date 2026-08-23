@@ -31,7 +31,7 @@ def test_file_backed_store_survives_concurrent_add_pair(tmp_path):
         try:
             memory.add_pair(f"source {i}", f"target {i}", "en", "es",
                             status="sealed", verifier="rita", store=store)
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001 — catch all thread errors for reporting
             with lock:
                 errors.append(exc)
 
@@ -174,7 +174,7 @@ def test_close_after_worker_threads_checkpoints_from_main(tmp_path):
         try:
             memory.add_pair(f"src {i}", f"tgt {i}", "en", "es",
                             status="sealed", verifier="rita", store=store)
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001 — catch all thread errors for reporting
             with lock:
                 errors.append(exc)
 

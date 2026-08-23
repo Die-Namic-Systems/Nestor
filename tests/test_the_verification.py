@@ -31,8 +31,8 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from demo import the_verification as DEMO           # noqa: E402
-from tests._fleet_paths import jeles_checkout       # noqa: E402
+from demo import the_verification as DEMO
+from tests._fleet_paths import jeles_checkout
 
 JELES = jeles_checkout()
 SCRIPT = ROOT / "demo" / "the_verification.py"
@@ -84,7 +84,8 @@ def test_only_one_claim_is_recorded_as_holding():
 def test_it_runs_and_reports_zero_sealed():
     env = {**dict(__import__("os").environ), "PYTHONPATH": str(JELES)}
     done = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True,
-                          text=True, timeout=300, env=env, cwd=str(ROOT))
+                          text=True, timeout=300, env=env, cwd=str(ROOT),
+                          check=False)
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-400:]
     out = __import__("re").sub(r"\x1b\[[0-9;]*m", "", done.stdout)
     assert "0 sealed" in out
@@ -117,5 +118,5 @@ def test_it_writes_nothing_into_this_repository():
     before = {p for p in ROOT.iterdir()}
     env = {**dict(__import__("os").environ), "PYTHONPATH": str(JELES)}
     subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True,
-                   timeout=300, env=env, cwd=str(ROOT))
+                   timeout=300, env=env, cwd=str(ROOT), check=False)
     assert {p for p in ROOT.iterdir()} == before
