@@ -95,14 +95,14 @@ def test_an_installed_wheel_can_actually_build_the_served_page(tmp_path, built_w
     venv_python = venv_dir / "bin" / "python"
     install = subprocess.run(
         [str(venv_python), "-m", "pip", "install", "--no-deps", "-q", str(built_wheel)],
-        capture_output=True, text=True, timeout=120)
+        capture_output=True, text=True, timeout=120, check=False)
     if install.returncode != 0:
         pytest.fail(f"installing the built wheel failed:\n{install.stderr[-2000:]}")
     check = subprocess.run(
         [str(venv_python), "-c",
-         "from nestor.ui_page import PAGE; "
-         "assert 'cytoscape' in PAGE and 'version=\"3.34.1\"' in PAGE; "
-         "print('OK')"],
-        capture_output=True, text=True, timeout=30)
+         ("from nestor.ui_page import PAGE; "
+          "assert 'cytoscape' in PAGE and 'version=\"3.34.1\"' in PAGE; "
+          "print('OK')")],
+        capture_output=True, text=True, timeout=30, check=False)
     assert check.returncode == 0 and "OK" in check.stdout, (
         f"stdout={check.stdout!r} stderr={check.stderr!r}")

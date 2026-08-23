@@ -3,11 +3,10 @@ import json
 import os
 
 import pytest
+from conftest import read_ledger
 
 from nestor import cascade, frank, memory
 from nestor.engine import OfflineEngine
-
-from conftest import read_ledger
 
 
 class RecordingForwarder:

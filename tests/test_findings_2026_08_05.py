@@ -499,8 +499,8 @@ class TestTheReasonIsClassifiedOverEveryRowNotAPage:
         forged_src = "the quick brown fox jumps over the lazy dog and keeps walking"
         memory.add_pair(forged_src, "a forged answer", "decision", "decision",
                         status="sealed", verifier="rita", store=store)
-        row = [p for p in store.memory_list(source_lang="decision", limit=50)
-               if p["source_text"] == forged_src][0]
+        row = next(p for p in store.memory_list(source_lang="decision", limit=50)
+                   if p["source_text"] == forged_src)
         with store._db() as conn:
             conn.execute("UPDATE tm_pairs SET seal_sig=? WHERE id=?",
                          ("deadbeef" * 8, row["id"]))
@@ -805,7 +805,7 @@ class TestRevisingADraftKeepsWhatItReplaced:
         kinds = [e["kind"] for e in read_ledger()]
         assert "supersede" in kinds
         assert "seal" not in kinds, f"a draft revision claimed a seal: {kinds}"
-        entry = [e for e in read_ledger() if e["kind"] == "supersede"][0]
+        entry = next(e for e in read_ledger() if e["kind"] == "supersede")
         assert entry["verifier"] == ""
         assert entry["replaced_status"] == "draft"
 

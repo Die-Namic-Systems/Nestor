@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import threading
 from collections import OrderedDict
-from typing import Optional
 
 from . import config
 from .embedding_store import load_embedding, save_embedding, supports_embedding_store
@@ -89,8 +88,8 @@ class SemanticMatcher:
 
     name = "semantic"
 
-    def __init__(self, model_name: Optional[str] = None,
-                 dedup: Optional[Matcher] = None,
+    def __init__(self, model_name: str | None = None,
+                 dedup: Matcher | None = None,
                  cache_size: int = _CACHE_MAX,
                  persist: bool = True,
                  backend: str = "fastembed") -> None:

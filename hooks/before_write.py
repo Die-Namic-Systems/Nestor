@@ -46,7 +46,7 @@ EXEMPT = ("demo/review_desk.py", "hooks/review_receipt.py", "hooks/before_write.
 
 WRITE_TOOLS = ("write", "edit", "notebookedit", "multiedit")
 
-_IDEAS_OPEN = re.compile(r"^### (6\.\d+) (.+?) — (.+)$", re.M)
+_IDEAS_OPEN = re.compile(r"^### (6\.\d+) (.+?) — (.+)$", re.MULTILINE)
 
 
 def open_finding_count(root: pathlib.Path) -> int:

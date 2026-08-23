@@ -66,7 +66,8 @@ def merge_pr(repo: pathlib.Path, number: int, branch: str, title: str,
 
 def run(script: str, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(SCRIPTS / script), *args],
-                          capture_output=True, text=True, cwd=str(ROOT))
+                          capture_output=True, text=True, cwd=str(ROOT),
+                          check=False)
 
 
 def pairs(db: pathlib.Path) -> list[tuple[str, str, str]]:

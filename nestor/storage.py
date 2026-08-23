@@ -68,7 +68,7 @@ source" hold when two reviewers seal the same phrase at the same moment.
 """
 from __future__ import annotations
 
-from typing import Optional, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -100,7 +100,7 @@ class Storage(Protocol):
         return them later (``graduate_segment`` reads them).
         """
 
-    def get_document(self, document_id: str) -> Optional[dict]:
+    def get_document(self, document_id: str) -> dict | None:
         """Return the document row, or ``None`` if absent.
 
         When present, the dict MUST expose ``"source_lang"`` and
@@ -121,7 +121,7 @@ class Storage(Protocol):
         the store's own "pending" default — Nestor does not set it here.
         """
 
-    def get_segment(self, segment_id: str) -> Optional[dict]:
+    def get_segment(self, segment_id: str) -> dict | None:
         """Return the segment row, or ``None`` if absent.
 
         When present the dict MUST expose ``"candidate"``, ``"source_text"``
@@ -144,7 +144,7 @@ class Storage(Protocol):
         """
 
     def memory_find(self, source_norm: str, source_lang: str,
-                   target_lang: str) -> Optional[dict]:
+                   target_lang: str) -> dict | None:
         """Exact-key lookup by *normalized* source, for upsert.
 
         Returns the single pair whose ``source_norm`` + language pair match,
@@ -282,7 +282,7 @@ class Storage(Protocol):
         columns as :meth:`memory_find`.
         """
 
-    def memory_get(self, pair_id: str) -> Optional[dict]:
+    def memory_get(self, pair_id: str) -> dict | None:
         """One pair by id, or ``None``."""
 
     def memory_unseal(self, pair_id: str, verifier: str, reason: str) -> None:
@@ -350,7 +350,7 @@ class Storage(Protocol):
 _REJECTION_OPS = ("memory_reject_pair", "memory_add_rejection", "memory_rejections")
 
 
-def supports_rejection(store: "Storage") -> bool:
+def supports_rejection(store: Storage) -> bool:
     """Whether ``store`` implements the optional rejection capability.
 
     All three operations or none: a store that can record rejections but not
@@ -364,7 +364,7 @@ def supports_rejection(store: "Storage") -> bool:
 _REJECTION_LISTING_OPS = ("memory_list_rejections",)
 
 
-def supports_rejection_listing(store: "Storage") -> bool:
+def supports_rejection_listing(store: Storage) -> bool:
     """Whether ``store`` can enumerate rejections by domain rather than by key.
 
     Its own predicate rather than a fourth entry in :data:`_REJECTION_OPS`,
@@ -384,7 +384,7 @@ _CURATION_OPS = ("memory_list", "memory_get", "memory_unseal",
                  "memory_rejections_for_pair")
 
 
-def supports_curation(store: "Storage") -> bool:
+def supports_curation(store: Storage) -> bool:
     """Whether ``store`` implements the optional curation capability.
 
     All four or none, for the same reason as :func:`supports_rejection`: a
@@ -398,7 +398,7 @@ def supports_curation(store: "Storage") -> bool:
 _QUEUE_OPS = ("list_documents", "list_segments", "update_segment_status")
 
 
-def supports_queue(store: "Storage") -> bool:
+def supports_queue(store: Storage) -> bool:
     """Whether ``store`` implements the optional review-queue capability.
 
     All three or none, for the same reason as the other two: a queue that lists
@@ -443,7 +443,7 @@ class AtomicSupersedeStorage(Storage, Protocol):
                                   expected_superseded_by: str = "") -> bool: ...
 
 
-def supports_atomic_supersede(store: "Storage") -> bool:
+def supports_atomic_supersede(store: Storage) -> bool:
     """Whether ``store`` can retire a row conditionally, in one statement.
 
     Its own predicate rather than a fourth entry in :data:`_LINEAGE_OPS`, on
@@ -461,7 +461,7 @@ def supports_atomic_supersede(store: "Storage") -> bool:
     return supports(store, "atomic_supersede")
 
 
-def supports_lineage(store: "Storage") -> bool:
+def supports_lineage(store: Storage) -> bool:
     """Whether ``store`` implements the optional lineage capability.
 
     Both operations or none, same rule as the other three: a store that can
@@ -493,7 +493,7 @@ class EdgeStorage(Storage, Protocol):
                          edge_sig: str) -> bool: ...
 
 
-def supports_edges(store: "Storage") -> bool:
+def supports_edges(store: Storage) -> bool:
     """Whether ``store`` implements the optional decision-graph capability
     (docs/decision-memory.md N6).
 
@@ -525,7 +525,7 @@ class EvidenceStorage(Storage, Protocol):
                                  target_lang: str = "") -> list[dict]: ...
 
 
-def supports_evidence(store: "Storage") -> bool:
+def supports_evidence(store: Storage) -> bool:
     """Whether ``store`` implements the optional evidence capability
     (docs/evidence-edge.md).
 
@@ -551,7 +551,7 @@ class WarrantStorage(Storage, Protocol):
     def memory_warrants_for(self, pair_id: str) -> list[dict]: ...
 
 
-def supports_warrants(store: "Storage") -> bool:
+def supports_warrants(store: Storage) -> bool:
     """Whether ``store`` implements the optional warrants capability
     (docs/warrants.md).
 
@@ -585,7 +585,7 @@ class VerifierPolicyStorage(Storage, Protocol):
                            target_lang: str = "") -> list[dict]: ...
 
 
-def supports_verifier_policy(store: "Storage") -> bool:
+def supports_verifier_policy(store: Storage) -> bool:
     """Whether ``store`` can enforce a per-domain verifier allowlist
     (issue #167 piece 3).
 
@@ -635,7 +635,7 @@ _CAPABILITY_OPS: dict[str, tuple[str, ...]] = {
 }
 
 
-def supports(store: "Storage", capability: str) -> bool:
+def supports(store: Storage, capability: str) -> bool:
     """Whether ``store`` implements ``capability`` — the table-driven form of
     the individual ``supports_<cap>`` predicates above (and of
     :func:`nestor.embedding_store.supports_embedding_store`).
@@ -649,8 +649,8 @@ def supports(store: "Storage", capability: str) -> bool:
               for op in _CAPABILITY_OPS[capability])
 
 
-def require_capability(store: "Storage", capability: str, message: str,
-                       exc_type: "type[BaseException]" = RuntimeError) -> None:
+def require_capability(store: Storage, capability: str, message: str,
+                       exc_type: type[BaseException] = RuntimeError) -> None:
     """Raise ``exc_type(message)`` unless ``supports(store, capability)``.
 
     The table-driven counterpart of the hand-written ``_require_<cap>``
@@ -671,16 +671,16 @@ def require_capability(store: "Storage", capability: str, message: str,
         raise exc_type(message)
 
 
-_store: "Optional[Storage]" = None
+_store: Storage | None = None
 
 
-def set_store(store: "Storage") -> None:
+def set_store(store: Storage) -> None:
     """Install the process-wide store used when no explicit ``store=`` is passed."""
     global _store
     _store = store
 
 
-def get_store(store: "Optional[Storage]" = None) -> "Storage":
+def get_store(store: Storage | None = None) -> Storage:
     """Resolve the store to use.
 
     An explicit ``store`` argument wins. Otherwise the global store set via

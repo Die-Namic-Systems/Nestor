@@ -21,14 +21,22 @@ pair language tags, so one store holds disjoint decision graphs
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable, Optional, cast
+from typing import cast
 
 from . import memory, signing
 from .cascade import _ledger_append
 from .matcher import Matcher, StringMatcher, match_similarity, uses_raw_score
-from .storage import (EdgeStorage, LineageStorage, Storage, require_capability,
-                      supports_edges, supports_lineage, supports_rejection)
+from .storage import (
+    EdgeStorage,
+    LineageStorage,
+    Storage,
+    require_capability,
+    supports_edges,
+    supports_lineage,
+    supports_rejection,
+)
 
 #: The relations an edge may assert (docs/decision-memory.md N6). A kind outside
 #: this set is a typo that would silently grow an ungraphable graph, so it is
@@ -44,10 +52,10 @@ class DecisionMemory:
     """Sealed decisions and the signed edges between them, over one store."""
 
     def __init__(self, store: Storage, domain: str = "decision",
-                 matcher: Optional[Matcher] = None,
-                 seal_threshold: Optional[float] = None,
-                 context_threshold: Optional[float] = None,
-                 fuzzy_bar: Optional[float] = None) -> None:
+                 matcher: Matcher | None = None,
+                 seal_threshold: float | None = None,
+                 context_threshold: float | None = None,
+                 fuzzy_bar: float | None = None) -> None:
         self.store = store
         self.domain = domain
         self.matcher = matcher or StringMatcher()
@@ -109,7 +117,7 @@ class DecisionMemory:
         Recorded in decision 0144 (it revises 0141's 'gracefully skipped').
         """
         if not callable(getattr(self.store, "memory_get", None)):
-            raise RuntimeError(
+            raise TypeError(
                 f"{type(self.store).__name__} implements the decision-graph "
                 f"capability but not memory_get, needed to confirm an edge's "
                 f"endpoints are real decisions (the curation capability — see "
@@ -196,7 +204,7 @@ class DecisionMemory:
     # -- the traversal ----------------------------------------------------
 
     def constraints_on(self, question: str, *,
-                        fuzzy_bar: Optional[float] = None) -> dict:
+                        fuzzy_bar: float | None = None) -> dict:
         """What the committed record constrains about ``question``.
 
         Not "what is the answer" but the shape a proposal has to fit:
@@ -268,10 +276,10 @@ class DecisionMemory:
         return result
 
     def _fuzzy_scan(self, question: str, norm: str,
-                    bar: float) -> tuple[Optional[dict], float]:
+                    bar: float) -> tuple[dict | None, float]:
         """Best candidate above ``bar``, or ``(None, 0.0)``."""
         raw_score = uses_raw_score(self.matcher)
-        best_row: Optional[dict] = None
+        best_row: dict | None = None
         best_sim = 0.0
         for candidate in self.store.memory_candidates(self.domain, self.domain):
             sim = match_similarity(

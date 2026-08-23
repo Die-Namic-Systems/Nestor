@@ -26,7 +26,8 @@ DECISIONS = ROOT / "docs" / "dogfood" / "decisions"
 
 def _run(*args) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(SCRIPT), *args],
-                          capture_output=True, text=True, cwd=str(ROOT))
+                          capture_output=True, text=True, cwd=str(ROOT),
+                          check=False)
 
 
 # --- the committed artifact ------------------------------------------------
@@ -121,6 +122,7 @@ def test_the_rebuild_is_deterministic(tmp_path):
     """
     sys.path.insert(0, str(ROOT / "scripts"))
     import dogfood_store
+
     from nestor import portable
 
     def build_bundle(path):
@@ -142,6 +144,7 @@ def test_row_ids_and_timestamps_are_derived_from_the_decision(tmp_path):
     sys.path.insert(0, str(ROOT / "scripts"))
     import dogfood_common
     import dogfood_store
+
     from nestor.matcher import StringMatcher
 
     s = SqliteStore(str(tmp_path / "d.db"))

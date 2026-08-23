@@ -29,8 +29,8 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from demo import desks as D          # noqa: E402
-from nestor import cascade, memory   # noqa: E402
+from demo import desks as D
+from nestor import cascade, memory
 
 
 class SerialMatcher:

@@ -13,7 +13,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-import constant_time_guard as ctg  # noqa: E402  (scripts/ is not an installed package)
+import constant_time_guard as ctg
 
 
 def test_the_real_verification_path_is_constant_time():

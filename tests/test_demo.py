@@ -20,12 +20,14 @@ DOGFOODING = REPO / "demo" / "the_dogfooding.py"
 
 def run(*args):
     return subprocess.run([sys.executable, str(DEMO), "--fast", *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180)
+                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          check=False)
 
 
 def run_dogfooding(*args):
     return subprocess.run([sys.executable, str(DOGFOODING), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180)
+                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          check=False)
 
 
 def test_every_beat_still_holds():

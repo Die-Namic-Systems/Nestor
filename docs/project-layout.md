@@ -41,6 +41,7 @@ nestor/
 ├── frank.py          mirror the ledger into willow-mcp's shared governance ledger
 ├── home_paths.py     ~/.nestor/keep paths for household hosts (see docs/home-paths.md)
 ├── home_init.py      idempotent scaffolder for the Nestor home — creates the keep tree if absent, never clobbers
+├── preferences.py    per-user, cross-session preference store (~/.nestor/preferences.json) — not config, not a decision
 ├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
@@ -83,6 +84,7 @@ scripts/              dogfood, fleet-checkout, and two_instances.py — the expo
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
 CHANGELOG.md          releases, newest first — "Unreleased" until the first tag (docs/releasing.md)
+CONTRIBUTING.md       the single path from clone to merged PR — setup, gates, conventions, the one rule
 docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open; opens with a CI-gated Map of every subsection
 docs/agent-log.md     §6, the implementation-session log, lifted out of IDEAS.md; numbers preserved

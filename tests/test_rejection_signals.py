@@ -94,7 +94,7 @@ def test_signals_are_scoped_to_the_curator_s_domain(store, rejected):
 def test_a_retired_pair_still_reports_but_says_it_is_gone(store, rejected):
     memory.reject_pair(rejected["id"], verifier="sam", reason="junk", store=store)
     out = Curator(store, "en", "es").rejection_signals()
-    junk = [p for p in out["pairs"] if p["pair_id"] == rejected["id"]][0]
+    junk = next(p for p in out["pairs"] if p["pair_id"] == rejected["id"])
     assert junk["status"] == "rejected" and junk["servable"] is False
 
 

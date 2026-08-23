@@ -15,8 +15,8 @@ import pytest
 # where it takes effect before signing is imported and the seals verify cleanly.
 os.environ.setdefault("NESTOR_SEAL_KEY", "dispatches-fixture-key-not-a-secret")
 
-from demo import desks                                # noqa: E402
-from demo import the_dispatches_audit as demo         # noqa: E402
+from demo import desks
+from demo import the_dispatches_audit as demo
 
 
 def test_weakest_is_min_over_assumed_fitted_measured():

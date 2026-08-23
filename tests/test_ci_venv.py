@@ -21,7 +21,7 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-import ci_venv  # noqa: E402
+import ci_venv
 
 
 @pytest.fixture()
@@ -128,7 +128,7 @@ def test_a_version_outside_cis_matrix_is_refused_not_run():
     proc = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "ci_venv.py"),
          "--run", "--python", "3.11"],
-        capture_output=True, text=True, cwd=str(REPO))
+        capture_output=True, text=True, cwd=str(REPO), check=False)
     assert proc.returncode == 2
     assert "not in CI's matrix" in proc.stderr
 
@@ -138,7 +138,7 @@ def test_listing_runs_nothing_and_exits_zero():
     it is what somebody types to find out what the tool would do."""
     proc = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "ci_venv.py"), "--list"],
-        capture_output=True, text=True, cwd=str(REPO))
+        capture_output=True, text=True, cwd=str(REPO), check=False)
     assert proc.returncode == 0
     for label in ("workflow", "matrix", "install", "command", "venvs"):
         assert label in proc.stdout

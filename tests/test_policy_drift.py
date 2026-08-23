@@ -61,8 +61,8 @@ FULL_STATEMENT_DOCUMENTS = ("CLAUDE.md", "docs/agent-guide.md", "hooks/seat.md")
 # Markdown emphasis markers ("**word**") are stripped before matching, so a
 # doc that bolds "propose" and "confirm" separately still matches.
 _ACCEPTED_COVENANT_PATTERNS = [
-    re.compile(r"may propose[.;,]?\s+(?:you\s+)?(?:and\s+)?may not confirm", re.I),
-    re.compile(r"may propose,?\s+not confirm", re.I),
+    re.compile(r"may propose[.;,]?\s+(?:you\s+)?(?:and\s+)?may not confirm", re.IGNORECASE),
+    re.compile(r"may propose,?\s+not confirm", re.IGNORECASE),
 ]
 
 # Phrases that would contradict the covenant if any of the six documents
@@ -71,19 +71,19 @@ _ACCEPTED_COVENANT_PATTERNS = [
 # rather than a single clever regex: each entry names one concrete way the
 # rule could be reversed, so a hit is easy to read and act on.
 _CONTRADICTION_PATTERNS = [
-    re.compile(r"agents?\s+may\s+(?:also\s+)?confirm", re.I),
-    re.compile(r"agents?\s+may\s+seal", re.I),
-    re.compile(r"the\s+machine\s+may\s+(?:also\s+)?confirm", re.I),
-    re.compile(r"the\s+machine\s+may\s+seal", re.I),
-    re.compile(r"you\s+may\s+confirm\b", re.I),
-    re.compile(r"you\s+may\s+seal\b", re.I),
-    re.compile(r"an?\s+agent\s+may\s+ratify", re.I),
+    re.compile(r"agents?\s+may\s+(?:also\s+)?confirm", re.IGNORECASE),
+    re.compile(r"agents?\s+may\s+seal", re.IGNORECASE),
+    re.compile(r"the\s+machine\s+may\s+(?:also\s+)?confirm", re.IGNORECASE),
+    re.compile(r"the\s+machine\s+may\s+seal", re.IGNORECASE),
+    re.compile(r"you\s+may\s+confirm\b", re.IGNORECASE),
+    re.compile(r"you\s+may\s+seal\b", re.IGNORECASE),
+    re.compile(r"an?\s+agent\s+may\s+ratify", re.IGNORECASE),
 ]
 
 _SEALING_MECHANISM_PATTERNS = [
     re.compile(r'status\s*=\s*"sealed"'),
     re.compile(r"verifier\s*="),
-    re.compile(r"nestor\s+ui|nestor\.ui", re.I),
+    re.compile(r"nestor\s+ui|nestor\.ui", re.IGNORECASE),
 ]
 
 

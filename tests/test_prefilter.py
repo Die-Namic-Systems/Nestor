@@ -116,7 +116,7 @@ def test_the_fast_scan_agrees_with_the_slow_one(corpus, probe):
 
 def test_it_agrees_on_random_probes(corpus):
     rnd = random.Random(7)
-    words = "invoice payment overdue the is was please remit shipping attached".split()
+    words = ["invoice", "payment", "overdue", "the", "is", "was", "please", "remit", "shipping", "attached"]
     for _ in range(200):
         probe = " ".join(rnd.choice(words) for _ in range(rnd.randint(1, 6)))
         fast = memory.best_sealed(probe, "en", "es", store=corpus)

@@ -29,7 +29,7 @@ from __future__ import annotations
 import hashlib
 import struct
 import warnings
-from typing import Optional, Protocol
+from typing import Protocol
 
 from . import signing
 from .storage import supports as _supports_capability
@@ -46,7 +46,7 @@ class EmbeddingCapableStorage(Protocol):
     module docstring)."""
 
     def embedding_load(self, pair_id: str,
-                       model_name: str) -> Optional[tuple[str, bytes, str]]: ...
+                       model_name: str) -> tuple[str, bytes, str] | None: ...
 
     def embedding_save(self, pair_id: str, model_name: str, source_sha: str,
                        blob: bytes, sig: str = "") -> None: ...
@@ -97,7 +97,7 @@ def cache_enabled() -> bool:
 
 
 def load_embedding(store, pair_id: str, model_name: str,
-                   text: str) -> Optional[tuple[float, ...]]:
+                   text: str) -> tuple[float, ...] | None:
     """A cached vector for ``pair_id``, or ``None`` to compute it.
 
     ``None`` covers every reason not to use one — absent, stale, or unverifiable

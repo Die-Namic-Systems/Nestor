@@ -8,8 +8,7 @@ import subprocess
 import pytest
 
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
-from hooks.hook_runner import (_emit_before_mcp, _emit_before_stop,
-                               _emit_before_write)
+from hooks.hook_runner import _emit_before_mcp, _emit_before_stop, _emit_before_write
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -125,7 +124,7 @@ def _run_hook(payload: dict) -> dict:
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_mcp"],
         input=json.dumps(payload),
-        capture_output=True, text=True, cwd=REPO, timeout=60)
+        capture_output=True, text=True, cwd=REPO, timeout=60, check=False)
     assert done.returncode == 0, done.stderr
     assert done.stdout.strip(), "expected deny output, got silence (allow)"
     return json.loads(done.stdout)
@@ -151,6 +150,6 @@ def test_the_mcp_gate_allows_end_to_end():
         [str(REPO / "hooks" / "nestor-hook"), "claude", "before_mcp"],
         input=json.dumps({"tool_name": "mcp__codebase-memory-mcp__search_graph",
                           "tool_input": {}}),
-        capture_output=True, text=True, cwd=REPO, timeout=60)
+        capture_output=True, text=True, cwd=REPO, timeout=60, check=False)
     assert done.returncode == 0, done.stderr
     assert done.stdout.strip() == ""

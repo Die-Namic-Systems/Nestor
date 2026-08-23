@@ -142,7 +142,7 @@ def test_cli_fails_closed_on_contamination(repo, tmp_path):
     proc = subprocess.run(
         [sys.executable, str(SCRIPT), "--repo", str(repo),
          "--db", str(db), "--fail-on-contamination"],
-        capture_output=True, text=True, cwd=str(ROOT),
+        capture_output=True, text=True, cwd=str(ROOT), check=False,
     )
     assert proc.returncode == 1, proc.stdout + proc.stderr
     assert CONTAMINANT in proc.stdout
@@ -169,7 +169,7 @@ def test_cli_reports_clean_and_exits_zero(repo, tmp_path):
     proc = subprocess.run(
         [sys.executable, str(SCRIPT), "--repo", str(repo),
          "--db", str(db), "--fail-on-contamination"],
-        capture_output=True, text=True, cwd=str(ROOT),
+        capture_output=True, text=True, cwd=str(ROOT), check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "every origin names a git-tracked path" in proc.stdout
@@ -192,7 +192,7 @@ def test_cli_reports_unknown_when_scope_cannot_be_read(tmp_path):
     db = _store(tmp_path / "some.db", [_origin("docs/a.md")])
     proc = subprocess.run(
         [sys.executable, str(SCRIPT), "--repo", str(plain), "--db", str(db)],
-        capture_output=True, text=True, cwd=str(ROOT),
+        capture_output=True, text=True, cwd=str(ROOT), check=False,
     )
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "UNKNOWN" in proc.stdout

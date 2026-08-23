@@ -394,7 +394,7 @@ def test_session_start_emits_valid_claude_json_end_to_end():
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "session_start"],
         capture_output=True, text=True, cwd=REPO, timeout=60,
-        env={**_env(), "NESTOR_PROJECT_ROOT": str(REPO)})
+        env={**_env(), "NESTOR_PROJECT_ROOT": str(REPO)}, check=False)
     assert done.returncode == 0, done.stderr
     out = json.loads(done.stdout)
     ctx = out["hookSpecificOutput"]["additionalContext"]

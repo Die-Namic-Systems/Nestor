@@ -9,11 +9,12 @@ test that passes before the fix is not a gate, it is a description.
 """
 
 import os
-import re
 import pathlib
+import re
 import warnings
 
 from conftest import read_ledger
+
 from nestor import engine, memory
 from nestor.matcher import StringMatcher
 from nestor.sqlite_store import SqliteStore
@@ -23,12 +24,12 @@ ROOT = pathlib.Path(__file__).parent.parent
 
 def _forged_row(source, target, verifier="mallory"):
     """A row asserting `sealed` with a signature nobody could have produced."""
-    return dict(
-        id=f"forged-{source}", source_text=source,
-        source_norm=StringMatcher().normalize(source),
-        source_lang="en", target_text=target, target_lang="es",
-        status="sealed", verifier=verifier, weight=1.0, origin="",
-        created_at="2026-07-30T00:00:00+00:00", seal_sig="bogus")
+    return {
+        "id": f"forged-{source}", "source_text": source,
+        "source_norm": StringMatcher().normalize(source),
+        "source_lang": "en", "target_text": target, "target_lang": "es",
+        "status": "sealed", "verifier": verifier, "weight": 1.0, "origin": "",
+        "created_at": "2026-07-30T00:00:00+00:00", "seal_sig": "bogus"}
 
 
 # --------------------------------------------------------------------------

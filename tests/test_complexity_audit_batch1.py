@@ -16,7 +16,6 @@ from nestor.cli import build_parser, split_delegated
 from nestor.errors import NestorError
 from nestor.sqlite_store import SqliteStore
 
-
 # --- the common refusal base ------------------------------------------------
 
 # The policy refusals that must share the NestorError base, imported from where

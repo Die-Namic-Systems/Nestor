@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-from typing import Optional
 
 from . import config
 
@@ -33,7 +32,7 @@ from . import config
 #: `NESTOR_GLOSSARY` or `set_glossary_path` is how you stop that mattering.
 _DEFAULT_PATH = (pathlib.Path.cwd() / "data" / "glossary.json").resolve()
 
-_OVERRIDE: Optional[pathlib.Path] = None
+_OVERRIDE: pathlib.Path | None = None
 
 
 def set_glossary_path(path) -> None:

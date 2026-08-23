@@ -11,7 +11,6 @@ import pytest
 
 from recipes import process_lens as pl
 
-
 # --- the wall -------------------------------------------------------------
 
 @pytest.mark.parametrize("leaky", [

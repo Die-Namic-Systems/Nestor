@@ -7,14 +7,13 @@ and in particular the two distinctions it exists to make — *unseal* is not
 """
 from __future__ import annotations
 
-import os
-
 import json
+import os
 
 import pytest
 
 from nestor import cascade, memory, storage
-from nestor.curator import Curator, CurationUnsupportedError
+from nestor.curator import CurationUnsupportedError, Curator
 from nestor.sqlite_store import SqliteStore
 
 
@@ -275,7 +274,7 @@ def test_provenance_reports_no_warrant_as_satisfied(filled):
     pair = c.list(contains="invoice")[0]
     warrant.attach(pair["id"], "construction", "redential", "npx redential scan",
                    expected_digest="ab" * 16, store=filled)
-    row = [w for w in c.get(pair["id"])["warrants"] if w["kind"] == "construction"][0]
+    row = next(w for w in c.get(pair["id"])["warrants"] if w["kind"] == "construction")
     assert not ({"verified", "verified_at", "verified_by", "holds", "confirmed",
                  "satisfied"} & set(row))
     assert row["expected_digest"] == "ab" * 16      # the recipe, not the verdict

@@ -84,10 +84,10 @@ def system_prompt(source_lang: str, target_lang: str,
     :func:`nestor.cascade.ledger_append` draws about its file lock.
     """
     lines = [
-        f"You are a translation engine. Translate the user's text from "
-        f"{source_lang} to {target_lang}.",
-        "Respond with ONLY the translated text — no preamble, no notes, "
-        "no quotation marks around the output.",
+        (f"You are a translation engine. Translate the user's text from "
+         f"{source_lang} to {target_lang}."),
+        ("Respond with ONLY the translated text — no preamble, no notes, "
+         "no quotation marks around the output."),
         VOICE_RULE,
     ]
     if locks:

@@ -184,7 +184,7 @@ def test_a_broken_ledger_refuses_the_attach_before_the_row_is_written(store, tmp
     bad = tmp_path / "ledger_is_a_dir"
     bad.mkdir()
     cascade.set_ledger_path(bad)
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017 — any ledger/IO error is acceptable
         evidence.attach(pair["id"], "document", "x.pdf", store=store)
     # nothing written — the row did not land ahead of a trail that refused it
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
@@ -238,10 +238,10 @@ def test_attach_records_a_content_hash_in_the_ledger(store):
     pair = _sealed(store, "hashed")
     ev = evidence.attach(pair["id"], "document", "MSA.pdf", reason="clause 4",
                          store=store)
-    entry = [e for e in ledger.entries(kind="attach_evidence")
-             if e.get("evidence_id") == ev["id"]][0]
+    entry = next(e for e in ledger.entries(kind="attach_evidence")
+                 if e.get("evidence_id") == ev["id"])
     expected = hashlib.sha256(
-        "\n".join(("document", "MSA.pdf", "clause 4")).encode()).hexdigest()
+        b"document\nMSA.pdf\nclause 4").hexdigest()
     assert entry["content_sha"] == expected
 
 
@@ -321,7 +321,7 @@ def test_a_store_advertising_evidence_but_lacking_memory_get_says_so_honestly(st
 
     wrapped = NoGet(store)
     assert storage.supports_evidence(wrapped) is True     # it advertises support
-    with pytest.raises(RuntimeError, match="memory_get"):
+    with pytest.raises(TypeError, match="memory_get"):
         evidence.attach(pair["id"], "document", "x.pdf", store=wrapped)
     # and the pair genuinely exists — the old code would have said "no pair"
     assert store.memory_get(pair["id"]) is not None

@@ -87,8 +87,7 @@ class TestPublicOnlyVerifierSealsWithAClientSignature:
         # "bob" signs entirely on his own device: nothing here is the server's
         # sign_seal, and the private key below never gets near `ring`.
         private = Ed25519PrivateKey.generate()
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
         priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
                                            NoEncryption())
         pub_bytes = private.public_key().public_bytes(Encoding.Raw,
@@ -122,8 +121,7 @@ class TestInvalidProvidedSignatureRefusesAndWritesNothing:
     """(b) A forged/invalid supplied signature is refused; nothing lands."""
 
     def test_forged_signature_refused_no_row(self, ring, store):
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
         real = Ed25519PrivateKey.generate()
         real_pub = real.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
         ring.add("bob", key=real_pub, kind="ed25519")
@@ -147,8 +145,7 @@ class TestInvalidProvidedSignatureRefusesAndWritesNothing:
         # even be phrased against the old signature.
 
     def test_garbage_signature_refused_no_row(self, ring, store):
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
         real = Ed25519PrivateKey.generate()
         real_pub = real.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
         ring.add("bob", key=real_pub, kind="ed25519")
@@ -163,8 +160,7 @@ class TestInvalidProvidedSignatureRefusesAndWritesNothing:
         """A valid signature over the WRONG fields must not verify — proves
         the message is actually bound to (source_norm, target_text, verifier)
         on this path, not just checked for well-formedness."""
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
         private = Ed25519PrivateKey.generate()
         priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
                                            NoEncryption())
@@ -185,8 +181,7 @@ class TestNoSignatureSuppliedStillRefusesForPublicOnly:
     """(c) The original acceptance property, unbroken by this seam."""
 
     def test_public_only_verifier_cannot_auto_sign(self, ring, store):
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
         private = Ed25519PrivateKey.generate()
         pub_bytes = private.public_key().public_bytes(Encoding.Raw,
                                                        PublicFormat.Raw)
@@ -203,8 +198,7 @@ class TestNoSignatureSuppliedStillRefusesForPublicOnly:
         """The public-only refusal is bypassed ONLY when a valid signature is
         actually provided -- never merely because seal_sig="" was passed
         explicitly (the empty string must behave exactly like omitting it)."""
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
         private = Ed25519PrivateKey.generate()
         pub_bytes = private.public_key().public_bytes(Encoding.Raw,
                                                        PublicFormat.Raw)
@@ -301,8 +295,7 @@ class TestNonAsciiQuoteVectorEndToEnd:
         expected = b'["h\xc3\xa9llo","quo\\"te","rita"]'
         assert signing._message("héllo", 'quo"te', "rita") == expected
 
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
         private = Ed25519PrivateKey.generate()
         priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
                                            NoEncryption())
@@ -333,8 +326,7 @@ class TestNonAsciiQuoteVectorEndToEnd:
         signature over almost-the-same bytes (one byte short) must not
         verify. Guards against a JS encoder that is byte-for-byte correct
         except for, say, dropping the closing bracket."""
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding, NoEncryption, PrivateFormat, PublicFormat)
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
         private = Ed25519PrivateKey.generate()
         priv_bytes = private.private_bytes(Encoding.Raw, PrivateFormat.Raw,
                                            NoEncryption())

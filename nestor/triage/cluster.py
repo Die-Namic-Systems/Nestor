@@ -57,7 +57,7 @@ _STOPWORDS = frozenset({
     "each", "both", "one", "two", "own", "get", "got", "make", "made", "want",
     "wants", "way", "s", "t", "re", "d", "ll", "m", "than", "then", "so",
     "but", "have", "has", "had", "up", "out", "over", "about", "still", "just",
-    "only", "also", "does", "per", "vs",
+    "only", "also", "per", "vs",
 })
 
 #: How many shared tokens a label may name before it stops being a label.

@@ -24,11 +24,11 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 from . import config, frank, langid, memory
 from .engine import get_engine
-from .ledger import LedgerError, verify as _ledger_verify
+from .ledger import LedgerError
+from .ledger import verify as _ledger_verify
 from .matcher import Matcher, matcher_audit_fields
 from .segment import _split_segments
 from .storage import Storage, get_store
@@ -53,10 +53,10 @@ def _unlock_file(handle) -> None:
 _append_lock = threading.Lock()
 
 _DEFAULT_LEDGER = "data/ledger.jsonl"
-_LEDGER_OVERRIDE: Optional[pathlib.Path] = None
+_LEDGER_OVERRIDE: pathlib.Path | None = None
 _verified_ledgers: set[str] = set()  # paths already chain-verified this process
 _verified_at: dict[str, float] = {}   # monotonic time of last full walk per path
-_VERIFY_INTERVAL_OVERRIDE: Optional[float] = None  # tests / nestor.ui default
+_VERIFY_INTERVAL_OVERRIDE: float | None = None  # tests / nestor.ui default
 
 # path -> (byte offset of the last line THIS process wrote, that line's sha256).
 # The append-time checkpoint; see _check_tail.
@@ -205,7 +205,7 @@ def ledger_verify_interval_sec() -> float:
         raise ValueError(str(exc)) from exc
 
 
-def set_ledger_verify_interval(seconds: Optional[float]) -> None:
+def set_ledger_verify_interval(seconds: float | None) -> None:
     """Override :func:`ledger_verify_interval_sec` (``None`` restores env/default)."""
     global _VERIFY_INTERVAL_OVERRIDE
     _VERIFY_INTERVAL_OVERRIDE = seconds
@@ -315,17 +315,16 @@ def ledger_preflight() -> None:
         _check_tail(ledger)
         return
     key = str(ledger)
-    if key in _verified_ledgers and key not in _checkpoints:
-        if not _ledger_verify_cache_stale(key):
-            return                       # neither read has anything left to do
-    with _append_lock:
-        with open(ledger, "r", encoding="utf-8") as f:
-            _lock_file(f, shared=True)
-            try:
-                _verify_chain_once(ledger)
-                _check_tail(ledger)
-            finally:
-                _unlock_file(f)
+    if (key in _verified_ledgers and key not in _checkpoints
+            and not _ledger_verify_cache_stale(key)):
+        return                       # neither read has anything left to do
+    with _append_lock, open(ledger, "r", encoding="utf-8") as f:
+        _lock_file(f, shared=True)
+        try:
+            _verify_chain_once(ledger)
+            _check_tail(ledger)
+        finally:
+            _unlock_file(f)
 
 
 #: Every ``kind`` the ledger's writers may record — the closed set for
@@ -396,37 +395,36 @@ def ledger_append(entry: dict) -> None:
         _check_tail(ledger)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": "genesis", **entry}
-    with _append_lock:
-        # "a+" creates the file if absent and keeps the read and the write on one
-        # handle, so the tail we hash is the tail we chain onto.
-        with open(ledger, "a+", encoding="utf-8") as f:
-            _lock_file(f)
-            try:
-                # Both reads happen inside the lock, for the same reason the
-                # tail read below does: anything that reads this file while
-                # another process is mid-append sees a torn line.
-                _verify_chain_once(ledger)
-                _check_tail(ledger)
-                f.seek(0)
-                last = ""
-                for raw in f:
-                    if raw.strip():
-                        last = raw.strip()
-                if last:
-                    entry["prev"] = hashlib.sha256(last.encode("utf-8")).hexdigest()
-                line = json.dumps(entry, ensure_ascii=False)
-                f.write(line + "\n")
-                f.flush()
-                os.fsync(f.fileno())
-                # Where our line landed, measured after the write and while the
-                # lock is still held, so no cooperating writer can have moved the
-                # end of the file between the write and the measurement.
-                size = os.fstat(f.fileno()).st_size
-                start = size - len(line.encode("utf-8")) - 1
-                if start >= 0:
-                    _checkpoints[str(ledger)] = (start, _line_sha(line))
-            finally:
-                _unlock_file(f)
+    # "a+" creates the file if absent and keeps the read and the write on one
+    # handle, so the tail we hash is the tail we chain onto.
+    with _append_lock, open(ledger, "a+", encoding="utf-8") as f:
+        _lock_file(f)
+        try:
+            # Both reads happen inside the lock, for the same reason the
+            # tail read below does: anything that reads this file while
+            # another process is mid-append sees a torn line.
+            _verify_chain_once(ledger)
+            _check_tail(ledger)
+            f.seek(0)
+            last = ""
+            for raw in f:
+                if raw.strip():
+                    last = raw.strip()
+            if last:
+                entry["prev"] = hashlib.sha256(last.encode("utf-8")).hexdigest()
+            line = json.dumps(entry, ensure_ascii=False)
+            f.write(line + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+            # Where our line landed, measured after the write and while the
+            # lock is still held, so no cooperating writer can have moved the
+            # end of the file between the write and the measurement.
+            size = os.fstat(f.fileno()).st_size
+            start = size - len(line.encode("utf-8")) - 1
+            if start >= 0:
+                _checkpoints[str(ledger)] = (start, _line_sha(line))
+        finally:
+            _unlock_file(f)
     # Mirror into FRANK (willow-mcp's shared governance ledger) when a forwarder
     # is installed — see nestor.frank. The local chain above is written first and
     # stays the source of truth: a governance mirror that is down, denied, or
@@ -474,8 +472,8 @@ def _accepted_kwargs(func, **candidates) -> dict:
 
 def translate_segment(text: str, source_lang: str, target_lang: str,
                       engine=None, document_id: str = "", position: int = 0,
-                      store: Optional[Storage] = None,
-                      matcher: Optional[Matcher] = None) -> Passage:
+                      store: Storage | None = None,
+                      matcher: Matcher | None = None) -> Passage:
     """One segment through the cascade: sealed, draft, or pending.
 
     ``matcher`` is injected the same way ``store`` is, and for the same reason:
@@ -556,8 +554,8 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
 
 def translate_text(text: str, target_lang: str, source_lang: str = "",
                    engine_name: str = "auto", title: str = "",
-                   store: Optional[Storage] = None,
-                   matcher: Optional[Matcher] = None) -> tuple[dict, list[Passage]]:
+                   store: Storage | None = None,
+                   matcher: Matcher | None = None) -> tuple[dict, list[Passage]]:
     """Run the cascade over a block of text. Returns (document, passages).
     A document is created only if at least one segment needs review."""
     store = get_store(store)
@@ -583,8 +581,8 @@ def translate_text(text: str, target_lang: str, source_lang: str = "",
 
 
 def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
-                   store: Optional[Storage] = None,
-                   matcher: Optional[Matcher] = None) -> Optional[dict]:
+                   store: Storage | None = None,
+                   matcher: Matcher | None = None) -> dict | None:
     """The reviewer's "no" — the missing half of :func:`graduate_segment`.
 
     A reviewer could always accept a queued draft and never reject one, so a bad
@@ -621,8 +619,8 @@ def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
 
 
 def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
-                     store: Optional[Storage] = None,
-                     matcher: Optional[Matcher] = None) -> Optional[dict]:
+                     store: Storage | None = None,
+                     matcher: Matcher | None = None) -> dict | None:
     """Tier 3 → tier 1: a verified segment's pair enters the sealed memory.
     Called from the host's review path when a segment reaches 'verified'.
 

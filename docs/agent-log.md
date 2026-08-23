@@ -7281,3 +7281,77 @@ verified is not a step, it is a hope.
 *Say what you read, not what you concluded — including about your own tools.
 This one said "python 3.12" because it had passed `3.12` to a function, not
 because anything had looked.*
+
+### 6.120 The CLI had no --version, no shell completions, and two verbs without --json — **shipped**
+
+§7.5 names the mechanical CLI finish: `--version`, shell completions, and
+uniform `--json` across all verbs. Present: `--json` on 16 of 18 verbs. Absent:
+`--version`, any completion support, and `--json` on `db` and `export`.
+
+**Shipped:** three additions in `nestor/cli.py`, one new dev dependency, and
+six tests in `tests/test_cli.py`:
+
+- **`--version`** — `nestor --version` prints `nestor {version}` using
+  `importlib.metadata.version("nestor-meaning")`, the same source as
+  `nestor.__version__`.
+- **`nestor completions {bash,zsh,tcsh}`** — generates shell completion scripts
+  via `shtab` (added to `[project.optional-dependencies] dev`). Guarded behind
+  `ImportError` so the subcommand prints a clear install message when `shtab` is
+  absent.
+- **Uniform `--json`** — `db` now emits `{"action": "checkpoint", "db": "..."}` or
+  `{"action": "backup", "files": [...]}` through `_emit()`. `export` now emits
+  `{"file": "...", "format": "...", "counts": {...}, "digest": "..."}` when
+  `--out` is used (without `--out`, stdout is already the bundle).
+
+### 6.121 The system had no surface for "I like it this way" — **shipped**
+
+§7.5 names the gap: product decisions live in the dogfood corpus, governance
+rules live in the constitution and covenants, session context evaporates. A user
+who said "stop producing artifacts" had nowhere to put it except a decision file,
+which was wrong (reverted within minutes). The gap is a per-user, cross-session
+preference store that does not leak into product decisions or governance.
+
+**Shipped:** `nestor/preferences.py`, a CLI verb, a read-only MCP tool, and 29
+tests.
+
+- **`nestor/preferences.py`** — JSON file at `~/.nestor/preferences.json`
+  (follows `NESTOR_HOME`). Atomic writes (tempfile + `os.replace`). Eight known
+  keys across `output.*`, `serve.*`, `ui.*`, `cli.*` namespaces, each with type,
+  default, and optional choices. Unknown keys are preserved, not stripped —
+  plugins can use their own namespace. Structural guard: the module never imports
+  signing, cascade, ledger, or seal machinery.
+- **`nestor prefs`** CLI verb — five actions: `list` (default), `get`, `set`,
+  `clear`, `reset`. Uses `_emit()` for `--json` / human output, same pattern as
+  every other verb. First subcommand that does not open a SQLite store.
+- **`nestor_prefs`** MCP tool — read-only by design (a model should not set
+  preferences on the user's behalf). Returns all preferences or one by key.
+- **29 tests** in `tests/test_preferences.py` — load/save round-trip, get/set/
+  clear with coercion and validation, reset, unknown-key preservation, error
+  handling (corrupt file, non-object JSON), CLI integration via subprocess, MCP
+  integration with `NESTOR_HOME` isolation, and a `TestNeverSeals` structural
+  guard (no `verifier=`, no `status=`, no seal-machinery imports).
+
+Design doc: `docs/drafts/user-preferences.md`.
+
+### 6.122 The contributor path was scattered across four documents and had no front door — **shipped**
+
+§7.5 names the gap: a PR template and pre-commit exist, but `CONTRIBUTING.md`
+and `.github/ISSUE_TEMPLATE` do not. The contributor guidance lived in
+`AGENTS.md` (the gate table), `docs/agent-guide.md` (seals, tests, dogfood),
+`docs/code-review-lessons.md` (pre-merge checklist), and the README
+(development setup) — four documents, no single path through them.
+
+**Shipped:** three new files and one layout update.
+
+- **`CONTRIBUTING.md`** — the single path from clone to merged PR. Covers
+  setup (`.[dev,keys]` venv), the gate table (which command for which change
+  class), conventional-commit PR titles, the one rule ("you may propose; you
+  may not confirm"), test-writing conventions, the pre-PR checklist, and a
+  reading list pointing to the four source documents rather than duplicating
+  them.
+- **`.github/ISSUE_TEMPLATE/bug_report.md`** — steps to reproduce, expected
+  behavior, environment (Python version, Nestor version, OS, matcher).
+- **`.github/ISSUE_TEMPLATE/feature_request.md`** — what and why, worked
+  instance (a concrete scenario, not an abstract case), optional proposal.
+- **`.github/ISSUE_TEMPLATE/config.yml`** — blank issues enabled, contact link
+  to the contributing guide.

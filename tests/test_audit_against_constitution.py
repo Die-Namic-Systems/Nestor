@@ -24,7 +24,7 @@ import textwrap
 import pytest
 
 from nestor import keyring as keyring_mod
-from tests._fleet_paths import constitution_cases  # noqa: E402
+from tests._fleet_paths import constitution_cases
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 AUDIT = REPO / "scripts" / "audit_against_constitution.py"
@@ -34,7 +34,7 @@ CASES = constitution_cases()
 def run(*args, env=None):
     return subprocess.run([sys.executable, str(AUDIT), *args],
                           capture_output=True, text=True, cwd=REPO, timeout=300,
-                          env=env)
+                          env=env, check=False)
 
 
 def test_it_refuses_a_constitution_it_cannot_read(tmp_path):

@@ -4,7 +4,6 @@ from nestor import memory
 from nestor.matcher import Matcher, NumericMatcher, StringMatcher, match_similarity
 from nestor.sqlite_store import SqliteStore
 
-
 # --- StringMatcher: must reproduce the historical translation behavior -------
 
 def test_string_normalize_matches_legacy_norm():

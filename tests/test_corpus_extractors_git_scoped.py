@@ -33,7 +33,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "scripts" / "corpus"
 
 sys.path.insert(0, str(CORPUS))
-import common  # noqa: E402
+import common
 
 if shutil.which("git") is None:  # pragma: no cover - git is present in CI
     pytest.skip("git is required for these tests", allow_module_level=True)
@@ -70,7 +70,7 @@ def run(script: str, repo: pathlib.Path, out: pathlib.Path, extra: list[str],
     cmd = [sys.executable, str(CORPUS / script), "--repo", str(repo),
            "--out", str(out), *extra]
     done = subprocess.run(cmd, capture_output=True, text=True,
-                          timeout=timeout, cwd=str(ROOT))
+                          timeout=timeout, cwd=str(ROOT), check=False)
     done.stdout = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout)
     done.stderr = re.sub(r"\x1b\[[0-9;]*m", "", done.stderr)
     return done
@@ -164,7 +164,7 @@ def test_tracked_files_excludes_the_gitignored_dependency_tree(
 
 def test_docstrings_excludes_the_gitignored_dependency_tree(
         repo_with_dependency_tree):
-    rows, total = common.docstrings(repo_with_dependency_tree)
+    rows, _total = common.docstrings(repo_with_dependency_tree)
     text_blob = " ".join(doc for _sym, doc, *_ in rows)
     assert "TRACKED_MARKER" in text_blob
     assert "UNTRACKED_MARKER" not in text_blob, (

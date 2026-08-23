@@ -4,7 +4,7 @@ change to either is a deliberate, visible edit, not a silent drift.
 """
 from __future__ import annotations
 
-from nestor.triage import (DEFAULT_BAR, EDGE_KINDS, Decision, load_decisions)
+from nestor.triage import DEFAULT_BAR, EDGE_KINDS, Decision, load_decisions
 
 
 def test_load_expands_every_pair_with_a_stable_id():

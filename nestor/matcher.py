@@ -309,7 +309,7 @@ class NumericMatcher:
 
     # -- parsing ----------------------------------------------------------
 
-    def parse(self, value) -> "float | None":
+    def parse(self, value) -> float | None:
         """Extract a number from ``value`` (stripping ``$ , %``/whitespace), or
         ``None`` if none is found. Public so consumers like the Reconciler can
         recover the parsed figure without reaching into internals."""

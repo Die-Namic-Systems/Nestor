@@ -13,14 +13,12 @@ decision is recorded at all.
 """
 from __future__ import annotations
 
-import os
-
+import importlib.util
 import json
+import os
 import threading
 import urllib.error
 import urllib.request
-
-import importlib.util
 
 import pytest
 

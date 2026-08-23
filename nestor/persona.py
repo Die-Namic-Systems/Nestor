@@ -37,8 +37,8 @@ because nothing gives it the ability to.
 """
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Callable, Mapping, Optional
 
 #: Acts whose subject is the **machine's own shortfall**. These may be dry and
 #: self-deprecating: the machine is the junior party — it may propose and may
@@ -271,6 +271,6 @@ def set_persona(p: Persona) -> None:
     _persona = p
 
 
-def get_persona(p: Optional[Persona] = None) -> Persona:
+def get_persona(p: Persona | None = None) -> Persona:
     """Resolve the persona to use — an explicit argument wins, else the global."""
     return p if p is not None else _persona

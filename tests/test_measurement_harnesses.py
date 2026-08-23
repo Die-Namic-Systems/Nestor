@@ -40,7 +40,8 @@ def make_store(path: pathlib.Path, rows: list[tuple[str, str]]) -> None:
 
 def run(script: pathlib.Path, *argv: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(script), *argv],
-                          capture_output=True, text=True, cwd=str(ROOT))
+                          capture_output=True, text=True, cwd=str(ROOT),
+                          check=False)
 
 
 # --- retrieval_rank --------------------------------------------------------

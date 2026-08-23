@@ -28,7 +28,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from hooks.before_stop import evaluate_stop, final_assistant_text  # noqa: E402
+from hooks.before_stop import evaluate_stop, final_assistant_text
 
 
 def stop_of(text, **extra) -> dict:

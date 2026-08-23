@@ -17,7 +17,6 @@ drives.
 from __future__ import annotations
 
 import warnings
-from typing import Optional
 
 from . import cascade, memory
 from .engine import get_engine
@@ -80,7 +79,7 @@ def build_matcher(name: str = "string", abs_tol: float = 0.0,
 
 
 def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
-                 persist: bool = True) -> Optional[Matcher]:
+                 persist: bool = True) -> Matcher | None:
     """A shipped matcher by name, or a custom one by ``'module:attribute'``.
 
     ``ui.App`` can be handed a matcher because a host constructs it in Python.
@@ -162,7 +161,7 @@ def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
     # to fail at the first query — which is the exact failure this validation
     # exists to move forward to startup.
     if isinstance(found, type):
-        raise ValueError(
+        raise TypeError(
             f"{spec} produced the class {found.__name__} rather than an "
             f"instance of it — a factory has to return a built matcher")
     missing = [m for m in ("normalize", "similarity") if not callable(getattr(found, m, None))]
@@ -173,7 +172,7 @@ def load_matcher(spec: str, abs_tol: float = 0.0, pct_tol: float = 0.05,
     return found
 
 
-def _candidate(m: dict, store: Optional[Storage] = None) -> dict:
+def _candidate(m: dict, store: Storage | None = None) -> dict:
     """One ranked row, as a caller sees it — including *warranted how*.
 
     ``warrant_kinds`` is the second half of IDEAS §1.10(a) (docs/warrants.md
@@ -324,7 +323,7 @@ def _classify(store: Storage, matcher: Matcher, text: str, norm: str,
 def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
                     source_lang: str, target_lang: str,
                     candidates: list[dict], threshold: float,
-                    persona: "Optional[Persona]" = None) -> str:
+                    persona: Persona | None = None) -> str:
     """The sentence for :func:`_classify`'s verdict, in the installed persona.
 
     Two functions rather than one because a classifier that returns prose can
@@ -341,7 +340,7 @@ def _why_not_served(store: Storage, matcher: Matcher, text: str, norm: str,
 
 
 def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "es",
-        engine_name: str = "offline", matcher: Optional[Matcher] = None) -> dict:
+        engine_name: str = "offline", matcher: Matcher | None = None) -> dict:
     """Run the cascade over one phrase: sealed, draft, or pending.
 
     Appends a passage to the ledger, exactly as any other serve does — an answer
@@ -371,7 +370,7 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
 
 
 def resolve(store: Storage, surface: str, domain: str = "entity",
-            matcher: Optional[Matcher] = None) -> dict:
+            matcher: Matcher | None = None) -> dict:
     """Alias → canonical entity, with the same three answers the cascade gives.
 
     ``matcher`` reaches both halves, and it has to, because this function used to
@@ -422,7 +421,7 @@ def check(store: Storage, label: str, observed, domain: str = "value",
 
 
 def match(store: Storage, text: str, source_lang: str, target_lang: str,
-          matcher: "str | Matcher" = "string", abs_tol: float = 0.0,
+          matcher: str | Matcher = "string", abs_tol: float = 0.0,
           pct_tol: float = 0.05, persist: bool = True) -> dict:
     """The bare mechanic over any domain: normalize, score, would it be served?
 
@@ -470,13 +469,13 @@ def match(store: Storage, text: str, source_lang: str, target_lang: str,
     }
 
 
-def provenance(store: Storage, pair_id: str) -> Optional[dict]:
+def provenance(store: Storage, pair_id: str) -> dict | None:
     """Who verified a pair, when, and every rejection recorded against it.
 
     The question an auditor asks months later, and the one a model should be
     able to quote instead of asserting confidence. ``None`` if the id is unknown.
     """
-    from .curator import Curator                 # local: curation is optional
+    from .curator import Curator  # local: curation is optional
     from .storage import supports_curation
     if not supports_curation(store):
         pair = store.memory_get(pair_id) if hasattr(store, "memory_get") else None
@@ -492,7 +491,7 @@ SEAL_AUTHORITY = ("status", "verifier", "verification_kind", "sealed", "seal_sig
 
 def propose(store: Storage, source_text: str, candidate: str, source_lang: str = "en",
             target_lang: str = "es", title: str = "", origin: str = "proposal",
-            ignored: Optional[list] = None) -> dict:
+            ignored: list | None = None) -> dict:
     """Queue a candidate for a human to review. The only write a machine gets.
 
     This is tier 2 reached by another road: a model that has produced an answer

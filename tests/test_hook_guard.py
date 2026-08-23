@@ -19,15 +19,16 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-import hook_guard  # noqa: E402  (scripts/ is not an installed package)
-from hooks import review_receipt  # noqa: E402
+import hook_guard
+
+from hooks import review_receipt
 
 
 def test_every_wired_gate_denies_on_the_wire():
     """End to end through the script, the way CI would."""
     done = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "hook_guard.py")],
-        capture_output=True, text=True, cwd=REPO, timeout=180)
+        capture_output=True, text=True, cwd=REPO, timeout=180, check=False)
     assert done.returncode == 0, f"a gate did not deny:\n{done.stdout}\n{done.stderr}"
     assert f"all {len(hook_guard.BLOCKING)} blocking gates proven" in done.stdout
 
@@ -67,7 +68,7 @@ def test_the_guard_ignores_whatever_receipt_the_developer_holds(tmp_path, ambien
     done = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "hook_guard.py")],
         capture_output=True, text=True, cwd=REPO, timeout=180,
-        env={**os.environ, review_receipt._ENV_PATH: str(receipt)})
+        env={**os.environ, review_receipt._ENV_PATH: str(receipt)}, check=False)
     assert done.returncode == 0, (
         f"a {ambient} ambient receipt changed the verdict:\n{done.stdout}\n{done.stderr}")
 

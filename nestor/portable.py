@@ -51,13 +51,22 @@ import json
 import uuid
 import warnings
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, cast
 
-from . import cascade, ledger as ledger_mod, memory, signing
+from . import cascade, memory, signing
+from . import ledger as ledger_mod
 from .matcher import Matcher, matcher_audit_fields
-from .storage import (EvidenceStorage, Storage, WarrantStorage, get_store,
-                      supports_curation, supports_evidence, supports_rejection,
-                      supports_rejection_listing, supports_warrants)
+from .storage import (
+    EvidenceStorage,
+    Storage,
+    WarrantStorage,
+    get_store,
+    supports_curation,
+    supports_evidence,
+    supports_rejection,
+    supports_rejection_listing,
+    supports_warrants,
+)
 
 #: Version 2 carries ``reopen_when`` on rejections. Bumped rather than added
 #: silently because the field changes the payload the digest is taken over, and
@@ -145,8 +154,8 @@ def _canonical(value: Any) -> str:
 
 
 def digest(pairs: list[dict], rejections: list[dict],
-           evidence: Optional[list[dict]] = None,
-           warrants: Optional[list[dict]] = None,
+           evidence: list[dict] | None = None,
+           warrants: list[dict] | None = None,
            version: int = BUNDLE_VERSION) -> str:
     """A stable sha256 over the bundle's payload, as ``version`` defines it.
 
@@ -200,11 +209,11 @@ def _row(raw: dict, fields: tuple) -> dict:
     return {f: raw.get(f, "") for f in fields}
 
 
-def export_bundle(store: Optional[Storage] = None, source_lang: str = "",
+def export_bundle(store: Storage | None = None, source_lang: str = "",
                   target_lang: str = "", include_ledger: bool = True,
                   limit: int = 1_000_000,
-                  rejection_limit: Optional[int] = None,
-                  matcher: Optional[Matcher] = None) -> dict:
+                  rejection_limit: int | None = None,
+                  matcher: Matcher | None = None) -> dict:
     """The whole memory (or one domain) as a JSON-ready, re-importable bundle.
 
     Signatures travel with the rows. They are HMACs, not secrets: without the
@@ -464,9 +473,9 @@ class _PairDisposition:
     one.
     """
 
-    __slots__ = ("report_key", "entry", "skip")
+    __slots__ = ("entry", "report_key", "skip")
 
-    def __init__(self, report_key: Optional[str], entry: Any, skip: bool) -> None:
+    def __init__(self, report_key: str | None, entry: Any, skip: bool) -> None:
         self.report_key = report_key
         self.entry = entry
         self.skip = skip
@@ -542,7 +551,7 @@ def _classify_seal_claim(row: dict) -> tuple[bool, bool]:
     return claims_sealed, verifies
 
 
-def _write_incoming_pair(store: Storage, existing: Optional[dict], row: dict,
+def _write_incoming_pair(store: Storage, existing: dict | None, row: dict,
                          claims_sealed: bool, verifies: bool) -> str:
     """Commit one incoming pair to the store. Returns the id to record in id_map.
 
@@ -664,7 +673,7 @@ def _import_warrants(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
     """
     if not supports_warrants(store):
         return
-    from .warrant import refuse_reason        # local, as evidence's ledger is
+    from .warrant import refuse_reason  # local, as evidence's ledger is
     w_store = cast(WarrantStorage, store)
     for raw in bundle.get("warrants", []):
         named = raw.get("pair_id") or ""
@@ -691,10 +700,10 @@ def _import_warrants(store: Storage, bundle: dict, id_map: dict, dry_run: bool,
                 report["warrants"] -= 1
 
 
-def import_bundle(bundle: Any, store: Optional[Storage] = None, dry_run: bool = True,
+def import_bundle(bundle: Any, store: Storage | None = None, dry_run: bool = True,
                   verifier: str = "", override_conflicts: bool = False,
                   override_rejections: bool = False,
-                  matcher: Optional[Matcher] = None) -> dict:
+                  matcher: Matcher | None = None) -> dict:
     """Bring a bundle into this instance. Reports first, writes only if told to.
 
     ``dry_run=True`` is the default deliberately: an import decides what this

@@ -312,7 +312,8 @@ def test_cmd_match_still_reports_a_shipped_name_as_the_name(tmp_path, seal_key, 
 
 
 def test_cmd_match_still_honours_tolerances_for_a_shipped_matcher(tmp_path, seal_key, capsys):
-    from nestor import answer as _a, cli
+    from nestor import answer as _a
+    from nestor import cli
 
     os.environ["NESTOR_SEAL_KEY"] = "test-key"
     _cli_store(tmp_path, _a.build_matcher("numeric"), source="1000", target="ceiling")
@@ -373,7 +374,7 @@ def test_a_shipped_name_that_agrees_is_honoured_on_a_shipped_server(sealed_store
     server = serve.Server(store=sealed_store, source_lang="fig", target_lang="fig",
                           matcher=answer.load_matcher("numeric"),
                           matcher_spec="numeric")
-    enum = [t for t in server.tools() if t["name"] == "nestor_match"][0][
+    enum = next(t for t in server.tools() if t["name"] == "nestor_match")[
         "inputSchema"]["properties"]["matcher"]["enum"]
     assert "numeric" in enum
     out = server.call("nestor_match", {"text": "1000", "source_lang": "fig",
@@ -418,7 +419,7 @@ def test_a_factory_that_returns_the_class_is_refused(tmp_path):
     import sys
     sys.path.insert(0, str(tmp_path))
     try:
-        with pytest.raises(ValueError, match="rather than an instance"):
+        with pytest.raises(TypeError, match="rather than an instance"):
             answer.load_matcher("returns_class:factory")
     finally:
         sys.path.remove(str(tmp_path))
@@ -476,7 +477,7 @@ def test_a_matcher_module_printing_does_not_corrupt_the_protocol_stream(tmp_path
     capsys.readouterr()
     try:
         real = serve.Server
-        import unittest.mock as mock
+        from unittest import mock
         with mock.patch.object(serve, "Server") as fake:
             def capture(**kwargs):
                 s = real(**kwargs)

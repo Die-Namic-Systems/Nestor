@@ -29,7 +29,8 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 def run(*args):
     return subprocess.run([sys.executable, str(TOP), "--quiet", *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=300)
+                          capture_output=True, text=True, cwd=REPO, timeout=300,
+                          check=False)
 
 
 @pytest.fixture()
@@ -110,13 +111,13 @@ def test_it_runs_feeders_as_subprocesses():
 def test_every_registered_feeder_exists():
     """A feed named in the top and missing from disk would report unreadable —
     which would read as a corpus problem rather than a wiring one."""
-    import feed_all                      # noqa: E402
+    import feed_all
     for _, script, _ in feed_all.FEEDS:
         assert (REPO / "scripts" / script).exists(), f"{script} is registered but absent"
 
 
 def test_all_four_feeds_are_registered():
-    import feed_all                      # noqa: E402
+    import feed_all
     assert len(feed_all.FEEDS) == 4
     flags = {f for f, _, _ in feed_all.FEEDS}
     assert flags == {"willow_2", "jeles", "willow_2_migrations", "willow_19"}

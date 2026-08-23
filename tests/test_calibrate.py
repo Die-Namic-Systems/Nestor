@@ -7,6 +7,7 @@ actually has.
 """
 
 import os
+
 import pytest
 
 from nestor import calibrate, memory
@@ -146,6 +147,7 @@ def test_the_cli_exits_non_zero_when_no_threshold_is_safe(store, tmp_path, capsy
 
 def test_the_cli_calibrate_accepts_matcher(store, tmp_path, capsys, seal_key):
     import json
+
     from nestor import cascade
 
     seal(store, "the invoice is overdue", "la factura está vencida")

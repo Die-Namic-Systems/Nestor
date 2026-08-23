@@ -8,17 +8,15 @@ rather than trusting it or dropping it.
 """
 from __future__ import annotations
 
+import json
 import os
 
-import json
-
 import pytest
+from conftest import read_ledger
 
 from nestor import cascade, memory, portable, storage
 from nestor.curator import Curator
 from nestor.sqlite_store import SqliteStore
-
-from conftest import read_ledger
 
 
 def fresh_store():
