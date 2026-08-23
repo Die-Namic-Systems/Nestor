@@ -168,7 +168,15 @@ def test_a_seal_ranked_past_the_top_five_is_still_served(store):
     hit = memory.best_sealed(BASE, "en", "es", store=store)
     assert hit is not None and hit["similarity"] == 0.933
     assert hit["pair"]["verifier"] == "rita"
-    assert hit == naive_best_sealed(BASE, "en", "es", store)
+    # Field-by-field, as the two equivalence tests above already do, rather than
+    # whole-dict: what the prefilter must agree with the naive scan about is the
+    # DECISION — which row, at what similarity. `best_sealed` also returns
+    # `warrant_kinds`, an annotation on the row it picked (IDEAS §1.10(a)) that
+    # the naive reference has no reason to reproduce; a warrant cannot change
+    # which row wins, because `best_sealed` never reads one while choosing.
+    slow = naive_best_sealed(BASE, "en", "es", store)
+    assert hit["pair"]["id"] == slow["pair"]["id"]
+    assert hit["similarity"] == slow["similarity"]
 
 
 # --- everything the scan must not have dropped ------------------------------

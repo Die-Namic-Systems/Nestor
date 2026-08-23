@@ -33,8 +33,21 @@
 > by the schema, not by the importer: `WARRANT_FIELDS` has no column a verdict
 > could go in. `nestor warrant attach|for` landed with it — the relation had no
 > terminal surface, so until then a warrant could only be attached from Python.
-> `--kind attestation` is refused by argparse, before a store is opened. Still
-> open, unchanged: the report, `best_sealed`, and demand.
+> `--kind attestation` is refused by argparse, before a store is opened.
+
+> **§1.10(a) built 2026-08-22 — and it is the smallest of the three.** `pending`
+> stays. `best_sealed` still gates on `sealed` and `is_verified_seal` and
+> nothing else, so a cited-but-unsealed row is found exactly as often as before:
+> never. What it gained is `warrant_kinds` for the row it *did* find, carried
+> onto `Passage.meta`, through `answer.ask` to the served payload and to
+> `nestor_ask` over MCP, and into the ledger's `passage` line — because a
+> warrant attached tomorrow is not one this answer went out with. There is no
+> fourth state; `Passage.mark` still maps exactly three. The gate that pins it
+> is a before/after rather than an assertion about `pending`: attaching a
+> citation must move *nothing* about what is served. Decision 0169.
+>
+> Still open, unchanged: **the report** (below), the multi-agent attribution
+> question inherited from 0142, and **demand**.
 
 §1.10 says Nestor holds one warrant — **attestation**, "a person here checked"
 — while two sibling repositories hold others: jeles' **citation** (a named

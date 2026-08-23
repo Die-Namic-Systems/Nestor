@@ -58,6 +58,36 @@ what moved.
   say". Nothing here reports a warrant as satisfied. `best_sealed` and the
   served state are untouched — IDEAS §1.10(a) stays open. Decision 0167.
 
+* **A served answer says *warranted how*** — IDEAS §1.10(a), the last of the
+  warrants memo's three open questions, decision 0169. **`pending` stays:**
+  `best_sealed` still gates on `sealed` and nothing else, so a cited-but-unsealed
+  row is served exactly as often as before — never. What it gained is
+  `warrant_kinds` for the row it *did* find, carried onto `Passage.meta`, through
+  `answer.ask` to `nestor_ask` and `nestor ask`, and into the ledger's `passage`
+  entry (a warrant attached tomorrow is not one this answer went out with).
+  Ranked candidates in `matches` carry it too, so a `pending` answer can say that
+  a row beside it is cited and merely unsealed here — next to the
+  `servable: false` that was always there. There is no fourth state; `Passage.mark`
+  still maps exactly three.
+
+* **`nestor decision check` shows the commitment it matched.** A clear consult
+  that found a recorded decision now prints it, its rationale, and whether it is
+  draft or sealed. Exit codes are unchanged — clear still exits 0. Previously an
+  exact match printed a line a glance could not tell from "nothing on record",
+  with the commitment visible only under `--json`, so the consult this repo tells
+  agents to run *before proposing* could answer "clear" over a recorded answer.
+  Found by that happening, on §1.10(a) itself.
+
+* **Provenance carries the seal's age** — IDEAS §1.4's own first suggestion,
+  which had shipped in the browser and nowhere else (agent-log §6.116, decision
+  0170). `Curator.get` — and so `answer.provenance` and `nestor_provenance` —
+  gains `seal_age` for sealed rows: `{days, last, verifier, kind,
+  uncorroborated_tail}`, read from the ledger and never from a column, with a
+  `countersign` resetting the clock. Display only: no answer is withdrawn, no
+  score moves, nothing expires, and a draft gets no key at all rather than a
+  zero. `uncorroborated_tail` says when the freshest decision is the chain's
+  final line — the one line the chain does not vouch for.
+
 ### Changed
 
 * **`scripts/ci-lint.sh` now enforces "match the workflow" instead of asserting

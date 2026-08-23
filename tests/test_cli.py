@@ -685,3 +685,57 @@ def test_warrant_for_on_an_unwarranted_draft_says_so_plainly(db, capsys):
     assert run(db, "warrant", "for", pid) == cli.EXIT_OK
     out = capsys.readouterr().out
     assert "no warrant" in out and "not cited" in out
+
+
+# --- the consult must show what it found -----------------------------------
+
+def _record_live_decision(db, question, commitment, why=""):
+    """A recorded, unblocked commitment — the ordinary case, not a rejection."""
+    dm = DecisionMemory(db["store"], domain="decision")
+    return dm.propose(question, commitment, rationale=why)
+
+
+def test_a_clear_consult_shows_the_commitment_it_matched(db, capsys):
+    """exit 0 means "nothing on record BLOCKS this", which is not the same
+    sentence as "nothing is on record" — and the two used to print almost
+    identically.
+
+    Measured, not supposed: a consult on IDEAS §1.10(a) matched decision 0164
+    at similarity 1.0, printed `✓ clear`, and the recorded commitment was
+    visible only under --json. An agent following this repo's own seat rule —
+    consult before you propose — would have proposed an answer to a question
+    already answered, and the gate it was told to trust would have said the
+    coast was clear."""
+    _record_live_decision(db, "may the office plant be rehomed?",
+                          "Yes, to Rita's desk, which gets the afternoon light.",
+                          why="It died twice by the radiator.")
+    assert run(db, "decision", "check",
+               "may the office plant be rehomed?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "clear" in out                       # still clear: nothing blocks it
+    assert "A commitment IS on record" in out
+    assert "Rita's desk" in out                 # the commitment itself, verbatim
+    assert "died twice by the radiator" in out  # and why
+    assert "draft — proposed, not human-sealed" in out
+
+
+def test_a_consult_with_nothing_recorded_still_says_only_that(db, capsys):
+    """The other half of the pair: the fix must not make silence look like a
+    hit either. `no decision on record` stays exactly what it was."""
+    assert run(db, "decision", "check",
+               "may the mascot be retired?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "no decision on record" in out
+    assert "A commitment IS on record" not in out
+
+
+def test_a_sealed_commitment_is_labelled_differently_from_a_draft(db, capsys):
+    """A draft read at a glance is the one most likely to be mistaken for
+    settled, so the two are never printed the same way."""
+    memory.add_pair("do we keep the Friday demo?", "Yes.", "decision", "decision",
+                    status="sealed", verifier="rita", store=db["store"])
+    capsys.readouterr()
+    assert run(db, "decision", "check", "do we keep the Friday demo?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "SEALED by rita" in out
+    assert "draft — proposed" not in out

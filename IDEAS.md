@@ -48,7 +48,7 @@ this map is not, CI fails. It cannot drift.
 | [1.7](#17-an-import-could-revive-a-pair-a-human-had-rejected--shipped) | An import could revive a pair a human had rejected | shipped |
 | [1.8](#18-two-threads-could-seal-the-same-phrase-and-both-won--shipped) | Two threads could seal the same phrase, and both won | shipped |
 | [1.9](#19-the-numeric-matcher-takes-the-first-number-it-finds--shipped) | The numeric matcher takes the first number it finds | shipped |
-| [1.10](#110-a-seal-is-the-only-warrant-this-package-can-represent--open) | A seal is the only warrant this package can represent | open |
+| [1.10](#110-a-seal-is-the-only-warrant-this-package-can-represent--shipped) | A seal is the only warrant this package can represent | shipped |
 | [2.1](#21-lossless-prefilter-via-difflibs-own-bounds--shipped) | Lossless prefilter via difflib's own bounds | shipped |
 | [2.2](#22-trigram-blocking--measured-disappointing) | Trigram blocking | measured, disappointing |
 | [2.3](#23-index-source_norm--shipped) | Index `source_norm` | shipped |
@@ -183,6 +183,8 @@ this map is not, CI fails. It cannot drift.
 | [6.112](docs/agent-log.md#6112-cross-matching-audit-findings-against-each-other-and-the-score-range-that-lives-between-verified-and-noise--measured) | Cross-matching audit findings against each other, and the score range that lives between verified and noise | measured |
 | [6.113](docs/agent-log.md#6113-an-agent-driving-the-ui-in-a-browser-is-outside-every-gate-this-repo-has--measured-control-exists) | An agent driving the UI in a browser is outside every gate this repo has | measured, control exists |
 | [6.114](docs/agent-log.md#6114-scriptsci-lintsh-says-it-matches-the-workflow-and-does-not-pin-what-the-workflow-pins--measured-fix-shipped) | `scripts/ci-lint.sh` says it matches the workflow and does not pin what the workflow pins | measured, fix shipped |
+| [6.115](docs/agent-log.md#6115-the-quorum-memos-step-2-has-been-run-against-a-real-chain-and-its-answer-is-that-the-chain-cannot-answer-it--measured) | The quorum memo's step 2 has been run, against a real chain | measured |
+| [6.116](docs/agent-log.md#6116-14s-own-first-suggestion-was-shipped-in-the-browser-and-nowhere-else--measured-fix-shipped) | §1.4's own first suggestion was shipped in the browser and nowhere else | measured, fix shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -450,10 +452,29 @@ Still open, and named as open in the memo: how old is too old, and whether any
 buyer actually asks for either. The third item this once named — that a quorum of
 HMACs is a quorum only against outsiders — has since closed: per-verifier Ed25519
 signing landed (decisions `0074`/`0077`/`0078`, `signing.py`), so a
-countersignature can no longer be forged by anyone holding a shared key. What
-stays open is deeper and unchanged by that: a quorum is still not *recorded* at
-all (§6.26), so N-of-M has no history to compute from regardless of the signature
-scheme.
+countersignature can no longer be forged by anyone holding a shared key.
+
+> **Corrected again, 2026-08-22.** This entry used to end: *"a quorum is still
+> not recorded at all (§6.26), so N-of-M has no history to compute from
+> regardless of the signature scheme."* That has been false since 2026-08-06 —
+> §6.26 **shipped**, and a concurring verifier writes a `countersign` entry. The
+> premise was corrected once, in the other direction, and then went stale the
+> same way a second time. The history exists; what was missing was anybody
+> reading it.
+>
+> **So step 2 was run, on 2026-08-22, against the first real chain available to
+> it** (§6.115). Verdict: **`no second reviewer`** — one named actor in the whole
+> chain, so its zero is not evidence that reviewers decline to concur, it is
+> evidence that nobody was asked. That is a sharper blocker than "nobody has run
+> it", and it is still a blocker: N-of-M is a schema change to the audited path,
+> and designing one for users not shown to exist is what §6.42 exists to stop.
+>
+> **Staleness, by contrast, is built** — age from the ledger and never a column,
+> a curator queue rather than a decay multiplier, and nothing withdrawn silently:
+> all three of the memo's conclusions. `scripts/due_for_reverification.py`, the
+> UI's queue, and now `Curator.get`'s `seal_age` (§1.4's own first suggestion,
+> which §6.10 only ever delivered in the browser). What stays open there is one
+> number — *how old is too old* — and that is a buyer's to choose, not code's.
 
 ### 1.5 A numeric label could hold several baselines — **shipped**
 
@@ -608,7 +629,7 @@ Reporting beat refusing: a reconciler that rejected every partially-parsed
 figure would refuse real inputs, and the person who can tell a typo from a unit
 suffix is the human this package exists to keep in the loop.
 
-### 1.10 A seal is the only warrant this package can represent — **open**
+### 1.10 A seal is the only warrant this package can represent — **shipped**
 
 > **Memo written 2026-08-22 — [`docs/warrants.md`](docs/warrants.md), decision [0164](docs/dogfood/decisions/0164-warrants-are-not-evidence.json), draft. Still open; the memo argues it, it does not settle it.** One correction it makes to this entry: the field proposed below as `evidence: dict` must **not** be called `evidence`. This entry predates the evidence edge (0142/0143/0145), and `nestor/evidence.py` now defines `evidence` as the relation that carries *no* authority — "there is no power to forge". A warrant is the opposite property. Proposed name: `warrants`.
 
@@ -690,7 +711,16 @@ be minted locally at all, or must it be a recomputation the reader runs
 themselves, redential-style? (c) does `import` need to strip warrants it cannot
 verify, the way §1.7 made import unable to revive a rejection?
 
-**(b) and (c) are answered in the tree; (a) is not.** (b): a construction
+**All three are now answered in the tree.** (a): **`pending` stays**, and
+"warranted how" is said *alongside* the state rather than becoming a fourth
+value of it (decision 0164, built 2026-08-22). `best_sealed` still gates on
+`sealed` and nothing else, so a cited-but-unsealed row is found exactly as
+often as before — never; what it gained is `warrant_kinds` for the row it
+*did* find, carried onto `Passage.meta`, the served answer, and the ledger's
+`passage` line. A fourth status would have put a claim no local human vouched
+for into the field tier 1 reads, which is jeles' laundering case arriving by a
+different door. The gate that pins it is a before/after: attaching a citation
+must move nothing about what is served. (b): a construction
 warrant is minted locally *only* as a recipe — `attach` refuses one without an
 `expected_digest`, and nothing here ever marks it satisfied. (c): **not strip —
 carry, and never carry a conclusion.** Bundle version 4 (`portable.py`,
@@ -698,9 +728,15 @@ carry, and never carry a conclusion.** Bundle version 4 (`portable.py`,
 only, so the seal never travels twice unsigned; import refuses exactly what
 `attach` refuses, through one shared `warrant.refuse_reason`, and refusals are
 named in the report rather than dropped in silence. Stripping would have
-destroyed the one warrant that survives leaving the room. (a) — the served state
-for "cited, unsealed" — is untouched: `best_sealed` still asks only whether a
-human sealed it.
+destroyed the one warrant that survives leaving the room.
+
+**What this entry claimed is no longer true, which is why it is marked shipped:**
+the package represents three warrants now, not one. What stays open is smaller
+and named in [`docs/warrants.md`](docs/warrants.md) — whether warrants need
+their own report queue the way `unevidenced_seals` is one for the evidence edge,
+the multi-agent attribution question inherited from 0142, and demand: the kinds
+are still drawn from two sibling repositories rather than from a Nestor user
+asking for them.
 
 ---
 

@@ -431,3 +431,184 @@ def test_a_version_3_bundle_still_verifies_after_the_bump(store):
     ok, detail = portable.verify_bundle(legacy)
     assert ok, detail
     assert "warrant(s)" not in detail
+
+
+# -- IDEAS §1.10(a): what warrants change about SERVING, decision 0164 -------
+#
+# The answer recorded in 0164 is "pending stays". A warrant is said alongside
+# the seal and never instead of it, so the whole of the change on this path is
+# a display fact on a row that already won on its seal. The first two tests are
+# the ones that matter: they pin what did NOT move.
+
+def test_a_citation_changes_nothing_about_what_is_served(store):
+    """§1.10(a), answered: a citation does not make a row servable.
+
+    This is the laundering door, and it is why `pending` stays. A row warranted
+    by Crossref and sealed by nobody has had no human *here* check it — the only
+    question `sealed` answers and the only one tier 1 reads. Admitting it would
+    let an agent that can attach a warrant promote its own draft, which is
+    `nestor_propose` with extra steps.
+
+    Asserted as a before/after on the same query rather than against a hardcoded
+    state, because the state an unsealed row produces is tier 2's business and
+    not this feature's: with the offline engine and a near TM row the cascade
+    drafts, and the first version of this test asserted `pending` and caught
+    that draft instead of the thing it was written to catch. What §1.10(a) turns
+    on is that attaching the warrant moves *nothing* — whatever the cascade said
+    before, it says exactly that after.
+    """
+    from nestor import cascade as cascade_mod
+    q = "who owns the arrears clause"
+    pair = _draft(store, q)
+    before = cascade_mod.translate_segment(q, "decision", "decision", store=store)
+
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/10.1000/xyz",
+                   store=store)
+    assert warrant.kinds_held(pair["id"], store=store) == {"citation"}
+    after = cascade_mod.translate_segment(q, "decision", "decision", store=store)
+
+    assert (after.state, after.tier, after.target) == \
+           (before.state, before.tier, before.target)
+    assert after.state != "sealed" and after.tier != 1
+    assert memory.best_sealed(q, "decision", "decision", store=store) is None
+
+
+def test_a_construction_warrant_does_not_promote_a_draft_either(store):
+    """The same gate for the warrant that needs no authority at all. A recipe
+    and a digest are checkable by anyone — and still by nobody here, yet."""
+    pair = _draft(store, "the scan makes no network calls")
+    warrant.attach(pair["id"], "construction", "redential", "npx redential scan",
+                   expected_digest="ab" * 16, store=store)
+    assert memory.best_sealed("the scan makes no network calls", "decision",
+                              "decision", store=store) is None
+
+
+def test_best_sealed_says_warranted_how_for_the_row_it_found(store):
+    pair = _sealed(store, "arrears defined")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    hit = memory.best_sealed("arrears defined", "decision", "decision", store=store)
+    assert hit["pair"]["id"] == pair["id"]
+    # Sorted, and carrying the attestation composed from the seal: the same set
+    # `kinds_held` reports everywhere else. A set that meant something narrower
+    # on the serve path would be a second vocabulary for one fact.
+    assert hit["warrant_kinds"] == ["attestation", "citation"]
+
+
+def test_an_unwarranted_seal_still_serves_and_says_so_emptily(store):
+    """No warrant beyond the seal is not a defect and must not read as one:
+    `attestation` alone is a complete answer to "warranted how"."""
+    pair = _sealed(store, "plainly sealed")
+    hit = memory.best_sealed("plainly sealed", "decision", "decision", store=store)
+    assert hit["pair"]["id"] == pair["id"]
+    assert hit["warrant_kinds"] == ["attestation"]
+
+
+def test_the_served_passage_carries_the_warrant_kinds(store):
+    from nestor import cascade as cascade_mod
+    pair = _sealed(store, "sealed and cited")
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    passage = cascade_mod.translate_segment("sealed and cited", "decision",
+                                            "decision", store=store)
+    assert passage.state == "sealed"
+    assert passage.meta["warrant_kinds"] == ["attestation", "citation"]
+    # state is untouched — there is no fourth value, and `mark` still maps.
+    assert passage.mark == "✓"
+
+
+def test_the_ledger_records_what_the_answer_was_warranted_by_at_serve_time(store):
+    """A warrant attached tomorrow is not one this answer went out with, and
+    the trail is the only place that distinction survives."""
+    from nestor import cascade as cascade_mod
+    pair = _sealed(store, "warranted at serve time")
+    cascade_mod.translate_segment("warranted at serve time", "decision",
+                                  "decision", store=store)
+    first = [e for e in ledger.entries(kind="passage")][-1]
+    assert first["warrant_kinds"] == ["attestation"]
+
+    warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    cascade_mod.translate_segment("warranted at serve time", "decision",
+                                  "decision", store=store)
+    second = [e for e in ledger.entries(kind="passage")][-1]
+    assert second["warrant_kinds"] == ["attestation", "citation"]
+    # The earlier line did NOT acquire the citation retroactively.
+    assert first["warrant_kinds"] == ["attestation"]
+
+
+def test_a_warrant_lookup_that_raises_cannot_withhold_a_verified_answer(store,
+                                                                        monkeypatch):
+    """The annotation is commentary on a row that already won on its seal. If
+    reading it fails, the answer still goes out — a serve path that can be
+    broken by an optional relation is worse than one that says nothing about
+    it."""
+    pair = _sealed(store, "resilient")
+
+    def boom(*a, **k):
+        raise RuntimeError("the warrants table is on fire")
+    monkeypatch.setattr(warrant, "kinds_held", boom)
+    hit = memory.best_sealed("resilient", "decision", "decision", store=store)
+    assert hit is not None and hit["pair"]["id"] == pair["id"]
+    assert hit["warrant_kinds"] == []
+
+
+def test_there_is_still_no_fourth_state(store):
+    """The vocabulary is three words, and 0164 turned on it staying three."""
+    from nestor.cascade import Passage
+    assert set(Passage(source="", target="", tier=0, state="pending").mark) == {"!"}
+    for state in ("sealed", "draft", "pending"):
+        Passage(source="", target="", tier=0, state=state).mark      # maps
+    with pytest.raises(KeyError):
+        Passage(source="", target="", tier=0, state="cited").mark
+
+
+def test_a_pending_answer_can_say_a_candidate_is_cited(store):
+    """The other half of §1.10(a), from docs/warrants.md §2: "the reader sees
+    `pending`, and beside it 'cited to Crossref, unsealed here.'"
+
+    Safe to say precisely because of what the payload already carried. A
+    candidate's `target_text` has always been in `matches` — this annotation
+    exposes nothing new — and it arrives beside `status` and `servable`, which
+    have said "do not serve this" all along. What changes is that a reader can
+    tell an unsealed row nobody vouched for from an unsealed row a named
+    institution stands behind. Neither is servable.
+    """
+    from nestor import answer as answer_mod
+    cited = _draft(store, "who owns the arrears clause", "clause 4")
+    _draft(store, "who owns the arrears clauses", "clause 9")   # near, unwarranted
+    warrant.attach(cited["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+
+    result = answer_mod.ask(store, "who owns the arrears clause",
+                            "decision", "decision")
+    by_id = {m["id"]: m for m in result["matches"]}
+    assert by_id[cited["id"]]["warrant_kinds"] == ["citation"]
+    # And the verdict is untouched: nothing verified matched, and the cited row
+    # is still not servable.
+    assert result["verified"] is False
+    assert by_id[cited["id"]]["servable"] is False
+    assert by_id[cited["id"]]["status"] == "draft"
+
+
+def test_an_unwarranted_candidate_is_distinguishable_from_a_cited_one(store):
+    from nestor import answer as answer_mod
+    cited = _draft(store, "arrears, cited", "clause 4")
+    plain = _draft(store, "arrears, plain", "clause 4")
+    warrant.attach(cited["id"], "citation", "Crossref", "https://doi.org/1",
+                   store=store)
+    result = answer_mod.ask(store, "arrears", "decision", "decision")
+    by_id = {m["id"]: m for m in result["matches"]}
+    assert by_id[cited["id"]]["warrant_kinds"] == ["citation"]
+    assert by_id[plain["id"]]["warrant_kinds"] == []
+    assert all(m["servable"] is False for m in result["matches"])
+
+
+def test_the_older_one_argument_candidate_call_still_works(store):
+    """`_candidate(m)` without a store predates this and is called that way in
+    two other places; it must degrade to no annotation, never to a wrong one."""
+    from nestor import answer as answer_mod
+    pair = _draft(store, "no store passed")
+    row = answer_mod._candidate({"pair": pair, "similarity": 1.0})
+    assert "warrant_kinds" not in row
+    assert row["servable"] is False

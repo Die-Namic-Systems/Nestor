@@ -495,6 +495,14 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
                           confidence=hit["similarity"],
                           meta={"pair_id": hit["pair"]["id"],
                                 "verifier": hit["pair"]["verifier"],
+                                # "Warranted how", said alongside the state and
+                                # never instead of it (IDEAS §1.10(a), decision
+                                # 0164). `state` still answers "did a human here
+                                # check this"; this answers "and what else
+                                # entitles a stranger to believe it". A sealed
+                                # row always carries at least `attestation`,
+                                # composed from the seal itself.
+                                "warrant_kinds": hit.get("warrant_kinds", []),
                                 **audit})
     else:
         # tier 2 — Nova's draft
@@ -534,6 +542,14 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
         "segment_id": passage.segment_id,
         **({k: v for k, v in passage.meta.items()
             if k.startswith("matcher")} if passage.tier == 1 else {}),
+        # What the answer was warranted by *at serve time*. Recorded because a
+        # warrant attached tomorrow is not one this answer went out with, and
+        # the trail is the only place that distinction survives — reading the
+        # pair's warrants later tells you what it holds now, never what it held
+        # when this went out. Tier 1 only: there is no other tier whose answer
+        # a warrant could be about.
+        **({"warrant_kinds": passage.meta.get("warrant_kinds", [])}
+           if passage.tier == 1 else {}),
     })
     return passage
 
