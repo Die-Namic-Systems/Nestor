@@ -9,8 +9,12 @@ from __future__ import annotations
 import json
 import math
 
-from hypothesis import given, settings
-from hypothesis import strategies as st
+import pytest
+
+hypothesis = pytest.importorskip("hypothesis")
+given = hypothesis.given
+settings = hypothesis.settings
+st = hypothesis.strategies
 
 from nestor.matcher import NumericMatcher, StringMatcher
 from nestor.signing import (
