@@ -65,3 +65,9 @@ docs/llm-only-joke/ledger.jsonl
 # permanent phantom diff and an unresolvable merge conflict waiting.
 .coverage
 .coverage.*
+
+# Editor lock files. LibreOffice writes `.~lock.<name>#` beside any file it has
+# open, and a `git add -A` while a document is open commits it — which happened:
+# `.~lock.IDEAS.md#` rode into #189 and merged. It names a host and a PID, so it
+# is meaningless to anyone else and conflicts with itself between machines.
+.~lock.*#
