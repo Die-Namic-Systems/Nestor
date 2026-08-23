@@ -190,6 +190,7 @@ this map is not, CI fails. It cannot drift.
 | [6.119](docs/agent-log.md#6119-the-test-job-had-the-same-drift-the-lint-job-did-and-the-tool-built-to-catch-it-committed-it-first--measured-tool-shipped) | The test job had the same drift the lint job did, and the tool built to catch it committed it first | measured, tool shipped |
 | [6.120](docs/agent-log.md#6120-the-cli-had-no---version-no-shell-completions-and-two-verbs-without---json--shipped) | The CLI had no --version, no shell completions, and two verbs without --json | shipped |
 | [6.121](docs/agent-log.md#6121-the-system-had-no-surface-for-i-like-it-this-way--shipped) | The system had no surface for "I like it this way" | shipped |
+| [6.122](docs/agent-log.md#6122-the-contributor-path-was-scattered-across-four-documents-and-had-no-front-door--shipped) | The contributor path was scattered across four documents and had no front door | shipped |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
@@ -2113,7 +2114,11 @@ behind `nestor ui`. Absent, each a part the same method would re-land:
   (determinism, JSON round-trip, domain separation across all four message types).
   25 property tests in `tests/test_property.py`. **Status: shipped.**
 - **Contributor onboarding.** A PR template and pre-commit exist; `CONTRIBUTING.md`
-  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status: open.**
+  and `.github/ISSUE_TEMPLATE` do not. Low-stakes, high-standard. **Status:
+  shipped** — `CONTRIBUTING.md` consolidates the path from clone to merged PR
+  (setup, gate table, conventional commits, the one rule, pre-PR checklist);
+  `.github/ISSUE_TEMPLATE/` adds bug-report and feature-request templates plus a
+  `config.yml` linking the contributing guide.
 - **Reproducible dev environment.** No `Dockerfile`, no devcontainer; the venv is
   the whole story. **Status: hypothesis** — the CCR session-start bootstrap already
   does most of what a devcontainer would, so the fleet may answer this a different
