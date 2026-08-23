@@ -7196,3 +7196,67 @@ was not in the dependency set and no `@given` appeared in the tree.
   Domain separation holds across every pair of message types: a seal message can
   never equal a rejection, an edge, or an embedding message, because the array
   lengths and tag prefixes differ.
+
+---
+
+### 6.119 The test job had the same drift the lint job did, and the tool built to catch it committed it first — **measured**, tool **shipped**
+
+*Follow-on to §6.114, which pinned the lint job's tool versions. The test job had
+the same gap in three places, and building the fix produced a cleaner
+demonstration of the failure than the argument for it did.*
+
+**The three ways a local test run differs from CI's**, measured 2026-08-23:
+
+| | CI's test job | a developer venv here |
+|---|---|---|
+| Python | 3.10 and 3.12 | whatever `python3` is — 3.14 |
+| installed | `-e '.[keys]' pytest coverage` | `.[dev]`, five extra packages |
+| command | `coverage run --include='nestor/*' "$(command -v pytest)" -q` | `python -m pytest -q`, per `AGENTS.md` |
+
+Each had already cost something. The version gap is why §6.114's ruff finding
+existed at all. The installed-set gap put **both matrix legs red** the day
+before (§6.114's own follow-up commit: a new test read what happened to be
+installed). And the command gap is named in the workflow's own comment — `-m`
+puts the repo root on `sys.path` where bare `pytest` does not, and that
+disagreement once meant CI ran five tests a developer silently skipped.
+
+`scripts/ci_venv.py` closes all three by **reading them out of
+`.github/workflows/tests.yml`** — matrix versions, install line, test command —
+and refusing, by name, if any pattern stops matching. No defaults, no fallback
+to a remembered value: *a tool built to stop drift that carries its own copy of
+what it is checking is the drift.* Venvs live at `~/.cache/nestor-ci/pyX.Y`,
+outside the repository.
+
+**Three bugs, all found by running it, none by reading it.**
+
+* `str.split()` on `pip install -e '.[keys]' pytest coverage` handed pip a
+  requirement still wearing its shell quotes. It surfaced *only* because the
+  script runs the workflow's line verbatim — a version that restated the
+  install as a Python list would have worked immediately and drifted silently.
+* `--run`'s guard asked whether `bin/python` existed, not whether the venv could
+  run a suite. The venv left behind by the first bug had `python` and `pip` and
+  nothing else, passed the guard, and the build step was skipped.
+* **`bash -lc`.** A *login* shell re-sources the user's profile, which put the
+  developer venv back at the front of `PATH`. `$(command -v pytest)` then
+  resolved to a different interpreter, and the script printed `=== python 3.12`
+  over a run that used 3.14 — **green, and false**.
+
+**The third one is the entry.** A tool whose entire purpose is "do not let a
+gate answer under an environment it was not asked about" asserted an environment
+it had not checked, and reported a passing result under it. Nothing in the
+output could have told a reader — which is the property that makes it dangerous
+rather than merely wrong. It also produced a wrong finding that was reported
+before it was caught: a 28-test gap between two commands, which was really two
+different venvs being compared.
+
+The fix is not only `-c` instead of `-lc`. The run now **resolves the pytest it
+is about to use, prints the path and version, and refuses if that path is not
+inside the venv it named.** The label is now evidence a reader can check rather
+than a claim they must take. `build()` verifies the venv imports
+`pytest, coverage, nestor` before returning, on the same principle
+`dep-audit.sh` applies to a skipped dependency: an install that cannot be
+verified is not a step, it is a hope.
+
+*Say what you read, not what you concluded — including about your own tools.
+This one said "python 3.12" because it had passed `3.12` to a function, not
+because anything had looked.*

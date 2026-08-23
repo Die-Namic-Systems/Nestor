@@ -1,0 +1,38 @@
+{
+  "branch": "claude/ci-venv",
+  "date": "2026-08-23",
+  "note": "Building scripts/ci_venv.py — §6.114's lint-job fix applied to the test job. The decisions worth keeping are less about the tool than about what building it exposed: three bugs, all found by running it rather than reading it, and the third was the tool committing the exact failure it was written to prevent. Every row is a draft proposal for a human to weigh at `nestor ui`, not a taken decision. Measured, not recalled: the matrix is 3.10/3.12 while this machine's default python3 is 3.14; CI installs `-e '.[keys]' pytest coverage` while a dev venv carries `.[dev]`; CI runs `coverage run --include='nestor/*' \"$(command -v pytest)\" -q` while AGENTS.md line 27 says `python -m pytest -q`.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Where do the test job's Python versions, install line and command live, so a local run cannot drift from CI?",
+      "commitment": "Nowhere new — they stay in `.github/workflows/tests.yml` and `scripts/ci_venv.py` reads all three out of it. Unlike the lint fix, which moved the versions into `scripts/lint-pins.txt` and had the workflow install from it, nothing is extracted here.",
+      "why": "The lint pins could move because pip needs a requirements file anyway, so one file could serve both callers. The workflow's matrix and run steps have no such second consumer — extracting them would mean the workflow reads its own matrix from a file, which GitHub Actions does not do, so the copy would be the script's and would drift the moment somebody edited the YAML. Reading is the only arrangement with one source. The corollary is the refusal below."
+    },
+    {
+      "question": "What happens when the workflow stops saying what the script reads?",
+      "commitment": "It refuses, naming which of the three patterns failed, and exits 2. No defaults, no last-known-good, no partial run on two facts out of three.",
+      "why": "A tool built to stop drift that carries its own copy of what it is checking IS the drift, and a fallback value is exactly that copy wearing a different hat. The failure mode of a silent default is the worst available one: the tool keeps reporting green against a workflow it no longer matches, and looks like a working gate right up to the moment it matters."
+    },
+    {
+      "question": "How does the script establish that a run actually used the Python it names?",
+      "commitment": "It resolves `command -v pytest` in the same shell and environment the command will run in, prints the path and the interpreter version, and REFUSES if that path is not inside the venv for the version it named. `build()` separately verifies the venv imports pytest, coverage and nestor before returning.",
+      "why": "Because it did not, and lied. The first working version used `bash -lc` — a login shell — which re-sourced the profile, put the developer venv back at the front of PATH, and resolved `$(command -v pytest)` to a 3.14 interpreter. The script printed `=== python 3.12` over that run and reported it passing. Nothing in the output could have told a reader. A label a reader cannot check is how a wrong result reads as a right one, and the fix is not a better shell flag — it is making the label evidence."
+    },
+    {
+      "question": "Is 'the venv has a bin/python' a sufficient check before running a suite in it?",
+      "commitment": "No. `_usable()` asks whether the venv can import pytest, coverage and nestor. The `--run` path builds if it cannot.",
+      "why": "The venv left behind by the quoting bug had `python` and `pip` and nothing else. It passed the old guard, so the build was skipped, so the missing pytest was never installed, so the run borrowed another one. Two bugs conspired and each made the other invisible. `dep-audit.sh` already applies this rule to a skipped dependency: an install that cannot be verified is not a step, it is a hope."
+    },
+    {
+      "question": "`AGENTS.md` tells an agent `python -m pytest -q`; CI runs bare `pytest` under coverage, and the workflow comments on the difference. Should the doc change?",
+      "commitment": "NOT decided here, and deliberately left alone. The difference is measured and recorded; changing the instruction every agent in this repository follows is an operator's call, not a side effect of building a tool.",
+      "why": "The two commands do not collect the same set — `-m` puts the repo root on `sys.path` where bare `pytest` does not, which is why the workflow keeps a comment saying the disagreement once hid five tests. So the agent-facing instruction and the gate disagree, in the direction where a local green need not mean a CI green. That is worth fixing and it is worth fixing deliberately: `python -m pytest` is also what the seat hook, `AGENTS.md` and `docs/agent-guide.md` all say, so it moves in one change or not at all."
+    },
+    {
+      "question": "Where do the CI-shaped venvs live?",
+      "commitment": "`~/.cache/nestor-ci/pyX.Y`, outside the repository.",
+      "why": "`.gitignore` covers `.venv/` and `venv/` but not a third name, so an in-repo venv would need a gitignore edit to exist safely — a tracked change in service of an untracked artifact. Outside the tree there is nothing to ignore, nothing to commit by accident, and the venvs survive between sessions, which is what makes running both matrix legs cheap enough to actually do."
+    }
+  ]
+}

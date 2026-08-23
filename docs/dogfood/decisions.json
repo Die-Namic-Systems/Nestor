@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 486,
+    "pairs": 492,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
-  "created_at": "2026-08-22T00:00:00+00:00",
-  "digest": "2ff0617a6541e391e937b892338ae62df0c1fe9bc7bd049e3a97475ffe78fff5",
+  "created_at": "2026-08-23T00:00:00+00:00",
+  "digest": "35aa2e3198a10b4e5d7866ab7d7bad3f89223b0240a6a80a558a1f21781a33bf",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,90 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "f417114a-cf59-5def-8d56-a3396482d02e",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where do the cishaped venvs live",
+      "source_text": "Where do the CI-shaped venvs live?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`~/.cache/nestor-ci/pyX.Y`, outside the repository.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "aaa5b0f1-cce3-5253-b80c-8da779c5899d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "agentsmd tells an agent python m pytest q ci runs bare pytest under coverage and the workflow comments on the difference should the doc change",
+      "source_text": "`AGENTS.md` tells an agent `python -m pytest -q`; CI runs bare `pytest` under coverage, and the workflow comments on the difference. Should the doc change?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "NOT decided here, and deliberately left alone. The difference is measured and recorded; changing the instruction every agent in this repository follows is an operator's call, not a side effect of building a tool.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "824cf3c1-cf4c-573b-bd1e-67921db122b8",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where do the test jobs python versions install line and command live so a local run cannot drift from ci",
+      "source_text": "Where do the test job's Python versions, install line and command live, so a local run cannot drift from CI?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nowhere new — they stay in `.github/workflows/tests.yml` and `scripts/ci_venv.py` reads all three out of it. Unlike the lint fix, which moved the versions into `scripts/lint-pins.txt` and had the workflow install from it, nothing is extracted here.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "7781d5b0-877f-58ef-8be3-5b913a04eec6",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the script establish that a run actually used the python it names",
+      "source_text": "How does the script establish that a run actually used the Python it names?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It resolves `command -v pytest` in the same shell and environment the command will run in, prints the path and the interpreter version, and REFUSES if that path is not inside the venv for the version it named. `build()` separately verifies the venv imports pytest, coverage and nestor before returning.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "5f986d8a-3d53-5888-93fd-48b607605945",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the venv has a binpython a sufficient check before running a suite in it",
+      "source_text": "Is 'the venv has a bin/python' a sufficient check before running a suite in it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `_usable()` asks whether the venv can import pytest, coverage and nestor. The `--run` path builds if it cannot.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-23T00:00:00+00:00",
+      "id": "555911ab-e54f-5ba2-9bcf-f927c0f6d8d4",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happens when the workflow stops saying what the script reads",
+      "source_text": "What happens when the workflow stops saying what the script reads?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It refuses, naming which of the three patterns failed, and exits 2. No defaults, no last-known-good, no partial run on two facts out of three.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-22T00:00:00+00:00",
       "id": "f06b9ead-335c-5a92-bbbf-85c03b0840e3",
