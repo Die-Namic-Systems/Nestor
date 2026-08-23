@@ -95,6 +95,7 @@ dev = [
     # about. See scripts/dep-audit.sh for the invocation and its offline
     # handling.
     "pip-audit",
+    "hypothesis",
 ]
 cloud = [
     "anthropic>=0.60",
