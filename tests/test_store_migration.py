@@ -304,6 +304,121 @@ def test_a_newer_database_is_refused_even_with_forward_steps_registered(
         SqliteStore(path).memory_init()
 
 
+# ── the first real migration: visibility on tm_pairs (v1 → v2) ──────────────
+
+
+def test_the_first_real_migration_adds_visibility_to_a_v1_store(tmp_path):
+    """The machinery is no longer proven only by test injection — ``_migrate_v2``
+    is a real step on the real ladder. A version-1 store (no ``visibility``
+    column) opens, migrates to v2, and every row defaults to ``'internal'``.
+
+    This is the acceptance criterion §91 names: a fixture store pinned at
+    version N-1, asserted to open, migrate, and keep its data.
+    """
+    path = str(tmp_path / "v1-store.db")
+
+    # Build a v1 store: full current schema minus the visibility column.
+    # Stamp user_version=1 so the forward ladder sees it as generation 1.
+    conn = sqlite3.connect(path)
+    # Create tm_pairs WITHOUT visibility (the v1 shape).
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS tm_pairs (
+            id            TEXT PRIMARY KEY,
+            source_text   TEXT NOT NULL,
+            source_norm   TEXT NOT NULL,
+            source_lang   TEXT NOT NULL,
+            target_text   TEXT NOT NULL,
+            target_lang   TEXT NOT NULL,
+            status        TEXT NOT NULL DEFAULT 'draft',
+            verifier      TEXT NOT NULL DEFAULT '',
+            weight        REAL NOT NULL DEFAULT 1.0,
+            origin        TEXT NOT NULL DEFAULT '',
+            created_at    TEXT NOT NULL,
+            seal_sig      TEXT NOT NULL DEFAULT '',
+            reason        TEXT NOT NULL DEFAULT '',
+            superseded_by TEXT NOT NULL DEFAULT ''
+        );
+    """)
+    conn.execute(
+        "INSERT INTO tm_pairs (id, source_text, source_norm, source_lang, "
+        "target_text, target_lang, status, verifier, weight, origin, "
+        "created_at, seal_sig, reason, superseded_by) VALUES "
+        "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("test-id", "hello", "hello", "en", "hola", "es", "sealed",
+         "rita", 1.0, "", "2025-01-01T00:00:00Z", "", "", ""))
+    conn.execute("PRAGMA user_version = 1")
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.close()
+
+    # Open with the current code: should migrate v1 → v2.
+    store = SqliteStore(path)
+    store.memory_init()
+
+    # The version is now 2.
+    assert _version_on_disk(path) == 2
+
+    # The visibility column exists and defaults to 'internal'.
+    with store._db() as c:
+        cols = {r[1] for r in c.execute("PRAGMA table_info(tm_pairs)")}
+        assert "visibility" in cols
+        row = c.execute("SELECT visibility FROM tm_pairs WHERE id='test-id'"
+                        ).fetchone()
+        assert row[0] == "internal"
+
+    # The sealed pair survived.
+    pair = store.memory_get("test-id")
+    assert pair is not None
+    assert pair["target_text"] == "hola"
+    assert pair["status"] == "sealed"
+    store.close()
+
+
+# ── the non-idempotent guard: a step that is not safe to replay goes red ────
+
+
+def test_a_non_idempotent_migration_step_is_caught_by_replay(
+        tmp_path, monkeypatch):
+    """Acceptance criterion §91: *a migration deliberately made non-idempotent
+    goes red — the mutation-guard discipline applied to the ladder itself.*
+
+    A step that uses ``CREATE TABLE`` (not ``IF NOT EXISTS``) succeeds once
+    and raises on replay. The test runs the step twice on the same store —
+    once at its target version, then after stamping back to a version below
+    it — and the second run is expected to fail. This is the shape every
+    migration author should test against, and the fact that it catches the
+    fault is the proof the framework needs.
+    """
+    path = str(tmp_path / "non-idem.db")
+    base = sqlite_store.SCHEMA_VERSION
+
+    store = SqliteStore(path)
+    store.memory_init()
+    store.close()
+
+    def bad_step(conn):
+        # Deliberately NOT idempotent: no IF NOT EXISTS.
+        conn.execute("CREATE TABLE bad_probe (n INTEGER)")
+
+    monkeypatch.setattr(sqlite_store, "SCHEMA_VERSION", base + 1)
+    monkeypatch.setattr(SqliteStore, "_FORWARD_MIGRATIONS",
+                        [(base + 1, bad_step)])
+
+    # First run: stamp is at base, step targets base+1 — succeeds.
+    first = SqliteStore(path)
+    first.memory_init()
+    first.close()
+    assert _version_on_disk(path) == base + 1
+
+    # Rewind the stamp so the step would replay.
+    _stamp_version_on_disk(path, base)
+
+    # Second run: the table already exists, so the non-idempotent step raises.
+    second = SqliteStore(path)
+    with pytest.raises(sqlite3.OperationalError, match="already exists"):
+        second.memory_init()
+
+
 # ── the real ladder's shape is locked, so a future edit cannot renumber it ────
 
 

@@ -65,7 +65,11 @@ CREATE TABLE IF NOT EXISTS tm_pairs (
     -- verifier, signature and reason, and points at the row that replaced it;
     -- serve paths only ever see rows with superseded_by = ''.
     reason        TEXT NOT NULL DEFAULT '',
-    superseded_by TEXT NOT NULL DEFAULT ''
+    superseded_by TEXT NOT NULL DEFAULT '',
+    -- §6.53 / §7.5: who should see this pair.  'internal' = operator only
+    -- (the conservative default for every existing row); 'serve' = available
+    -- through nestor serve / MCP; 'public' = available in a published bundle.
+    visibility    TEXT NOT NULL DEFAULT 'internal'
 );
 
 CREATE TABLE IF NOT EXISTS tm_rejections (
@@ -254,7 +258,25 @@ _LOOKUP_KEY = ("CREATE INDEX IF NOT EXISTS idx_tm_pairs_find "
 #
 # Bump this only together with a new ``_FORWARD_MIGRATIONS`` entry (and the
 # release-notes restart line docs/releasing.md requires).
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+
+# ── forward migration steps ─────────────────────────────────────────────────
+# Append only. Never edit or renumber a shipped step (docs/drafts/schema-migrations.md).
+
+
+def _migrate_v2(conn: sqlite3.Connection) -> None:
+    """§6.53 / §7.5: add ``visibility`` to ``tm_pairs``.
+
+    Every existing row defaults to ``'internal'`` — operator-only, the
+    conservative choice for a store that predates the column. Idempotent:
+    a crash between "column added" and "version stamped" replays safely.
+    """
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(tm_pairs)")}
+    if "visibility" not in cols:
+        conn.execute(
+            "ALTER TABLE tm_pairs ADD COLUMN visibility "
+            "TEXT NOT NULL DEFAULT 'internal'")
 
 
 def _now() -> str:
@@ -366,14 +388,11 @@ class SqliteStore:
     #: already applied it, and an inserted-ahead step is silently skipped on
     #: every file already past its position.
     #:
-    #: Empty today, and honestly so: there has been exactly one schema
-    #: generation, and the idempotent self-heal ladder (``_ensure_*``) already
-    #: carries a pre-versioning ``user_version`` 0 file up to :data:`SCHEMA_VERSION`
-    #: without a dedicated step. The machinery is proven by the migratability
-    #: suite injecting a real step over a two-generation world, so the ladder is
-    #: wired rather than merely declared. A class attribute so a test can
-    #: override it per instance; the read below tolerates an instance override.
-    _FORWARD_MIGRATIONS: "list[tuple[int, Callable[[sqlite3.Connection], None]]]" = []
+    #: A class attribute so a test can override it per instance; the read
+    #: below tolerates an instance override.
+    _FORWARD_MIGRATIONS: "list[tuple[int, Callable[[sqlite3.Connection], None]]]" = [
+        (2, _migrate_v2),
+    ]
 
     def __init__(self, db_path: str = "data/nestor.db") -> None:
         self.db_path = db_path
