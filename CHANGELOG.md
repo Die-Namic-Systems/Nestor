@@ -118,6 +118,36 @@ what moved.
 
 ---
 
+## [0.11.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.10.0...v0.11.0) (2026-08-24)
+
+
+### Added
+
+* **cli:** --version, shell completions, and uniform --json ([e6ffa53](https://github.com/Die-Namic-Systems/Nestor/commit/e6ffa53e56c6a947b2d966b076052bc986a272d9))
+* getting into the 7s — CLI finish, ruff 0.16.3, preferences, onboarding ([#190](https://github.com/Die-Namic-Systems/Nestor/issues/190)) ([d74b049](https://github.com/Die-Namic-Systems/Nestor/commit/d74b049f0a225e049447e41e583b27647374c012))
+* IDEAS §1.10(a) and §1.4 — warranted how, seal age in provenance, and step 2 finally run ([#186](https://github.com/Die-Namic-Systems/Nestor/issues/186)) ([2fbeccb](https://github.com/Die-Namic-Systems/Nestor/commit/2fbeccbf2309ecdb03a165c091ded37800594a20))
+* **migrations:** ship the first real migration step — visibility on tm_pairs ([#187](https://github.com/Die-Namic-Systems/Nestor/issues/187)) ([145bf9b](https://github.com/Die-Namic-Systems/Nestor/commit/145bf9babfad0f87eec1d4d9ef12ce2fd74ba32e))
+* **migrations:** ship the first real migration step — visibility on tm_pairs (§7.5, [#91](https://github.com/Die-Namic-Systems/Nestor/issues/91)) ([7e99723](https://github.com/Die-Namic-Systems/Nestor/commit/7e99723cb6d1f0c18b0be518df0afa14e56ffd35))
+* **prefs:** per-user, cross-session preference store (§7.5 gap) ([a3296ea](https://github.com/Die-Namic-Systems/Nestor/commit/a3296eacad13ee928ebb1987927b33ed289e9a79))
+* **staleness:** seal age reaches provenance, and step 2 finally ran (IDEAS §1.4) ([682bc9f](https://github.com/Die-Namic-Systems/Nestor/commit/682bc9fe38a62fcff58063830dd5028c3e006708))
+* **testing:** add property-based tests for normalizer, matcher, and signing (§7.5) ([ca6141a](https://github.com/Die-Namic-Systems/Nestor/commit/ca6141ae0434c01f81ae52dc7b1e72f0dd1d4b42))
+* **testing:** property-based tests for normalizer, matcher, and signing ([#188](https://github.com/Die-Namic-Systems/Nestor/issues/188)) ([415445e](https://github.com/Die-Namic-Systems/Nestor/commit/415445e2784f90a906f4294515037c9e3a231cec))
+* **warrants:** a served answer says warranted how (IDEAS §1.10(a)) ([54dcc6d](https://github.com/Die-Namic-Systems/Nestor/commit/54dcc6d592cbbe032ea0f2a9ec7d7f5da7c43e22))
+* **warrants:** carriage, a terminal, provenance — and the lint gate'… ([#185](https://github.com/Die-Namic-Systems/Nestor/issues/185)) ([8ed24bc](https://github.com/Die-Namic-Systems/Nestor/commit/8ed24bc2c7319d461ea656d73af28976ff9137ef))
+* **warrants:** carriage, a terminal, provenance — and the lint gate's pins ([eae8f7a](https://github.com/Die-Namic-Systems/Nestor/commit/eae8f7adba83acebb2ff149cf34674b721cc7b34))
+* **warrants:** the citation and construction relation (IDEAS §1.10) ([7f2612f](https://github.com/Die-Namic-Systems/Nestor/commit/7f2612f4af6c3f4a542b826c70242850912d01c0))
+* **warrants:** the citation and construction relation (IDEAS §1.10) ([#184](https://github.com/Die-Namic-Systems/Nestor/issues/184)) ([4351998](https://github.com/Die-Namic-Systems/Nestor/commit/4351998e411c468336f619813f577ab1ed201e13))
+
+
+### Fixed
+
+* **ci:** guard hypothesis import so test_property.py is skipped when not installed ([7ae0423](https://github.com/Die-Namic-Systems/Nestor/commit/7ae04232af183091f57858302b846b99c7295852))
+* **docs:** add §6.117 to the Map in IDEAS.md ([b9a6967](https://github.com/Die-Namic-Systems/Nestor/commit/b9a6967f0f773ecc1a7312cab44098c793cada33))
+* **lint:** bump ruff pin to 0.16.3 and fix all 536 findings ([5b2b542](https://github.com/Die-Namic-Systems/Nestor/commit/5b2b5426dd31fb8cc351681202ab338f3771a583))
+* **lint:** clean 3 ruff findings in test_ci_venv.py from PR 189 ([31c955d](https://github.com/Die-Namic-Systems/Nestor/commit/31c955d3e54fda4a0e63704163a86ce53388e32c))
+* **lint:** remove noqa directives — importorskip is a recognized import guard ([eb7db57](https://github.com/Die-Namic-Systems/Nestor/commit/eb7db578530258cb394f0a19b9c2834e91c1c59c))
+* **mypy:** add shtab to ignored optional imports ([54db617](https://github.com/Die-Namic-Systems/Nestor/commit/54db617060e952e3e204fef632b2dbf8ec3c9a48))
+
 ## [0.10.0](https://github.com/rudi193-cmd/Nestor/compare/v0.9.1...v0.10.0) (2026-08-19)
 
 
