@@ -55,11 +55,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rudi193-cmd/Nestor"
-Repository = "https://github.com/rudi193-cmd/Nestor"
-Changelog = "https://github.com/rudi193-cmd/Nestor/blob/master/CHANGELOG.md"
-Issues = "https://github.com/rudi193-cmd/Nestor/issues"
-"Release runbook" = "https://github.com/rudi193-cmd/Nestor/blob/master/docs/releasing.md"
+Homepage = "https://github.com/Die-Namic-Systems/Nestor"
+Repository = "https://github.com/Die-Namic-Systems/Nestor"
+Changelog = "https://github.com/Die-Namic-Systems/Nestor/blob/master/CHANGELOG.md"
+Issues = "https://github.com/Die-Namic-Systems/Nestor/issues"
+"Release runbook" = "https://github.com/Die-Namic-Systems/Nestor/blob/master/docs/releasing.md"
 
 [project.scripts]
 nestor = "nestor.cli:main"
