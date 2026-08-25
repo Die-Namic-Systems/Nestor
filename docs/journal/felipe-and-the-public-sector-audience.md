@@ -90,7 +90,7 @@ This is that line, kept in one place so the pitch does not silently drift.
 - **Hash-chained ledger.** `docs/dogfood/nestor.db.ledger.jsonl` rows carry
   `"prev": "<sha256>"` linking to the previous entry. Quoted line from
   `git diff docs/dogfood/nestor.db.ledger.jsonl` on 2026-08-25:
-  `{"ts": "...", "prev": "aafbe5b1a91ba5699bf7379a849a12c4055f8c4603262e3fa53aeb065b3ccef1", "kind": "entity_resolve", ...}`.
+  `{"ts": "...", "prev": "aafbe5b1a91b...", "kind": "entity_resolve", ...}` (full 64-hex `prev` truncated for the secret-scanner).
 - **Refuse-to-serve-what-isn't-verified.** `nestor --json ask ... --engine
   offline` returned `{"passage": {"state": "pending", ...}, "verified":
   false, "threshold": 0.92}` when the top match sat below 0.92.

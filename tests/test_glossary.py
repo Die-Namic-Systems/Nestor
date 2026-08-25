@@ -49,6 +49,48 @@ def test_locks_in_text_word_boundary_prevents_substring_match(tmp_path, monkeypa
     assert glossary.locks_in_text("a padlock", "en", "de") == {}
 
 
+def test_issue_100_tito_does_not_fire_inside_apetito(tmp_path, monkeypatch):
+    """#100 / IDEAS §6.38 — the acceptance case as filed, in Spanish.
+
+    Before the fix, a lock ``{"Tito": "Tito"}`` matched the substring inside
+    ``apetito`` and leaked a "render exactly" instruction into the draft
+    engine for a sentence that never contained the term. The English
+    ``lock`` / ``blockchain`` split above proves the same property; this
+    test carries the exact reproducer from the issue verbatim so a reader
+    can find it by that name.
+    """
+    monkeypatch.setattr(glossary, "_OVERRIDE", tmp_path / "glossary.json")
+    glossary.add_term("Tito", "Tito", "es", "en")
+    # The sentence the issue names — no glossary hit, no lock leaked:
+    assert glossary.locks_in_text("se come con buen apetito", "es", "en") == {}
+    # And the sentence that DOES contain the term still fires:
+    assert glossary.locks_in_text("mi tío Tito", "es", "en") == {"Tito": "Tito"}
+
+
+def test_issue_100_word_boundary_drops_spanish_inflection(tmp_path, monkeypatch):
+    """The other half of the trade the word-boundary fix made — pinned so
+    nobody silently flips it back to substring.
+
+    #100's own body names the counter-case: a word-boundary check **drops**
+    legitimate inflection matches like ``abuela`` → ``abuelas``. Decision
+    0191 records why word-boundary won anyway (a false lock leaking a
+    "render exactly" into the draft engine is worse than a missed
+    inflection recall, because the recall miss reads as *no glossary
+    guidance* — the tier-2 engine still translates the phrase — while a
+    false lock silently overrides that translation with a wrong term).
+
+    If a later change re-introduces inflection recall (a lemmatizer, a
+    stem-boundary rule, an explicit alias table), this test breaks; the
+    fix is to add the alias/lemma rather than to weaken the boundary.
+    """
+    monkeypatch.setattr(glossary, "_OVERRIDE", tmp_path / "glossary.json")
+    glossary.add_term("abuela", "grandmother", "es", "en")
+    # The trade-off, named: abuelas is not matched by the abuela lock.
+    assert glossary.locks_in_text("las abuelas cuentan cuentos", "es", "en") == {}
+    # The unambiguous form is still matched:
+    assert glossary.locks_in_text("mi abuela llegó", "es", "en") == {"abuela": "grandmother"}
+
+
 def test_locks_in_text_multi_word_term(tmp_path, monkeypatch):
     monkeypatch.setattr(glossary, "_OVERRIDE", tmp_path / "glossary.json")
     glossary.add_term("ice cream", "Eis", "en", "de")
