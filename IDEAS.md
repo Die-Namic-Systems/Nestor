@@ -1697,8 +1697,8 @@ round-trip for a way to carry a seal.
 consults verified answers before improvising — required writing an integration.*
 
 `nestor serve` speaks MCP over stdio (newline-delimited JSON-RPC, so stdlib only
-and the zero-dependency core holds). Seven tools: ask, resolve, check, match,
-provenance, ledger_verify, propose.
+and the zero-dependency core holds). Eight tools: ask, resolve, check, match,
+provenance, ledger_verify, prefs, propose.
 
 **The load-bearing decision is what is absent.** There is no sealing tool, no
 flag that adds one, and no argument to an existing tool that produces one; a

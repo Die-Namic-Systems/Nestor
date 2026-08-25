@@ -6,7 +6,7 @@ through ``graduate_segment`` calls typed into a REPL, and the curator browsed
 the sealed memory through :class:`~nestor.curator.Curator`. Both are library
 surfaces. Neither is a place a person can sit down at.
 
-This is that place. One local page, five views, each one a surface the package
+This is that place. One local page, seven views, each one a surface the package
 already has and nobody could see:
 
 * **Queue** — the segments the cascade left for review. Seal one as drafted,

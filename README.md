@@ -90,9 +90,6 @@ output into a regulated process:
 
 > **Which model outputs did a human actually check?**
 
-The three states [above](#nestor) answer a different question, one being put to
-anyone shipping model output into a regulated process:
-
 **Each verification is permanent capital.** The curve runs the opposite way to
 inference: cost per answer *falls* as the proportion of verified answers rises,
 and it never un-falls, because a seal does not expire and costs nothing to serve
@@ -452,7 +449,7 @@ nestor-ui --db data/nestor.db --open             # same, via the console script
 ```
 
 Stdlib only — `http.server` and one inlined page — so the runtime dependency
-count stays zero. Four views, each one a surface the package already had and
+count stays zero. Seven views, each one a surface the package already had and
 nobody could see:
 
 | View | What it is |
@@ -460,6 +457,9 @@ nobody could see:
 | **Queue** | The segments the cascade left for review. Seal, correct-then-seal, or reject each one; it leaves the queue and the decision is signed and ledgered. |
 | **Memory** | The curator's view over any domain: filter, inspect provenance and rejections, unseal, reject, restore, seal one by hand, export and import. Every row shows `servable` beside `status`. |
 | **Ask** | The mechanic, in whichever recipe you pick — translate, resolve, reconcile, or the bare seam. Each answer comes with the ranked candidates and what they scored. |
+| **Signals** | Three things the package records that no single row shows: overwritten seals, queries the reviewers keep refusing, and pairs refused against many unrelated queries. |
+| **Graph** | The decision graph drawn — nodes are decisions, edges are the typed relations between them (`requires`, `supersedes`, `supports`, `conflicts`). Read-only. |
+| **Triage** | Group the decision queue and find supersessions — clusters of similar questions and edges proposed by similarity. |
 | **Ledger** | `verify()`'s verdict and the chain itself, so the audit trail can be read where the decisions are made. |
 
 The Ask view is the one to open first, because it shows the product rather than
@@ -608,8 +608,8 @@ sealed this and a row says so. Set the key, or set `NESTOR_REQUIRE_SEAL_KEY=1`
 to turn the degrade into a refusal — see [Seal signatures](#seal-signatures).
 
 A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
-`nestor_provenance`, `nestor_ledger_verify` — and `nestor_propose`, which queues
-its answer for a human as a `draft`.
+`nestor_provenance`, `nestor_ledger_verify`, `nestor_prefs` — and
+`nestor_propose`, which queues its answer for a human as a `draft`.
 
 **It cannot seal.** Not "sealing is disabled by default" — there is no sealing
 tool, no flag that adds one, and no argument to any existing tool that produces

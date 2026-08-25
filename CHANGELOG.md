@@ -107,6 +107,15 @@ what moved.
   `pip install -r scripts/lint-pins.txt` to sync. See agent-log §6.114,
   decision 0168.
 
+### Fixed
+
+* **Stale counts and missing help text across CLI, README, and docs.**
+  README view table updated from four to seven (added Signals, Graph, Triage);
+  MCP tool count updated from seven to eight (`nestor_prefs` was missing);
+  `domain_args()` and five other CLI arguments gained `help=` text;
+  duplicate paragraph removed from README; shoebox gap count corrected in
+  project-layout.md. Decisions 0186–0187.
+
 ### Upgrading
 
 * **This release changes the schema, so long-lived processes must be

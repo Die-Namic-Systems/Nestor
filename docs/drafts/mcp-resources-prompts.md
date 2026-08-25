@@ -17,7 +17,7 @@ is a natural prompt.*
 "capabilities": {"tools": {"listChanged": False}}
 ```
 
-Seven tools, listed in `tools()`. No resources, no prompts, no sampling,
+Eight tools, listed in `tools()`. No resources, no prompts, no sampling,
 no roots, no logging. The `handle()` method dispatches `tools/list` and
 `tools/call`; every other method except `initialize`, `ping`, and the two
 notification types returns `method not found`.

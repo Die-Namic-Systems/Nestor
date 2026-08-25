@@ -1,0 +1,18 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Fix stale counts (view count, tool count, gap count) and add missing CLI help text.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should README, IDEAS.md, and docs count strings be updated when the underlying code adds a view or tool?",
+      "commitment": "Updated README view table from four to seven (added Signals, Graph, Triage rows). Updated MCP tool count from seven to eight in README, IDEAS.md, and docs/drafts/mcp-resources-prompts.md (nestor_prefs was missing). Updated ui.py docstring from five to seven views. Corrected shoebox gap count in project-layout.md from five open to three open, two closed. Removed duplicate paragraph in README (copy-paste leftover).",
+      "why": "Every count string that falls behind the code is a lie the next reader absorbs uncritically. The complexity audit flagged the pattern; these are five more instances of it."
+    },
+    {
+      "question": "Should CLI arguments without help= text get descriptions?",
+      "commitment": "Added help= to domain_args() helper (used by calibrate, decision, and others), match --abs-tol/--pct-tol, import file positional, ledger --limit, and rejections --target-lang/--limit.",
+      "why": "A user running --help sees these arguments with no description. The arguments that already had help text (check --abs-tol, ask --source-lang, etc.) prove the convention; these were omissions, not a style choice."
+    }
+  ]
+}
