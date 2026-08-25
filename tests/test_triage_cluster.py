@@ -13,6 +13,8 @@ from __future__ import annotations
 import sys
 import time
 
+import pytest
+
 from nestor.matcher import StringMatcher
 from nestor.triage import Decision, load_decisions
 from nestor.triage.cluster import group
@@ -144,6 +146,7 @@ def test_empty_input():
     assert group([], StringMatcher(), 0.45) == []
 
 
+@pytest.mark.slow
 def test_smoke_real_corpus_partitions_every_decision_quickly():
     decisions = load_decisions()
     assert len(decisions) > 100  # the real queue, not an empty tree

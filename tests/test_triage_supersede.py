@@ -9,6 +9,8 @@ the builder produced the module but not this test.
 """
 from __future__ import annotations
 
+import pytest
+
 from nestor.matcher import StringMatcher
 from nestor.triage import EDGE_KINDS, Decision, ProposedEdge
 from nestor.triage.supersede import find_supersessions
@@ -58,6 +60,7 @@ def test_deterministic_and_kinds_are_graph_kinds():
     assert first == sorted(first, key=lambda e: (e.src_id, e.dst_id))
 
 
+@pytest.mark.slow
 def test_smoke_over_the_real_corpus_at_the_knee():
     from nestor.triage import load_decisions
     edges = find_supersessions(load_decisions(), M, BAR)

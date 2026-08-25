@@ -15,8 +15,9 @@ plus a third that turned out already fixed, and is read anyway:
 * **Python version.** The matrix is 3.10 and 3.12. A developer venv is whatever
   `python3` happens to be — 3.14 on the machine this was written on. Two of
   those three interpreters are not the ones the gate will run under.
-* **Installed set.** CI installs ``-e '.[keys]' pytest coverage`` and nothing
-  else; the lint tools live in the lint job. A local `.[dev]` venv has five
+* **Installed set.** CI installs ``-e '.[keys]' pytest pytest-xdist pytest-cov
+  coverage`` and nothing else; the lint tools live in the lint job. A local
+  `.[dev]` venv has five
   packages CI's test job does not, and a test that reads what happens to be
   installed passes locally and fails on both matrix legs. That happened.
 * **The command itself** — read, but **not** a gap. CI runs bare ``pytest``
@@ -97,10 +98,10 @@ def test_command(text: str) -> str:
     Read rather than assumed, because it is *not* ``python -m pytest``: the
     difference is real enough that the workflow keeps a comment about it.
     """
-    m = re.search(r"^\s*(coverage run .*pytest.*)$", text, re.M)
+    m = re.search(r"^\s*(pytest\s+.*--cov.*)$", text, re.M)
     if not m:
         raise WorkflowUnreadable(
-            "no `coverage run ... pytest ...` step found — this script runs "
+            "no `pytest ... --cov ...` step found — this script runs "
             "the command CI runs and will not substitute its own")
     return m.group(1).strip()
 

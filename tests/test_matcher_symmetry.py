@@ -39,6 +39,7 @@ def _key(rng: random.Random, n: int) -> str:
 
 # --- symmetry --------------------------------------------------------------
 
+@pytest.mark.slow
 def test_similarity_is_symmetric_across_lengths():
     m = StringMatcher()
     rng = random.Random(21)
@@ -48,6 +49,7 @@ def test_similarity_is_symmetric_across_lengths():
         assert m.similarity(a, b) == m.similarity(b, a)
 
 
+@pytest.mark.slow
 def test_bare_difflib_is_not_symmetric():
     """Pins WHY the canonical ordering exists — remove it and this is the bug.
 

@@ -102,7 +102,7 @@ def test_the_install_line_is_the_test_jobs_and_not_the_lint_jobs(workflow):
 @pytest.mark.parametrize("missing,needle", [
     ("python-version", "will not guess them"),
     ("pip install -e", "install line"),
-    ("coverage run", "will not substitute its own"),
+    ("--cov=nestor", "will not substitute its own"),
 ])
 def test_a_workflow_that_stops_saying_it_is_refused(tmp_path, workflow, missing,
                                                     needle):
