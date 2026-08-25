@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 534,
+    "pairs": 535,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "e61f6643325a5372a75ccc05662239768ec8560882250676f7218a9b5b5b8929",
+  "digest": "ab72045f200900cf57e7e56841b28c51f4a713747ecc08f9a1622b615e94f55d",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -383,6 +383,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Moved the `os.environ` mutation from the private `_resolve_home` (now a pure resolver) to the public `ensure_home_layout`, where the pinning is documented in the docstring and visible to callers. Internal calls thread the `home` parameter explicitly.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "43c21361-813a-500b-a337-0a28609252cf",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the arcquestions probe report be committed alongside open_issuesmd or left in scratchpad as a oneshot",
+      "source_text": "Should the arc-questions probe report be committed alongside open_issues.md, or left in scratchpad as a one-shot?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Committed. docs/dogfood/probes/arc_questions.md and .json carry the full 3213-line report; scripts/corpus/arc_questions.txt carries the 15 prompts used (11 arc-shipped questions + 4 next-step proposals). The finding a reader would otherwise have to re-derive: over 15 questions asked in fresh words about work this arc did, `match` places the correct decision in the top-8 for 11 of 11 arc questions (median rank 1), but only 4 clear the 0.55 fuzzy bar `decision check` uses. The gap between 'in the top-8' and 'clears the bar' is exactly the residual decision 0154 named — character-ratio scoring on short question-shaped queries hits sim 0.44-0.55 for real matches. The 4 'next/' proposals return sim 0.478-0.490 topically-unrelated top-1 hits (top-8 not exhaustively searched).",
       "verifier": "",
       "weight": 1.0
     },

@@ -1,0 +1,21 @@
+# The 15 arc questions, asked in fresh words — same set from the earlier
+# `nestor decision check` batch, run through the full read-only meaning suite.
+
+# --- arc (things we shipped this arc) ---
+Should corpus extractors fail closed on a missing checkout?
+Should corpus extractors restrict to git-tracked files, not filesystem walk?
+Should the corpus extractors read the decision record?
+Should nestor_propose refuse forbidden arguments loudly?
+Should glossary term locks match on word boundary or substring?
+Would a question-stem strip rescue the rank-110 licence probe?
+Where does cross-session collision awareness live?
+Should cascade metadata and check output surface evidence_count?
+Should nestor_ask on the MCP server have the same domain fallback as the CLI?
+Should the local-first no-phone-home claim be a test, not an adjective?
+Should collisions_at_bar in demo/the_dogfooding.py be sped up with early bail?
+
+# --- next (proposals from the journal note; not yet sealed) ---
+Should Nestor have a policy-audience one-pager distinct from the operator guide?
+Should nestor demo have a --seed policy option with es and pt sealed pairs?
+Should there be a ninety-second transcript walk-through of the covenant?
+Should Nestor ship a multi-language matcher story for en es fr ar?
