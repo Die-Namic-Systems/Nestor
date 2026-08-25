@@ -54,11 +54,9 @@ Decisions land as **drafts** — only a human seals them in `nestor ui`.
 
 **You may propose. You may not confirm.**
 
-No `status="sealed"` and no `verifier=` carrying a human's name unless they
-signed in `nestor ui`. This applies to code, tests, scripts, and any automation
-that touches the seal trail. If you are writing a feature that proposes a draft,
-it must be structurally unable to seal one — no `verifier=` parameter on the
-call path, no `status=` that can reach `"sealed"`.
+The full statement and its implications are in
+[`docs/agent-guide.md`](docs/agent-guide.md). The short version: no code path
+you write may seal a pair or name a human verifier — only `nestor ui` does that.
 
 ## Writing tests
 

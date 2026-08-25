@@ -90,11 +90,8 @@ output into a regulated process:
 
 > **Which model outputs did a human actually check?**
 
-Tier 2 is a machine draft, explicitly queued and never served as verified. Tier
-3 is a person checking it, under their own key. Tier 1 is that decision served
-back, verbatim, with the name of who made it — and the whole sequence appended
-to a hash-chained ledger. "A human checked this" is either in the chain or it is
-not.
+The three states [above](#nestor) answer a different question, one being put to
+anyone shipping model output into a regulated process:
 
 **Each verification is permanent capital.** The curve runs the opposite way to
 inference: cost per answer *falls* as the proportion of verified answers rises,
@@ -286,10 +283,10 @@ are written up in [`docs/matcher-seam.md`](docs/matcher-seam.md).
 
 For each text segment, Nestor tries three tiers in order:
 
-| Tier | Name | What it is | Result state |
-|------|------|-----------|--------------|
-| 1 | **Nestor's ledger** | A sealed TM hit (fuzzy match ≥ `SEAL_THRESHOLD`, default `0.92` — [a dial, not a default](#accuracy-and-how-to-measure-yours)) | `sealed` — served verbatim |
-| 2 | **The draft** | A glossary-constrained LLM (or offline TM-composite) draft | `draft` — queued for review |
+| Tier | Name | What it is | State |
+|------|------|-----------|-------|
+| 1 | **Nestor's ledger** | A sealed TM hit (fuzzy match ≥ `SEAL_THRESHOLD`, default `0.92` — [a dial, not a default](#accuracy-and-how-to-measure-yours)) | `sealed` |
+| 2 | **The draft** | A glossary-constrained LLM (or offline TM-composite) draft | `draft` |
 | 0 | *(no candidate)* | The engine declined / returned nothing | `pending` |
 
 A tier-2 draft is written into the host's review queue. Tier 3 — **the seal** —

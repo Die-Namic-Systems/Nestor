@@ -46,6 +46,9 @@ directories and `layout.json`, and clobbers nothing that is already there.
 | `NESTOR_HOME` | Household root (default `~/.nestor`) |
 | `NESTOR_DB` | Pinned corpus — one **file**, what `nestor` opens without `--db` |
 
+For the full cross-root comparison (`WILLOW_HOME`, `HOMESTEAD_HOME`, etc.) see
+[`roots-willow-and-homestead.md`](roots-willow-and-homestead.md).
+
 ### Pinning the corpus
 
 `NESTOR_HOME` names a root; **`NESTOR_DB` names one file**, and wins over it.
