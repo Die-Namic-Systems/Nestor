@@ -1190,7 +1190,7 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--target-lang", "--to", dest="target_lang", default=target)
 
     ask = sub.add_parser("ask", help="run the cascade over a phrase")
-    ask.add_argument("text")
+    ask.add_argument("text", help="the phrase to look up")
     # No `default="en"/"es"` here on purpose: cmd_ask needs to tell "left at the
     # configured default" apart from "the human typed --from/--to", and only the
     # former is eligible for _ask_domain()'s store-aware fallback (issue #167
@@ -1202,25 +1202,29 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("--target-lang", "--to", dest="target_lang", default=None,
                      help="target domain tag (default: es, or the store's "
                           "largest domain if en→es holds nothing)")
-    ask.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"))
+    ask.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
+                     help="cascade engine: offline (store only), auto (store then LLM), "
+                          "claude (store then Claude)")
     ask.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     ask.set_defaults(func=cmd_ask)
 
     res = sub.add_parser("resolve", help="resolve a surface form to a canonical entity")
-    res.add_argument("surface")
-    res.add_argument("--domain", default="entity")
+    res.add_argument("surface", help="the surface form to resolve")
+    res.add_argument("--domain", default="entity", help="resolution domain (default: entity)")
     res.set_defaults(func=cmd_resolve)
 
     chk = sub.add_parser("check", help="check a figure against its sealed baseline")
-    chk.add_argument("label")
-    chk.add_argument("observed")
-    chk.add_argument("--domain", default="value")
-    chk.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
-    chk.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
+    chk.add_argument("label", help="the label of the sealed baseline")
+    chk.add_argument("observed", help="the observed figure to check")
+    chk.add_argument("--domain", default="value", help="domain tag (default: value)")
+    chk.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0,
+                     help="absolute tolerance (default: 0)")
+    chk.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05,
+                     help="percentage tolerance (default: 0.05)")
     chk.set_defaults(func=cmd_check)
 
     mat = sub.add_parser("match", help="the bare seam over any domain")
-    mat.add_argument("text")
+    mat.add_argument("text", help="the text to match against sealed pairs")
     domain_args(mat)
     mat.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
