@@ -20,5 +20,5 @@ This is a fresh store standing up around a single piece: the three jokes in
 To seal it (as a human), or reject it:
 
 ```bash
-nestor --db docs/llm-only-joke/nestor.db ui   # the queue, where the state changes
+nestor --db demo/llm-only-joke/nestor.db ui   # the queue, where the state changes
 ```

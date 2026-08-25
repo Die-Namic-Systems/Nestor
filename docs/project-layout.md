@@ -74,7 +74,9 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 ├── review_desk.py      the other desk: patch_review over this repo's own open findings, seeded from IDEAS.md
 ├── filing_cabinet.py   one man's papers against his own lot's disclosures — three open gaps (§6.22, §6.39, and the verifier policy that does not exist)
 ├── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
-└── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
+├── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
+├── llm-only-jokes.md   three jokes only an LLM would get — a session's first ask, kept as a store's first draft
+└── llm-only-joke/      a fresh store stood up with one piece (the jokes); bundle + regenerable .db
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
@@ -111,7 +113,6 @@ docs/covenant-lineage.md  where "you may propose, you may not confirm" came from
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
 docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
-docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
 docs/the-name.md      where "Nestor" comes from — the nest, the Homeric counsellor, and Asimov's NS-2 line
 docs/accuracy.md      why the measured false-verification rate is published rather than an adjective
 docs/matcher-seam.md  the domain seam in depth — the signed embedding cache, and why a domain is its tags *and* its matcher
