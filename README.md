@@ -420,7 +420,7 @@ seals that do not verify, and revoke.
 from nestor.curator import Curator
 
 c = Curator(store, source_lang="en", target_lang="es")
-c.list(status="sealed", contains="invoice")   # browse, filter, paginate
+c.browse(status="sealed", contains="invoice")  # browse, filter, paginate
 c.get(pair_id)                                # provenance + every rejection against it
 c.unverifiable()                              # says "sealed", would NOT be served
 c.unseal(pair_id, verifier="rita", reason="terminology changed")
@@ -511,7 +511,8 @@ someone without handing them the ability to change it. `--engine` defaults to
 
 The CLI is its own process, so it does not see a store your Python snippet set
 in memory — it reads `--db` (default `./data/nestor.db`) and `--ledger`. Both are
-global flags, so they go **before** the subcommand: `nestor --db mydb.db ask "…"`.
+global flags and work in either position: `nestor --db mydb.db ask "…"` and
+`nestor ask "…" --db mydb.db` are equivalent.
 
 ```bash
 nestor ask "Good evening."               # ✓ sealed  Buenas noches.  (verified by rita)
