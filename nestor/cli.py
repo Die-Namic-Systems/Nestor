@@ -1477,10 +1477,7 @@ def _hoist_globals(argv: list[str]) -> list[str]:
         if tok in _GLOBAL_FLAGS_WITH_VALUE and i + 1 < len(argv):
             hoisted += [tok, argv[i + 1]]
             i += 2
-        elif any(tok.startswith(f + "=") for f in _GLOBAL_FLAGS_WITH_VALUE):
-            hoisted.append(tok)
-            i += 1
-        elif tok in _GLOBAL_FLAGS_BARE:
+        elif any(tok.startswith(f + "=") for f in _GLOBAL_FLAGS_WITH_VALUE) or tok in _GLOBAL_FLAGS_BARE:
             hoisted.append(tok)
             i += 1
         else:
