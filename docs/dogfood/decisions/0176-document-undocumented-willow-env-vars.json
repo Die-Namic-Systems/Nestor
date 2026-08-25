@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "test_every_environment_variable_is_documented failed because three WILLOW_* env vars (WILLOW_20_REPO, WILLOW_CHARTER_REPO, WILLOW_CONSTITUTION_CASES) in _fleet_paths.py were never documented in any file the doc gate scans. Two were already in the local-fleet.md bash snippet; the third (WILLOW_20_REPO) and WILLOW_CONSTITUTION_CASES were missing. Fix: add the missing vars to the snippet, add local-fleet.md to the DOCS whitelist, and exempt it from the forward direction since it documents fleet-wide vars belonging to willow-mcp.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "How should undocumented WILLOW_* env vars in _fleet_paths.py be handled?",
+      "commitment": "Document WILLOW_20_REPO and WILLOW_CONSTITUTION_CASES in docs/local-fleet.md alongside the existing JELES_REPO and WILLOW_CHARTER_REPO entries. Add docs/local-fleet.md to the test_docs.py DOCS whitelist so the reverse gate (code var → docs) covers it. Exempt local-fleet.md from the forward gate (docs var → code) because it documents fleet-wide vars (WILLOW_STORE_ROOT, WILLOW_PGP_FINGERPRINT) that belong to willow-mcp, not to this codebase.",
+      "why": "The doc gate exists to catch undocumented knobs. These three vars were real — _fleet_paths.py reads them — but never mentioned in a scanned doc. The fix is documentation, not code change. local-fleet.md was the natural home since it already showed two of the four overrides in its pytest invocation example."
+    }
+  ]
+}
