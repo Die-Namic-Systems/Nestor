@@ -35,7 +35,7 @@ Usage::
     from nestor.curator import Curator
 
     c = Curator(store, source_lang="en", target_lang="es")
-    c.list(status="sealed", contains="invoice")     # browse
+    c.browse(status="sealed", contains="invoice")   # browse
     c.get(pair_id)                                  # provenance + rejections
     c.unseal(pair_id, verifier="rita", reason="terminology changed")
     c.export()                                      # everything, JSON-ready
@@ -104,14 +104,20 @@ class Curator:
             out["key_type"] = signing.verifier_key_type(pair.get("verifier", ""))
         return out
 
-    def list(self, status: str = "", verifier: str = "", contains: str = "",
-             limit: int = 50, offset: int = 0) -> list[dict]:
+    def browse(self, status: str = "", verifier: str = "", contains: str = "",
+               limit: int = 50, offset: int = 0) -> list[dict]:
         """Browse pairs, newest first, each annotated with signature validity."""
         rows = self.store.memory_list(
             source_lang=self.source_lang, target_lang=self.target_lang,
             status=status, verifier=verifier, contains=contains,
             limit=limit, offset=offset)
         return [self._annotate(r) for r in rows]
+
+    def list(self, status: str = "", verifier: str = "", contains: str = "",
+             limit: int = 50, offset: int = 0) -> list[dict]:
+        """Deprecated alias for :meth:`browse`."""
+        return self.browse(status=status, verifier=verifier, contains=contains,
+                           limit=limit, offset=offset)
 
     def get(self, pair_id: str) -> dict | None:
         """One pair with full provenance: signature validity, rejections, what
@@ -234,13 +240,8 @@ class Curator:
 
     def unverifiable(self, limit: int = 200) -> builtins.list[dict]:
         # `builtins.list`, not the bare `list[dict]` every other signature in
-        # this file uses: this class defines its OWN method named `list`
-        # above, which shadows the builtin type inside this class body from
-        # this point on — mypy resolves an unqualified `list` here to
-        # `Curator.list` (the method) and rejects it as "not valid as a
-        # type". Only annotations written after that method's def are
-        # affected; qualifying via `builtins` sidesteps the clash without
-        # renaming the public `Curator.list` API.
+        # this file uses: the deprecated `list` alias still shadows the
+        # builtin type inside this class body from that def onward.
         """Rows claiming ``sealed`` that Nestor would refuse to serve.
 
         With signing enabled these are rows written by something that did not
@@ -248,7 +249,7 @@ class Curator:
         signing disabled every seal verifies and this is always empty, which is
         itself worth knowing.
         """
-        return [p for p in self.list(status="sealed", limit=limit)
+        return [p for p in self.browse(status="sealed", limit=limit)
                 if not p["servable"]]
 
     def replaced_seals(self, conflicts_only: bool = True,
@@ -451,7 +452,7 @@ class Curator:
         Signatures are exported as-is: they are HMACs, not secrets, and without
         the key they cannot be recomputed — which is the point.
         """
-        pairs = self.list(limit=limit)
+        pairs = self.browse(limit=limit)
         detailed = []
         for p in pairs:
             full = self.get(p["id"])
@@ -468,9 +469,9 @@ class Curator:
 
     def summary(self) -> dict:
         """Counts a curator acts on, including the ones `memory_stats` omits."""
-        sealed = self.list(status="sealed", limit=100_000)
-        draft = self.list(status="draft", limit=100_000)
-        rejected = self.list(status="rejected", limit=100_000)
+        sealed = self.browse(status="sealed", limit=100_000)
+        draft = self.browse(status="draft", limit=100_000)
+        rejected = self.browse(status="rejected", limit=100_000)
         out = {
             "sealed": len(sealed),
             "draft": len(draft),
