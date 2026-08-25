@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 507,
+    "pairs": 508,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "902a389d9b0a811a265f34c81049f83ffd7ea0947d0f3b619c9352f1fa01846b",
+  "digest": "659b22375ea16e31a718a81c7fdb572ae94229e55042e92a695059f043a35a44",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -75,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A new `_hoist_globals()` function rewrites sys.argv to move the three global flags before the subcommand, so `nestor ask \"hi\" --db x.db` and `nestor triage --json` work regardless of flag position. The existing `_HintingParser` stays as a safety net for any flags not yet hoisted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "4b8f411a-f89f-5457-887c-93fe16af1838",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should the envvar pinning in home_init be handled",
+      "source_text": "How should the env-var pinning in home_init be handled?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Moved the `os.environ` mutation from the private `_resolve_home` (now a pure resolver) to the public `ensure_home_layout`, where the pinning is documented in the docstring and visible to callers. Internal calls thread the `home` parameter explicitly.",
       "verifier": "",
       "weight": 1.0
     },

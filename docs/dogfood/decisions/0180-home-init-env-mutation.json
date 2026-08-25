@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "FINDINGS-2026-08-17 item D.8: `_resolve_home(home=...)` mutated `os.environ['NESTOR_HOME']` as a hidden side effect of a path parameter. Callers of `required_dirs()` and `layout_manifest_path()` unknowingly depended on this mutation.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "How should the env-var pinning in home_init be handled?",
+      "commitment": "Moved the `os.environ` mutation from the private `_resolve_home` (now a pure resolver) to the public `ensure_home_layout`, where the pinning is documented in the docstring and visible to callers. Internal calls thread the `home` parameter explicitly.",
+      "why": "The env mutation is intentional — session_start depends on home_paths agreeing after scaffolding — but a private path resolver mutating global state is a surprise. Surfacing it in the public function where it matters makes the contract explicit."
+    }
+  ]
+}
