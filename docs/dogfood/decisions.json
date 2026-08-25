@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 520,
+    "pairs": 522,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "128774421842d745392bce49b829976a79f0d50ca86dff4cf448d0be6f1fc101",
+  "digest": "55b1ad7e829aa48c852bdec5878ed26c55cad502655128b6feeba0c9d570c655",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -94,6 +94,20 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "a313244b-108a-5755-8d28-a98e4dad454b",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestor_check also get the storeaware fallback",
+      "source_text": "Should nestor_check also get the store-aware fallback?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not in this change. nestor_check uses a single --domain (default 'value'), not a source/target pair, and the CLI's cmd_check does not use _ask_domain either — the domains are asymmetric. Bringing check into the fold is a separate design question: what does 'the store's largest single-domain' mean, and should a check against a baseline silently switch domains? Left as a follow-up if a user hits the gap.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "a247aa81-4909-552d-a964-b455f67afbf7",
       "origin": "pr:",
       "seal_sig": "",
@@ -159,6 +173,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Removed the alias and migrated all callers (test_curator, test_asymmetric_seals, test_keyring, test_portable, rebuild_corpus.py) to browse(). Also removed the builtins.list workaround in unverifiable() and replaced_seals() — plain list[dict] works now that no method shadows the builtin.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "6482378f-756a-55da-840b-ab7955472e98",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the mcp servers nestor_ask and nestor_match apply the storeaware domain fallback when neither the model nor the operator named a domain",
+      "source_text": "Should the MCP server's nestor_ask and nestor_match apply the store-aware domain fallback when neither the model nor the operator named a domain?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. Extracted _ask_domain from cli.py to a new module nestor/domain.py as resolve_domain, keeping the exact CLI semantics (None means 'not specified'; fallback engages only when both source_lang and target_lang are None; otherwise the configured pair is honoured verbatim). cli._ask_domain is kept as an alias for backward compatibility with tests that reach it directly. On the Server dataclass, added source_lang_explicit and target_lang_explicit booleans; the operator's startup flag plays the CLI human's role. Added Server._domain_for_read(args) which honours the model's arg first, then the operator's explicit flag, then defers to resolve_domain(). Wired only nestor_ask and nestor_match through it — nestor_propose is a write and must not silently switch domains behind the operator's back. nestor_check keeps its single --domain semantics (unchanged from the CLI). serve.main() argparse defaults for --source-lang/--target-lang are now None so the explicit flag can be detected.",
       "verifier": "",
       "weight": 1.0
     },

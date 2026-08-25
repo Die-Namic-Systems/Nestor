@@ -44,7 +44,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, TextIO
 
-from . import answer, cascade, home_paths, keyring, memory, signing, storage
+from . import answer, cascade, domain, home_paths, keyring, memory, signing, storage
 from . import ledger as ledger_mod
 from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
@@ -81,6 +81,14 @@ class Server:
     store: Storage
     source_lang: str = "en"
     target_lang: str = "es"
+    #: Whether the operator named a domain at startup, or accepted the built-in
+    #: ``en → es``. Same distinction the CLI draws between ``nestor ask``
+    #: (parser default ``None`` → store-aware fallback engages) and
+    #: ``nestor ask --from en`` (explicit → honoured verbatim); on this server
+    #: the operator's startup flag plays the CLI human's role. Decision 0184
+    #: is the CLI half; this is the MCP half (issue #203).
+    source_lang_explicit: bool = False
+    target_lang_explicit: bool = False
     engine_name: str = "offline"
     matcher: Matcher | None = None
     #: The spec ``matcher`` was built from, when it came from ``--matcher``.
@@ -296,12 +304,41 @@ class Server:
             })
         return out
 
+    def _domain_for_read(self, args: dict) -> tuple[str, str]:
+        """The domain a read tool should query, mirroring the CLI's rule.
+
+        Priority: the model's own ``source_lang``/``target_lang`` wins when it
+        sent one; else the operator's explicit startup flag wins; else the
+        store-aware fallback in :func:`nestor.domain.resolve_domain` picks the
+        largest domain the store actually holds (or the built-in ``en → es``
+        default when the store is empty). Reads only — a write (``propose``)
+        must not silently switch domains and stays on the effective default.
+        """
+        sl_arg = args.get("source_lang")
+        tl_arg = args.get("target_lang")
+        sl_req: str | None
+        if sl_arg is not None:
+            sl_req = str(sl_arg)
+        else:
+            sl_req = self.source_lang if self.source_lang_explicit else None
+        tl_req: str | None
+        if tl_arg is not None:
+            tl_req = str(tl_arg)
+        else:
+            tl_req = self.target_lang if self.target_lang_explicit else None
+        return domain.resolve_domain(self.store, sl_req, tl_req)
+
     def call(self, name: str, args: dict) -> dict:
         """Run one tool. Unknown or withheld names get a clear refusal."""
         store = self.store
+        # The effective default when the model omits domain args and the
+        # operator did not pin one at startup — kept for the write path
+        # (``nestor_propose``), which must not fall back to a domain the
+        # operator did not name. Reads use ``_domain_for_read`` instead.
         sl = str(args.get("source_lang") or self.source_lang)
         tl = str(args.get("target_lang") or self.target_lang)
         if name == "nestor_ask":
+            sl, tl = self._domain_for_read(args)
             return answer.ask(store, str(args.get("text", "")), sl, tl,
                               engine_name=self.engine_name,
                               matcher=self.domain_matcher(sl, tl))
@@ -321,6 +358,7 @@ class Server:
                                 abs_tol=float(args.get("abs_tol") or 0.0),
                                 pct_tol=float(args.get("pct_tol") or 0.05))
         if name == "nestor_match":
+            sl, tl = self._domain_for_read(args)
             chosen = self._resolve_matcher(sl, tl, str(args.get("matcher") or ""),
                                            tolerances=("abs_tol" in args
                                                        or "pct_tol" in args))
@@ -498,8 +536,17 @@ def build_parser() -> argparse.ArgumentParser:
                    help=("SQLite database (default: $NESTOR_DB, else "
                          "$NESTOR_HOME/keep/nestor.db, else data/nestor.db)"))
     p.add_argument("--ledger", default="", help="ledger path (default: NESTOR_LEDGER or alongside --db)")
-    p.add_argument("--source-lang", default="en", help="default source domain tag")
-    p.add_argument("--target-lang", default="es", help="default target domain tag")
+    # Defaults are ``None`` so we can distinguish "the operator named a domain"
+    # from "the operator accepted the built-in default". A read against a store
+    # that holds nothing in the built-in domain then falls back to the store's
+    # largest domain, same as ``nestor ask`` with no ``--from``/``--to``.
+    # See :meth:`Server._domain_for_read` and :func:`nestor.domain.resolve_domain`.
+    p.add_argument("--source-lang", default=None, help="default source domain tag "
+                                                       "(default: en, or the store's "
+                                                       "largest domain if en→es holds nothing)")
+    p.add_argument("--target-lang", default=None, help="default target domain tag "
+                                                       "(default: es, or the store's "
+                                                       "largest domain if en→es holds nothing)")
     p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
                    help="draft engine for nestor_ask (default: offline)")
     p.add_argument("--matcher", default="string",
@@ -552,8 +599,12 @@ def main(argv: list[str] | None = None) -> int:
     store.init_db()
     store.memory_init()
     storage.set_store(store)
-    server = Server(store=store, source_lang=args.source_lang,
-                    target_lang=args.target_lang, engine_name=args.engine,
+    server = Server(store=store,
+                    source_lang=args.source_lang or domain.DEFAULT_SOURCE_LANG,
+                    target_lang=args.target_lang or domain.DEFAULT_TARGET_LANG,
+                    source_lang_explicit=args.source_lang is not None,
+                    target_lang_explicit=args.target_lang is not None,
+                    engine_name=args.engine,
                     matcher=chosen_matcher, matcher_spec=args.matcher,
                     read_only=args.read_only)
     # stdout is the protocol channel; anything human-facing goes to stderr or it
