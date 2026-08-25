@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 515,
+    "pairs": 516,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "d1ea910d7382a276a8d5f279b89e63f0af5335f2d588adc738de854d532caebb",
+  "digest": "65756add857a039e3f982e0790fac5457f8b7da583ee95d688ac4d57d465e3c9",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -61,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Moved docs/llm-only-joke/, docs/llm-only-jokes.md, and docs/ideas-store/ to demo/. Updated internal paths in each store's README, .gitignore, and project-layout.md. Historical references in decision records and findings left unchanged.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "b4019821-ee30-5bd2-bbd9-bee6405fcb6d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestor match use the same domain fallback as nestor ask",
+      "source_text": "Should nestor match use the same domain fallback as nestor ask?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Applied _ask_domain() to cmd_match, mirroring cmd_ask. Changed match's --from/--to parser defaults from 'en'/'es' to None so _ask_domain can detect 'not specified' and fall back to the store's largest domain. Without this, `nestor match` on a decision→decision store silently queried the empty en→es domain and reported 0 candidates.",
       "verifier": "",
       "weight": 1.0
     },

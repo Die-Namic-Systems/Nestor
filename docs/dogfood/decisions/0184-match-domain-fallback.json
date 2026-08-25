@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Give `nestor match` the same store-aware domain fallback that `nestor ask` has.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should nestor match use the same domain fallback as nestor ask?",
+      "commitment": "Applied _ask_domain() to cmd_match, mirroring cmd_ask. Changed match's --from/--to parser defaults from 'en'/'es' to None so _ask_domain can detect 'not specified' and fall back to the store's largest domain. Without this, `nestor match` on a decision→decision store silently queried the empty en→es domain and reported 0 candidates.",
+      "why": "The ask and match commands query the same store the same way — ask through the cascade, match through the bare seam. A user who runs `nestor ask` and gets an answer, then runs `nestor match` on the same text to check the raw similarity, expects both to query the same domain. The inconsistency was discovered by dogfooding: `nestor match` on the dogfood store (515 decision→decision rows) reported 'en→es is empty' while `nestor ask` correctly fell back to the largest domain."
+    }
+  ]
+}
