@@ -1,0 +1,18 @@
+{
+  "branch": "claude/open-issues-round2",
+  "date": "2026-08-25",
+  "note": "Pin the word-boundary trade-off #100 / §6.38 chose over inflection recall for glossary term locks.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should glossary.locks_in_text match on word boundary (dropping inflection like abuela->abuelas) or on substring (matching inflection but also firing inside apetito for a Tito lock)?",
+      "commitment": "Word boundary. nestor/glossary.py:88-91 defines _word_boundary_match using r'\\b<needle>\\b' with re.IGNORECASE, and locks_in_text filters through it. Landed before this decision was written; this file records the trade explicitly so nobody silently flips it back. Two tests hold the shape down: test_issue_100_tito_does_not_fire_inside_apetito (the acceptance case as filed, in Spanish; splits red on the pre-fix `t.lower() in text.lower()`) and test_issue_100_word_boundary_drops_spanish_inflection (asserts abuela does NOT match abuelas, pinning the trade).",
+      "why": "A false lock and a missed lock are not symmetric costs. A false lock leaks a 'render exactly' instruction into the tier-2 draft engine for a sentence that never contained the term, silently overriding a translation that would otherwise be correct. A missed inflection reads as 'no glossary guidance for this word' -- the tier-2 engine still translates the phrase, and a reviewer sees a plain translation rather than a wrong one. The former is a confident wrong answer, the exact shape the whole covenant exists to refuse; the latter is a recall miss with a legible failure mode. When the fix for a recall miss exists (an explicit alias entry, a lemma table, or a stemmer added later), it can be added without weakening the boundary; there is no comparable retrofit for undoing a false lock that already went to a reviewer as correct."
+    },
+    {
+      "question": "Was #100 filed as a design decision or a mechanical fix?",
+      "commitment": "Design. The issue body says so verbatim: 'this is a design decision, not a mechanical fix ... whatever is chosen should be recorded as a decision and pinned with a test -- not silently flipped'. Both halves now hold: the code chose word-boundary, this decision records why, and tests/test_glossary.py pins both the acceptance case and the trade-off counter-case.",
+      "why": "The seat's 'say what you read' rule applies to design choices as much as to code. A word-boundary rule shipped without a written trade-off reads as an accident that anybody might reverse in the name of 'better recall'; the decision file makes the trade visible to whoever considers that reversal next."
+    }
+  ]
+}

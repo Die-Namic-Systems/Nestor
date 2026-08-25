@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 525,
+    "pairs": 530,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "8cd4bf3dea08b66ffb28233d2f21f95d9f2b5b83d0b7628d0cc9f7fe6e38f123",
+  "digest": "22b37a0c74c666d59240834d549a5ef841565159f22134f8c33276802113ef79",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -47,6 +47,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. The human rendering shows only groups with 2+ members and appends a summary line '(N singleton group(s) suppressed)'. The JSON output keeps every cluster unchanged — callers may need the full list.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "f13a7e3e-cfcb-5cba-ba18-7caec3d959d2",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should glossarylocks_in_text match on word boundary dropping inflection like abuelaabuelas or on substring matching inflection but also firing inside apetito for a tito lock",
+      "source_text": "Should glossary.locks_in_text match on word boundary (dropping inflection like abuela->abuelas) or on substring (matching inflection but also firing inside apetito for a Tito lock)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Word boundary. nestor/glossary.py:88-91 defines _word_boundary_match using r'\\b<needle>\\b' with re.IGNORECASE, and locks_in_text filters through it. Landed before this decision was written; this file records the trade explicitly so nobody silently flips it back. Two tests hold the shape down: test_issue_100_tito_does_not_fire_inside_apetito (the acceptance case as filed, in Spanish; splits red on the pre-fix `t.lower() in text.lower()`) and test_issue_100_word_boundary_drops_spanish_inflection (asserts abuela does NOT match abuelas, pinning the trade).",
       "verifier": "",
       "weight": 1.0
     },
@@ -150,6 +164,48 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "9cd5df10-3fbf-5931-9349-f3a82c918cf8",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "was 100 filed as a design decision or a mechanical fix",
+      "source_text": "Was #100 filed as a design decision or a mechanical fix?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Design. The issue body says so verbatim: 'this is a design decision, not a mechanical fix ... whatever is chosen should be recorded as a decision and pinned with a test -- not silently flipped'. Both halves now hold: the code chose word-boundary, this decision records why, and tests/test_glossary.py pins both the acceptance case and the trade-off counter-case.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "9c03256b-0ccf-537d-bb02-c569faf91724",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "would a questionstem strip a normalizer that drops common interrogative openers like should we can a does the rescue the rank110 probe 6106 named",
+      "source_text": "Would a question-stem strip (a normalizer that drops common interrogative openers like 'Should we', 'Can a', 'Does the') rescue the rank-110 probe §6.106 named?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Measured inline on the current 527-row dogfood corpus against 'Should I trust a licence a model told me?' (target row: 'The survey agents cannot reach the network and must name licences from memory...'): baseline StringMatcher ranks the correct row 196/527 at score 0.289 with top 0.562; after stem-strip, 160/527 at score 0.267 with top 0.494. The strip moves rank 36 places and drops both the correct row's score AND the top score by ~0.07 — because character-ratio scoring on a 40-char probe against a 200-char target sharing only 'licence' produces ratios in the 0.25-0.29 range whether or not the interrogative opener is present. The strip fixes the failure mode §6.106 named (sentence-shape collisions on shared 'Should…' stems) but exposes a deeper one: the probe carries too little distinctive content for character-based scoring to find the target regardless of stem.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "9858db2e-9864-5cb6-b489-495d8340a24c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does 101s honestcaveat about matcher tradeoffs recall vs wrongkey still stand",
+      "source_text": "Does #101's honest-caveat about matcher trade-offs (recall vs. wrong-key) still stand?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and it was already answered by 0154. The trade #101 named -- 'stem-discounting costs paraphrase recall' -- was measured in docs/decision-rewording-bench.md: StringMatcher hits 88% rank@1 on re-worded probes, TokenOverlap 96%, both at 0/24 wrong-key at bar 0.55. The bench refutes the framing that a matcher swap is a clean win; 0154 kept StringMatcher and calibrated the bar to 0.55, which serves the recoverable ~75% at zero wrong-keys. The residual ~25% (this probe among them) is the tail. Closing #101 does not require another matcher swap; it requires acknowledging that the design answer already shipped and pointing #101 at 0154 + this measurement.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "8561f2c7-bd22-556b-bb85-553c9d65e896",
       "origin": "pr:",
       "seal_sig": "",
@@ -243,6 +299,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A new `_hoist_globals()` function rewrites sys.argv to move the three global flags before the subcommand, so `nestor ask \"hi\" --db x.db` and `nestor triage --json` work regardless of flag position. The existing `_HintingParser` stays as a safety net for any flags not yet hoisted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "5c061b44-7a56-5c93-a557-af692763a579",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the cascade passage and the check result surface evidence_count so a caller does not have to run evidence for separately",
+      "source_text": "Should the cascade passage and the check result surface `evidence_count` so a caller does not have to run `evidence for` separately?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. answer.ask() now adds `evidence_count` to `passage.meta` for a tier-1 sealed hit (via a new module-private `_enrich_with_evidence_count`). answer.check() now adds `evidence_count` to each row of `baselines[]` and, when a single winning baseline is chosen, to the top of the result (via `_evidence_count`). Both are silent no-ops on stores without `supports_evidence`, on passages with no `pair_id` (pending/tier-2 have none), and on any evidence-lookup exception — a surface enrichment that raises would turn every answer into an outage. Gated by tests/test_answer_surfaces_evidence.py (7 tests) with an explicit invariant test asserting that visibility does not change serving: same state, same `verified`, same `confidence` regardless of evidence count.",
       "verifier": "",
       "weight": 1.0
     },
