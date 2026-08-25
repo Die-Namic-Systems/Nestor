@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "FINDINGS-2026-08-17 item D.5: `Curator.list()` shadows the builtin, forcing `builtins.list[dict]` annotations on every subsequent method in the class. A future method that forgets the prefix gets a confusing mypy error.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should Curator.list() be renamed to avoid shadowing the builtin?",
+      "commitment": "Renamed to `Curator.browse()`. The old `list()` is kept as a deprecated alias that delegates to `browse()`, so existing callers keep working. All internal call sites updated.",
+      "why": "Shadowing `list` inside a class that uses `list[dict]` in its own return types is a maintenance trap. `browse` is descriptive — you browse decisions by status/domain — and avoids the collision without inventing jargon."
+    }
+  ]
+}

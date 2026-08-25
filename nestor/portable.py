@@ -861,7 +861,7 @@ def import_bundle(bundle: Any, store: Storage | None = None, dry_run: bool = Tru
             warnings.warn(
                 f"{report['demoted']} pair(s) claimed 'sealed' but their signatures "
                 f"do not verify here; they were imported as drafts for review. "
-                f"Curator.list(status='draft') shows them.", RuntimeWarning, stacklevel=2)
+                f"Curator.browse(status='draft') shows them.", RuntimeWarning, stacklevel=2)
         if not signing_on and report["sealed"]:
             warnings.warn(
                 f"NESTOR_SEAL_KEY is not set, so {report['sealed']} imported seal(s) "

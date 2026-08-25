@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "FINDINGS-2026-08-17 item D.1: `nestor ask \"hi\" --db x.db` fails with 'unrecognized arguments' because argparse requires global flags before the subcommand. Agents and new users learn the pattern from `ui`/`serve` (which special-case it) and hit this wall on every other command.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "How should the CLI handle global flags (--db, --ledger, --json) placed after the subcommand?",
+      "commitment": "A new `_hoist_globals()` function rewrites sys.argv to move the three global flags before the subcommand, so `nestor ask \"hi\" --db x.db` and `nestor triage --json` work regardless of flag position. The existing `_HintingParser` stays as a safety net for any flags not yet hoisted.",
+      "why": "This was the single highest-frequency failure any new human or agent would hit, and the cheapest to fix. No design tradeoff — the flags are unambiguously global and have no subcommand-level name collision."
+    }
+  ]
+}

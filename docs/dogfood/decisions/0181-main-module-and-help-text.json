@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "`python -m nestor` failed ('No module named nestor.__main__'). Several positional CLI arguments and flags had no --help text, so `nestor ask --help` showed 'text' with no description.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should Nestor support `python -m nestor` invocation?",
+      "commitment": "Added `nestor/__main__.py` — a three-line module that delegates to `nestor.cli:main`. Filled in missing help text for positional arguments (text, surface, label, observed) and the --engine/--domain flags.",
+      "why": "Agents and developers who haven't installed the console script (editable installs, CI containers) reach for `python -m <pkg>` as the universal fallback. Missing help text makes `--help` output look broken to a new user scanning for what an argument does."
+    }
+  ]
+}

@@ -564,7 +564,7 @@ def _pairs(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> di
         # question, so it gets a filter of its own rather than a column to scan.
         rows = c.unverifiable(limit=limit)
     else:
-        rows = c.list(status=_str(query, "status"), verifier=_str(query, "verifier"),
+        rows = c.browse(status=_str(query, "status"), verifier=_str(query, "verifier"),
                       contains=_str(query, "contains"), limit=limit,
                       offset=_int(query, "offset", 0))
     return {"pairs": rows, "count": len(rows)}

@@ -7,6 +7,7 @@ short top-level tree and points here for the rest.*
 ```
 nestor/
 ├── __init__.py       public surface — the cascade, the recipes, the curator, the matchers
+├── __main__.py       `python -m nestor` entry point — delegates to cli.main
 ├── cascade.py        the three tiers, and the hash-chained ledger append
 ├── memory.py         tier 1 — the sealed pair memory, ranking, seal/reject/serve rules
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher

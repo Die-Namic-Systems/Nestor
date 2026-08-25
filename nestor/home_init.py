@@ -48,27 +48,21 @@ _DEFAULT_MANIFEST: dict[str, Any] = {
 
 
 def _resolve_home(home: Path | None) -> Path:
-    """Resolve the household root, reusing :mod:`home_paths` for the *where*.
+    """Resolve the household root without mutating process state.
 
-    When ``home`` is given it is pinned via ``$NESTOR_HOME`` so every
-    ``home_paths`` helper (``keep_dir``, ``ledger_path``) agrees with it —
-    the same trick willow-mcp uses with ``$WILLOW_HOME``. When ``home`` is None
-    the resolver's own default (``$NESTOR_HOME`` or ``~/.nestor``) wins.
+    Returns ``home`` when given, otherwise defers to :func:`home_paths.home`
+    (which reads ``$NESTOR_HOME`` or falls back to ``~/.nestor``).
     """
-    if home is not None:
-        os.environ[home_paths._ROOT_ENV] = str(home)
-    return home_paths.home()
+    return home if home is not None else home_paths.home()
 
 
 def required_dirs(home: Path | None = None) -> list[Path]:
     """Absolute paths of the household directories, in scaffold order.
 
-    ``keep`` is taken from :func:`home_paths.keep_dir` so the ledger's
-    parent stays authoritative; the siblings hang off the same resolved root.
+    ``keep`` leads because it is the ledger's parent.
     """
     root = _resolve_home(home)
-    keep = home_paths.keep_dir()
-    return [keep] + [root / name for name in SUBDIRS if name != "keep"]
+    return [root / name for name in SUBDIRS]
 
 
 def layout_manifest_path(home: Path | None = None) -> Path:
@@ -96,17 +90,23 @@ def ensure_home_layout(home: Path | None = None) -> dict[str, Any]:
     ``layout.json`` marker is written only when absent. Nothing that already
     exists is overwritten, so a second call is a clean no-op and an operator's
     own files inside the tree are always preserved.
+
+    When ``home`` is given, ``$NESTOR_HOME`` is set so that every
+    :mod:`home_paths` helper (``keep_dir``, ``ledger_path``) agrees with it
+    for the rest of the process.
     """
     root = _resolve_home(home)
+    if home is not None:
+        os.environ[home_paths._ROOT_ENV] = str(root)
 
     created_dirs: list[str] = []
-    for d in required_dirs():
+    for d in required_dirs(home):
         if not d.exists():
             d.mkdir(parents=True, exist_ok=True)
             created_dirs.append(str(d.relative_to(root)))
 
     files_created: list[str] = []
-    manifest = layout_manifest_path()
+    manifest = layout_manifest_path(home)
     if _write_json_if_missing(manifest, _DEFAULT_MANIFEST):
         files_created.append(str(manifest.relative_to(root)))
 

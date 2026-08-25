@@ -661,7 +661,7 @@ class SqliteStore:
             warnings.warn(
                 f"{self.db_path}: {dupes} normalized source(s) have more than one "
                 f"row, so the uniqueness index could not be created and concurrent "
-                f"seals can still race. Curator.list() shows the duplicates; "
+                f"seals can still race. Curator.browse() shows the duplicates; "
                 f"resolve them and re-open the store.", RuntimeWarning, stacklevel=3)
             conn.execute(_LOOKUP_KEY)
 
