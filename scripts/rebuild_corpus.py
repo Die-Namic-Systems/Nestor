@@ -75,7 +75,7 @@ def rows_in(db: pathlib.Path) -> int | None:
         from nestor.sqlite_store import SqliteStore
         from nestor import curator as _c
         s = SqliteStore(str(db))
-        n = len(_c.Curator(store=s).list(limit=1_000_000))  # default 50 truncates
+        n = len(_c.Curator(store=s).browse(limit=1_000_000))  # default 50 truncates
         s.close()
         return n
     except Exception:

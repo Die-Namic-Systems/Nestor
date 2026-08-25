@@ -1,5 +1,5 @@
-"""`nestor ask` without --from/--to must not default onto a domain the store
-doesn't hold.
+"""`nestor ask` and `nestor match` without --from/--to must not default onto a
+domain the store doesn't hold.
 
 Mirrors askDomain() in nestor/ui_page.py (landed for the UI in #159): the
 configured domain (en -> es) wins when the store actually has rows in it,
@@ -85,3 +85,13 @@ def test_nestor_ask_with_no_flags_and_no_matching_domain_stays_pending(db, capsy
     # phrase is correctly reported unanswered rather than crashing.
     assert run(db, "ask", "nobody has ever verified this") == cli.EXIT_ANSWER_IS_NO
     assert "! pending" in capsys.readouterr().out
+
+
+# --- end to end through `nestor match` ---------------------------------------
+
+def test_nestor_match_with_no_flags_finds_a_decision_only_store(db, capsys):
+    memory.add_pair("may we ship?", "yes", "decision", "commitment",
+                    status="sealed", verifier="rita", store=db["store"])
+    assert run(db, "match", "may we ship?") == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "would be served" in out and "yes" in out

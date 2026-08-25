@@ -42,7 +42,6 @@ Usage::
 """
 from __future__ import annotations
 
-import builtins
 from datetime import datetime, timezone
 
 from . import keyring, ledger, memory, signing
@@ -112,12 +111,6 @@ class Curator:
             status=status, verifier=verifier, contains=contains,
             limit=limit, offset=offset)
         return [self._annotate(r) for r in rows]
-
-    def list(self, status: str = "", verifier: str = "", contains: str = "",
-             limit: int = 50, offset: int = 0) -> list[dict]:
-        """Deprecated alias for :meth:`browse`."""
-        return self.browse(status=status, verifier=verifier, contains=contains,
-                           limit=limit, offset=offset)
 
     def get(self, pair_id: str) -> dict | None:
         """One pair with full provenance: signature validity, rejections, what
@@ -238,10 +231,7 @@ class Curator:
             return None
         return None
 
-    def unverifiable(self, limit: int = 200) -> builtins.list[dict]:
-        # `builtins.list`, not the bare `list[dict]` every other signature in
-        # this file uses: the deprecated `list` alias still shadows the
-        # builtin type inside this class body from that def onward.
+    def unverifiable(self, limit: int = 200) -> list[dict]:
         """Rows claiming ``sealed`` that Nestor would refuse to serve.
 
         With signing enabled these are rows written by something that did not
@@ -253,7 +243,7 @@ class Curator:
                 if not p["servable"]]
 
     def replaced_seals(self, conflicts_only: bool = True,
-                       limit: int = 200) -> builtins.list[dict]:
+                       limit: int = 200) -> list[dict]:
         """Seals that were overwritten — someone re-sealed an already-sealed source.
 
         The memory keeps one row per normalized source, so a replacement leaves

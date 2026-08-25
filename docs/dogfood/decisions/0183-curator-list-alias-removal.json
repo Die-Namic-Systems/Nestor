@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Complete the Curator.browse() rename by removing the deprecated list() alias.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the deprecated Curator.list() alias be removed now that all callers use browse()?",
+      "commitment": "Removed the alias and migrated all callers (test_curator, test_asymmetric_seals, test_keyring, test_portable, rebuild_corpus.py) to browse(). Also removed the builtins.list workaround in unverifiable() and replaced_seals() — plain list[dict] works now that no method shadows the builtin.",
+      "why": "The alias existed only for backward compatibility during the rename. With no external callers (the package has not been released with browse() yet), keeping it introduces exactly the drift risk the audit flagged: two names for one method, and a forced builtins import that every future method signature must remember."
+    }
+  ]
+}

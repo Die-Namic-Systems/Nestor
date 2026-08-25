@@ -42,7 +42,7 @@ def filled(store):
 
 def test_list_returns_pairs_with_signature_and_servability(filled):
     c = Curator(filled, "en", "es")
-    rows = c.list()
+    rows = c.browse()
     assert len(rows) == 3
     for r in rows:
         assert "signature_valid" in r and "servable" in r
@@ -52,17 +52,17 @@ def test_list_returns_pairs_with_signature_and_servability(filled):
 
 def test_list_filters(filled):
     c = Curator(filled, "en", "es")
-    assert len(c.list(status="sealed")) == 2
-    assert len(c.list(verifier="rita")) == 1
-    assert len(c.list(contains="invoice")) == 1
-    assert len(c.list(contains="FACTURA")) == 1        # case-insensitive, target side
-    assert c.list(contains="nothing-matches-this") == []
+    assert len(c.browse(status="sealed")) == 2
+    assert len(c.browse(verifier="rita")) == 1
+    assert len(c.browse(contains="invoice")) == 1
+    assert len(c.browse(contains="FACTURA")) == 1        # case-insensitive, target side
+    assert c.browse(contains="nothing-matches-this") == []
 
 
 def test_list_paginates(filled):
     c = Curator(filled, "en", "es")
-    first = c.list(limit=2, offset=0)
-    second = c.list(limit=2, offset=2)
+    first = c.browse(limit=2, offset=0)
+    second = c.browse(limit=2, offset=2)
     assert len(first) == 2 and len(second) == 1
     assert {r["id"] for r in first}.isdisjoint({r["id"] for r in second})
 
@@ -71,7 +71,7 @@ def test_list_paginates(filled):
 
 def test_get_includes_rejections_against_the_pair(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     memory.reject_match("the annual invoices", "en", "es", pair_id=pair["id"],
                         verifier="rita", reason="different year", store=filled)
     memory.reject_match("annual invoice thing", "en", "es", pair_id=pair["id"],
@@ -110,7 +110,7 @@ def test_unverifiable_surfaces_a_forged_seal(store):
 
 def test_unseal_demotes_to_draft_and_stops_serving(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     assert memory.best_sealed("the annual invoice", "en", "es", store=filled)
 
     out = c.unseal(pair["id"], verifier="rita", reason="terminology changed")
@@ -122,7 +122,7 @@ def test_unseal_demotes_to_draft_and_stops_serving(filled):
 def test_unseal_is_reversible_but_reject_is_not(filled):
     """The distinction the surface exists to make."""
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
 
     c.unseal(pair["id"], verifier="rita", reason="unsure")
     # Re-sealing an unsealed pair restores service — it went back to the queue.
@@ -144,7 +144,7 @@ def test_rejected_pair_is_not_resurrected_by_a_routine_reseal(filled):
     """The bug this surface found: without the guard, a curator's rejection was
     undone by the next graduate_segment over the same source text."""
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="report")[0]
+    pair = c.browse(contains="report")[0]
     memory.reject_pair(pair["id"], verifier="rita", reason="wrong", store=filled)
 
     with pytest.raises(memory.RejectedPairError, match="will not be re-sealed"):
@@ -155,7 +155,7 @@ def test_rejected_pair_is_not_resurrected_by_a_routine_reseal(filled):
 
 def test_restore_is_the_explicit_way_back(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="report")[0]
+    pair = c.browse(contains="report")[0]
     memory.reject_pair(pair["id"], verifier="rita", reason="wrong", store=filled)
 
     restored = c.restore(pair["id"], verifier="sam", reason="rita was mistaken")
@@ -170,7 +170,7 @@ def test_restore_is_the_explicit_way_back(filled):
 
 def test_override_rejection_is_available_but_explicit(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="report")[0]
+    pair = c.browse(contains="report")[0]
     memory.reject_pair(pair["id"], verifier="rita", reason="wrong", store=filled)
     memory.add_pair("the monthly report", "el informe mensual", "en", "es",
                     status="sealed", verifier="sam", store=filled,
@@ -180,7 +180,7 @@ def test_override_rejection_is_available_but_explicit(filled):
 
 def test_unseal_is_written_to_the_ledger(filled, tmp_path):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     c.unseal(pair["id"], verifier="rita", reason="stale")
 
     kinds = [json.loads(x)["kind"]
@@ -200,7 +200,7 @@ def test_unseal_unknown_id_returns_none(filled):
 
 def test_export_is_json_serializable_and_complete(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     memory.reject_match("the annual invoices", "en", "es", pair_id=pair["id"],
                         verifier="rita", store=filled)
 
@@ -251,7 +251,7 @@ def test_reference_store_supports_curation(store):
 def test_get_carries_evidence_and_warrants(filled):
     from nestor import evidence, warrant
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     evidence.attach(pair["id"], "document", "MSA.pdf#cl.4", reason="the def",
                     store=filled)
     warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
@@ -271,7 +271,7 @@ def test_provenance_reports_no_warrant_as_satisfied(filled):
     verdict, so it is the one that must not carry one."""
     from nestor import warrant
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     warrant.attach(pair["id"], "construction", "redential", "npx redential scan",
                    expected_digest="ab" * 16, store=filled)
     row = next(w for w in c.get(pair["id"])["warrants"] if w["kind"] == "construction")
@@ -283,7 +283,7 @@ def test_provenance_reports_no_warrant_as_satisfied(filled):
 def test_the_composed_attestation_is_marked_as_not_stored(filled):
     from nestor import warrant
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     warrant.attach(pair["id"], "citation", "Crossref", "https://doi.org/1",
                    store=filled)
     by_kind = {w["kind"]: w for w in c.get(pair["id"])["warrants"]}
@@ -296,7 +296,7 @@ def test_a_draft_with_nothing_attached_reports_empty_not_absent(filled):
     """Empty means 'nothing attached'. The keys are omitted only when the store
     cannot answer at all — the two are different facts and must not collapse."""
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="draft phrase")[0]
+    pair = c.browse(contains="draft phrase")[0]
     detail = c.get(pair["id"])
     assert detail["evidence"] == [] and detail["evidence_count"] == 0
     assert detail["warrants"] == [] and detail["warrant_kinds"] == []
@@ -308,7 +308,7 @@ def test_a_store_without_the_relations_omits_the_keys_rather_than_lying(filled):
     cannot say' — the silence-means-nothing rule, in a dict."""
     from nestor import storage as storage_mod
     c = Curator(filled, "en", "es")
-    pair_id = c.list(contains="invoice")[0]["id"]
+    pair_id = c.browse(contains="invoice")[0]["id"]
 
     class _NoRelations:
         """Delegates everything except the two capability probes."""
@@ -335,7 +335,7 @@ def test_a_store_without_the_relations_omits_the_keys_rather_than_lying(filled):
 
 def test_provenance_reports_how_long_ago_a_human_vouched(filled):
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     age = c.get(pair["id"])["seal_age"]
     assert age["days"] == 0                    # sealed by the fixture just now
     assert age["verifier"] == "rita"
@@ -350,7 +350,7 @@ def test_a_draft_has_no_seal_age_at_all(filled):
     one — the same present-vs-absent distinction the evidence and warrant keys
     make one block up."""
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="draft phrase")[0]
+    pair = c.browse(contains="draft phrase")[0]
     assert "seal_age" not in c.get(pair["id"])
 
 
@@ -360,7 +360,7 @@ def test_a_countersignature_resets_the_clock(filled):
     why this reads the rule from there rather than restating it."""
     from nestor import cascade as cascade_mod
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     before = c.get(pair["id"])["seal_age"]
     assert before["kind"] == "seal" and before["verifier"] == "rita"
 
@@ -376,7 +376,7 @@ def test_seal_age_withdraws_nothing(filled):
     this' back into a confidence score and withdraw a verified answer on a date
     nobody chose. Reading the age must not be able to do either."""
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
     served_before = memory.best_sealed("the annual invoice", "en", "es", store=filled)
     detail = c.get(pair["id"])
     assert detail["seal_age"]["days"] >= 0
@@ -394,7 +394,7 @@ def test_an_unreadable_chain_does_not_make_provenance_unreadable(filled,
     a raising audit view would fail."""
     from nestor import ledger as ledger_mod
     c = Curator(filled, "en", "es")
-    pair = c.list(contains="invoice")[0]
+    pair = c.browse(contains="invoice")[0]
 
     def boom(*a, **k):
         raise RuntimeError("the chain is unreadable")

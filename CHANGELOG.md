@@ -90,6 +90,15 @@ what moved.
 
 ### Changed
 
+* **`Curator.list()` renamed to `browse()`; the deprecated alias is removed.**
+  The old name shadowed the `list` builtin inside the class body, forcing a
+  `builtins.list` workaround on later method signatures. All internal callers
+  migrated. Decision 0183.
+
+* **Demo stores moved from `docs/` to `demo/`:** `llm-only-joke/`,
+  `llm-only-jokes.md`, and `ideas-store/` now live alongside the other
+  scripted demos. Internal paths updated. Decision 0182.
+
 * **`scripts/ci-lint.sh` now enforces "match the workflow" instead of asserting
   it.** The five tool versions live in `scripts/lint-pins.txt`; the workflow
   installs from it and the script refuses to run against anything else, naming
@@ -141,6 +150,9 @@ what moved.
 
 ### Fixed
 
+* `nestor match` now uses the same store-aware domain fallback as `nestor ask`:
+  on a non-`en→es` store it queries the largest domain instead of silently
+  reporting zero candidates. Decision 0184.
 * **ci:** guard hypothesis import so test_property.py is skipped when not installed ([7ae0423](https://github.com/Die-Namic-Systems/Nestor/commit/7ae04232af183091f57858302b846b99c7295852))
 * **docs:** add §6.117 to the Map in IDEAS.md ([b9a6967](https://github.com/Die-Namic-Systems/Nestor/commit/b9a6967f0f773ecc1a7312cab44098c793cada33))
 * **lint:** bump ruff pin to 0.16.3 and fix all 536 findings ([5b2b542](https://github.com/Die-Namic-Systems/Nestor/commit/5b2b5426dd31fb8cc351681202ab338f3771a583))

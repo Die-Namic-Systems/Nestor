@@ -43,6 +43,11 @@ list, because "nothing here" and "this store cannot tell you" are different fact
 | Rejection listing | `memory_list_rejections` | `supports_rejection_listing` | rejections still record and read by key; export says a bundle ships without the ones naming no pair |
 | Lineage | `memory_mark_superseded`, `memory_lineage` | `supports_lineage` | `supersede_pair` / `revise_draft` raise rather than destructively overwriting |
 | Atomic supersede | `memory_mark_superseded_if` | `supports_atomic_supersede` | `revise_draft` refuses rather than racing |
+| Decision edges | `memory_add_edge`, `memory_edges_to`, `memory_edges_from` | `supports_edges` | decisions still seal, but cannot be related — no graph neighbours |
+| Evidence | `memory_add_evidence`, `memory_evidence_for`, `memory_unevidenced_seals` | `supports_evidence` | a sealed claim cannot carry what it rests on, and the report is empty |
+| Warrants | `memory_add_warrant`, `memory_warrants_for` | `supports_warrants` | a claim cannot record why a stranger should believe it — only who sealed it |
+| Verifier policy | `memory_policy_add`, `memory_policy_remove`, `memory_policy_list` | `supports_verifier_policy` | every verifier name is accepted at seal time, for every domain |
+| Embedding store | `embedding_load`, `embedding_save`, `embedding_drop` | `supports_embedding_store` | the semantic matcher recomputes each vector rather than caching it |
 
 Partial implementation counts as none. Writing rejections nobody can read back,
 or offering an unseal the store cannot perform, is worse than not having the

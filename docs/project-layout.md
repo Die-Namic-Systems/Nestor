@@ -46,7 +46,9 @@ nestor/
 ├── config.py         one layered config resolver (env > file > default); a broken file raises rather than degrading to defaults
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
-└── segment.py        sentence/segment splitting
+├── segment.py        sentence/segment splitting
+├── triage/           decision triage — cluster, supersede, and report over the seal queue before a human seals it
+└── vendor/           vendored third-party assets (Cytoscape.js for the decision-graph view)
 
 bench/                measuring where the seal threshold stops holding — see bench/README.md
 ├── bench_accuracy.py   false-seal rate vs recall, swept across thresholds
@@ -60,6 +62,8 @@ bench/                measuring where the seal threshold stops holding — see b
 ├── retrieval_quality.py  recall/precision at a threshold — the half `nestor calibrate` does not measure
 ├── harness.py          timing, environment capture, JSON result recording
 ├── serve_ui.py         the threshold trade-off as a chart — read-only, stdlib (serves bench/ui/)
+├── bench_decision_n1.py  N1 — does the matcher recognize a re-worded decision? (docs/decision-rewording-bench.md)
+├── matcher_precision.py  precision and recall for the decision matcher — the rate the gate turns on
 └── results/            committed measurements — parameters, git rev, raw numbers
 
 demo/                 scripted and self-asserting — a claim that fails the build when it stops being true
@@ -74,12 +78,18 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 ├── review_desk.py      the other desk: patch_review over this repo's own open findings, seeded from IDEAS.md
 ├── filing_cabinet.py   one man's papers against his own lot's disclosures — three open gaps (§6.22, §6.39, and the verifier policy that does not exist)
 ├── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
-└── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
+├── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
+├── llm-only-jokes.md   three jokes only an LLM would get — a session's first ask, kept as a store's first draft
+├── llm-only-joke/      a fresh store stood up with one piece (the jokes); bundle + regenerable .db
+├── ideas-store/        IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
+├── the_dispatches_audit.py  Nestor's loop proved on someone else's corpus
+└── dispatches_audit_corpus.json  the corpus the dispatches audit runs against
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
 ├── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
-└── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
+├── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
+└── process_lens.py       a measured process observation → the rubric grade it earns
 scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
                       trust boundary across two genuinely separate deployments
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
@@ -111,14 +121,13 @@ docs/covenant-lineage.md  where "you may propose, you may not confirm" came from
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
 docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)
-docs/llm-only-jokes.md  three jokes only an LLM would get — a session's first ask, kept as a store's first draft
 docs/the-name.md      where "Nestor" comes from — the nest, the Homeric counsellor, and Asimov's NS-2 line
 docs/accuracy.md      why the measured false-verification rate is published rather than an adjective
 docs/matcher-seam.md  the domain seam in depth — the signed embedding cache, and why a domain is its tags *and* its matcher
 docs/frank.md         mirroring the ledger into willow-mcp's shared governance ledger, plus the fleet/home env vars
-docs/storage-protocol.md  the persistence seam in full — core operations and the six optional capabilities
+docs/storage-protocol.md  the persistence seam in full — core operations and the optional capabilities
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
-docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
+docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
 ├── felt-cost.md        one operator sentence about friction, read closely — what it implies, and what it cannot
 └── live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo

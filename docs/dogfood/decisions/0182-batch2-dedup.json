@@ -1,0 +1,33 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Batch 2 of the FINDINGS-2026-08-17 complexity audit: dedup with no behaviour change.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "How should the README's four re-derivations of sealed/draft/pending be reduced?",
+      "commitment": "Kept the state table (lines 16-21) as the single canonical definition. Trimmed 'The category' section to back-reference it instead of re-explaining tiers. Simplified the recipe tier table's 'Result state' column to bare state names.",
+      "why": "Same three-state concept explained four ways forces the reader to check whether each is saying something new. Keeping one and pointing reduces reading burden and drift risk."
+    },
+    {
+      "question": "Should CONTRIBUTING.md restate the full governance rule or point to agent-guide.md?",
+      "commitment": "Trimmed the 'The one rule' section to the core statement plus a one-sentence pointer to docs/agent-guide.md for the full implications.",
+      "why": "CONTRIBUTING.md is the sixth place stating the rule; docs/agent-guide.md is the authoritative source (confirmed by test_policy_drift.py). Contributors need the rule, not the implementation detail — that belongs in the guide."
+    },
+    {
+      "question": "Should TODO.md carry paragraph-length recaps of items detailed in IDEAS.md and QUESTIONS.md?",
+      "commitment": "Rewrote TODO.md as a lean index (138 lines to 57). Shipped items collapsed to one-liners with decision/section pointers. Open items are one line plus a cross-reference. The 'note on how this repo finds things' kept intact.",
+      "why": "TODO.md already said 'if this disagrees with those, they are right and this is stale'. The paragraph recaps were the mechanism by which it could disagree. An index that points cannot drift from what it points to."
+    },
+    {
+      "question": "Should the home-paths / roots-willow docs be merged?",
+      "commitment": "No merge. Added a cross-reference line in home-paths.md pointing to roots-willow-and-homestead.md for the full env-var comparison. The files already cross-reference well; the only gap was the forward pointer from home-paths's env table.",
+      "why": "home-paths.md is Nestor-specific detail; roots doc is cross-root comparison. They serve different readers and already delegate the overlap. Merging would force fleet vocabulary onto a household-only reader."
+    },
+    {
+      "question": "Should the demo-store artifacts under docs/ move to demo/?",
+      "commitment": "Moved docs/llm-only-joke/, docs/llm-only-jokes.md, and docs/ideas-store/ to demo/. Updated internal paths in each store's README, .gitignore, and project-layout.md. Historical references in decision records and findings left unchanged.",
+      "why": "The audit flagged demo-store artifacts polluting the reference-doc namespace. The stores are scripted demos (derived .db, bundle source, measurement docs), not reference documentation. demo/ already holds the other scripted demos. docs/research-corpus/ left in place — not flagged by the audit and arguably closer to reference (corpus-order.md references it as a measurement)."
+    }
+  ]
+}

@@ -202,11 +202,13 @@ def cmd_match(args) -> int:
     # "NumericMatcher" — a machine-readable field, altered in a release billed as
     # a pure addition. And tolerances are only applied where a name can be
     # rebuilt with them. An import spec has neither property and must be loaded.
+    store = _store(args)
+    source_lang, target_lang = _ask_domain(store, args.source_lang, args.target_lang)
     chosen = args.matcher
     if ":" in args.matcher:
         chosen = answer.load_matcher(args.matcher, abs_tol=args.abs_tol,
                                      pct_tol=args.pct_tol)
-    result = answer.match(_store(args), args.text, args.source_lang, args.target_lang,
+    result = answer.match(store, args.text, source_lang, target_lang,
                           matcher=chosen,
                           abs_tol=args.abs_tol, pct_tol=args.pct_tol)
     _emit(result, args.json,
@@ -1225,7 +1227,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     mat = sub.add_parser("match", help="the bare seam over any domain")
     mat.add_argument("text", help="the text to match against sealed pairs")
-    domain_args(mat)
+    mat.add_argument("--source-lang", "--from", dest="source_lang", default=None,
+                     help="source domain tag (default: en, or the store's "
+                          "largest domain if en→es holds nothing)")
+    mat.add_argument("--target-lang", "--to", dest="target_lang", default=None,
+                     help="target domain tag (default: es, or the store's "
+                          "largest domain if en→es holds nothing)")
     mat.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
     mat.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)

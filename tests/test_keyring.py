@@ -143,7 +143,7 @@ def test_without_a_keyring_nothing_changes(store):
         pair = memory.add_pair(f"phrase {who}", f"frase {who}", "en", "es",
                                status="sealed", verifier=who, store=store)
         assert memory.is_verified_seal(pair)
-    assert Curator(store).list()[0].get("key_status") is None
+    assert Curator(store).browse()[0].get("key_status") is None
 
 
 # --- the file holds every key in the deployment ------------------------------

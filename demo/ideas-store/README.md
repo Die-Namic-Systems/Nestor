@@ -24,7 +24,7 @@ section heading** — the whole document partitioned with no gaps.
 It already shows the mechanic. Querying the seam over the `idea` domain:
 
 ```bash
-nestor --db docs/ideas-store/nestor.db match \
+nestor --db demo/ideas-store/nestor.db match \
   "the threshold should be calibrated not constant" --from idea --to idea
 # → matched at 0.969 … but nothing sealed; above the bar there is only draft.
 ```
@@ -35,7 +35,7 @@ problem here, unverified is.*
 
 - **The store is derived.** [`nestor.bundle.json`](nestor.bundle.json) is the
   reviewable source; `nestor.db` is a gitignored, regenerable artifact — rebuild
-  with `nestor import docs/ideas-store/nestor.bundle.json --apply`.
+  with `nestor import demo/ideas-store/nestor.bundle.json --apply`.
 - **Retrieval caveat, in IDEAS.md's own words (§6.106):** rank is good for
   content-bearing questions and collapses for question-shaped ones, and the
   character matcher (`StringMatcher`) is the binding constraint (§3.4). For real
@@ -89,5 +89,5 @@ drafts and ranks; a human seals.* The store is already that shape.
 To seal or reject any of these, as a human:
 
 ```bash
-nestor --db docs/ideas-store/nestor.db ui
+nestor --db demo/ideas-store/nestor.db ui
 ```

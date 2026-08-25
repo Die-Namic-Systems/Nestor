@@ -71,7 +71,7 @@ class TestSignAndVerify:
         for src, who in (("hello", "rita"), ("goodbye", "sam")):
             memory.add_pair(src, "x", "en", "es", status="sealed",
                             verifier=who, store=store)
-        rows = {r["verifier"]: r for r in Curator(store).list()}
+        rows = {r["verifier"]: r for r in Curator(store).browse()}
         assert rows["rita"]["key_type"] == "ed25519"
         assert rows["sam"]["key_type"] == "hmac"
 
