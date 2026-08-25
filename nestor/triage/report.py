@@ -101,13 +101,18 @@ def render(report: Report,
     add(_SUB)
     if not report.clusters:
         add("  (no groups)")
-    for c in sorted(report.clusters,
+    multi = [c for c in report.clusters if len(c.member_ids) > 1]
+    n_singletons = len(report.clusters) - len(multi)
+    for c in sorted(multi,
                     key=lambda c: (c.label, c.representative_id)):
         add(f"[{c.label}]  ({len(c.member_ids)} member(s); "
             f"representative {c.representative_id})")
         for mid in sorted(c.member_ids):
             marker = "*" if mid == c.representative_id else " "
             add(f"    {marker} {mid}")
+        add("")
+    if n_singletons:
+        add(f"  ({n_singletons} singleton group(s) suppressed)")
         add("")
 
     # (3) proposed edges, grouped by kind --------------------------------------
