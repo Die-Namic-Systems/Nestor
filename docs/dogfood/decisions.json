@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 505,
+    "pairs": 507,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "a8520cd14842635c27add40668b6042c053098c270d3ee87cc3709bdd920a544",
+  "digest": "902a389d9b0a811a265f34c81049f83ffd7ea0947d0f3b619c9352f1fa01846b",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "fd838c8c-1e2d-5f12-a176-c62f9268b950",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should curatorlist be renamed to avoid shadowing the builtin",
+      "source_text": "Should Curator.list() be renamed to avoid shadowing the builtin?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Renamed to `Curator.browse()`. The old `list()` is kept as a deprecated alias that delegates to `browse()`, so existing callers keep working. All internal call sites updated.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
       "id": "f4dbb62b-4feb-57c3-b59c-c021e8086234",
@@ -47,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "63427d85-4f3e-573f-aace-6a099c5250dc",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should the cli handle global flags db ledger json placed after the subcommand",
+      "source_text": "How should the CLI handle global flags (--db, --ledger, --json) placed after the subcommand?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A new `_hoist_globals()` function rewrites sys.argv to move the three global flags before the subcommand, so `nestor ask \"hi\" --db x.db` and `nestor triage --json` work regardless of flag position. The existing `_HintingParser` stays as a safety net for any flags not yet hoisted.",
       "verifier": "",
       "weight": 1.0
     },
