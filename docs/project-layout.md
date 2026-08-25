@@ -90,7 +90,7 @@ IDEAS.md              running list of ideas, each tagged measured/verified/hypot
 docs/agent-log.md     §6, the implementation-session log, lifted out of IDEAS.md; numbers preserved
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
 QUESTIONS.md          the questions this gets asked, answered or admitted
-FINDINGS-*.md         dated audits, kept as records of what was found and how it was argued
+docs/findings/        dated audits, kept as records of what was found and how it was argued
 docs/dogfood/         Nestor's own decisions, one file per merged PR; the .db is derived (docs/decision-memory.md)
 docs/code-review-lessons.md  pre-merge checklist from PR review rounds (§2.4, §5.3, WAL, TTL)
 docs/decision-memory.md  decisions as a Nestor recipe — the design carried in from SAFE

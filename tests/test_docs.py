@@ -56,7 +56,11 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
                 # corpus, so the env gate could not see the doc that documents
                 # the knobs — exactly the coverage hole the note above predicts
                 # when content moves out of the README.
-                "docs/home-paths.md")}
+                "docs/home-paths.md",
+                # local-fleet.md documents the sibling-checkout overrides
+                # (WILLOW_CHARTER_REPO, WILLOW_CONSTITUTION_CASES, WILLOW_20_REPO)
+                # that _fleet_paths.py reads.
+                "docs/local-fleet.md")}
 
 
 def slugify(heading: str) -> str:
@@ -225,10 +229,15 @@ def test_documented_environment_variables_exist():
     branch — so requiring its identifiers to resolve would invert its purpose.
     The reverse check below still covers it, so a real variable can be documented
     there and nowhere else without slipping past.
+
+    local-fleet.md is exempt for the same structural reason: it documents
+    wiring between repos (WILLOW_STORE_ROOT, WILLOW_PGP_FINGERPRINT) that
+    belong to willow-mcp, not knobs this codebase reads. The reverse check
+    still covers the vars this code *does* read.
     """
     documented = set()
     for name, text in DOCS.items():
-        if name == "TODO.md":
+        if name in ("TODO.md", "docs/local-fleet.md"):
             continue
         documented |= set(re.findall(r"`(NESTOR_[A-Z_]+|WILLOW_[A-Z_]+)`", text))
     unknown = sorted(documented - _env_names_in_code())
