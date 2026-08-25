@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 502,
+    "pairs": 503,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "c878630b114eae870ce40b8f1034e29dee092eb0b8aa193e855ff0a4765702f5",
+  "digest": "2f10246656460a7bfda157f66e405b9bd76712b076b1496563a7d180c3482600",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -33,6 +33,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "37b53fc4-e73a-53ba-a598-50666dd5b90e",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestor triage be a cli subcommand alongside nestor ask nestor calibrate etc",
+      "source_text": "Should `nestor triage` be a CLI subcommand alongside `nestor ask`, `nestor calibrate`, etc.?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. `nestor triage` runs the triage (group + supersede) over the dogfood corpus and prints the report. Supports `--matcher string|semantic|ollama`, `--bar`, `--calibrate`, and `--json`. Read-only — proposes nothing, seals nothing. The standalone script (`scripts/decision_triage.py`) stays for its `--propose` mode; the CLI subcommand covers the common path.",
       "verifier": "",
       "weight": 1.0
     },

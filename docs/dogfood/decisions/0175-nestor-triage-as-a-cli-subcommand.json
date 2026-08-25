@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "The score seam fix (#197) made SemanticMatcher work in triage, but `nestor triage` did not exist as a CLI subcommand — the only way to run it was `python scripts/decision_triage.py` or through the browser UI. Promoting it to a first-class subcommand puts `nestor triage --matcher semantic` one flag away.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should `nestor triage` be a CLI subcommand alongside `nestor ask`, `nestor calibrate`, etc.?",
+      "commitment": "Yes. `nestor triage` runs the triage (group + supersede) over the dogfood corpus and prints the report. Supports `--matcher string|semantic|ollama`, `--bar`, `--calibrate`, and `--json`. Read-only — proposes nothing, seals nothing. The standalone script (`scripts/decision_triage.py`) stays for its `--propose` mode; the CLI subcommand covers the common path.",
+      "why": "The score seam fix made SemanticMatcher work in triage, but the feature was unreachable from the CLI — the only paths were a standalone script or the browser UI. A subcommand is one flag away (`--matcher semantic`), matches how `nestor calibrate` and `nestor ask` already accept `--matcher`, and the JSON output mode (`--json`) makes it composable in pipelines."
+    }
+  ]
+}
