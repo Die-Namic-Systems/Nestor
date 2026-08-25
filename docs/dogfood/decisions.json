@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 530,
+    "pairs": 532,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "22b37a0c74c666d59240834d549a5ef841565159f22134f8c33276802113ef79",
+  "digest": "683f6b125a591ef4e5ac3ffba354768e240f7f5b212fab21514faef38ab0dd7e",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -75,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Now a gate. tests/test_serve_propose_refusal.py holds five assertions: the issue's acceptance criterion (call with status='sealed', verifier='x', verification_kind='human'; assert the reply names all three under ignored_fields and seal_authority_refused, and the note reads as a refusal); a non-seal extra key is reported in ignored_fields but NOT in seal_authority_refused (so a script can tell a typo from a covenant-crossing attempt); a clean proposal carries neither field (regression guard against leaking); every entry in answer.SEAL_AUTHORITY is a bare string (drift guard — if a new way to declare verification is added, the refusal walks it by name); and the stored row lands as pending regardless of the forbidden fields on the wire (storage-level invariant behind the wire-level refusal). Split verified: dropping the ignored=ignored kwarg at nestor/serve.py:403 makes the first two tests fail with KeyError: 'ignored_fields'. Restored, all 5 pass.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "dfdfdf1f-c715-5dc9-8483-0c6a41924e1d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should default operation opens no nonloopback socket become a checkable claim not an adjective in the pitch",
+      "source_text": "How should 'default operation opens no non-loopback socket' become a checkable claim, not an adjective in the pitch?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "tests/test_no_network_by_default.py installs a socket interceptor at fixture level (monkeypatches socket.socket.connect) that raises with the offending address named on any AF_INET/AF_INET6 connect to a non-loopback host. The fixture is applied to every default read command — ask (offline engine), resolve, match, check, provenance, stats, ledger verify, propose — and each test asserts no violation. Four opt-in surfaces (claude engine, semantic matcher, ollama matcher, cloud_seal) are each given a separate test asserting they are guarded: the default engine is offline, the anthropic import is lazy inside ClaudeEngine.__init__ rather than at module top, load_matcher('string') does not drag in nestor.semantic_matcher or nestor.ollama_embed, and nestor.cloud_seal is not imported by anything in the default read path (it raises at import without the [gate] extra). The UI's default bind of 127.0.0.1 is checked from ui.serve.__defaults__ directly. Frank's ledger mirror is proven a no-op under the empty-env condition.",
       "verifier": "",
       "weight": 1.0
     },
@@ -201,6 +215,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, and it was already answered by 0154. The trade #101 named -- 'stem-discounting costs paraphrase recall' -- was measured in docs/decision-rewording-bench.md: StringMatcher hits 88% rank@1 on re-worded probes, TokenOverlap 96%, both at 0/24 wrong-key at bar 0.55. The bench refutes the framing that a matcher swap is a clean win; 0154 kept StringMatcher and calibrated the bar to 0.55, which serves the recoverable ~75% at zero wrong-keys. The residual ~25% (this probe among them) is the tail. Closing #101 does not require another matcher swap; it requires acknowledging that the design answer already shipped and pointing #101 at 0154 + this measurement.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "8aa974da-b6b4-556c-aef9-4a1d60764a62",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the socket interceptor be a globallyapplied autouse fixture across the whole test suite",
+      "source_text": "Should the socket interceptor be a globally-applied autouse fixture across the whole test suite?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. It is per-test opt-in via the ``no_inet_connect`` fixture parameter. Some tests deliberately exercise network-adjacent code (client-signed seals with a real WebCrypto shim, semantic-matcher smoke tests behind an extras gate) and would false-fail. The scope is the default-read-path tests in this one file plus, in the future, any other test file that wants the same guarantee for its surface.",
       "verifier": "",
       "weight": 1.0
     },

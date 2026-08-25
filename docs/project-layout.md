@@ -128,6 +128,7 @@ docs/matcher-seam.md  the domain seam in depth — the signed embedding cache, a
 docs/frank.md         mirroring the ledger into willow-mcp's shared governance ledger, plus the fleet/home env vars
 docs/storage-protocol.md  the persistence seam in full — core operations and the optional capabilities
 docs/probing-the-store.md  one command over every read-only lens (ask / resolve / match / decision check + stats/rejections/triage/calibrate/evidence report) — the recipe scripts/issue_probe.py drives
+docs/sovereign-deployment.md  what a default install does (and does not) do with the network — the load-bearing claim gated by tests/test_no_network_by_default.py
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
 docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in

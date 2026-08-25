@@ -1,0 +1,19 @@
+{
+  "branch": "claude/sovereign-deployment-gates",
+  "date": "2026-08-25",
+  "note": "Turn the 'local-first, no phone-home' claim from an assertion into a gate. tests/test_no_network_by_default.py + docs/sovereign-deployment.md are the pair.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "How should 'default operation opens no non-loopback socket' become a checkable claim, not an adjective in the pitch?",
+      "commitment": "tests/test_no_network_by_default.py installs a socket interceptor at fixture level (monkeypatches socket.socket.connect) that raises with the offending address named on any AF_INET/AF_INET6 connect to a non-loopback host. The fixture is applied to every default read command — ask (offline engine), resolve, match, check, provenance, stats, ledger verify, propose — and each test asserts no violation. Four opt-in surfaces (claude engine, semantic matcher, ollama matcher, cloud_seal) are each given a separate test asserting they are guarded: the default engine is offline, the anthropic import is lazy inside ClaudeEngine.__init__ rather than at module top, load_matcher('string') does not drag in nestor.semantic_matcher or nestor.ollama_embed, and nestor.cloud_seal is not imported by anything in the default read path (it raises at import without the [gate] extra). The UI's default bind of 127.0.0.1 is checked from ui.serve.__defaults__ directly. Frank's ledger mirror is proven a no-op under the empty-env condition.",
+      "why": "docs/journal/public-sector-audience.md §3 named three pitch-shape claims (local-first / air-gap / sovereign) as *asserted, not verified* and refused to let them into a pitch until they were checkable. The socket interceptor is the cheapest test that catches the claim's actual failure mode: a lazy import that fetches something, a matcher that pings a model on load, an added telemetry hook. A regression is caught at exactly one test, which names the offending call site. This is the pattern tests/test_corpus_extractors_git_scoped.py (§6.101/§6.102) and tests/test_corpus_boundary.py (#97) established for other 'the claim is a test' surfaces.",
+      "doors_closed": "Blocking outbound sockets at the OS layer (not this project's job -- the OS or a firewall does that; the test proves the shipped code does not try). A formal security proof against an in-process hostile caller who monkey-patches after import (docs/sovereign-deployment.md §'What this file does NOT claim' names this explicitly). Testing the extras' network behavior (they are supposed to reach the network; the point of the extra is to opt into that)."
+    },
+    {
+      "question": "Should the socket interceptor be a globally-applied autouse fixture across the whole test suite?",
+      "commitment": "No. It is per-test opt-in via the ``no_inet_connect`` fixture parameter. Some tests deliberately exercise network-adjacent code (client-signed seals with a real WebCrypto shim, semantic-matcher smoke tests behind an extras gate) and would false-fail. The scope is the default-read-path tests in this one file plus, in the future, any other test file that wants the same guarantee for its surface.",
+      "why": "A test's assertion should say what the test is testing, not what every test happens to share. An autouse fixture that raises on network activity would silently gate behavior every other test author has to remember to work around, which is exactly the wrong shape for a boundary claim — the boundary is stated in one file that any reader (or reviewer, or policy officer) can point at."
+    }
+  ]
+}
