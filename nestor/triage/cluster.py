@@ -110,10 +110,6 @@ def _build_graph(norms: list[str], matcher: Matcher,
     lengths = [len(x) for x in norms]
     has_raw = uses_raw_score(matcher)
     similarity_bound = getattr(matcher, "similarity_bound", None)
-    # The bound prunes losslessly only when the final score comes from
-    # similarity() on normalised keys. A matcher whose score() may
-    # exceed similarity() would lose real edges to the prune.
-    can_prune = (similarity_bound is not None) and not has_raw
     adj: list[list[int]] = [[] for _ in range(n)]
     weights: dict[tuple[int, int], float] = {}
     for i in range(n):
@@ -126,7 +122,7 @@ def _build_graph(norms: list[str], matcher: Matcher,
             if not lb:
                 continue
             b = norms[j]
-            if can_prune:
+            if similarity_bound is not None and not has_raw:
                 if 2.0 * min(la, lb) / (la + lb) < bar:
                     continue
                 if similarity_bound(a, b, floor=bar) < bar:
