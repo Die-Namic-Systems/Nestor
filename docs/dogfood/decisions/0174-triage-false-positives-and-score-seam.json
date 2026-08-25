@@ -1,0 +1,18 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Dogfooding the triage on its own corpus (316 decisions, 500 pairs) found two defects: 98 of 103 edges were false-positive contradictions from structural skeleton overlap, and neither cluster.py nor supersede.py used matcher.score() even when a SemanticMatcher was passed — the embedding signal was silently ignored. Both found by running `nestor triage` and examining the output, not by reading the code.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should triage's cluster and supersede passes use matcher.score() when the matcher exposes it?",
+      "commitment": "Yes. Both _build_graph (cluster.py) and find_supersessions (supersede.py) now call matcher.score() on raw text when uses_raw_score(matcher) is true, falling back to matcher.similarity() on normalised text otherwise. Bound-based pruning (similarity_bound, length ratio) is skipped when score() is in use because the bound is defined on similarity() only — a matcher whose score() exceeds similarity() would lose real edges to the prune.",
+      "why": "Passing a SemanticMatcher to triage had no effect: the graph used matcher.similarity(), which delegates to the internal StringMatcher's difflib ratio. The score() seam existed precisely for richer signals (embeddings, hybrid scoring), and the two consumers that would benefit most were the only ones not using it."
+    },
+    {
+      "question": "Should contradiction detection require stronger question evidence than supersession detection?",
+      "commitment": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "why": "At bar=0.55, structural skeleton overlap ('Should the X?' / 'Should the Y?') scores 0.55–0.65 on difflib — above the bar but below any genuine same-question pair. Supersession is unaffected because it also requires commitment alignment (c_sim >= bar), which the skeleton pairs never pass. But contradiction only needs commitments to *diverge*, so every skeleton pair with different answers became a false positive. On the 316-row corpus: 98 of 103 edges were spurious contradictions. After the uplift: 3 contradictions survive (all scoring 0.76+), all 5 supersessions preserved."
+    }
+  ]
+}
