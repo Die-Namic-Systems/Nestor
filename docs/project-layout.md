@@ -76,7 +76,8 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 ├── the_border.py       a verification crossing jeles ⇄ nestor in both directions, and losing something each way — needs jeles importable
 ├── the_verification.py four real claims past jeles' two-source bar and into this store — all four land as drafts — needs jeles importable
 ├── llm-only-jokes.md   three jokes only an LLM would get — a session's first ask, kept as a store's first draft
-└── llm-only-joke/      a fresh store stood up with one piece (the jokes); bundle + regenerable .db
+├── llm-only-joke/      a fresh store stood up with one piece (the jokes); bundle + regenerable .db
+└── ideas-store/        IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
 
 recipes/              the seam's "yours" row, built against the shipped package
 ├── patch_review.py       defect description → proposed fix; DefectMatcher weights identifiers
@@ -119,7 +120,6 @@ docs/matcher-seam.md  the domain seam in depth — the signed embedding cache, a
 docs/frank.md         mirroring the ledger into willow-mcp's shared governance ledger, plus the fleet/home env vars
 docs/storage-protocol.md  the persistence seam in full — core operations and the six optional capabilities
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
-docs/ideas-store/     IDEAS.md loaded as 143 draft rows, and four stand-in retrieval measurements over it
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
 ├── felt-cost.md        one operator sentence about friction, read closely — what it implies, and what it cannot
 └── live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
