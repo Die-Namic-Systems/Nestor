@@ -1188,8 +1188,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     def domain_args(sp, source="en", target="es"):
-        sp.add_argument("--source-lang", "--from", dest="source_lang", default=source)
-        sp.add_argument("--target-lang", "--to", dest="target_lang", default=target)
+        sp.add_argument("--source-lang", "--from", dest="source_lang", default=source,
+                        help="source domain tag (default: %(default)s)")
+        sp.add_argument("--target-lang", "--to", dest="target_lang", default=target,
+                        help="target domain tag (default: %(default)s)")
 
     ask = sub.add_parser("ask", help="run the cascade over a phrase")
     ask.add_argument("text", help="the phrase to look up")
@@ -1234,8 +1236,10 @@ def build_parser() -> argparse.ArgumentParser:
                      help="target domain tag (default: es, or the store's "
                           "largest domain if en→es holds nothing)")
     mat.add_argument("--matcher", default="string", help=_MATCHER_HELP)
-    mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0)
-    mat.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05)
+    mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0,
+                     help="absolute tolerance (default: 0)")
+    mat.add_argument("--pct-tol", dest="pct_tol", type=float, default=0.05,
+                     help="percentage tolerance (default: 0.05)")
     mat.set_defaults(func=cmd_match)
 
     dec = sub.add_parser("decision",
@@ -1329,7 +1333,7 @@ def build_parser() -> argparse.ArgumentParser:
     dbp.set_defaults(func=cmd_db)
 
     imp = sub.add_parser("import", help="read a bundle (dry run unless --apply)")
-    imp.add_argument("file")
+    imp.add_argument("file", help="path to the bundle file to import")
     imp.add_argument("--apply", action="store_true", help="actually write it")
     imp.add_argument("--verifier", default="", help="who is performing the import")
     imp.add_argument("--override-conflicts", action="store_true",
@@ -1345,7 +1349,8 @@ def build_parser() -> argparse.ArgumentParser:
     led.add_argument("--expect-head", dest="expect_head", default="",
                      help="refuse a chain whose tip is not this (see: nestor ledger head)")
     led.add_argument("--kind", default="", help="filter entries by kind")
-    led.add_argument("--limit", type=int, default=50)
+    led.add_argument("--limit", type=int, default=50,
+                     help="max entries to show (default: 50)")
     led.set_defaults(func=cmd_ledger)
 
     cal = sub.add_parser("calibrate",
@@ -1415,12 +1420,14 @@ def build_parser() -> argparse.ArgumentParser:
                          help="what the recorded 'no's say in aggregate")
     rej.add_argument("--source-lang", "--from", dest="source_lang", default="",
                      help="limit to one domain (default: everything)")
-    rej.add_argument("--target-lang", "--to", dest="target_lang", default="")
+    rej.add_argument("--target-lang", "--to", dest="target_lang", default="",
+                     help="limit to one domain (default: everything)")
     rej.add_argument("--min-query", dest="min_query", type=int, default=2,
                      help="report a query refused at least this many times (default: 2)")
     rej.add_argument("--min-pair", dest="min_pair", type=int, default=2,
                      help="report a pair refused for at least this many queries (default: 2)")
-    rej.add_argument("--limit", type=int, default=20)
+    rej.add_argument("--limit", type=int, default=20,
+                     help="max rows to show (default: 20)")
     rej.set_defaults(func=cmd_rejections)
 
     st = sub.add_parser("stats", help="what is in the memory, and is the chain intact")

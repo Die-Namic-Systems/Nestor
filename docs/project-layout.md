@@ -71,7 +71,7 @@ demo/                 scripted and self-asserting — a claim that fails the bui
 ├── record_demo.py      captures sixty_seconds.py as an asciicast — see 60-second demo below
 ├── recordings/          the captured .cast and .txt from the last record_demo.py run
 ├── the_dogfooding.py   Nestor's own decision store asked its own questions — retrieval measured three ways (IDEAS §6.94)
-├── shoebox.py          one verifier, her own archive, across all three recipes — five open gaps (IDEAS §6.35, §6.37-§6.39)
+├── shoebox.py          one verifier, her own archive, across all three recipes — three open gaps, two closed (IDEAS §6.35, §6.37-§6.39)
 ├── two_desks.py        a client's intake and the review of Nestor itself, both on custom matchers — what the human surface does to a domain that brought its own (IDEAS §6.40, §6.41)
 ├── desks.py            scaffolding: several deployments in one interpreter, and the three process globals that makes you own
 ├── big_jim.py          a standing desk for a used-car lot, keyed on VIN — driven a command at a time

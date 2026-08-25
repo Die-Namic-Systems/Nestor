@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 517,
+    "pairs": 519,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "f7697b1222236989d950d982ce6d18dfd9f26bdb4780c72daf6ea95963521b92",
+  "digest": "5bf193d526f32d186c05f237e151b8a4fd034868463c41284a1f0b499b734a19",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -75,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Applied _ask_domain() to cmd_match, mirroring cmd_ask. Changed match's --from/--to parser defaults from 'en'/'es' to None so _ask_domain can detect 'not specified' and fall back to the store's largest domain. Without this, `nestor match` on a decision→decision store silently queried the empty en→es domain and reported 0 candidates.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "ac72bae2-be8f-520a-9623-3690b276a1de",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should cli arguments without help text get descriptions",
+      "source_text": "Should CLI arguments without help= text get descriptions?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Added help= to domain_args() helper (used by calibrate, decision, and others), match --abs-tol/--pct-tol, import file positional, ledger --limit, and rejections --target-lang/--limit.",
       "verifier": "",
       "weight": 1.0
     },
@@ -257,6 +271,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. Both _build_graph (cluster.py) and find_supersessions (supersede.py) now call matcher.score() on raw text when uses_raw_score(matcher) is true, falling back to matcher.similarity() on normalised text otherwise. Bound-based pruning (similarity_bound, length ratio) is skipped when score() is in use because the bound is defined on similarity() only — a matcher whose score() exceeds similarity() would lose real edges to the prune.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "1b7b2930-ad3c-5a76-96dd-015d022735e4",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should readme ideasmd and docs count strings be updated when the underlying code adds a view or tool",
+      "source_text": "Should README, IDEAS.md, and docs count strings be updated when the underlying code adds a view or tool?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Updated README view table from four to seven (added Signals, Graph, Triage rows). Updated MCP tool count from seven to eight in README, IDEAS.md, and docs/drafts/mcp-resources-prompts.md (nestor_prefs was missing). Updated ui.py docstring from five to seven views. Corrected shoebox gap count in project-layout.md from five open to three open, two closed. Removed duplicate paragraph in README (copy-paste leftover).",
       "verifier": "",
       "weight": 1.0
     },
