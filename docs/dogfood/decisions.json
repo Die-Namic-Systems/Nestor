@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 514,
+    "pairs": 515,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "9fcc34dbca0168a177734829413aa98fc09ac1dd1061e7fc8dbee48105649427",
+  "digest": "d1ea910d7382a276a8d5f279b89e63f0af5335f2d588adc738de854d532caebb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -103,6 +103,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Trimmed the 'The one rule' section to the core statement plus a one-sentence pointer to docs/agent-guide.md for the full implications.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "6770cf3d-73c7-53bd-8f77-cc263e364772",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the deprecated curatorlist alias be removed now that all callers use browse",
+      "source_text": "Should the deprecated Curator.list() alias be removed now that all callers use browse()?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Removed the alias and migrated all callers (test_curator, test_asymmetric_seals, test_keyring, test_portable, rebuild_corpus.py) to browse(). Also removed the builtins.list workaround in unverifiable() and replaced_seals() — plain list[dict] works now that no method shadows the builtin.",
       "verifier": "",
       "weight": 1.0
     },
