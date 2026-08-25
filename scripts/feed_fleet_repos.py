@@ -104,6 +104,14 @@ SURVEY: dict[str, tuple[str, str, str]] = {
         "another person's.",
         "Python",
         "README + tree; corpuslens/ with examples and tests — matches."),
+    "cortex": (
+        "Model-agnostic workflow orchestrator for coding agents — deterministic JavaScript control "
+        "flow (agent/parallel/pipeline/phase) that delegates judgment to headless CLIs (Claude "
+        "Code, Codex, Cursor).",
+        "TypeScript / Node 22.18+ (zero deps)",
+        "README + tree; package.json declares no dependencies and Node >=22.18, 16 .ts sources "
+        "under src/ split into cli/runtime/adapters, a full node --test suite under test/, one "
+        "example workflow — matches. Fork of upstream added 2026-08-25."),
     "homestead": (
         "Shared record, deadline and evidence core for the Homestead face — sealed logs with "
         "integrity verification and authorization gates.",
