@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 500,
+    "pairs": 502,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
-  "created_at": "2026-08-23T00:00:00+00:00",
-  "digest": "7839ee6e81e8400dcd18e99a60c4af57500d2e7003689637ff59bb7e10d3baa9",
+  "created_at": "2026-08-25T00:00:00+00:00",
+  "digest": "c878630b114eae870ce40b8f1034e29dee092eb0b8aa193e855ff0a4765702f5",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "8561f2c7-bd22-556b-bb85-553c9d65e896",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should contradiction detection require stronger question evidence than supersession detection",
+      "source_text": "Should contradiction detection require stronger question evidence than supersession detection?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "27fcbdb9-2761-5c75-baf9-9c4ffbe1c09f",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should triages cluster and supersede passes use matcherscore when the matcher exposes it",
+      "source_text": "Should triage's cluster and supersede passes use matcher.score() when the matcher exposes it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. Both _build_graph (cluster.py) and find_supersessions (supersede.py) now call matcher.score() on raw text when uses_raw_score(matcher) is true, falling back to matcher.similarity() on normalised text otherwise. Bound-based pruning (similarity_bound, length ratio) is skipped when score() is in use because the bound is defined on similarity() only — a matcher whose score() exceeds similarity() would lose real edges to the prune.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-23T00:00:00+00:00",
       "id": "f417114a-cf59-5def-8d56-a3396482d02e",
@@ -7028,7 +7056,7 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": true
+    "enabled": false
   },
   "warrants": []
 }

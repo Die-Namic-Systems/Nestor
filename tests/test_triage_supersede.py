@@ -60,6 +60,46 @@ def test_deterministic_and_kinds_are_graph_kinds():
     assert first == sorted(first, key=lambda e: (e.src_id, e.dst_id))
 
 
+def test_moderate_question_match_with_divergent_commitments_is_not_a_contradiction():
+    """Structural skeleton overlap ("Should the X?" / "Should the Y?") scores
+    0.55–0.65 on difflib. With divergent commitments that was a "contradicts" —
+    mostly false positives. The contradict uplift (bar + 0.15 = 0.70) filters
+    them: a genuine contradiction needs stronger question evidence."""
+    # These share the skeleton "Should the <noun> <verb> on <noun>?" but
+    # the actual content differs. difflib scores ~0.65.
+    ds = [_d("0007#0", "Should the gate fail open on timeout?",
+             "yes always automatically"),
+          _d("0008#0", "Should the cache warm up on startup?",
+             "never no resources needed")]
+    sim = M.similarity(M.normalize(ds[0].question), M.normalize(ds[1].question))
+    assert BAR <= sim < BAR + 0.15, f"sim={sim:.3f} should be in the skeleton zone"
+    edges = find_supersessions(ds, M, BAR)
+    assert edges == [], f"skeleton overlap should not produce a contradiction: {edges}"
+
+
+def test_score_is_used_when_matcher_exposes_it():
+    """A matcher with score() should use it for both question and commitment
+    comparison, allowing richer signals (embeddings, token-sort) to drive the
+    classification."""
+    class _ScoringMatcher:
+        def normalize(self, v):
+            return " ".join(str(v).lower().split())
+        def similarity(self, a, b):
+            return 0.0  # deliberately low — should not be used
+        def score(self, a, b):
+            if {"apples", "oranges"} <= {a.lower(), b.lower()}:
+                return 0.0  # unrelated
+            return 0.95
+
+    ds = [_d("0009#0", "Alpha question", "Yes do it"),
+          _d("0010#0", "Beta question", "Yes do it")]
+    # similarity() returns 0.0, but score() returns 0.95 — the edge should
+    # exist (supersedes, since commitments also score 0.95).
+    edges = find_supersessions(ds, _ScoringMatcher(), 0.55)
+    assert len(edges) == 1
+    assert edges[0].kind == "supersedes"
+
+
 @pytest.mark.slow
 def test_smoke_over_the_real_corpus_at_the_knee():
     from nestor.triage import load_decisions
