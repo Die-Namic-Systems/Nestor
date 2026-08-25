@@ -107,11 +107,13 @@ that can be wired:
 ```bash
 JELES_REPO=~/github/hornbook-knowledge/Jeles \
 WILLOW_CHARTER_REPO=~/github/willow-memory/willow \
+WILLOW_CONSTITUTION_CASES=~/github/willow-memory/willow/governance/compliance/cases \
+WILLOW_20_REPO=~/github/willow-memory/willow-2.0 \
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
 python -m pytest -q -rs
 ```
 
-`tests/_fleet_paths.py` resolves the first two; both accept an env override
+`tests/_fleet_paths.py` resolves the first four; each accepts an env override
 ahead of the org-folder defaults, which is what makes a flat container layout
 (`/home/user/Jeles`) work without moving anything. `pip install -e <path>` for
 jeles and willow-gate attaches the rest: jeles clears eight skips (border,
