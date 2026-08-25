@@ -125,11 +125,8 @@ def find_supersessions(decisions: list[Decision], matcher: Matcher,
             qj = norm_q[j]
             if not qj:
                 continue
-            # Bound-based pruning is lossless only when the final score comes
-            # from similarity() — score() may exceed the bound.
-            if not has_raw:
-                if _question_bound(matcher, qi, qj, bar) < bar:
-                    continue
+            if not has_raw and _question_bound(matcher, qi, qj, bar) < bar:
+                continue
             q_sim = _score_pair(matcher, raw_q[i], qi, raw_q[j], qj, has_raw)
             if q_sim < bar:
                 continue
