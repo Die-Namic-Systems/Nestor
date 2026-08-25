@@ -741,9 +741,8 @@ the translation-memory operations — `memory_insert` MUST refuse a duplicate
 source" hold under concurrent sealers) and a set of **optional capabilities**,
 each all-or-nothing and reported by a `supports_*` predicate so a surface that
 needs one says so rather than showing an empty list. The full
-operation-by-operation reference — core signatures and the six optional
-capabilities (rejection, curation, review queue, rejection listing, lineage,
-atomic supersede) — is [`docs/storage-protocol.md`](docs/storage-protocol.md).
+operation-by-operation reference — core signatures and all optional
+capabilities — is [`docs/storage-protocol.md`](docs/storage-protocol.md).
 
 **Other injected seams.** The **draft engine**
 (`nestor.engine.get_engine("auto"|"claude"|"offline")`) imports the Anthropic SDK

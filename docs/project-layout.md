@@ -125,7 +125,7 @@ docs/the-name.md      where "Nestor" comes from — the nest, the Homeric counse
 docs/accuracy.md      why the measured false-verification rate is published rather than an adjective
 docs/matcher-seam.md  the domain seam in depth — the signed embedding cache, and why a domain is its tags *and* its matcher
 docs/frank.md         mirroring the ledger into willow-mcp's shared governance ledger, plus the fleet/home env vars
-docs/storage-protocol.md  the persistence seam in full — core operations and the six optional capabilities
+docs/storage-protocol.md  the persistence seam in full — core operations and the optional capabilities
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
 docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
