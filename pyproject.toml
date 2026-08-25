@@ -69,6 +69,8 @@ nestor-ui = "nestor.ui:main"
 keys = ["cryptography>=41"]
 dev = [
     "pytest>=8.0",
+    "pytest-xdist[psutil]",
+    "pytest-cov",
     # what the Development section runs and CI enforces — a dev install that
     # cannot run the documented lint commands is the docs lying by omission
     "ruff==0.16.3",
@@ -129,6 +131,7 @@ publish = [
 # the bench-coverage guards whose whole reason to live in this suite is that
 # they must not be skippable. Pin the path so the invocation stops mattering.
 pythonpath = ["."]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.hatch.version]
 # Derived from the git tag (hatch-vcs). At an exact tag `vX.Y.Z` the version is

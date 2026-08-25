@@ -1440,6 +1440,7 @@ class TestKeyEnvironmentManipulation:
 # does it degrade, and when does disambiguation start failing?
 
 
+@pytest.mark.slow
 class TestScaleExactMatch:
     """Exact-match retrieval at increasing scale."""
 
@@ -1487,6 +1488,7 @@ class TestScaleExactMatch:
         assert hit is None
 
 
+@pytest.mark.slow
 class TestScaleFuzzyDiscrimination:
     """Can Nestor find the RIGHT fuzzy match among many similar candidates?"""
 
@@ -1548,6 +1550,7 @@ class TestScaleFuzzyDiscrimination:
         assert hit is None
 
 
+@pytest.mark.slow
 class TestScaleLookupDepth:
     """Does lookup return useful ranked results at scale?"""
 
@@ -1583,6 +1586,7 @@ class TestScaleLookupDepth:
         assert results[1]["similarity"] > 0.8
 
 
+@pytest.mark.slow
 class TestScaleMultiDomain:
     """Multiple domains with many pairs each — isolation under pressure."""
 
@@ -1628,6 +1632,7 @@ class TestScaleMultiDomain:
                                   store=store)["pair"]["target_text"] == "ciao"
 
 
+@pytest.mark.slow
 class TestScaleTiming:
     """Rough performance characterization — not benchmarks, but guards
     against catastrophic O(n^2) or worse behavior."""
@@ -1677,6 +1682,7 @@ class TestScaleTiming:
         assert elapsed < 30.0, f"2K absent probe took {elapsed:.2f}s"
 
 
+@pytest.mark.slow
 class TestScaleEntityResolver:
     """Entity resolution at scale — many aliases, many canonicals."""
 
@@ -1707,6 +1713,7 @@ class TestScaleEntityResolver:
         assert result["sealed"] is True
 
 
+@pytest.mark.slow
 class TestScaleReconciler:
     """Numeric reconciliation with many baselines."""
 
@@ -1724,6 +1731,7 @@ class TestScaleReconciler:
         assert result["within_tolerance"] is False
 
 
+@pytest.mark.slow
 class TestScaleDecisionMemory:
     """Decision memory at scale — many decisions, graph traversal."""
 
@@ -1774,6 +1782,7 @@ class TestScaleDecisionMemory:
         assert len(constraints["constraints"]) >= 1
 
 
+@pytest.mark.slow
 class TestScaleMixedWorkload:
     """Mixed sealed/draft pairs — does the draft noise affect sealed lookups?"""
 

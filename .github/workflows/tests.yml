@@ -113,7 +113,7 @@ jobs:
         # reads as covered when it covered nothing (the bureau-differential
         # lesson, applied to crypto). The no-extra refusal path is tested by
         # simulated ImportError, so nothing is lost by installing it.
-        run: pip install -e '.[keys]' pytest coverage
+        run: pip install -e '.[keys]' pytest pytest-xdist pytest-cov coverage
 
       # The command the README tells a human to type. It used to be
       # `python -m pytest tests/ -q`, which put the repo root on sys.path where
@@ -121,13 +121,14 @@ jobs:
       # developer following the README silently skipped, and the disagreement
       # is what kept it quiet. A gate that runs a different command from the
       # docs is testing something nobody else runs.
-      - name: Run tests (under coverage)
-        # `coverage run -m pytest` would put the repo root back on sys.path —
-        # the exact divergence the comment above exists to prevent. Script
-        # mode keeps bare-pytest semantics (verified: identical 406 tests).
+      - name: Run tests (under coverage, parallel)
+        # pytest-cov + xdist: each worker collects coverage independently;
+        # pytest-cov combines them. The pythonpath setting in pyproject.toml
+        # ensures the repo root is on sys.path regardless of invocation style.
         run: |
-          coverage run --include='nestor/*' "$(command -v pytest)" -q
+          pytest -n auto --cov=nestor --cov-report=term -q
           # Floor, not target: measured 88.4% on master. Ratchet up, never down.
+          # pytest-cov writes .coverage; the report reads it.
           coverage report --fail-under=85
 
   js-test:
