@@ -1,0 +1,13 @@
+{
+  "branch": "claude/open-issues-3gi4n2",
+  "date": "2026-08-25",
+  "note": "Gate nestor_propose's refusal-that-reads-as-one (#98 / §6.44). Code was already fixed; no test held it down.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Is nestor_propose's refusal of seal-authority arguments a gate, or only behavior?",
+      "commitment": "Now a gate. tests/test_serve_propose_refusal.py holds five assertions: the issue's acceptance criterion (call with status='sealed', verifier='x', verification_kind='human'; assert the reply names all three under ignored_fields and seal_authority_refused, and the note reads as a refusal); a non-seal extra key is reported in ignored_fields but NOT in seal_authority_refused (so a script can tell a typo from a covenant-crossing attempt); a clean proposal carries neither field (regression guard against leaking); every entry in answer.SEAL_AUTHORITY is a bare string (drift guard — if a new way to declare verification is added, the refusal walks it by name); and the stored row lands as pending regardless of the forbidden fields on the wire (storage-level invariant behind the wire-level refusal). Split verified: dropping the ignored=ignored kwarg at nestor/serve.py:403 makes the first two tests fail with KeyError: 'ignored_fields'. Restored, all 5 pass.",
+      "why": "The code half of the fix was already in-tree (nestor/serve.py:398 computes ignored, nestor/answer.py:520-537 names the fields and flags seal attempts). The test half was missing — tests/test_serve.py only had the happy-path test_propose_queues_a_draft_for_a_human, so a regression that dropped the ignored= kwarg would ship silently and the wire would go back to a refusal that does not read as one. The issue's acceptance criterion asked for exactly this test; landing it turns 'known fixed' into 'gated fixed' and matches the pattern already used for #97 (docstring boundary gated by tests/test_corpus_boundary.py)."
+    }
+  ]
+}

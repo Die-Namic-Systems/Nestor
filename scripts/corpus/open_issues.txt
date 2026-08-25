@@ -1,0 +1,54 @@
+# One prompt per line. Blank lines and lines beginning with '#' are skipped.
+# Snapshot: die-namic-systems/nestor open issues, 2026-08-25.
+# Fetched with `nestor` seat tooling; refresh with:
+#     python scripts/issue_probe.py --refresh-prompts
+# (not implemented — for now this file is hand-maintained. See
+#  docs/probing-the-store.md for the promotion criteria if that changes.)
+
+#203  MCP server nestor_ask lacks store-aware domain fallback
+MCP server nestor_ask lacks store-aware domain fallback
+
+#167  Bite 167: turn the capability probe's findings into runnable code
+turn the capability probe's findings into runnable code
+
+#163  Evidence subsystem is inert
+Evidence subsystem is inert: nothing in cascade, provenance, or check reads it
+
+#111  Cross-session collision awareness
+Missing guard: cross-session collision awareness — notice another agent is in the room
+
+#101  Decision-store retrieval collapses for question-shaped queries
+Decision-store retrieval collapses for question-shaped queries
+
+#100  glossary.locks_in_text is a raw substring match
+glossary.locks_in_text is a raw substring match — a short lock fires inside longer words
+
+#99   nestor keys add prints the wrong key
+nestor keys add prints the wrong key for ed25519 and calls it the only copy
+
+#98   nestor_propose silently discards a forbidden argument
+nestor_propose silently discards a forbidden argument — a refusal that does not read as one
+
+#97   The fleet's own decision record is invisible to every corpus extractor
+The fleet's own decision record is invisible to every corpus extractor
+
+#96   Corpus extractors walk the working tree
+Corpus extractors walk the working tree — following the repo's own setup poisons its corpus
+
+#95   Corpus extractors do not fail closed
+Corpus extractors do not fail closed — empty output is indistinguishable from could not look
+
+#93   The first five minutes: playful onboarding and a one-line install
+The first five minutes: playful onboarding and a one-line install
+
+#92   Property-based tests for the matcher, normalizer, and frozen sign-message
+Property-based tests for the matcher, normalizer, and frozen sign-message
+
+#91   Versioned schema migrations for the on-disk store
+Versioned schema migrations for the on-disk store
+
+#90   Central config schema: one home for the NESTOR_* knobs
+Central config schema: one home for the NESTOR_* knobs
+
+#17   Asymmetric seal signatures
+Asymmetric seal signatures: an HMAC proves possession, not attribution

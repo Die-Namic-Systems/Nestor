@@ -1,0 +1,18 @@
+{
+  "branch": "claude/open-issues-3gi4n2",
+  "date": "2026-08-25",
+  "note": "Give MCP nestor_ask and nestor_match the same store-aware domain fallback the CLI has — issue #203, the MCP half of decision 0184.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the MCP server's nestor_ask and nestor_match apply the store-aware domain fallback when neither the model nor the operator named a domain?",
+      "commitment": "Yes. Extracted _ask_domain from cli.py to a new module nestor/domain.py as resolve_domain, keeping the exact CLI semantics (None means 'not specified'; fallback engages only when both source_lang and target_lang are None; otherwise the configured pair is honoured verbatim). cli._ask_domain is kept as an alias for backward compatibility with tests that reach it directly. On the Server dataclass, added source_lang_explicit and target_lang_explicit booleans; the operator's startup flag plays the CLI human's role. Added Server._domain_for_read(args) which honours the model's arg first, then the operator's explicit flag, then defers to resolve_domain(). Wired only nestor_ask and nestor_match through it — nestor_propose is a write and must not silently switch domains behind the operator's back. nestor_check keeps its single --domain semantics (unchanged from the CLI). serve.main() argparse defaults for --source-lang/--target-lang are now None so the explicit flag can be detected.",
+      "why": "Issue #203 filed the gap: a model calling nestor_ask against a store with no en→es pairs gets 'pending' when the CLI's nestor ask without --from/--to would find the right domain. Decision 0184 established the pattern for the CLI's cmd_match; the same shape applies to the MCP surface, with one difference — the MCP server's default was configured at startup and not per-call, so we distinguish 'operator accepted the built-in default' from 'operator pinned this domain'. Only the first form defers to the store; the second is honoured verbatim, same as an explicit --from flag on the CLI. Writes (propose) are excluded because a write that switches domains would store a pair in a domain the operator did not name, which is exactly the failure the strict path exists to prevent."
+    },
+    {
+      "question": "Should nestor_check also get the store-aware fallback?",
+      "commitment": "Not in this change. nestor_check uses a single --domain (default 'value'), not a source/target pair, and the CLI's cmd_check does not use _ask_domain either — the domains are asymmetric. Bringing check into the fold is a separate design question: what does 'the store's largest single-domain' mean, and should a check against a baseline silently switch domains? Left as a follow-up if a user hits the gap.",
+      "why": "The issue #203 body claims 'the CLI now handles all three with domain fallback' — that is not accurate. Grep confirms cmd_check has no _ask_domain call. Mirroring an assertion the CLI does not itself make would extend the fallback into a shape decision 0184 never sanctioned. A future decision may include check, but this one does not."
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 519,
+    "pairs": 525,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "5bf193d526f32d186c05f237e151b8a4fd034868463c41284a1f0b499b734a19",
+  "digest": "8cd4bf3dea08b66ffb28233d2f21f95d9f2b5b83d0b7628d0cc9f7fe6e38f123",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -52,6 +52,20 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "ee1f3ce5-f3f6-5f13-aaf9-035ec30ae423",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is nestor_proposes refusal of sealauthority arguments a gate or only behavior",
+      "source_text": "Is nestor_propose's refusal of seal-authority arguments a gate, or only behavior?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Now a gate. tests/test_serve_propose_refusal.py holds five assertions: the issue's acceptance criterion (call with status='sealed', verifier='x', verification_kind='human'; assert the reply names all three under ignored_fields and seal_authority_refused, and the note reads as a refusal); a non-seal extra key is reported in ignored_fields but NOT in seal_authority_refused (so a script can tell a typo from a covenant-crossing attempt); a clean proposal carries neither field (regression guard against leaking); every entry in answer.SEAL_AUTHORITY is a bare string (drift guard — if a new way to declare verification is added, the refusal walks it by name); and the stored row lands as pending regardless of the forbidden fields on the wire (storage-level invariant behind the wire-level refusal). Split verified: dropping the ignored=ignored kwarg at nestor/serve.py:403 makes the first two tests fail with KeyError: 'ignored_fields'. Restored, all 5 pass.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "dfa5e4fe-3f9d-549a-9fbc-42402433c870",
       "origin": "pr:",
       "seal_sig": "",
@@ -61,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Moved docs/llm-only-joke/, docs/llm-only-jokes.md, and docs/ideas-store/ to demo/. Updated internal paths in each store's README, .gitignore, and project-layout.md. Historical references in decision records and findings left unchanged.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "bfbea831-c5e0-521c-8d59-90738f4c8f28",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the decisionrecord corpusextractor boundary a gate or only prose",
+      "source_text": "Is the decision-record ↔ corpus-extractor boundary a gate, or only prose?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Now a gate. tests/test_corpus_boundary.py asserts two things: (1) no scripts/corpus/extract_*.py — nor the shared common.py / provenance.py — reads docs/dogfood/decisions/*.json, and (2) the module docstring of scripts/corpus/common.py still contains the words 'decision' and 'dogfood' (or 'two-stores'), so the reason for the omission stays attached to the file that enforces it. Verified on the unfixed revision first: gate 1 fired when a fake pathlib.Path('docs/dogfood/decisions/...') line was added to common.py; gate 2 fired when the module docstring was replaced with a bland stub. Both restored, both pass on HEAD.",
       "verifier": "",
       "weight": 1.0
     },
@@ -89,6 +117,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Added help= to domain_args() helper (used by calibrate, decision, and others), match --abs-tol/--pct-tol, import file positional, ledger --limit, and rejections --target-lang/--limit.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "a313244b-108a-5755-8d28-a98e4dad454b",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestor_check also get the storeaware fallback",
+      "source_text": "Should nestor_check also get the store-aware fallback?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Not in this change. nestor_check uses a single --domain (default 'value'), not a source/target pair, and the CLI's cmd_check does not use _ask_domain either — the domains are asymmetric. Bringing check into the fold is a separate design question: what does 'the store's largest single-domain' mean, and should a check against a baseline silently switch domains? Left as a follow-up if a user hits the gap.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "a247aa81-4909-552d-a964-b455f67afbf7",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does nestors own store say about a topic when every readonly lens gets a turn",
+      "source_text": "What does Nestor's own store say about a topic when every read-only lens gets a turn?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "scripts/issue_probe.py shells out to the nestor CLI on PATH and runs, per prompt: ask (offline engine), resolve, match, decision check; and, once at the top of the report: stats, rejections, triage, calibrate, evidence report. It fails closed on a missing DB (the exact defect #95 is filed for), captures non-zero exits as the lens signals they are (ask/resolve/match's 'not verified', decision check's 'recorded rejection'), and offers --snapshot for a VACUUM INTO copy so probing a shipped store does not append audit rows to its ledger on every run. Ships with tests/test_issue_probe.py and docs/probing-the-store.md; scripts/corpus/open_issues.txt is the hand-maintained prompts snapshot the first run answered against.",
       "verifier": "",
       "weight": 1.0
     },
@@ -145,6 +201,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Removed the alias and migrated all callers (test_curator, test_asymmetric_seals, test_keyring, test_portable, rebuild_corpus.py) to browse(). Also removed the builtins.list workaround in unverifiable() and replaced_seals() — plain list[dict] works now that no method shadows the builtin.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "6482378f-756a-55da-840b-ab7955472e98",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the mcp servers nestor_ask and nestor_match apply the storeaware domain fallback when neither the model nor the operator named a domain",
+      "source_text": "Should the MCP server's nestor_ask and nestor_match apply the store-aware domain fallback when neither the model nor the operator named a domain?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. Extracted _ask_domain from cli.py to a new module nestor/domain.py as resolve_domain, keeping the exact CLI semantics (None means 'not specified'; fallback engages only when both source_lang and target_lang are None; otherwise the configured pair is honoured verbatim). cli._ask_domain is kept as an alias for backward compatibility with tests that reach it directly. On the Server dataclass, added source_lang_explicit and target_lang_explicit booleans; the operator's startup flag plays the CLI human's role. Added Server._domain_for_read(args) which honours the model's arg first, then the operator's explicit flag, then defers to resolve_domain(). Wired only nestor_ask and nestor_match through it — nestor_propose is a write and must not silently switch domains behind the operator's back. nestor_check keeps its single --domain semantics (unchanged from the CLI). serve.main() argparse defaults for --source-lang/--target-lang are now None so the explicit flag can be detected.",
       "verifier": "",
       "weight": 1.0
     },
@@ -285,6 +355,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Updated README view table from four to seven (added Signals, Graph, Triage rows). Updated MCP tool count from seven to eight in README, IDEAS.md, and docs/drafts/mcp-resources-prompts.md (nestor_prefs was missing). Updated ui.py docstring from five to seven views. Corrected shoebox gap count in project-layout.md from five open to three open, two closed. Removed duplicate paragraph in README (copy-paste leftover).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "158b45a3-ca98-5c13-a81b-8ebdb11a4c59",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "are 95 and 96 still open given that the intree code and tests appear to satisfy them",
+      "source_text": "Are #95 and #96 still open, given that the in-tree code and tests appear to satisfy them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — both were fixed and gated before this branch existed. #95 (extractors don't fail closed): scripts/corpus/common.py:47 defines require_checkout, which every extract_*.py except extract_ideas.py (which takes --ref, not --repo) already calls. Running extract_standard.py --repo /does/not/exist today prints 'could not look — no checkout at /does/not/exist' and exits 1. Gated by tests/test_corpus_extractors_git_scoped.py (23 tests, all passing) — the file's docstring names both §6.101 and §6.102 explicitly. #96 (extractors walk .venv): common.tracked_files at line 66 uses git ls-files with a stderr-warned rglob fallback; docs(), docstrings(), and the SKILL.md reader all route through it. Gated by the same test file. Recommend closing both with an evidence comment naming the fix location, the tests, and the pre/post split against a temporarily-reverted line.",
       "verifier": "",
       "weight": 1.0
     },
