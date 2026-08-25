@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 524,
+    "pairs": 525,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "0f203414cfbb9a3417ec0d438d75e72d513f119616fc99645c168dd6f6cd7bb3",
+  "digest": "8cd4bf3dea08b66ffb28233d2f21f95d9f2b5b83d0b7628d0cc9f7fe6e38f123",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -47,6 +47,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. The human rendering shows only groups with 2+ members and appends a summary line '(N singleton group(s) suppressed)'. The JSON output keeps every cluster unchanged — callers may need the full list.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "ee1f3ce5-f3f6-5f13-aaf9-035ec30ae423",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is nestor_proposes refusal of sealauthority arguments a gate or only behavior",
+      "source_text": "Is nestor_propose's refusal of seal-authority arguments a gate, or only behavior?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Now a gate. tests/test_serve_propose_refusal.py holds five assertions: the issue's acceptance criterion (call with status='sealed', verifier='x', verification_kind='human'; assert the reply names all three under ignored_fields and seal_authority_refused, and the note reads as a refusal); a non-seal extra key is reported in ignored_fields but NOT in seal_authority_refused (so a script can tell a typo from a covenant-crossing attempt); a clean proposal carries neither field (regression guard against leaking); every entry in answer.SEAL_AUTHORITY is a bare string (drift guard — if a new way to declare verification is added, the refusal walks it by name); and the stored row lands as pending regardless of the forbidden fields on the wire (storage-level invariant behind the wire-level refusal). Split verified: dropping the ignored=ignored kwarg at nestor/serve.py:403 makes the first two tests fail with KeyError: 'ignored_fields'. Restored, all 5 pass.",
       "verifier": "",
       "weight": 1.0
     },
