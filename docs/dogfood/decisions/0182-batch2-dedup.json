@@ -23,6 +23,11 @@
       "question": "Should the home-paths / roots-willow docs be merged?",
       "commitment": "No merge. Added a cross-reference line in home-paths.md pointing to roots-willow-and-homestead.md for the full env-var comparison. The files already cross-reference well; the only gap was the forward pointer from home-paths's env table.",
       "why": "home-paths.md is Nestor-specific detail; roots doc is cross-root comparison. They serve different readers and already delegate the overlap. Merging would force fleet vocabulary onto a household-only reader."
+    },
+    {
+      "question": "Should the demo-store artifacts under docs/ move to demo/?",
+      "commitment": "Moved docs/llm-only-joke/, docs/llm-only-jokes.md, and docs/ideas-store/ to demo/. Updated internal paths in each store's README, .gitignore, and project-layout.md. Historical references in decision records and findings left unchanged.",
+      "why": "The audit flagged demo-store artifacts polluting the reference-doc namespace. The stores are scripted demos (derived .db, bundle source, measurement docs), not reference documentation. demo/ already holds the other scripted demos. docs/research-corpus/ left in place — not flagged by the audit and arguably closer to reference (corpus-order.md references it as a measurement)."
     }
   ]
 }
