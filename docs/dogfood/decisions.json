@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 504,
+    "pairs": 505,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "2ba24b4943d315c7d6eb8c4823013b2671143df9a4a017d055e4c3ae23f12a9a",
+  "digest": "a8520cd14842635c27add40668b6042c053098c270d3ee87cc3709bdd920a544",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "f4dbb62b-4feb-57c3-b59c-c021e8086234",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the triage human output suppress singleton groups",
+      "source_text": "Should the triage human output suppress singleton groups?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. The human rendering shows only groups with 2+ members and appends a summary line '(N singleton group(s) suppressed)'. The JSON output keeps every cluster unchanged — callers may need the full list.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
       "id": "8561f2c7-bd22-556b-bb85-553c9d65e896",

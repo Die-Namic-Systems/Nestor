@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Running `nestor triage` on the dogfood corpus (504 decisions at bar 0.55) produced 432 groups, 405 of which were singletons — the output was dominated by noise. The 27 multi-member groups and 8 edges (the actual signal) were buried.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the triage human output suppress singleton groups?",
+      "commitment": "Yes. The human rendering shows only groups with 2+ members and appends a summary line '(N singleton group(s) suppressed)'. The JSON output keeps every cluster unchanged — callers may need the full list.",
+      "why": "Singletons tell you nothing about relationships — they are the complement of what grouped. At bar 0.55 they outnumber multi-member groups 15:1, burying the edges and themed groups that are the reason a human runs triage."
+    }
+  ]
+}
