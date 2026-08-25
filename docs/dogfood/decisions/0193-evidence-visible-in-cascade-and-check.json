@@ -1,0 +1,14 @@
+{
+  "branch": "claude/open-issues-round2",
+  "date": "2026-08-25",
+  "note": "Make evidence visible in cascade metadata and check output (#163). Visibility only — no gating change; decision 0142's orthogonality stands.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the cascade passage and the check result surface `evidence_count` so a caller does not have to run `evidence for` separately?",
+      "commitment": "Yes. answer.ask() now adds `evidence_count` to `passage.meta` for a tier-1 sealed hit (via a new module-private `_enrich_with_evidence_count`). answer.check() now adds `evidence_count` to each row of `baselines[]` and, when a single winning baseline is chosen, to the top of the result (via `_evidence_count`). Both are silent no-ops on stores without `supports_evidence`, on passages with no `pair_id` (pending/tier-2 have none), and on any evidence-lookup exception — a surface enrichment that raises would turn every answer into an outage. Gated by tests/test_answer_surfaces_evidence.py (7 tests) with an explicit invariant test asserting that visibility does not change serving: same state, same `verified`, same `confidence` regardless of evidence count.",
+      "why": "Issue #163: 'a pair with 3 institutional references produces a passage byte-identical to one with 0 references'. Decision 0142 correctly kept evidence and seal state orthogonal (seal governs `who may assert`, evidence governs `what an assertion rests on`) and explicitly refused to gate serving on evidence -- but that orthogonality does not require the count to be *invisible* on the paths that already exist. Provenance already surfaces it (curator.py:162-166 has `evidence` and `evidence_count`); cascade and check did not, so a curator or consumer reading them had to run a separate command to see whether the served answer rested on anything.",
+      "doors_closed": "Gating serve on evidence, gating seal on evidence, adding an `evidence_kinds` list to cascade meta (a follow-up if a consumer wants to distinguish `document` from `human_statement` at a glance -- the count is the load-bearing signal for now), and enriching the ambiguous-baseline branch of check() (defensive; the >1-baseline state is unreachable through the shipped write paths, and its else-branch is documented in the test file rather than exercised)."
+    }
+  ]
+}

@@ -350,23 +350,55 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
     ``matcher`` must be the domain's own wherever one is in use. The cascade and
     the candidate list below both key off it, and a read keyed differently from
     the writes is how a sealed row stops being found (IDEAS §6.40).
+
+    Adds ``evidence_count`` to ``passage.meta`` for a tier-1 sealed hit — the
+    number of :mod:`nestor.evidence` references attached to the pair. It does
+    not gate serving (decision 0142: evidence and seal state are orthogonal —
+    seal governs *who may assert*, evidence governs *what an assertion rests
+    on*), it just makes the count visible next to the row that carries it, so a
+    consumer reading the cascade does not have to run ``evidence for`` to see
+    that the answer served rests on three institutional references vs. none
+    (issue #163).
     """
     if not text.strip():
         raise ValueError("nothing to ask")
     passage = cascade.translate_segment(
         text, source_lang, target_lang, engine=get_engine(engine_name), store=store,
         matcher=matcher)
+    meta = dict(passage.meta)
+    _enrich_with_evidence_count(meta, store)
     return {
         "passage": {"source": passage.source, "target": passage.target,
                     "state": passage.state, "mark": passage.mark, "tier": passage.tier,
                     "engine": passage.engine, "confidence": passage.confidence,
-                    "meta": passage.meta},
+                    "meta": meta},
         "verified": passage.state == "sealed",
         "matches": [_candidate(m, store) for m in
                     memory.lookup(text, source_lang, target_lang, limit=5, store=store,
                                   matcher=matcher)],
         "threshold": memory.SEAL_THRESHOLD,
     }
+
+
+def _enrich_with_evidence_count(meta: dict, store: Storage) -> None:
+    """Add ``evidence_count`` to ``meta`` when the pair it names has evidence.
+
+    Silent no-op when the store does not support evidence, when ``pair_id`` is
+    absent (a pending or tier-2 draft passage carries none), or when the
+    lookup itself errors — visibility is a courtesy, not a contract, and a
+    surface enrichment that raises would turn every answer into an outage.
+    """
+    from . import evidence as evidence_mod
+    from .storage import supports_evidence
+
+    pair_id = meta.get("pair_id")
+    if not pair_id or not supports_evidence(store):
+        return
+    try:
+        rows = evidence_mod.evidence_for(pair_id, store=store)
+    except Exception:  # noqa: BLE001 — see docstring
+        return
+    meta["evidence_count"] = len(rows)
 
 
 def resolve(store: Storage, surface: str, domain: str = "entity",
@@ -405,7 +437,16 @@ def resolve(store: Storage, surface: str, domain: str = "entity",
 
 def check(store: Storage, label: str, observed, domain: str = "value",
           abs_tol: float = 0.0, pct_tol: float = 0.05) -> dict:
-    """A figure against its sealed baseline: within tolerance, flagged, or nothing."""
+    """A figure against its sealed baseline: within tolerance, flagged, or nothing.
+
+    Adds an ``evidence_count`` to each row of ``baselines`` (and, when a single
+    winning baseline was chosen, an ``evidence_count`` at the top of the
+    result) — the number of :mod:`nestor.evidence` references attached. Same
+    rationale as ``ask``: the seal decides who may assert, evidence names what
+    the assertion rests on (decision 0142), and a check that quietly flags a
+    figure against a baseline supported by three institutional references
+    should not read identical to one against a baseline with zero (issue #163).
+    """
     if not str(label).strip() or not str(observed).strip():
         raise ValueError("a check needs a label and an observed value")
     rc = Reconciler(store, domain=domain, abs_tol=abs_tol, pct_tol=pct_tol)
@@ -413,11 +454,38 @@ def check(store: Storage, label: str, observed, domain: str = "value",
     result["domain"] = domain
     result["verified"] = result["baseline"] is not None
     result["tolerance"] = {"abs_tol": rc.matcher.abs_tol, "pct_tol": rc.matcher.pct_tol}
+    baselines_raw = rc.sealed_baselines(label)
     result["baselines"] = [
         {"value": r["target_text"], "verifier": r.get("verifier", ""),
-         "created_at": r.get("created_at", ""), "id": r["id"]}
-        for r in rc.sealed_baselines(label)]
+         "created_at": r.get("created_at", ""), "id": r["id"],
+         "evidence_count": _evidence_count(r["id"], store)}
+        for r in baselines_raw]
+    # A single-baseline check has one winner; expose its count at the top so a
+    # caller reading ``result["evidence_count"]`` gets the answer without having
+    # to walk ``baselines``. Ambiguous (>1 baseline) leaves it absent — one
+    # count would misrepresent the fact that the check itself is ambiguous.
+    if len(baselines_raw) == 1:
+        result["evidence_count"] = result["baselines"][0]["evidence_count"]
     return result
+
+
+def _evidence_count(pair_id: str, store: Storage) -> int:
+    """How many evidence references the store holds for ``pair_id``, or 0.
+
+    A store that does not support evidence, or a lookup that errors, returns 0
+    — the courtesy visibility is not worth crashing a check for. If a caller
+    needs to distinguish 0-because-none from 0-because-store-cannot-tell, it
+    should call :func:`nestor.storage.supports_evidence` itself.
+    """
+    from . import evidence as evidence_mod
+    from .storage import supports_evidence
+
+    if not supports_evidence(store):
+        return 0
+    try:
+        return len(evidence_mod.evidence_for(pair_id, store=store))
+    except Exception:  # noqa: BLE001 — see docstring
+        return 0
 
 
 def match(store: Storage, text: str, source_lang: str, target_lang: str,
