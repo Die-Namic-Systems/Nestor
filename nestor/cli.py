@@ -20,6 +20,8 @@ Subcommands mirror the surfaces rather than inventing a new vocabulary::
     nestor stats
     nestor init                           # a guided first run — ask, resolve, propose a draft
     nestor calibrate --from en --to es    # where the threshold belongs for this corpus
+    nestor triage                         # group the seal queue, find supersessions
+    nestor triage --matcher semantic      # same, but sees paraphrases (needs fastembed)
     nestor rejections                     # what the recorded "no"s say in aggregate
     nestor keys add rita                  # a key per verifier (list / add / revoke)
     nestor policy add --from en --to es --verifier rita  # who may seal a domain
@@ -699,6 +701,64 @@ def cmd_calibrate(args) -> int:
     return EXIT_OK if result["recommended"] is not None else EXIT_ANSWER_IS_NO
 
 
+_TRIAGE_MATCHERS = ("string", "semantic", "ollama")
+_TRIAGE_CALIBRATION_BARS = (0.35, 0.45, 0.55, 0.92)
+
+
+def cmd_triage(args) -> int:
+    """Triage the decision queue — group it, find supersessions. Read-only."""
+    from .triage import DEFAULT_BAR, load_decisions
+    from .triage import triage as run_triage
+    from .triage.report import render
+
+    try:
+        matcher = answer.load_matcher(args.matcher, persist=False)
+    except ValueError as exc:
+        print(f"matcher {args.matcher!r} unavailable: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.matcher != "string":
+        print(f"# matcher={args.matcher}: the {DEFAULT_BAR} default bar is the "
+              f"string knee; run --calibrate to find this matcher's bar.",
+              file=sys.stderr)
+
+    if args.calibrate:
+        decisions = load_decisions()
+        lines = [
+            (f"calibration over {len(decisions)} decisions "
+             f"(pick the bar where the counts stop moving):\n"),
+            f"  {'bar':>5}  {'groups':>7}  {'edges':>7}",
+            f"  {'-' * 5}  {'-' * 7}  {'-' * 7}",
+        ]
+        rows = []
+        for bar in _TRIAGE_CALIBRATION_BARS:
+            report = run_triage(decisions=decisions, matcher=matcher, bar=bar)
+            lines.append(
+                f"  {bar:>5.2f}  {len(report.clusters):>7}  {len(report.edges):>7}")
+            rows.append({"bar": bar, "groups": len(report.clusters),
+                         "edges": len(report.edges)})
+        _emit({"n_decisions": len(decisions), "bars": rows},
+              args.json, "\n".join(lines))
+        return EXIT_OK
+
+    decisions = load_decisions()
+    report = run_triage(decisions=decisions, matcher=matcher, bar=args.bar)
+    payload = {
+        "bar": report.bar,
+        "matcher": args.matcher,
+        "n_decisions": report.n_decisions,
+        "clusters": [{"label": c.label,
+                       "member_ids": list(c.member_ids),
+                       "representative_id": c.representative_id}
+                      for c in report.clusters],
+        "edges": [{"src_id": e.src_id, "dst_id": e.dst_id,
+                    "kind": e.kind, "score": e.score,
+                    "evidence": e.evidence}
+                   for e in report.edges],
+    }
+    _emit(payload, args.json, render(report, decisions).rstrip("\n"))
+    return EXIT_OK
+
+
 def cmd_keys(args) -> int:
     """Who can seal, and with what. See :mod:`nestor.keyring`."""
     path = args.keyring or keyring_mod.keyring_path()
@@ -1289,6 +1349,21 @@ def build_parser() -> argparse.ArgumentParser:
                      help="rows to probe; 0 for the whole corpus (default: 300)")
     cal.add_argument("--seed", type=int, default=0, help="sampling seed")
     cal.set_defaults(func=cmd_calibrate)
+
+    tri = sub.add_parser("triage",
+                         help="group the decision queue and find supersessions")
+    tri.add_argument("--matcher", choices=_TRIAGE_MATCHERS, default="string",
+                     help="how to score question similarity: 'string' (offline "
+                          "default), 'semantic' (fastembed — sees paraphrases), "
+                          "'ollama' (local embeddings)")
+    tri.add_argument("--bar", type=float, default=0.55,
+                     help="similarity bar for grouping/supersession "
+                          "(default 0.55, the measured knee for --matcher string; "
+                          "use --calibrate to find the right bar for other matchers)")
+    tri.add_argument("--calibrate", action="store_true",
+                     help="sweep several bars and print how the group/edge counts "
+                          "change, to find the knee")
+    tri.set_defaults(func=cmd_triage)
 
     keys = sub.add_parser("keys", help="who can seal, and with what key")
     keys.add_argument("keys_command", choices=("list", "add", "revoke"))

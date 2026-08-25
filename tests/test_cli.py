@@ -795,3 +795,28 @@ def test_export_out_json_output(db, tmp_path, capsys):
     assert payload["file"] == str(out)
     assert "counts" in payload
     assert "digest" in payload
+
+
+# --- triage: `nestor triage`, grouping the decision queue --------------------
+
+@pytest.mark.slow
+def test_triage_runs_and_reports_groups_and_edges(capsys):
+    assert cli.main(["triage"]) == cli.EXIT_OK
+    out = capsys.readouterr().out
+    assert "Decision triage" in out
+    assert "THEMED GROUPS" in out
+    assert "PROPOSED EDGES" in out
+
+
+@pytest.mark.slow
+def test_triage_json_returns_structured_report(capsys):
+    assert cli.main(["--json", "triage"]) == cli.EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert "clusters" in payload and "edges" in payload
+    assert payload["matcher"] == "string"
+    assert payload["n_decisions"] > 0
+
+
+def test_triage_rejects_unavailable_matcher(capsys):
+    assert cli.main(["triage", "--matcher", "semantic"]) == cli.EXIT_USAGE
+    assert "unavailable" in capsys.readouterr().err
