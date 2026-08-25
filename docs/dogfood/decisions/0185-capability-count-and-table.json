@@ -1,0 +1,13 @@
+{
+  "branch": "claude/nestor-setup-improve-pxp2a4",
+  "date": "2026-08-25",
+  "note": "Fix stale capability count in storage.py docstring and incomplete table in storage-protocol.md.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the capability count in storage.py and the table in storage-protocol.md be updated to reflect all eleven capabilities?",
+      "commitment": "Updated storage.py docstring from 'ten' to 'eleven' and from 'last three' to 'last four'. Added the 5 missing capabilities (Decision edges, Evidence, Warrants, Verifier policy, Embedding store) to the storage-protocol.md table.",
+      "why": "The storage.py docstring counted ten when eleven capabilities exist (the docstring itself lists eleven rows in its table). The storage-protocol.md table, which is the external-facing reference, listed only the original six and was never updated when Decision edges, Evidence, Warrants, Verifier policy, and Embedding store were added. This is the same drift the complexity audit flagged at a smaller scale (six vs nine at the time); the count moved from nine to eleven without the docs keeping up."
+    }
+  ]
+}

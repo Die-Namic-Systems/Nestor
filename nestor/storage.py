@@ -20,12 +20,13 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are **ten optional capabilities**, each
+Beyond the core Protocol there are **eleven optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
 working and the surfaces that need it say so rather than showing an empty list.
-Seven live here; the last three are declared beside the recipes that use them
-(``supports_edges`` and ``supports_evidence`` below, ``supports_embedding_store``
-in :mod:`nestor.embedding_store`) — if you add an eleventh, add a row here:
+Seven live here; the last four are declared beside the recipes that use them
+(``supports_edges``, ``supports_evidence``, and ``supports_warrants`` below,
+``supports_embedding_store`` in :mod:`nestor.embedding_store`) — if you add a
+twelfth, add a row here:
 
 ==================  =====================================  =====================================
 Capability          Predicate                              Without it

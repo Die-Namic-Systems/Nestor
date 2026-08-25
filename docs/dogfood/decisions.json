@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 516,
+    "pairs": 517,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "65756add857a039e3f982e0790fac5457f8b7da583ee95d688ac4d57d465e3c9",
+  "digest": "f7697b1222236989d950d982ce6d18dfd9f26bdb4780c72daf6ea95963521b92",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -229,6 +229,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Kept the state table (lines 16-21) as the single canonical definition. Trimmed 'The category' section to back-reference it instead of re-explaining tiers. Simplified the recipe tier table's 'Result state' column to bare state names.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "29c55709-789b-5a39-9365-b8e66936842b",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the capability count in storagepy and the table in storageprotocolmd be updated to reflect all eleven capabilities",
+      "source_text": "Should the capability count in storage.py and the table in storage-protocol.md be updated to reflect all eleven capabilities?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Updated storage.py docstring from 'ten' to 'eleven' and from 'last three' to 'last four'. Added the 5 missing capabilities (Decision edges, Evidence, Warrants, Verifier policy, Embedding store) to the storage-protocol.md table.",
       "verifier": "",
       "weight": 1.0
     },
