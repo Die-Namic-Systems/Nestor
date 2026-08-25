@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.11.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.11.0...v0.11.1) (2026-08-25)
+
+
+### Fixed
+
+* 203 (MCP domain fallback) + ship issue_probe for the meaning suite ([#205](https://github.com/Die-Namic-Systems/Nestor/issues/205)) ([7733f42](https://github.com/Die-Namic-Systems/Nestor/commit/7733f42691ba723e20f36d086f9d296395f3a7b2))
+* 203: MCP nestor_ask & nestor_match get the CLI's store-aware domain fallback ([d4c9cdf](https://github.com/Die-Namic-Systems/Nestor/commit/d4c9cdfe374b115c01daeb860d2cafa439420270))
+
 ## [0.11.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.10.0...v0.11.0) (2026-08-24)
 
 
