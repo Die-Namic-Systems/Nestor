@@ -125,7 +125,7 @@ def test_a_different_key_demotes_everything_rather_than_serving_it(source, seal_
     with pytest.warns(RuntimeWarning):
         report = portable.import_bundle(bundle, store=destination, dry_run=False)
     assert report["sealed"] == 0 and report["demoted"] == 2
-    assert Curator(destination).list(status="sealed") == []
+    assert Curator(destination).browse(status="sealed") == []
 
 
 def test_import_is_a_dry_run_until_told_otherwise(source):
