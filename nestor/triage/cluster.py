@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from nestor.matcher import Matcher
+from nestor.matcher import Matcher, uses_raw_score
 from nestor.triage import Cluster, Decision
 
 #: Tokens too common to name a theme. Kept small and generic on purpose — the
@@ -91,27 +91,29 @@ def _label(member_norms: list[str], fallback: str) -> str:
 
 
 def _build_graph(norms: list[str], matcher: Matcher,
-                 bar: float) -> tuple[list[list[int]], dict[tuple[int, int], float]]:
+                 bar: float, *,
+                 raw_texts: list[str] | None = None,
+                 ) -> tuple[list[list[int]], dict[tuple[int, int], float]]:
     """Adjacency lists and edge weights for the similarity graph.
 
-    An edge ``(i, j)`` with ``i < j`` exists when the two normalized questions
-    score ``>= bar``. Two lossless filters keep full scoring off pairs that
-    cannot clear the bar — a length-ratio ceiling and ``similarity_bound`` — but
-    both are upper bounds on *difflib's* ratio only, not on an embedding matcher's
-    cosine (a short paraphrase of a long question is a real semantic edge with a
-    poor length ratio). So both are gated on ``has_bound``: the character matcher
-    that publishes ``similarity_bound`` gets the prunes; a semantic / ollama
-    matcher skips them and scores every pair, which is cheap because it caches
-    each question's embedding and the pairwise step is only a cosine.
+    An edge ``(i, j)`` with ``i < j`` exists when the two questions score
+    ``>= bar``. When the matcher exposes ``score()`` (embedding-based or
+    hybrid), raw texts are scored with it — the richer signal catches
+    paraphrases that character-level ``similarity()`` misses. Two lossless
+    filters keep full scoring off pairs that cannot clear the bar — a
+    length-ratio ceiling and ``similarity_bound`` — but both are upper bounds
+    on *difflib's* ratio only, not on ``score()``, so they are gated on the
+    matcher not having ``score()``: a matcher whose ``score()`` disagrees with
+    ``similarity()`` cannot be pruned by a bound on ``similarity()``.
     """
     n = len(norms)
     lengths = [len(x) for x in norms]
-    # Fetched once via getattr (Matcher — the generic Protocol — does not
-    # declare this method; only StringMatcher's cheap-bound optimization
-    # does) and called through the same reference below, rather than
-    # re-accessing `matcher.similarity_bound` directly, so a type checker
-    # sees one dynamic lookup instead of an attribute Matcher doesn't have.
+    has_raw = uses_raw_score(matcher)
     similarity_bound = getattr(matcher, "similarity_bound", None)
+    # The bound prunes losslessly only when the final score comes from
+    # similarity() on normalised keys. A matcher whose score() may
+    # exceed similarity() would lose real edges to the prune.
+    can_prune = (similarity_bound is not None) and not has_raw
     adj: list[list[int]] = [[] for _ in range(n)]
     weights: dict[tuple[int, int], float] = {}
     for i in range(n):
@@ -124,22 +126,19 @@ def _build_graph(norms: list[str], matcher: Matcher,
             if not lb:
                 continue
             b = norms[j]
-            # Prunes valid only for a length-bounded (difflib) matcher — see the
-            # docstring. A matcher without similarity_bound (semantic/ollama)
-            # scores every pair rather than risk dropping a real paraphrase edge.
-            # Checked with `is not None` (not a separate `has_bound` flag) so
-            # the call below narrows away the "callable or None" type instead
-            # of relying on a bool alias a type checker cannot trace back.
-            if similarity_bound is not None:
+            if can_prune:
                 if 2.0 * min(la, lb) / (la + lb) < bar:
                     continue
                 if similarity_bound(a, b, floor=bar) < bar:
                     continue
-            score = matcher.similarity(a, b)
-            if score >= bar:
+            if has_raw and raw_texts is not None:
+                edge_score = matcher.score(raw_texts[i], raw_texts[j])  # type: ignore[attr-defined]
+            else:
+                edge_score = matcher.similarity(a, b)
+            if edge_score >= bar:
                 adj[i].append(j)
                 adj[j].append(i)
-                weights[(i, j)] = score
+                weights[(i, j)] = edge_score
     return adj, weights
 
 
@@ -191,8 +190,9 @@ def group(decisions: list[Decision], matcher: Matcher, bar: float) -> list[Clust
 
     ids = [d.id for d in decisions]
     norms = [matcher.normalize(d.question) for d in decisions]
+    raw_texts = [d.question for d in decisions]
 
-    adj, weights = _build_graph(norms, matcher, bar)
+    adj, weights = _build_graph(norms, matcher, bar, raw_texts=raw_texts)
     labels = _label_propagation(adj)
 
     # Bucket node indices by their settled label.

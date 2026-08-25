@@ -175,6 +175,43 @@ def test_smoke_real_corpus_partitions_every_decision_quickly():
         assert isinstance(c.label, str)
 
 
+def test_score_is_used_for_graph_edges_when_matcher_exposes_it():
+    """A matcher with score() should build the similarity graph with it, not
+    with similarity(). This is the fix that makes SemanticMatcher actually
+    drive clustering via embeddings — before this, its internal StringMatcher's
+    difflib ratio was used, ignoring the embedding signal entirely."""
+    from nestor.triage import Decision
+    from nestor.triage.cluster import group
+
+    class _ScoreMatcher:
+        """similarity() sees nothing alike; score() knows two questions are
+        semantically identical. If _build_graph uses similarity(), these stay
+        apart; if it uses score(), they cluster."""
+        def normalize(self, v):
+            return " ".join(str(v).lower().split())
+        def similarity(self, a, b):
+            return 0.0
+        def score(self, a, b):
+            pair = {a.lower().strip(), b.lower().strip()}
+            target = {"what is the default threshold?",
+                      "what should the fuzzy_bar be set to?"}
+            return 0.92 if pair == target else 0.0
+
+    ds = [Decision(id="0001#0", file="a.json",
+                   question="What is the default threshold?",
+                   commitment="", why="", consolidated_onto=None),
+          Decision(id="0002#0", file="b.json",
+                   question="What should the fuzzy_bar be set to?",
+                   commitment="", why="", consolidated_onto=None),
+          Decision(id="0003#0", file="c.json",
+                   question="An unrelated question entirely.",
+                   commitment="", why="", consolidated_onto=None)]
+    clusters = group(ds, _ScoreMatcher(), bar=0.55)
+    members = {tuple(sorted(c.member_ids)) for c in clusters}
+    assert ("0001#0", "0002#0") in members, (
+        f"score()-based paraphrase must cluster together: {members}")
+
+
 def test_no_length_prune_for_a_matcher_without_similarity_bound():
     """The audit fix: the char length-ratio prune is valid only for difflib. A
     semantic-style matcher (no similarity_bound) must score every pair, so a
