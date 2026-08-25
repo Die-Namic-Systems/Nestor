@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 527,
+    "pairs": 529,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "bfd7d573deb40f2e15b514e0b3ab8466a9171084d6617df67bf55e3ee2387ebd",
+  "digest": "bf4b3ae15b63dde44c27a3f98c78f86cd5b6bbf12e08ea71a4ca00fccdec2aa3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -173,6 +173,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Design. The issue body says so verbatim: 'this is a design decision, not a mechanical fix ... whatever is chosen should be recorded as a decision and pinned with a test -- not silently flipped'. Both halves now hold: the code chose word-boundary, this decision records why, and tests/test_glossary.py pins both the acceptance case and the trade-off counter-case.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "9c03256b-0ccf-537d-bb02-c569faf91724",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "would a questionstem strip a normalizer that drops common interrogative openers like should we can a does the rescue the rank110 probe 6106 named",
+      "source_text": "Would a question-stem strip (a normalizer that drops common interrogative openers like 'Should we', 'Can a', 'Does the') rescue the rank-110 probe §6.106 named?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Measured inline on the current 527-row dogfood corpus against 'Should I trust a licence a model told me?' (target row: 'The survey agents cannot reach the network and must name licences from memory...'): baseline StringMatcher ranks the correct row 196/527 at score 0.289 with top 0.562; after stem-strip, 160/527 at score 0.267 with top 0.494. The strip moves rank 36 places and drops both the correct row's score AND the top score by ~0.07 — because character-ratio scoring on a 40-char probe against a 200-char target sharing only 'licence' produces ratios in the 0.25-0.29 range whether or not the interrogative opener is present. The strip fixes the failure mode §6.106 named (sentence-shape collisions on shared 'Should…' stems) but exposes a deeper one: the probe carries too little distinctive content for character-based scoring to find the target regardless of stem.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "9858db2e-9864-5cb6-b489-495d8340a24c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does 101s honestcaveat about matcher tradeoffs recall vs wrongkey still stand",
+      "source_text": "Does #101's honest-caveat about matcher trade-offs (recall vs. wrong-key) still stand?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, and it was already answered by 0154. The trade #101 named -- 'stem-discounting costs paraphrase recall' -- was measured in docs/decision-rewording-bench.md: StringMatcher hits 88% rank@1 on re-worded probes, TokenOverlap 96%, both at 0/24 wrong-key at bar 0.55. The bench refutes the framing that a matcher swap is a clean win; 0154 kept StringMatcher and calibrated the bar to 0.55, which serves the recoverable ~75% at zero wrong-keys. The residual ~25% (this probe among them) is the tail. Closing #101 does not require another matcher swap; it requires acknowledging that the design answer already shipped and pointing #101 at 0154 + this measurement.",
       "verifier": "",
       "weight": 1.0
     },

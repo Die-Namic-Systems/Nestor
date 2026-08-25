@@ -1,0 +1,19 @@
+{
+  "branch": "claude/open-issues-round2",
+  "date": "2026-08-25",
+  "note": "Measured: an interrogative-stem strip does NOT rescue the §6.106 rank-110 probe. Ratifies decision 0154's design answer that the residual belongs to a semantic matcher, not a character-ratio one.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Would a question-stem strip (a normalizer that drops common interrogative openers like 'Should we', 'Can a', 'Does the') rescue the rank-110 probe §6.106 named?",
+      "commitment": "No. Measured inline on the current 527-row dogfood corpus against 'Should I trust a licence a model told me?' (target row: 'The survey agents cannot reach the network and must name licences from memory...'): baseline StringMatcher ranks the correct row 196/527 at score 0.289 with top 0.562; after stem-strip, 160/527 at score 0.267 with top 0.494. The strip moves rank 36 places and drops both the correct row's score AND the top score by ~0.07 — because character-ratio scoring on a 40-char probe against a 200-char target sharing only 'licence' produces ratios in the 0.25-0.29 range whether or not the interrogative opener is present. The strip fixes the failure mode §6.106 named (sentence-shape collisions on shared 'Should…' stems) but exposes a deeper one: the probe carries too little distinctive content for character-based scoring to find the target regardless of stem.",
+      "why": "The exact prediction decision 0154 named. Its 'doors closed' clause: 'Semantic embeddings remain the tail fix for the ~25% with too little character overlap.' §6.106 shipped 'partially' — two of three probes ranked 1/263 and are recoverable via the calibrated 0.55 fuzzy bar 0154 set; the third case is the tail semantic embedding is for. This measurement confirms it and records the experiment so nobody re-tries the same shape without knowing what it costs.",
+      "doors_closed": "Landing an interrogative-stem normalizer in nestor/matcher.py as a fix for #101 -- measured to move rank ~18% without improving score gap, and the tail case remains unrescued. If a similar normalizer lands later for another reason (e.g. glossary shape), it should be a scoped module that names this measurement as the reason it does not double as a decision-store retrieval fix."
+    },
+    {
+      "question": "Does #101's honest-caveat about matcher trade-offs (recall vs. wrong-key) still stand?",
+      "commitment": "Yes, and it was already answered by 0154. The trade #101 named -- 'stem-discounting costs paraphrase recall' -- was measured in docs/decision-rewording-bench.md: StringMatcher hits 88% rank@1 on re-worded probes, TokenOverlap 96%, both at 0/24 wrong-key at bar 0.55. The bench refutes the framing that a matcher swap is a clean win; 0154 kept StringMatcher and calibrated the bar to 0.55, which serves the recoverable ~75% at zero wrong-keys. The residual ~25% (this probe among them) is the tail. Closing #101 does not require another matcher swap; it requires acknowledging that the design answer already shipped and pointing #101 at 0154 + this measurement.",
+      "why": "The seat's own rule: 'a decision that was worth keeping goes in the store'. 0154 is already there. This file records the followup measurement so the next agent reading #101 finds both the design answer and the negative result on the intuitively-obvious extension."
+    }
+  ]
+}
