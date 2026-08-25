@@ -1,0 +1,13 @@
+{
+  "branch": "claude/open-issues-3gi4n2",
+  "date": "2026-08-25",
+  "note": "A per-prompt sweep of the read-only meaning suite, because one lens's silence is not another's.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "What does Nestor's own store say about a topic when every read-only lens gets a turn?",
+      "commitment": "scripts/issue_probe.py shells out to the nestor CLI on PATH and runs, per prompt: ask (offline engine), resolve, match, decision check; and, once at the top of the report: stats, rejections, triage, calibrate, evidence report. It fails closed on a missing DB (the exact defect #95 is filed for), captures non-zero exits as the lens signals they are (ask/resolve/match's 'not verified', decision check's 'recorded rejection'), and offers --snapshot for a VACUUM INTO copy so probing a shipped store does not append audit rows to its ledger on every run. Ships with tests/test_issue_probe.py and docs/probing-the-store.md; scripts/corpus/open_issues.txt is the hand-maintained prompts snapshot the first run answered against.",
+      "why": "On 2026-08-25 a single-lens sweep of the 16 open issues (nestor decision check per issue title) concluded 15/16 had no recorded material and 1/16 was a draft proposal. Running match on the same prompts surfaced issue #99's row at similarity 0.578, and issue #100 had further hits — same store, same prompts, different lens. A one-lens verdict of 'nothing to see' is not the same fact as 'every lens looked and found nothing', and the seat rule 'say what you read, not what you concluded' requires the report to say which lens's silence it is. Tooling written to reach a finding ships with the finding (docs/agent-guide.md §'Tooling ...') — otherwise the next reader has to rebuild the harness to check the claim."
+    }
+  ]
+}

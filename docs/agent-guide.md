@@ -329,6 +329,14 @@ piece extracted from a fixture goes in **persona-free** — the story belongs to
 the fixture that earned it, and machinery carrying somebody's grandmother around
 is machinery nobody reuses.
 
+Two worked examples of this rule already earning its keep:
+`scripts/issue_probe.py` (a per-prompt sweep of the read-only meaning suite —
+`ask` / `resolve` / `match` / `decision check` per prompt, plus `stats` /
+`rejections` / `triage` / `calibrate` / `evidence report` once — because one
+lens's silence is not another's; recipe in [`docs/probing-the-store.md`](probing-the-store.md))
+and `scripts/retrieval_rank.py` (rank of the *correct* row for a probe, not
+just whether it served).
+
 
 ## Findings go in the list
 

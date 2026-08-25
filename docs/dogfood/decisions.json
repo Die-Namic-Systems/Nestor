@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 519,
+    "pairs": 520,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "5bf193d526f32d186c05f237e151b8a4fd034868463c41284a1f0b499b734a19",
+  "digest": "128774421842d745392bce49b829976a79f0d50ca86dff4cf448d0be6f1fc101",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -89,6 +89,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Added help= to domain_args() helper (used by calibrate, decision, and others), match --abs-tol/--pct-tol, import file positional, ledger --limit, and rejections --target-lang/--limit.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "a247aa81-4909-552d-a964-b455f67afbf7",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does nestors own store say about a topic when every readonly lens gets a turn",
+      "source_text": "What does Nestor's own store say about a topic when every read-only lens gets a turn?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "scripts/issue_probe.py shells out to the nestor CLI on PATH and runs, per prompt: ask (offline engine), resolve, match, decision check; and, once at the top of the report: stats, rejections, triage, calibrate, evidence report. It fails closed on a missing DB (the exact defect #95 is filed for), captures non-zero exits as the lens signals they are (ask/resolve/match's 'not verified', decision check's 'recorded rejection'), and offers --snapshot for a VACUUM INTO copy so probing a shipped store does not append audit rows to its ledger on every run. Ships with tests/test_issue_probe.py and docs/probing-the-store.md; scripts/corpus/open_issues.txt is the hand-maintained prompts snapshot the first run answered against.",
       "verifier": "",
       "weight": 1.0
     },
