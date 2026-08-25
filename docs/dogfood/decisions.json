@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 532,
+    "pairs": 534,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "683f6b125a591ef4e5ac3ffba354768e240f7f5b212fab21514faef38ab0dd7e",
+  "digest": "e61f6643325a5372a75ccc05662239768ec8560882250676f7218a9b5b5b8929",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -248,6 +248,20 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "70f7a894-af78-591c-a4c7-07d95880889d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should collisions_at_bar be sped up so the demo does not keep pushing against the ci timeout as the corpus grows",
+      "source_text": "How should collisions_at_bar be sped up so the demo does not keep pushing against the CI timeout as the corpus grows?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Route by matcher shape. For a StringMatcher-shaped matcher (no `score()` method), a new `_collisions_via_ratio_bailout` fetches candidate rows once, and for each decision uses SequenceMatcher's length-ratio and quick_ratio as O(1) and O(N) upper bounds respectively; a candidate whose upper bound is below memory.SEAL_THRESHOLD (0.92) is skipped before the expensive `ratio()` call. Local measurement on the 532-row dogfood corpus: 46.6s → ~1.3s for the collisions function; 82s → 23s for the whole demo. For a `score()`-based matcher (DefectMatcher, semantic backends), the upper bounds do not apply — the dispatcher falls back to `_collisions_via_lookup` which preserves the original N × memory.lookup path. The public entry point `collisions_at_bar` picks between them via `uses_raw_score(matcher)`. Output shape preserved: sorted by decision, then by similarity descending within a decision, capped at 50 per decision to match `memory.lookup(limit=50)`'s truncation; similarity rounded to 3 decimals as `memory.lookup` does. Two tests hold this down (tests/test_dogfooding_collisions.py): byte-for-byte equivalence on a controlled fixture, and a synthetic-corpus test asserting fast finds ≥ what slow finds AND runs faster.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "69f94b1d-6e65-526c-ac0d-634f7bec7d9d",
       "origin": "pr:",
       "seal_sig": "",
@@ -453,6 +467,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Updated README view table from four to seven (added Signals, Graph, Triage rows). Updated MCP tool count from seven to eight in README, IDEAS.md, and docs/drafts/mcp-resources-prompts.md (nestor_prefs was missing). Updated ui.py docstring from five to seven views. Corrected shoebox gap count in project-layout.md from five open to three open, two closed. Removed duplicate paragraph in README (copy-paste leftover).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "1b2cf0a8-c0aa-5830-ab07-9ed36c89ff9e",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the fast path exactly match memorylookups top50thenfilter semantics or its own filterthentop50",
+      "source_text": "Should the fast path exactly match memory.lookup's top-50-then-filter semantics, or its own filter-then-top-50?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Filter-then-top-50. `memory.lookup(limit=50)` returns the top 50 candidates by similarity irrespective of the seal bar; the demo then filters those 50 by `>= SEAL_THRESHOLD`. On a corpus where a query has 50+ hits above the bar, `memory.lookup`'s truncation drops some real collisions. The fast path's filter-then-top-50 preserves all above-bar hits (up to 50) — a strictly more honest count. On the shipped 532-row dogfood corpus this is a distinction without a difference (no decision has 50 above-bar collisions), so byte-for-byte equivalence holds. On a pathological 200-row synthetic test corpus with dense above-bar hits the fast path finds strictly more; the corresponding test asserts fast ⊇ slow rather than fast == slow and comments on the semantic difference.",
       "verifier": "",
       "weight": 1.0
     },

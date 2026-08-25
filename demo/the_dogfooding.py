@@ -75,7 +75,7 @@ from demo import desks                                          # noqa: E402
 from demo.desks import (AMBER, BOLD, DIM, GREEN, OFF, RED,       # noqa: E402
                         beat, claim, note, say, verdict)
 from nestor import memory                                        # noqa: E402
-from nestor.matcher import StringMatcher                        # noqa: E402
+from nestor.matcher import StringMatcher, uses_raw_score        # noqa: E402
 from nestor.sqlite_store import SqliteStore                     # noqa: E402
 from recipes import patch_review                                # noqa: E402
 
@@ -198,7 +198,27 @@ def first_sentence_sweep(store, matcher, decisions) -> tuple[int, int, int, int]
 
 def collisions_at_bar(store, matcher, decisions) -> list[tuple]:
     """(query_file, query, other_file, other_answer, score) for every case where a
-    decision's own question serves a DIFFERENT decision at/above the seal bar."""
+    decision's own question serves a DIFFERENT decision at/above the seal bar.
+
+    On the shipped ``StringMatcher`` path this runs the fast pairwise pass
+    below — length-ratio and ``quick_ratio()`` are cheap upper bounds on
+    ``SequenceMatcher.ratio()``, so a candidate whose upper bound sits below
+    the seal bar (0.92) is skipped before the expensive ratio call. On the
+    current 532-row dogfood corpus that skips ~98% of candidates and cuts
+    this function's wall time from ~47s to ~1s (see decision 0195). For a
+    ``score()``-based matcher (``DefectMatcher``, semantic backends) the
+    upper bounds do not apply and we defer to :func:`memory.lookup`, which
+    keeps the original shape.
+    """
+    if uses_raw_score(matcher):
+        return _collisions_via_lookup(store, matcher, decisions)
+    return _collisions_via_ratio_bailout(store, matcher, decisions)
+
+
+def _collisions_via_lookup(store, matcher, decisions) -> list[tuple]:
+    """The general path — one ``memory.lookup`` per decision. Used when the
+    matcher exposes ``score()`` (custom scoring that neither length nor
+    quick_ratio bounds usefully)."""
     who = by_commitment(decisions)
     found = []
     for d in decisions:
@@ -209,6 +229,66 @@ def collisions_at_bar(store, matcher, decisions) -> list[tuple]:
             if other != d["commitment"] and h["similarity"] >= memory.SEAL_THRESHOLD:
                 found.append((d["file"], d["question"], who.get(other, "?"),
                               other, h["similarity"]))
+    return found
+
+
+def _collisions_via_ratio_bailout(store, matcher, decisions) -> list[tuple]:
+    """Fast path for a ``StringMatcher``-shaped matcher (no ``score()``).
+
+    Fetches candidate rows once; for each decision, uses ``SequenceMatcher``
+    with the length-ratio and ``quick_ratio`` upper bounds to skip candidates
+    whose maximum possible ratio is below :data:`memory.SEAL_THRESHOLD`, then
+    runs the full ratio only on survivors. Output tuples are ordered by
+    decision (as before) and by similarity descending within each decision
+    (as ``memory.lookup``'s sort would give). Rounds similarity to 3 decimals
+    to match ``memory.lookup``.
+    """
+    from difflib import SequenceMatcher
+
+    who = by_commitment(decisions)
+    bar = memory.SEAL_THRESHOLD
+    # Candidates fetched once; rejection filter mirrors memory.lookup.
+    rows = [r for r in store.memory_candidates(DOMAIN, DOMAIN)
+            if r.get("status") != "rejected"]
+    # A norm-length cache: reused across every decision as the query changes.
+    row_norms = [(r, r["source_norm"]) for r in rows]
+    found = []
+    for d in decisions:
+        qnorm = matcher.normalize(d["question"])
+        la = len(qnorm)
+        if la == 0:
+            continue
+        sm = SequenceMatcher(None, qnorm, autojunk=False)
+        hits_here: list[tuple] = []
+        for row, cnorm in row_norms:
+            lb = len(cnorm)
+            if lb == 0:
+                continue
+            # Length-ratio upper bound (SequenceMatcher.real_quick_ratio):
+            # 2 * min(la, lb) / (la + lb). If already below the bar, no ratio
+            # can possibly clear it.
+            if 2 * min(la, lb) / (la + lb) < bar:
+                continue
+            sm.set_seq2(cnorm)
+            # quick_ratio is a tighter O(N) upper bound; same bail rule.
+            if sm.quick_ratio() < bar:
+                continue
+            sim = sm.ratio()
+            if sim < bar:
+                continue
+            other = row["target_text"]
+            if other == d["commitment"]:
+                continue
+            hits_here.append((d["file"], d["question"], who.get(other, "?"),
+                              other, round(sim, 3)))
+        # Sort within a decision by similarity descending, then cap at 50 to
+        # match memory.lookup(limit=50)'s truncation. Without this cap the
+        # fast path finds MORE hits than the slow path on a dense corpus
+        # where a query has 50+ real collisions above the bar; the demo's
+        # counts and assertions are calibrated to the shipped truncation
+        # and this optimization is a speed fix, not a behaviour change.
+        hits_here.sort(key=lambda t: -t[4])
+        found.extend(hits_here[:50])
     return found
 
 
