@@ -27,8 +27,16 @@ def run(*args):
 
 
 def run_dogfooding(*args):
+    # 300s, not 180s: ``demo/the_dogfooding.py`` runs an O(N²) sweep
+    # (``collisions_at_bar`` queries every decision against every other) over
+    # the whole ``docs/dogfood/decisions/`` corpus, which grows with every
+    # merged PR. On the 3.10 leg of the shared CI runners the run pushed past
+    # 180s at 532 pairs; 300s keeps headroom without pretending the demo will
+    # stay fast as the corpus grows. If it hits this ceiling too, the answer
+    # is to optimize ``collisions_at_bar`` (a per-row bulk lookup, or a
+    # precomputed similarity cube), not to keep raising the ceiling.
     return subprocess.run([sys.executable, str(DOGFOODING), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180,
+                          capture_output=True, text=True, cwd=REPO, timeout=300,
                           check=False)
 
 
