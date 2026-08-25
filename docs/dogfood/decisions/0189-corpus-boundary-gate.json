@@ -1,0 +1,18 @@
+{
+  "branch": "claude/open-issues-3gi4n2",
+  "date": "2026-08-25",
+  "note": "Gate the decision-record ↔ corpus-extractor boundary (#97 / §6.105); note #95 and #96 already fixed and gated in-tree.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Is the decision-record ↔ corpus-extractor boundary a gate, or only prose?",
+      "commitment": "Now a gate. tests/test_corpus_boundary.py asserts two things: (1) no scripts/corpus/extract_*.py — nor the shared common.py / provenance.py — reads docs/dogfood/decisions/*.json, and (2) the module docstring of scripts/corpus/common.py still contains the words 'decision' and 'dogfood' (or 'two-stores'), so the reason for the omission stays attached to the file that enforces it. Verified on the unfixed revision first: gate 1 fired when a fake pathlib.Path('docs/dogfood/decisions/...') line was added to common.py; gate 2 fired when the module docstring was replaced with a bland stub. Both restored, both pass on HEAD.",
+      "why": "Issue #97's acceptance criterion is 'a test or a doc-gate line, so the separation is a declared decision rather than an accident a reader has to reconstruct'. The module docstring in scripts/corpus/common.py already carries option (a). This lands option (b) as well, because a doc without a test is a claim without enforcement — the exact 'say enforcement or ledger' rule from the guide. The two assertions together mean drift on either side (an extractor quietly gaining a decision reader, or the boundary sentence being deleted from the docstring) surfaces as a red test."
+    },
+    {
+      "question": "Are #95 and #96 still open, given that the in-tree code and tests appear to satisfy them?",
+      "commitment": "No — both were fixed and gated before this branch existed. #95 (extractors don't fail closed): scripts/corpus/common.py:47 defines require_checkout, which every extract_*.py except extract_ideas.py (which takes --ref, not --repo) already calls. Running extract_standard.py --repo /does/not/exist today prints 'could not look — no checkout at /does/not/exist' and exits 1. Gated by tests/test_corpus_extractors_git_scoped.py (23 tests, all passing) — the file's docstring names both §6.101 and §6.102 explicitly. #96 (extractors walk .venv): common.tracked_files at line 66 uses git ls-files with a stderr-warned rglob fallback; docs(), docstrings(), and the SKILL.md reader all route through it. Gated by the same test file. Recommend closing both with an evidence comment naming the fix location, the tests, and the pre/post split against a temporarily-reverted line.",
+      "why": "The probe report at docs/dogfood/probes/open_issues.md showed the store's recorded rows for all three issues; #97's row said the exclusion was documented but the omission was that nothing declared it, which matches HEAD exactly. #95 and #96 shipped their fixes when scripts/corpus/common.py was written the way it is now (see the docstring text at lines 47-58 and 66-99) and the test file test_corpus_extractors_git_scoped.py landed with them. The issues on GitHub were never closed; a stale-open issue is a lie about state, per the seat's own 'say what you read' rule, so the evidence comments belong on the record."
+    }
+  ]
+}
