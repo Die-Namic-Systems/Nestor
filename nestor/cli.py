@@ -1454,6 +1454,36 @@ DELEGATED = {"ui": "the browser surface", "serve": "the model surface"}
 # keep working on the near side of the subcommand.
 SHARED_FLAGS = ("--db", "--ledger")
 
+_GLOBAL_FLAGS_WITH_VALUE = ("--db", "--ledger")
+_GLOBAL_FLAGS_BARE = ("--json",)
+
+
+def _hoist_globals(argv: list[str]) -> list[str]:
+    """Move ``--db``, ``--ledger``, ``--json`` to before the subcommand.
+
+    ``nestor ask "hi" --db x.db`` is what everyone types first; argparse
+    rejects it because those flags belong to the top parser. This rewrites
+    argv so both orderings work identically.
+    """
+    hoisted: list[str] = []
+    rest: list[str] = []
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok in _GLOBAL_FLAGS_WITH_VALUE and i + 1 < len(argv):
+            hoisted += [tok, argv[i + 1]]
+            i += 2
+        elif any(tok.startswith(f + "=") for f in _GLOBAL_FLAGS_WITH_VALUE):
+            hoisted.append(tok)
+            i += 1
+        elif tok in _GLOBAL_FLAGS_BARE:
+            hoisted.append(tok)
+            i += 1
+        else:
+            rest.append(tok)
+            i += 1
+    return hoisted + rest
+
 
 def split_delegated(argv: list[str]) -> tuple[str | None, list[str]]:
     """``(name, sub_argv)`` when this invocation targets ``ui`` or ``serve``.
@@ -1505,7 +1535,7 @@ def main(argv: list[str] | None = None) -> int:
     except NestorError as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_hoist_globals(argv))
     try:
         return args.func(args)
     except (ValueError, RuntimeError) as exc:

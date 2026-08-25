@@ -820,3 +820,17 @@ def test_triage_json_returns_structured_report(capsys):
 def test_triage_rejects_unavailable_matcher(capsys):
     assert cli.main(["triage", "--matcher", "semantic"]) == cli.EXIT_USAGE
     assert "unavailable" in capsys.readouterr().err
+
+
+def test_global_flags_work_after_the_subcommand(capsys):
+    """``nestor ask "hi" --db x.db`` is what everyone types first."""
+    from nestor.cli import _hoist_globals
+
+    assert _hoist_globals(["ask", "hi", "--db", "x.db"]) == [
+        "--db", "x.db", "ask", "hi"]
+    assert _hoist_globals(["ask", "hi", "--json"]) == [
+        "--json", "ask", "hi"]
+    assert _hoist_globals(["--db", "x.db", "ask", "hi"]) == [
+        "--db", "x.db", "ask", "hi"]
+    assert _hoist_globals(["triage", "--db=x.db", "--json"]) == [
+        "--db=x.db", "--json", "triage"]
