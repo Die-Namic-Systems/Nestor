@@ -1023,13 +1023,28 @@ def cmd_demo(args) -> int:
         # A self-contained ledger beside the demo db, so the chain these seals
         # write travels with the store instead of landing in data/ledger.jsonl.
         args.ledger = os.path.splitext(args.db)[0] + ".ledger.jsonl"
-    # Route to the fixture the caller asked for. Both modules present the same
-    # ``seed_store(store) -> counts`` shape so the branch is a one-line pick.
+    # Route to the fixture the caller asked for. Every module presents the
+    # same ``seed_store(store) -> counts`` shape so the branch is a one-line
+    # pick. Multilingual policy seeds (decision 0201) mirror ``seed_policy``
+    # in shape and each carries a distinct verifier + origin so a mixed store
+    # is legible at a glance.
     scheme = getattr(args, "seed", "default")
     seed_scheme: types.ModuleType
     if scheme == "policy":
         from . import seed_policy
         seed_scheme = seed_policy
+    elif scheme == "policy-fr":
+        from . import seed_policy_fr
+        seed_scheme = seed_policy_fr
+    elif scheme == "policy-pt-pt":
+        from . import seed_policy_pt_pt
+        seed_scheme = seed_policy_pt_pt
+    elif scheme == "policy-pt-br":
+        from . import seed_policy_pt_br
+        seed_scheme = seed_policy_pt_br
+    elif scheme == "policy-ar":
+        from . import seed_policy_ar
+        seed_scheme = seed_policy_ar
     else:
         seed_scheme = seed_mod
     store = _store(args)
@@ -1438,10 +1453,15 @@ def build_parser() -> argparse.ArgumentParser:
     st.set_defaults(func=cmd_stats)
 
     dem = sub.add_parser("demo", help="build a small seeded store so `nestor ui` opens live")
-    dem.add_argument("--seed", default="default", choices=("default", "policy"),
+    dem.add_argument("--seed", default="default",
+                     choices=("default", "policy", "policy-fr",
+                              "policy-pt-pt", "policy-pt-br", "policy-ar"),
                      help="which fixture to seed with: 'default' (office-register, "
-                          "the shipped shape) or 'policy' (public-sector-register — "
-                          "see docs/policy-brief.md)")
+                          "the shipped shape); 'policy' (public-sector, en→es — see "
+                          "docs/policy-brief.md); or a multilingual policy seed "
+                          "(en→fr, en→pt-PT, en→pt-BR, en→ar) — same shape as "
+                          "'policy', different target language and verifier persona "
+                          "(decision 0201)")
     dem.set_defaults(func=cmd_demo)
 
     ini = sub.add_parser("init", help="a guided first run: ask, watch it resolve, propose a draft")

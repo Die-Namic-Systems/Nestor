@@ -22,6 +22,10 @@ nestor/
 ├── ui_page.py        the single self-contained page ui.py serves
 ├── seed.py           a small demo store across all three recipes, so a cold `ui --demo` lands live
 ├── seed_policy.py    the policy-shaped alternative seed for `nestor demo --seed policy` (see docs/policy-brief.md)
+├── seed_policy_fr.py    French (en→fr) policy-shaped seed for `nestor demo --seed policy-fr` — same shape as seed_policy.py, verifier `amelie`, origin `demo-policy-fr` (decision 0201)
+├── seed_policy_pt_pt.py    European Portuguese (en→pt-PT) policy-shaped seed for `nestor demo --seed policy-pt-pt` — verifier `filipa`, origin `demo-policy-pt-pt` (decision 0201)
+├── seed_policy_pt_br.py    Brazilian Portuguese (en→pt-BR) policy-shaped seed for `nestor demo --seed policy-pt-br` — verifier `rafaela`, origin `demo-policy-pt-br` (decision 0201)
+├── seed_policy_ar.py    Modern Standard Arabic (en→ar) policy-shaped seed for `nestor demo --seed policy-ar` — verifier `salma`, origin `demo-policy-ar`, depends on the NFC fold from decision 0200 for decomposed-query matching (decision 0201)
 ├── onboarding.py     `nestor init` — ask, watch the matcher refuse, propose a first draft; never seals
 ├── cli.py            the terminal surface — ask, export, import, ledger verify
 ├── serve.py          the model surface — MCP over stdio; it cannot seal
