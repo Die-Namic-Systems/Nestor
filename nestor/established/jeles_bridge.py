@@ -22,7 +22,17 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlparse
 
-from jeles import corpus as jeles_corpus
+# jeles is an optional dependency (decision 0206 Q3). Import it here at
+# module top when present, and leave the module attribute as ``None`` when
+# absent — so a caller who touches ``nestor.established`` without also
+# installing jeles gets an importable subpackage and a runtime signal
+# rather than an ImportError at collection time. Tests monkeypatch this
+# attribute to install a stub corpus; production callers see the real
+# one; a deployment without jeles simply skips this recognition source.
+try:
+    from jeles import corpus as jeles_corpus
+except ImportError:  # jeles absent — the module is still importable
+    jeles_corpus = None
 
 #: Verification kinds Jeles reports where the bridge WILL consider the
 #: nugget for recognition. ``asserted`` is deliberately excluded — an
@@ -124,6 +134,8 @@ def recognize_from_jeles(
     text = (source_text or "").strip()
     if not text:
         return None
+    if jeles_corpus is None:
+        return None  # jeles is not installed in this deployment
 
     result = jeles_corpus.ask_corpus(text, include_asserted=include_asserted)
     if not result.get("found") or not result.get("nugget"):
@@ -178,7 +190,18 @@ def recognize_from_jeles(
 
 def seed_demo_nuggets() -> list[dict[str, Any]]:
     """Load a few trusted nuggets for demos. Idempotent-ish (Jeles'
-    ``put_nugget`` handles conflicts by supersession)."""
+    ``put_nugget`` handles conflicts by supersession).
+
+    Raises :class:`RuntimeError` when jeles is not installed — this is a
+    demo-only helper and a missing dep at this call is a caller error
+    the loudest way. Production code paths (``recognize_from_jeles``)
+    return ``None`` for the same condition.
+    """
+    if jeles_corpus is None:
+        raise RuntimeError(
+            "jeles is not installed. `pip install jeles` to seed demo "
+            "nuggets; the recognize path returns None cleanly without it."
+        )
     specs = [
         {
             "nugget_id": "demo-42-hitchhiker",
