@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 568,
+    "pairs": 573,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "a8acfed16825cc7c8d50f09eb1fda5e45f784dde32caa433f24445ef5a86c7e3",
+  "digest": "c31ccab22d7adfbed72935753381cd161d3d7c0b8f055c92f6252d8bc0fd3e87",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -80,6 +80,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "c70e1a55-03e8-554a-8992-82eee72f83b9",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does aggregate_provenance refuse and why loudly rather than by default",
+      "source_text": "What does aggregate_provenance refuse, and why loudly rather than by default?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two refusals: an empty iterable (kitchen-pudding's rule — 'no ingredients' is not a provenance claim), and any state outside PROVENANCE_STATES (a typo would silently grow an unqueryable taxonomy). Both raise ValueError with the legal set in the message; test_case_sensitivity_is_load_bearing pins that 'MEASURED' is refused even though a case-insensitive comparison would 'work'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "bc9f4ebc-a1ea-507f-8350-45708cd8f032",
       "origin": "pr:",
       "seal_sig": "",
@@ -145,6 +159,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two, shipped as separate seeds: --seed policy-pt-pt (European) and --seed policy-pt-br (Brazilian). Both follow AO 1990 as the country adopted it; distinctness signals are (a) the OCDE alias's orthographic accent — 'Económico' vs 'Econômico'; (b) the baseline currency framing — € and 'mil milhões' vs R$ and 'bi', with different thousands separators; (c) at least 3 of 5 sealed sentences differ in register phrasing (encontra-se/está pendente, apresentou as suas/suas conclusões, registadas/registradas, apreciação/revisão legislativa, acordam/concordam em convocar); (d) the covenant-demonstration draft target differs. Gated by test_pt_pt_and_pt_br_are_distinguishable_fixtures.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "9d6f0bd4-21af-567f-9767-cd25d3acfaf1",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should evidence rows carry a provenance state column now",
+      "source_text": "Should evidence rows carry a provenance state column now?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. Scope stays function-only: constants + one function + tests. A row-level provenance column is a schema migration with its own decision — the aggregator being importable does not require it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -290,6 +318,34 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "3bf3eb78-2f16-503b-a01a-30259b1645fb",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the secondimplementation corroboration come from",
+      "source_text": "Where does the second-implementation corroboration come from?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "safe-app-store apps/kitchen-pudding/kitchen_pudding/provenance.py, which lands the same three states as an IntEnum with the same aggregate() semantics (min(), raise on empty). Recorded because the corroboration is the honest signal for a promotion: n=1 is a case, n=2 is a pattern.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "38776e36-cd61-592b-b8ed-0636e4189fd3",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why a tuple of strings rather than an intenum when kitchenpudding used an enum",
+      "source_text": "Why a tuple of strings rather than an IntEnum, when kitchen-pudding used an enum?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Strings, matching the surrounding evidence.py conventions. EVIDENCE_KINDS is a frozenset of strings; the demo used a tuple of strings; adding an IntEnum would introduce a new type into a module that has none. PROVENANCE_RANK is precomputed once from PROVENANCE_STATES so a caller who wants a numeric comparison gets O(1) lookup without importing an enum.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "32d91741-2da6-5535-a2ef-6b1e253faf24",
       "origin": "pr:",
       "seal_sig": "",
@@ -299,6 +355,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. `nestor/matcher.py:191-235` iterates the NFC-folded input character-by-character and keeps any character that (a) matches the pre-existing `[\\w\\s]` set OR (b) has Unicode General_Category `So` (Symbol, other — most emoji: smileys, transport, weather, single-codepoint flags) or `Sk` (Symbol, modifier — skin-tone modifiers). Zero-width joiner (U+200D, category `Cf`) is still stripped, so a ZWJ sequence like 👨‍💻 normalizes to 👨💻 — non-empty, and distinct from other sequences. The `re.sub(r'[^\\w\\s]', '', text)` regex is gone; a compiled `_WORD_OR_SPACE = re.compile(r'[\\w\\s]')` and a `_EMOJI_CATEGORIES = frozenset({'So', 'Sk'})` module-level constant back the comprehension. Gated by 16 tests in tests/test_matcher_emoji.py (7 fix cases including ZWJ, skin-tone, multi-emoji ordering, and text+emoji integration; 5 must-preserve for currency, math, punctuation, Cyrillic-vs-Latin, ASCII byte-for-byte; the ∞-still-collapses case that documents the narrow scope; 1 idempotence sweep; 2 end-to-end integration through memory.add_pair / best_sealed including a prose-serve regression). All 177 tests in PR #180's tests/test_unconventional.py still pass, with the two locked emoji tests rewritten in place against the new invariant (test_emoji_only_stories_key_distinctly_after_0202, test_single_emoji_seal_distinctly_after_0202) and two docstrings updated to note the workaround is no longer necessary.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "2e8d1c90-4d89-5151-b7e7-d8787b744cce",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why promote the demos weakest rather than reinvent it inside evidencepy",
+      "source_text": "Why promote the demo's weakest() rather than reinvent it inside evidence.py?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A promotion, not a rewrite. The exported PROVENANCE_STATES tuple equals demo.STATES verbatim, and test_states_match_the_demo_spelling_and_order asserts that identity so a rename on either side surfaces here before the caller sees the drift. A behavioral equivalence test (test_agrees_with_the_demo_on_every_reference_case) runs every case the demo was locked on through the shipped function.",
       "verifier": "",
       "weight": 1.0
     },
