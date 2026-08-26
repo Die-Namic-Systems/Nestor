@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 564,
+    "pairs": 568,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "798b2294b27b30fdcd84a1230412227c4f80e5d26ea74d49ebbd24f069d8c437",
+  "digest": "a8acfed16825cc7c8d50f09eb1fda5e45f784dde32caa433f24445ef5a86c7e3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "eca4fc48-7815-54e8-8a7e-d426f55e8e79",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how to structure multilingual policy seeds one file per language or a single multilingual module with a lang parameter",
+      "source_text": "How to structure multilingual policy seeds — one file per language, or a single multilingual module with a lang parameter?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One file per language: nestor/seed_policy_fr.py, seed_policy_pt_pt.py, seed_policy_pt_br.py, seed_policy_ar.py — each mirroring the shape of nestor/seed_policy.py (5 sealed + 1 draft translation, 4 aliases, 2 baselines, 3-line queue, forged seal for signing mode, distinct DEMO_VERIFIER and origin tag). Wiring lives in nestor/cli.py: one elif branch per scheme, and the --seed choices tuple extended to include the four new schemes. Tests parametrize across all four in tests/test_seed_policy_multilingual.py (22 tests) rather than repeating four near-identical test modules.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
       "id": "e833d774-e230-5ede-b24b-0c5199d4bc0d",
@@ -122,6 +136,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "aab3320b-8c38-50a4-9ac1-81fea3c7608b",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ship one portuguese seed or two variants ptpt and ptbr",
+      "source_text": "Ship one Portuguese seed or two variants (pt-PT and pt-BR)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two, shipped as separate seeds: --seed policy-pt-pt (European) and --seed policy-pt-br (Brazilian). Both follow AO 1990 as the country adopted it; distinctness signals are (a) the OCDE alias's orthographic accent — 'Económico' vs 'Econômico'; (b) the baseline currency framing — € and 'mil milhões' vs R$ and 'bi', with different thousands separators; (c) at least 3 of 5 sealed sentences differ in register phrasing (encontra-se/está pendente, apresentou as suas/suas conclusões, registadas/registradas, apreciação/revisão legislativa, acordam/concordam em convocar); (d) the covenant-demonstration draft target differs. Gated by test_pt_pt_and_pt_br_are_distinguishable_fixtures.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "93bfb4c9-4635-5006-a83b-1ebb4a327a6b",
       "origin": "pr:",
       "seal_sig": "",
@@ -192,6 +220,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "5b228137-a7b4-5c17-b09e-9c6d2d236993",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "ship an arabic seed given the previous seats needs native review before shipping note",
+      "source_text": "Ship an Arabic seed given the previous seat's 'needs native review before shipping' note?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes — under the same fictional-persona pattern the Spanish seed uses. nestor/seed_policy_ar.py carries five sealed translations in Modern Standard Arabic (the register used across publicly-published Arab-League and UN-Arabic policy corpora), signed by verifier 'salma' — a fictional persona, matching Spanish 'elena' / French 'amelie' / pt-PT 'filipa' / pt-BR 'rafaela'. The module's docstring names the composition dependency (NFC-fold at StringMatcher.normalize, decision 0200) and marks the seed as welcoming a native-speaker git-review as a follow-up. Origin tag 'demo-policy-ar' distinguishes it in a mixed store.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "53aa23d1-61b1-5ba4-a632-00d04c7cdd91",
       "origin": "pr:",
       "seal_sig": "",
@@ -215,6 +257,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Reviewability. The seam is one file's edit (nestor/cascade.py) plus one test file (tests/test_cascade_tier15_hook.py) plus this decision — small enough that a reviewer can hold the whole change in one sitting and audit the covenant boundary. The established-knowledge lane the seam exists to host is a four-file module (lexicon, jeles bridge, wire, __init__), touches the warrant and evidence recipes, and needs its own tests over the lexicon and jeles integration; landing it in the same PR would mix two concerns whose blast radii are very different. This PR ships the seam; a follow-up PR ships `nestor/established/` registered through the seam.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "43772395-1df7-515c-8972-13024a770053",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which verifier personas and origin tags",
+      "source_text": "Which verifier personas and origin tags?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Verifier personas — Spanish 'elena' (unchanged), French 'amelie', pt-PT 'filipa', pt-BR 'rafaela', Arabic 'salma'. All fictional, all distinct. Origin tags — 'demo-policy-<lang>' matching the CLI scheme: 'demo-policy-fr', 'demo-policy-pt-pt', 'demo-policy-pt-br', 'demo-policy-ar'. Gated by test_every_seed_verifier_is_distinct (all six shipped seeds have distinct verifiers) and test_origin_tag_is_this_seed_and_no_other (a seed writes only its own origin tag).",
       "verifier": "",
       "weight": 1.0
     },
