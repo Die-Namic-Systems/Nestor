@@ -7,7 +7,8 @@ import sys
 
 import pytest
 
-from nestor import cascade, frank, keyring, storage
+from nestor import cascade, frank, keyring, memory, storage
+from nestor.matcher import StringMatcher
 from nestor.sqlite_store import SqliteStore
 
 # Variables that change what the package trusts, and which a developer running
@@ -124,9 +125,11 @@ def isolate_globals(tmp_path):
     saved_store = storage._store
     saved_ledger = cascade._LEDGER_OVERRIDE
     saved_forwarder = frank.get_forwarder()
+    saved_matcher = memory.get_matcher()
     saved_env = {k: os.environ.pop(k, None) for k in CONFIGURED_BY_ENV}
     storage._store = None
     frank.set_forwarder(None)
+    memory.set_matcher(StringMatcher())
     # A keyring left installed by one test decides who may seal in the next one.
     keyring.set_keyring(None)
     cascade.set_ledger_path(tmp_path / "ledger.jsonl")
@@ -135,6 +138,7 @@ def isolate_globals(tmp_path):
     cascade._LEDGER_OVERRIDE = saved_ledger
     cascade.reset_ledger_session()
     frank.set_forwarder(saved_forwarder)
+    memory.set_matcher(saved_matcher)
     keyring.set_keyring(None)
     for name, value in saved_env.items():
         if value is None:
