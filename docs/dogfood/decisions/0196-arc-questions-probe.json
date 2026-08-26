@@ -1,0 +1,13 @@
+{
+  "branch": "claude/arc-probe-report",
+  "date": "2026-08-25",
+  "note": "Commit the arc-questions probe as a durable record of what Nestor could and could not recall about the arc it went through. Same shape as docs/dogfood/probes/open_issues.md — the run ships with the finding.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the arc-questions probe report be committed alongside open_issues.md, or left in scratchpad as a one-shot?",
+      "commitment": "Committed. docs/dogfood/probes/arc_questions.md and .json carry the full 3213-line report; scripts/corpus/arc_questions.txt carries the 15 prompts used (11 arc-shipped questions + 4 next-step proposals). The finding a reader would otherwise have to re-derive: over 15 questions asked in fresh words about work this arc did, `match` places the correct decision in the top-8 for 11 of 11 arc questions (median rank 1), but only 4 clear the 0.55 fuzzy bar `decision check` uses. The gap between 'in the top-8' and 'clears the bar' is exactly the residual decision 0154 named — character-ratio scoring on short question-shaped queries hits sim 0.44-0.55 for real matches. The 4 'next/' proposals return sim 0.478-0.490 topically-unrelated top-1 hits (top-8 not exhaustively searched).",
+      "why": "Two reasons. First, the agent-guide's 'tooling ships with the finding' rule -- the same reason docs/dogfood/probes/open_issues.md is committed: a report living only in scratchpad dies with the container, and the next agent asking 'what did Nestor recall about the arc?' has to re-run and re-derive. Second, the report is itself evidence for a decision we haven't sealed but keep proposing: the paraphrase gap decision 0154 named IS the residual at the arc scale, and this report puts a number on it (7/11 real matches sit below the bar), which is different from and stronger than what open_issues.md measured on filed-issue prompts."
+    }
+  ]
+}
