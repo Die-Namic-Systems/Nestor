@@ -256,7 +256,15 @@ def cmd_decision(args) -> int:
     store = _store(args)
     from .decision import DecisionMemory
     bar = args.fuzzy_bar if args.fuzzy_bar else None
-    dm = DecisionMemory(store, domain=args.source_lang, fuzzy_bar=bar)
+    # `--matcher` lets a caller swap in a semantic scorer for the fuzzy scan.
+    # `answer.load_matcher` returns None for the shipped-default 'string'
+    # name (the sentinel for "use the process-wide default"), which is what
+    # DecisionMemory's own default expects. See decision 0198 for the
+    # calibrated bar per matcher.
+    matcher_arg = getattr(args, "matcher", "string")
+    matcher = answer.load_matcher(matcher_arg) if matcher_arg else None
+    dm = DecisionMemory(store, domain=args.source_lang,
+                        fuzzy_bar=bar, matcher=matcher)
     result = dm.constraints_on(question)
     contradicts = [c for c in result["constraints"] if c["kind"] == "contradicts"]
     blocked = bool(result["rejected"]) or bool(contradicts)
@@ -1245,6 +1253,13 @@ def build_parser() -> argparse.ArgumentParser:
                           "measured 0.45 on 24 decisions, the triage calibrate "
                           "found 0.55 as the knee on the full corpus — "
                           "docs/decision-rewording-bench.md)")
+    dec.add_argument("--matcher", default="string",
+                     help=f"the matcher that scores fuzzy candidates: a shipped "
+                          f"name ({', '.join(answer.MATCHERS)}) or a custom one as "
+                          f"'module:attribute'. Default 'string' matches the "
+                          f"shipped decision-check bar of 0.55; 'semantic' needs "
+                          f"the [semantic] extra and its own calibrated bar — "
+                          f"see decision 0198 for the shipped trade-off")
     domain_args(dec, source="decision", target="decision")
     dec.set_defaults(func=cmd_decision)
 
