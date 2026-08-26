@@ -22,6 +22,7 @@ import os
 import pathlib
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -470,6 +471,76 @@ def _accepted_kwargs(func, **candidates) -> dict:
     return {name: value for name, value in candidates.items() if name in passable}
 
 
+#: The registered tier-1.5 recognizer, or ``None`` if none is installed. A
+#: **process-local** callable — the seam is per-interpreter, not per-store, so
+#: a host running two Nestors in one interpreter shares this recognizer across
+#: both. Decision 0205 records the shape and the never-seals contract.
+_tier15_recognizer: Tier15Recognizer | None = None
+
+
+#: Signature the tier-1.5 recognizer must match. Called with the segment
+#: ``text``, its ``source_lang`` and ``target_lang``, and the resolved
+#: ``store`` and ``matcher`` the cascade is using — every input the recognizer
+#: could reasonably need to look the segment up in a lexicon or a corpus. It
+#: returns a :class:`Passage` (which the cascade returns as-is) or ``None``
+#: (fall through to the tier-2 engine). The returned Passage must not carry
+#: ``state="sealed"`` — :func:`_run_tier15_recognizer` refuses that at runtime.
+Tier15Recognizer = Callable[..., "Passage | None"]
+
+
+def set_tier15_recognizer(fn: Tier15Recognizer | None) -> None:
+    """Register (or clear, with ``None``) the tier-1.5 recognizer.
+
+    Called at most once per host, typically from an import-time wire that a
+    package like the established-knowledge lane installs. Passing ``None``
+    unregisters; a second install with a non-``None`` value replaces the first
+    (a warning is not raised because a host that installs twice deliberately
+    is not doing it by mistake — but decision 0205 flags list-of-recognizers
+    as the wider design worth doing if two lanes ever need to co-exist).
+    """
+    global _tier15_recognizer
+    _tier15_recognizer = fn
+
+
+def get_tier15_recognizer() -> Tier15Recognizer | None:
+    """The currently-installed tier-1.5 recognizer, or ``None``."""
+    return _tier15_recognizer
+
+
+def _run_tier15_recognizer(text: str, source_lang: str, target_lang: str,
+                           *, store: Storage,
+                           matcher: Matcher | None) -> Passage | None:
+    """Call the installed recognizer and enforce its contract.
+
+    Returns ``None`` when no recognizer is installed OR the recognizer itself
+    returned ``None``. A recognizer that returns a non-:class:`Passage` value
+    or a :class:`Passage` with ``state == "sealed"`` raises before the cascade
+    trusts the return — the sealed lane belongs to tier 1 (memory.best_sealed
+    with a valid signature) exclusively, and a recognizer that tried to serve
+    a seal here would be smuggling one past the ledger's evidence rules.
+    """
+    if _tier15_recognizer is None:
+        return None
+    recognized = _tier15_recognizer(text, source_lang, target_lang,
+                                    store=store, matcher=matcher)
+    if recognized is None:
+        return None
+    if not isinstance(recognized, Passage):
+        raise TypeError(
+            f"tier-1.5 recognizer must return Passage or None; got "
+            f"{type(recognized).__name__}. See cascade.set_tier15_recognizer "
+            f"and decision 0205."
+        )
+    if recognized.state == "sealed":
+        raise RuntimeError(
+            "tier-1.5 recognizer returned state='sealed' — the seam exists "
+            "specifically to keep the sealed lane under the covenant's "
+            "control at tier 1. Recognizers must return draft or pending "
+            "passages; humans seal via nestor.ui. See decision 0205."
+        )
+    return recognized
+
+
 def translate_segment(text: str, source_lang: str, target_lang: str,
                       engine=None, document_id: str = "", position: int = 0,
                       store: Storage | None = None,
@@ -480,6 +551,14 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
     a host may run two domains in one process, and the process-wide default can
     only describe one of them. Left ``None`` it resolves to that default, so
     behavior is unchanged for every caller that does not pass one.
+
+    Between the tier-1 sealed lookup and the tier-2 engine call there is an
+    optional **tier-1.5 recognizer** seam (decision 0205) that a host may
+    register with :func:`set_tier15_recognizer`. The seam exists so an
+    established-knowledge lane (a lexicon, a trusted corpus like Jeles) can
+    surface a draft here instead of every caller monkeypatching this function.
+    The recognizer must never return a sealed :class:`Passage` — the sealed
+    lane stays under the covenant's control at tier 1.
     """
     store = get_store(store)
     # tier 1 — Nestor's ledger
@@ -502,6 +581,10 @@ def translate_segment(text: str, source_lang: str, target_lang: str,
                                 # composed from the seal itself.
                                 "warrant_kinds": hit.get("warrant_kinds", []),
                                 **audit})
+    elif (recognized := _run_tier15_recognizer(
+            text, source_lang, target_lang, store=store, matcher=matcher)):
+        # tier 1.5 — established-knowledge recognizer (decision 0205)
+        passage = recognized
     else:
         # tier 2 — Nova's draft
         engine = engine or get_engine()

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 555,
+    "pairs": 559,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "2ca78c9e7641656cd460b1f03d17c7e6503efba9ff4554265a14107cb91ba1dd",
+  "digest": "02a4b0f84a5789255e8d544aa16d36431a7af878fc199b4cac3e6facdb7e2110",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -61,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "NFC only. NFKC would fold `１２３` (fullwidth) into `123` (ASCII), fi ligature into f+i, superscript ² into 2, etc. PR 180's test_fullwidth_vs_ascii_digits locks that fullwidth stays distinct — that would break under NFKC. NFC is the canonical composition form and touches ONLY composition equivalence (visually-identical rendering, same intended letter, different Unicode bytes); NFKC folds compatibility equivalence (visually-similar rendering, arguably-same intent, definitely different content). This PR fixes the composition question and leaves compatibility folding as a separate future decision the operator can consider if they see concrete need.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "bab3bdb5-54e2-51ea-a584-a2c3f069268c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the return contract and what does the seam refuse",
+      "source_text": "What is the return contract, and what does the seam refuse?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The recognizer is `Callable[..., Passage | None]` — signature `(text, source_lang, target_lang, *, store, matcher) -> Passage | None`. Returning `None` falls through to the tier-2 engine unchanged. Returning a Passage is served as-is with two enforced refusals: (a) the returned Passage must be an actual `Passage` instance (a dict or other duck-type raises TypeError); (b) the returned Passage must not have `state='sealed'` (raises RuntimeError with the message 'the seam exists specifically to keep the sealed lane under the covenant's control at tier 1'). Both refusals happen inside `_run_tier15_recognizer` before the cascade appends anything to the ledger, so a bad recognizer produces an exception, not a laundered row.",
       "verifier": "",
       "weight": 1.0
     },
@@ -122,6 +136,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "5b2ba8a8-fab0-5e52-9df6-97dc14f3fcf8",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should cascadetranslate_segment expose a hook for tier15 recognition between the sealed lookup and the engine call",
+      "source_text": "Should cascade.translate_segment expose a hook for tier-1.5 recognition (between the sealed lookup and the engine call)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. `nestor/cascade.py` adds a module-level `_tier15_recognizer` (nullable) with `set_tier15_recognizer(fn)` / `get_tier15_recognizer()` accessors and a private `_run_tier15_recognizer` that enforces the return contract. `translate_segment` calls the recognizer in an `elif` between the tier-1 hit branch and the tier-2 engine branch: sealed hit still short-circuits (recognizer is never asked about a sealed row), a recognizer that returns None falls through to the engine, and a recognizer that returns a Passage is served as-is with the ordinary passage entry appended to the ledger. Gated by 10 tests in tests/test_cascade_tier15_hook.py: no-recognizer path unchanged; sealed-still-wins (recognizer never called on tier-1 hit); returning None falls through; returning a draft Passage is served verbatim; recognizer receives (text, source_lang, target_lang, store, matcher); set(None) unregisters cleanly; second install replaces first; and ledger integration (a tier-1.5 draft lands under kind='passage' with engine/tier/state/confidence recorded).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "53aa23d1-61b1-5ba4-a632-00d04c7cdd91",
       "origin": "pr:",
       "seal_sig": "",
@@ -131,6 +159,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Deferred. Current behaviour is preserved: `parse('Room 42')`, `parse('the answer is 42')`, `parse('42ish')`, and `parse('$42 sandwich')` all return `42.0`, and similarity against a `42` baseline is `1.0` for all of them. The design docstring on `NumericMatcher.parse_detail` names this stance explicitly — 'USD is decoration, not prose' and 'Reporting it beats refusing it: a reconciler that rejected every partially-parsed figure would refuse real inputs' — and every heuristic that closes the prose-plus-number class also refuses one or more legitimate unit-suffixed cases: length ≤ 3 refuses `Room` (4) but also `ish`; all-uppercase refuses `Room` but also refuses `kg` and `cm`; ≥2 lowercase letters refuses `sandwich` but also refuses `cm`, `kg`, and every metric suffix. A refuse-prose-residue fix therefore has to make a policy call (which kind of decoration is 'unit' vs 'prose') that is not obvious from the design's stated intent alone.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "44fe311d-02b7-507e-ab63-9072d1285a13",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why land the seam alone this pr before the establishedlane module",
+      "source_text": "Why land the seam alone (this PR) before the established-lane module?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Reviewability. The seam is one file's edit (nestor/cascade.py) plus one test file (tests/test_cascade_tier15_hook.py) plus this decision — small enough that a reviewer can hold the whole change in one sitting and audit the covenant boundary. The established-knowledge lane the seam exists to host is a four-file module (lexicon, jeles bridge, wire, __init__), touches the warrant and evidence recipes, and needs its own tests over the lexicon and jeles integration; landing it in the same PR would mix two concerns whose blast radii are very different. This PR ships the seam; a follow-up PR ships `nestor/established/` registered through the seam.",
       "verifier": "",
       "weight": 1.0
     },
@@ -173,6 +215,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. `nestor/matcher.py:191-206` calls `unicodedata.normalize('NFC', text)` before the existing regex pipeline. NFC is idempotent (the Matcher Protocol requires normalize(normalize(x)) == normalize(x); NFC and the legacy pipeline are individually idempotent, so the composition is). For 7-bit ASCII the NFC step is a no-op and downstream is unchanged — every sealed row that existed before this change normalizes to the exact same key it normalized to before, asserted in tests/test_matcher_nfc.py::test_ascii_normalizes_byte_for_byte_as_before. Gated by 9 tests in tests/test_matcher_nfc.py (composed/decomposed collision for Vietnamese ư, café, and Arabic diacritic; idempotence over the full sample; four must-preserve tests for Cyrillic ≠ Latin, fullwidth ≠ ASCII, pure-emoji → empty, ASCII byte-for-byte; and one end-to-end integration through memory.add_pair / best_sealed). All 177 tests in tests/test_unconventional.py (PR 180) still pass, so the three invariants PR 180 locked (homoglyph distinctness, fullwidth distinctness, emoji-collapses-to-empty) are preserved.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "16bd9783-f520-5535-a2af-c713ad8959ed",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "single recognizer or listofrecognizers",
+      "source_text": "Single recognizer or list-of-recognizers?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Single, for now. `set_tier15_recognizer(fn)` replaces the previously-installed one (no warning — a host installing twice deliberately is not doing it by mistake). If a second lane ever needs to co-exist (a lexicon AND a corpus AND a house-style TM, all wanting to be consulted before the engine), a wider design would move to `register_tier15_recognizer(fn)` / `unregister_tier15_recognizer(fn)` returning a token, with the cascade iterating the registered set and taking the first non-None. That design is named here so a later decision doesn't have to re-derive it.",
       "verifier": "",
       "weight": 1.0
     },
