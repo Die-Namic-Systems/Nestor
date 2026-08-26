@@ -15,6 +15,7 @@ these pin that it still does.
 """
 from __future__ import annotations
 
+import importlib.util
 import os
 import pathlib
 import subprocess
@@ -35,6 +36,43 @@ def run(*args, env=None):
     return subprocess.run([sys.executable, str(AUDIT), *args],
                           capture_output=True, text=True, cwd=REPO, timeout=300,
                           env=env, check=False)
+
+
+def _audit_module(monkeypatch):
+    monkeypatch.syspath_prepend(str(REPO / "scripts"))
+    spec = importlib.util.spec_from_file_location("audit_against_constitution_under_test", AUDIT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_egress_probe_recognizes_both_operator_local_ollama_clients(tmp_path, monkeypatch):
+    package = tmp_path / "nestor"
+    package.mkdir()
+    (package / "engine.py").write_text("urlopen(request)\n")
+    (package / "ollama_embed.py").write_text("urlopen(request)\n")
+    audit = _audit_module(monkeypatch)
+    monkeypatch.setattr(audit, "REPO", tmp_path)
+
+    verdict, detail = audit.probe_egress(tmp_path)
+
+    assert verdict == audit.DIFFERENTLY
+    assert "engine.py" in detail and "ollama_embed.py" in detail
+
+
+def test_egress_probe_still_fails_an_unclassified_network_client(tmp_path, monkeypatch):
+    package = tmp_path / "nestor"
+    package.mkdir()
+    (package / "engine.py").write_text("urlopen(request)\n")
+    (package / "rogue.py").write_text("requests.get('https://example.test')\n")
+    audit = _audit_module(monkeypatch)
+    monkeypatch.setattr(audit, "REPO", tmp_path)
+
+    verdict, detail = audit.probe_egress(tmp_path)
+
+    assert verdict == audit.FAILS
+    assert "rogue.py" in detail
 
 
 def test_it_refuses_a_constitution_it_cannot_read(tmp_path):
