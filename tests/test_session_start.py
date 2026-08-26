@@ -20,6 +20,7 @@ from hooks import session_start
 from hooks.session_start import build_context
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+pytestmark = pytest.mark.xdist_group("repo_data")
 
 
 @pytest.fixture(autouse=True)

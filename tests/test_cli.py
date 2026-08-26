@@ -817,7 +817,7 @@ def test_triage_json_returns_structured_report(capsys):
     assert payload["n_decisions"] > 0
 
 
-def test_triage_rejects_unavailable_matcher(capsys):
+def test_triage_rejects_unavailable_matcher(capsys, without_fastembed):
     assert cli.main(["triage", "--matcher", "semantic"]) == cli.EXIT_USAGE
     assert "unavailable" in capsys.readouterr().err
 

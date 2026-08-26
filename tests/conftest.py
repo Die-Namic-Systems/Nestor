@@ -1,4 +1,5 @@
 import builtins
+import functools
 import importlib.util
 import json
 import os
@@ -24,11 +25,20 @@ from nestor.sqlite_store import SqliteStore
 # ``monkeypatch`` where that is the right tool.
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
                      "NESTOR_CACHE_KEY", "NESTOR_LEDGER", "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
-                     "NESTOR_GLOSSARY",
+                     "NESTOR_BROWSER_TEST", "NESTOR_GLOSSARY", "NESTOR_OLLAMA_TEST",
                      "NESTOR_FRANK_STRICT", "NESTOR_FRANK_APP_ID", "NESTOR_FRANK_PROJECT",
                      "WILLOW_MCP_COMMAND", "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
 
 
+def pytest_sessionstart(session):
+    """Scrub ambient trust config before session/module fixtures can spawn."""
+    del session
+    for name in CONFIGURED_BY_ENV:
+        if name not in {"NESTOR_BROWSER_TEST", "NESTOR_SEMANTIC_TEST", "NESTOR_OLLAMA_TEST"}:
+            os.environ.pop(name, None)
+
+
+@functools.lru_cache(maxsize=1)
 def _semantic_model_loadable() -> bool:
     """True when fastembed is installed AND the default model can embed."""
     if importlib.util.find_spec("fastembed") is None:
@@ -42,11 +52,16 @@ def _semantic_model_loadable() -> bool:
         return False
 
 
-_EMBEDDING_OK = _semantic_model_loadable()
+def semantic_tests_enabled() -> bool:
+    """Whether this run explicitly opted into loading the real ONNX model."""
+    from nestor.semantic_matcher import integration_tests_enabled
+
+    return integration_tests_enabled() and _semantic_model_loadable()
 
 requires_embedding = pytest.mark.skipif(
-    not _EMBEDDING_OK,
-    reason="semantic model not loadable (fastembed absent or model download blocked)",
+    not semantic_tests_enabled(),
+    reason=("set NESTOR_SEMANTIC_TEST=1 and install the semantic extra; "
+            "the default suite never loads ONNX implicitly"),
 )
 
 

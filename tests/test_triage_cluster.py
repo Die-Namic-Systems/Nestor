@@ -10,6 +10,7 @@ three fails if the graph cut is broken in the direction it guards.
 """
 from __future__ import annotations
 
+import os
 import sys
 import time
 
@@ -20,15 +21,19 @@ from nestor.triage import Decision, load_decisions
 from nestor.triage.cluster import group
 
 
-def _instrumented() -> bool:
-    """Whether a tracer (coverage, a debugger) is inflating wall-clock now.
+def _timing_distorted() -> bool:
+    """Whether tracing or parallel contention invalidates wall-clock now.
 
     Coverage detection is by its own ``Coverage.current()`` API, which is robust
     across coverage's Python, C, and ``sys.monitoring`` tracers — ``sys.gettrace``
     alone returns ``None`` under the C tracer, so it is only a fallback. When
     coverage is not installed at all (the local ``.venv``), neither fires and the
-    timing assertion runs as before.
+    timing assertion runs as before. An xdist worker also shares finite CPU with
+    other workers, so elapsed time there measures scheduling rather than this
+    function; the dedicated ``performance`` lane runs serially.
     """
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return True
     if sys.gettrace() is not None:
         return True
     cov = sys.modules.get("coverage")
@@ -62,6 +67,11 @@ _UNRELATED = [
 def _fixture() -> list[Decision]:
     qs = _TRIO + _UNRELATED
     return [_mk(i, q) for i, q in enumerate(qs)]
+
+
+def test_an_xdist_worker_does_not_claim_a_wall_clock_measurement(monkeypatch):
+    monkeypatch.setenv("PYTEST_XDIST_WORKER", "gw0")
+    assert _timing_distorted() is True
 
 
 def test_three_near_dupes_one_cluster_two_singletons():
@@ -146,6 +156,7 @@ def test_empty_input():
     assert group([], StringMatcher(), 0.45) == []
 
 
+@pytest.mark.performance
 @pytest.mark.slow
 def test_smoke_real_corpus_partitions_every_decision_quickly():
     decisions = load_decisions()
@@ -160,7 +171,7 @@ def test_smoke_real_corpus_partitions_every_decision_quickly():
     # clocked ~69s there against a 60s bar it clears in ~19s without coverage, a
     # false red on a test whose real job is the partition invariant, growing
     # worse as the corpus grows. Measure only when not instrumented.
-    if not _instrumented():
+    if not _timing_distorted():
         assert elapsed < 60.0, f"clustering took {elapsed:.1f}s"
 
     # Partition: every decision in exactly one cluster, no dupes, no drops.

@@ -13,7 +13,6 @@ decision is recorded at all.
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import threading
@@ -397,11 +396,12 @@ def test_semantic_without_extra_is_refused_not_defaulted(filled, without_fastemb
     assert "[semantic]" in out["error"] or "optional" in out["error"].lower()
 
 
+@pytest.mark.semantic
 def test_semantic_match_when_extra_installed(filled):
-    if not importlib.util.find_spec("fastembed"):
-        pytest.skip("pip install nestor-meaning[semantic]")
-    if not __import__("tests.conftest", fromlist=["_EMBEDDING_OK"])._EMBEDDING_OK:
-        pytest.skip("semantic model not loadable (model download blocked by proxy)")
+    from tests.conftest import semantic_tests_enabled
+
+    if not semantic_tests_enabled():
+        pytest.skip("set NESTOR_SEMANTIC_TEST=1 and install the semantic extra")
     status, out = post(filled, "/api/match", text="hello", matcher="semantic")
     assert status == 200
     assert out["matcher"] == "semantic"

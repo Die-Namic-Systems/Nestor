@@ -77,6 +77,12 @@ def test_a_probe_that_raises_is_a_failure_not_a_pass():
     assert "except Exception as exc:" in src
 
 
+@pytest.mark.external
+@pytest.mark.skipif(
+    os.environ.get("NESTOR_EXTERNAL_TEST", "").strip().lower()
+    not in {"1", "true", "yes", "on"},
+    reason="set NESTOR_EXTERNAL_TEST=1 to audit an adjacent charter checkout",
+)
 @pytest.mark.skipif(not CASES.exists() or not any(CASES.glob("const_*.py")),
                     reason="no charter constitution cases present")
 def test_against_the_real_constitution():

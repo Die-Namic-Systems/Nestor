@@ -24,10 +24,16 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
 
    | Changed paths | Class | Verification command |
    |---|---|---|
-   | `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | full | `bash scripts/ci-lint.sh && python -m pytest -q` |
+   | `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | full | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
    | `docs/`, `IDEAS.md`, `docs/dogfood/decisions/*.json` | docs-only | `bash scripts/ci-docs.sh` |
    | `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/` | lint-only | `bash scripts/ci-lint.sh` |
-   | Mixed (any combination of the above) | full | `bash scripts/ci-lint.sh && python -m pytest -q` |
+   | Mixed (any combination of the above) | full | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
+
+   During implementation, `bash scripts/ci-test.sh core` is the fast deterministic
+   lane. It does not replace the full pre-push row above. Installing `fastembed`,
+   running Ollama, or having a sibling checkout must never silently enlarge either
+   lane; use the explicit `semantic`, `ollama`, `browser`, `slow`, `performance`,
+   or `external` lane when changing that integration.
 
    The table is guidance, not enforcement — no tooling checks which class
    you chose. When in doubt, run full. The point is that "correct and cheap"

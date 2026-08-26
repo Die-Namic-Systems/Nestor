@@ -1,0 +1,32 @@
+{
+  "branch": "claude/exists-vs-works",
+  "date": "2026-08-26",
+  "note": "A developer environment with the semantic extra installed made pytest initialize FastEmbed/ONNX during collection, before any semantic test was selected. A CLI refusal test then asked for the semantic matcher without simulating its stated unavailable condition, so the nominal core run entered real model work and appeared hung at 13%. After that was fixed, duration profiling showed that two issue-probe acceptance tests consumed 101 of the parallel core lane's 116 seconds by repeatedly invoking whole-corpus CLI lenses. The first full parallel run then exposed two more invalid measurements: shared-repository snapshots raced another worker, and a 60-second clustering clock measured xdist contention rather than clustering.",
+  "decisions": [
+    {
+      "question": "How should optional integrations affect the cost of the default test run?",
+      "commitment": "They do not activate from ambient availability. Core, slow, browser, semantic, Ollama, and adjacent-repository checks are explicit pytest marker lanes. The semantic, Ollama, and external lanes require an explicit opt-in set by scripts/ci-test.sh; installing FastEmbed, starting Ollama, or cloning a sibling repository cannot silently enlarge core or full local verification.",
+      "why": "A test command whose work changes with the developer's machine has neither a stable latency nor a stable verdict. The repository already records that ambient installs must not move a gate (0130 and 0156); model initialization is the same defect with minutes of hidden cost instead of a changed type-check result. Explicit lanes preserve every check while making its dependencies and cost visible."
+    },
+    {
+      "question": "What may test collection do with a real embedding model?",
+      "commitment": "Nothing unless NESTOR_SEMANTIC_TEST=1. The model-loadability probe is lazy and cached, and the opt-in check short-circuits before probing FastEmbed/ONNX. Tests of unavailable semantic behavior inject the unavailable condition even in a developer environment where the extra is installed.",
+      "why": "Collection is shared by every targeted test invocation. Loading a model there charges semantic integration cost to unrelated unit tests and makes deselection too late to help. Injecting the refusal condition also tests the behavior named by the test rather than whichever optional packages happen to be installed."
+    },
+    {
+      "question": "Where do acceptance tests that repeatedly invoke whole-corpus workflows belong?",
+      "commitment": "In the slow lane, while their parser, refusal, and bounded no-corpus unit paths remain in core. The two issue-probe tests that execute every prompt and corpus lens are marked slow; CI and the full pre-push suite still run them.",
+      "why": "Those two tests alone contributed 53.81s and 46.84s to a 116.45s parallel core run. They are valuable end-to-end checks, but charging their repeated subprocess and corpus sweeps to every implementation iteration hides the signal from the thousands of deterministic unit checks that finish in the remaining time. Moving—not skipping—them preserves the acceptance contract and makes the latency boundary truthful."
+    },
+    {
+      "question": "How does a wall-clock performance assertion coexist with parallel CI?",
+      "commitment": "The correctness invariant always runs, including under xdist and coverage. The elapsed-time assertion runs only in the serial performance lane; xdist workers and active tracers are explicitly recognized as distorted clocks.",
+      "why": "The 580-decision clustering check completed correctly but read 80.3 seconds while sharing CPU with the full parallel suite. Raising its 60-second bar would encode runner contention, while skipping the test would lose the partition guard. Separating correctness from timing keeps both claims and measures each under conditions where it means what it says."
+    },
+    {
+      "question": "How are tests that inspect the real repository path made safe under xdist?",
+      "commitment": "Tests that inspect or exercise the repository's live data path share an xdist group, and parallel lanes use loadgroup scheduling so those modules execute serially on one worker. Ambient trust variables are scrubbed at pytest session start, before module-scoped fixtures can spawn subprocesses.",
+      "why": "A per-test fixture runs too late for module/session fixtures, and two individually read-only snapshots can still observe another worker opening or checkpointing SQLite sidecars. Ordering the shared-path group and cleaning trust state before fixture setup removes both sources of environmental verdict drift without disabling parallelism for independent tests."
+    }
+  ]
+}

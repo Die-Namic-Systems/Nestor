@@ -19,10 +19,13 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 HARNESS = REPO / "demo" / "record_demo.py"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("script") is None,
-    reason="script(1) [util-linux] is not on PATH — the harness needs it to allocate a pty",
-)
+pytestmark = [
+    pytest.mark.xdist_group("repo_data"),
+    pytest.mark.skipif(
+        shutil.which("script") is None,
+        reason="script(1) [util-linux] is not on PATH — the harness needs it to allocate a pty",
+    ),
+]
 
 
 def run(*args):

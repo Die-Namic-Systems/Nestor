@@ -126,7 +126,7 @@ jobs:
         # pytest-cov combines them. The pythonpath setting in pyproject.toml
         # ensures the repo root is on sys.path regardless of invocation style.
         run: |
-          pytest -n auto --cov=nestor --cov-report=term -q
+          pytest -n auto --dist loadgroup --cov=nestor --cov-report=term -q
           # Floor, not target: measured 88.4% on master. Ratchet up, never down.
           # pytest-cov writes .coverage; the report reads it.
           coverage report --fail-under=85
