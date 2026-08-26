@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 542,
+    "pairs": 546,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
-  "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "4e508a624b3a25af058f7eb8c57af0bd49476163bedabdafa41bbdc1575c0a57",
+  "created_at": "2026-08-26T00:00:00+00:00",
+  "digest": "5783347fd03484401f25717e1c41e458ae14c7220c0ea5e22d022dd2a7e25ed4",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,62 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "c9fcf1f3-53f5-5c2b-a29a-9614763c57ed",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the scope of this rule right now every earnfirst gate or only the ones this decision names",
+      "source_text": "What is the scope of this rule right now — every earn-first gate, or only the ones this decision names?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only the ones this decision names, though the rule shape is intended for most gates over time. The concrete roster today is willow-mcp's build_lease.EARN_FIRST_ROSTER (9 families: workflow, intake, dag, tension_scan, source_trail_verify, infer, dream, wce, voice_keyterms), covering the earn-first tier in docs/design/slice-backlog.md and the operator-promoted-from-LEAVE rows (2026-07-21). Each additional gate joining the rule is its own subsequent seal — this file does not authorize adding rows to EARN_FIRST_ROSTER, and the roster's location as a module-level tuple (not a JSON file) makes 'adding a family to the gated set' a code diff a reviewer sees. Integration stubs stay on a different rule (earn_mode: two-cite, per integrations.py's earned_by field and the twice-cited ledger checklist) — different subject, different check.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "bbccf879-ea3f-5ebf-8275-06c718152482",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why the 3h ceiling and why reuse the grantnet lease shape at all",
+      "source_text": "Why the 3h ceiling, and why reuse the grant-net lease shape at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "3h is not new — it is FRANK cc553729, the same ceiling grant-net already enforces on open-web egress leases (lease.MAX_TTL_SECONDS = 3*60*60). Reusing the shape means one directory pattern (_net_leases/ and _build_leases/ as siblings under mcp_apps/, both covered by B-14's bound_ro sandbox mount), one fail-closed reader (absent / unparseable / naive-timestamped / over-ceiling / mismatched-subject all read as *no lease*), one mint boundary (local CLI only, blocked from MCP tools, blocked from agent Bash by the PreToolUse self-grant guard extended for grant-build in willow-mcp c474ff4), one panel row shape (timer_shape=lease, countdown when active, grant action when dry), and one place in diagnostic_summary that reports the residual. build_lease.py in willow-mcp is a parallel module of lease.py because parallel implementations of the same failure mode are safer than a shared parameterization that could drift on one axis without the other noticing.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "8e18da88-15ae-5bb1-b831-70652acf082f",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what earns an earnfirst tool ie what moves a family out of the dont build ahead of a consumer tier",
+      "source_text": "What earns an earn-first tool — i.e. what moves a family out of the 'don't build ahead of a consumer' tier?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The operator asks for it AND agrees, on the record, to what the ask opens. The record is a build lease: a JSON file under mcp_apps/_build_leases/<tool>.json, keyed by tool-family name, carrying issuer + granted_at + expires_at + ttl_seconds + reason. Written by 'willow-mcp grant-build <tool> --ttl 30m --reason \"...\"', a local-only CLI unreachable from any MCP tool. When the lease is active the family may be built and shipped; when it expires the family falls back to earn-first and any further work needs a fresh ask under the same terms. The reason field is where the agreement lives — an empty reason still writes a lease (a re-grant to extend an in-flight session should not be blocked on rewording) but the CLI prints a NOTE flagging it, because the rule this seal opens is that the operator asks AND agrees, and an empty reason has nowhere for the agreement to live.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "39cfd729-7598-558a-8bfb-ddee6103dbbd",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happened to gcal and ideatimetravel which showed up in the cluster nestor grouped",
+      "source_text": "What happened to gcal and idea-timetravel, which showed up in the cluster Nestor grouped?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both left the earn-first cluster deliberately. gcal (google-calendar OAuth transport) is misclassified as earn-first — the operator ask already exists (commitment ingestion is the citation), and the block is the OAuth flow, not an operator ask that hasn't happened. Moved to earn_mode: auth-flow-blocked in slice-backlog.md; not gated by this rule. idea-timetravel (full agent-state reconstruction from receipts + lineage) was a Nestor false-positive — the string matcher grouped it with 'should we build X?' items on skeleton overlap, but it is a debug idea, not a capability with a caller shape. Kicked out of the cluster; stays in the idea pile in willow-mcp docs/ideas.md #72 with 🟡 partial status.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
       "id": "fd838c8c-1e2d-5f12-a176-c62f9268b950",
