@@ -1,0 +1,23 @@
+{
+  "branch": "claude/policy-audience",
+  "date": "2026-08-25",
+  "note": "Refocus on the pitch trajectory: real subject matter in the seed demo (journal item A) and a policy-audience one-pager pointing at it (journal item D). Both together because D would point at nothing without A.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should nestor demo have a policy-shaped fixture in addition to the default office-shaped one?",
+      "commitment": "Yes. nestor/seed_policy.py adds a policy-register fixture: 5 sealed en↔es translations (agreement enters into force / public consultation is required / …), 1 draft translation for the covenant demonstration, 4 organisation aliases (UN, IMF, WHO, OECD), 2 numeric baselines with round-fictional figures, and a 3-line queue text in policy register. Wired via `nestor demo --seed policy` (default is 'default', matching the shipped shape). Verifier is 'elena' (default seed uses 'rita') and origin is 'demo-policy' so a reviewer can tell the two fixtures apart at a glance in a mixed or copied store. Gated by tests/test_seed_policy.py (4 tests): row counts, all three recipes present, the draft row is truly unsigned (`verifier` empty, `seal_sig` empty), and the verifier+origin are distinct from the default seed.",
+      "why": "The default nestor demo opens on 'Good night' / 'IBM' / 'q3-revenue' — office-register that a policy audience reads as toy. Journal item A named the fix: a fixture in the audience's own subject matter, so `nestor ui --db data/nestor-demo.db` on a fresh checkout is a demo the audience recognizes. Fictional-shaped on purpose: quoting a real treaty or statistic would either be wrong (they change) or steal attribution (they are somebody's measurement). The round-fictional shape lets the check recipe demonstrate variation-and-tolerance without pretending to speak for any government."
+    },
+    {
+      "question": "Should there be a policy-audience one-pager distinct from the operator guide?",
+      "commitment": "Yes. docs/policy-brief.md is aimed at a non-engineer chief-of-staff, procurement officer, or policy analyst. Structure: the one question it answers ('how does a ministry not lose the ability to say what it said'), the three-command demo (pipx install / nestor demo --seed policy / nestor ui), what 'checked' means in this tool (human attribution + tamper-evident ledger + refuse-to-serve-what-isn't-verified, each with the file:test pair that gates it), what Nestor does NOT do (does not decide / does not phone home / does not require cloud / does not require internet / does not overwrite a signed record), how to adopt, and an explicit 'what this brief does not claim' section (not an audit, not a policy claim, not a promise the extras stay on-box). Every claim points at a file or a test rather than at an adjective.",
+      "why": "Journal item D named the fix and the note argued it depends on item A (something to point at). This one-pager exists to be linked, not read cover-to-cover: a chief-of-staff scans the three commands and the 'what it does not do' section; a procurement officer follows the sovereign-deployment link; nobody has to open the operator guide to decide whether it's worth a meeting. The 'what this brief does NOT claim' section is the load-bearing part -- a pitch that overreaches is what the covenant exists to refuse; refusing that in a pitch about the covenant matters more than usual."
+    },
+    {
+      "question": "Why A and D in one PR rather than split?",
+      "commitment": "Both together because D would point at nothing without A. Journal item D says 'once item A lands...' explicitly. Splitting would leave one PR merged and useless (D pointing at a missing fixture), and the review value of A is easier to see with D in the same diff (a reviewer sees what the fixture is FOR).",
+      "why": "Scope discipline usually favours splitting, but the guide's rule is 'a fix that is not the whole answer to its question is not the fix' -- and the question here is 'does Nestor have a demo an audience recognises AND a document that points at it?' Answering half of that with one PR and the other half in a later merge would leave two-thirds of the value on the floor between merges. This is exactly the shape the guide calls out as an exception to split-early."
+    }
+  ]
+}
