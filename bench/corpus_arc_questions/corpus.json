@@ -1,0 +1,52 @@
+{
+ "0": {
+  "pid": "arc-95",
+  "question": "Are #95 and #96 still open, given that the in-tree code and tests appear to satisfy them?",
+  "commitment": "No — both were fixed and gated before this branch existed. Decision 0189 records the corpus-extractor boundary gate."
+ },
+ "1": {
+  "pid": "arc-97",
+  "question": "Is the decision-record ↔ corpus-extractor boundary a gate, or only prose?",
+  "commitment": "Now a gate. tests/test_corpus_boundary.py asserts no scripts/corpus/extract_*.py reads docs/dogfood/decisions/*.json."
+ },
+ "2": {
+  "pid": "arc-98",
+  "question": "Is nestor_propose's refusal of seal-authority arguments a gate, or only behavior?",
+  "commitment": "Now a gate. tests/test_serve_propose_refusal.py pins the ignored_fields + seal_authority_refused shape and the note-names-them assertion."
+ },
+ "3": {
+  "pid": "arc-100",
+  "question": "Is a glossary term lock matched on word boundaries?",
+  "commitment": "Yes. nestor/glossary.py:88 uses \\b<needle>\\b with re.IGNORECASE. Trade-off vs. inflection recall recorded in decision 0191."
+ },
+ "4": {
+  "pid": "arc-101",
+  "question": "Would a question-stem strip (a normalizer that drops common interrogative openers like 'Should we', 'Can a', 'Does the') rescue the rank-110 licence probe §6.106 named?",
+  "commitment": "No. Measured inline: rank 196/527 baseline → 160/527 after strip. Character-ratio scoring cannot rescue a 40-char probe against a 200-char target with only 'licence' in common (decision 0192)."
+ },
+ "5": {
+  "pid": "arc-111",
+  "question": "Cross-session collision awareness (#111) -- where does it live, and what happens when it cannot tell?",
+  "commitment": "An advisory UserPromptSubmit hook (hooks/before_propose.py), sibling to before_build (#105), fires only on a propose/mint/open-a-PR prompt, scans local git only, and fails CLOSED to UNKNOWN — never a false 'clear'."
+ },
+ "6": {
+  "pid": "arc-163",
+  "question": "Should the cascade passage and the check result surface `evidence_count` so a caller does not have to run `evidence for` separately?",
+  "commitment": "Yes. answer.ask() enriches passage.meta with evidence_count on tier-1 sealed hits; answer.check() surfaces it per-baseline and at the top when a single baseline is chosen. Decision 0193."
+ },
+ "7": {
+  "pid": "arc-203",
+  "question": "Should the MCP server's nestor_ask and nestor_match apply the store-aware domain fallback when neither the model nor the operator named a domain?",
+  "commitment": "Yes. Extracted _ask_domain from cli.py to nestor/domain.py as resolve_domain; added source_lang_explicit / target_lang_explicit to Server; Server._domain_for_read honours model arg → operator explicit flag → fallback. Decision 0188."
+ },
+ "8": {
+  "pid": "arc-209",
+  "question": "How should collisions_at_bar be sped up so the demo does not keep pushing against the CI timeout as the corpus grows?",
+  "commitment": "Route by matcher shape. For a StringMatcher-shaped matcher (no `score()` method), _collisions_via_ratio_bailout uses SequenceMatcher's length-ratio and quick_ratio as O(1)/O(N) upper bounds against SEAL_THRESHOLD before the expensive ratio call. 46.6s → ~1.3s on the collisions function. Decision 0195."
+ },
+ "9": {
+  "pid": "arc-journal",
+  "question": "How should 'default operation opens no non-loopback socket' become a checkable claim, not an adjective in the pitch?",
+  "commitment": "tests/test_no_network_by_default.py installs a socket.socket.connect interceptor at fixture level that raises on any AF_INET/AF_INET6 non-loopback address; each default read command runs against it. Decision 0194."
+ }
+}

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 541,
+    "pairs": 542,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "b80ed1d0b4fa803eeff251ec5599eef7d432a1a4486b4869fca0b31273c0496f",
+  "digest": "4e508a624b3a25af058f7eb8c57af0bd49476163bedabdafa41bbdc1575c0a57",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -220,20 +220,6 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
-      "id": "9533044a-962f-54c0-842c-12ecf9a02b92",
-      "origin": "pr:",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "what is the calibrated bar for matcher semantic on the decision domain and what is its wrongkey rate",
-      "source_text": "What is the calibrated bar for --matcher semantic on the decision domain, and what is its wrong-key rate?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "Deferred. This seat's egress proxy blocks fastembed's model download from HuggingFace (httpx.ProxyError: 403 Forbidden on a `nestor decision check --matcher semantic` end-to-end run this session), so the calibration cannot be measured here. The commitment is that the calibration ships as a separate PR from a seat where the model can download, updating docs/decision-rewording-bench.md with the semantic column and this decision's second question with the measured numbers. Until then, a caller running --matcher semantic against the dogfood corpus uses the string-matcher default bar (0.55), which is measured for StringMatcher, NOT for the semantic backend -- and that mismatch is noted in the --help text so nobody trusts a semantic serve on a bar tuned for a different scorer.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "8f2fb6d2-be25-52b3-8b73-439f59567a1e",
       "origin": "pr:",
       "seal_sig": "",
@@ -285,6 +271,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "7a296e38-5a3d-51ee-b2ca-b7e562f312c3",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the calibrated bar for matcher semantic on the decision domain and what is its wrongkey rate",
+      "source_text": "What is the calibrated bar for --matcher semantic on the decision domain, and what is its wrong-key rate?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Measured via the two documented workarounds for a seat that cannot download the fastembed model (docs/embedder-stand-in.md, decisions 0084 + 0089). Two corpora, one instrument (this LLM as the score(a, b) → float stand-in per the rubric in docs/embedder-stand-in.md; scores committed to disk so the harness is deterministic offline):\n\n(1) On the shipped bench corpus (24 rewordings of 24 decisions), the pre-existing bench/corpus_decision_n1/semantic_scores.json produces rank@1 24/24 (100%), recall@0.92 24/24 (100%), wrong-key@0.92 0/24 (0%). Clean knee at bar 0.92. That is what the semantic seam would buy at the shipped seal bar for the corpus the bench was designed against.\n\n(2) On the new arc-questions corpus (bench/corpus_arc_questions/, 10 fresh-worded probes over the arc's own recorded decisions), the stand-in in bench/corpus_arc_questions/semantic_scores.json produces rank@1 10/10 (100%), recall@0.92 3/10 (30%), recall@0.85 8/10 (80%), recall@0.70 10/10 (100%), wrong-key across every bar 0/10. Clean knee at bar 0.70.\n\nThe gap between the two clean knees (0.92 vs 0.70) is not a defect in the semantic seam; it is the shape of the paraphrase distance in my arc probes. The 24-decision bench's probes were Haiku-generated rewordings of the source questions, tighter to the corpus than my fresh-worded arc probes (which were asked without seeing the recorded phrasing). Both numbers are lower bounds per decision 0089: the stand-in has 0.150 mean spread and 0.300 max across independent instantiations, so any single-run measurement is one point in a distribution.",
       "verifier": "",
       "weight": 1.0
     },
@@ -523,6 +523,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Kept the state table (lines 16-21) as the single canonical definition. Trimmed 'The category' section to back-reference it instead of re-explaining tiers. Simplified the recipe tier table's 'Result state' column to bare state names.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "2a9d09ea-a97c-5df3-ba79-7ee3b13f79eb",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the arcquestions corpus a fair sample for calibration",
+      "source_text": "Is the arc-questions corpus a fair sample for calibration?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It is a stress test, not a representative sample. The 10 arc probes were written blind — asked in fresh words without reading the recorded questions — which is closer to the worst case (a curator returning weeks later) than to the typical case (a proposal drafted with recent context). If the shipped calibration wants to serve both, the bar 0.70 knee measured here is where recall stops leaking on the harder shape; the bar 0.92 knee measured on the tighter 24-decision bench is where wrong-keys stop being possible on the easier shape. Per-corpus calibration (docs/decision-rewording-bench.md's own rule) is the answer, and this PR ships both fixtures so a future seat with the real fastembed model can re-run both against a shipped SemanticMatcher and see whether the two knees converge or stay split.",
       "verifier": "",
       "weight": 1.0
     },

@@ -1,0 +1,12 @@
+{
+ "0": "Should corpus extractors fail closed on a missing checkout?",
+ "1": "Should the corpus extractors read the decision record?",
+ "2": "Should nestor_propose refuse forbidden arguments loudly?",
+ "3": "Should glossary term locks match on word boundary or substring?",
+ "4": "Would a question-stem strip rescue the rank-110 licence probe?",
+ "5": "Where does cross-session collision awareness live?",
+ "6": "Should cascade metadata and check output surface evidence_count?",
+ "7": "Should nestor_ask on the MCP server have the same domain fallback as the CLI?",
+ "8": "Should collisions_at_bar in demo/the_dogfooding.py be sped up with early bail?",
+ "9": "Should the local-first no-phone-home claim be a test, not an adjective?"
+}
