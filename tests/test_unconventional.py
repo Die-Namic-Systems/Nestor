@@ -2390,39 +2390,65 @@ class TestEmojiNarratives:
     """Emoji sequences as source text — can Nestor store and retrieve
     entire stories told in emoji?"""
 
-    def test_emoji_only_story_normalizes_to_empty(self, store):
-        """FINDING: a pure-emoji source normalizes to '' because emoji
-        are not \\w characters. The pair is stored but any other emoji-only
-        query also normalizes to '' and collides."""
+    def test_emoji_only_stories_key_distinctly_after_0202(self, store):
+        """Decision 0202 replaced the FINDING this test used to lock — that
+        every emoji-only source normalized to '' and therefore collided on
+        the empty key. StringMatcher.normalize now preserves Unicode
+        symbol categories (So, Sk), so two different emoji stories key
+        distinctly and each retrieves its own row rather than borrowing
+        the first-sealed row's target."""
+        boy_forest = "\U0001f466\U0001f6b6\U0001f332\U0001f43b\U0001f3c3\U0001f3e0"
+        rocket_star = "\U0001f680\U0001f31f\U0001f4ab"
+
         memory.add_pair(
-            "\U0001f466\U0001f6b6\U0001f332\U0001f43b\U0001f3c3\U0001f3e0",
+            boy_forest,
             "A boy walked through the forest, met a bear, ran home",
             "emoji", "en", status="sealed", store=store)
-        hit = memory.best_sealed(
-            "\U0001f466\U0001f6b6\U0001f332\U0001f43b\U0001f3c3\U0001f3e0",
-            "emoji", "en", store=store)
-        assert hit is not None
+        memory.add_pair(
+            rocket_star,
+            "A rocket launched toward a star",
+            "emoji", "en", status="sealed", store=store)
 
-        diff_emoji = "\U0001f680\U0001f31f\U0001f4ab"
-        hit2 = memory.best_sealed(diff_emoji, "emoji", "en", store=store)
+        hit1 = memory.best_sealed(boy_forest, "emoji", "en", store=store)
+        hit2 = memory.best_sealed(rocket_star, "emoji", "en", store=store)
+        assert hit1 is not None
         assert hit2 is not None
-        assert hit2["pair"]["target_text"] == hit["pair"]["target_text"]
+        assert hit1["pair"]["target_text"] != hit2["pair"]["target_text"], (
+            "distinct emoji stories must retrieve distinct rows — if this "
+            "fires, the strip pass regressed to the pre-0202 collapse")
+        assert hit1["pair"]["target_text"].startswith("A boy")
+        assert hit2["pair"]["target_text"].startswith("A rocket")
 
-    def test_single_emoji_all_normalize_to_empty(self, store):
-        """FINDING: single emoji are NOT \\w characters in Python regex, so
-        normalize() strips them entirely. All emoji keys collide on the
-        empty string. Only the first one can be sealed; the rest conflict."""
-        from nestor.memory import ConflictingSealError
-        memory.add_pair("❤️", "unconditional love",
-                        "emoji", "philosophy",
-                        status="sealed", store=store)
-        with pytest.raises(ConflictingSealError):
-            memory.add_pair("\U0001f4a1", "sudden inspiration",
-                            "emoji", "philosophy",
-                            status="sealed", store=store)
+    def test_single_emoji_seal_distinctly_after_0202(self, store):
+        """Decision 0202 replaced the FINDING this test used to lock —
+        that single emoji all normalized to '' and therefore only the
+        first could be sealed (the rest raised ConflictingSealError).
+        Now each single-emoji seal keys distinctly and the second seal
+        succeeds. If ConflictingSealError EVER fires on two different
+        emoji here, the strip pass regressed to the pre-fix collapse."""
+        heart = memory.add_pair("❤️", "unconditional love",
+                                "emoji", "philosophy",
+                                status="sealed", store=store)
+        bulb = memory.add_pair("\U0001f4a1", "sudden inspiration",
+                               "emoji", "philosophy",
+                               status="sealed", store=store)
+        assert heart["source_norm"] != bulb["source_norm"], (
+            "two different emoji must produce two different source_norm "
+            "keys after decision 0202")
+        # Both retrievable, each returns its own target.
+        for src, expected in [("❤️", "unconditional love"),
+                              ("\U0001f4a1", "sudden inspiration")]:
+            hit = memory.best_sealed(src, "emoji", "philosophy", store=store)
+            assert hit is not None, f"{src!r} did not retrieve after seal"
+            assert hit["pair"]["target_text"] == expected
 
     def test_emoji_with_text_anchor(self, store):
-        """Emoji work when combined with text that survives normalize()."""
+        """Emoji work when combined with text. Pre-0202 the text was the
+        only surviving distinctness signal (the emoji got stripped);
+        post-0202 both survive, so this test asserts something slightly
+        weaker than it now guarantees — see
+        ``test_emoji_only_stories_key_distinctly_after_0202`` for the
+        stronger form."""
         concepts = [
             ("heart ❤️", "unconditional love"),
             ("bulb \U0001f4a1", "sudden inspiration"),
@@ -2438,8 +2464,14 @@ class TestEmojiNarratives:
             assert hit["pair"]["target_text"] == concept
 
     def test_emoji_with_text_prefix_differentiates(self, store):
-        """Emoji alone collide, but prefixed with text they differentiate.
-        This is the workaround for the emoji-normalization finding."""
+        """A text prefix distinguishes emoji stories. This test was
+        originally the *workaround* for the emoji-collapse finding —
+        the prefix was needed because the emoji themselves collapsed to
+        ''. Decision 0202 fixed the collapse, so the prefix is no longer
+        necessary for distinctness; the test still passes because the
+        text prefix continues to distinguish, and now the emoji suffix
+        does too — a doubly-redundant distinction. Kept as-is because
+        naming the fact that BOTH signals now work is worth the row."""
         memory.add_pair(
             "story: \U0001f466\U0001f332\U0001f43b",
             "A boy met a bear in the forest",

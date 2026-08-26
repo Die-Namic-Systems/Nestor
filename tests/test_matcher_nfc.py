@@ -120,16 +120,25 @@ def test_fullwidth_digits_are_not_folded(m):
     assert m.normalize("item 123") != m.normalize("item １２３")
 
 
-def test_pure_emoji_still_normalizes_to_empty(m):
-    """PR 180's ``test_emoji_only_story_normalizes_to_empty`` and
-    ``test_single_emoji_all_normalize_to_empty`` lock that pure-emoji
-    strings normalize to ``""`` and therefore collide on the empty key.
-    NFC does not change that — emoji are non-``\\w`` regardless of
-    composition — and this PR deliberately does not touch the emoji
-    question. If a later PR wants to address it, this test's failure is
-    the signal the invariant is moving and a new decision is needed."""
-    assert m.normalize("🌍") == ""
-    assert m.normalize("❤️") == ""
+def test_pure_emoji_normalizes_distinctly_after_0202(m):
+    """This test's predecessor —
+    ``test_pure_emoji_still_normalizes_to_empty`` — locked the pre-0202
+    behaviour that pure-emoji strings normalized to ``""``. Decision 0202
+    replaced that: symbol categories ``So`` and ``Sk`` are now preserved,
+    so two different pure-emoji strings key distinctly instead of
+    colliding on the empty string. NFC is orthogonal to this fix (NFC
+    handles composition, the strip pass handles which categories to
+    keep), but the two changes now compose in the same ``normalize`` and
+    live in the same file's test bench.
+    """
+    globe = m.normalize("🌍")
+    rocket = m.normalize("🚀")
+    assert globe != "", "pure-emoji normalize must not collapse to empty"
+    assert rocket != "", "pure-emoji normalize must not collapse to empty"
+    assert globe != rocket, (
+        "two different emoji must key distinctly — the whole point of the "
+        "0202 fix. If this fires, the emoji-preservation regressed to the "
+        "pre-fix collapse.")
 
 
 def test_ascii_normalizes_byte_for_byte_as_before(m):
