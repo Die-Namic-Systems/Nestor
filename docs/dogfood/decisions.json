@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 535,
+    "pairs": 538,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "ab72045f200900cf57e7e56841b28c51f4a713747ecc08f9a1622b615e94f55d",
+  "digest": "011fd98947a0a24b5f557c5f92f01c6802d49d3ccfed84d19de5931886e02643",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -220,6 +220,20 @@
     },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "8f2fb6d2-be25-52b3-8b73-439f59567a1e",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should nestor demo have a policyshaped fixture in addition to the default officeshaped one",
+      "source_text": "Should nestor demo have a policy-shaped fixture in addition to the default office-shaped one?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. nestor/seed_policy.py adds a policy-register fixture: 5 sealed en↔es translations (agreement enters into force / public consultation is required / …), 1 draft translation for the covenant demonstration, 4 organisation aliases (UN, IMF, WHO, OECD), 2 numeric baselines with round-fictional figures, and a 3-line queue text in policy register. Wired via `nestor demo --seed policy` (default is 'default', matching the shipped shape). Verifier is 'elena' (default seed uses 'rita') and origin is 'demo-policy' so a reviewer can tell the two fixtures apart at a glance in a mixed or copied store. Gated by tests/test_seed_policy.py (4 tests): row counts, all three recipes present, the draft row is truly unsigned (`verifier` empty, `seal_sig` empty), and the verifier+origin are distinct from the default seed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
       "id": "8aa974da-b6b4-556c-aef9-4a1d60764a62",
       "origin": "pr:",
       "seal_sig": "",
@@ -243,6 +257,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes — contradictions now require q_sim >= bar + 0.15 (0.70 at the default bar of 0.55). Supersession is unchanged at q_sim >= bar. The uplift is a module constant (_CONTRADICT_UPLIFT = 0.15) derived from the dogfood corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "736346aa-f659-5518-998a-fea7a41c65b6",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why a and d in one pr rather than split",
+      "source_text": "Why A and D in one PR rather than split?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both together because D would point at nothing without A. Journal item D says 'once item A lands...' explicitly. Splitting would leave one PR merged and useless (D pointing at a missing fixture), and the review value of A is easier to see with D in the same diff (a reviewer sees what the fixture is FOR).",
       "verifier": "",
       "weight": 1.0
     },
@@ -411,6 +439,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. `nestor triage` runs the triage (group + supersede) over the dogfood corpus and prints the report. Supports `--matcher string|semantic|ollama`, `--bar`, `--calibrate`, and `--json`. Read-only — proposes nothing, seals nothing. The standalone script (`scripts/decision_triage.py`) stays for its `--propose` mode; the CLI subcommand covers the common path.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-25T00:00:00+00:00",
+      "id": "32f79a90-23da-5ba6-8e16-9a1c047ecaee",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should there be a policyaudience onepager distinct from the operator guide",
+      "source_text": "Should there be a policy-audience one-pager distinct from the operator guide?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. docs/policy-brief.md is aimed at a non-engineer chief-of-staff, procurement officer, or policy analyst. Structure: the one question it answers ('how does a ministry not lose the ability to say what it said'), the three-command demo (pipx install / nestor demo --seed policy / nestor ui), what 'checked' means in this tool (human attribution + tamper-evident ledger + refuse-to-serve-what-isn't-verified, each with the file:test pair that gates it), what Nestor does NOT do (does not decide / does not phone home / does not require cloud / does not require internet / does not overwrite a signed record), how to adopt, and an explicit 'what this brief does not claim' section (not an audit, not a policy claim, not a promise the extras stay on-box). Every claim points at a file or a test rather than at an adjective.",
       "verifier": "",
       "weight": 1.0
     },

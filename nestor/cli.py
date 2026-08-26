@@ -46,6 +46,7 @@ import os
 import pathlib
 import shutil
 import sys
+import types
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _dist_version
 
@@ -999,8 +1000,11 @@ def cmd_demo(args) -> int:
 
     IDEAS §6.107: a cold clone / ``pip install`` opens onto an empty desk, and a
     curious visitor who lands on nothing has already left. This writes a tiny,
-    honest store across all three recipes — sealed by :mod:`nestor.seed` through
-    the ordinary seal path — and prints the one command to view it.
+    honest store across all three recipes — sealed by :mod:`nestor.seed` (or
+    :mod:`nestor.seed_policy` under ``--seed policy``) through the ordinary
+    seal path — and prints the one command to view it. See
+    ``docs/policy-brief.md`` for the audience the ``policy`` fixture is aimed
+    at.
     """
     # Keep the demo out of a real store's way. Compare RESOLVED paths, not the
     # raw string: `--db ./data/nestor.db` (or any other spelling of the default)
@@ -1011,6 +1015,15 @@ def cmd_demo(args) -> int:
         # A self-contained ledger beside the demo db, so the chain these seals
         # write travels with the store instead of landing in data/ledger.jsonl.
         args.ledger = os.path.splitext(args.db)[0] + ".ledger.jsonl"
+    # Route to the fixture the caller asked for. Both modules present the same
+    # ``seed_store(store) -> counts`` shape so the branch is a one-line pick.
+    scheme = getattr(args, "seed", "default")
+    seed_scheme: types.ModuleType
+    if scheme == "policy":
+        from . import seed_policy
+        seed_scheme = seed_policy
+    else:
+        seed_scheme = seed_mod
     store = _store(args)
     try:
         # Never seed over an existing store — a filename heuristic is not a
@@ -1022,18 +1035,20 @@ def cmd_demo(args) -> int:
                   f"{args.db} already has content — not seeding "
                   f"(delete it to reseed).\n  view it:  nestor ui --db {args.db}")
             return EXIT_OK
-        counts = seed_mod.seed_store(store)
+        counts = seed_scheme.seed_store(store)
     finally:
         store.close()
     total = sum(counts.values())
+    scheme_note = f" ({scheme})" if scheme != "default" else ""
     human = (
-        f"seeded {args.db} with {total} row(s): "
+        f"seeded {args.db}{scheme_note} with {total} row(s): "
         f"{counts['sealed']} sealed + {counts['draft']} draft translation, "
         f"{counts['aliases']} entity alias(es), {counts['baselines']} numeric baseline(s), "
         f"{counts['queued']} segment(s) awaiting review.\n"
         f"  view it:  nestor ui --db {args.db}"
     )
-    _emit({"db": args.db, "ledger": args.ledger, "counts": counts}, args.json, human)
+    _emit({"db": args.db, "ledger": args.ledger, "seed": scheme, "counts": counts},
+          args.json, human)
     return EXIT_OK
 
 
@@ -1408,6 +1423,10 @@ def build_parser() -> argparse.ArgumentParser:
     st.set_defaults(func=cmd_stats)
 
     dem = sub.add_parser("demo", help="build a small seeded store so `nestor ui` opens live")
+    dem.add_argument("--seed", default="default", choices=("default", "policy"),
+                     help="which fixture to seed with: 'default' (office-register, "
+                          "the shipped shape) or 'policy' (public-sector-register — "
+                          "see docs/policy-brief.md)")
     dem.set_defaults(func=cmd_demo)
 
     ini = sub.add_parser("init", help="a guided first run: ask, watch it resolve, propose a draft")
