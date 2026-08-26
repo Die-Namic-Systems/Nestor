@@ -30,6 +30,7 @@ from __future__ import annotations
 import difflib
 import math
 import re
+import unicodedata
 from typing import Protocol, runtime_checkable
 
 
@@ -190,8 +191,19 @@ class StringMatcher:
 
     def normalize(self, value) -> str:
         # Historically ``_norm(text: str)``. Accept non-str defensively by
-        # coercing, but for str inputs this is byte-for-byte the old result.
+        # coercing. NFC-fold first so composed and decomposed forms of the
+        # same visible word produce the same key — Vietnamese ``ư`` typed as
+        # U+01B0 vs typed as ``u`` + U+031B, decomposed ``café`` vs composed
+        # ``café``, Arabic letters with combining marks. Without NFC the
+        # combining codepoints are non-``\w`` and get stripped, silently
+        # producing a different key from what the operator sees on screen.
+        # NFC does *not* collapse legitimate distinctions: Cyrillic ``а`` and
+        # Latin ``a`` stay distinct (Unicode homoglyph question, not a
+        # composition question), and fullwidth digits stay fullwidth. For
+        # 7-bit ASCII text the output is byte-for-byte identical to the
+        # pre-NFC pipeline.
         text = value if isinstance(value, str) else str(value)
+        text = unicodedata.normalize("NFC", text)
         return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", text.lower())).strip()
 
     def similarity(self, a_norm: str, b_norm: str) -> float:
