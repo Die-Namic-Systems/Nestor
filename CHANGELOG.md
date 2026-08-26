@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.12.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.11.1...v0.12.0) (2026-08-26)
+
+
+### Added
+
+* **evidence:** promote demo.weakest into aggregate_provenance (decision 0207) ([f72baaa](https://github.com/Die-Namic-Systems/Nestor/commit/f72baaa51c8a9c8ef5afc2633fca33367eeb68f8))
+* **evidence:** promote demo.weakest into aggregate_provenance (decision 0207) ([#223](https://github.com/Die-Namic-Systems/Nestor/issues/223)) ([5be8756](https://github.com/Die-Namic-Systems/Nestor/commit/5be8756be19879e589ac648b916de1faa3cb20f0))
+
 ## [0.11.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.11.0...v0.11.1) (2026-08-25)
 
 
