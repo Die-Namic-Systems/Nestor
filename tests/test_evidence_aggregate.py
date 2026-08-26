@@ -89,7 +89,7 @@ def test_single_state_returns_itself():
 
 def test_accepts_any_iterable_not_just_list():
     assert aggregate_provenance(iter(["measured", "fitted"])) == "fitted"
-    assert aggregate_provenance((s for s in ["fitted", "assumed"])) == "assumed"
+    assert aggregate_provenance(s for s in ["fitted", "assumed"]) == "assumed"
     assert aggregate_provenance({"measured", "assumed"}) == "assumed"
 
 

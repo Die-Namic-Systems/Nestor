@@ -32,8 +32,9 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable, cast
+from typing import cast
 
 from .storage import EvidenceStorage, Storage, get_store, require_capability
 
