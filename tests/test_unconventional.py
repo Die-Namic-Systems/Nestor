@@ -154,14 +154,26 @@ class TestMegaPayloads:
         hit = memory.best_sealed(binary_ish, "en", "en", store=store)
         assert hit is not None
 
-    def test_all_whitespace_source(self, store):
-        """Source text that's nothing but spaces and tabs."""
+    def test_all_whitespace_source_is_refused_after_0204(self, store):
+        """Decision 0204 (refuse-empty-norm-seals) replaced the
+        FINDING this test used to lock — that pure whitespace source
+        text stored under an empty ``source_norm``. Pure whitespace
+        normalizes to ``""`` under :class:`StringMatcher` (spaces are
+        ``\\s`` and get collapsed then stripped), so it shares the
+        empty key with every other collision-prone class. ``add_pair``
+        now raises :class:`EmptyNormError` before writing."""
+        from nestor.memory import EmptyNormError
         whitespace = "   \t\t   \n   "
-        memory.add_pair(whitespace, "void", "en", "en",
-                        status="draft", store=store)
-        norm = StringMatcher().normalize(whitespace)
-        # Pin: StringMatcher strips to empty string on pure whitespace.
-        assert isinstance(norm, str)
+        # StringMatcher strips it to empty — the reason for the refusal.
+        assert StringMatcher().normalize(whitespace) == ""
+        # Both sealed and draft are refused; the collision-prone key is
+        # the danger regardless of sealing state.
+        with pytest.raises(EmptyNormError):
+            memory.add_pair(whitespace, "void", "en", "en",
+                            status="draft", store=store)
+        with pytest.raises(EmptyNormError):
+            memory.add_pair(whitespace, "void", "en", "en",
+                            status="sealed", verifier="v", store=store)
 
     def test_repeated_character_moderate(self, store):
         """5k repetitions — still pathological for difflib but bounded."""
@@ -2083,14 +2095,27 @@ class TestNormalizationBoundaries:
         assert hit is not None
         assert hit["similarity"] == 1.0
 
-    def test_empty_after_normalize(self, store):
-        """A string of only punctuation normalizes to empty string.
-        Nestor should handle this without crashing."""
-        memory.add_pair("...", "puntos suspensivos", "en", "es",
-                        status="sealed", store=store)
-        hit = memory.best_sealed("!!!", "en", "es", store=store)
-        if hit is not None:
-            assert hit["similarity"] == 1.0
+    def test_empty_norm_sources_are_refused_after_0204(self, store):
+        """Decision 0204 (Grok Direction C, refuse empty-norm seals)
+        replaced the FINDING this test used to lock — that a punctuation-
+        only string like ``"..."`` normalized to ``""`` and quietly sealed
+        under a collision-prone key that every other empty-norm string
+        would share. ``add_pair`` now raises :class:`EmptyNormError`
+        before it can write, so the collision-prone class is visible at
+        the boundary rather than a silent last-writer-wins overwrite
+        later."""
+        from nestor.memory import EmptyNormError
+        with pytest.raises(EmptyNormError):
+            memory.add_pair("...", "puntos suspensivos", "en", "es",
+                            status="sealed", store=store)
+        with pytest.raises(EmptyNormError):
+            memory.add_pair("!!!", "excitement", "en", "es",
+                            status="sealed", store=store)
+        # And drafts refuse for the same reason — the collision-prone
+        # key is the danger, and it doesn't care about sealing state.
+        with pytest.raises(EmptyNormError):
+            memory.add_pair("...", "as a draft", "en", "es",
+                            status="draft", store=store)
 
     def test_unicode_normalization_nfc_vs_nfd(self, store):
         """NFC 'é' (U+00E9) vs NFD 'e' + combining acute (U+0065 U+0301).

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 556,
+    "pairs": 559,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "a4de12bd5f0bf5e823169a221a92e0abd9df32883cfbb7ca1aad6c0713bee292",
+  "digest": "02a4b0f84a5789255e8d544aa16d36431a7af878fc199b4cac3e6facdb7e2110",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -108,6 +108,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "89570b11-bb12-5a90-80c2-09e78c2f9e75",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should this land before or after pr 217 emoji preservation",
+      "source_text": "Should this land BEFORE or AFTER PR #217 (emoji preservation)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "After. This branch is stacked on `claude/pr180-emoji-normalize` (PR #217) rather than master. PR #217 rewrites the two emoji tests that used to seal `\"🌍\"` and `\"❤️\"` (which collapsed to `\"\"` before the So/Sk preservation); without those rewrites, this PR's refuse-empty-norm would also refuse those seals and break PR #217's ordering. Stacking keeps the merge order clean: emoji fix lands first (which un-empties emoji), then this lands (which refuses whatever is still empty). Once #217 merges to master the base branch here can be retargeted to master.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "8539a319-d837-50e2-8ae9-da1377f715ac",
       "origin": "pr:",
       "seal_sig": "",
@@ -178,6 +192,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "1a8556b1-cc71-5e0b-80a6-f14ac6c7db56",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should ``memoryadd_pair`` refuse to write a pair whose ``source_text`` normalizes to the empty string",
+      "source_text": "Should ``memory.add_pair`` refuse to write a pair whose ``source_text`` normalizes to the empty string?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. `nestor/memory.py` gains an `EmptyNormError` class (a `NestorError` subclass sitting alongside `ConflictingSealError`, `RejectedPairError`, etc.) and a boundary check in `add_pair` right after `norm = matcher.normalize(source_text)`: if `not norm` and `not override_empty_norm`, raise `EmptyNormError` naming the offending source_text, the matcher class, and the override path. The refusal happens BEFORE the ledger preflight, the conflict checks, and any store write, so no row lands and no ledger entry accumulates. Applies to sealed AND draft — the collision-prone key is the danger, and it doesn't care about sealing state. Gated by 20 tests in tests/test_refuse_empty_norm_seals.py covering pure punctuation, math symbols (∞), currency ($$$), whitespace, and empty string across sealed/draft, plus the override_empty_norm=True escape hatch and its still-collides behaviour. Two PR #180 tests that used to lock the old silent-empty-norm-sealing behaviour (test_empty_after_normalize, test_all_whitespace_source) are rewritten in place against the new refusal — same posture PR #217 took with the emoji tests.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "1a111e4b-39dd-53e9-bbe8-9fcebbe51d6d",
       "origin": "pr:",
       "seal_sig": "",
@@ -201,6 +229,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Single, for now. `set_tier15_recognizer(fn)` replaces the previously-installed one (no warning — a host installing twice deliberately is not doing it by mistake). If a second lane ever needs to co-exist (a lexicon AND a corpus AND a house-style TM, all wanting to be consulted before the engine), a wider design would move to `register_tier15_recognizer(fn)` / `unregister_tier15_recognizer(fn)` returning a token, with the cascade iterating the registered set and taking the first non-None. That design is named here so a later decision doesn't have to re-derive it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "12b1d53f-f4a8-53cb-b042-bb0593abf700",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why an override_empty_norm parameter instead of a hard refusal",
+      "source_text": "Why an override_empty_norm parameter instead of a hard refusal?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The parameter exists but defaults to False (refusal is the normal path). No production caller is expected to pass override_empty_norm=True; the shipped seeds, the recipes, and the covenant path all produce non-empty norms for legitimate content. The override is a documented escape hatch matching the shape of `override_conflict` (ConflictingSealError) and `override_rejection` (RejectedPairError) so a specific caller who has a documented reason (a test asserting the previous collision behavior; a very rare deployment where an empty key IS the intended semantics) can proceed with the responsibility explicitly named in the code that does it.",
       "verifier": "",
       "weight": 1.0
     },
