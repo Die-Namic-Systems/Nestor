@@ -135,6 +135,7 @@ docs/project-layout.md  this file — the full annotated manifest the README's s
 docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
 ├── public-sector-audience.md  the shape of the audience a public-diplomacy speaker rotation puts Nestor in front of, and the verified/asserted line drawn against a pitch
+├── 2026-08-26-handoff.md  session hand-off for the next agent — what this arc did, what's left, and the housekeeping the seat carries
 ├── felt-cost.md        one operator sentence about friction, read closely — what it implies, and what it cannot
 └── live-forever-verse.md  a verse the operator asked to be written down and attributed — not a design memo
 ```
