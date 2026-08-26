@@ -1,5 +1,5 @@
 {
-  "branch": "fix/ollama-loopback-audit-stack",
+  "branch": "fix/ollama-loopback-audit-pr",
   "date": "2026-08-26",
   "note": "Adding bounded Ollama drafting put a second stdlib HTTP client in engine.py. The constitution audit had encoded the older implementation detail that ollama_embed.py was the only operator-local client, so it changed CONST-0-3 from differently governed to FAILS even though the new client refuses every non-loopback host.",
   "decisions": [
