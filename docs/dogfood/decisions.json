@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 552,
+    "pairs": 555,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "b254c31b020d6265065e6873e14e0310f54667f8bb89cbdfa6343c6c8ca0abb7",
+  "digest": "2ca78c9e7641656cd460b1f03d17c7e6503efba9ff4554265a14107cb91ba1dd",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "e833d774-e230-5ede-b24b-0c5199d4bc0d",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should numericmatcher understand dateshaped inputs",
+      "source_text": "Should NumericMatcher understand date-shaped inputs?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No — deferred as out of scope. NumericMatcher is documented as a *figure* matcher, and a date is not a figure. Current behaviour on date-shaped inputs is documented in tests/test_numeric_prose_residue.py::test_dates_parse_wrongly_because_they_are_not_numbers: `'2024-08-25' → 2024`, `'12/31/2024' → 12`, and (the surprise) `'Aug 25, 2024' → 252024` because comma is stripped in preclean and the '25' fuses with the '2024' into a six-digit number that is neither the day nor the year. Sealing a date as a Reconciler baseline is a category error today; a future date-aware matcher (or a domain-typed baseline schema) would replace this behaviour, but nothing in the current design's stated scope pretends to serve it.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
       "id": "e69bf293-043c-51de-812f-0fc8610225b8",
@@ -89,6 +103,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "After. This branch is stacked on `claude/pr180-emoji-normalize` (PR #217) rather than master. PR #217 rewrites the two emoji tests that used to seal `\"🌍\"` and `\"❤️\"` (which collapsed to `\"\"` before the So/Sk preservation); without those rewrites, this PR's refuse-empty-norm would also refuse those seals and break PR #217's ordering. Stacking keeps the merge order clean: emoji fix lands first (which un-empties emoji), then this lands (which refuses whatever is still empty). Once #217 merges to master the base branch here can be retargeted to master.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "8539a319-d837-50e2-8ae9-da1377f715ac",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should numericmatcher recognise magnitude suffixes 390m 3900000",
+      "source_text": "Should NumericMatcher recognise magnitude suffixes ('3.90M' = 3,900,000)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Deferred. Current behaviour is preserved: `parse('3.90M')` returns `3.9`, `parse('42k')` returns `42.0`, and so on — the suffix ends up in residue with `partial=False`. Users writing '3.90M' meaning three million nine hundred thousand see their figure silently truncated to 3.9 for matching purposes. A fix requires deciding which suffixes to recognise (K/M/B/T? lowercase too? case-sensitive? SI vs financial?) and what to do about ambiguous cases like `'42k'` (42 thousand, or a K-line product code?). This is a wider design question than 'reject the surrounding prose', and the failure mode is closer to 'wrong number' than 'wrong match' — worth its own decision with corpus data on how the operator actually writes their figures.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "53aa23d1-61b1-5ba4-a632-00d04c7cdd91",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should numericmatcherparse refuse to return a number when the input contains prose surrounding the digits",
+      "source_text": "Should NumericMatcher.parse refuse to return a number when the input contains prose surrounding the digits?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Deferred. Current behaviour is preserved: `parse('Room 42')`, `parse('the answer is 42')`, `parse('42ish')`, and `parse('$42 sandwich')` all return `42.0`, and similarity against a `42` baseline is `1.0` for all of them. The design docstring on `NumericMatcher.parse_detail` names this stance explicitly — 'USD is decoration, not prose' and 'Reporting it beats refusing it: a reconciler that rejected every partially-parsed figure would refuse real inputs' — and every heuristic that closes the prose-plus-number class also refuses one or more legitimate unit-suffixed cases: length ≤ 3 refuses `Room` (4) but also `ish`; all-uppercase refuses `Room` but also refuses `kg` and `cm`; ≥2 lowercase letters refuses `sandwich` but also refuses `cm`, `kg`, and every metric suffix. A refuse-prose-residue fix therefore has to make a policy call (which kind of decoration is 'unit' vs 'prose') that is not obvious from the design's stated intent alone.",
       "verifier": "",
       "weight": 1.0
     },
