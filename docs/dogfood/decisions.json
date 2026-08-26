@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 542,
+    "pairs": 544,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
-  "created_at": "2026-08-25T00:00:00+00:00",
-  "digest": "4e508a624b3a25af058f7eb8c57af0bd49476163bedabdafa41bbdc1575c0a57",
+  "created_at": "2026-08-26T00:00:00+00:00",
+  "digest": "1e2926fe0aec46c3a2234f080e51c74b34a17517740de1eeabb9646e408f4435",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "e69bf293-043c-51de-812f-0fc8610225b8",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what claim does the bench actually gate versus what does it leave for a human",
+      "source_text": "What claim does the bench actually gate versus what does it leave for a human?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The bench (tests/test_walk_through_covenant.py) asserts: the doc file exists; beat 1's sealed source and target strings serve as verified by elena with the exact target the doc quotes; beat 2's draft row comes back unverified with the exact target the doc quotes; beat 3's rewrite is refused with beat-1's target as the drafted answer; and beat 5 — after emulating the UI seal via memory.add_pair — the re-ask serves as verified. It does NOT gate the UI seal action itself (no agent can do it) and does NOT re-litigate the ledger tamper case (already gated by tests/test_review_ledger.py).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "07abbd45-2bfd-5799-aa0c-6d50ff180a2f",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the ninetysecond policy walkthrough live as a doc or as an executable demo script",
+      "source_text": "Should the ninety-second policy walk-through live as a doc or as an executable demo script?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "As a doc — docs/walk-through-covenant.md. Six beats, transcript literals captured from `nestor demo --seed policy` on the current build, ending at beat 4 (a human seals the drafted row in the UI) and beat 5 (the same ask now serves as verified). Beat 6 nods at the ledger and defers deeper coverage to tests/test_review_ledger.py. The doc names its own bench (tests/test_walk_through_covenant.py, 6 tests) as its anti-drift gate: any literal in beats 1/2/3/5 that stops matching the store fails the bench.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-25T00:00:00+00:00",
       "id": "fd838c8c-1e2d-5f12-a176-c62f9268b950",
