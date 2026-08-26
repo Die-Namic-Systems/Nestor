@@ -274,6 +274,29 @@ class ConflictingSealError(NestorError):
     """
 
 
+class EmptyNormError(NestorError):
+    """Refusing a pair whose ``source_text`` normalizes to the empty string.
+
+    The empty string is a single value that every collision-prone input maps
+    to when the matcher's strip pass leaves nothing behind — pure punctuation
+    (``"..."``), pure math symbols under :class:`StringMatcher` (``"∞"`` still
+    collapses to ``""`` after decision 0202's narrow ``So``/``Sk``
+    preservation), and any future class of input the strip pass will collapse
+    silently. Storing a pair keyed on the empty ``source_norm`` turns the
+    per-domain uniqueness constraint into last-writer-wins: seal ``"∞"`` then
+    seal ``"..."`` and the first row is silently overwritten because both key
+    to ``""``.
+
+    This guard was named as *Grok Direction C* in decision 0202 Q3 and lands
+    here as decision 0204. Refusing a seal (or a draft) at write time makes
+    the collision-prone case visible at the boundary instead of surfacing as a
+    silent overwrite later. Callers who deliberately want an empty-norm row
+    (there is no known legitimate case today) can catch this error and pass
+    ``override_empty_norm=True`` — the empty key still collides, but the
+    caller has now taken explicit responsibility for that.
+    """
+
+
 class VerifierNotAllowedError(NestorError):
     """Refusing to seal because ``verifier`` is not on this domain's policy
     (issue #167 piece 3).
@@ -578,6 +601,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
              matcher: Matcher | None = None,
              override_rejection: bool = False,
              override_conflict: bool = False,
+             override_empty_norm: bool = False,
              audit: bool = True, seal_sig: str = "",
              pair_id: str = "", created_at: str = "",
              _racing: bool = False) -> dict:
@@ -638,6 +662,19 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     if status == "sealed" and audit:
         _ledger_preflight()
     norm = matcher.normalize(source_text)
+    # Decision 0204 (Grok Direction C, named in 0202 Q3): refuse a pair whose
+    # source_text collapses to the empty ``source_norm``. Every input that
+    # ever normalizes to ``""`` shares the same key, so a store that accepts
+    # them treats its per-domain uniqueness constraint as last-writer-wins.
+    # ``override_empty_norm=True`` lets a caller take responsibility for that
+    # collision if they have a specific reason.
+    if not norm and not override_empty_norm:
+        raise EmptyNormError(
+            f"source_text {source_text!r} normalizes to the empty string "
+            f"under {type(matcher).__name__}; refusing to store a pair on "
+            f"a collision-prone empty key. Pass override_empty_norm=True "
+            f"if this collision is intentional."
+        )
     seal_sig = _resolve_seal_sig(status, norm, target_text, verifier, seal_sig)
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
