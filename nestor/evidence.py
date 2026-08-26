@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import cast
 
@@ -44,11 +45,81 @@ from .storage import EvidenceStorage, Storage, get_store, require_capability
 EVIDENCE_KINDS = frozenset(
     {"document", "url", "prior_seal", "human_statement"})
 
+#: Provenance is orthogonal to :data:`EVIDENCE_KINDS` — a `kind` names *what* the
+#: reference points at (a URL, a document, a prior seal), while a provenance state
+#: names *how the fact behind it was arrived at* (someone measured it, someone
+#: fitted it from adjacent data, someone assumed it because nothing better was on
+#: hand). Ordered weakest-to-strongest so :func:`aggregate_provenance` uses plain
+#: ``min()`` — an assumed input in an otherwise-measured pool drags the whole pool
+#: down, and averaging would hide that fact behind the majority.
+#:
+#: Ordering: assumed < fitted < measured. Two independent implementations
+#: converged on this taxonomy — ``demo/the_dispatches_audit.py`` proved it in
+#: Way 3 against an external corpus (a demo, not a shipped module), and
+#: ``kitchen-pudding`` (safe-app-store apps/kitchen-pudding, ``Provenance``
+#: IntEnum) landed the same three states in a different domain with the same
+#: ``min()``-not-mean aggregation. This constant promotes the demo's spelling
+#: into the shipped API so callers stop reinventing it. See decision 0207.
+PROVENANCE_STATES: tuple[str, ...] = ("assumed", "fitted", "measured")
+
+#: The rank each state carries, precomputed once. Callers who need a numeric
+#: comparison (a matcher, a scoring function) can look up the rank rather than
+#: repeatedly calling ``PROVENANCE_STATES.index(state)``; the dict form also
+#: makes an unknown-state check an ``in`` test rather than a try/except around
+#: ``.index()``.
+PROVENANCE_RANK: dict[str, int] = {s: i for i, s in enumerate(PROVENANCE_STATES)}
+
 #: A reference is a pointer, not the document. Generous caps that fit any real
 #: path, url, prior-seal id, or quoted statement while refusing an unbounded
 #: blob — the same defensive posture the rest of the package takes on free-text.
 _MAX_LOCATOR = 4096
 _MAX_REASON = 4096
+
+
+def aggregate_provenance(states: Iterable[str]) -> str:
+    """The weakest of ``states`` — a pooled view is worth its weakest input.
+
+    ``states`` is an iterable of :data:`PROVENANCE_STATES` strings. Returns
+    the weakest by ordering ``assumed < fitted < measured``:
+
+        >>> aggregate_provenance(["measured", "measured"])
+        'measured'
+        >>> aggregate_provenance(["measured", "fitted"])
+        'fitted'
+        >>> aggregate_provenance(["fitted"] + ["measured"] * 9)
+        'fitted'
+
+    Monotonicity is the whole point: piling ``measured`` rows onto a
+    ``fitted`` pool never lifts it, and averaging would hide the one
+    ``fitted`` row behind the many ``measured`` ones. This is what
+    ``demo/the_dispatches_audit.py`` proved as Way 3 against an external
+    corpus, and what ``kitchen-pudding`` (a sibling app in safe-app-store)
+    landed independently on ingredient provenance in a recipe. Both used
+    ``min()``. This is the shipped surface for that pattern.
+
+    Raises :class:`ValueError` on:
+
+    * an empty iterable — "no inputs" is not a provenance claim, matching
+      kitchen-pudding's ``aggregate([])`` refusal;
+    * a state not in :data:`PROVENANCE_STATES` — a typo would silently
+      grow an unqueryable taxonomy, the same posture as
+      :data:`EVIDENCE_KINDS` at attach time.
+
+    See decision 0207.
+    """
+    values = list(states)
+    if not values:
+        raise ValueError(
+            "aggregate_provenance requires at least one state — an empty "
+            "pool is not a provenance claim"
+        )
+    unknown = [s for s in values if s not in PROVENANCE_RANK]
+    if unknown:
+        legal = ", ".join(PROVENANCE_STATES)
+        raise ValueError(
+            f"unknown provenance state(s) {unknown!r}; must be one of: {legal}"
+        )
+    return min(values, key=PROVENANCE_RANK.__getitem__)
 
 
 def _now() -> str:
