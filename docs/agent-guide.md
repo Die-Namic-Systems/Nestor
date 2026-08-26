@@ -240,6 +240,16 @@ tidy, and when a gate fires on you, read what it says rather than working
 around it — the thing it caught is usually one layer more embarrassing than it
 first looks.
 
+**If the full suite is too slow to run for every push, `tests/test_docs.py`
+is the one you always include in the targeted subset** — it is fast (sub-second
+locally) and gates the promises the docs make about the tree: every
+`nestor/*.py` listed in `docs/project-layout.md`, every anchor reachable,
+every fenced command executable, every env-var named in the tables actually
+read by the code. When a change touches `nestor/`, `docs/`, `README.md`, or
+`AGENTS.md`, run `tests/test_docs.py` even if you skip everything else. A
+CI failure with a fix commit named `docs: list the four new … modules …`
+after the fact is one such gate firing once and being noticed twice.
+
 **And write yours so they can fail.** A test that cannot fail is a description.
 Prove it by breaking the thing on purpose and watching the gate go red, then
 put the mutation in the commit message.
