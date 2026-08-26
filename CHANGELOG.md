@@ -136,6 +136,20 @@ what moved.
 
 ---
 
+## [0.13.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.12.0...v0.13.0) (2026-08-26)
+
+
+### Added
+
+* **local-agent:** add bounded Ollama drafting ([7629e59](https://github.com/Die-Namic-Systems/Nestor/commit/7629e593c049c169854d5ea8e6c7f490268ab3ca))
+* **local-agent:** add bounded Ollama drafting ([#225](https://github.com/Die-Namic-Systems/Nestor/issues/225)) ([3b9a68d](https://github.com/Die-Namic-Systems/Nestor/commit/3b9a68d31390b55b37345cbc49140a9d36354dde))
+
+
+### Fixed
+
+* **ui:** make browser-key bootstrap non-clobbering ([8a54845](https://github.com/Die-Namic-Systems/Nestor/commit/8a548454885019a4cf09815a1c6900874df18fcd))
+* **ui:** make browser-key bootstrap non-clobbering ([#226](https://github.com/Die-Namic-Systems/Nestor/issues/226)) ([adeecf2](https://github.com/Die-Namic-Systems/Nestor/commit/adeecf28629927d1d136e0a8c89e03966747245f))
+
 ## [0.12.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.11.1...v0.12.0) (2026-08-26)
 
 
