@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlparse
 
-from jeles import corpus as jeles_corpus  # type: ignore[import-untyped]
+from jeles import corpus as jeles_corpus
 
 #: Verification kinds Jeles reports where the bridge WILL consider the
 #: nugget for recognition. ``asserted`` is deliberately excluded — an
