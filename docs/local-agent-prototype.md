@@ -31,14 +31,33 @@ human's browser storage. Enrol only its public half in a mode-0600 keyring and
 give that public-only keyring to the UI and model servers:
 
 ```bash
+unset NESTOR_SEAL_KEY
 export NESTOR_KEYRING="$NESTOR_HOME/keep/verifiers.json"
 export NESTOR_REQUIRE_SEAL_KEY=1
+nestor keys init --keyring "$NESTOR_KEYRING"
 nestor ui --db "$NESTOR_DB" --ledger "$NESTOR_LEDGER"
 ```
 
-The browser prints the exact `nestor keys add NAME --type ed25519 --public HEX`
-command after creating its key. A model or agent must not run that enrolment
-command, choose the name, or perform the seal. Those are human acts.
+`keys init` creates a valid empty keyring only when the path does not exist. It
+is safe to repeat: an existing keyring is loaded and left unchanged. Do not
+bootstrap with shell redirection such as `printf ... > verifiers.json`; repeating
+that command after enrolment would erase the trusted public keys.
+
+With the UI open:
+
+1. Choose **Browser key…** → **Generate a new identity**.
+2. Choose the verifier name and whether IndexedDB should remember the
+   non-extractable key.
+3. Run the printed
+   `nestor keys add 'NAME' --type ed25519 --public HEX` command in another
+   terminal. From a source checkout where `nestor` is not installed on `PATH`,
+   replace its first word with `.venv/bin/nestor`.
+4. Stop and restart the UI. A running UI deliberately caches its trust root and
+   does not notice an out-of-band enrolment.
+5. Choose **Browser key…** and **Use** for the enrolled identity.
+
+The enrolment command carries only the public half. A model or agent must not
+run it, choose the name, or perform the seal. Those are human acts.
 
 ## Agent contract
 

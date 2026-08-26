@@ -40,6 +40,7 @@ _WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 # `nestor keys add <name>` mints a signing entry (default HMAC = a symmetric key
 # that signs AS that name; --rotate replaces a human's key). `--public` is
 # exempt: registering a peer's PUBLIC key confers verify-only, never signing.
+# `keys init` creates an empty trust root and is likewise non-minting.
 _KEYS_ADD_RE = re.compile(r"\bnestor\b[^\n|;&]*\bkeys\s+add\b", re.IGNORECASE)
 _PUBLIC_RE = re.compile(r"--public\b", re.IGNORECASE)
 # Assigning a seal-key env var (export or inline `VAR=val nestor …`). A read

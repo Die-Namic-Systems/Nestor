@@ -1223,7 +1223,8 @@ function keyDialogMenu(identities) {
 }
 
 function enrollmentBlock(name, publicHex) {
-  const cmd = "nestor keys add " + name + " --type ed25519 --public " + publicHex;
+  const shellName = "'" + String(name).replace(/'/g, "'\"'\"'") + "'";
+  const cmd = "nestor keys add " + shellName + " --type ed25519 --public " + publicHex;
   return h("div", { class: "context-panel small", style: "margin-top:10px" },
     h("p", { style: "margin:0 0 6px" }, h("b", {}, "Public key — nothing else was sent anywhere:")),
     h("p", { class: "mono", style: "word-break:break-all;margin:0 0 8px", text: publicHex }),
@@ -1636,15 +1637,15 @@ function viewMemory() {
   const sideKids = [];
   if (S.detail) {
     sideKids.push(detailPanel());
-    if (!fleetGapReviewMode()) {
-      sideKids.push(sealForm(), portableCard());
-    }
   } else {
     sideKids.push(h("div", { class: "mem-oracle" },
       h("div", { class: "glyph", text: fleetGapReviewMode() ? "☽" : "◇" }),
       h("p", { text: fleetGapReviewMode()
         ? "Choose a card. The fleet waits on your witness — not another dashboard row."
         : "Select a pair to inspect it." })));
+  }
+  if (!fleetGapReviewMode()) {
+    sideKids.push(sealForm(), portableCard());
   }
 
   const shellKids = [];

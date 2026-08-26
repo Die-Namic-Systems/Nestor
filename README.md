@@ -490,8 +490,10 @@ There *is* one way to make the verifier proven: the "acting as" box's third mode
 generates a **non-extractable Ed25519 key with WebCrypto in the browser** (or
 imports one as raw hex). The private key lives in IndexedDB and **never leaves
 the page**; enrolment is out of band (the page prints the exact
-`nestor keys add NAME --type ed25519 --public HEX` to run), and a seal is signed
-client-side against a message the human actually saw. This is the property a
+`nestor keys add 'NAME' --type ed25519 --public HEX` to run), and a seal is
+signed client-side against a message the human actually saw. Initialize the
+public-only trust root first with `nestor keys init --keyring PATH`; that command
+creates an empty keyring once and never overwrites an existing one. This is the property a
 shared `NESTOR_SEAL_KEY` can never have — the store verifies and seals under a
 verifier's key while being structurally unable to forge as them. It is
 deliberately narrow (only the seal endpoints accept a client signature); see
@@ -689,6 +691,7 @@ One `NESTOR_SEAL_KEY` proves *the key was present*, not **who**. A keyring
 `(source_norm, target_text, "rita")` is evidence about rita:
 
 ```bash
+nestor keys init --keyring keys.json         # empty trust root; safe to repeat
 nestor keys add rita --keyring keys.json     # prints the key once; the file is 0600
 export NESTOR_KEYRING=keys.json
 nestor ui --db data/nestor.db                # "acting as" becomes a sign-in

@@ -73,7 +73,7 @@ def test_remote_ollama_is_refused_before_a_socket_opens(monkeypatch):
 
 
 @pytest.mark.parametrize("host", [
-    "http://user:secret@localhost:11434",
+    "http://user:secret@localhost:11434",  # pragma: allowlist secret
     "http://localhost:11434/unexpected",
     "http://localhost:11434?redirect=elsewhere",
 ])

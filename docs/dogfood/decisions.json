@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 576,
+    "pairs": 577,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "2efa45457c997a4fa251c4f1151c1554e633e47f50d370f64e34c06a73563faa",
+  "digest": "df7af7b5d5c30426cb98e5d77b6f23c83506ea9a3597e3d6a2140ca2003c31cf",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -243,6 +243,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A loopback-only nestor_draft tool may retrieve signed guidance and return a bounded analysis or patch suggestion with model and prompt provenance. It receives no filesystem, shell, nested-tool, non-loopback network, verification, or automatic queue authority. Queueing remains the separate explicit nestor_propose action.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "63f55873-f4d1-5bed-afca-07dc91b106a6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the first publiconly browser verifier keyring bootstrapped",
+      "source_text": "How is the first public-only browser verifier keyring bootstrapped?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The human initializes a valid empty keyring with the non-clobbering `nestor keys init`, starts the UI with that keyring configured, generates a non-extractable browser identity, enrolls only the printed public half out of band, and restarts the UI so its deliberately cached trust root includes the new verifier.",
       "verifier": "",
       "weight": 1.0
     },
