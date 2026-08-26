@@ -23,7 +23,7 @@ from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo
 #: there as non-gates.
 MODULES = ("session_start", "session_end", "before_mcp", "before_write",
            "before_bash", "before_authority", "before_stop", "reinject",
-           "before_build", "before_propose")
+           "before_build", "before_propose", "prompt_submit")
 
 
 def _read_stdin() -> dict:
@@ -202,6 +202,29 @@ def _first_block(payload: dict, root, *evaluators):
     return True, "", ""
 
 
+def prompt_submit_context(payload: dict, root) -> str:
+    """Run all prompt advisories independently and combine their context.
+
+    Each advisory keeps the fail-open posture it had as a separate process: one
+    bug drops only that advisory, never the anchor or its siblings.
+    """
+    prompt = payload.get("prompt") or payload.get("user_prompt") or ""
+    calls = (
+        lambda: reinject_for_event("UserPromptSubmit", root),
+        lambda: before_build_for_prompt(prompt, root),
+        lambda: before_propose_for_prompt(prompt, root),
+    )
+    contexts = []
+    for call in calls:
+        try:
+            context = call()
+        except Exception:          # noqa: BLE001 — each advisory fails OPEN alone
+            context = ""
+        if context:
+            contexts.append(context)
+    return "\n\n".join(contexts)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Nestor CLI-agnostic hook runner")
     parser.add_argument("format", choices=("cursor", "claude"))
@@ -230,6 +253,12 @@ def main() -> None:
         if event not in REINJECT_EVENTS:
             event = "UserPromptSubmit"          # default re-anchor shape
         _emit_reinject(args.format, event, reinject_for_event(event, root))
+        return
+
+    if args.module == "prompt_submit":
+        context = prompt_submit_context(payload, root)
+        if context:
+            _emit_reinject(args.format, "UserPromptSubmit", context)
         return
 
     if args.module == "before_build":
