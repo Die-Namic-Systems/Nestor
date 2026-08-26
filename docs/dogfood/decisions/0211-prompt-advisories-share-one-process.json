@@ -1,5 +1,5 @@
 {
-  "branch": "fix/ollama-loopback-audit-stack",
+  "branch": "perf/prompt-hook-process-pr",
   "date": "2026-08-26",
   "note": "The neutral hook manifest launched reinject, before_build, and before_propose as three Python processes for every submitted prompt. Measured separately on the same build-and-PR prompt they cost 0.08s, 0.12s, and 0.16s. One prompt_submit dispatch emits the same combined context in 0.16s.",
   "decisions": [

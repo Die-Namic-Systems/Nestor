@@ -1,5 +1,5 @@
 {
-  "branch": "fix/ollama-loopback-audit-stack",
+  "branch": "perf/prompt-hook-process-pr",
   "date": "2026-08-26",
   "note": "A full xdist run scheduled test_desks before unrelated memory tests on one worker. Its SerialMatcher remained process-global, normalized every nonnumeric phrase to NONE, and produced 40 false failures plus one setup error. A different collection order had hidden the leak.",
   "decisions": [
