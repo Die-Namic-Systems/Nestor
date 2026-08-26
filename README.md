@@ -610,6 +610,12 @@ to turn the degrade into a refusal — see [Seal signatures](#seal-signatures).
 A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
 `nestor_provenance`, `nestor_ledger_verify`, `nestor_prefs` — and
 `nestor_propose`, which queues its answer for a human as a `draft`.
+Starting the server explicitly with `--engine ollama` also exposes
+`nestor_draft`: a bounded, loopback-only analysis or patch suggestion carrying
+model and prompt provenance. It cannot read files, run tools, or queue itself;
+`nestor_propose` remains the separate explicit review step. See
+[`docs/local-agent-prototype.md`](docs/local-agent-prototype.md) for one signed
+household store shared by Cursor, Claude, and Ollama.
 
 **It cannot seal.** Not "sealing is disabled by default" — there is no sealing
 tool, no flag that adds one, and no argument to any existing tool that produces

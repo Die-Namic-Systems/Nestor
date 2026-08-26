@@ -64,6 +64,12 @@ def test_codebase_memory_is_allowed():
     assert allow
 
 
+def test_household_nestor_memory_is_allowed():
+    allow, _, _ = evaluate_mcp({"tool_name": "mcp__nestor__nestor_draft",
+                                "tool_input": {"task": "review"}})
+    assert allow
+
+
 def test_claude_mcp_tool_name_is_blocked():
     allow, _, _ = evaluate_mcp({"tool_name": "mcp__willow-mcp__store_get", "tool_input": {}})
     assert not allow

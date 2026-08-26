@@ -1634,7 +1634,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "custom matcher as 'module:attribute' — the same spec "
                         "`nestor serve` and `nestor ask` take. In-process hosts "
                         "can still pass the object: ui.App(matcher=...)")
-    p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
+    p.add_argument("--engine", default="offline",
+                   choices=("offline", "auto", "claude", "ollama"),
                    help="draft engine used by the Ask view (default: offline — a click "
                         "in a browser should not silently call a paid API)")
     p.add_argument("--verifier", default="",

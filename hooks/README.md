@@ -6,8 +6,9 @@ One policy, one code path. IDEs only differ in **config shape** and **JSON diale
 |-------|------|
 | `hooks/nestor-hook` | Shell wrapper — call as `hooks/nestor-hook <cursor\|claude> <session_start\|before_mcp>` |
 | `hooks/hook_runner.py` | Adapts Cursor vs Claude stdout |
+| `hooks/wiring.json` | Client-neutral event/action manifest; willow-mcp compiles the IDE dialects |
 | `hooks/seat.md` | Local-first seat copy (session start) |
-| `hooks/before_mcp.py` | Block willow-mcp / nestor MCP; allow codebase-memory |
+| `hooks/before_mcp.py` | Block willow-mcp; allow household Nestor + codebase-memory |
 
 ## Wiring
 

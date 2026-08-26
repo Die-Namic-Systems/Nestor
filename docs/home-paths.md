@@ -45,6 +45,8 @@ directories and `layout.json`, and clobbers nothing that is already there.
 |----------|---------|
 | `NESTOR_HOME` | Household root (default `~/.nestor`) |
 | `NESTOR_DB` | Pinned corpus — one **file**, what `nestor` opens without `--db` |
+| `NESTOR_LEDGER` | Pinned hash chain; household clients use `~/.nestor/keep/ledger.jsonl` |
+| `NESTOR_KEYRING` | Public verifier keyring used by UI and model-serving processes |
 
 For the full cross-root comparison (`WILLOW_HOME`, `HOMESTEAD_HOME`, etc.) see
 [`roots-willow-and-homestead.md`](roots-willow-and-homestead.md).
@@ -125,3 +127,7 @@ at the first append.
 Fleet charter work (willow SOIL, Hanuman dispatches) uses **`WILLOW_HOME`**
 under **`~/.willow`** — see [`roots-willow-and-homestead.md`](roots-willow-and-homestead.md)
 and `docs/local-fleet.md`; that is orchestration, not the household record root.
+
+Cursor, Claude, and local-model wiring for one shared household corpus is in
+[`local-agent-prototype.md`](local-agent-prototype.md). That deployment pins the
+DB and ledger explicitly so all clients open the same store and the same chain.

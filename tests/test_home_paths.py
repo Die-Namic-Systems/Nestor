@@ -40,6 +40,21 @@ def test_bind_ledger_sets_cascade(monkeypatch, tmp_path):
     cascade.set_ledger_path("data/ledger.jsonl")
 
 
+def test_explicit_household_pins_resolve_one_store_and_one_chain(monkeypatch, tmp_path):
+    home = tmp_path / ".nestor"
+    keep = home / "keep"
+    keep.mkdir(parents=True)
+    db = keep / "nestor.db"
+    ledger = keep / "ledger.jsonl"
+    monkeypatch.setenv("NESTOR_HOME", str(home))
+    monkeypatch.setenv("NESTOR_DB", str(db))
+    monkeypatch.setenv("NESTOR_LEDGER", str(ledger))
+
+    assert home_paths.cli_db_default() == str(db)
+    assert home_paths.ledger_path() == ledger
+    assert home_paths.ledger_for(db) == ledger
+
+
 # --- the forbidden act: relocating a live keep tree by saying nothing --------
 
 def test_legacy_root_alone_is_refused_not_guessed(monkeypatch, tmp_path):

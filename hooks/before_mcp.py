@@ -7,6 +7,7 @@ from typing import Any
 _ALLOW_SUBSTR = (
     "codebase-memory",
     "codebase_memory",
+    "mcp__nestor__",
 )
 
 _BLOCK_SUBSTR = (
@@ -17,17 +18,17 @@ _BLOCK_SUBSTR = (
     "user-willow-mcp",
     "user-willow",
     "/willow_mcp",
-    "mcp__nestor__",
     "nestor_mcp",
 )
 
 _USER_MESSAGE = (
-    "Fleet / Nestor MCP is disabled in this workspace. "
-    "Edit the repo locally (pytest, ruff, nestor CLI)."
+    "Fleet MCP is disabled in this workspace. "
+    "Edit the repo locally (pytest, ruff, Nestor's household MCP or CLI)."
 )
 _AGENT_MESSAGE = (
-    "Nestor source seat: do not use willow-mcp or nestor-as-MCP for "
-    "routine development. Read hooks/seat.md and docs/agent-guide.md."
+    "Nestor source seat: do not use willow-mcp for routine development. "
+    "The household Nestor MCP may retrieve or draft but cannot verify. "
+    "Read hooks/seat.md and docs/agent-guide.md."
 )
 
 
