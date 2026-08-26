@@ -33,6 +33,19 @@ import re
 import unicodedata
 from typing import Protocol, runtime_checkable
 
+#: Precompiled single-character match for the ``\w`` or ``\s`` classes —
+#: the historical strip pass's "keep" set. Compiled once so
+#: :meth:`StringMatcher.normalize` does not recompile per character.
+_WORD_OR_SPACE = re.compile(r"[\w\s]")
+
+#: Unicode General_Category codes for emoji-shaped symbols. ``So`` is
+#: *Symbol, other* (most emoji live here — smileys, transport, weather,
+#: flags-as-single-codepoints), ``Sk`` is *Symbol, modifier* (skin-tone
+#: modifiers, and some non-spacing keycap-like glyphs). Decision 0202
+#: preserves these through :meth:`StringMatcher.normalize` so a pure-emoji
+#: key does not collapse to the empty string.
+_EMOJI_CATEGORIES = frozenset({"So", "Sk"})
+
 
 @runtime_checkable
 class Matcher(Protocol):
@@ -191,12 +204,19 @@ class StringMatcher:
 
     def normalize(self, value) -> str:
         # Historically ``_norm(text: str)``. Accept non-str defensively by
-        # coercing. NFC-fold first so composed and decomposed forms of the
-        # same visible word produce the same key — Vietnamese ``ư`` typed as
-        # U+01B0 vs typed as ``u`` + U+031B, decomposed ``café`` vs composed
-        # ``café``, Arabic letters with combining marks. Without NFC the
-        # combining codepoints are non-``\w`` and get stripped, silently
-        # producing a different key from what the operator sees on screen.
+        # coercing. NFC-fold first (decision 0200) so composed and decomposed
+        # forms of the same visible word produce the same key — Vietnamese
+        # ``ư`` typed as U+01B0 vs typed as ``u`` + U+031B, decomposed
+        # ``café`` vs composed ``café``, Arabic letters with combining marks.
+        # Then strip anything that is not ``\w``, whitespace, or a symbol emoji
+        # (Unicode categories ``So`` and ``Sk``) — decision 0202. Historically
+        # this was a bare ``re.sub(r"[^\w\s]", "", ...)`` which stripped every
+        # emoji to the empty string, so any two pure-emoji rows collided in
+        # the same store on the empty key; ``So``/``Sk`` preservation makes
+        # different emoji strings key distinctly. What the historical pipeline
+        # stripped for non-emoji reasons — punctuation, currency (``$``,
+        # ``€``), math symbols (``×``, ``÷``) — is still stripped, so
+        # baselines like ``"$4.20B"`` still normalize as they did.
         # NFC does *not* collapse legitimate distinctions: Cyrillic ``а`` and
         # Latin ``a`` stay distinct (Unicode homoglyph question, not a
         # composition question), and fullwidth digits stay fullwidth. For
@@ -204,7 +224,12 @@ class StringMatcher:
         # pre-NFC pipeline.
         text = value if isinstance(value, str) else str(value)
         text = unicodedata.normalize("NFC", text)
-        return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", text.lower())).strip()
+        kept = "".join(
+            ch for ch in text
+            if _WORD_OR_SPACE.match(ch)
+            or unicodedata.category(ch) in _EMOJI_CATEGORIES
+        )
+        return re.sub(r"\s+", " ", kept.lower()).strip()
 
     def similarity(self, a_norm: str, b_norm: str) -> float:
         # Equal normals short-circuit to 1.0 (matching the old ``EXACT`` path
