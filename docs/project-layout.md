@@ -131,6 +131,7 @@ docs/storage-protocol.md  the persistence seam in full — core operations and t
 docs/probing-the-store.md  one command over every read-only lens (ask / resolve / match / decision check + stats/rejections/triage/calibrate/evidence report) — the recipe scripts/issue_probe.py drives
 docs/sovereign-deployment.md  what a default install does (and does not) do with the network — the load-bearing claim gated by tests/test_no_network_by_default.py
 docs/policy-brief.md  a one-pager aimed at a chief-of-staff / procurement officer / policy analyst — the audience that decides whether a ministry adopts something like Nestor
+docs/walk-through-covenant.md  a ninety-second beat-by-beat tour of the policy seed that ends at the moment a machine's draft becomes a human's decision — the doc-side companion to demo/sixty_seconds.py, gated by tests/test_walk_through_covenant.py
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
 docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
