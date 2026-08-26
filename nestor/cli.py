@@ -753,6 +753,19 @@ def cmd_keys(args) -> int:
               "and a seal proves the key was present, not who was.", file=sys.stderr)
         return EXIT_USAGE
 
+    if args.keys_command == "init":
+        target = pathlib.Path(path)
+        if target.exists():
+            ring = keyring_mod.load(path)
+            _emit({"keyring": path, "created": False,
+                   "verifiers": ring.names()}, args.json,
+                  f"keyring already exists at {path}; left unchanged")
+            return EXIT_OK
+        keyring_mod.Keyring(path=path).save()
+        _emit({"keyring": path, "created": True, "verifiers": []}, args.json,
+              f"created empty keyring at {path}")
+        return EXIT_OK
+
     if args.keys_command == "list":
         ring = keyring_mod.load(path)
         rows = [{"name": e.name, "status": ring.status(e.name),
@@ -1402,7 +1415,7 @@ def build_parser() -> argparse.ArgumentParser:
     tri.set_defaults(func=cmd_triage)
 
     keys = sub.add_parser("keys", help="who can seal, and with what key")
-    keys.add_argument("keys_command", choices=("list", "add", "revoke"))
+    keys.add_argument("keys_command", choices=("init", "list", "add", "revoke"))
     keys.add_argument("name", nargs="?", default="", help="the verifier")
     keys.add_argument("--keyring", default="",
                       help="keyring file (default: NESTOR_KEYRING)")

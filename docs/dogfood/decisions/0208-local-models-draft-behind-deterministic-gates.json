@@ -17,6 +17,11 @@
       "question": "Who owns cross-client hook wiring?",
       "commitment": "The repository owns semantic policy and refusals; willow-mcp owns compilation into Cursor and Claude JSON, identity/path substitution, atomic writes, and drift reporting. Unsupported client events are reported rather than silently omitted.",
       "why": "A fleet template previously overwrote Nestor's local Cursor wiring with generic Willow hooks. Putting policy in the generator would let infrastructure weaken a repository boundary; putting dialect details in every repository recreates drift. A checked-in neutral manifest makes the ownership line executable."
+    },
+    {
+      "question": "How is the first public-only browser verifier keyring bootstrapped?",
+      "commitment": "The human initializes a valid empty keyring with the non-clobbering `nestor keys init`, starts the UI with that keyring configured, generates a non-extractable browser identity, enrolls only the printed public half out of band, and restarts the UI so its deliberately cached trust root includes the new verifier.",
+      "why": "Starting with a missing configured keyring correctly refuses, while starting with no keyring hides identity controls; manual shell redirection can solve that circularity once but destroys enrolled keys when repeated. A first-class idempotent initializer makes the one-time bootstrap explicit without minting signing authority or weakening the missing-keyring refusal."
     }
   ]
 }

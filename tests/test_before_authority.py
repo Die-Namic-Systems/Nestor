@@ -196,12 +196,14 @@ def test_seal_env_covers_every_key_material_env_the_modules_read():
 
 
 def test_every_keys_verb_is_classified():
-    """The guard denies `keys add`; list/revoke are de-escalation/read. A new
-    `keys` verb in cli.py breaks this until the guard accounts for it."""
+    """The guard denies `keys add`; init/list/revoke mint no signing authority.
+
+    A new `keys` verb in cli.py breaks this until the guard accounts for it.
+    """
     text = (REPO / "nestor" / "cli.py").read_text()
     m = re.search(r'"keys_command",\s*choices=\(([^)]*)\)', text)
     assert m, "could not find the keys_command choices in cli.py"
     verbs = set(re.findall(r'"(\w+)"', m.group(1)))
-    assert verbs == {"list", "add", "revoke"}, (
+    assert verbs == {"init", "list", "add", "revoke"}, (
         f"keys verbs changed to {verbs}; classify the new/removed verb in "
-        f"before_authority (add mints, list/revoke do not)")
+        f"before_authority (add mints; init/list/revoke do not)")

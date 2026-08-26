@@ -108,7 +108,7 @@ def test_browser_generates_enrolls_and_seals_and_the_server_verifies_it(app):
             page.click("text=Browser key…")
             page.wait_for_selector("#key-dialog[open]")
             page.click("text=Generate a new identity")
-            page.fill("#gen-name", "bob")
+            page.fill("#gen-name", "sean campbell")
             page.click("#key-dialog-body button:text-is('Generate')")
             page.wait_for_selector("#gen-result .mono")
             public_hex = page.eval_on_selector("#gen-result .mono", "el => el.textContent")
@@ -124,16 +124,20 @@ def test_browser_generates_enrolls_and_seals_and_the_server_verifies_it(app):
                 "#gen-result p.mono", "els => els.map(e => e.textContent)")
             assert len(mono_lines) == 2, mono_lines
             enroll_cmd = mono_lines[1]
-            assert enroll_cmd == f"nestor keys add bob --type ed25519 --public {public_hex}"
+            assert enroll_cmd == (
+                "nestor keys add 'sean campbell' --type ed25519 "
+                f"--public {public_hex}"
+            )
 
             # -- enroll it: exactly what that command does, in-process -------
             # (the CLI itself is exercised by tests/test_cli.py; this proves
             # the public key that came OUT of the browser is one the server's
             # own enrollment path accepts, not a hand-picked stand-in for it).
-            app.ring.add("bob", key=bytes.fromhex(public_hex), kind="ed25519")
-            entry = app.ring.get("bob")
+            app.ring.add("sean campbell", key=bytes.fromhex(public_hex),
+                         kind="ed25519")
+            entry = app.ring.get("sean campbell")
             assert entry is not None and entry.kind == "ed25519" and not entry.private, (
-                "the server must hold ONLY bob's public half -- the entire "
+                "the server must hold ONLY sean campbell's public half -- the entire "
                 "property this feature exists to prove")
 
             page.click("#key-dialog >> text=Close")
@@ -156,7 +160,7 @@ def test_browser_generates_enrolls_and_seals_and_the_server_verifies_it(app):
             expected_norm = memory.get_matcher(None).normalize(source_text)
             assert expected_norm in shown
             assert target_text in shown
-            assert "bob" in shown
+            assert "sean campbell" in shown
 
             with page.expect_response(
                     lambda r: r.url.endswith("/api/seal") and r.request.method == "POST"
@@ -176,12 +180,27 @@ def test_browser_generates_enrolls_and_seals_and_the_server_verifies_it(app):
     row = app.store.memory_find(expected_norm, "en", "es")
     assert row is not None
     assert row["status"] == "sealed"
-    assert row["verifier"] == "bob"
+    assert row["verifier"] == "sean campbell"
     assert row["source_text"] == source_text
     assert row["target_text"] == target_text
-    assert signing.seal_is_valid(expected_norm, target_text, "bob", row["seal_sig"]), (
+    assert signing.seal_is_valid(
+        expected_norm, target_text, "sean campbell", row["seal_sig"]
+    ), (
         "the signature the BROWSER produced does not verify -- the page's JS "
         "did not reproduce signing._message byte-for-byte")
+
+
+def test_empty_memory_still_offers_the_human_seal_form(app):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        try:
+            page.goto(app.base_url + "/")
+            page.click("nav#tabs button:text-is('Memory')")
+            page.wait_for_selector("text=No pairs match.")
+            assert page.get_by_text("Seal a pair by hand").is_visible()
+        finally:
+            browser.close()
 
 
 def test_a_public_only_verifier_cannot_seal_without_a_browser_key(app):
