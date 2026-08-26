@@ -49,6 +49,7 @@ nestor/
 ├── glossary.py       per-language-pair term locks — tier 2's constraint
 ├── langid.py         stopword-profile language identification
 ├── segment.py        sentence/segment splitting
+├── established/     established-knowledge lane (decision 0206) — lexicon + jeles bridge + wire that registers through cascade.set_tier15_recognizer to land recognized facts as tier-2 drafts with citation warrants, never as seals
 ├── triage/           decision triage — cluster, supersede, and report over the seal queue before a human seals it
 └── vendor/           vendored third-party assets (Cytoscape.js for the decision-graph view)
 

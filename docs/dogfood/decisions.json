@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 559,
+    "pairs": 564,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "02a4b0f84a5789255e8d544aa16d36431a7af878fc199b4cac3e6facdb7e2110",
+  "digest": "798b2294b27b30fdcd84a1230412227c4f80e5d26ea74d49ebbd24f069d8c437",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -66,6 +66,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "bc9f4ebc-a1ea-507f-8350-45708cd8f032",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the lane register with the cascade",
+      "source_text": "How does the lane register with the cascade?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`wire.install()` calls `cascade.set_tier15_recognizer(_recognize_for_cascade)`. The recognizer function is a thin adapter that calls `ensure_established_draft` and translates the report into a `Passage` (tier=2, state='draft', engine='established', meta carrying rung/provider/authority/locator/warrant_kinds/seal_queue=False), or `None` on miss/suppressed/already-sealed. `uninstall()` clears the seam ONLY if this module's recognizer is the currently-installed one (so a downstream caller who installed their own recognizer between our install and uninstall does not lose it). `installed()` reports the state truthfully.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "bab3bdb5-54e2-51ea-a584-a2c3f069268c",
       "origin": "pr:",
       "seal_sig": "",
@@ -94,6 +108,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "b910f30b-62f9-5706-9810-4a1be3838bd3",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the lane ever seal given the ergonomic pull of 42 is the hitchhiker answer",
+      "source_text": "Should the lane ever seal, given the ergonomic pull of \"42 IS the Hitchhiker answer\"?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The refusal is enforced in two places: (a) `ensure_established_draft` only ever passes `status='draft'` to `memory.add_pair`, never `status='sealed'`; (b) the cascade seam (`cascade._run_tier15_recognizer`, decision 0205) refuses a returned Passage with `state='sealed'` at runtime with a RuntimeError. Both refusals are locked by tests: `test_ensure_established_draft_never_seals` walks every landed pair and asserts none is sealed; the seam's `test_recognizer_returning_sealed_passage_refused` (decision 0205's bench) enforces the same at the boundary.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "93bfb4c9-4635-5006-a83b-1ebb4a327a6b",
       "origin": "pr:",
       "seal_sig": "",
@@ -103,6 +131,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Narrow scope, on purpose. Only So (Symbol, other — the emoji block) and Sk (Symbol, modifier — the skin-tone family that composes with emoji base characters) are preserved. Sc ('$', '€', '£') and Sm ('×', '÷', '±', '∞') stay stripped. The Grok peer review sketched the wider version ('regex.sub(r\"[^\\w\\s\\p{Emoji}\\p{S}]\", ...)') as an alternative, and it is a real alternative, but folding it into this PR would silently rekey every baseline like `$4.20B` (currently → `420b`, wide version → `$420b`) and every existing sealed row whose source_text contained a stripped symbol. That is a schema-migration-shaped change requiring its own measurement (which existing rows would rekey? do any baseline benches rely on the pre-fix output?) and its own explicit decision. Deferred as an explicit follow-up. The narrow PR closes the PR #180 finding as filed and leaves the wider question alone until it earns a decision of its own.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "90cde425-9b5f-5787-8e44-2860c86eab11",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where should the establishedknowledge lane live in the tree",
+      "source_text": "Where should the established-knowledge lane live in the tree?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`nestor/established/` — a subpackage inside the main package, imported the same way `nestor/triage/` is (an optional lane that composes with the core). Four modules: `recognize.py` (DEFAULT_LEXICON + recognize_lexicon + recognize dispatch + ensure_established_draft), `jeles_bridge.py` (recognize_from_jeles + seed_demo_nuggets, imports `jeles` at module top so a caller who touches this module carries the dep), `wire.py` (install/uninstall/installed registered through cascade.set_tier15_recognizer), and `__init__.py` (public re-exports and package docstring). The prototype's flat imports (`from established import ...`, `from jeles_bridge import ...`) were rewritten as relative (`from .recognize import ...`, `from .jeles_bridge import ...`). Public entry points are re-exported from the package so `from nestor.established import install, recognize` works.",
       "verifier": "",
       "weight": 1.0
     },
@@ -178,6 +220,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "3c808647-c328-5bb0-b407-01e99c26ece1",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what about rejected pairs does the lane redraft them",
+      "source_text": "What about rejected pairs — does the lane re-draft them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `ensure_established_draft` calls `_is_rejected(source_norm, source_lang, target_lang, store)` before writing; a rejected pair for this norm returns `action='suppressed_by_rejection'` and no new draft. The wire adapter translates that to `None`, and the cascade falls through to the tier-2 engine. Locked by `test_ensure_established_draft_respects_rejection` (creates a draft, rejects it, calls the lane again, asserts suppressed) and `test_cascade_rejection_suppresses_established_lane` (same shape end-to-end through translate_segment).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "32d91741-2da6-5535-a2ef-6b1e253faf24",
       "origin": "pr:",
       "seal_sig": "",
@@ -187,6 +243,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes. `nestor/matcher.py:191-235` iterates the NFC-folded input character-by-character and keeps any character that (a) matches the pre-existing `[\\w\\s]` set OR (b) has Unicode General_Category `So` (Symbol, other — most emoji: smileys, transport, weather, single-codepoint flags) or `Sk` (Symbol, modifier — skin-tone modifiers). Zero-width joiner (U+200D, category `Cf`) is still stripped, so a ZWJ sequence like 👨‍💻 normalizes to 👨💻 — non-empty, and distinct from other sequences. The `re.sub(r'[^\\w\\s]', '', text)` regex is gone; a compiled `_WORD_OR_SPACE = re.compile(r'[\\w\\s]')` and a `_EMOJI_CATEGORIES = frozenset({'So', 'Sk'})` module-level constant back the comprehension. Gated by 16 tests in tests/test_matcher_emoji.py (7 fix cases including ZWJ, skin-tone, multi-emoji ordering, and text+emoji integration; 5 must-preserve for currency, math, punctuation, Cyrillic-vs-Latin, ASCII byte-for-byte; the ∞-still-collapses case that documents the narrow scope; 1 idempotence sweep; 2 end-to-end integration through memory.add_pair / best_sealed including a prose-serve regression). All 177 tests in PR #180's tests/test_unconventional.py still pass, with the two locked emoji tests rewritten in place against the new invariant (test_emoji_only_stories_key_distinctly_after_0202, test_single_emoji_seal_distinctly_after_0202) and two docstrings updated to note the workaround is no longer necessary.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "25ef83fb-d0b8-5a15-9546-2392d096428b",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should `jeles` be a hard dependency of `nestorestablished`",
+      "source_text": "Should `jeles` be a hard dependency of `nestor.established`?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `nestor.established.jeles_bridge` imports `jeles` at module top, but `nestor.established.__init__` imports jeles_bridge to expose `recognize_from_jeles` and `seed_demo_nuggets` — so `from nestor.established import recognize_lexicon, install` works ONLY if jeles is installed. A cleaner shape would defer the jeles_bridge import to first use, but that is a follow-up. The bench uses `pytest.importorskip('jeles')` and `monkeypatch` a stub `jeles.corpus` module for hermetic assertions about verification_kind handling and domain-tag scoping — so the test suite is honest whether or not jeles ships in the test environment.",
       "verifier": "",
       "weight": 1.0
     },
