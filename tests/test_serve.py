@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from nestor import cascade, memory, serve, storage
+from nestor import cascade, engine, memory, serve, storage
 from nestor.curator import Curator
 from nestor.sqlite_store import SqliteStore
 
@@ -121,6 +121,44 @@ def test_propose_queues_a_draft_for_a_human(server):
     assert seg["candidate"] == "Buenas tardes." and seg["status"] == "pending"
     # It is a proposal, not an answer: asking still refuses to serve it.
     assert call(server, "nestor_ask", text="Good afternoon.")["verified"] is False
+
+
+def test_ollama_server_offers_a_bounded_draft_not_a_verdict(server, monkeypatch):
+    provenance = engine.DraftProvenance(
+        provider="ollama", model="small-code:latest", prompt_sha256="p",
+        input_sha256="i", context_pair_ids=(), endpoint_scope="loopback",
+        transport="ollama:/api/chat", temperature=0.0, max_output_tokens=1024,
+        input_chars=12, truncated=False, created_at="now")
+
+    class FakeOllama:
+        def __init__(self, model):
+            assert model == "small-code"
+
+        def draft_task(self, task, *, excerpts, sealed_context):
+            assert task == "Review this"
+            assert excerpts == ["def f(): pass"]
+            assert all(hit["pair"]["status"] == "sealed" for hit in sealed_context)
+            return engine.TaskDraft("Suggested change", "ollama:small-code:latest",
+                                    provenance)
+
+    monkeypatch.setattr(engine, "OllamaEngine", FakeOllama)
+    server.engine_name = "ollama"
+    server.ollama_model = "small-code"
+
+    assert "nestor_draft" in [tool["name"] for tool in server.tools()]
+    out = call(server, "nestor_draft", task="Review this",
+               excerpts=["def f(): pass"], verifier="forged")
+
+    assert out["state"] == "draft" and out["verified"] is False
+    assert out["draft"] == "Suggested change"
+    assert out["seal_authority_refused"] == ["verifier"]
+    assert "verifier" not in out["provenance"]
+
+
+def test_draft_tool_requires_the_explicit_local_engine(server):
+    assert "nestor_draft" not in [tool["name"] for tool in server.tools()]
+    out = call(server, "nestor_draft", task="Review this")
+    assert "requires --engine ollama" in out["error"]
 
 
 # --- what a model cannot do ------------------------------------------------

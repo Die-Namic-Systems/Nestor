@@ -1,0 +1,22 @@
+{
+  "branch": "claude/exists-vs-works",
+  "date": "2026-08-26",
+  "note": "Prototype one household Nestor memory shared by Cursor, Claude, and a loopback local model. The model is brought closer to the work without moving the authority boundary: deterministic hooks decide what may run, Nestor serves signed guidance, Ollama drafts within bounded caller-supplied context, and a human remains the only source of a seal.",
+  "decisions": [
+    {
+      "question": "How do Cursor, Claude, and local models stay on the same page without sharing authority?",
+      "commitment": "They open one explicitly pinned household database and ledger under ~/.nestor, verify the same public Ed25519 keys, and load one repository-owned semantic hook manifest compiled into each client's dialect. Private signing material remains in the human browser; generated client configuration is transport, not policy.",
+      "why": "Separate client stores would turn agreement into an import/synchronization problem and permit each agent to accumulate a different history. Sharing the signed read/propose surface gives every client the same verified capital while signatures and the absent sealing tool preserve the difference between common context and common authority."
+    },
+    {
+      "question": "Where may a local model participate in the agent loop?",
+      "commitment": "A loopback-only nestor_draft tool may retrieve signed guidance and return a bounded analysis or patch suggestion with model and prompt provenance. It receives no filesystem, shell, nested-tool, non-loopback network, verification, or automatic queue authority. Queueing remains the separate explicit nestor_propose action.",
+      "why": "The useful experiment is whether verified context lets a small local model handle routine work. Letting model output decide permissions, execute its suggestion, or label itself verified would test a different proposition by removing the boundary Nestor exists to preserve. Separate drafting from application and proposal so each transition remains visible and testable."
+    },
+    {
+      "question": "Who owns cross-client hook wiring?",
+      "commitment": "The repository owns semantic policy and refusals; willow-mcp owns compilation into Cursor and Claude JSON, identity/path substitution, atomic writes, and drift reporting. Unsupported client events are reported rather than silently omitted.",
+      "why": "A fleet template previously overwrote Nestor's local Cursor wiring with generic Willow hooks. Putting policy in the generator would let infrastructure weaken a repository boundary; putting dialect details in every repository recreates drift. A checked-in neutral manifest makes the ownership line executable."
+    }
+  ]
+}

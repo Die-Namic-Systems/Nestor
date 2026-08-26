@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 573,
+    "pairs": 576,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "c31ccab22d7adfbed72935753381cd161d3d7c0b8f055c92f6252d8bc0fd3e87",
+  "digest": "2efa45457c997a4fa251c4f1151c1554e633e47f50d370f64e34c06a73563faa",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -234,6 +234,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "7dcbccf4-de8d-5b5c-ae8e-a77ffd1d93a9",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where may a local model participate in the agent loop",
+      "source_text": "Where may a local model participate in the agent loop?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A loopback-only nestor_draft tool may retrieve signed guidance and return a bounded analysis or patch suggestion with model and prompt provenance. It receives no filesystem, shell, nested-tool, non-loopback network, verification, or automatic queue authority. Queueing remains the separate explicit nestor_propose action.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "5b2ba8a8-fab0-5e52-9df6-97dc14f3fcf8",
       "origin": "pr:",
       "seal_sig": "",
@@ -271,6 +285,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Deferred. Current behaviour is preserved: `parse('Room 42')`, `parse('the answer is 42')`, `parse('42ish')`, and `parse('$42 sandwich')` all return `42.0`, and similarity against a `42` baseline is `1.0` for all of them. The design docstring on `NumericMatcher.parse_detail` names this stance explicitly — 'USD is decoration, not prose' and 'Reporting it beats refusing it: a reconciler that rejected every partially-parsed figure would refuse real inputs' — and every heuristic that closes the prose-plus-number class also refuses one or more legitimate unit-suffixed cases: length ≤ 3 refuses `Room` (4) but also `ish`; all-uppercase refuses `Room` but also refuses `kg` and `cm`; ≥2 lowercase letters refuses `sandwich` but also refuses `cm`, `kg`, and every metric suffix. A refuse-prose-residue fix therefore has to make a policy call (which kind of decoration is 'unit' vs 'prose') that is not obvious from the design's stated intent alone.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "5119d4f0-0ed2-518c-8efa-d3c1bc020c04",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "who owns crossclient hook wiring",
+      "source_text": "Who owns cross-client hook wiring?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The repository owns semantic policy and refusals; willow-mcp owns compilation into Cursor and Claude JSON, identity/path substitution, atomic writes, and drift reporting. Unsupported client events are reported rather than silently omitted.",
       "verifier": "",
       "weight": 1.0
     },
@@ -439,6 +467,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The parameter exists but defaults to False (refusal is the normal path). No production caller is expected to pass override_empty_norm=True; the shipped seeds, the recipes, and the covenant path all produce non-empty norms for legitimate content. The override is a documented escape hatch matching the shape of `override_conflict` (ConflictingSealError) and `override_rejection` (RejectedPairError) so a specific caller who has a documented reason (a test asserting the previous collision behavior; a very rare deployment where an empty key IS the intended semantics) can proceed with the responsibility explicitly named in the code that does it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "0ffcf932-8c3f-5c6e-830b-1e98ae582d59",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how do cursor claude and local models stay on the same page without sharing authority",
+      "source_text": "How do Cursor, Claude, and local models stay on the same page without sharing authority?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "They open one explicitly pinned household database and ledger under ~/.nestor, verify the same public Ed25519 keys, and load one repository-owned semantic hook manifest compiled into each client's dialect. Private signing material remains in the human browser; generated client configuration is transport, not policy.",
       "verifier": "",
       "weight": 1.0
     },

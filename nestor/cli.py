@@ -1218,7 +1218,8 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("--target-lang", "--to", dest="target_lang", default=None,
                      help="target domain tag (default: es, or the store's "
                           "largest domain if en→es holds nothing)")
-    ask.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
+    ask.add_argument("--engine", default="offline",
+                     choices=("offline", "auto", "claude", "ollama"),
                      help="cascade engine: offline (store only), auto (store then LLM), "
                           "claude (store then Claude)")
     ask.add_argument("--matcher", default="string", help=_MATCHER_HELP)

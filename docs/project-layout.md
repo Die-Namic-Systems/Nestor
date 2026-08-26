@@ -36,7 +36,7 @@ nestor/
 ├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
 ├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
 ├── warrant.py       why a stranger should believe a claim — citation and construction warrants, composed with the seal (docs/warrants.md)
-├── engine.py         tier 2 — draft engines (ClaudeEngine, OfflineEngine)
+├── engine.py         tier 2 — cloud, deterministic, and loopback Ollama draft engines
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
 ├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges/decision_evidence
@@ -97,8 +97,8 @@ recipes/              the seam's "yours" row, built against the shipped package
 ├── bench_patch_review.py what it retrieves, against StringMatcher and TokenJaccard
 ├── jeles_bridge.py       a jeles nugget → the same answer under a signature; every one crosses as a draft, because `verified_by` is an unsigned claim
 └── process_lens.py       a measured process observation → the rubric grade it earns
-scripts/              dogfood, fleet-checkout, and two_instances.py — the export/import
-                      trust boundary across two genuinely separate deployments
+scripts/              dogfood, fleet-checkout, and trust-boundary operators
+├── local_agent_probe.py  shared household seal → bounded Ollama draft → optional explicit proposal
 tests/                no outbound network (one test binds a loopback socket), no fixtures on disk
 AGENTS.md             cold-start for any agent — git sync, ci-lint, hook pointers
 CHANGELOG.md          releases, newest first — "Unreleased" until the first tag (docs/releasing.md)
@@ -123,6 +123,7 @@ docs/corpus-order.md  the order the corpus-from-a-corpus exercise took the repos
 docs/fleet-integration-map.md  open IDEAS ↔ fleet repos (what to wire, not new invention)
 docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths and commands
 docs/home-paths.md  ~/.nestor ledger/keep paths vs the repo's ./data/ (household hosts)
+docs/local-agent-prototype.md  one signed household store shared by Cursor, Claude, and loopback Ollama
 docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.nestor household root — audience, not brand
 docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run

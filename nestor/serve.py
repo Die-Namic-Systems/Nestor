@@ -41,10 +41,10 @@ import argparse
 import contextlib
 import json
 import sys
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, TextIO
 
-from . import answer, cascade, domain, home_paths, keyring, memory, signing, storage
+from . import answer, cascade, domain, engine, home_paths, keyring, memory, signing, storage
 from . import ledger as ledger_mod
 from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
@@ -72,6 +72,7 @@ WITHHELD = ("seal", "unseal", "reject", "override a conflicting seal",
 # success where it should read a refusal.
 PROPOSE_KEYS = frozenset({"source_text", "candidate", "source_lang",
                           "target_lang", "title"})
+DRAFT_KEYS = frozenset({"task", "excerpts", "source_lang", "target_lang"})
 
 
 @dataclass
@@ -90,6 +91,7 @@ class Server:
     source_lang_explicit: bool = False
     target_lang_explicit: bool = False
     engine_name: str = "offline"
+    ollama_model: str = engine.OLLAMA_DRAFT_MODEL
     matcher: Matcher | None = None
     #: The spec ``matcher`` was built from, when it came from ``--matcher``.
     #: Kept because throwing it away costs two things: a caller naming the same
@@ -284,6 +286,31 @@ class Server:
                 },
             },
         ]
+        if self.engine_name == "ollama":
+            out.append({
+                "name": "nestor_draft",
+                "description":
+                    "Ask a loopback-only local model for a bounded analysis or patch "
+                    "suggestion using human-verified Nestor guidance. The result is always "
+                    "state='draft' and verified=false. It has no filesystem, shell, nested "
+                    "tool, sealing, or approval authority; use nestor_propose separately "
+                    "if the draft belongs in the human review queue.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "task": {"type": "string",
+                                 "maxLength": engine.MAX_DRAFT_TASK_CHARS},
+                        "excerpts": {
+                            "type": "array",
+                            "maxItems": engine.MAX_DRAFT_EXCERPTS,
+                            "items": {"type": "string"},
+                            "description": "caller-supplied inert source excerpts",
+                        },
+                        **domain,
+                    },
+                    "required": ["task"],
+                },
+            })
         if not self.read_only:
             out.append({
                 "name": "nestor_propose",
@@ -391,6 +418,39 @@ class Server:
             if key:
                 return {"key": key, "value": preferences.get(key)}
             return {"preferences": preferences.load()}
+        if name == "nestor_draft":
+            if self.engine_name != "ollama":
+                raise PermissionError(
+                    "nestor_draft requires --engine ollama; no local model was "
+                    "explicitly selected and there is no cloud fallback")
+            raw_excerpts = args.get("excerpts") or []
+            if not isinstance(raw_excerpts, list) or not all(
+                    isinstance(value, str) for value in raw_excerpts):
+                raise ValueError("excerpts must be an array of strings")
+            sl, tl = self._domain_for_read(args)
+            nearby = memory.verified_sealed(
+                memory.lookup(str(args.get("task", "")), sl, tl, limit=3,
+                              store=store, matcher=self.domain_matcher(sl, tl)))
+            local = engine.OllamaEngine(model=self.ollama_model)
+            draft = local.draft_task(
+                str(args.get("task", "")), excerpts=raw_excerpts,
+                sealed_context=nearby)
+            ignored = sorted(key for key in args if key not in DRAFT_KEYS)
+            result = {
+                "state": "draft",
+                "verified": False,
+                "draft": draft.text,
+                "engine": draft.engine,
+                "provenance": asdict(draft.provenance),
+                "note": ("local model suggestion only — Cursor or Claude must "
+                         "inspect, apply, and verify it"),
+            }
+            if ignored:
+                result["ignored_fields"] = ignored
+                refused = [key for key in ignored if key in answer.SEAL_AUTHORITY]
+                if refused:
+                    result["seal_authority_refused"] = refused
+            return result
         if name == "nestor_propose":
             if self.read_only:
                 raise PermissionError("this server is running --read-only; even a "
@@ -547,8 +607,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target-lang", default=None, help="default target domain tag "
                                                        "(default: es, or the store's "
                                                        "largest domain if en→es holds nothing)")
-    p.add_argument("--engine", default="offline", choices=("offline", "auto", "claude"),
+    p.add_argument("--engine", default="offline",
+                   choices=("offline", "auto", "claude", "ollama"),
                    help="draft engine for nestor_ask (default: offline)")
+    p.add_argument("--ollama-model", default=engine.OLLAMA_DRAFT_MODEL,
+                   help=("local model tag used by --engine ollama and nestor_draft "
+                         f"(default: {engine.OLLAMA_DRAFT_MODEL})"))
     p.add_argument("--matcher", default="string",
                    help="the matcher that keys this domain: a shipped name "
                         f"({', '.join(answer.MATCHERS)}) or a custom one as "
@@ -605,6 +669,7 @@ def main(argv: list[str] | None = None) -> int:
                     source_lang_explicit=args.source_lang is not None,
                     target_lang_explicit=args.target_lang is not None,
                     engine_name=args.engine,
+                    ollama_model=args.ollama_model,
                     matcher=chosen_matcher, matcher_spec=args.matcher,
                     read_only=args.read_only)
     # stdout is the protocol channel; anything human-facing goes to stderr or it

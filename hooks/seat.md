@@ -19,7 +19,9 @@ This is not the willow charter seat and not an operator Jarvis desk.
 ## Do not use for routine Nestor work
 
 - **willow-mcp** / **willow** fleet MCP (`store_*`, `knowledge_*`, `task_submit`, Kart, `dispatch_*`, SOIL, FRANK, …).
-- **Nestor exposed as MCP** (`nestor serve`) to drive changes in *this* tree — write the code here first.
+- Nestor MCP may retrieve household guidance and produce a bounded local-model
+  draft. It does not edit this tree: inspect the draft, write the code here,
+  and run the repository gates.
 - Treating dogfood or README edits as fleet KB atoms before they are reviewed in git.
 
 Fleet wiring (SOIL gap import, charter rollup, Hanuman handoffs) is **after** the code and docs exist — see `docs/local-fleet.md`, `scripts/import_willow_gaps.py`, `scripts/apply_sealed_fleet_gaps.py`.
