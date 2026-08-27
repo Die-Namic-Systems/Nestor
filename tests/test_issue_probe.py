@@ -99,6 +99,7 @@ def test_missing_db_fails_closed(tmp_path, probe_module):
         )
 
 
+@pytest.mark.slow
 def test_report_covers_every_prompt_and_corpus(tmp_path, seeded_db, probe_module):
     if not shutil.which("nestor"):
         pytest.skip("nestor CLI not on PATH")
@@ -150,6 +151,7 @@ def test_report_covers_every_prompt_and_corpus(tmp_path, seeded_db, probe_module
     assert "nestor keys add prints the wrong key" in md
 
 
+@pytest.mark.slow
 def test_snapshot_flag_leaves_source_ledger_untouched(
     tmp_path, seeded_db, probe_module
 ):

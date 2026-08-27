@@ -131,7 +131,14 @@ publish = [
 # the bench-coverage guards whose whole reason to live in this suite is that
 # they must not be skippable. Pin the path so the invocation stops mattering.
 pythonpath = ["."]
-markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+markers = [
+    "slow: scale, packaging, corpus, or demonstration checks",
+    "performance: serial wall-clock checks whose timing is invalid under xdist or coverage",
+    "browser: real Chromium interaction through Playwright",
+    "semantic: real FastEmbed/ONNX model execution (opt in with NESTOR_SEMANTIC_TEST=1)",
+    "ollama: live loopback Ollama daemon execution (opt in with NESTOR_OLLAMA_TEST=1)",
+    "external: checks against an adjacent repository (opt in with NESTOR_EXTERNAL_TEST=1)",
+]
 
 [tool.hatch.version]
 # Derived from the git tag (hatch-vcs). At an exact tag `vX.Y.Z` the version is

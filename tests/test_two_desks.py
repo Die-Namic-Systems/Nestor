@@ -30,6 +30,10 @@ import pathlib
 import subprocess
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.xdist_group("two_desks_tmp")
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEMO = REPO / "demo" / "two_desks.py"
 

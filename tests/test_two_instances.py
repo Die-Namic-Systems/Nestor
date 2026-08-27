@@ -23,6 +23,7 @@ import pytest
 # (test_asymmetric_seals, test_client_signed_seals) rather than hard-fail for a
 # missing optional dependency. CI installs .[keys], so these run there.
 pytest.importorskip("cryptography")
+pytestmark = pytest.mark.xdist_group("two_instances_tmp")
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "two_instances.py"

@@ -18,6 +18,7 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEMO = REPO / "demo" / "sixty_seconds.py"
 DOGFOODING = REPO / "demo" / "the_dogfooding.py"
+pytestmark = pytest.mark.xdist_group("repo_data")
 
 
 def run(*args):

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 577,
+    "pairs": 582,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "df7af7b5d5c30426cb98e5d77b6f23c83506ea9a3597e3d6a2140ca2003c31cf",
+  "digest": "350812ca6bd69e625ed3272e0e749a6b420001e29afbaa4a9d0f43077f4df8e0",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -52,6 +52,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "e73f0b07-e977-535b-bd13-b8b3a5631010",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where do acceptance tests that repeatedly invoke wholecorpus workflows belong",
+      "source_text": "Where do acceptance tests that repeatedly invoke whole-corpus workflows belong?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "In the slow lane, while their parser, refusal, and bounded no-corpus unit paths remain in core. The two issue-probe tests that execute every prompt and corpus lens are marked slow; CI and the full pre-push suite still run them.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "e69bf293-043c-51de-812f-0fc8610225b8",
       "origin": "pr:",
       "seal_sig": "",
@@ -75,6 +89,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "NFC only. NFKC would fold `１２３` (fullwidth) into `123` (ASCII), fi ligature into f+i, superscript ² into 2, etc. PR 180's test_fullwidth_vs_ascii_digits locks that fullwidth stays distinct — that would break under NFKC. NFC is the canonical composition form and touches ONLY composition equivalence (visually-identical rendering, same intended letter, different Unicode bytes); NFKC folds compatibility equivalence (visually-similar rendering, arguably-same intent, definitely different content). This PR fixes the composition question and leaves compatibility folding as a separate future decision the operator can consider if they see concrete need.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "c7618748-f8fa-5a39-9c80-33c24f5c4b1b",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a wallclock performance assertion coexist with parallel ci",
+      "source_text": "How does a wall-clock performance assertion coexist with parallel CI?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The correctness invariant always runs, including under xdist and coverage. The elapsed-time assertion runs only in the serial performance lane; xdist workers and active tracers are explicitly recognized as distorted clocks.",
       "verifier": "",
       "weight": 1.0
     },
@@ -150,6 +178,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "ae005f00-34c4-5b86-b9d7-9f5248c736fd",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should optional integrations affect the cost of the default test run",
+      "source_text": "How should optional integrations affect the cost of the default test run?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "They do not activate from ambient availability. Core, slow, browser, semantic, Ollama, and adjacent-repository checks are explicit pytest marker lanes. The semantic, Ollama, and external lanes require an explicit opt-in set by scripts/ci-test.sh; installing FastEmbed, starting Ollama, or cloning a sibling repository cannot silently enlarge core or full local verification.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "aab3320b-8c38-50a4-9ac1-81fea3c7608b",
       "origin": "pr:",
       "seal_sig": "",
@@ -173,6 +215,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. Scope stays function-only: constants + one function + tests. A row-level provenance column is a schema migration with its own decision — the aggregator being importable does not require it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "9bff921d-eef2-521e-bac9-6d43db565b37",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what may test collection do with a real embedding model",
+      "source_text": "What may test collection do with a real embedding model?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing unless NESTOR_SEMANTIC_TEST=1. The model-loadability probe is lazy and cached, and the opt-in check short-circuits before probing FastEmbed/ONNX. Tests of unavailable semantic behavior inject the unavailable condition even in a developer environment where the extra is installed.",
       "verifier": "",
       "weight": 1.0
     },
@@ -411,6 +467,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A promotion, not a rewrite. The exported PROVENANCE_STATES tuple equals demo.STATES verbatim, and test_states_match_the_demo_spelling_and_order asserts that identity so a rename on either side surfaces here before the caller sees the drift. A behavioral equivalence test (test_agrees_with_the_demo_on_every_reference_case) runs every case the demo was locked on through the shipped function.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "29b8e25f-b13e-52c8-a4e8-44776097aedb",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how are tests that inspect the real repository path made safe under xdist",
+      "source_text": "How are tests that inspect the real repository path made safe under xdist?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Tests that inspect or exercise the repository's live data path share an xdist group, and parallel lanes use loadgroup scheduling so those modules execute serially on one worker. Ambient trust variables are scrubbed at pytest session start, before module-scoped fixtures can spawn subprocesses.",
       "verifier": "",
       "weight": 1.0
     },
@@ -8106,7 +8176,7 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": false
+    "enabled": true
   },
   "warrants": []
 }

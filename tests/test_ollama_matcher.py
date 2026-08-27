@@ -4,6 +4,8 @@ Skipped when Ollama or the model is absent, so CI without a daemon stays green.
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from nestor import answer, ollama_embed
@@ -11,11 +13,15 @@ from nestor.matcher import StringMatcher
 from nestor.semantic_matcher import SemanticMatcher
 
 requires_ollama = pytest.mark.skipif(
-    not ollama_embed.available(),
-    reason="Ollama with nomic-embed-text not reachable",
+    os.environ.get("NESTOR_OLLAMA_TEST", "").strip().lower()
+    not in {"1", "true", "yes", "on"}
+    or not ollama_embed.available(),
+    reason=("set NESTOR_OLLAMA_TEST=1 with nomic-embed-text available; "
+            "live daemon calls are an explicit lane"),
 )
 
 
+@pytest.mark.ollama
 @requires_ollama
 def test_build_matcher_ollama_returns_named_matcher():
     m = answer.build_matcher("ollama")
@@ -25,6 +31,7 @@ def test_build_matcher_ollama_returns_named_matcher():
     assert m.model_name.split(":", 1)[0] == "nomic-embed-text"
 
 
+@pytest.mark.ollama
 @requires_ollama
 def test_aws_beats_string_matcher():
     sm = StringMatcher()
@@ -38,6 +45,7 @@ def test_aws_beats_string_matcher():
     )
 
 
+@pytest.mark.ollama
 @requires_ollama
 def test_score_is_symmetric():
     m = SemanticMatcher(backend="ollama")
@@ -45,6 +53,7 @@ def test_score_is_symmetric():
     assert m.score(a, b) == m.score(b, a)
 
 
+@pytest.mark.ollama
 @requires_ollama
 def test_scores_against_matches_score():
     m = SemanticMatcher(backend="ollama")

@@ -212,7 +212,7 @@ From source, for development:
 git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"                 # + pytest, ruff, bandit
-pytest -q                               # no outbound network
+bash scripts/ci-test.sh core            # fast, deterministic, no live services
 ```
 
 The bundled `SqliteStore` owns every table Nestor needs, so the whole cascade
@@ -825,11 +825,19 @@ wants calibrating per corpus rather than trusting (§1.3).
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # no outbound network
+bash scripts/ci-test.sh core       # fast iteration: trust/core tests
+bash scripts/ci-test.sh full       # pre-push suite; run in background
 ruff check nestor tests            # enforced in CI
 bandit -r nestor -ll -q            # enforced in CI
 python bench/bench_accuracy.py     # measurements -> bench/results/
 ```
+
+Optional integrations never activate merely because their dependency or daemon
+is present. Run them deliberately with `scripts/ci-test.sh semantic`, `ollama`,
+`browser`, or `external`; scale/corpus checks are the `slow` lane. The
+`semantic`, `ollama`, and `external` lanes set their opt-in environment flags
+themselves. Serial wall-clock assertions live in `performance`, because xdist
+or coverage contention makes those numbers meaningless.
 
 **Returning to an existing clone:** the install persists, the activation does
 not — run `source .venv/bin/activate` in each new shell. The failure mode is

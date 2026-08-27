@@ -41,10 +41,14 @@ the two known-null values in an ordinary row.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import threading
 
 import pytest
+
+if os.environ.get("NESTOR_BROWSER_TEST", "").strip().lower() not in {"1", "true", "yes", "on"}:
+    pytest.skip("run the explicit browser lane (NESTOR_BROWSER_TEST=1)", allow_module_level=True)
 
 pytest.importorskip("playwright")
 
@@ -69,7 +73,10 @@ def _chromium_missing_reason() -> str:
 
 
 _SKIP_REASON = _chromium_missing_reason()
-pytestmark = pytest.mark.skipif(bool(_SKIP_REASON), reason=_SKIP_REASON)
+pytestmark = [
+    pytest.mark.browser,
+    pytest.mark.skipif(bool(_SKIP_REASON), reason=_SKIP_REASON),
+]
 
 
 @pytest.fixture()

@@ -13,22 +13,17 @@ can hold both the installed-extra and the missing-extra cases.
 
 from __future__ import annotations
 
-import importlib.util
-
 import pytest
 
 from nestor import answer
 from nestor.matcher import StringMatcher
 from nestor.semantic_matcher import SemanticMatcher, _cosine
-
-
-def _fastembed_installed() -> bool:
-    return importlib.util.find_spec("fastembed") is not None
-
+from tests.conftest import semantic_tests_enabled
 
 requires_semantic = pytest.mark.skipif(
-    not _fastembed_installed(),
-    reason="pip install nestor-meaning[semantic]",
+    not semantic_tests_enabled(),
+    reason=("set NESTOR_SEMANTIC_TEST=1 and install the semantic extra; "
+            "real ONNX execution is an explicit lane"),
 )
 
 
@@ -37,12 +32,14 @@ def test_cosine_clamps_to_unit_interval():
     assert _cosine((1.0, 0.0), (0.0, 1.0)) == 0.0
 
 
+@pytest.mark.semantic
 @requires_semantic
 def test_normalize_delegates_to_dedup_matcher():
     m = SemanticMatcher()
     assert m.normalize("  Hello, WORLD ") == StringMatcher().normalize("  Hello, WORLD ")
 
 
+@pytest.mark.semantic
 @requires_semantic
 def test_build_matcher_semantic_returns_matcher():
     assert isinstance(answer.build_matcher("semantic"), SemanticMatcher)
@@ -58,6 +55,7 @@ def test_build_matcher_semantic_refuses_without_fastembed(without_fastembed):
         answer.build_matcher("semantic")
 
 
+@pytest.mark.semantic
 @requires_semantic
 def test_score_returns_one_when_normalized_forms_match():
     """Retype-equivalent queries must not score below 1.0 on the embedding path."""
@@ -67,6 +65,7 @@ def test_score_returns_one_when_normalized_forms_match():
     assert m.score(raw_a, raw_b) == 1.0
 
 
+@pytest.mark.semantic
 @requires_semantic
 def test_score_matcher_warns_on_default_seal_threshold(store, seal_key):
     """The same guard `test_matcher.py` pins at the seam, once over a real model."""
@@ -84,11 +83,8 @@ def test_score_matcher_warns_on_default_seal_threshold(store, seal_key):
     assert any("SEAL_THRESHOLD" in str(w.message) for w in caught)
 
 
+@pytest.mark.semantic
 @requires_semantic
-@pytest.mark.skipif(
-    not __import__("tests.conftest", fromlist=["_EMBEDDING_OK"])._EMBEDDING_OK,
-    reason="semantic model not loadable (model download blocked by proxy)",
-)
 def test_scores_against_batches_uncached_texts():
     m = SemanticMatcher()
     scores = m.scores_against("hello world", ["hello there", "completely different topic"])
