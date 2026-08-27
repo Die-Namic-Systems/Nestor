@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 595,
+    "pairs": 598,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "f44749e4def2f20f5c5115f9dcf6ab316ff466a5af23ca7476da51f0a9c63710",
+  "digest": "1801d90d3b96348e1fa4fb867fc6bd83bca3a17dbf2fea8e5d3ca8b66c6ea4f6",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "ff0523db-646b-58e8-9c26-36e3811570a5",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what may groves gate 5 resident watcher do at the nestor seam in v1",
+      "source_text": "What may Grove's Gate 5 resident watcher do at the Nestor seam in v1?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Read only. The watcher may call decision_check against the household store before classifying or journaling traffic. It may not call nestor_propose, nestor_draft write paths, seal, import, or any tool that queues or ratifies guidance. Kart filing and persona-voice speech acts stay out of v1 entirely.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "f256675f-e9bd-523c-987d-9c4212943899",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the watcher relate to the promotionauthority ladder",
+      "source_text": "How does the watcher relate to the promotion-authority ladder?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "v1 is strictly L1: journal atoms with honest sender attribution (resident-watcher), domain classification hints, and fleet roster refresh. Corpus retrieval and nestor_draft remain available to interactive agent seats (Cursor, Claude), not to the unattended watcher process.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
       "id": "eca4fc48-7815-54e8-8a7e-d426f55e8e79",
@@ -369,6 +397,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "nestor_draft returns basis.sealed_guidance and basis.unverified_corpus_excerpts separately. Every corpus excerpt carries authority=none, source status, repository, origin, digest, comparison labels, score, and a citation token. Corpus text stays in the user-source message rather than the system or verified-guidance block, and conflicting rows are presented rather than silently resolved.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "6b50bff9-11cd-565c-aaf9-3bc7c8470ab5",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which ollama model and sender identity does v1 assume",
+      "source_text": "Which Ollama model and sender identity does v1 assume?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Model choice is operator-local via SOIL (~/.willow/store/active_model); Nestor does not hard-pin the watcher. Sender is resident-watcher on every v1 journal write — not willow, not a classified persona. Revisit persona attribution once chat RIGHT has real traffic.",
       "verifier": "",
       "weight": 1.0
     },
