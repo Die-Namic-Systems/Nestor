@@ -22,15 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude reinject; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
-          },
-          {
-            "type": "command",
-            "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude before_build; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
-          },
-          {
-            "type": "command",
-            "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude before_propose; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
+            "command": "for b in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\"; do d=\"$b\"; while [ -n \"$d\" ]; do [ -x \"$d/hooks/nestor-hook\" ] && exec \"$d/hooks/nestor-hook\" claude prompt_submit; [ \"$d\" = / ] && break; d=$(dirname \"$d\"); done; done"
           }
         ]
       }
