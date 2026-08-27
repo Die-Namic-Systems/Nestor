@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 584,
+    "pairs": 588,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "df17776ec7dac7505930f4a260e98a3ee788d8e440d9610f348f595a017b1567",
+  "digest": "ab0287619dbec17f0821b7f613e1d7455a25668d47222332468df7027f26aa11",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -192,6 +192,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "afcb2741-015c-5f23-ab65-d44d00966f24",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should tests isolate nestors processwide matcher under parallel collection",
+      "source_text": "How should tests isolate Nestor's process-wide matcher under parallel collection?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The existing isolate_globals autouse fixture now saves the current matcher, installs a fresh StringMatcher before each test, and restores the saved matcher afterward, alongside its existing store, ledger, keyring, forwarder, and environment isolation.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "ae005f00-34c4-5b86-b9d7-9f5248c736fd",
       "origin": "pr:?",
       "seal_sig": "",
@@ -257,6 +271,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Narrow scope, on purpose. Only So (Symbol, other — the emoji block) and Sk (Symbol, modifier — the skin-tone family that composes with emoji base characters) are preserved. Sc ('$', '€', '£') and Sm ('×', '÷', '±', '∞') stay stripped. The Grok peer review sketched the wider version ('regex.sub(r\"[^\\w\\s\\p{Emoji}\\p{S}]\", ...)') as an alternative, and it is a real alternative, but folding it into this PR would silently rekey every baseline like `$4.20B` (currently → `420b`, wide version → `$420b`) and every existing sealed row whose source_text contained a stripped symbol. That is a schema-migration-shaped change requiring its own measurement (which existing rows would rekey? do any baseline benches rely on the pre-fix output?) and its own explicit decision. Deferred as an explicit follow-up. The narrow PR closes the PR #180 finding as filed and leaves the wider question alone until it earns a decision of its own.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "91894b5a-cbb0-5d49-a24b-199f136b56f6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what proves the matcher isolation resets without permanently overwriting caller state",
+      "source_text": "What proves the matcher isolation resets without permanently overwriting caller state?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A regression test installs a poison matcher that maps every value to NONE, enters the fixture body and requires StringMatcher, then completes teardown and requires the exact poison object to be restored.",
       "verifier": "",
       "weight": 1.0
     },
@@ -383,6 +411,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The repository owns semantic policy and refusals; willow-mcp owns compilation into Cursor and Claude JSON, identity/path substitution, atomic writes, and drift reporting. Unsupported client events are reported rather than silently omitted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "4d070950-726f-5489-8f7b-c9fd9d6ae3c3",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should deterministic promptsubmit advisories share process startup without weakening one another",
+      "source_text": "How should deterministic prompt-submit advisories share process startup without weakening one another?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The manifest wires one prompt_submit action. Its runner evaluates the seat anchor, anti-rediscovery advisory, and collision advisory independently, joins their non-empty context into one client envelope, and catches each evaluator's failure separately. PreCompact retains the standalone reinject action.",
       "verifier": "",
       "weight": 1.0
     },
@@ -607,6 +649,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "As a doc — docs/walk-through-covenant.md. Six beats, transcript literals captured from `nestor demo --seed policy` on the current build, ending at beat 4 (a human seals the drafted row in the UI) and beat 5 (the same ask now serves as verified). Beat 6 nods at the ledger and defers deeper coverage to tests/test_review_ledger.py. The doc names its own bench (tests/test_walk_through_covenant.py, 6 tests) as its anti-drift gate: any literal in beats 1/2/3/5 that stops matching the store fails the bench.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "03f1ade0-0fae-594f-8c3f-732bf9e703e6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happens when one combined prompt advisory raises",
+      "source_text": "What happens when one combined prompt advisory raises?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Only that advisory is omitted. The other two still emit, proven by a test that makes before_build raise and requires both the anchor and before_propose context to survive.",
       "verifier": "",
       "weight": 1.0
     },
