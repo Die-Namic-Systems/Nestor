@@ -5,7 +5,6 @@ change to either is a deliberate, visible edit, not a silent drift.
 from __future__ import annotations
 
 from nestor.triage import DEFAULT_BAR, EDGE_KINDS, Decision, load_decisions
-
 from tests.conftest import ARCHIVE_DECISIONS
 
 
