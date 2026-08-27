@@ -113,7 +113,7 @@ time-decay and N-of-M are not.
 |-------|------|
 | **`~/.nestor/keep/nestor.db`** | Live household memory — seals persist here, not in git dogfood |
 | **`docs/local-agent-prototype.md`** | Cursor + Ollama + MCP pin the same paths |
-| **`scripts/household_activate_sealed_dogfood.sh`** | Export dogfood bundle → import into household (with backup) |
+| **`scripts/household_activate_sealed_dogfood.sh`** | Import a sealed export (`--from-db` or `--bundle`) into household (with backup); refuses `docs/dogfood/nestor.db` |
 | **`safe-app-willow-grove`** (`grove_serve`, `resident_watcher`) | Operator seat at `:8766`; `nestor_client` calls household via MCP `nestor_ask` on `decision→decision` |
 | **Decision `0215`** | Gate 5 watcher L1 ceiling at the Nestor seam |
 
