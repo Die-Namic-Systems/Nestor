@@ -370,6 +370,10 @@ REGISTRY: dict[str, VarSpec] = {
             "missing, RAISES PinRefused rather than falling back to the "
             "cwd-relative default: reverting silently would write a second "
             "corpus somewhere nobody looks and report success.")),
+        VarSpec("NESTOR_CORPUS_DIR", "path", default=None, doc=(
+            "Operator-selected directory of extracted per-repository SQLite "
+            "stores. `nestor corpus sync` reads them immutable/read-only and "
+            "installs one non-authoritative snapshot inside NESTOR_DB.")),
         VarSpec("NESTOR_LEDGER", "path", default="data/ledger.jsonl", doc=(
             "Hash-chained ledger location (nestor.cascade). Unset, the chain "
             "follows the corpus — see home_paths.ledger_for.")),

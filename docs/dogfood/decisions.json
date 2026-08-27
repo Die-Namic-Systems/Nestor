@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 588,
+    "pairs": 591,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "ab0287619dbec17f0821b7f613e1d7455a25668d47222332468df7027f26aa11",
+  "digest": "c51effd3415d3e0cf3cb98e0cbd0ba7a6cdb1664581976a8746a05d07b718ac3",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -131,6 +131,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two refusals: an empty iterable (kitchen-pudding's rule — 'no ingredients' is not a provenance claim), and any state outside PROVENANCE_STATES (a typo would silently grow an unqueryable taxonomy). Both raise ValueError with the legal set in the message; test_case_sensitivity_is_load_bearing pins that 'MEASURED' is refused even though a case-insensitive comparison would 'work'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "be3df304-e139-5c44-a6c5-f6d9376d7627",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how can all extracted repository stores become one local nestor corpus without granting their rows authority",
+      "source_text": "How can all extracted repository stores become one local Nestor corpus without granting their rows authority?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The household NESTOR_DB owns a separate corpus_claims snapshot and FTS index. Source databases are read immutable/read-only, every claim and conflict is preserved with stable provenance, and transactional replacement occurs only after every source row validates. No corpus operation writes tm_pairs, the ledger, a verifier, or a signature.",
       "verifier": "",
       "weight": 1.0
     },
@@ -346,6 +360,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "64bb32c7-3b79-51c4-a74b-2ef7b38c6546",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what retrieval cost is paid on each local draft",
+      "source_text": "What retrieval cost is paid on each local draft?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "SQLite FTS5 produces a bounded shortlist and repository diversification limits any one extractor's crowding. Optional local Ollama embeddings rerank only that shortlist, cache vectors for the process, and report fts+semantic explicitly; an unavailable semantic backend falls back to a result labelled fts rather than pretending semantic recall occurred.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "63f55873-f4d1-5bed-afca-07dc91b106a6",
       "origin": "pr:?",
       "seal_sig": "",
@@ -397,6 +425,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Deferred. Current behaviour is preserved: `parse('Room 42')`, `parse('the answer is 42')`, `parse('42ish')`, and `parse('$42 sandwich')` all return `42.0`, and similarity against a `42` baseline is `1.0` for all of them. The design docstring on `NumericMatcher.parse_detail` names this stance explicitly — 'USD is decoration, not prose' and 'Reporting it beats refusing it: a reconciler that rejected every partially-parsed figure would refuse real inputs' — and every heuristic that closes the prose-plus-number class also refuses one or more legitimate unit-suffixed cases: length ≤ 3 refuses `Room` (4) but also `ish`; all-uppercase refuses `Room` but also refuses `kg` and `cm`; ≥2 lowercase letters refuses `sandwich` but also refuses `cm`, `kg`, and every metric suffix. A refuse-prose-residue fix therefore has to make a policy call (which kind of decoration is 'unit' vs 'prose') that is not obvious from the design's stated intent alone.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "538dab07-a39c-5c02-81fc-ac14ca738782",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a long naturallanguage task avoid retrieving rows that match only sentence glue",
+      "source_text": "How does a long natural-language task avoid retrieving rows that match only sentence glue?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "FTS still supplies the bounded candidate set, then Nestor removes stopwords, canonicalizes conservative plural forms, requires at least two meaningful matched terms when the task has four or more, and ranks greater term coverage before BM25. Each returned claim names its matched terms and query coverage.",
       "verifier": "",
       "weight": 1.0
     },

@@ -25,7 +25,8 @@ from nestor.sqlite_store import SqliteStore
 # values afterwards. Fault injection (e.g. a broken ledger append) still uses
 # ``monkeypatch`` where that is the right tool.
 CONFIGURED_BY_ENV = ("NESTOR_KEYRING", "NESTOR_SEAL_KEY", "NESTOR_REQUIRE_SEAL_KEY",
-                     "NESTOR_CACHE_KEY", "NESTOR_LEDGER", "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
+                     "NESTOR_CACHE_KEY", "NESTOR_CORPUS_DIR", "NESTOR_LEDGER",
+                     "NESTOR_LEDGER_VERIFY_INTERVAL_SEC",
                      "NESTOR_BROWSER_TEST", "NESTOR_GLOSSARY", "NESTOR_OLLAMA_TEST",
                      "NESTOR_FRANK_STRICT", "NESTOR_FRANK_APP_ID", "NESTOR_FRANK_PROJECT",
                      "WILLOW_MCP_COMMAND", "WILLOW_APP_ID", "NESTOR_SEMANTIC_TEST")
