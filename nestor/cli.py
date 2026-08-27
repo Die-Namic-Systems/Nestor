@@ -50,7 +50,7 @@ import types
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _dist_version
 
-from . import answer, cascade, config, memory, portable, serve, signing, storage, ui
+from . import answer, cascade, config, corpus, memory, portable, serve, signing, storage, ui
 from . import keyring as keyring_mod
 from . import ledger as ledger_mod
 from . import seed as seed_mod
@@ -1088,6 +1088,41 @@ def cmd_demo(args) -> int:
     return EXIT_OK
 
 
+def cmd_corpus(args) -> int:
+    """Build the inert corpus lane inside the configured household store."""
+    store = _store(args)
+    if not isinstance(store, SqliteStore) or store.db_path == ":memory:":
+        print("corpus sync requires a file-backed SQLite store", file=sys.stderr)
+        return EXIT_USAGE
+    source_dir = (
+        args.source_dir or config.load().get_str("corpus_dir", "")
+    ).strip()
+    if not source_dir:
+        print(
+            "corpus sync needs --source-dir or NESTOR_CORPUS_DIR",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    try:
+        report = corpus.sync(source_dir, store.db_path)
+    except corpus.CorpusError as exc:
+        print(f"corpus sync refused: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    data = vars(report)
+    _emit(
+        data,
+        args.json,
+        (
+            f"{report.sources} source store(s) -> {report.claims} inert claim(s)\n"
+            f"  shared keys {report.shared_keys}: drift {report.drift_keys}, "
+            f"two kinds {report.two_kind_keys}, restated {report.restated_keys}\n"
+            f"  snapshot {report.snapshot_sha256} "
+            f"({'refreshed' if report.changed else 'unchanged'})"
+        ),
+    )
+    return EXIT_OK
+
+
 # --------------------------------------------------------------------------
 # completions
 # --------------------------------------------------------------------------
@@ -1364,6 +1399,18 @@ def build_parser() -> argparse.ArgumentParser:
     dbp.add_argument("--force", action="store_true",
                      help="with --out, replace existing destination file(s)")
     dbp.set_defaults(func=cmd_db)
+
+    corp = sub.add_parser(
+        "corpus",
+        help="consolidate extracted source stores as unverified drafting context",
+    )
+    corp.add_argument("corpus_command", nargs="?", choices=("sync",), default="sync")
+    corp.add_argument(
+        "--source-dir",
+        default="",
+        help="directory of read-only source .db files (default: NESTOR_CORPUS_DIR)",
+    )
+    corp.set_defaults(func=cmd_corpus)
 
     imp = sub.add_parser("import", help="read a bundle (dry run unless --apply)")
     imp.add_argument("file", help="path to the bundle file to import")

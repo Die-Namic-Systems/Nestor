@@ -45,6 +45,7 @@ directories and `layout.json`, and clobbers nothing that is already there.
 |----------|---------|
 | `NESTOR_HOME` | Household root (default `~/.nestor`) |
 | `NESTOR_DB` | Pinned corpus — one **file**, what `nestor` opens without `--db` |
+| `NESTOR_CORPUS_DIR` | Directory of read-only per-repository source `.db` files; `nestor corpus sync` reads them immutable and installs a non-authoritative snapshot inside `NESTOR_DB` |
 | `NESTOR_LEDGER` | Pinned hash chain; household clients use `~/.nestor/keep/ledger.jsonl` |
 | `NESTOR_KEYRING` | Public verifier keyring used by UI and model-serving processes |
 

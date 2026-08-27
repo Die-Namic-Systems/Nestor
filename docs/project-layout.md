@@ -37,6 +37,7 @@ nestor/
 ├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
 ├── warrant.py       why a stranger should believe a claim — citation and construction warrants, composed with the seal (docs/warrants.md)
 ├── engine.py         tier 2 — cloud, deterministic, and loopback Ollama draft engines
+├── corpus.py         immutable multi-store consolidation + FTS/optional local-semantic retrieval; authority always none
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
 ├── storage.py        the persistence seam — Storage protocol, set_store/get_store
 ├── sqlite_store.py   reference Storage impl; owns documents/segments/tm_pairs/tm_rejections/tm_embeddings/decision_edges/decision_evidence
