@@ -276,9 +276,12 @@ def test_semantic_rerank_is_bounded_cached_and_explicit(tmp_path):
 @pytest.mark.performance
 def test_full_local_corpus_sync_and_query_stay_bounded(tmp_path):
     household = tmp_path / "household.db"
+    source_dir = REPO / "data" / "corpus"
+    if not source_dir.is_dir():
+        pytest.skip("requires the local extracted corpus at data/corpus")
 
     sync_started = time.perf_counter()
-    report = corpus.sync(REPO / "data" / "corpus", household)
+    report = corpus.sync(source_dir, household)
     sync_seconds = time.perf_counter() - sync_started
     query_started = time.perf_counter()
     found = corpus.CorpusRetriever(household).search(
