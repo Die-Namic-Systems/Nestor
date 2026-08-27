@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import sqlite3
+import time
+from pathlib import Path
 
 import pytest
 
 from nestor import cli, corpus, memory
 from nestor.sqlite_store import SqliteStore
+
+REPO = Path(__file__).resolve().parent.parent
 
 
 def _source(path, rows):
@@ -235,3 +239,56 @@ def test_cli_syncs_selected_sources_into_selected_household_db(tmp_path):
 
     assert code == 0
     assert corpus.CorpusRetriever(household).count() == 1
+
+
+def test_semantic_rerank_is_bounded_cached_and_explicit(tmp_path):
+    sources = tmp_path / "sources"
+    sources.mkdir()
+    _source(
+        sources / "one.db",
+        [
+            ("boundary storage", "irrelevant storage detail", "term", "term", "one:a"),
+            ("boundary authority", "preferred human authority", "term", "term", "one:b"),
+        ],
+    )
+    household = tmp_path / "household.db"
+    corpus.sync(sources, household)
+    calls = []
+
+    def embed(text):
+        calls.append(text)
+        return (1.0, 0.0) if (
+            text == "boundary authority" or "preferred" in text
+        ) else (0.0, 1.0)
+
+    retriever = corpus.CorpusRetriever(household, semantic=True, embedder=embed)
+    first = retriever.search("boundary authority", limit=2)
+    first_call_count = len(calls)
+    second = retriever.search("boundary authority", limit=2)
+
+    assert first.mode == "fts+semantic"
+    assert first.claims[0].target_text == "preferred human authority"
+    assert second.claims == first.claims
+    assert len(calls) == first_call_count
+
+
+@pytest.mark.slow
+@pytest.mark.performance
+def test_full_local_corpus_sync_and_query_stay_bounded(tmp_path):
+    household = tmp_path / "household.db"
+
+    sync_started = time.perf_counter()
+    report = corpus.sync(REPO / "data" / "corpus", household)
+    sync_seconds = time.perf_counter() - sync_started
+    query_started = time.perf_counter()
+    found = corpus.CorpusRetriever(household).search(
+        "why local agents may draft but only humans verify and seal",
+        limit=8,
+    )
+    query_seconds = time.perf_counter() - query_started
+
+    assert report.sources == 24
+    assert report.claims >= 9_000
+    assert found.claims
+    assert sync_seconds < 10.0
+    assert query_seconds < 1.0
