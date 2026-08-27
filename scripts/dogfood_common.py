@@ -20,10 +20,14 @@ import pathlib
 import tempfile
 
 from nestor import cascade, memory, storage
+from nestor import keyring as keyring_mod
+from nestor import signing
 from nestor.sqlite_store import SqliteStore
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DECISIONS_DIR = ROOT / "docs" / "dogfood" / "decisions"
+SEALS_DIR = ROOT / "docs" / "dogfood" / "seals"
+VERIFIERS_PATH = ROOT / "docs" / "dogfood" / "verifiers.json"
 
 
 class DecisionCorpusError(ValueError):
@@ -35,6 +39,10 @@ class DecisionCorpusError(ValueError):
     to surface, not a row to silently drop. Subclasses ``ValueError`` so existing
     callers that catch ``ValueError`` keep working.
     """
+
+
+class SealFileError(ValueError):
+    """A seal file is malformed, orphaned, or fails cryptographic verification."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -57,6 +65,146 @@ class Decision:
     #: stamp the derived store's ``created_at`` deterministically, so a rebuild
     #: does not churn a timestamp on every row.
     date: str = ""
+
+
+@dataclasses.dataclass(frozen=True)
+class SealRecord:
+    """One human seal folded into the committed store at ``--rebuild``.
+
+    ``pair_id`` is the deterministic row id from :func:`dogfood_store._row_id`.
+    ``sealed_at`` is audit metadata for the git diff; the store's ``created_at``
+    stays pinned to the decision file's date.
+    """
+
+    pair_id: str
+    verifier: str
+    sealed_at: str
+    seal_sig: str
+    file: str
+
+
+def seal_files(seals_dir: pathlib.Path | None = None) -> list[pathlib.Path]:
+    """Every ``*.json`` seal file, in stable order."""
+    root = seals_dir or SEALS_DIR
+    if not root.is_dir():
+        return []
+    return sorted(root.glob("*.json"))
+
+
+def load_seal(path: pathlib.Path) -> SealRecord:
+    """Read and validate one seal file under ``docs/dogfood/seals/``."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SealFileError(
+            f"{path.name} is not valid JSON ({exc})") from exc
+    if not isinstance(data, dict):
+        raise SealFileError(f"{path.name} must contain a JSON object")
+    pair_id = str(data.get("pair_id") or "").strip()
+    verifier = str(data.get("verifier") or "").strip()
+    sealed_at = str(data.get("sealed_at") or "").strip()
+    seal_sig = str(data.get("seal_sig") or "").strip()
+    missing = [name for name, val in (
+        ("pair_id", pair_id), ("verifier", verifier),
+        ("sealed_at", sealed_at), ("seal_sig", seal_sig),
+    ) if not val]
+    if missing:
+        raise SealFileError(
+            f"{path.name} is missing required field(s): {', '.join(missing)}")
+    if path.stem != pair_id:
+        raise SealFileError(
+            f"{path.name} names pair_id {path.stem!r} but the file says "
+            f"{pair_id!r} — the filename and body must agree")
+    return SealRecord(pair_id=pair_id, verifier=verifier, sealed_at=sealed_at,
+                      seal_sig=seal_sig, file=path.name)
+
+
+def load_verifiers_keyring(path: pathlib.Path | None = None) -> keyring_mod.Keyring:
+    """The distributable public keyring for dogfood seal verification."""
+    target = path or VERIFIERS_PATH
+    if not target.is_file():
+        return keyring_mod.Keyring(path=str(target))
+    return keyring_mod.load(str(target))
+
+
+def _verifiers_label() -> str:
+    try:
+        return str(VERIFIERS_PATH.relative_to(ROOT))
+    except ValueError:
+        return str(VERIFIERS_PATH)
+
+
+def apply_seal_files(store, seals_dir: pathlib.Path | None = None) -> int:
+    """Upgrade draft rows to sealed when a matching seal file verifies.
+
+    Returns the number of seals applied. Raises :class:`SealFileError` when a
+    file is orphaned, duplicated, or cryptographically invalid.
+    """
+    paths = seal_files(seals_dir)
+    if not paths:
+        return 0
+    records = [load_seal(path) for path in paths]
+    seen: set[str] = set()
+    for record in records:
+        if record.pair_id in seen:
+            raise SealFileError(
+                f"duplicate seal for pair_id {record.pair_id!r}")
+        seen.add(record.pair_id)
+
+    ring = load_verifiers_keyring()
+    if not list(ring.entries()):
+        raise SealFileError(
+            f"{len(records)} seal file(s) present but "
+            f"{_verifiers_label()} has no verifier keys — "
+            f"register the signer's ed25519 public key before committing seals")
+
+    previous = keyring_mod.get_keyring()
+    keyring_mod.set_keyring(ring)
+    try:
+        applied = 0
+        for record in records:
+            row = store.memory_get(record.pair_id)
+            if row is None:
+                raise SealFileError(
+                    f"{record.file} seals pair_id {record.pair_id!r}, which is "
+                    f"not in the rebuilt store — orphan seal file")
+            if row.get("status") == "sealed":
+                if (row.get("verifier") == record.verifier
+                        and row.get("seal_sig") == record.seal_sig):
+                    applied += 1
+                    continue
+                raise SealFileError(
+                    f"{record.file} disagrees with the store row for "
+                    f"{record.pair_id!r}")
+            if row.get("status") != "draft":
+                raise SealFileError(
+                    f"{record.file} targets pair_id {record.pair_id!r} in "
+                    f"status {row.get('status')!r}, expected draft")
+            if not signing.seal_is_valid(row["source_norm"], row["target_text"],
+                                         record.verifier, record.seal_sig):
+                raise SealFileError(
+                    f"{record.file}: seal_sig does not verify for verifier "
+                    f"{record.verifier!r}")
+            memory.add_pair(
+                row["source_text"], row["target_text"],
+                row["source_lang"], row["target_lang"],
+                status="sealed", verifier=record.verifier,
+                seal_sig=record.seal_sig, reason=row.get("reason", ""),
+                origin=row.get("origin", ""), pair_id=record.pair_id,
+                created_at=row.get("created_at", ""), audit=False, store=store)
+            applied += 1
+        return applied
+    finally:
+        keyring_mod.set_keyring(previous)
+
+
+def finalize_sealed_store(store, expected_seals: int) -> dict:
+    """The covenant after seal files are folded in."""
+    stats = memory.stats(store=store)
+    assert stats["sealed"] == expected_seals, (
+        f"expected {expected_seals} sealed row(s) from seal files, store has "
+        f"{stats['sealed']}")
+    return stats
 
 
 def decision_files(decisions_dir: pathlib.Path | None = None) -> list[pathlib.Path]:
@@ -164,19 +312,8 @@ def opened(keep: str | None):
 
 
 def assert_nothing_sealed(store) -> dict:
-    """The covenant. Returns ``memory.stats`` so a caller can print it.
-
-    Asserted rather than printed because it is the one claim in a dogfood run
-    that is not a measurement. A run that seals has not produced a worse number;
-    it has broken the rule the whole exercise is a demonstration of, and it
-    should fail the build rather than report itself.
-    """
-    stats = memory.stats(store=store)
-    assert stats["sealed"] == 0, (
-        f"{stats['sealed']} sealed row(s) — this script proposes and must never "
-        f"confirm. A seal belongs to a human at nestor.ui (ground rule: the machine "
-        f"may propose and may not confirm).")
-    return stats
+    """The covenant when no seal files are present. Returns ``memory.stats``."""
+    return finalize_sealed_store(store, expected_seals=0)
 
 
 def feed_drafts(store, decisions, domain: str, origin: str) -> None:

@@ -191,7 +191,7 @@ this map is not, CI fails. It cannot drift.
 | [6.120](docs/agent-log.md#6120-the-cli-had-no---version-no-shell-completions-and-two-verbs-without---json--shipped) | The CLI had no --version, no shell completions, and two verbs without --json | shipped |
 | [6.121](docs/agent-log.md#6121-the-system-had-no-surface-for-i-like-it-this-way--shipped) | The system had no surface for "I like it this way" | shipped |
 | [6.122](docs/agent-log.md#6122-the-contributor-path-was-scattered-across-four-documents-and-had-no-front-door--shipped) | The contributor path was scattered across four documents and had no front door | shipped |
-| [6.123](docs/agent-log.md#6123-a-seal-on-a-dogfood-decision-has-nowhere-to-go--measured-household-shipped-git-seal-file-open) | A seal on a dogfood decision has nowhere to go | measured, household shipped, git seal-file open |
+| [6.123](docs/agent-log.md#6123-a-seal-on-a-dogfood-decision-has-nowhere-to-go--measured-household-shipped-git-seal-file-shipped) | A seal on a dogfood decision has nowhere to go | measured, household shipped, git seal-file shipped |
 | [6.124](docs/agent-log.md#6124-eight-red-releases-one-permission-and-a-check-that-asked-the-wrong-question--measured-guard-shipped-token-operators) | Eight red releases, one permission, and a check that asked the wrong question | measured, guard shipped, token operator's |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |

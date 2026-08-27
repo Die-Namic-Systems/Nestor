@@ -113,14 +113,14 @@ time-decay and N-of-M are not.
 |-------|------|
 | **`~/.nestor/keep/nestor.db`** | Live household memory — seals persist here, not in git dogfood |
 | **`docs/local-agent-prototype.md`** | Cursor + Ollama + MCP pin the same paths |
-| **`scripts/household_activate_sealed_dogfood.sh`** | Import a sealed export (`--from-db` or `--bundle`) into household (with backup); refuses `docs/dogfood/nestor.db` |
-| **`safe-app-willow-grove`** (`grove_serve`, `resident_watcher`) | Operator seat at `:8766`; `nestor_client` calls household via MCP `nestor_ask` on `decision→decision` |
+| **`scripts/household_activate_sealed_dogfood.sh`** | Import a sealed export into household (with backup); refuses git dogfood db |
+| **`scripts/dogfood_seal_export.py`** | Export one sealed row → `docs/dogfood/seals/<pair_id>.json` for git |
+| **`docs/dogfood/verifiers.json`** | Public ed25519 keys for seal-file verification at `--rebuild` |
+| **`safe-app-willow-grove`** (`grove_serve`, `resident_watcher`) | Operator seat at `:8766`; `nestor_client` calls household via MCP `nestor_ask` |
 | **Decision `0215`** | Gate 5 watcher L1 ceiling at the Nestor seam |
 
-**Still open in nestor:** reviewable `docs/dogfood/seals/<id>.json` folded at
-`dogfood_store.py --rebuild` (§6.123 git seal-file shape). The household +
-import path is the shipped answer for operators; the committed `.db` stays
-all-draft by design.
+§6.123 is fully shipped: household trust root for live seals, git seal files for
+reviewable repository seals.
 
 ---
 
@@ -258,4 +258,4 @@ Stay **nestor-local** unless you import design from the rows above:
 
 1. **Docs-only:** ~~§4.2~~ (shipped) / §4.4 landing page + chart still open; §5.5 frank + `ledger head` runbook; ~~§6.123 household path~~ (shipped — see [`local-agent-prototype.md`](local-agent-prototype.md)).
 2. **Small code:** ~~§6.8 `memory_init` skip~~ (shipped); optional Memory sort by `created_at`; §6.25 `init_db` lineage ordering (one line, found while doing §6.8); grove `nestor_client` MCP + `NESTOR_HOME` pin (safe-app-willow-grove, operator-tested).
-3. **Large / design:** §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy; §6.123 git `seals/*.json` shape.
+3. **Large / design:** §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy.

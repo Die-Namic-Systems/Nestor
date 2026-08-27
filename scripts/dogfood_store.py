@@ -27,8 +27,11 @@ on every concurrent PR, and a binary ``.db`` would conflict unresolvably.
 Separate files never collide, and the ``.db`` is derived rather than merged —
 so the artifact can always be regenerated from text somebody reviewed.
 
-**Nothing here seals.** Every row lands as a draft, and ``--verify`` fails if a
-sealed one ever appears. The queue belongs to a human at ``nestor.ui``.
+**Seal files.** Human seals that belong in git live as reviewable JSON under
+``docs/dogfood/seals/<pair_id>.json`` and are folded in at ``--rebuild``. Every
+other row lands as a draft. ``--verify`` fails on a sealed row that does not
+trace to a seal file, or on a seal file that does not verify against
+``docs/dogfood/verifiers.json``.
 """
 from __future__ import annotations
 
@@ -48,6 +51,7 @@ from nestor.sqlite_store import SqliteStore                      # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DECISIONS_DIR = ROOT / "docs" / "dogfood" / "decisions"
+SEALS_DIR = ROOT / "docs" / "dogfood" / "seals"
 STORE_PATH = ROOT / "docs" / "dogfood" / "nestor.db"
 BUNDLE_PATH = ROOT / "docs" / "dogfood" / "decisions.json"
 
@@ -58,6 +62,13 @@ DOMAIN = "decision"
 #: signed; it exists only to make ``uuid5`` deterministic, the way the file
 #: order and the rows digest already are.
 _ID_NS = uuid.UUID("b6f2d1e0-9c3a-4a7b-8e5f-2d1c0b9a8f7e")
+
+
+def _display_path(path: pathlib.Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def decision_files() -> list[pathlib.Path]:
@@ -104,7 +115,8 @@ def build(store) -> dict:
         memory.add_pair(d.question, d.commitment, DOMAIN, DOMAIN, status="draft",
                         reason=d.why, origin=d.origin, pair_id=_row_id(d),
                         created_at=created_at, store=store)
-    return dogfood_common.assert_nothing_sealed(store)
+    seal_count = dogfood_common.apply_seal_files(store)
+    return dogfood_common.finalize_sealed_store(store, seal_count)
 
 
 def _bundle_digest(store) -> str:
@@ -138,7 +150,7 @@ def main() -> int:
     mode.add_argument("--rebuild", action="store_true",
                       help="regenerate the committed store from the decision files")
     mode.add_argument("--verify", action="store_true",
-                      help="check the committed store matches the files, and seals nothing")
+                      help="check the committed store matches the files and seal files")
     args = ap.parse_args()
 
     files = decision_files()
@@ -188,15 +200,22 @@ def main() -> int:
     finally:
         committed.close()
 
-    if stats_committed["sealed"]:
-        print(f"! the committed store has {stats_committed['sealed']} sealed row(s) — "
-              f"this script proposes and must never confirm")
+    seal_files = dogfood_common.seal_files(SEALS_DIR)
+    seal_count = len(seal_files)
+
+    if stats_committed["sealed"] != seal_count:
+        print(f"! the committed store has {stats_committed['sealed']} sealed row(s) "
+              f"but {seal_count} seal file(s) under {_display_path(SEALS_DIR)}")
         return 1
     if got != digest:
         print(f"! the committed store does not match the decision files "
               f"({got} != {digest}) — run --rebuild and commit the result")
         return 1
-    print("the committed store matches the decision files, and seals nothing")
+    if seal_count:
+        print(f"the committed store matches the decision files and "
+              f"{seal_count} seal file(s)")
+    else:
+        print("the committed store matches the decision files, and seals nothing")
     return 0
 
 

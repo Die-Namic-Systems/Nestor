@@ -7358,7 +7358,7 @@ and `.github/ISSUE_TEMPLATE` do not. The contributor guidance lived in
 
 ---
 
-### 6.123 A seal on a dogfood decision has nowhere to go — **measured**, household **shipped**, git seal-file **open**
+### 6.123 A seal on a dogfood decision has nowhere to go — **measured**, household **shipped**, git seal-file **shipped**
 
 *Found by the operator asking the most ordinary question available — "what is
 the command to get the server running so I can make the decisions" — after 486
@@ -7439,10 +7439,10 @@ and wired:
 * **Grove** (`safe-app-willow-grove`) reads the household store at
   `POST /api/nestor/decide` (decision `0215` sealed in household).
 
-**Still open:** the reviewable **`docs/dogfood/seals/<id>.json`** shape folded
-at `--rebuild` — the only way a seal could appear in git without committing an
-opaque binary. Household + import is the shipped operator answer; the seal-file
-shape is optional future work.
+**Still open:** ~~the reviewable **`docs/dogfood/seals/<id>.json`** shape folded
+at `--rebuild`~~ — **shipped** (decision `0218`, `scripts/dogfood_seal_export.py`).
+Household + import remains the live operator trust root; git seal files are for
+seals worth recording in the repository.
 
 ---
 

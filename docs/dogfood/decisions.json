@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 191,
+    "pairs": 192,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-27T00:00:00+00:00",
-  "digest": "79942b8e07002bc3c3e7d568dfcdcc4e9004f1833d0d06c8a400a873e0bb4fb8",
+  "digest": "2bea71f28b40fe33cfb8731c34edce5c48f8304655c8a8bcdf82e7f5dda5905a",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-27T00:00:00+00:00",
+      "id": "e8f8b8bc-3f46-555d-81c8-66ea5a84aecf",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how may a human seal on a dogfood decision appear in git",
+      "source_text": "How may a human seal on a dogfood decision appear in git?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "As reviewable JSON only: docs/dogfood/seals/<pair_id>.json carrying pair_id, verifier, sealed_at, and seal_sig; verified at rebuild against docs/dogfood/verifiers.json (public ed25519 keys). dogfood_store.py --rebuild folds seal files into the committed store; --verify admits a sealed row only when it traces to such a file. Operators export with scripts/dogfood_seal_export.py after sealing in a review copy or household store.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-27T00:00:00+00:00",
       "id": "8520607c-404a-57d4-bdf6-23aee8035592",

@@ -291,13 +291,27 @@ nestor ui --db review.db --verifier <you>          # 127.0.0.1:8765
 file. `review.db*` is gitignored, which covers the ledger `nestor` writes
 beside it and SQLite's own `-wal`/`-shm` companions.
 
-**Know what this does and does not do.** The seals live in `review.db` and
-nowhere else. The next `--rebuild` regenerates an all-draft store that knows
-nothing about them, because the builder reads the decision files and nothing
-else — deliberately, and it is the rule that makes the store trustworthy. So
-the project's decision memory currently cannot record that a human agreed with
-it. That is written up as [agent-log §6.123](agent-log.md) with three proposed
-shapes and none built; until one is, sealing here is for your own reading.
+**Seals in git (optional).** To record a human agreement in the repository,
+export seal files after sealing in the review copy:
+
+```bash
+python scripts/dogfood_seal_export.py --list --from-db review.db
+python scripts/dogfood_seal_export.py --decision 0218 --from-db review.db
+python scripts/dogfood_seal_export.py --all --from-db review.db
+```
+
+Register the signer's ed25519 public key in `docs/dogfood/verifiers.json` before
+the first seal file from that signer (public-only — safe to commit):
+
+```bash
+nestor keys add <you> --type ed25519 --public <hex> \
+  --keyring docs/dogfood/verifiers.json
+```
+
+Rebuild folds `docs/dogfood/seals/<pair_id>.json` into the committed store;
+`--verify` admits a sealed row only when it traces to such a file. Household
+seals (`~/.nestor`) remain the live operator trust root — see
+[agent-log §6.123](agent-log.md).
 
 An agent may not seal in that copy either. Nothing about a local database
 changes the one rule.

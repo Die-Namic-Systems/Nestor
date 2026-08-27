@@ -42,22 +42,24 @@ def test_the_committed_store_matches_the_decision_files():
     assert done.returncode == 0, done.stdout + done.stderr
 
 
-def test_nothing_in_the_committed_store_is_sealed():
-    """The covenant, checked against the artifact rather than the builder.
+def test_nothing_in_the_committed_store_is_sealed_without_seal_files():
+    """Sealed rows in git must trace to ``docs/dogfood/seals/*.json``."""
+    seal_dir = ROOT / "docs" / "dogfood" / "seals"
+    seal_ids = {p.stem for p in seal_dir.glob("*.json")} if seal_dir.is_dir() else set()
 
-    `assert_nothing_sealed` runs during a build; this asks the file itself, so a
-    row sealed by any route at all — a hand edit, a bad merge, a future script —
-    is caught rather than assumed impossible."""
     store = SqliteStore(str(STORE))
     try:
         store.memory_init()
         stats = memory.stats(store=store)
+        rows = store.memory_list(limit=10_000)
     finally:
         store.close()
-    assert stats["sealed"] == 0, (
-        f"{stats['sealed']} sealed row(s) in the committed store — the machine "
-        f"may propose and may not confirm, and a seal belongs to a human at "
-        f"nestor.ui")
+
+    sealed = [r for r in rows if r.get("status") == "sealed"]
+    assert stats["sealed"] == len(seal_ids), (
+        f"{stats['sealed']} sealed row(s) in store vs {len(seal_ids)} seal file(s)")
+    assert {r["id"] for r in sealed} == seal_ids, (
+        "every sealed row must have a matching seal file, and vice versa")
     assert stats["draft"] > 0, "an empty store would pass every other gate here"
 
 
@@ -127,7 +129,8 @@ def test_dogfood_store_still_verifies_after_the_extraction():
     is the behavioral contract that must not move — same digest, same store."""
     done = _run("--verify")
     assert done.returncode == 0, done.stdout + done.stderr
-    assert "matches the decision files, and seals nothing" in done.stdout
+    assert ("matches the decision files" in done.stdout
+            and ("seals nothing" in done.stdout or "seal file(s)" in done.stdout))
 
 
 # --- reproducibility -------------------------------------------------------
@@ -317,3 +320,136 @@ def test_the_thin_pointer_still_points():
         assert f"]({target})" in text, (
             f"CLAUDE.md has no markdown link to {target} — it is the one file "
             f"an agent is made to read, so a pointer that has rotted is silent")
+
+
+# --- seal files (§6.123) ---------------------------------------------------
+
+def _seal_fixture(tmp_path):
+    """One decision file, a draft build, and a client-signed seal for it."""
+    pytest.importorskip("cryptography")
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding,
+        PublicFormat,
+    )
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import dogfood_common
+    import dogfood_store
+
+    from nestor import keyring, signing
+
+    decisions = tmp_path / "decisions"
+    seals = tmp_path / "seals"
+    verifiers = tmp_path / "verifiers.json"
+    decisions.mkdir()
+    seals.mkdir()
+
+    decision_path = decisions / "0999-seal-file-fixture.json"
+    decision_path.write_text(json.dumps({
+        "pr": "fixture",
+        "date": "2026-08-27",
+        "decisions": [{
+            "question": "May a human seal travel in git as reviewable JSON?",
+            "commitment": "Yes, when a seal file verifies against the public keyring.",
+            "why": "Fixture for §6.123.",
+        }],
+    }, indent=2) + "\n", encoding="utf-8")
+
+    private = Ed25519PrivateKey.generate()
+    pub_bytes = private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    ring = keyring.Keyring()
+    ring.add("rita", key=pub_bytes, kind="ed25519")
+    ring.save(str(verifiers))
+
+    store = SqliteStore(str(tmp_path / "store.db"))
+    store.memory_init()
+    dogfood_store.DECISIONS_DIR = decisions
+    dogfood_common.DECISIONS_DIR = decisions
+    dogfood_store.build(store)
+    row = store.memory_list(limit=1)[0]
+    sig = private.sign(
+        signing._message(row["source_norm"], row["target_text"], "rita")).hex()
+
+    seal_path = seals / f"{row['id']}.json"
+    seal_path.write_text(json.dumps({
+        "pair_id": row["id"],
+        "verifier": "rita",
+        "sealed_at": "2026-08-27T12:00:00+00:00",
+        "seal_sig": sig,
+    }, indent=2) + "\n", encoding="utf-8")
+
+    return {
+        "decisions": decisions,
+        "seals": seals,
+        "verifiers": verifiers,
+        "store": store,
+        "row": row,
+        "sig": sig,
+        "dogfood_common": dogfood_common,
+        "dogfood_store": dogfood_store,
+    }
+
+
+def test_rebuild_folds_a_verified_seal_file(tmp_path, monkeypatch):
+    fx = _seal_fixture(tmp_path)
+    monkeypatch.setattr(fx["dogfood_store"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_store"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_common"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "VERIFIERS_PATH", fx["verifiers"])
+
+    fresh = SqliteStore(str(tmp_path / "fresh.db"))
+    fresh.memory_init()
+    stats = fx["dogfood_store"].build(fresh)
+    sealed = fresh.memory_get(fx["row"]["id"])
+    fresh.close()
+
+    assert stats["sealed"] == 1
+    assert sealed["status"] == "sealed"
+    assert sealed["verifier"] == "rita"
+    assert sealed["seal_sig"] == fx["sig"]
+
+
+def test_rebuild_refuses_a_forged_seal_file(tmp_path, monkeypatch):
+    fx = _seal_fixture(tmp_path)
+    monkeypatch.setattr(fx["dogfood_store"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_store"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_common"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "VERIFIERS_PATH", fx["verifiers"])
+
+    seal_path = fx["seals"] / f"{fx['row']['id']}.json"
+    bad = json.loads(seal_path.read_text(encoding="utf-8"))
+    bad["seal_sig"] = "00" * 64
+    seal_path.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+
+    fresh = SqliteStore(str(tmp_path / "bad.db"))
+    fresh.memory_init()
+    with pytest.raises(fx["dogfood_common"].SealFileError, match="does not verify"):
+        fx["dogfood_store"].build(fresh)
+    fresh.close()
+
+
+def test_verify_fails_when_store_is_sealed_without_a_seal_file(tmp_path, monkeypatch):
+    """A hand-sealed committed store must not pass --verify."""
+    fx = _seal_fixture(tmp_path)
+    store_path = tmp_path / "committed.db"
+    empty_seals = tmp_path / "empty-seals"
+    empty_seals.mkdir()
+
+    fresh = SqliteStore(str(store_path))
+    fresh.memory_init()
+    monkeypatch.setattr(fx["dogfood_store"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_store"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "DECISIONS_DIR", fx["decisions"])
+    monkeypatch.setattr(fx["dogfood_common"], "SEALS_DIR", fx["seals"])
+    monkeypatch.setattr(fx["dogfood_common"], "VERIFIERS_PATH", fx["verifiers"])
+    fx["dogfood_store"].build(fresh)
+    fresh.close()
+
+    monkeypatch.setattr(fx["dogfood_store"], "STORE_PATH", store_path)
+    monkeypatch.setattr(fx["dogfood_store"], "SEALS_DIR", empty_seals)
+    monkeypatch.setattr(fx["dogfood_store"], "BUNDLE_PATH", tmp_path / "bundle.json")
+    monkeypatch.setattr(sys, "argv", ["dogfood_store.py", "--verify"])
+    assert fx["dogfood_store"].main() != 0
