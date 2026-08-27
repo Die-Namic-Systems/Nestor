@@ -136,6 +136,13 @@ what moved.
 
 ---
 
+## [0.15.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.14.0...v0.15.0) (2026-08-27)
+
+
+### Added
+
+* **draft:** report grounding gaps in local corpus context ([#234](https://github.com/Die-Namic-Systems/Nestor/issues/234)) ([5919052](https://github.com/Die-Namic-Systems/Nestor/commit/5919052780d44e9628040a6adbb186639d7649ee))
+
 ## [0.14.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.13.0...v0.14.0) (2026-08-27)
 
 
