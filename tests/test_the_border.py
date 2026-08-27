@@ -29,6 +29,8 @@ DEMO = REPO / "demo" / "the_border.py"
 jeles = pytest.importorskip("jeles.corpus",
                             reason="jeles not installed in this environment")
 
+pytestmark = pytest.mark.xdist_group("border_tmp")
+
 
 #: The fixture colours its output, so a phrase the eye reads as one string can
 #: have an escape sequence through the middle of it. Asserting on raw stdout
