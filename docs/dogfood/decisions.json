@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 582,
+    "pairs": 584,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "350812ca6bd69e625ed3272e0e749a6b420001e29afbaa4a9d0f43077f4df8e0",
+  "digest": "df17776ec7dac7505930f4a260e98a3ee788d8e440d9610f348f595a017b1567",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -75,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The bench (tests/test_walk_through_covenant.py) asserts: the doc file exists; beat 1's sealed source and target strings serve as verified by elena with the exact target the doc quotes; beat 2's draft row comes back unverified with the exact target the doc quotes; beat 3's rewrite is refused with beat-1's target as the drafted answer; and beat 5 — after emulating the UI seal via memory.add_pair — the re-ask serves as verified. It does NOT gate the UI seal action itself (no agent can do it) and does NOT re-litigate the ledger tamper case (already gated by tests/test_review_ledger.py).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "e164816e-4cfa-555a-af35-33f5e0695fe0",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should the constitution audit classify explicitly configured operatorlocal ollama clients",
+      "source_text": "How should the constitution audit classify explicitly configured operator-local Ollama clients?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "As differently governed, not satisfied and not failing. The operator grants the local reach by installing and starting Ollama; Nestor does not mint fleet egress. The audit recognizes the two named Ollama client modules, while runtime refusal tests enforce the drafting client's loopback-only host boundary.",
       "verifier": "",
       "weight": 1.0
     },
@@ -565,6 +579,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "They open one explicitly pinned household database and ledger under ~/.nestor, verify the same public Ed25519 keys, and load one repository-owned semantic hook manifest compiled into each client's dialect. Private signing material remains in the human browser; generated client configuration is transport, not policy.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "0977f52e-3322-5557-8580-1640f38c3a72",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what keeps the localclient classification from becoming a blanket network exemption",
+      "source_text": "What keeps the local-client classification from becoming a blanket network exemption?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The source probe fails if any unclassified module contains an HTTP client, and its regression test adds a rogue requests.get call and asserts FAILS. The recognized set is exactly engine.py and ollama_embed.py; adding another network client is red by default.",
       "verifier": "",
       "weight": 1.0
     },

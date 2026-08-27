@@ -95,18 +95,20 @@ def probe_egress(work: pathlib.Path) -> tuple[str, str]:
                           r"|http\.client|aiohttp")
     hits = [p.name for p in (REPO / "nestor").glob("*.py")
             if outbound.search(p.read_text(encoding="utf-8"))]
-    # Local Ollama embed is stdlib HTTP to a daemon the operator runs — reach
-    # the host already granted by installing/starting Ollama, not a capability
-    # this package mints for itself. Score it the same way CONST-0-2/0-4 score
-    # "the end holds by a different mechanism": differently, not satisfied.
-    local_only = sorted(hits) == ["ollama_embed.py"]
+    # Local Ollama embedding and drafting use stdlib HTTP to a daemon the
+    # operator runs — reach the host already granted by installing/starting
+    # Ollama, not a capability this package mints for itself. Score them the
+    # same way CONST-0-2/0-4 score "the end holds by a different mechanism":
+    # differently, not satisfied. Any unclassified client still fails below.
+    local_clients = {"engine.py", "ollama_embed.py"}
+    local_only = bool(hits) and set(hits) <= local_clients
     if local_only:
         return DIFFERENTLY, (
-            "outbound call in ollama_embed.py only — stdlib POST to OLLAMA_HOST "
-            "(default loopback) for nomic-embed-text. The host must already be "
-            "running the daemon; this package does not grant itself fleet egress. "
-            "willow's clause forbids self-extended reach; this is operator-local "
-            "embed, not a sealed network authority.")
+            f"operator-local Ollama HTTP client(s) in {', '.join(sorted(hits))} "
+            "only — stdlib POST to an operator-configured Ollama daemon. The "
+            "host must already be running; this package does not grant itself "
+            "fleet egress. willow's clause forbids self-extended reach; this is "
+            "operator-local inference, not a sealed network authority.")
     if hits:
         return FAILS, f"outbound calls found in {', '.join(hits)}"
     return SATISFIED, (
