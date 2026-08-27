@@ -48,6 +48,7 @@ directories and `layout.json`, and clobbers nothing that is already there.
 | `NESTOR_CORPUS_DIR` | Directory of extracted per-repository stores read by `nestor corpus sync` |
 | `NESTOR_LEDGER` | Pinned hash chain; household clients use `~/.nestor/keep/ledger.jsonl` |
 | `NESTOR_KEYRING` | Public verifier keyring used by UI and model-serving processes |
+| `NESTOR_CORPUS_DIR` | Directory of read-only per-repository source `.db` files; `nestor corpus sync` reads them immutable and installs a non-authoritative snapshot inside `NESTOR_DB` |
 
 For the full cross-root comparison (`WILLOW_HOME`, `HOMESTEAD_HOME`, etc.) see
 [`roots-willow-and-homestead.md`](roots-willow-and-homestead.md).
