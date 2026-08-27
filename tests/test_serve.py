@@ -134,10 +134,11 @@ def test_ollama_server_offers_a_bounded_draft_not_a_verdict(server, monkeypatch)
         def __init__(self, model):
             assert model == "small-code"
 
-        def draft_task(self, task, *, excerpts, sealed_context):
+        def draft_task(self, task, *, excerpts, sealed_context, corpus_context):
             assert task == "Review this"
             assert excerpts == ["def f(): pass"]
             assert all(hit["pair"]["status"] == "sealed" for hit in sealed_context)
+            assert corpus_context == []
             return engine.TaskDraft("Suggested change", "ollama:small-code:latest",
                                     provenance)
 
@@ -147,10 +148,12 @@ def test_ollama_server_offers_a_bounded_draft_not_a_verdict(server, monkeypatch)
 
     assert "nestor_draft" in [tool["name"] for tool in server.tools()]
     out = call(server, "nestor_draft", task="Review this",
-               excerpts=["def f(): pass"], verifier="forged")
+               excerpts=["def f(): pass"], verifier="forged",
+               corpus_dir="/etc")
 
     assert out["state"] == "draft" and out["verified"] is False
     assert out["draft"] == "Suggested change"
+    assert out["ignored_fields"] == ["corpus_dir", "verifier"]
     assert out["seal_authority_refused"] == ["verifier"]
     assert "verifier" not in out["provenance"]
 
@@ -159,6 +162,21 @@ def test_draft_tool_requires_the_explicit_local_engine(server):
     assert "nestor_draft" not in [tool["name"] for tool in server.tools()]
     out = call(server, "nestor_draft", task="Review this")
     assert "requires --engine ollama" in out["error"]
+
+
+def test_oversized_draft_is_refused_before_retrieval(server):
+    class ForbiddenRetriever:
+        def search(self, *_args, **_kwargs):
+            raise AssertionError("invalid input must not reach corpus retrieval")
+
+    server.engine_name = "ollama"
+    server.corpus_retriever = ForbiddenRetriever()
+
+    with pytest.raises(ValueError, match="task"):
+        server.call(
+            "nestor_draft",
+            {"task": "x" * (engine.MAX_DRAFT_TASK_CHARS + 1)},
+        )
 
 
 # --- what a model cannot do ------------------------------------------------

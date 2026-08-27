@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 594,
+    "pairs": 598,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-26T00:00:00+00:00",
-  "digest": "7b24189e0a16e297bcb20828355c6c1f8a976dced3be430c4a6fe375667b8940",
+  "digest": "1801d90d3b96348e1fa4fb867fc6bd83bca3a17dbf2fea8e5d3ca8b66c6ea4f6",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -388,6 +388,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "7a3c776f-da76-546f-bbca-c09de7f6b816",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how should automatic drafting distinguish household seals from retrieved corpus material",
+      "source_text": "How should automatic drafting distinguish household seals from retrieved corpus material?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "nestor_draft returns basis.sealed_guidance and basis.unverified_corpus_excerpts separately. Every corpus excerpt carries authority=none, source status, repository, origin, digest, comparison labels, score, and a citation token. Corpus text stays in the user-source message rather than the system or verified-guidance block, and conflicting rows are presented rather than silently resolved.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "6b50bff9-11cd-565c-aaf9-3bc7c8470ab5",
       "origin": "pr:?",
       "seal_sig": "",
@@ -481,6 +495,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "FTS still supplies the bounded candidate set, then Nestor removes stopwords, canonicalizes conservative plural forms, requires at least two meaningful matched terms when the task has four or more, and ranks greater term coverage before BM25. Each returned claim names its matched terms and query coverage.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "51a6a33e-2b62-5fb8-ae6e-97c4b9ad0546",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what useful grounding can nestor still provide when the local model repeatedly emits no citation tokens",
+      "source_text": "What useful grounding can Nestor still provide when the local model repeatedly emits no citation tokens?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nestor does not insert citations into model text. It deterministically splits output into sentences, compares each with the closest sentence in both context-only human seals and unverified corpus excerpts, then returns candidate source tokens, authority, matched and unmatched terms, sentence coverage, unsupported sentences, and negation-polarity mismatches under pattern_support. Expanded stopwords keep sentence glue from manufacturing support, and nearest-sentence polarity avoids transferring an unrelated negation from elsewhere in a long excerpt. The report says candidate_only because lexical overlap and polarity are not entailment.",
       "verifier": "",
       "weight": 1.0
     },
@@ -668,6 +696,20 @@
     },
     {
       "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "1898b6c0-4731-5829-818a-c411b9a09b5d",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how can a related human seal guide a draft without claiming that the seal covers the task",
+      "source_text": "How can a related human seal guide a draft without claiming that the seal covers the task?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Draft-context lookup may inspect below the ordinary serve threshold, but it still passes every row through the existing signature-verifying verified_sealed filter and then requires meaningful lexical overlap. MCP provenance marks the result context_only and reports relevance terms and score; nestor_match and every serve threshold remain unchanged.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
       "id": "16bd9783-f520-5535-a2af-c713ad8959ed",
       "origin": "pr:",
       "seal_sig": "",
@@ -691,6 +733,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The parameter exists but defaults to False (refusal is the normal path). No production caller is expected to pass override_empty_norm=True; the shipped seeds, the recipes, and the covenant path all produce non-empty norms for legitimate content. The override is a documented escape hatch matching the shape of `override_conflict` (ConflictingSealError) and `override_rejection` (RejectedPairError) so a specific caller who has a documented reason (a test asserting the previous collision behavior; a very rare deployment where an empty key IS the intended semantics) can proceed with the responsibility explicitly named in the code that does it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-26T00:00:00+00:00",
+      "id": "11d5076f-fe55-5c1c-b429-78a892664d27",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is corpus citation compliance made observable without adding a second model call",
+      "source_text": "How is corpus citation compliance made observable without adding a second model call?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Automatic retrieval supplies at most the four strongest excerpts, each with a short per-draft token such as [C1]. The user message repeats the citation requirement after the excerpts, and the MCP response deterministically reports available, cited, unknown, and uncited tokens plus citation_compliant. Missing or invented citations receive an explicit do-not-apply-as-grounded note, never become verified, and do not trigger an automatic retry.",
       "verifier": "",
       "weight": 1.0
     },
