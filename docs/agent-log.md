@@ -7430,9 +7430,10 @@ and wired:
   [`docs/local-agent-prototype.md`](local-agent-prototype.md) pins
   `NESTOR_HOME`, `NESTOR_DB`, `NESTOR_LEDGER`, browser-key sealing, and
   `NESTOR_REQUIRE_SEAL_KEY=1` for Cursor, Ollama, and `nestor serve`.
-* **`scripts/household_activate_sealed_dogfood.sh`** exports the dogfood bundle
-  and imports into household (with backup) — seals survive with crypto, not
-  `imported-unverifiable` demotion when signatures verify.
+* **`scripts/household_activate_sealed_dogfood.sh`** imports a sealed bundle
+  (`--from-db` or `--bundle`) into household (with backup). It refuses the
+  committed git dogfood db — seals belong in `~/.nestor`, not in the all-draft
+  artifact.
 * **Committed `docs/dogfood/nestor.db`** remains all-draft; `dogfood_store.py
   --verify` still fails on sealed rows there. That is correct.
 * **Grove** (`safe-app-willow-grove`) reads the household store at
