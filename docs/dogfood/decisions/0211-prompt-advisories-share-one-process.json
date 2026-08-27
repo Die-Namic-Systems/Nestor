@@ -1,0 +1,17 @@
+{
+  "branch": "chore/prompt-hook-process-v2",
+  "date": "2026-08-26",
+  "note": "The neutral hook manifest launched reinject, before_build, and before_propose as three Python processes for every submitted prompt. Measured separately on the same build-and-PR prompt they cost 0.08s, 0.12s, and 0.16s. One prompt_submit dispatch emits the same combined context in 0.16s.",
+  "decisions": [
+    {
+      "question": "How should deterministic prompt-submit advisories share process startup without weakening one another?",
+      "commitment": "The manifest wires one prompt_submit action. Its runner evaluates the seat anchor, anti-rediscovery advisory, and collision advisory independently, joins their non-empty context into one client envelope, and catches each evaluator's failure separately. PreCompact retains the standalone reinject action.",
+      "why": "Three client hook entries paid interpreter and import startup three times and created three envelopes for one event. Combining transport, not policy, removes two launches while preserving all three checks and their ordering."
+    },
+    {
+      "question": "What happens when one combined prompt advisory raises?",
+      "commitment": "Only that advisory is omitted. The other two still emit, proven by a test that makes before_build raise and requires both the anchor and before_propose context to survive.",
+      "why": "The separate-process design isolated crashes by accident of process boundaries. Consolidation must retain that property explicitly or a nonessential collision scan could erase the load-bearing governance anchor."
+    }
+  ]
+}

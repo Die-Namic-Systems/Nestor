@@ -13,15 +13,7 @@
     },
     {
       "event": "prompt_submit",
-      "action": "reinject"
-    },
-    {
-      "event": "prompt_submit",
-      "action": "before_build"
-    },
-    {
-      "event": "prompt_submit",
-      "action": "before_propose"
+      "action": "prompt_submit"
     },
     {
       "event": "pre_compact",
