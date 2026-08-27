@@ -498,7 +498,7 @@ shared `NESTOR_SEAL_KEY` can never have — the store verifies and seals under a
 verifier's key while being structurally unable to forge as them. It is
 deliberately narrow (only the seal endpoints accept a client signature); see
 [Seal signatures](#seal-signatures) and
-[decision 0077](docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json).
+[decision 0077](docs/archive/decisions/0077-verify-not-sign-the-client-seal.json).
 
 `--read-only` refuses every decision at the API layer, for showing the memory to
 someone without handing them the ability to change it. `--engine` defaults to

@@ -43,7 +43,8 @@ normalized text pruned by ``similarity_bound`` so ~50k pairs stay cheap):
 question" test is not cheap on difflib ratios, and the package's rule is to omit
 a mechanism rather than ship an unreliable one.
 
-The store's 7 hand-written ``consolidated_onto`` files are a **sanity check**,
+The store's 7 hand-written ``consolidated_onto`` files (now under
+``docs/archive/decisions/``) are a **sanity check**,
 not an input — this pass re-derives supersession from the questions themselves
 so it can find the rewordings the hand notes missed, and a hand note it *does*
 recover is corroboration, never the source.

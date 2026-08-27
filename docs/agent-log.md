@@ -7358,7 +7358,7 @@ and `.github/ISSUE_TEMPLATE` do not. The contributor guidance lived in
 
 ---
 
-### 6.123 A seal on a dogfood decision has nowhere to go — **measured**, design **open**
+### 6.123 A seal on a dogfood decision has nowhere to go — **measured**, household **shipped**, git seal-file **open**
 
 *Found by the operator asking the most ordinary question available — "what is
 the command to get the server running so I can make the decisions" — after 486
@@ -7421,6 +7421,27 @@ against its own decisions, that is worth stating out loud even if the answer is
 **What is NOT open:** whether an agent may seal. It may not, and none of this
 changes that. The question is only where a *human's* seal goes after they make
 it.
+
+**Operator path shipped (2026-08-27).** The git artifact still cannot hold a
+seal — every constraint above stands — but the consequence is now written down
+and wired:
+
+* **Household store** (`~/.nestor/keep/nestor.db`) is the live trust root.
+  [`docs/local-agent-prototype.md`](local-agent-prototype.md) pins
+  `NESTOR_HOME`, `NESTOR_DB`, `NESTOR_LEDGER`, browser-key sealing, and
+  `NESTOR_REQUIRE_SEAL_KEY=1` for Cursor, Ollama, and `nestor serve`.
+* **`scripts/household_activate_sealed_dogfood.sh`** exports the dogfood bundle
+  and imports into household (with backup) — seals survive with crypto, not
+  `imported-unverifiable` demotion when signatures verify.
+* **Committed `docs/dogfood/nestor.db`** remains all-draft; `dogfood_store.py
+  --verify` still fails on sealed rows there. That is correct.
+* **Grove** (`safe-app-willow-grove`) reads the household store at
+  `POST /api/nestor/decide` (decision `0215` sealed in household).
+
+**Still open:** the reviewable **`docs/dogfood/seals/<id>.json`** shape folded
+at `--rebuild` — the only way a seal could appear in git without committing an
+opaque binary. Household + import is the shipped operator answer; the seal-file
+shape is optional future work.
 
 ---
 

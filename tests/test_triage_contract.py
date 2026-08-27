@@ -5,6 +5,7 @@ change to either is a deliberate, visible edit, not a silent drift.
 from __future__ import annotations
 
 from nestor.triage import DEFAULT_BAR, EDGE_KINDS, Decision, load_decisions
+from tests.conftest import ARCHIVE_DECISIONS
 
 
 def test_load_expands_every_pair_with_a_stable_id():
@@ -19,7 +20,7 @@ def test_load_expands_every_pair_with_a_stable_id():
 def test_consolidated_onto_is_carried_through():
     """The store's existing supersession note must survive the load — it is the
     ground truth the refutation pass is measured against."""
-    ds = load_decisions()
+    ds = load_decisions(ARCHIVE_DECISIONS)
     assert any(d.consolidated_onto for d in ds), "consolidated_onto never populated"
 
 

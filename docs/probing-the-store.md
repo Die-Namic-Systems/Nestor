@@ -11,8 +11,8 @@ python scripts/issue_probe.py \
     --db docs/dogfood/nestor.db \
     --prompts scripts/corpus/open_issues.txt \
     --snapshot \
-    --out docs/dogfood/probes/open_issues.md \
-    --out-json docs/dogfood/probes/open_issues.json
+    --out docs/archive/probes/open_issues.md \
+    --out-json docs/archive/probes/open_issues.json
 ```
 
 Defaults: `--db docs/dogfood/nestor.db`, `--prompts scripts/corpus/open_issues.txt`,
@@ -103,17 +103,15 @@ it treats a missing DB as one.
 
 ## Reproducing the open-issues sweep
 
-The report committed at [`docs/dogfood/probes/open_issues.md`](dogfood/probes/open_issues.md)
+The report archived at [`docs/archive/probes/open_issues.md`](../archive/probes/open_issues.md)
 was produced by:
 
 ```
 python scripts/issue_probe.py --snapshot \
-                              --out docs/dogfood/probes/open_issues.md \
-                              --out-json docs/dogfood/probes/open_issues.json
+                              --out docs/archive/probes/open_issues.md \
+                              --out-json docs/archive/probes/open_issues.json
 ```
 
-Environment: `.venv` (`pip install -e .`), `NESTOR_SEAL_KEY` unset (the
-report's `stderr_warnings` records that; every "sealed" row is trusted
-without verification, which for the current dogfood store is fine because
-0 of 519 pairs are sealed). Re-running on a checkout that carries new
-decisions will produce a different report; that is the point.
+That snapshot is **historical** (520-draft dogfood store, cloud CI path). Re-run
+against a current checkout to refresh; commit under `docs/archive/probes/` with
+a dated name if the sweep is worth keeping.

@@ -1,0 +1,13 @@
+{
+  "branch": "chore/archive-pre-0150-dogfood",
+  "date": "2026-08-27",
+  "pr": "archive-pre-0150",
+  "note": "Follow-on to 0216. The consolidated chain (0055–0061) and the smoke fixture were already split out; this moves the rest of the pre-0150 arc into archive so active dogfood is the recent tip.",
+  "decisions": [
+    {
+      "question": "Should pre-0150 dogfood decision files stay in the active rebuild?",
+      "commitment": "No. Every decision file numbered below 0150 moves to docs/archive/decisions/ and is excluded from dogfood_store.py rebuilds. Active dogfood keeps the 0150+ arc (open IDEAS threads and recent shipped work). Historical rows remain in git and in tests/fixtures/dogfood_smoke/ where the manifest names them.",
+      "why": "After 0216's smoke fixture and consolidated archive, the active queue still carried ~350 rows of closed history. Verify and rebuild are cheap; the cost was cognitive — agents treating the whole corpus as live dogfood. Cutting at 0150 leaves a bounded active tip without deleting audit record."
+    }
+  ]
+}

@@ -18,6 +18,10 @@ with one of those, they are right and this is stale.
   `IDEAS.md` §6.7; `docs/local-fleet.md`.
 * ~~**UI domain matcher.**~~ Shipped: `ui.App(matcher=)`, `nestor ui --matcher`.
   `IDEAS.md` §6.40–§6.41.
+* ~~**Household trust root for dogfood seals.**~~ Shipped: `~/.nestor` +
+  [`docs/local-agent-prototype.md`](docs/local-agent-prototype.md);
+  `scripts/household_activate_sealed_dogfood.sh`. Git seal-file shape still open
+  (`IDEAS.md` §6.123).
 * **A terminal `nestor seal`** is deliberately absent — `--verifier "$USER"` in a
   cron job is not a human checking anything. `IDEAS.md` §5.1.
 
@@ -25,11 +29,13 @@ with one of those, they are right and this is stale.
 
 * **Sync between instances.** `QUESTIONS.md` §8.
 * **An erasure path.** `QUESTIONS.md` §10.
-* **Semantic matching.** `IDEAS.md` §3.3 (and §3.4 for the measurement).
 * **A store that takes concurrent writers.** `QUESTIONS.md` §15.
 * **A checkpoint somebody else holds.** `IDEAS.md` §5.5.
 * **Seal staleness and quorum.** `IDEAS.md` §1.4.
 * **Record the sixty seconds.** `IDEAS.md` §4.3.
+* **Git-reviewable dogfood seals.** `IDEAS.md` §6.123 (`docs/dogfood/seals/*.json`
+  at `--rebuild`) — household path shipped; this shape is the remaining open
+  design.
 
 ---
 

@@ -1,0 +1,22 @@
+{
+  "branch": "chore/gate5-resident-watcher-decision",
+  "date": "2026-08-26",
+  "note": "Gate 5 handoff for Willow Grove's resident watcher (working notes, not sealed). Nestor's part is the read-only decision_check seam and the refusal to let a resident process mint seals or queue drafts on the operator's behalf.",
+  "decisions": [
+    {
+      "question": "What may Grove's Gate 5 resident watcher do at the Nestor seam in v1?",
+      "commitment": "Read only. The watcher may call decision_check against the household store before classifying or journaling traffic. It may not call nestor_propose, nestor_draft write paths, seal, import, or any tool that queues or ratifies guidance. Kart filing and persona-voice speech acts stay out of v1 entirely.",
+      "why": "The useful v1 experiment is whether a small local model can tail journal traffic and refresh roster state without acquiring promotion authority. Letting the watcher draft Nestor pairs or file Kart tasks would move it to L2 before reliability is measured — the same mistake autonomous-continuity C9 warns against."
+    },
+    {
+      "question": "How does the watcher relate to the promotion-authority ladder?",
+      "commitment": "v1 is strictly L1: journal atoms with honest sender attribution (resident-watcher), domain classification hints, and fleet roster refresh. Corpus retrieval and nestor_draft remain available to interactive agent seats (Cursor, Claude), not to the unattended watcher process.",
+      "why": "Interactive agents already run behind deterministic hooks and explicit human review. An unattended loopback process needs a lower ceiling until a week of operator use shows missed handoffs — not intuition about model strength."
+    },
+    {
+      "question": "Which Ollama model and sender identity does v1 assume?",
+      "commitment": "Model choice is operator-local via SOIL (~/.willow/store/active_model); Nestor does not hard-pin the watcher. Sender is resident-watcher on every v1 journal write — not willow, not a classified persona. Revisit persona attribution once chat RIGHT has real traffic.",
+      "why": "Pinning a model in Nestor would couple household policy to one box's memory budget. Honest sender attribution matters more than chat polish in v1; persona voice is L2-ish work the handoff defers."
+    }
+  ]
+}

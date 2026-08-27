@@ -1,13 +1,18 @@
 # Fleet integration map — open IDEAS ↔ existing repos
 
-*Scanned 2026-07-31 across `~/github/` (nestor, willow-mcp, kartikeya,
-safe-app-store-public, redential-cli, engram, terpsi-music, oakenscrolls-office,
-supporting docs). This is a wiring guide, not a commitment to integrate.*
+*Scanned 2026-08-27 across `~/github/` (nestor, willow-mcp, willow-grove,
+kartikeya, safe-app-store-public, redential-cli, engram, terpsi-music,
+oakenscrolls-office, supporting docs). This is a wiring guide, not a commitment
+to integrate.*
 
 Use with [`IDEAS.md`](../IDEAS.md) open items and [`TODO.md`](../TODO.md).
 
 **Local wiring:** [`local-fleet.md`](local-fleet.md) — checkout script, `TERPSI_ROOT`,
 `promote_check`, ledger head / `db checkpoint`.
+
+**Household wiring:** [`local-agent-prototype.md`](local-agent-prototype.md) —
+`~/.nestor` as the live trust root; git `docs/dogfood/nestor.db` stays an
+all-draft reproducible artifact (`IDEAS.md` §6.123).
 
 ---
 
@@ -85,16 +90,37 @@ Shipped 2026-08-06. The flag is an attribute on a `sqlite3.Connection` subclass,
 
 ---
 
-## §5.8 Asymmetric seal signatures (Ed25519) — **open**
+## §5.8 Asymmetric seal signatures (Ed25519) — **shipped**
 
-| Fleet piece | Plug |
-|-------------|------|
-| **`willow-mcp` `egress_authorization.py`** | Production **Ed25519** sign/verify envelopes (`sign_envelope`, `verify_envelope`, scoped payload, no MCP signing surface) |
-| **`kartikeya`** worker | Calls `ExecutorNetworkAuthorizer` before net — same “verify before act” shape as `ledger_preflight` |
-| **`nestor.signing`** | Documents `sign_seal(..., key=)` seam for asymmetric upgrade |
+| Fleet piece | What shipped |
+|-------------|----------------|
+| **`nestor.keyring`** + `[keys]` extra | Per-verifier Ed25519 and HMAC; browser signer (Nestor#17); decisions `0074`/`0077`/`0078` |
+| **`willow-mcp` `egress_authorization.py`** | Parallel envelope shape for fleet egress — borrow for future cross-repo tooling, not Nestor seals |
 | **`promote_check`** `verified_by != author` | Social quorum separate from crypto |
 
-**Action:** Spec a `nestor.seal_envelope` parallel to willow net-auth (payload: norm, target, verifier, ts); reuse cryptography patterns from `egress_authorization`, not HMAC semantics.
+**Operator story:** enrol a public key with `nestor keys add NAME --type ed25519 --public …`;
+seal in `nestor ui` with the browser key; household store at `~/.nestor/keep/`
+with `NESTOR_REQUIRE_SEAL_KEY=1`. See [`local-agent-prototype.md`](local-agent-prototype.md).
+
+**Still open:** quorum / multi-party policy (§1.4) — crypto attribution shipped,
+time-decay and N-of-M are not.
+
+---
+
+## §6.123 Household trust root + Grove seat — **shipped** (operator path)
+
+| Piece | Role |
+|-------|------|
+| **`~/.nestor/keep/nestor.db`** | Live household memory — seals persist here, not in git dogfood |
+| **`docs/local-agent-prototype.md`** | Cursor + Ollama + MCP pin the same paths |
+| **`scripts/household_activate_sealed_dogfood.sh`** | Export dogfood bundle → import into household (with backup) |
+| **`safe-app-willow-grove`** (`grove_serve`, `resident_watcher`) | Operator seat at `:8766`; `nestor_client` calls household via MCP `nestor_ask` on `decision→decision` |
+| **Decision `0215`** | Gate 5 watcher L1 ceiling at the Nestor seam |
+
+**Still open in nestor:** reviewable `docs/dogfood/seals/<id>.json` folded at
+`dogfood_store.py --rebuild` (§6.123 git seal-file shape). The household +
+import path is the shipped answer for operators; the committed `.db` stays
+all-draft by design.
 
 ---
 
@@ -195,7 +221,7 @@ merged CI branches, or upstream forks — not IDEAS expanders.*
 |-------|------------|
 | **`stores/promote_check.py`**, **`docs/the-nestor-lineage.md`**, marching-arts Nestor cascade docs | §4.2, §5.2, promotion narrative |
 | **`store_refit_plan.md`** — Nestor/Jeles passed gates #88, **no minted record yet** | §4.2 — run `promote_check.py --record` when ready |
-| **`willow-mcp` `egress_authorization.py`** on default | §5.8 Ed25519 envelope shape to borrow |
+| **`willow-mcp` `egress_authorization.py`** on default | Ed25519 envelope shape for fleet egress (Nestor seals: see §5.8 **shipped**) |
 
 ### Weak / indirect (hygiene unless you rescue the work)
 
@@ -213,7 +239,7 @@ merged CI branches, or upstream forks — not IDEAS expanders.*
 
 Stay **nestor-local** unless you import design from the rows above:
 
-~~§6.8 skip `memory_init`~~ (shipped 2026-08-06, nestor-local as predicted) · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · §5.8 implementation (code borrow is **willow-mcp** default, not the PR-211 test branch).
+~~§6.8 skip `memory_init`~~ (shipped 2026-08-06, nestor-local as predicted) · §1.4 quorum/decay **policy** (terpsi/oakenscroll offer patterns, not implementations here) · ~~§5.8 Ed25519 seals~~ (shipped in nestor; willow-mcp envelope remains fleet egress).
 
 ---
 
@@ -230,6 +256,6 @@ Stay **nestor-local** unless you import design from the rows above:
 
 ## Suggested priority (integration effort vs value)
 
-1. **Docs-only:** ~~§4.2~~ (shipped) / §4.4 landing page + chart still open; §5.5 frank + `ledger head` runbook.
-2. **Small code:** ~~§6.8 `memory_init` skip~~ (shipped); optional Memory sort by `created_at`; §6.25 `init_db` lineage ordering (one line, found while doing §6.8).
-3. **Large / design:** §5.8 Ed25519 (borrow willow-mcp envelope shape); §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy.
+1. **Docs-only:** ~~§4.2~~ (shipped) / §4.4 landing page + chart still open; §5.5 frank + `ledger head` runbook; ~~§6.123 household path~~ (shipped — see [`local-agent-prototype.md`](local-agent-prototype.md)).
+2. **Small code:** ~~§6.8 `memory_init` skip~~ (shipped); optional Memory sort by `created_at`; §6.25 `init_db` lineage ordering (one line, found while doing §6.8); grove `nestor_client` MCP + `NESTOR_HOME` pin (safe-app-willow-grove, operator-tested).
+3. **Large / design:** §5.2 erasure (oakenscroll-style tombstones); §1.4 quorum policy; §6.123 git `seals/*.json` shape.

@@ -128,5 +128,6 @@ back is a note from a *live* meeting where a Nestor demo either did or
 did not answer a question the room actually had — not a note from a
 reviewer who read the source. Nestor's own record of how it goes gets
 committed under
-[`docs/dogfood/probes/`](dogfood/probes/) — every session's questions,
-verbatim answers, and where the store's memory helped or fell short.
+[`docs/archive/probes/`](../archive/probes/) — historical snapshots of each
+session's questions, verbatim answers, and where the store's memory helped or
+fell short. Regenerate with [`docs/probing-the-store.md`](probing-the-store.md).

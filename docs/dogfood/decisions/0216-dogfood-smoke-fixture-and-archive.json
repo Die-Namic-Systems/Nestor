@@ -1,0 +1,18 @@
+{
+  "branch": "chore/dogfood-smoke-fixture-and-archive",
+  "date": "2026-08-27",
+  "pr": "dogfood-smoke-archive",
+  "note": "Follow-on to 0216. The consolidated chain (0055–0061) and the smoke fixture were already split out; decision 0217 archives the rest of the pre-0150 arc so active dogfood is the 0150+ tip.",
+  "decisions": [
+    {
+      "question": "Should O(n²) dogfood CI smokes scan the full active decision queue on every run?",
+      "commitment": "No. tests/fixtures/dogfood_smoke/ pins ~191 real decision rows (manifest + build_dogfood_smoke_fixture.py). The triage smokes and demo/the_dogfooding.py --smoke measure that subset; dogfood_store.py --verify still covers every file in docs/dogfood/decisions/.",
+      "why": "The slow tests' job is to guard clustering, supersession, and collision invariants on a representative real corpus — not to re-prove 500+ shipped decisions on every PR. Pinning the smoke corpus bounds CI time as the audit trail grows while keeping the verify gate over the full active store."
+    },
+    {
+      "question": "Where do consolidated_onto decision files (0055–0061) live after supersession?",
+      "commitment": "docs/archive/decisions/. They stay in git as merged-PR audit record but are excluded from dogfood_store.py rebuilds. Copies named in the smoke manifest still appear under tests/fixtures/dogfood_smoke/decisions/ for paraphrase and triage regression coverage.",
+      "why": "Those seven files were hand-marked absorbed into claude/the-box. Keeping them in the active rebuild inflated pair count and CI cost without adding open queue signal. Archive preserves seal-time paths; active dogfood stays the growing tip of the queue."
+    }
+  ]
+}

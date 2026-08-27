@@ -1,0 +1,22 @@
+{
+  "branch": "feat/corpus-household-lane",
+  "date": "2026-08-26",
+  "note": "Twenty-four extracted repository stores contain 9,977 useful local claims, including 113 same-kind cross-repository drift keys. Importing them into tm_pairs would discard those disagreements behind the one-live-answer invariant and could mistake a source row's status label for household verification.",
+  "decisions": [
+    {
+      "question": "How can all extracted repository stores become one local Nestor corpus without granting their rows authority?",
+      "commitment": "The household NESTOR_DB owns a separate corpus_claims snapshot and FTS index. Source databases are read immutable/read-only, every claim and conflict is preserved with stable provenance, and transactional replacement occurs only after every source row validates. No corpus operation writes tm_pairs, the ledger, a verifier, or a signature.",
+      "why": "One physical database makes local retrieval consistent across Cursor, Claude, and Ollama, while a separate schema lane preserves Nestor's defining distinction: extracted text is useful evidence for drafting but is not a human seal."
+    },
+    {
+      "question": "What retrieval cost is paid on each local draft?",
+      "commitment": "SQLite FTS5 produces a bounded shortlist and repository diversification limits any one extractor's crowding. Optional local Ollama embeddings rerank only that shortlist, cache vectors for the process, and report fts+semantic explicitly; an unavailable semantic backend falls back to a result labelled fts rather than pretending semantic recall occurred.",
+      "why": "Retrieving all 9,977 rows semantically for every prompt would recreate the cascading latency this work is meant to remove. Lexical first-stage retrieval is deterministic and sub-second; semantic work is opt-in and bounded."
+    },
+    {
+      "question": "How does a long natural-language task avoid retrieving rows that match only sentence glue?",
+      "commitment": "FTS still supplies the bounded candidate set, then Nestor removes stopwords, canonicalizes conservative plural forms, requires at least two meaningful matched terms when the task has four or more, and ranks greater term coverage before BM25. Each returned claim names its matched terms and query coverage.",
+      "why": "The first live household proof showed that OR search admitted rows matching only 'may' or 'but'. Prompt instructions cannot repair context that was irrelevant before inference; relevance has to be visible and testable in the deterministic retriever."
+    }
+  ]
+}
