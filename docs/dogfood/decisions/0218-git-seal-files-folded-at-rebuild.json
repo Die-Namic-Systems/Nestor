@@ -1,0 +1,13 @@
+{
+  "branch": "feat/dogfood-seal-files",
+  "date": "2026-08-27",
+  "pr": "TBD",
+  "note": "Ships §6.123 option (a): reviewable seal files folded at dogfood_store --rebuild.",
+  "decisions": [
+    {
+      "question": "How may a human seal on a dogfood decision appear in git?",
+      "commitment": "As reviewable JSON only: docs/dogfood/seals/<pair_id>.json carrying pair_id, verifier, sealed_at, and seal_sig; verified at rebuild against docs/dogfood/verifiers.json (public ed25519 keys). dogfood_store.py --rebuild folds seal files into the committed store; --verify admits a sealed row only when it traces to such a file. Operators export with scripts/dogfood_seal_export.py after sealing in a review copy or household store.",
+      "why": "The one-directional rule stays: no opaque sealed binary in git. Seal files are the same shape as decision files — separate files, regenerated store, diffable signatures. Household ~/.nestor remains the live trust root; this path is for seals worth recording in the repository itself."
+    }
+  ]
+}
