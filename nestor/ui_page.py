@@ -795,6 +795,7 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             ledger: null, result: null, domains: [], signals: null,
             offset: 0, more: false, session: null, typedVerifier: "",
             commitmentPickByPair: {},
+            batchSeal: null,
             gateEcho: null,
             // Graph tab (read-only decision graph, N6/N8). `cy` is the live
             // Cytoscape instance, if the tab has been opened — render()
@@ -1096,6 +1097,100 @@ async function signSealFields(sourceText, targetText, sourceLang, targetLang) {
     const seal_sig = await signWithBrowserKey(norm, targetText, who);
     return { verifier: who, seal_sig };
   } catch (e) { toast("Signing failed: " + e.message, "err"); return null; }
+}
+
+/* Batch re-sign: one confirm for the whole run, then sign each draft without
+ * stopping on every row. Needs an unlocked browser key — the household keyring
+ * holds only the public half, so empty seal_sig batch sealing is not possible
+ * server-side. Respects Memory filters (domain, contains, verifier); always
+ * targets status=draft plain rows (no A/B/C commitment picks). */
+async function fetchAllPlainDrafts() {
+  const all = [];
+  let offset = 0;
+  const limit = 500;
+  const q = new URLSearchParams(S.filters);
+  q.set("status", "draft");
+  q.delete("unverifiable");
+  while (true) {
+    q.set("offset", String(offset));
+    q.set("limit", String(limit));
+    const rows = (await api("/api/pairs?" + q.toString())).pairs;
+    for (const p of rows) {
+      if (!parseCommitmentChoices(p.target_text).choices.length) all.push(p);
+    }
+    if (rows.length < limit) break;
+    offset += limit;
+  }
+  return all;
+}
+
+function confirmBatchSeal(count, who) {
+  return new Promise((resolve) => {
+    const dlg = $("sign-dialog"), body = $("sign-dialog-body");
+    let settled = false;
+    const finish = (v) => { if (settled) return; settled = true; dlg.close(); resolve(v); };
+    body.replaceChildren(
+      h("h2", { style: "margin:0 0 10px;font-size:15px", text: "Batch seal drafts" }),
+      h("p", { class: "small muted", style: "margin:0 0 10px" },
+        count + " plain draft decision(s) matching the current Memory filters will be sealed " +
+        "with " + who + "'s browser key. Each row is signed client-side (source_norm, target, " +
+        "verifier) and sent to /api/seal-draft. Commitment-style drafts (A/B/C picks) are " +
+        "skipped — seal those individually. Nothing is written until you confirm."),
+      h("div", { class: "row", style: "justify-content:flex-end;margin-top:14px;gap:8px" },
+        h("button", { onclick: () => finish(false) }, "Cancel"),
+        h("button", { class: "primary", onclick: () => finish(true) }, "Sign all")));
+    dlg.onclose = () => finish(dlg.returnValue === "ok" ? true : false);
+    dlg.showModal();
+  });
+}
+
+async function batchSealAllDrafts() {
+  if (!S.browserKey) {
+    return toast("Unlock your browser key first — batch seal needs client signatures.", "err");
+  }
+  if (S.state.read_only) return toast("Read-only mode — no seals.", "err");
+  if (S.batchSeal) return;
+  const who = S.browserKey.verifier;
+  let drafts;
+  try { drafts = await fetchAllPlainDrafts(); }
+  catch (e) { return toast("Could not list drafts: " + e.message, "err"); }
+  if (!drafts.length) {
+    return toast("No plain drafts match the current filters.", "err");
+  }
+  const approved = await confirmBatchSeal(drafts.length, who);
+  if (!approved) return;
+  S.batchSeal = { done: 0, total: drafts.length, errors: [] };
+  render();
+  for (const p of drafts) {
+    try {
+      const target = stripCommitmentMachine(p.target_text).trim();
+      if (!target) {
+        S.batchSeal.errors.push({ id: p.id, message: "empty target" });
+        continue;
+      }
+      const norm = (await api("/api/normalize",
+        { text: p.source_text, source_lang: p.source_lang, target_lang: p.target_lang }))
+        .source_norm;
+      const seal_sig = await signWithBrowserKey(norm, target, who);
+      await api("/api/seal-draft",
+        { pair_id: p.id, target, verifier: who, seal_sig });
+      S.batchSeal.done++;
+      if (S.batchSeal.done % 20 === 0) render();
+    } catch (e) {
+      S.batchSeal.errors.push({ id: p.id, message: e.message });
+      break;
+    }
+  }
+  const { done, total, errors } = S.batchSeal;
+  S.batchSeal = null;
+  await refresh();
+  if (errors.length) {
+    toast("Sealed " + done + " of " + total + ". Stopped at " + errors[0].id.slice(0, 8) +
+          ": " + errors[0].message, "err");
+  } else {
+    toast("Sealed " + done + " decision(s).", "ok");
+  }
+  render();
 }
 
 function confirmSign(norm, target, who) {
@@ -1622,6 +1717,15 @@ function viewMemory() {
       h("input", { type: "checkbox", id: "f-unverifiable", checked: f.unverifiable === "1" }),
       "unverifiable only"),
     h("button", { class: "primary small", onclick: applyFilters }, "Apply"),
+    S.browserKey && !S.state.read_only && f.unverifiable !== "1"
+      ? h("button", {
+          class: "small primary",
+          disabled: !!S.batchSeal,
+          title: "Seal every plain draft matching these filters with your browser key",
+          onclick: batchSealAllDrafts,
+        }, S.batchSeal ? ("Sealing " + S.batchSeal.done + "/" + S.batchSeal.total + "…")
+                      : "Seal all drafts")
+      : null,
     h("span", { class: "spacer" }),
     h("a", { href: "/api/export", download: "nestor-export.json" },
       h("button", { class: "small" }, "Export JSON")));

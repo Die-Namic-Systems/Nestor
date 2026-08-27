@@ -573,6 +573,15 @@ def test_a_draft_is_ratified_in_place_from_the_detail_panel():
     assert '"/api/seal"' in hand
 
 
+def test_batch_seal_all_drafts_is_a_browser_key_affordance():
+    """598 unsigned imports need one confirm + client signatures, not 598 dialogs."""
+    from nestor.ui_page import PAGE
+
+    assert "function batchSealAllDrafts" in PAGE
+    assert "Seal all drafts" in PAGE
+    assert "function fetchAllPlainDrafts" in PAGE
+
+
 def test_main_refuses_a_non_loopback_bind_without_an_explicit_flag(capsys):
     assert ui.main(["--host", "0.0.0.0", "--db", ":memory:"]) == 2
     assert "no authentication" in capsys.readouterr().err
