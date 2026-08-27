@@ -1,0 +1,27 @@
+{
+  "branch": "feat/local-draft-corpus-grounding",
+  "date": "2026-08-26",
+  "note": "The consolidated corpus made automatic local context possible, but three live 3B-model trials ignored requested citation tokens and produced unsupported or polarity-reversed claims. Grounding therefore has to remain a deterministic report around the model, not a property inferred from prompt obedience.",
+  "decisions": [
+    {
+      "question": "How should automatic drafting distinguish household seals from retrieved corpus material?",
+      "commitment": "nestor_draft returns basis.sealed_guidance and basis.unverified_corpus_excerpts separately. Every corpus excerpt carries authority=none, source status, repository, origin, digest, comparison labels, score, and a citation token. Corpus text stays in the user-source message rather than the system or verified-guidance block, and conflicting rows are presented rather than silently resolved.",
+      "why": "Prompt wording can improve model behavior but cannot create a security boundary. Typed output provenance, separate prompt regions, and the absence of any corpus-to-tm_pairs path make the authority distinction inspectable before and after inference."
+    },
+    {
+      "question": "How can a related human seal guide a draft without claiming that the seal covers the task?",
+      "commitment": "Draft-context lookup may inspect below the ordinary serve threshold, but it still passes every row through the existing signature-verifying verified_sealed filter and then requires meaningful lexical overlap. MCP provenance marks the result context_only and reports relevance terms and score; nestor_match and every serve threshold remain unchanged.",
+      "why": "The live task paraphrased the only household seal and scored 0.368, so exact serving correctly refused it but drafting lost useful verified guidance. Applicability retrieval and verification are different questions: the statement remains human-sealed while the new task remains unverified."
+    },
+    {
+      "question": "How is corpus citation compliance made observable without adding a second model call?",
+      "commitment": "Automatic retrieval supplies at most the four strongest excerpts, each with a short per-draft token such as [C1]. The user message repeats the citation requirement after the excerpts, and the MCP response deterministically reports available, cited, unknown, and uncited tokens plus citation_compliant. Missing or invented citations receive an explicit do-not-apply-as-grounded note, never become verified, and do not trigger an automatic retry.",
+      "why": "The first local draft paraphrased source identifiers but ignored long hash tokens; the second ignored short tokens while juggling eight excerpts. A smaller context and a recency-positioned instruction improve the 3B model's odds, while deterministic validation lets callers reject an ungrounded draft without paying another inference round or pretending prompt obedience is a security boundary."
+    },
+    {
+      "question": "What useful grounding can Nestor still provide when the local model repeatedly emits no citation tokens?",
+      "commitment": "Nestor does not insert citations into model text. It deterministically splits output into sentences, compares each with the closest sentence in both context-only human seals and unverified corpus excerpts, then returns candidate source tokens, authority, matched and unmatched terms, sentence coverage, unsupported sentences, and negation-polarity mismatches under pattern_support. Expanded stopwords keep sentence glue from manufacturing support, and nearest-sentence polarity avoids transferring an unrelated negation from elsewhere in a long excerpt. The report says candidate_only because lexical overlap and polarity are not entailment.",
+      "why": "Three live trials produced zero citation tokens despite shorter tokens, fewer excerpts, and a final-position instruction. The first paragraph-level report then matched every paragraph, including clauses the sources did not support. Fabricating citations would turn pattern similarity into an unsupported provenance claim; sentence granularity and explicit unmatched/polarity signals expose likely support and likely gaps while keeping final inspection with Cursor, Claude, or the human."
+    }
+  ]
+}

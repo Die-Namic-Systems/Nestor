@@ -40,11 +40,24 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass, field
 from typing import Any, TextIO
 
-from . import answer, cascade, domain, engine, home_paths, keyring, memory, signing, storage
+from . import (
+    answer,
+    cascade,
+    config,
+    corpus,
+    domain,
+    engine,
+    home_paths,
+    keyring,
+    memory,
+    signing,
+    storage,
+)
 from . import ledger as ledger_mod
 from .matcher import Matcher, matcher_audit_fields
 from .sqlite_store import SqliteStore
@@ -58,6 +71,7 @@ SERVER_VERSION = "0.1.0"
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 
 MAX_MESSAGE = 1 << 20       # 1 MiB — a tool call is never larger than this
+MAX_AUTO_CORPUS_EXCERPTS = 4
 
 # What a model may never do here, kept as data so the refusal is greppable and
 # so `describe()` can state it to whoever is wiring the server up.
@@ -73,6 +87,164 @@ WITHHELD = ("seal", "unseal", "reject", "override a conflicting seal",
 PROPOSE_KEYS = frozenset({"source_text", "candidate", "source_lang",
                           "target_lang", "title"})
 DRAFT_KEYS = frozenset({"task", "excerpts", "source_lang", "target_lang"})
+
+
+def _citation_report(draft: str, contexts: list[dict]) -> dict:
+    """Report whether a corpus-backed draft used only supplied short tokens."""
+    available = [str(context["citation_token"]) for context in contexts]
+    observed = sorted(
+        {f"C{number}" for number in re.findall(r"\[C(\d+)\]", draft)},
+        key=lambda token: int(token[1:]),
+    )
+    cited = [token for token in observed if token in available]
+    unknown = [token for token in observed if token not in available]
+    uncited = [token for token in available if token not in cited]
+    required = bool(available)
+    return {
+        "citations_required": required,
+        "citation_compliant": not required or (bool(cited) and not unknown),
+        "available_tokens": available,
+        "cited_tokens": cited,
+        "unknown_tokens": unknown,
+        "uncited_tokens": uncited,
+    }
+
+
+def _grounding_note(report: dict) -> str:
+    if report["citation_compliant"]:
+        return (
+            "local model suggestion only — Cursor or Claude must inspect, "
+            "apply, and verify it"
+        )
+    return (
+        "local model suggestion lacks a valid supplied corpus citation — do not "
+        "apply it as grounded; inspect the basis or redraft"
+    )
+
+
+_NEGATIONS = frozenset({
+    "can't", "cannot", "doesn't", "isn't", "neither", "never", "no", "nor",
+    "not", "without", "won't",
+})
+
+
+def _negated_terms(text: str) -> set[str]:
+    raw = re.findall(r"[\w']+", text.casefold())
+    negated: set[str] = set()
+    for index, token in enumerate(raw):
+        if token in _NEGATIONS:
+            negated.update(corpus.meaningful_tokens(" ".join(raw[index + 1:index + 4])))
+    return negated
+
+
+def _split_sentences(text: str) -> list[str]:
+    return [
+        part.strip()
+        for part in re.split(
+            r"(?<=[.!?])\s+(?=(?:[-*]\s+|#{1,6}\s+|[A-Z`\[]))",
+            text.strip(),
+        )
+        if part.strip()
+    ]
+
+
+def _draft_sentences(draft: str) -> list[tuple[int, str]]:
+    sentences: list[tuple[int, str]] = []
+    for paragraph_index, paragraph in enumerate(
+        re.split(r"\n\s*\n", draft), start=1
+    ):
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+        sentences.extend(
+            (paragraph_index, part) for part in _split_sentences(paragraph)
+        )
+    return sentences
+
+
+def _pattern_support_report(draft: str, contexts: list[dict]) -> dict:
+    """Sentence-level candidate matches only; overlap is not entailment."""
+    rows: list[dict[str, Any]] = []
+    unsupported: list[int] = []
+    polarity_mismatches: list[int] = []
+    for index, (paragraph_index, sentence) in enumerate(
+        _draft_sentences(draft), start=1
+    ):
+        sentence_terms = set(corpus.meaningful_tokens(sentence))
+        sentence_negated = _negated_terms(sentence)
+        candidates: list[dict[str, Any]] = []
+        for context in contexts:
+            basis_sentences = (
+                _split_sentences(str(context.get("source_text") or ""))
+                + _split_sentences(str(context.get("target_text") or ""))
+            )
+            basis_matches = []
+            for basis_sentence in basis_sentences:
+                basis_terms = set(corpus.meaningful_tokens(basis_sentence))
+                matched_terms = sorted(sentence_terms & basis_terms)
+                basis_matches.append((
+                    len(matched_terms),
+                    len(matched_terms) / max(1, len(basis_terms)),
+                    matched_terms,
+                    basis_terms,
+                    basis_sentence,
+                ))
+            if not basis_matches:
+                continue
+            _, _, matched, context_terms, context_sentence = max(
+                basis_matches, key=lambda item: (item[0], item[1])
+            )
+            sentence_coverage = len(matched) / max(1, len(sentence_terms))
+            if len(matched) < 2 or sentence_coverage < 0.2:
+                continue
+            context_negated = _negated_terms(context_sentence)
+            if sentence_negated:
+                negation_mismatch = not bool(sentence_negated & context_negated)
+            else:
+                negation_mismatch = bool(context_negated & set(matched))
+            candidates.append({
+                "token": str(context["citation_token"]),
+                "authority": str(context.get("authority") or "none"),
+                "matched_terms": matched,
+                "sentence_coverage": round(sentence_coverage, 4),
+                "negation_mismatch": negation_mismatch,
+                "sentence_negated_terms": sorted(sentence_negated),
+                "basis_negated_terms": sorted(context_negated),
+                "_context_terms": context_terms,
+            })
+        candidates.sort(
+            key=lambda candidate: (
+                candidate["negation_mismatch"],
+                -len(candidate["matched_terms"]),
+                -candidate["sentence_coverage"],
+                candidate["token"],
+            )
+        )
+        if not candidates:
+            unsupported.append(index)
+        elif all(candidate["negation_mismatch"] for candidate in candidates):
+            polarity_mismatches.append(index)
+        unmatched = sorted(
+            sentence_terms - (
+                candidates[0]["_context_terms"] if candidates else set()
+            )
+        )
+        for candidate in candidates:
+            candidate.pop("_context_terms")
+        rows.append({
+            "sentence": index,
+            "paragraph": paragraph_index,
+            "text_excerpt": sentence[:200],
+            "unmatched_terms": unmatched,
+            "candidates": candidates[:3],
+        })
+    return {
+        "method": "sentence-meaningful-token-overlap",
+        "candidate_only": True,
+        "sentences": rows,
+        "unsupported_sentences": unsupported,
+        "negation_mismatch_sentences": polarity_mismatches,
+    }
 
 
 @dataclass
@@ -102,8 +274,47 @@ class Server:
     #: rebuild from. Both were live defects; see `_resolve_matcher`.
     matcher_spec: str = ""
     read_only: bool = False
+    corpus_retriever: corpus.CorpusRetriever | None = None
     client: str = "unknown-client"
     _initialized: bool = field(default=False, repr=False)
+
+    def _draft_sealed_context(
+        self, task: str, source_lang: str, target_lang: str,
+    ) -> list[dict]:
+        """Related verified statements for drafting, never a verdict on the task."""
+        matches = memory.lookup(
+            task,
+            source_lang,
+            target_lang,
+            limit=50,
+            store=self.store,
+            matcher=self.domain_matcher(source_lang, target_lang),
+            context_threshold=0.0,
+        )
+        query_terms = set(corpus.meaningful_tokens(task))
+        related = []
+        for match in memory.verified_sealed(matches):
+            pair = match["pair"]
+            pair_terms = set(corpus.meaningful_tokens(
+                f"{pair.get('source_text', '')} {pair.get('target_text', '')}"
+            ))
+            overlap = sorted(query_terms & pair_terms)
+            if len(overlap) < 2 and float(match["similarity"]) < 0.55:
+                continue
+            contextual = dict(match)
+            contextual["context_matched_terms"] = overlap
+            contextual["context_relevance"] = round(
+                len(overlap) / max(1, len(query_terms)), 4
+            )
+            contextual["context_only"] = True
+            related.append(contextual)
+        related.sort(
+            key=lambda match: (
+                -len(match["context_matched_terms"]),
+                -float(match["similarity"]),
+            )
+        )
+        return related[:3]
 
     def domain_matcher(self, source_lang: str, target_lang: str) -> Matcher | None:
         """This server's matcher — but only for the domain it describes.
@@ -291,7 +502,8 @@ class Server:
                 "name": "nestor_draft",
                 "description":
                     "Ask a loopback-only local model for a bounded analysis or patch "
-                    "suggestion using human-verified Nestor guidance. The result is always "
+                    "suggestion using separately labelled human-verified guidance and "
+                    "unverified local corpus excerpts. The result is always "
                     "state='draft' and verified=false. It has no filesystem, shell, nested "
                     "tool, sealing, or approval authority; use nestor_propose separately "
                     "if the draft belongs in the human review queue.",
@@ -428,13 +640,63 @@ class Server:
                     isinstance(value, str) for value in raw_excerpts):
                 raise ValueError("excerpts must be an array of strings")
             sl, tl = self._domain_for_read(args)
-            nearby = memory.verified_sealed(
-                memory.lookup(str(args.get("task", "")), sl, tl, limit=3,
-                              store=store, matcher=self.domain_matcher(sl, tl)))
+            task = str(args.get("task", ""))
+            if not task.strip() or len(task) > engine.MAX_DRAFT_TASK_CHARS:
+                raise ValueError(
+                    f"task must contain 1..{engine.MAX_DRAFT_TASK_CHARS} characters"
+                )
+            if len(raw_excerpts) > engine.MAX_DRAFT_EXCERPTS:
+                raise ValueError(
+                    f"context accepts at most {engine.MAX_DRAFT_EXCERPTS} excerpts"
+                )
+            if sum(len(value) for value in raw_excerpts) > engine.MAX_DRAFT_CONTEXT_CHARS:
+                raise ValueError(
+                    f"context exceeds {engine.MAX_DRAFT_CONTEXT_CHARS} characters"
+                )
+            nearby = self._draft_sealed_context(task, sl, tl)
+            retrieval = (
+                self.corpus_retriever.search(
+                    task,
+                    limit=min(
+                        MAX_AUTO_CORPUS_EXCERPTS,
+                        max(0, engine.MAX_DRAFT_EXCERPTS - len(raw_excerpts)),
+                    ),
+                )
+                if self.corpus_retriever is not None
+                else None
+            )
+            corpus_claims = list(retrieval.claims) if retrieval else []
+            corpus_context = []
+            for index, claim in enumerate(corpus_claims, start=1):
+                context = asdict(claim)
+                context["citation_token"] = f"C{index}"
+                corpus_context.append(context)
+            sealed_basis = [
+                {
+                    "pair_id": str(match["pair"].get("id") or ""),
+                    "source_text": str(match["pair"].get("source_text") or ""),
+                    "target_text": str(match["pair"].get("target_text") or ""),
+                    "verifier": str(match["pair"].get("verifier") or ""),
+                    "similarity": float(match["similarity"]),
+                    "context_matched_terms": match["context_matched_terms"],
+                    "context_relevance": match["context_relevance"],
+                    "context_only": True,
+                    "citation_token": f"S{index}",
+                    "authority": "human-sealed-statement",
+                }
+                for index, match in enumerate(nearby, start=1)
+            ]
             local = engine.OllamaEngine(model=self.ollama_model)
             draft = local.draft_task(
-                str(args.get("task", "")), excerpts=raw_excerpts,
-                sealed_context=nearby)
+                task,
+                excerpts=raw_excerpts,
+                sealed_context=nearby,
+                corpus_context=corpus_context,
+            )
+            grounding = _citation_report(draft.text, corpus_context)
+            pattern_support = _pattern_support_report(
+                draft.text, [*sealed_basis, *corpus_context]
+            )
             ignored = sorted(key for key in args if key not in DRAFT_KEYS)
             result = {
                 "state": "draft",
@@ -442,8 +704,30 @@ class Server:
                 "draft": draft.text,
                 "engine": draft.engine,
                 "provenance": asdict(draft.provenance),
-                "note": ("local model suggestion only — Cursor or Claude must "
-                         "inspect, apply, and verify it"),
+                "basis": {
+                    "sealed_guidance": sealed_basis,
+                    "unverified_corpus_excerpts": corpus_context,
+                },
+                "retrieval": (
+                    {
+                        "mode": retrieval.mode,
+                        "query_sha256": retrieval.query_sha256,
+                        "snapshot_sha256": retrieval.snapshot_sha256,
+                        "candidate_count": retrieval.candidate_count,
+                        "eligible_count": retrieval.eligible_count,
+                        "selected_count": len(retrieval.claims),
+                        "semantic_error": retrieval.semantic_error,
+                    }
+                    if retrieval is not None
+                    else {
+                        "mode": "disabled",
+                        "candidate_count": 0,
+                        "selected_count": 0,
+                    }
+                ),
+                "grounding": grounding,
+                "pattern_support": pattern_support,
+                "note": _grounding_note(grounding),
             }
             if ignored:
                 result["ignored_fields"] = ignored
@@ -613,6 +897,28 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ollama-model", default=engine.OLLAMA_DRAFT_MODEL,
                    help=("local model tag used by --engine ollama and nestor_draft "
                          f"(default: {engine.OLLAMA_DRAFT_MODEL})"))
+    p.add_argument(
+        "--corpus-dir",
+        default=config.load().get_str("corpus_dir", ""),
+        help=(
+            "operator-selected directory of extracted .db stores; when set, "
+            "they are consolidated as unverified context before serving "
+            "(default: NESTOR_CORPUS_DIR)"
+        ),
+    )
+    p.add_argument(
+        "--no-corpus-sync",
+        action="store_true",
+        help="use the last consolidated corpus snapshot without refreshing sources",
+    )
+    p.add_argument(
+        "--corpus-semantic",
+        action="store_true",
+        help=(
+            "rerank only the bounded FTS shortlist with local Ollama embeddings; "
+            "lexical retrieval remains the explicit fallback"
+        ),
+    )
     p.add_argument("--matcher", default="string",
                    help="the matcher that keys this domain: a shipped name "
                         f"({', '.join(answer.MATCHERS)}) or a custom one as "
@@ -663,6 +969,18 @@ def main(argv: list[str] | None = None) -> int:
     store.init_db()
     store.memory_init()
     storage.set_store(store)
+    corpus_retriever = None
+    if args.corpus_dir:
+        try:
+            if not args.no_corpus_sync:
+                corpus.sync(args.corpus_dir, args.db)
+            corpus_retriever = corpus.CorpusRetriever(
+                args.db, semantic=args.corpus_semantic
+            )
+            corpus_retriever.count()
+        except corpus.CorpusError as exc:
+            print(f"refusing to start: corpus sync failed: {exc}", file=sys.stderr)
+            return 2
     server = Server(store=store,
                     source_lang=args.source_lang or domain.DEFAULT_SOURCE_LANG,
                     target_lang=args.target_lang or domain.DEFAULT_TARGET_LANG,
@@ -671,7 +989,8 @@ def main(argv: list[str] | None = None) -> int:
                     engine_name=args.engine,
                     ollama_model=args.ollama_model,
                     matcher=chosen_matcher, matcher_spec=args.matcher,
-                    read_only=args.read_only)
+                    read_only=args.read_only,
+                    corpus_retriever=corpus_retriever)
     # stdout is the protocol channel; anything human-facing goes to stderr or it
     # corrupts the stream.
     print(f"nestor MCP server on stdio — db={args.db} "
