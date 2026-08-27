@@ -136,6 +136,27 @@ what moved.
 
 ---
 
+## [0.14.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.13.0...v0.14.0) (2026-08-27)
+
+
+### Added
+
+* **corpus:** consolidate extracted stores into one inert lane ([3138664](https://github.com/Die-Namic-Systems/Nestor/commit/3138664a2007eea36576111e3580c8ceb76966f2))
+* **corpus:** consolidate extracted stores into one inert lane ([#233](https://github.com/Die-Namic-Systems/Nestor/issues/233)) ([4351023](https://github.com/Die-Namic-Systems/Nestor/commit/435102361ed78b8f3db906975b5870c5eae147e1))
+
+
+### Fixed
+
+* **corpus:** document NESTOR_CORPUS_DIR and sync dogfood store ([b430a99](https://github.com/Die-Namic-Systems/Nestor/commit/b430a997e8f2830d306bf4496cb9c750aa3b54c8))
+* **corpus:** make local fixture dependency explicit ([e110c63](https://github.com/Die-Namic-Systems/Nestor/commit/e110c63d9b39383d3459eb95b734a11eb24e7dc4))
+* **docs:** deduplicate corpus source pin ([1912187](https://github.com/Die-Namic-Systems/Nestor/commit/1912187680130b0f129661eeab9bb1440ed7e4bc))
+* **dogfood:** rebuild from tracked PR decisions ([2fd0277](https://github.com/Die-Namic-Systems/Nestor/commit/2fd0277d156d0553239808a58ca5ee2a902068df))
+
+
+### Performance
+
+* **test:** make verification cost explicit ([#227](https://github.com/Die-Namic-Systems/Nestor/issues/227)) ([bc80045](https://github.com/Die-Namic-Systems/Nestor/commit/bc80045d952072cff4b386d0c449c695c49f1524))
+
 ## [0.13.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.12.0...v0.13.0) (2026-08-26)
 
 
