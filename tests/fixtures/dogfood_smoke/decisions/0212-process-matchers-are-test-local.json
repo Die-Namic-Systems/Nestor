@@ -1,0 +1,17 @@
+{
+  "branch": "chore/prompt-hook-process-v2",
+  "date": "2026-08-26",
+  "note": "A full xdist run scheduled test_desks before unrelated memory tests on one worker. Its SerialMatcher remained process-global, normalized every nonnumeric phrase to NONE, and produced 40 false failures plus one setup error. A different collection order had hidden the leak.",
+  "decisions": [
+    {
+      "question": "How should tests isolate Nestor's process-wide matcher under parallel collection?",
+      "commitment": "The existing isolate_globals autouse fixture now saves the current matcher, installs a fresh StringMatcher before each test, and restores the saved matcher afterward, alongside its existing store, ledger, keyring, forwarder, and environment isolation.",
+      "why": "An xdist worker is a long-lived interpreter. Process globals cross module boundaries even though files and stores are temporary, so scheduling order must not decide which normalization algorithm an unrelated test receives."
+    },
+    {
+      "question": "What proves the matcher isolation resets without permanently overwriting caller state?",
+      "commitment": "A regression test installs a poison matcher that maps every value to NONE, enters the fixture body and requires StringMatcher, then completes teardown and requires the exact poison object to be restored.",
+      "why": "Reset-only isolation could make the suite green while damaging an embedding caller that deliberately installed a matcher around a nested test run. The fixture owns the test interval, not the process outside it."
+    }
+  ]
+}

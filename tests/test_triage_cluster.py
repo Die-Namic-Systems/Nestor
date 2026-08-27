@@ -4,9 +4,10 @@ can go red.
 The four things proved here are the four the contract names: near-duplicates
 land together while unrelated questions stay apart ({3},{1},{1}); the pass is
 deterministic (same input twice, identical output); the bar is the N1 knee — a
-re-worded pair joins at 0.45 and splits at 0.92; and on the real 316-decision
-queue every decision lands in exactly one cluster, quickly. Each of the first
-three fails if the graph cut is broken in the direction it guards.
+re-worded pair joins at 0.45 and splits at 0.92; and on the pinned smoke corpus
+(see ``tests/fixtures/dogfood_smoke/``) every decision lands in exactly one
+cluster, quickly. Each of the first three fails if the graph cut is broken in
+the direction it guards.
 """
 from __future__ import annotations
 
@@ -19,6 +20,8 @@ import pytest
 from nestor.matcher import StringMatcher
 from nestor.triage import Decision, load_decisions
 from nestor.triage.cluster import group
+
+from tests.conftest import DOGFOOD_SMOKE_DECISIONS
 
 
 def _timing_distorted() -> bool:
@@ -159,8 +162,8 @@ def test_empty_input():
 @pytest.mark.performance
 @pytest.mark.slow
 def test_smoke_real_corpus_partitions_every_decision_quickly():
-    decisions = load_decisions()
-    assert len(decisions) > 100  # the real queue, not an empty tree
+    decisions = load_decisions(DOGFOOD_SMOKE_DECISIONS)
+    assert len(decisions) > 50  # pinned smoke corpus, not the full active queue
 
     start = time.monotonic()
     clusters = group(decisions, StringMatcher(), 0.45)

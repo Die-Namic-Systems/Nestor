@@ -1,0 +1,17 @@
+{
+  "branch": "chore/ollama-loopback-audit-v2",
+  "date": "2026-08-26",
+  "note": "Adding bounded Ollama drafting put a second stdlib HTTP client in engine.py. The constitution audit had encoded the older implementation detail that ollama_embed.py was the only operator-local client, so it changed CONST-0-3 from differently governed to FAILS even though the new client refuses every non-loopback host.",
+  "decisions": [
+    {
+      "question": "How should the constitution audit classify explicitly configured operator-local Ollama clients?",
+      "commitment": "As differently governed, not satisfied and not failing. The operator grants the local reach by installing and starting Ollama; Nestor does not mint fleet egress. The audit recognizes the two named Ollama client modules, while runtime refusal tests enforce the drafting client's loopback-only host boundary.",
+      "why": "CONST-0-3 forbids an agent extending its own reach. A configured local daemon is still a network-shaped mechanism, so calling it satisfied would erase the constitutional distinction; calling it a failure would claim off-machine reach that the drafting client refuses before opening a socket."
+    },
+    {
+      "question": "What keeps the local-client classification from becoming a blanket network exemption?",
+      "commitment": "The source probe fails if any unclassified module contains an HTTP client, and its regression test adds a rogue requests.get call and asserts FAILS. The recognized set is exactly engine.py and ollama_embed.py; adding another network client is red by default.",
+      "why": "The defect was a stale one-file allowlist, not a reason to stop detecting new reach. A bounded named set plus a forbidden-act test updates the known mechanism while preserving the tripwire for every future client."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "branch": "claude/repo-setup-integration-6xryzq",
+  "date": "2026-08-26",
+  "note": "Promote demo.the_dispatches_audit.weakest into nestor.evidence.aggregate_provenance. Two independent implementations of the same shape converged before this promotion: (a) this repo's own demo/the_dispatches_audit.py Way 3 proved min()-not-mean over ('assumed', 'fitted', 'measured') against an external corpus, and (b) safe-app-store's apps/kitchen-pudding built the same three states as a Provenance IntEnum with an aggregate() that also raises on empty. Two arrivals at the same taxonomy, in different domains, with the same aggregator, without either reading the other's code, is the honest signal that the pattern belongs in the shipped API instead of copying it into every downstream that needs it (fleet_glue.corroborate_to_draft would be the next). No new sealed rows, no schema change, no covenant touched — the machine may propose a function and this is that proposal; the demo proved it, the tests lock it, kitchen-pudding is the corroborating second implementation.",
+  "decisions": [
+    {
+      "question": "Why promote the demo's weakest() rather than reinvent it inside evidence.py?",
+      "commitment": "A promotion, not a rewrite. The exported PROVENANCE_STATES tuple equals demo.STATES verbatim, and test_states_match_the_demo_spelling_and_order asserts that identity so a rename on either side surfaces here before the caller sees the drift. A behavioral equivalence test (test_agrees_with_the_demo_on_every_reference_case) runs every case the demo was locked on through the shipped function.",
+      "why": "The demo has been the load-bearing proof of the pattern since PR #170; rewriting it inside evidence.py would leave two definitions of the same word in the tree, one shipped and one not, and future drift would silently split. Promoting the exact tuple keeps one canonical spelling and one test that fails on either rename."
+    },
+    {
+      "question": "Why a tuple of strings rather than an IntEnum, when kitchen-pudding used an enum?",
+      "commitment": "Strings, matching the surrounding evidence.py conventions. EVIDENCE_KINDS is a frozenset of strings; the demo used a tuple of strings; adding an IntEnum would introduce a new type into a module that has none. PROVENANCE_RANK is precomputed once from PROVENANCE_STATES so a caller who wants a numeric comparison gets O(1) lookup without importing an enum.",
+      "why": "The give-back's job is to promote the demo's pattern into the shipped API, not to invent a third spelling. Kitchen-pudding's Provenance.parse ergonomics are legitimate and could be added later as a helper, but this change stays inside its scope — one function, one constant, two lookups — and does not open a type-migration question that would require every caller of the demo to update."
+    },
+    {
+      "question": "What does aggregate_provenance refuse, and why loudly rather than by default?",
+      "commitment": "Two refusals: an empty iterable (kitchen-pudding's rule — 'no ingredients' is not a provenance claim), and any state outside PROVENANCE_STATES (a typo would silently grow an unqueryable taxonomy). Both raise ValueError with the legal set in the message; test_case_sensitivity_is_load_bearing pins that 'MEASURED' is refused even though a case-insensitive comparison would 'work'.",
+      "why": "The two prior arts converged on refusing an empty pool; keeping that invariant means a caller who somehow arrives at an empty input list gets a typed refusal instead of a wrong answer. Unknown-state refusal matches EVIDENCE_KINDS's own attach-time posture, decision 0142 caution B. Case sensitivity is enforced because both prior arts used lowercase and a silent uppercase acceptance would create a two-spellings-of-one-state bug that would only surface when a later caller ran ordered comparison and got the wrong minimum."
+    },
+    {
+      "question": "Should evidence rows carry a provenance state column now?",
+      "commitment": "No. Scope stays function-only: constants + one function + tests. A row-level provenance column is a schema migration with its own decision — the aggregator being importable does not require it.",
+      "why": "Every give-back is worth its narrowest coherent scope. The pattern's whole value is composition: a caller with multiple evidence rows now has a shipped way to combine their provenance without reinventing min(). Adding a column would extend the evidence relation, touch storage.py, sqlite_store.py, portable.py version bump, and every downstream that reads evidence rows — a separate decision at a separate scale, appropriate to file when the aggregator has a caller that needs it."
+    },
+    {
+      "question": "Where does the second-implementation corroboration come from?",
+      "commitment": "safe-app-store apps/kitchen-pudding/kitchen_pudding/provenance.py, which lands the same three states as an IntEnum with the same aggregate() semantics (min(), raise on empty). Recorded because the corroboration is the honest signal for a promotion: n=1 is a case, n=2 is a pattern.",
+      "why": "Kitchen-pudding was built without reading this repo's demo — it derived measured/fitted/assumed from its own domain (recipe ingredients) and its CLAUDE.md's 'a result is worth its weakest input, propagated by min()' rule. Independent arrival at the same taxonomy in a different domain is the strongest evidence that the pattern is not domain-specific to audits and belongs in a shared surface."
+    }
+  ]
+}

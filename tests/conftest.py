@@ -3,9 +3,14 @@ import functools
 import importlib.util
 import json
 import os
+import pathlib
 import sys
 
 import pytest
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+DOGFOOD_SMOKE_DECISIONS = REPO_ROOT / "tests" / "fixtures" / "dogfood_smoke" / "decisions"
+ARCHIVE_DECISIONS = REPO_ROOT / "docs" / "archive" / "decisions"
 
 from nestor import cascade, frank, keyring, memory, storage
 from nestor.matcher import StringMatcher

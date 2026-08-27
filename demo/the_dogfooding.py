@@ -80,7 +80,7 @@ from nestor.sqlite_store import SqliteStore                     # noqa: E402
 from recipes import patch_review                                # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-DECISIONS_DIR = REPO / "docs" / "dogfood" / "decisions"
+DEFAULT_DECISIONS_DIR = REPO / "docs" / "dogfood" / "decisions"
 COMMITTED_DB = REPO / "docs" / "dogfood" / "nestor.db"
 BUNDLE = REPO / "docs" / "dogfood" / "decisions.json"
 
@@ -109,20 +109,27 @@ PARAPHRASES = [
 # The corpus, read from the repository and nowhere else
 # --------------------------------------------------------------------------
 
-def load_decisions() -> list[dict]:
+def load_decisions(decisions_dir: pathlib.Path | None = None) -> list[dict]:
     """``[{file, question, commitment}]`` for every decision file in the repo.
 
     Read straight from the same files ``scripts/dogfood_store.py`` reads, in the
     same stable order, so the corpus measured here is the corpus that ships.
     """
+    root = decisions_dir or DEFAULT_DECISIONS_DIR
     rows: list[dict] = []
-    for path in sorted(glob.glob(str(DECISIONS_DIR / "*.json"))):
+    for path in sorted(glob.glob(str(root / "*.json"))):
         stem = pathlib.Path(path).name.split("-")[0]           # "0051"
         data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
         for r in data["decisions"]:
             rows.append({"file": stem, "question": r["question"],
                          "commitment": r["commitment"]})
     return rows
+
+
+def paraphrases_for(decisions: list[dict]) -> list[tuple[str, str]]:
+    """Hand-picked rewordings whose target decision is present in this corpus."""
+    present = {d["file"] for d in decisions}
+    return [(query, want) for query, want in PARAPHRASES if want in present]
 
 
 def by_commitment(decisions: list[dict]) -> dict[str, str]:
@@ -154,11 +161,13 @@ def exact_retrieval(store, matcher, decisions) -> tuple[int, int, int]:
     return hit, wrong, pending
 
 
-def paraphrase_eval(store, matcher, decisions, show=False) -> tuple[int, int, int]:
-    """Run the ten reworded queries. (hit, wrong, pending)."""
+def paraphrase_eval(store, matcher, decisions, show=False,
+                    paraphrases: list[tuple[str, str]] | None = None) -> tuple[int, int, int]:
+    """Run the reworded queries. (hit, wrong, pending)."""
     who = by_commitment(decisions)
+    probes = paraphrases if paraphrases is not None else paraphrases_for(decisions)
     hit = wrong = pending = 0
-    for query, want in PARAPHRASES:
+    for query, want in probes:
         best = memory.best_sealed(query, DOMAIN, DOMAIN, store=store, matcher=matcher)
         top = memory.lookup(query, DOMAIN, DOMAIN, limit=1, store=store,
                             matcher=matcher, context_threshold=0.0)
@@ -297,26 +306,42 @@ def _collisions_via_ratio_bailout(store, matcher, decisions) -> list[tuple]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--keep", default="", help="leave the sealed copies behind here")
+    ap.add_argument("--decisions-dir", type=pathlib.Path, default=None,
+                    help="decision JSON directory (default: docs/dogfood/decisions)")
+    ap.add_argument("--smoke", action="store_true",
+                    help="pinned CI corpus: skip committed-bundle parity check")
     args = ap.parse_args()
+    decisions_dir = args.decisions_dir or DEFAULT_DECISIONS_DIR
     work = (pathlib.Path(args.keep) if args.keep
             else pathlib.Path(tempfile.mkdtemp(prefix="nestor-dogfooding-")))
     work.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{BOLD}The dogfooding{OFF}  {DIM}Nestor's memory of its own decisions, "
           f"measured{OFF}")
-    note("Not fiction. Every row below is a decision in docs/dogfood/decisions/, "
-         "the corpus scripts/dogfood_store.py ships.")
+    if args.smoke:
+        note("Pinned smoke corpus for CI — real decision files, not the full active "
+             "queue. See tests/fixtures/dogfood_smoke/.")
+    else:
+        note("Not fiction. Every row below is a decision in docs/dogfood/decisions/, "
+             "the corpus scripts/dogfood_store.py ships.")
 
-    decisions = load_decisions()
+    decisions = load_decisions(decisions_dir)
+    paraphrases = paraphrases_for(decisions)
 
     # ---------------------------------------------------------------- 1
     beat(1, "The corpus is real, and it is the one that ships")
     files = sorted({d["file"] for d in decisions})
-    bundle = json.loads(BUNDLE.read_text(encoding="utf-8"))
-    claim(len(decisions) == len(bundle["pairs"]),
-          "the decisions measured here are exactly the pairs in the committed bundle")
-    say(f"{BOLD}{len(decisions)}{OFF} decisions across {len(files)} files, one file "
-        f"per merged PR.")
+    if args.smoke:
+        claim(len(decisions) > 0,
+              "the pinned smoke corpus loaded at least one decision row")
+        say(f"{BOLD}{len(decisions)}{OFF} decisions across {len(files)} files "
+            f"({DIM}smoke fixture{OFF}).")
+    else:
+        bundle = json.loads(BUNDLE.read_text(encoding="utf-8"))
+        claim(len(decisions) == len(bundle["pairs"]),
+              "the decisions measured here are exactly the pairs in the committed bundle")
+        say(f"{BOLD}{len(decisions)}{OFF} decisions across {len(files)} files, one file "
+            f"per merged PR.")
     for d in decisions[:2]:
         say(f"{DIM}§{d['file']}  {OFF}{d['question'][:64]}")
     note("Every row is traceable to a file in a merged PR — the point of the store, "
@@ -362,7 +387,7 @@ def main() -> int:
     claim(wrong == 0, "no reworded query is answered with the WRONG decision")
     say()
     say(f"{BOLD}{hit} served, {pending} pending, {wrong} wrong{OFF} out of "
-        f"{len(PARAPHRASES)}.")
+        f"{len(paraphrases)}.")
     note("Most come back pending — nothing sealed matched the paraphrase closely "
          "enough to serve. That is not the memory failing; it is the seal threshold "
          "refusing to answer a question it is not sure it was asked. Zero wrong is "
@@ -420,9 +445,9 @@ def main() -> int:
           "the identifier-weighted matcher admits no more collisions than the default")
     say(f"{'':18}{BOLD}collisions @{memory.SEAL_THRESHOLD}{OFF}   "
         f"{BOLD}paraphrases served{OFF}")
-    say(f"  StringMatcher   {RED}{len(hits):>10}{OFF}   {len(PARAPHRASES)} → "
+    say(f"  StringMatcher   {RED}{len(hits):>10}{OFF}   {len(paraphrases)} → "
         f"{s_para_hit}")
-    say(f"  DefectMatcher   {GREEN}{len(d_coll):>10}{OFF}   {len(PARAPHRASES)} → "
+    say(f"  DefectMatcher   {GREEN}{len(d_coll):>10}{OFF}   {len(paraphrases)} → "
         f"{d_para_hit}")
     note("DefectMatcher weights identifiers over prose (recipes/patch_review.py, with "
          "a bench), so it separates the collisions — but its stricter keying only "

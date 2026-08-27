@@ -1,0 +1,38 @@
+{
+  "pr": 51,
+  "branch": "claude/universe-miracles-theory-hz6fm7",
+  "date": "2026-08-06",
+  "note": "Follow-up to #50 (merged). #50 landed the findings; the measurements behind three of them lived only in a scratch directory that dies with the container. This carries them over as executable fixture, and commits the one piece of throwaway tooling that earned it.",
+  "decisions": [
+    {
+      "question": "§6.37, §6.38 and §6.39 quote numbers no committed code reproduces. Is that acceptable?",
+      "commitment": "No. demo/shoebox.py now exercises all three recipes — translation, entity, reconcile — plus the glossary, with a gap assertion per finding.",
+      "why": "test_docs.py's own docstring is the argument: a claim nobody executes is a claim nobody maintains. Those three entries were measured against a store in /tmp that the next session cannot open, so the entries were on their way to being prose. The fixture is also where the §6.37 contrast actually lands — entity destroying what reconcile keeps is one run, side by side, rather than two paragraphs asking to be believed."
+    },
+    {
+      "question": "Should the fixture stay one file as it grows to eleven beats?",
+      "commitment": "Yes. One person, one file, three recipes.",
+      "why": "Splitting by recipe would file the findings under the mechanism that has them, which is exactly the framing that hid them for this long. The argument is that one life crosses all three, and a reader who meets the entity gap without having met the same person's translation gap two beats earlier has lost it."
+    },
+    {
+      "question": "How does the glossary get written without polluting whatever directory the demo runs from?",
+      "commitment": "glossary.set_glossary_path(workdir / 'glossary.json'), explicitly, in the fixture.",
+      "why": "Without it, add_term writes to the launch directory's data/glossary.json — which is §6.27, the entry fixed on another branch last week, reached from the wrong end by the fixture that found its sibling §6.38. The demo now uses that fix rather than tripping over it."
+    },
+    {
+      "question": "Is the two-instance harness worth committing, or was it scaffolding?",
+      "commitment": "Committed as scripts/two_instances.py with tests/test_two_instances.py.",
+      "why": "It is the only executable demonstration that a seal does not cross between deployments — portable.py argues it and unit tests exercise it inside one interpreter, where the store, ledger override, matcher and keyring are all module globals, so two instances are one instance wearing two hats. Honest about its record: written once, used once, and it found §6.36 on the way. The alternative was rebuilding it the next time somebody asks what sync costs (TODO §2), and that question is not going away."
+    },
+    {
+      "question": "The new gap assertions pass. Do they mean anything?",
+      "commitment": "Proven by mutation, one per gap, before commit.",
+      "why": "Making entity.seal call supersede_pair turns the §6.37 assertion red; giving locks_in_text a word boundary turns §6.38 red; adding EntityResolver.propose turns §6.39 red. A gate nobody has watched fail is a description. The first mutation I wrote for §6.37 was a no-op — it renamed an import — and passed; that was my error, not the gate's, and it was rewritten until it actually changed behaviour."
+    },
+    {
+      "question": "Does tests/test_two_instances.py guard the trust boundary it claims to?",
+      "commitment": "Not as first written. It asserted the words 'demoted to draft'; it now asserts '0 sealed, 1 demoted to draft'.",
+      "why": "`nestor import` prints 'N demoted to draft (signature does not verify here)' whether N is 0 or 1, so matching the label passes even with the signature check removed — measured, by removing it: the mutated build passed all four tests. On counts, the same mutation turns three of the four red. This is the defect CLAUDE.md names as a test that cannot fail, found in a test written to catch defects, about an hour after writing the entry that says findings must be checked rather than assumed."
+    }
+  ]
+}

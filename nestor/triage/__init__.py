@@ -105,7 +105,22 @@ class Report:
 
 
 def decisions_dir(root: pathlib.Path | None = None) -> pathlib.Path:
-    root = root or pathlib.Path(__file__).resolve().parents[2]
+    """The ``*.json`` decision directory to read.
+
+    * ``None`` — this checkout's active ``docs/dogfood/decisions``.
+    * a directory that already contains ``*.json`` — use it directly (smoke
+      fixture, archive snapshot).
+    * a repo root — ``<root>/docs/dogfood/decisions``.
+    * a smoke-fixture root — ``<root>/decisions`` when that subdir exists.
+    """
+    repo = pathlib.Path(__file__).resolve().parents[2]
+    if root is None:
+        return repo / "docs" / "dogfood" / "decisions"
+    root = pathlib.Path(root)
+    if root.is_dir() and any(root.glob("*.json")):
+        return root
+    if (root / "decisions").is_dir():
+        return root / "decisions"
     return root / "docs" / "dogfood" / "decisions"
 
 

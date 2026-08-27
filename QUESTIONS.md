@@ -123,7 +123,7 @@ Cross-instance and cross-organisation trust, which is what Q2 and Q8 actually
 need, did not wait on it.
 
 **The server-side half of that last cell has now shipped too** (see
-`docs/dogfood/decisions/0077-verify-not-sign-the-client-seal.json`):
+`docs/archive/decisions/0077-verify-not-sign-the-client-seal.json`):
 `memory.add_pair(..., seal_sig=...)` accepts a signature the CALLER already
 produced and only *verifies* it (`signing.seal_is_valid`) — it never calls
 `sign_seal`, so it never needs the private key on this path. That is what

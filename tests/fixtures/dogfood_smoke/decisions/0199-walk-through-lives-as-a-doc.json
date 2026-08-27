@@ -1,0 +1,18 @@
+{
+  "branch": "claude/pr213-pr180-review-m43ae2",
+  "date": "2026-08-26",
+  "note": "Journal item 4 from the 2026-08-26 hand-off: a scripted walk-through of the policy seed that ends at the seal. The hand-off named two possible homes (docs/walk-through-covenant.md or demo/covenant_tour.py); this records why the doc form was chosen and what gates it.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "Should the ninety-second policy walk-through live as a doc or as an executable demo script?",
+      "commitment": "As a doc — docs/walk-through-covenant.md. Six beats, transcript literals captured from `nestor demo --seed policy` on the current build, ending at beat 4 (a human seals the drafted row in the UI) and beat 5 (the same ask now serves as verified). Beat 6 nods at the ledger and defers deeper coverage to tests/test_review_ledger.py. The doc names its own bench (tests/test_walk_through_covenant.py, 6 tests) as its anti-drift gate: any literal in beats 1/2/3/5 that stops matching the store fails the bench.",
+      "why": "Three reasons the doc form fits the policy audience better than a demo/ script here. First, the engineer's version already exists — demo/sixty_seconds.py is the eight-beat, self-asserting tour that exits non-zero if any claim stops holding, and adding demo/covenant_tour.py would duplicate what it already does. Second, the audience the walk-through is FOR clicks through a written tour of the UI, not `python demo/covenant_tour.py`; the doc mirrors the shape of docs/policy-brief.md rather than of the engineer-facing demo/. Third, the tour's punchline (beat 4) is a human sealing in `nestor ui` — an action no agent can execute and no script can dramatise; a doc names the click, a script would have to fake it. The bench file substitutes for the self-asserting exit code by locking the beat strings so the doc cannot drift out of the code."
+    },
+    {
+      "question": "What claim does the bench actually gate versus what does it leave for a human?",
+      "commitment": "The bench (tests/test_walk_through_covenant.py) asserts: the doc file exists; beat 1's sealed source and target strings serve as verified by elena with the exact target the doc quotes; beat 2's draft row comes back unverified with the exact target the doc quotes; beat 3's rewrite is refused with beat-1's target as the drafted answer; and beat 5 — after emulating the UI seal via memory.add_pair — the re-ask serves as verified. It does NOT gate the UI seal action itself (no agent can do it) and does NOT re-litigate the ledger tamper case (already gated by tests/test_review_ledger.py).",
+      "why": "The seat rule is 'say what you read, not what you concluded.' A walk-through that quotes literal strings has to lock those strings against the code, or it is an assertion pretending to be a transcript. The bench does that for every literal the doc quotes. What the bench cannot gate — a human clicking seal — is the one place the doc says out loud 'no agent can perform this step,' which is honest about the boundary rather than hiding it."
+    }
+  ]
+}

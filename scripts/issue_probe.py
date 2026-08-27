@@ -4,7 +4,7 @@
     python scripts/issue_probe.py \
         --db docs/dogfood/nestor.db \
         --prompts scripts/corpus/open_issues.txt \
-        --out docs/dogfood/probes/open_issues.md
+        --out docs/archive/probes/open_issues.md
 
 The question this exists for: *what does Nestor's own store say about a topic
 when every lens gets a turn?* One lens's silence is not another's. On the open

@@ -15,6 +15,8 @@ import sys
 
 import pytest
 
+from tests.conftest import DOGFOOD_SMOKE_DECISIONS
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEMO = REPO / "demo" / "sixty_seconds.py"
 DOGFOODING = REPO / "demo" / "the_dogfooding.py"
@@ -28,9 +30,11 @@ def run(*args):
 
 
 def run_dogfooding(*args):
-    return subprocess.run([sys.executable, str(DOGFOODING), *args],
-                          capture_output=True, text=True, cwd=REPO, timeout=180,
-                          check=False)
+    return subprocess.run(
+        [sys.executable, str(DOGFOODING), "--smoke",
+         "--decisions-dir", str(DOGFOOD_SMOKE_DECISIONS), *args],
+        capture_output=True, text=True, cwd=REPO, timeout=180,
+        check=False)
 
 
 def _snapshot(directory):

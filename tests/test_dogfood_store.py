@@ -78,6 +78,26 @@ def test_every_row_is_traceable_to_a_decision_file():
     assert not orphans, f"rows whose origin matches no decision file: {orphans}"
 
 
+def test_archived_decision_files_are_not_in_the_committed_store():
+    """``docs/archive/decisions/`` is audit record only — not part of the rebuild."""
+    archive = ROOT / "docs" / "archive" / "decisions"
+    archived_questions = set()
+    for path in archive.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for row in data.get("decisions", []):
+            archived_questions.add(row["question"])
+
+    store = SqliteStore(str(STORE))
+    try:
+        store.memory_init()
+        active_questions = {r["source_text"] for r in store.memory_list(limit=10_000)}
+    finally:
+        store.close()
+    leaked = sorted(archived_questions & active_questions)
+    assert not leaked, (
+        f"{len(leaked)} archived decision question(s) still in the committed store")
+
+
 # --- the shared reader -------------------------------------------------------
 
 def test_dogfood_common_reads_the_real_corpus():
