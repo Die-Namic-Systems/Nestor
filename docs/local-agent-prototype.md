@@ -74,10 +74,21 @@ Every client follows the same sequence:
 6. Escalate uncertainty; never manufacture a verifier, status, signature, or
    successful test result.
 
-`nestor_draft` receives task text and caller-supplied excerpts. It has no
-filesystem, shell, nested-tool, or non-loopback network access. It retrieves
-nearby signed Nestor guidance, sends that bounded context to Ollama, and returns
-model/prompt/input provenance without storing the raw prompt.
+`nestor_draft` receives task text and optional caller-supplied excerpts. It has
+no filesystem, shell, nested-tool, or non-loopback network access. It retrieves
+nearby signed Nestor guidance and, when the operator configured
+`NESTOR_CORPUS_DIR`, relevant unverified local corpus claims. Those two bases are
+labelled separately in both the prompt and MCP result; extracted rows never
+acquire signing authority. It sends the bounded context to Ollama and returns
+model/prompt/input/retrieval provenance without storing the raw prompt. Corpus
+rows carry meaningful matched terms and short `[C#]` tokens; the response's
+`grounding` object reports missing or invented citations. Related human seals
+may be supplied below the exact serve threshold only as `context_only` guidance:
+the statement remains sealed, while the new task remains unverified. If the
+model emits no citations, `pattern_support` maps each sentence to candidate
+sealed/corpus sources, lists unmatched terms and
+unsupported sentences, and flags negation-polarity mismatches. It is explicitly
+candidate-only: lexical overlap and matching polarity are not entailment.
 
 Future clients implement this contract through the client-neutral hook manifest
 in `hooks/wiring.json`; client-specific JSON is generated output, not policy.
@@ -87,11 +98,16 @@ in `hooks/wiring.json`; client-specific JSON is generated output, not policy.
 The probe refuses to create the seal it needs:
 
 ```bash
+export NESTOR_CORPUS_DIR="$PWD/data/corpus"
+.venv/bin/nestor corpus sync --source-dir "$NESTOR_CORPUS_DIR"
 python scripts/local_agent_probe.py \
   --sealed-query "the guidance you signed in the UI" \
-  --task "review this bounded change" \
-  --excerpt "the relevant source excerpt"
+  --task "explain why models may draft but only humans may seal"
 ```
+
+The probe now requires a non-empty automatic corpus retrieval before it calls
+Ollama. `--excerpt` remains available for a genuinely task-local fragment, but
+the household corpus no longer has to be curated into each call by hand.
 
 Add `--propose` only when the returned draft should enter the human queue. If
 Ollama is absent, its model is missing, or the sealed prerequisite does not

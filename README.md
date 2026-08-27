@@ -614,7 +614,29 @@ A model gets `nestor_ask`, `nestor_resolve`, `nestor_check`, `nestor_match`,
 `nestor_propose`, which queues its answer for a human as a `draft`.
 Starting the server explicitly with `--engine ollama` also exposes
 `nestor_draft`: a bounded, loopback-only analysis or patch suggestion carrying
-model and prompt provenance. It cannot read files, run tools, or queue itself;
+model and prompt provenance. When `--corpus-dir` (or `NESTOR_CORPUS_DIR`) names
+extracted per-project stores, startup consolidates them into the household DB
+and automatically retrieves relevant context:
+
+```bash
+nestor corpus sync --source-dir data/corpus
+nestor serve --engine ollama --corpus-dir data/corpus
+```
+
+Those rows live in `corpus_claims`, never `tm_pairs`. Even a source row claiming
+`status="sealed"` is returned under `basis.unverified_corpus_excerpts` with
+`authority="none"`; only independently verified household pairs appear under
+`basis.sealed_guidance`, marked `context_only` because retrieval does not verify
+the current task. Long queries must match at least two meaningful terms, and
+each excerpt reports those terms and its query coverage. Drafts cite short
+`[C1]` tokens; `grounding.citation_compliant` reports missing or invented tokens
+without pretending the model obeyed. When it does not, `pattern_support`
+deterministically names candidate sealed/corpus sources for each sentence,
+lists unmatched terms and unsupported sentences, and flags negation-polarity
+mismatches; those are lexical candidates, not fabricated citations or
+entailment. `--corpus-semantic` optionally reranks the bounded FTS
+shortlist with local Ollama embeddings and reports `fts+semantic`; lexical FTS
+remains the fallback. The draft engine cannot read files, run tools, or queue itself;
 `nestor_propose` remains the separate explicit review step. See
 [`docs/local-agent-prototype.md`](docs/local-agent-prototype.md) for one signed
 household store shared by Cursor, Claude, and Ollama.

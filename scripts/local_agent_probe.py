@@ -12,7 +12,7 @@ import json
 import os
 from pathlib import Path
 
-from nestor import cascade, home_init, home_paths, serve, storage
+from nestor import cascade, corpus, home_init, home_paths, serve, storage
 from nestor.sqlite_store import SqliteStore
 
 
@@ -23,6 +23,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--task", required=True, help="bounded task for local drafting")
     parser.add_argument("--excerpt", action="append", default=[],
                         help="inert source excerpt; repeat up to eight times")
+    parser.add_argument(
+        "--corpus-dir",
+        default=os.environ.get("NESTOR_CORPUS_DIR", ""),
+        help="source stores for automatic unverified context (default: NESTOR_CORPUS_DIR)",
+    )
     parser.add_argument("--model", default="llama3.2:3b",
                         help="installed loopback Ollama model tag")
     parser.add_argument("--propose", action="store_true",
@@ -75,6 +80,39 @@ def run(args: argparse.Namespace) -> tuple[int, dict]:
             "next": "seal this guidance as a human in nestor ui, then rerun",
         }
 
+    corpus_dir = str(getattr(args, "corpus_dir", "") or "").strip()
+    if not corpus_dir:
+        return 2, {
+            "status": "corpus-prerequisite-missing",
+            "store": str(db),
+            "state": "pending",
+            "next": "set NESTOR_CORPUS_DIR or pass --corpus-dir, then rerun",
+        }
+    try:
+        sync_report = corpus.sync(corpus_dir, db)
+        retriever = corpus.CorpusRetriever(db)
+        preview = retriever.search(args.task, limit=8)
+    except corpus.CorpusError as exc:
+        return 2, {
+            "status": "corpus-prerequisite-missing",
+            "store": str(db),
+            "state": "pending",
+            "error": str(exc),
+        }
+    if not preview.claims:
+        return 2, {
+            "status": "corpus-context-missing",
+            "store": str(db),
+            "state": "pending",
+            "retrieval": {
+                "mode": preview.mode,
+                "candidate_count": preview.candidate_count,
+                "selected_count": 0,
+            },
+            "next": "choose a task supported by the consolidated local corpus",
+        }
+    server.corpus_retriever = retriever
+
     drafted = server.call("nestor_draft", {
         "task": args.task,
         "excerpts": args.excerpt,
@@ -90,6 +128,11 @@ def run(args: argparse.Namespace) -> tuple[int, dict]:
             "state": "sealed",
             "pair_id": sealed_pair["id"],
             "verifier": sealed_pair["verifier"],
+        },
+        "corpus_sync": {
+            "sources": sync_report.sources,
+            "claims": sync_report.claims,
+            "snapshot_sha256": sync_report.snapshot_sha256,
         },
         "draft": drafted,
     }
