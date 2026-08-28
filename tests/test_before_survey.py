@@ -20,7 +20,12 @@ import os
 import pathlib
 import subprocess
 
-from hooks.before_survey import advisory, for_prompt, is_survey_intent
+from hooks import before_survey
+from hooks.before_survey import (
+    advisory,
+    for_prompt,
+    is_survey_intent,
+)
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -109,3 +114,46 @@ def _run(payload: dict, module: str = "before_survey") -> subprocess.CompletedPr
         input=json.dumps(payload), capture_output=True, text=True,
         cwd=REPO, timeout=60,
         env={**os.environ, "NESTOR_PROJECT_ROOT": str(REPO)}, check=False)
+
+
+def test_the_store_it_names_is_absolute_and_resolvable_from_any_cwd(tmp_path, monkeypatch):
+    """A suggested command that does not resolve is worse than no suggestion.
+
+    ``BRAIN_DB`` is repo-relative, which is right for a reminder emitted inside
+    this checkout and wrong everywhere else — and this is the advisory that
+    rides a box-wide seat, so it is emitted from arbitrary directories. A
+    relative path there reads as a store the reader failed to find rather than
+    one that was never there.
+    """
+    monkeypatch.delenv("NESTOR_DB", raising=False)
+    monkeypatch.setattr(before_survey, "_HOUSEHOLD_DB", tmp_path / "absent.db")
+    text = advisory(REPO)
+    assert f"--db {REPO / 'docs' / 'dogfood' / 'nestor.db'} " in text
+    assert "--db docs/dogfood" not in text
+
+
+def test_an_explicitly_pointed_store_wins(tmp_path, monkeypatch):
+    """A seat told which store to use has already answered the question.
+
+    This ordering is what keeps an isolated seat isolated: a sandbox or a test
+    harness that exports NESTOR_DB must not be handed the real household
+    corpus by a reminder.
+    """
+    monkeypatch.setenv("NESTOR_DB", str(tmp_path / "sandbox.db"))
+    assert f"--db {tmp_path / 'sandbox.db'} " in advisory(REPO)
+
+
+def test_the_household_corpus_is_preferred_over_this_repo_s_own_record(tmp_path, monkeypatch):
+    """A fan-out survey asks about the box, and the box's memory is the household.
+
+    ``BRAIN_DB`` is nestor's own development record; the household corpus is
+    24 repositories of extracted claims. Naming the wrong one sends a reader
+    to check a claim about the box against a store that never held it.
+    """
+    monkeypatch.delenv("NESTOR_DB", raising=False)
+    household = tmp_path / "household.db"
+    household.write_text("")
+    monkeypatch.setattr(before_survey, "_HOUSEHOLD_DB", household)
+    text = advisory(REPO)
+    assert f"--db {household} " in text
+    assert "dogfood" not in text

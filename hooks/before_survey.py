@@ -44,6 +44,7 @@ either.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 
@@ -91,13 +92,45 @@ def is_survey_intent(prompt: str) -> bool:
     return bool(prompt) and bool(_SURVEY_RX.search(prompt))
 
 
+#: The consolidated household corpus, when this box has one. A fan-out survey
+#: asks about the *box*, and the box's memory is here — 24 repositories of
+#: extracted claims plus the sealed pairs — where ``BRAIN_DB`` is nestor's own
+#: development record. Preferred when it exists, and the reason this advisory
+#: names a different store from ``before_build``'s.
+_HOUSEHOLD_DB = pathlib.Path.home() / ".nestor" / "keep" / "nestor.db"
+
+
+def _store_to_consult(root: pathlib.Path | None) -> str:
+    """An **absolute** path to the store a reader should actually open.
+
+    ``BRAIN_DB`` is repo-relative, which is correct for a reminder emitted
+    inside this checkout and wrong everywhere else: run from any other
+    directory, ``nestor --db docs/dogfood/nestor.db`` names nothing, and a
+    suggested command that does not resolve is worse than no suggestion —
+    it reads as a path the reader failed to find rather than one that was
+    never there. This advisory is the one that rides a *box-wide* seat, so
+    it must be true from any cwd.
+
+    ``$NESTOR_DB`` wins when set, because a seat that has been pointed at a
+    particular store has already answered this question.
+    """
+    override = os.environ.get("NESTOR_DB", "").strip()
+    if override:
+        return str(pathlib.Path(override).expanduser())
+    if _HOUSEHOLD_DB.is_file():
+        return str(_HOUSEHOLD_DB)
+    if root is not None:
+        return str(root.joinpath(*BRAIN_DB))
+    return "/".join(BRAIN_DB)
+
+
 def advisory(root: pathlib.Path | None = None) -> str:
     """The before-survey reminder — deterministic, fail-open, four short lines."""
     try:
         root = root or repo_root()
     except Exception:  # noqa: BLE001 — resolving the root must never crash a reminder
         root = None
-    db = "/".join(BRAIN_DB)
+    db = _guard("db", lambda: _store_to_consult(root)) or "/".join(BRAIN_DB)
     box = _guard("box", lambda: _decision_count(root))
     return "\n".join([
         ("[NESTOR before-survey] Reads as a fan-out survey. A survey is good for "
@@ -109,7 +142,7 @@ def advisory(root: pathlib.Path | None = None) -> str:
          "checking. Separate instances of one base model are presumed NON-"
          "independent, so agreement across your own passes is not corroboration."),
         ("  [already known] Before concluding a pattern, check it is not one the "
-         "box already measured and retracted — safe-app-store/docs/the-house-"
+         "box already measured and retracted — safe-app-store-public/docs/the-house-"
          "already-knew.md. Advisory tripwire, not a boundary."),
     ])
 
