@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.16.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.15.0...v0.16.0) (2026-08-28)
+
+
+### Added
+
+* record what was asked and had no verified answer ([bb90f8e](https://github.com/Die-Namic-Systems/Nestor/commit/bb90f8e0834b012a3d407e2ca05ce219a64bac4d))
+* record what was asked and had no verified answer ([#251](https://github.com/Die-Namic-Systems/Nestor/issues/251)) ([f9f2be7](https://github.com/Die-Namic-Systems/Nestor/commit/f9f2be7adca5f244f16a104fcba97a57245489b9))
+
 ## [0.15.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.14.0...v0.15.0) (2026-08-27)
 
 
