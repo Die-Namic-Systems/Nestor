@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 215,
+    "pairs": 219,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-28T00:00:00+00:00",
-  "digest": "5d9d1b2f9e9806ac3c38637761b59793691fb28933abb2bda39a9667e3a853af",
+  "digest": "310e996c1b5dee651d6dd9c8203038d9c019352634754d185f6ee84934c42211",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "f9ac935b-fc2d-5659-b817-1e49e130df45",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which of 6125s three shapes applies to nestor_warrant_attach",
+      "source_text": "Which of §6.125's three shapes applies to nestor_warrant_attach?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "None of them, as stated — and the reason is that (c)'s protection is already satisfied by construction. The jeles pattern exists so an untrusted client's assertion is read back labelled rather than as knowledge. A warrant row asserts nothing to label: warrant.py is explicit that Nestor never marks a warrant satisfied, that there is no verified column and no method that would set one, and that a row is the claim that a warrant exists plus what a reader needs to check it themselves. There is no rung below that to demote it to. So the write itself is safe to expose.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-28T00:00:00+00:00",
       "id": "f4f6a8af-7134-5468-b197-85f0671d96e1",
@@ -61,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes, via two pure-read verbs whose return shape carries the non-authority itself. nestor_corpus_map returns per-repository counts, source/target langs, and the snapshot sha256. nestor_corpus_search wraps CorpusRetriever.search verbatim: attributed claim pointers with repository, origin, source_status, matched_terms, query_coverage, authority='none', and no answer field, no state, no verdict, no would_serve, no suggested_next. A model reading a corpus_search result cannot mistake it for an answer because there is no answer field to mistake.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "e9f97dc4-5b07-5dfe-a8c1-67800f107e8d",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what residual risk remains after that and is it acceptable",
+      "source_text": "What residual risk remains after that, and is it acceptable?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Attention pollution, not laundering: an agent can attach a warrant naming a plausible authority with a locator that does not resolve, and each one costs a human a chase. Accepted, on the existing edge refusals plus the server-stamped attributor — unknown kind refused before the store opens, attestation refused entirely, empty authority or locator refused, expected_digest required for construction and refused for citation, length caps on all three free-text fields. With attribution stamped rather than claimed, noise is traceable to the session that produced it.",
       "verifier": "",
       "weight": 1.0
     },
@@ -276,6 +304,20 @@
     },
     {
       "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "379cfd84-0a35-565b-a967-c24bdeb8f0ba",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "then what is the actual exposure in putting attach on the wire",
+      "source_text": "Then what is the actual exposure in putting attach on the wire?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "attached_by. Its signature is attach(..., attached_by: str = '', ...) — caller-supplied free text. On the CLI that is the operator typing a label, and the help correctly calls it 'a label, not a credential'. Over MCP the same field is filled by whatever client started the server, so an agent can send attached_by='sean campbell' and the stored row carries a human's name as its attributor.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
       "id": "27f1fd77-d8ab-5fa2-9318-4ec7d069312a",
       "origin": "pr:TBD",
       "seal_sig": "",
@@ -327,6 +369,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Fan-out only: a survey verb AND a breadth marker, in either order, anywhere in the prompt. 'audit how it's wired up across all the repos' fires; 'review this function' and 'look at corpus.py' do not. A breadth token that is really a filename is excluded by a trailing-extension lookahead, since corpus.py is one thing to read.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "1d3bb696-c07a-5ce0-97f4-295da2777bb9",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the proposed fix",
+      "source_text": "What is the proposed fix?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The server stamps attached_by from the bound session identity and REFUSES a client-supplied value, named apart in the reply so the refusal says why — exactly the treatment answer.py:557's SEAL_AUTHORITY already gives to status, verifier, verification_kind, sealed and seal_sig. Add attached_by to an equivalent named set for this verb rather than silently overwriting it, because a silent overwrite teaches a caller nothing and an explicit refusal teaches it the rule.",
       "verifier": "",
       "weight": 1.0
     },
