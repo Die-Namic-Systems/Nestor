@@ -1,0 +1,28 @@
+{
+  "branch": "feat/corpus-refresh",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "Twenty-one extractors sit in scripts/corpus/ and nothing invokes any of them. Each rung was run by hand (docs/corpus-order.md), which was right while the corpus was being built one repository at a time and is wrong now that it is being kept. Measured 2026-08-28: the household corpus was pinned at commits from 2026-08-21 and stood 227 commits behind nestor and 115 behind willow-mcp, while ten frozen repositories were exactly current. The corpus decays fastest where the work is, so the anti-rediscovery instrument is least accurate precisely where rediscovery is most likely — the same session that measured this also asserted five findings decision 1878ea86 had already settled, against a corpus that could not have told it so.",
+  "decisions": [
+    {
+      "question": "Where does a refresh driver get the list of repositories, and the extractor for each?",
+      "commitment": "Out of the corpus itself, never from a roster authored in the driver. corpus_claims.repository names which repositories; the origin's toolchain digest resolves against the content hash of every committed extract_*.py and names which extractor read them; the origin's prefix gives the --name the run used; the origin's commit gives what it last read. All 24 repositories resolved on the first run. Only the checkout path is passed in, because that is a property of the machine rather than of the corpus.",
+      "why": "docs/corpus-order.md opens by saying an exception agreed in conversation and not written down is one a later session will silently undo, and the exceptions are load-bearing: mealie and litellm excluded by operator decision, sean-data-vault taken under an allowlist, forks read by extract_fork.py because the unit is the delta. A hand-written roster would be a second source of truth able to reverse any of them. Deriving instead makes that structurally impossible — a repository nobody extracted has no rows, so the driver has nothing to act on, and the digest names the extractor rather than a maintainer guessing it. This only works because §6.53 commits the extractors, so the digest is resolvable at all."
+    },
+    {
+      "question": "What does the driver refuse, rather than working around?",
+      "commitment": "Three things, each fail-closed and named in the output. An unresolvable toolchain (the extractor changed since those rows were written). A missing checkout (§6.101's could-not-look case). A dirty working tree. Refused repositories keep their existing data/corpus/<repository>.db and so keep their old rows and old pin through the sync.",
+      "why": "The dirty-tree refusal is the one that would not have been obvious: provenance.commit() reports HEAD whatever the working tree holds, so extracting from a dirty checkout writes rows pinned to a commit that does not contain them, and nothing downstream can tell. docs/corpus-order.md already names this failure for live repositories — a corpus of a particular afternoon, mislabelled as a corpus of the repository — and an uncommitted tree is that with no afternoon at all. On the first real dry run the three refusals surfaced three genuinely different conditions (three dirty trees, one repository deliberately outside ~/github, two archived tonight), which is the evidence that they are distinctions worth keeping separate."
+    },
+    {
+      "question": "What happens when a refused repository has no source database at all?",
+      "commitment": "The sync is refused entirely and the repositories are named. corpus.sync rebuilds the whole snapshot from whatever data/corpus/ holds, so proceeding would remove those repositories from the corpus rather than leave them stale.",
+      "why": "Staleness is honest and recoverable; silent deletion is neither. This is the same shape as the emptied-is-not-absent distinction the fleet has arrived at independently in at least six places — a corpus that quietly loses a repository looks exactly like a corpus that never held one."
+    },
+    {
+      "question": "How is an archived copy of a retired repository kept from being re-extracted as though it were live?",
+      "commitment": "It is not prevented; it is made visible. The resolved checkout path is printed on every ready line, and the default --repos-root is ~/github only, so reaching an archive requires passing a wider root deliberately. On the first run with --repos-root ~, willow resolved to ~/github-archive-willow-2026-08-27/willow.",
+      "why": "No heuristic can tell an archive from a checkout — a directory named github-archive-* today is a convention, not a guarantee, and a guard built on it would fail closed on a legitimate path or open on a renamed archive. Printing where each repository was found costs one column and lets the operator see what a wider search reached, which is the honest version of a distinction the machine cannot make."
+    }
+  ]
+}
