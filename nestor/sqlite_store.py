@@ -186,6 +186,40 @@ CREATE TABLE IF NOT EXISTS decision_warrants (
 );
 CREATE INDEX IF NOT EXISTS idx_decision_warrants_pair ON decision_warrants(pair_id);
 
+-- Query misses (the seal queue's odometer). A `pending` answer means nothing
+-- verified matched, and the whole architecture rests on that set shrinking as
+-- more is sealed — but nothing measured it, so "which should I seal next?" had
+-- a correct answer (the ones missed most) and no data.
+--
+-- TWO TIERS ON PURPOSE. A question asked once is noise and must not be written
+-- down in readable form; a question asked twice is a gap and has to be readable
+-- or the queue names nothing anyone can act on (the `llm-only-joke` failure:
+-- a row correct, dated, evidenced, and unfindable by its own subject).
+-- So `norm_sha256` is the identity and is always present; `source_norm` is
+-- written only once `seen >= 2`. The k>=2 threshold is the same one that makes
+-- the queue useful, so privacy here costs nothing — cf. homestead's
+-- cover_counts, where a category that does not survive k>=2 is absent rather
+-- than zero.
+--
+-- HONEST SCOPE: a singleton row still confirms a guess. Someone holding the
+-- exact normalized query can test whether it was asked. It cannot be
+-- enumerated back to text, and that is the whole of what it hides.
+--
+-- This table is NEVER served. A miss is not a proposal: `propose` writes a
+-- draft and the cascade serves drafts at tier 2, so recording a miss that way
+-- would put an empty answer in the servable tier, which is strictly worse than
+-- the honest `pending` it replaced.
+CREATE TABLE IF NOT EXISTS query_misses (
+    norm_sha256 TEXT PRIMARY KEY,
+    source_norm TEXT NOT NULL DEFAULT '',
+    source_lang TEXT NOT NULL DEFAULT '',
+    target_lang TEXT NOT NULL DEFAULT '',
+    seen        INTEGER NOT NULL DEFAULT 1,
+    first_seen  TEXT NOT NULL,
+    last_seen   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_query_misses_seen ON query_misses(seen DESC);
+
 -- Per-domain verifier policy (issue #167 piece 3). Today the sign-off field on
 -- a seal accepts any string a caller types, and no domain can say whose name
 -- is even eligible to be on it. This table lets a domain OPT IN to a
@@ -1031,6 +1065,52 @@ class SqliteStore:
                 (w["id"], w["pair_id"], w["kind"], w["authority"],
                  w["locator"], w.get("check", ""), w.get("expected_digest", ""),
                  w.get("attached_by", ""), w["created_at"]))
+
+    def memory_record_miss(self, norm_sha256: str, source_norm: str,
+                           source_lang: str, target_lang: str, now: str) -> int:
+        """Count one miss; return the new count. Text lands only at seen >= 2.
+
+        The UPDATE writes ``source_norm`` unconditionally on the second and
+        later sightings and leaves it empty on the first, so the readable form
+        appears exactly when the k>=2 gate opens and never before. Doing it in
+        SQL rather than read-modify-write keeps two concurrent misses from
+        racing the count.
+        """
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO query_misses (norm_sha256, source_norm, source_lang, "
+                "target_lang, seen, first_seen, last_seen) "
+                "VALUES (?, '', ?, ?, 1, ?, ?) "
+                "ON CONFLICT(norm_sha256) DO UPDATE SET "
+                "  seen = seen + 1, last_seen = excluded.last_seen, "
+                "  source_norm = ?",
+                (norm_sha256, source_lang, target_lang, now, now, source_norm),
+            )
+            row = conn.execute(
+                "SELECT seen FROM query_misses WHERE norm_sha256=?", (norm_sha256,)
+            ).fetchone()
+            return int(row[0]) if row else 1
+
+    def memory_misses(self, floor: int, limit: int) -> list[dict]:
+        """Misses seen at least ``floor`` times, most-missed first."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM query_misses WHERE seen >= ? "
+                "ORDER BY seen DESC, last_seen DESC LIMIT ?",
+                (floor, limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def memory_miss_totals(self) -> dict:
+        """Totals for coverage — how many distinct misses, and how many sightings."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS distinct_misses, "
+                "COALESCE(SUM(seen), 0) AS total_misses, "
+                "COALESCE(SUM(CASE WHEN seen >= 2 THEN 1 ELSE 0 END), 0) AS surfaced "
+                "FROM query_misses"
+            ).fetchone()
+            return dict(row)
 
     def memory_warrants_for(self, pair_id: str) -> list[dict]:
         """Every warrant attached to ``pair_id``, newest first.

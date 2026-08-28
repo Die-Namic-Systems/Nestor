@@ -36,6 +36,7 @@ nestor/
 ├── decision.py       recipe — decisions and the signed edges between them (docs/decision-memory.md N6/N8)
 ├── evidence.py       what a sealed claim rests on — the evidence relation and the unevidenced-seals report (docs/evidence-edge.md)
 ├── warrant.py       why a stranger should believe a claim — citation and construction warrants, composed with the seal (docs/warrants.md)
+├── misses.py        what was asked and had no verified answer — the seal queue's odometer, k>=2 before a query is readable (docs/misses.md)
 ├── engine.py         tier 2 — cloud, deterministic, and loopback Ollama draft engines
 ├── corpus.py         immutable multi-store consolidation + FTS/optional local-semantic retrieval; authority always none
 ├── embedding_store.py  optional tm_embeddings blob helpers (SqliteStore + semantic)
