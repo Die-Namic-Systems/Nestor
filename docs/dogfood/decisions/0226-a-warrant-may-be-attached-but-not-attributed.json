@@ -1,0 +1,28 @@
+{
+  "branch": "propose/warrant-attach-posture",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "PROPOSED, NOT RATIFIED. §6.125 left the write-verb posture open and named three shapes: (a) queue-shaped like nestor_propose, (b) direct write with an origin stamp, (c) the jeles pattern — accept at the lowest rung and label it on read. It recommends (c) unless there is a reason to fall back to (a), and refuses (b) because it laundered assertions into knowledge. This proposes what that means for nestor_warrant_attach specifically, and finds that the general framing does not fit: a warrant is not a claim whose rung can be lowered, because it makes no truth claim to begin with. The real exposure is elsewhere, and it is concrete. A machine may propose this; only a human may confirm it.",
+  "decisions": [
+    {
+      "question": "Which of §6.125's three shapes applies to nestor_warrant_attach?",
+      "commitment": "None of them, as stated — and the reason is that (c)'s protection is already satisfied by construction. The jeles pattern exists so an untrusted client's assertion is read back labelled rather than as knowledge. A warrant row asserts nothing to label: warrant.py is explicit that Nestor never marks a warrant satisfied, that there is no verified column and no method that would set one, and that a row is the claim that a warrant exists plus what a reader needs to check it themselves. There is no rung below that to demote it to. So the write itself is safe to expose.",
+      "why": "attach()'s own docstring opens with 'Confirms nothing.' That is the same posture the seal already takes — the store holds the signature and does not hold the key — and it is what warrant.py says makes a warrant safe to carry between instances while a conclusion about it is not. Applying (c) here would be adding a label that says 'unverified' to a row whose entire semantic content is already 'unverified, here is how you would check'."
+    },
+    {
+      "question": "Then what is the actual exposure in putting attach on the wire?",
+      "commitment": "attached_by. Its signature is attach(..., attached_by: str = '', ...) — caller-supplied free text. On the CLI that is the operator typing a label, and the help correctly calls it 'a label, not a credential'. Over MCP the same field is filled by whatever client started the server, so an agent can send attached_by='sean campbell' and the stored row carries a human's name as its attributor.",
+      "why": "That is the hollow verified_by this fleet already got burned by, in Forge/forge/trust.py's words: a name anyone can type into a JSON field is not a ratification. It is not laundering — nothing about the warrant becomes true — but it is false provenance about who vouched, in the one table whose purpose is to answer 'why should a stranger believe this'. A reader chasing a warrant would attribute it to a person who never touched it."
+    },
+    {
+      "question": "What is the proposed fix?",
+      "commitment": "The server stamps attached_by from the bound session identity and REFUSES a client-supplied value, named apart in the reply so the refusal says why — exactly the treatment answer.py:557's SEAL_AUTHORITY already gives to status, verifier, verification_kind, sealed and seal_sig. Add attached_by to an equivalent named set for this verb rather than silently overwriting it, because a silent overwrite teaches a caller nothing and an explicit refusal teaches it the rule.",
+      "why": "Nestor already solved this exact shape once. SEAL_AUTHORITY exists because a caller might send fields that would seal its own proposal, and the chosen answer was to refuse them by name so the reply can say 'these are seal authority, and a machine may propose, not confirm'. Attribution authority is the same category one step down: a machine may attach a warrant, and may not say who attached it."
+    },
+    {
+      "question": "What residual risk remains after that, and is it acceptable?",
+      "commitment": "Attention pollution, not laundering: an agent can attach a warrant naming a plausible authority with a locator that does not resolve, and each one costs a human a chase. Accepted, on the existing edge refusals plus the server-stamped attributor — unknown kind refused before the store opens, attestation refused entirely, empty authority or locator refused, expected_digest required for construction and refused for citation, length caps on all three free-text fields. With attribution stamped rather than claimed, noise is traceable to the session that produced it.",
+      "why": "Every one of those refusals is already implemented and tested; none is being relaxed. The distinction worth stating plainly is that a warrant cannot make a false thing look true — it can only waste a reader's time — and a bad warrant that names its own source is a bounded, attributable cost, where a bad warrant claiming a human's name is not. If that trade is judged wrong, the fallback is §6.125's shape (a): queue attachments for review rather than storing them, at the price that decision_warrants stays empty until someone drains a queue."
+    }
+  ]
+}
