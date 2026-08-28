@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 198,
+    "pairs": 201,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-28T00:00:00+00:00",
-  "digest": "b838c6227e6f41d2662e86647c1f381cbccc63642dd2b8709de0c318d8ce1906",
+  "digest": "2dfc8feef1bb2428b6992ecac3ac99bdfd8092c8c4d9c844f6e1452781385ccb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -103,6 +103,48 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No corpus write verb. No corpus attach, no corpus reject, no way to promote a corpus claim into tm_pairs from over the wire. The corpus schema and the sync direction (extractors -> corpus_claims -> read) are unchanged. describe() gains an inventory of all tools present in this server plus a named reason for any withheld one (nestor_propose withheld: --read-only; nestor_draft withheld: engine=offline; nestor_corpus_* withheld: no --corpus-dir), so a model reads absence as refusal rather than as 'no such path'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "5a79d2f3-67f4-5df2-a2d0-d38c068b125c",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the antirediscovery advisory cover a fanout survey",
+      "source_text": "Does the anti-rediscovery advisory cover a fan-out survey?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No, and it should not be widened to. before_build fires on build intent; a third sibling, hooks/before_survey.py, fires on fan-out survey intent and carries a different rule — decision 1878ea86's 'finding, not asserting'. Wired into prompt_submit_context alongside the seat anchor, before_build, and before_propose, each still failing open independently.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "22671077-544d-5253-9521-d1db477d7411",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what counts as a survey given that reading is the most common thing an agent does",
+      "source_text": "What counts as a survey, given that reading is the most common thing an agent does?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Fan-out only: a survey verb AND a breadth marker, in either order, anywhere in the prompt. 'audit how it's wired up across all the repos' fires; 'review this function' and 'look at corpus.py' do not. A breadth token that is really a filename is excluded by a trailing-extension lookahead, since corpus.py is one thing to read.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "0e4ecd6e-3136-54ba-95a5-b36f69819c0c",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the advisory tell a model to do differently",
+      "source_text": "What does the advisory tell a model to do differently?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Three things, matching the two error classes the sealed decision separates: claims about this box are cheap to confirm because the evidence is on disk, so confirm them (with the repo's own `decision check` command); claims about the outside world need independent checking; and agreement across a model's own passes is not corroboration, because separate instances of one base model are presumed non-independent. Plus a pointer to the-house-already-knew.md before concluding a pattern.",
       "verifier": "",
       "weight": 1.0
     },

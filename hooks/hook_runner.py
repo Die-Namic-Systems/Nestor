@@ -12,6 +12,7 @@ from hooks.before_build import for_prompt as before_build_for_prompt
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
 from hooks.before_propose import for_prompt as before_propose_for_prompt
 from hooks.before_stop import evaluate_stop
+from hooks.before_survey import for_prompt as before_survey_for_prompt
 from hooks.before_write import evaluate_write
 from hooks.reinject import EVENTS as REINJECT_EVENTS
 from hooks.reinject import for_event as reinject_for_event
@@ -23,7 +24,7 @@ from hooks.session_start import build_context, maybe_bootstrap_claude_venv, repo
 #: there as non-gates.
 MODULES = ("session_start", "session_end", "before_mcp", "before_write",
            "before_bash", "before_authority", "before_stop", "reinject",
-           "before_build", "before_propose", "prompt_submit")
+           "before_build", "before_propose", "before_survey", "prompt_submit")
 
 
 def _read_stdin() -> dict:
@@ -213,6 +214,7 @@ def prompt_submit_context(payload: dict, root) -> str:
         lambda: reinject_for_event("UserPromptSubmit", root),
         lambda: before_build_for_prompt(prompt, root),
         lambda: before_propose_for_prompt(prompt, root),
+        lambda: before_survey_for_prompt(prompt, root),
     )
     contexts = []
     for call in calls:
@@ -269,6 +271,20 @@ def main() -> None:
         try:
             prompt = payload.get("prompt") or payload.get("user_prompt") or ""
             context = before_build_for_prompt(prompt, root)
+        except Exception:          # noqa: BLE001
+            context = ""
+        if context:
+            _emit_reinject(args.format, "UserPromptSubmit", context)
+        return
+
+    if args.module == "before_survey":
+        # Advisory, same posture as its two siblings: on a fan-out-survey-shaped
+        # prompt, inject the finding-not-asserting reminder; on anything else,
+        # emit nothing. Fail OPEN on our own bugs — a reminder that crashed a
+        # turn would be worse than a reminder that missed one.
+        try:
+            prompt = payload.get("prompt") or payload.get("user_prompt") or ""
+            context = before_survey_for_prompt(prompt, root)
         except Exception:          # noqa: BLE001
             context = ""
         if context:
