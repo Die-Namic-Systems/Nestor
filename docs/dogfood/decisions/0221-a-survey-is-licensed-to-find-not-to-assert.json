@@ -1,0 +1,23 @@
+{
+  "branch": "feat/advisory-survey-shaped",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "hooks/before_build.py (#105) charges the rediscovery tax at the moment a build intent arrives, and is deliberately silent on anything that is not build-shaped. That leaves a whole class of turn uncovered: on 2026-08-28 an operator ran a 27-repo, 8-org survey of the box and the model asserted findings that decision 1878ea86 had already settled, plus a 'pattern' safe-app-store/docs/the-house-already-knew.md had measured and partly retracted three weeks earlier. No build-shaped prompt was ever issued, so before_build correctly stayed quiet for the entire session. In the same session the reviewer of PR #242 recommended a change without first searching for the invariant that already governed it (decision 0220) — a review note is a build intent that arrives in the shape of prose, and it did not fire the advisory either.",
+  "decisions": [
+    {
+      "question": "Does the anti-rediscovery advisory cover a fan-out survey?",
+      "commitment": "No, and it should not be widened to. before_build fires on build intent; a third sibling, hooks/before_survey.py, fires on fan-out survey intent and carries a different rule — decision 1878ea86's 'finding, not asserting'. Wired into prompt_submit_context alongside the seat anchor, before_build, and before_propose, each still failing open independently.",
+      "why": "The two advisories answer different questions and the wrong answer is worse than none. before_build says 'check what exists before you write it'; the survey case has usually already read what exists and the error is in what it then claims. Folding both into one predicate would fire the build text on a survey turn, which reads as irrelevant and trains a reader to skip the line — the cost reinject avoids by staying short. Decision 4d070950 already established the runner shape for exactly this: independent evaluators, one joined envelope, per-evaluator failure isolation."
+    },
+    {
+      "question": "What counts as a survey, given that reading is the most common thing an agent does?",
+      "commitment": "Fan-out only: a survey verb AND a breadth marker, in either order, anywhere in the prompt. 'audit how it's wired up across all the repos' fires; 'review this function' and 'look at corpus.py' do not. A breadth token that is really a filename is excluded by a trailing-extension lookahead, since corpus.py is one thing to read.",
+      "why": "This is the opposite bias from before_build's, on purpose. before_build is biased toward firing because a missed build costs a rebuilt organ; a missed survey costs an over-claimed sentence a human usually catches, while a false positive lands on a large share of ordinary turns and devalues the line for every real case. 1878ea86 is about fan-out surveys specifically — it is a claim about error rate at breadth — so the predicate is scoped the same way rather than to reading in general."
+    },
+    {
+      "question": "What does the advisory tell a model to do differently?",
+      "commitment": "Three things, matching the two error classes the sealed decision separates: claims about this box are cheap to confirm because the evidence is on disk, so confirm them (with the repo's own `decision check` command); claims about the outside world need independent checking; and agreement across a model's own passes is not corroboration, because separate instances of one base model are presumed non-independent. Plus a pointer to the-house-already-knew.md before concluding a pattern.",
+      "why": "1878ea86 does not say surveys are bad — it says they are good for finding and not for asserting, and it distinguishes the two claim classes by cost of verification. The third line is the willow charter's Independent Witness rule, included because the observed failure was precisely reporting convergence across one model's own passes as corroboration, which the charter already forbids and the session did anyway."
+    }
+  ]
+}
