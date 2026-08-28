@@ -25,8 +25,9 @@ all-or-nothing and each reported by a predicate, so a store predating one keeps
 working and the surfaces that need it say so rather than showing an empty list.
 Seven live here; the last four are declared beside the recipes that use them
 (``supports_edges``, ``supports_evidence``, and ``supports_warrants`` below,
-``supports_embedding_store`` in :mod:`nestor.embedding_store`) — if you add a
-twelfth, add a row here:
+``supports_embedding_store`` in :mod:`nestor.embedding_store`,
+``supports_misses`` in :mod:`nestor.misses`) — if you add another, add a row
+here:
 
 ==================  =====================================  =====================================
 Capability          Predicate                              Without it
@@ -49,6 +50,8 @@ Evidence            :func:`supports_evidence`              a sealed claim cannot
                                                            rests on, and the report is empty
 Warrants            :func:`supports_warrants`              a claim cannot record why a stranger
                                                            should believe it — only who sealed it
+Query misses        :func:`supports_misses`                a `pending` is not counted, so nothing
+                                                           says which gap to seal next
 Verifier policy     :func:`supports_verifier_policy`       every verifier name is accepted at
                                                            seal time, for every domain
 Embedding store     :func:`nestor.embedding_store.supports_embedding_store`

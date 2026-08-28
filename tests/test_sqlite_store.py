@@ -430,7 +430,7 @@ def test_conn_declares_no_schema_ready_default():
 #: entry would have to be regenerated each time. The previous digest passed the
 #: scan only by scoring under detect-secrets' entropy threshold, which was luck
 #: rather than a property of what the value is.
-PINNED_SCHEMA_DIGEST = "30bf3d90017ce98b"  # pragma: allowlist secret
+PINNED_SCHEMA_DIGEST = "f8203e473ad5240b"  # pragma: allowlist secret
 #: Moved by the visibility column (§7.5, the first real forward migration).
 #: docs/releasing.md's schema-restart rule applies: the release that ships this
 #: must tell operators that a long-lived process needs a restart to see it.

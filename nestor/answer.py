@@ -367,6 +367,7 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
         matcher=matcher)
     meta = dict(passage.meta)
     _enrich_with_evidence_count(meta, store)
+    _record_miss(meta, passage, store, source_lang, target_lang, matcher)
     return {
         "passage": {"source": passage.source, "target": passage.target,
                     "state": passage.state, "mark": passage.mark, "tier": passage.tier,
@@ -378,6 +379,33 @@ def ask(store: Storage, text: str, source_lang: str = "en", target_lang: str = "
                                   matcher=matcher)],
         "threshold": memory.SEAL_THRESHOLD,
     }
+
+
+def _record_miss(meta: dict, passage, store: Storage, source_lang: str,
+                 target_lang: str, matcher: Matcher | None) -> None:
+    """Count a ``pending`` as a miss. Only pending — a draft is not a gap.
+
+    A miss log is what makes "as more is sealed, less is inferred" a measurable
+    claim instead of an assertion: it is the record of which questions the
+    sealed set does not yet answer, which is the order a human should seal in.
+    See :mod:`nestor.misses` for why a singleton is stored as a hash alone.
+
+    Fail-open but NOT fail-silent: a failure here must not turn an answer into
+    an outage, and must not vanish either. The reason lands in
+    ``meta["miss_log_error"]`` where the caller can see it. This box has paid
+    for the other posture — an expired token stopped eleven verticals for
+    three and a half weeks with nothing to say so.
+    """
+    if passage.state != "pending":
+        return
+    try:
+        from . import misses as misses_mod
+        norm = (matcher or StringMatcher()).normalize(passage.source)
+        seen = misses_mod.record(store, norm, source_lang, target_lang)
+        if seen:
+            meta["miss_seen"] = seen
+    except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
+        meta["miss_log_error"] = f"{type(exc).__name__}: {exc}"
 
 
 def _enrich_with_evidence_count(meta: dict, store: Storage) -> None:
