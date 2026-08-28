@@ -27,6 +27,8 @@ sys.path.insert(0, str(REPO / "scripts" / "corpus"))
 
 import refresh
 
+from nestor import corpus
+
 
 def _household(path: pathlib.Path, rows: list[tuple[str, str]]) -> pathlib.Path:
     """A minimal household corpus: (repository, origin) pairs are all the plan reads."""
@@ -247,3 +249,109 @@ def test_the_committed_tombstones_are_valid_and_name_real_repositories():
         known = {row.repository for row in refresh.plan(household)}
         assert set(records) <= known, (
             f"tombstoned but not in the corpus: {set(records) - known}")
+
+
+def _repo_with_content(path: pathlib.Path, body: str, message: str) -> str:
+    """A real git repo the standard extractor can read. Returns short HEAD."""
+    path.mkdir(parents=True, exist_ok=True)
+    run = lambda *a: subprocess.run(["git", "-C", str(path), *a],
+                                    capture_output=True, check=True)
+    if not (path / ".git").exists():
+        run("init", "-q")
+        run("config", "user.email", "t@example.com")
+        run("config", "user.name", "t")
+    (path / "mod.py").write_text(body)
+    run("add", "-A")
+    run("commit", "-qm", message)
+    out = subprocess.run(["git", "-C", str(path), "rev-parse", "--short", "HEAD"],
+                         capture_output=True, text=True, check=True)
+    return out.stdout.strip()
+
+
+def test_refresh_re_extracts_and_advances_the_pin(tmp_path, capsys, monkeypatch):
+    """The happy path, end to end — the thing every other test here assumes.
+
+    Twelve tests cover planning and the four refusals; none of them ran an
+    extractor or called ``corpus.sync``, so the composition this driver exists
+    to perform was unverified. This drives it for real: a git repo, the actual
+    ``extract_standard.py`` in a subprocess, a household corpus consolidated
+    from its output, a new commit, then a refresh — and asserts the pin the
+    plan derives has moved to the commit that now exists.
+
+    Slow by the standards of this file (two subprocess extractions) and worth
+    it: a driver whose refusals are all tested and whose success path is not
+    can refuse correctly and still never work.
+    """
+    sources = tmp_path / "sources"
+    sources.mkdir()
+    checkout = tmp_path / "roots" / "widget"
+    first = _repo_with_content(
+        checkout, '"""Widget module."""\n\n\ndef go():\n    """Do the thing."""\n',
+        "one")
+
+    extractor = REPO / "scripts" / "corpus" / "extract_standard.py"
+    subprocess.run([sys.executable, str(extractor), "--repo", str(checkout),
+                    "--name", "widget", "--out", str(sources / "widget.db")],
+                   capture_output=True, check=True)
+    household = tmp_path / "household.db"
+    corpus.sync(sources, household)
+
+    planned = {row.repository: row for row in refresh.plan(household)}
+    assert "widget" in planned, "fixture did not produce a corpus the plan can read"
+    assert planned["widget"].commit == first
+
+    second = _repo_with_content(
+        checkout,
+        '"""Widget module."""\n\n\ndef go():\n    """Do the thing."""\n\n\n'
+        'def stop():\n    """Cease the thing."""\n',
+        "two")
+    assert second != first
+
+    code = _run(monkeypatch, household, tmp_path, "--out", str(sources))
+    out = capsys.readouterr().out
+
+    assert "1 ready, 0 refused" in out
+    assert "synced" in out and "changed" in out
+    assert code == 0
+
+    after = {row.repository: row for row in refresh.plan(household)}
+    assert after["widget"].commit == second, (
+        f"pin did not advance: still {after['widget'].commit}, expected {second}")
+
+
+def test_a_dry_run_does_not_advance_the_pin(tmp_path, capsys, monkeypatch):
+    """The negative control for the test above.
+
+    Without it, that test could pass against a build that never re-extracted —
+    if the second commit happened to be read some other way, or if the
+    assertion were comparing the wrong thing. Same fixture, same drifted repo,
+    only ``--dry-run`` added: the plan must still report the OLD pin
+    afterwards, which is what proves the other test is measuring the
+    extraction and not the fixture.
+    """
+    sources = tmp_path / "sources"
+    sources.mkdir()
+    checkout = tmp_path / "roots" / "widget"
+    first = _repo_with_content(
+        checkout, '"""Widget module."""\n\n\ndef go():\n    """Do the thing."""\n',
+        "one")
+    subprocess.run([sys.executable,
+                    str(REPO / "scripts" / "corpus" / "extract_standard.py"),
+                    "--repo", str(checkout), "--name", "widget",
+                    "--out", str(sources / "widget.db")],
+                   capture_output=True, check=True)
+    household = tmp_path / "household.db"
+    corpus.sync(sources, household)
+
+    second = _repo_with_content(
+        checkout,
+        '"""Widget module."""\n\n\ndef go():\n    """Do the thing."""\n\n\n'
+        'def stop():\n    """Cease the thing."""\n',
+        "two")
+    assert second != first
+
+    _run(monkeypatch, household, tmp_path, "--out", str(sources), "--dry-run")
+    assert "nothing extracted, nothing synced" in capsys.readouterr().out
+
+    after = {row.repository: row for row in refresh.plan(household)}
+    assert after["widget"].commit == first, "a dry run must not re-extract"
