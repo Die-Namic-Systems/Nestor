@@ -536,7 +536,13 @@ class Server:
                                            "description": "one of the names nestor_corpus_map returns; "
                                                           "an unknown name is refused with the whole list"},
                             "limit": {"type": "integer",
-                                      "description": f"1..{MAX_CORPUS_SEARCH_LIMIT}; default 8",
+                                      "description":
+                                          f"1..{MAX_CORPUS_SEARCH_LIMIT}; default 8. A ceiling, "
+                                          "not a target: an unscoped search returns at most two "
+                                          "rows per repository so one large source cannot crowd "
+                                          "out smaller ones, and fewer rows than asked for is the "
+                                          "guarantee working, not a truncation. Scope with "
+                                          "'repository' to lift it.",
                                       "minimum": 1, "maximum": MAX_CORPUS_SEARCH_LIMIT},
                         },
                         "required": ["query"],

@@ -176,13 +176,18 @@ def test_corpus_search_refuses_a_non_integer_limit(server):
         server, "nestor_corpus_search", query="cabin", limit=True)["error"]
 
 
-def test_corpus_search_widens_shortlist_to_make_limit_achievable(server, monkeypatch):
-    """A limit of 50 on an unscoped search must actually let 50 rows through.
+def test_corpus_search_scales_the_shortlist_with_limit(server, monkeypatch):
+    """The handler asks FTS for enough candidates to fill a large ``limit``.
 
-    ``CorpusRetriever.search``'s default ``shortlist=50`` fetches only 50
-    candidates from FTS, and the unscoped per-repo cap of 2 across many
-    repositories then trims that further — so ``limit=50`` could never
-    return 50 rows without the handler widening ``shortlist``.
+    This pins the *mechanism* only — that ``shortlist`` scales with ``limit``
+    so the candidate pool is not the constraint. It deliberately does not
+    claim ``limit`` is therefore reachable: the per-repo cap bounds an
+    unscoped diversified pass at ``2 * repositories`` independently of pool
+    size, and an earlier version of this test asserted the pool width while
+    its name promised the reachability, so it would have passed against a
+    build where ``limit=50`` returned 48 rows forever. The property itself is
+    ``test_corpus_store.py::test_limit_is_reachable_when_the_per_repo_cap_would_hold_it_lower``,
+    which drives a real retriever rather than a spy.
     """
     captured: dict = {}
 
