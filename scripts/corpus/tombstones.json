@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "_comment": "Retired corpus repositories. See docs/corpus-order.md and the convention this reuses: safe-app-store-public/docs/conventions/tombstones.md. 'ended' is a closed enum and each shape has a required forward; refresh.py refuses a record that omits it.",
+  "tombstones": {
+    "willow-grove": {
+      "ended": "rebuilt",
+      "successor": "willows-grove",
+      "retired": "2026-08-27",
+      "reason": "The grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted. The identity was never retired -- only the repo and the registry id. Source: github/archive/RETIRE-grove-2026-08-27.md, which records the local move to ~/github-archive-grove-2026-08-27/willow-grove, the archival of both remotes, and the removal of the safe-app-willow-grove registry id.",
+      "carried": [
+        "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
+      ]
+    }
+  }
+}

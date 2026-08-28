@@ -14,10 +14,13 @@ downstream could tell.
 """
 from __future__ import annotations
 
+import json
 import pathlib
 import sqlite3
 import subprocess
 import sys
+
+import pytest
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts" / "corpus"))
@@ -175,3 +178,72 @@ def _run(monkeypatch, household, tmp_path, *extra) -> int:
         "--out", str(tmp_path / "out"), *extra,
     ])
     return refresh.main()
+
+
+def _tombstone_file(path: pathlib.Path, record: dict) -> pathlib.Path:
+    path.write_text(json.dumps({"version": 1, "tombstones": {"gone": record}}))
+    return path
+
+
+def test_a_tombstoned_repository_reports_retired_not_refused(tmp_path, capsys, monkeypatch):
+    """RETIRED means "nothing to look at, and here is where it went".
+
+    Without this a retired repository refuses on every run forever, beside
+    conditions an operator can actually fix, until the refusal list stops being
+    read. That is the same failure as an advisory that fires every turn (0221).
+    """
+    household = _household(tmp_path / "h.db", [
+        ("gone", f"gone@abc1234:a.py::b [symbol/{_a_real_digest()}]"),
+    ])
+    (tmp_path / "roots").mkdir()
+    monkeypatch.setattr(refresh, "TOMBSTONES", _tombstone_file(
+        tmp_path / "t.json",
+        {"ended": "rebuilt", "successor": "gone-successor", "reason": "x"}))
+    code = _run(monkeypatch, household, tmp_path, "--dry-run")
+    out = capsys.readouterr().out
+
+    assert "RETIRED (rebuilt)" in out
+    assert "gone-successor" in out
+    assert "REFUSED" not in out
+    assert "0 ready, 0 refused, 1 retired" in out
+    # Retired is not a failure: nothing here is a condition anyone can act on.
+    assert code == 0
+
+
+def test_a_tombstone_without_its_required_forward_is_refused(tmp_path, monkeypatch):
+    """"A merge with nowhere to point is a deletion wearing an archive."
+
+    The convention's own rule, enforced. Raising rather than skipping matters:
+    a tombstone that silently did not apply would put the repository back in
+    the refusal list with nothing to say anyone had tried to retire it.
+    """
+    for record in ({"ended": "merged"},
+                   {"ended": "rebuilt", "successor": "  "},
+                   {"ended": "retired"}):
+        path = _tombstone_file(tmp_path / "t.json", record)
+        with pytest.raises(ValueError, match="requires"):
+            refresh.tombstones(path)
+
+
+def test_an_end_shape_outside_the_enum_is_refused(tmp_path):
+    """`ended` is closed for the same reason `status` is — never invented."""
+    path = _tombstone_file(tmp_path / "t.json",
+                           {"ended": "archived", "successor": "x"})
+    with pytest.raises(ValueError, match="ended must be one of"):
+        refresh.tombstones(path)
+
+
+def test_the_committed_tombstones_are_valid_and_name_real_repositories():
+    """The shipped file must parse under the same rules a test file does.
+
+    A tombstone naming a repository the corpus does not hold is a record that
+    can never apply — it would read as retired-and-handled while the real
+    repository went on refusing.
+    """
+    records = refresh.tombstones()
+    assert records, "expected at least one committed tombstone"
+    household = pathlib.Path.home() / ".nestor" / "keep" / "nestor.db"
+    if household.is_file():
+        known = {row.repository for row in refresh.plan(household)}
+        assert set(records) <= known, (
+            f"tombstoned but not in the corpus: {set(records) - known}")
