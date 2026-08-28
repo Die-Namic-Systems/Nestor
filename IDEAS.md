@@ -69,6 +69,11 @@ this map is not, CI fails. It cannot drift.
 | [5.6](#56-nothing-could-leave--shipped) | Nothing could leave | shipped |
 | [5.7](#57-a-model-had-no-way-in--shipped) | A model had no way in | shipped |
 | [5.8](#58-a-verifier-was-a-string-anybody-could-type--shipped) | A verifier was a string anybody could type | shipped |
+| [5.9](#59-the-mcp-surface-has-a-budget-and-it-is-the-smallest-models--hypothesis) | The MCP surface has a budget, and it is the smallest model's | hypothesis |
+| [5.10](#510-a-withheld-surface-has-to-name-what-would-be-there--verified-tools-only-generalization-open) | A withheld surface has to name what would be there | verified (tools only, generalization open) |
+| [5.11](#511-a-verifier-name-should-carry-the-keyrings-read-of-it--open) | A verifier name should carry the keyring's read of it | open |
+| [5.12](#512-a-bundle-should-be-inspectable-without-being-imported--open) | A bundle should be inspectable without being imported | open |
+| [5.13](#513-a-pending-answer-should-carry-what-has-already-been-rejected--open) | A pending answer should carry what has already been rejected | open |
 | [6.1](docs/agent-log.md#61-semantic-smoke-test-behind-nestor_semantic_test--shipped) | Semantic smoke test behind NESTOR_SEMANTIC_TEST | shipped |
 | [6.2](docs/agent-log.md#62-batch-embed-in-lookup--best_sealed--shipped) | Batch-embed in `lookup` / `best_sealed` | shipped |
 | [6.3](docs/agent-log.md#63-bench-token-matchers-score--harness-match_similarity--shipped) | Bench token matchers: `score` + harness `match_similarity` | shipped |
@@ -1775,6 +1780,144 @@ Ed25519 generated non-extractable in the browser, enrolled by printing the
 `nestor keys add ... --public HEX` command for a human to run, and a seal
 signed client-side against a message the human has actually seen before
 signing it. Nestor#17's four-cell table is now fully closed.
+
+### 5.9 The MCP surface has a budget, and it is the smallest model's — **hypothesis**
+
+*Was: no constraint on the tool surface anywhere in the tree. Every
+new verb was evaluated on its own merits; the total tool count was a
+number nobody watched. It hit fifteen on the sketch that motivated
+§6.125 and the operator asked to trim it, on the grounds that they are
+running this with much smaller models. The decision was made in chat,
+and a chat is not a document.*
+
+Every tool descriptor lives in every request's context, and every extra
+verb is one more a small model has to *choose against*. The surface is
+sized for the smallest model that will drive it, not the largest one
+that could. A verb that pays for itself in a Sonnet-scale context does
+not necessarily earn its keep in a Haiku-scale one, and a fifteen-verb
+menu that a large model reads as helpful is a fifteen-choice fork a
+small model reads as noise. §6.125 already committed to this in
+practice — trimmed the sketch from fifteen to twelve — but the
+constraint is not written down, and the next agent to add a verb has
+no record of it.
+
+The commitment: any new verb pays for itself in the smallest-model
+budget before it lands, and a "small model" here means whatever the
+operator is currently pointing at Nestor. That is a moving target and
+that is the point — a rule set against a fixed model becomes wrong
+the moment the model changes. The check is *"would this be the
+thirteenth thing a Haiku picks between"*, not *"is this useful for
+Opus"*.
+
+Two corollaries fall out. First, folding a new capability into an
+existing verb's parameters (say, `nestor_warrants_for` as
+`nestor_provenance(?warrants=true)`) counts as one verb, not two — the
+option pays in a smaller budget than a whole tool descriptor does.
+Second, `describe()` (§5.10) is worth more than a new verb whenever
+the missing thing is discoverability rather than capability.
+
+### 5.10 A withheld surface has to name what would be there — **verified (tools only, generalization open)**
+
+*Was: `describe()` in `nestor/serve.py` returned a two-line
+instruction that said Nestor cannot seal, and named the domain and
+matcher. It did not enumerate the tools present, and it did not name
+any withheld tool with a reason. A consumer session (2026-08-28)
+found this the hard way: `nestor_propose` was absent because the
+server had been launched `--read-only`, and the model reading the
+tool list read that absence as "no such path" rather than as a
+refusal. The consumer went around the covenant to raw SQLite in
+consequence.*
+
+`describe()` now enumerates the tools present and names each
+withheld tool with the reason (`--read-only`, `engine is not ollama`,
+`no --corpus-dir`). The tools half is verified; the generalization is
+not. Any conditional surface has the same property — a matcher that
+was not loaded, an engine that was not selected, a keyring that was
+not initialized, a ledger path that was not set, a corpus directory
+that was not attached. All of those today are either silent absences
+or errors far from the point a model would want to know about them,
+and each of them has the same fix shape: publish a *"here's what
+would be here if you configured X"* line at the surface a caller
+reads.
+
+The commitment: silent absence is indistinguishable from "no such
+path", and that is the failure mode the consumer session paid for.
+Any conditional server surface — not just tools — should publish
+its withheld reason at the surface a caller reads before they act.
+The mechanic is the same as the tool inventory; the coverage is
+what's open.
+
+### 5.11 A verifier name should carry the keyring's read of it — **open**
+
+*Was: `nestor_ledger_verify` reports `signing_enabled` as a boolean
+and `memory.stats(store=store)` as counts, and `nestor_provenance`
+returns the pair's `verifier` as a string. A model quoting "sealed by
+rita" has no way to tell whether the keyring here knows rita, knows
+her as `legacy`, or does not know her at all — a distinction §5.8
+went to real lengths to make available to a human but which never
+made it onto the wire.*
+
+Adding a `keyring_status` field to `nestor_provenance`'s return —
+one of `signed | legacy | unknown | rotated | compromised`, plus the
+key's fingerprint when available — would turn a name into a checkable
+name. Two lines from `keyring.get_keyring().status(verifier)`, which
+`Curator.summary()` already calls for its `unknown_verifiers` field.
+No new verb, no new capability; the information exists, it just
+doesn't cross the seam.
+
+The cost is close to zero and the value is that "sealed by rita"
+becomes quotable. Today it isn't — a model that reads a `sealed`
+state can name the verifier but cannot say whether the process that
+served the row would still trust that name. The rule §5.8 established
+(*"a name the keyring does not know cannot seal"*) is about writes;
+this is the read-side mirror.
+
+### 5.12 A bundle should be inspectable without being imported — **open**
+
+*Was: `WITHHELD` in `nestor/serve.py` includes `import a bundle`, and
+always will — an operator agrees to what enters their store, not a
+model. But there is also no way to look at a bundle without agreeing
+to import it. A model that wants to ask *"what would happen if this
+were imported"* — to describe a bundle to its operator, to compare
+two bundles a colleague sent, to check a signature chain before an
+operator opens the door — has to import first and then report from
+the outcome, which is the exact shape the covenant refuses.*
+
+A read-only inspection verb — verify the signature chain, describe
+the bundle's contents, count pairs by verifier, list keys the local
+keyring would or would not accept — is safe by construction. Same
+shape as `nestor_ledger_verify` for the local chain, extended to a
+bundle passed by path or handle. Nothing is imported; no signature is
+generated; the caller gets a description they can quote to whoever
+would do the importing.
+
+The commitment (open): a *read* of a bundle is not a write of a
+bundle, and the covenant refuses the second, not the first. Closing
+this closes the "how do I check this before an operator imports it"
+question that today has no answer inside the covenant.
+
+### 5.13 A pending answer should carry what has already been rejected — **open**
+
+*Was: `nestor_ask` returning `pending` says nothing beyond "nothing
+verified matched." A model reading that has no way to know that the
+same query — or a near-identical one — was rejected by rita three
+times last week for reason Y. Rejections live in `memory_rejections`,
+attached to the pair they were made against; they are semantically
+per-query, but the ask path does not surface them.*
+
+A model with that signal in the response would stop re-proposing what
+humans have already refused. The shape can be either: (a) a
+`rejections_matching` field on `nestor_ask`'s pending return, listing
+the top few near-identical rejected queries with reasons and
+verifiers; or (b) a separate `nestor_rejections` verb the caller
+reaches for after a pending. §5.9's budget rule says the field is the
+cheaper answer — no new tool descriptor, one enrichment to a return
+shape a caller is already reading.
+
+The commitment (open): rejection is a signal the loop currently
+throws away, and a model that reads it changes what it does the next
+call. The negative signal costs no writes, no new capability, and no
+seal authority; the store has been recording it all along.
 
 ---
 
