@@ -698,9 +698,15 @@ class Server:
             if limit < 1 or limit > MAX_CORPUS_SEARCH_LIMIT:
                 raise ValueError(
                     f"limit must be 1..{MAX_CORPUS_SEARCH_LIMIT}")
-            repository_raw = args.get("repository")
-            repository = str(repository_raw).strip() if repository_raw else ""
-            if repository:
+            # Presence, not truthiness — a whitespace-only value like "   "
+            # is truthy pre-strip and blank post-strip. The earlier version
+            # gated on the raw truthiness ("if repository_raw:") and then
+            # skipped the taxonomy check on the stripped blank, silently
+            # returning unscoped results while the caller thought they had
+            # scoped. Gate on presence, treat blank-after-strip as unknown.
+            repository = ""
+            if args.get("repository") is not None:
+                repository = str(args["repository"]).strip()
                 # Taxonomy refusal at the edge — same posture WARRANT_KINDS
                 # uses in nestor/warrant.py. A typo becomes a refusal that
                 # names the whole list, not silent zero results.

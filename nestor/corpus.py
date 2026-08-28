@@ -412,29 +412,40 @@ class CorpusRetriever:
                     "SELECT snapshot_sha256, source_count, claim_count, created_at "
                     "FROM corpus_snapshots ORDER BY created_at DESC LIMIT 1"
                 ).fetchone()
-                rows = conn.execute(
-                    "SELECT repository, "
-                    "       COUNT(*) AS claims, "
-                    "       GROUP_CONCAT(DISTINCT source_lang) AS source_langs, "
-                    "       GROUP_CONCAT(DISTINCT target_lang) AS target_langs "
+                count_rows = conn.execute(
+                    "SELECT repository, COUNT(*) AS claims "
                     "FROM corpus_claims GROUP BY repository ORDER BY repository"
+                ).fetchall()
+                # Fetch (repository, source_lang, target_lang) tuples and
+                # dedupe in Python rather than GROUP_CONCAT-then-split-on-
+                # comma. A source_lang value that ever contained a comma
+                # would fracture into bogus tokens with no error under the
+                # split approach; this path is faithful to whatever the
+                # extractor wrote, and the row count is bounded by the
+                # cross product of repositories and language tags — trivial.
+                lang_rows = conn.execute(
+                    "SELECT DISTINCT repository, source_lang, target_lang "
+                    "FROM corpus_claims"
                 ).fetchall()
         except sqlite3.DatabaseError as exc:
             raise CorpusError(f"{self.path}: no consolidated corpus: {exc}") from exc
         if snapshot_row is None:
             raise CorpusError(f"{self.path}: no consolidated corpus snapshot")
+        source_langs_by_repo: dict[str, set[str]] = defaultdict(set)
+        target_langs_by_repo: dict[str, set[str]] = defaultdict(set)
+        for lang_row in lang_rows:
+            source_langs_by_repo[str(lang_row["repository"])].add(
+                str(lang_row["source_lang"]))
+            target_langs_by_repo[str(lang_row["repository"])].add(
+                str(lang_row["target_lang"]))
         repositories = tuple(
             CorpusRepository(
                 repository=str(row["repository"]),
                 claims=int(row["claims"]),
-                source_langs=tuple(sorted(
-                    part for part in (row["source_langs"] or "").split(",") if part
-                )),
-                target_langs=tuple(sorted(
-                    part for part in (row["target_langs"] or "").split(",") if part
-                )),
+                source_langs=tuple(sorted(source_langs_by_repo[str(row["repository"])])),
+                target_langs=tuple(sorted(target_langs_by_repo[str(row["repository"])])),
             )
-            for row in rows
+            for row in count_rows
         )
         return CorpusMap(
             snapshot_sha256=str(snapshot_row["snapshot_sha256"]),

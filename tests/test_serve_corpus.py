@@ -137,6 +137,24 @@ def test_corpus_search_refuses_an_unknown_repository_with_the_taxonomy(server):
         "the refusal names the whole list so a caller can recover")
 
 
+def test_corpus_search_refuses_a_whitespace_repository(server):
+    """A whitespace-only value must not silently unscope (adversarial review finding).
+
+    The earlier version gated on the raw truthiness — ``if repository_raw:`` —
+    then re-checked the stripped value with ``if repository:``. A ``"   "``
+    argument passes the first check (truthy), strips to ``""``, and skips
+    the second entirely: ``search()`` receives ``repository=None`` and returns
+    unscoped results while the caller had every reason to think they had
+    scoped. Refuse instead.
+    """
+    out = call(server, "nestor_corpus_search",
+               query="cabin pressurization", repository="   ")
+    assert "unknown repository" in out["error"]
+    assert "faa" in out["error"] and "icao" in out["error"], (
+        "a whitespace argument reads as an unknown filter, "
+        "not as an absent filter")
+
+
 def test_corpus_search_refuses_an_oversize_limit(server):
     out = call(server, "nestor_corpus_search", query="cabin", limit=99999)
     assert "limit" in out["error"]
@@ -175,3 +193,19 @@ def test_describe_names_present_tools_and_absent_ones_with_reasons(server):
     assert "nestor_draft" in text
     assert "engine is not ollama" in text
     assert "nestor_propose" in text  # present, named in the enumeration
+
+
+def test_describe_names_the_two_corpus_tools_when_no_corpus_dir(tmp_path, seal_key):
+    """The withheld line has to name the two tools, so a caller reads a refusal
+    rather than concluding the server has no such path (adversarial review gap)."""
+    os.environ['NESTOR_SEAL_KEY'] = 'test-key'
+    cascade.set_ledger_path(tmp_path / "ledger.jsonl")
+    store = SqliteStore(":memory:")
+    store.init_db()
+    store.memory_init()
+    storage.set_store(store)
+    server_without_corpus = serve.Server(store=store)
+    text = serve.describe(server_without_corpus)
+    assert "nestor_corpus_map" in text
+    assert "nestor_corpus_search" in text
+    assert "no --corpus-dir" in text
