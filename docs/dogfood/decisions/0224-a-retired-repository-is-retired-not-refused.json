@@ -1,0 +1,28 @@
+{
+  "branch": "feat/corpus-tombstones",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "0222's refresh driver refuses a repository whose checkout is missing and keeps its rows — honest, and permanent. Two repositories in the corpus are now in that state: willow-grove (693 claims) and willow (134), both archived 2026-08-27. Every future run would report them as failures beside conditions an operator can actually fix, until the refusal list stopped being read. Meanwhile willows-grove, the live replacement, has never been extracted and holds 0 claims. The convention for this already exists and was going unapplied: safe-app-store-public/docs/conventions/tombstones.md, implementing CLAUDE.md §4 archive-don't-delete.",
+  "decisions": [
+    {
+      "question": "How does the refresh driver distinguish a repository it could not find from one that is gone on purpose?",
+      "commitment": "An authored tombstones.json, keyed by corpus_claims.repository, read before any checkout is looked for. A tombstoned repository reports RETIRED with its end-shape and forward, is excluded from the refusal count, and exits 0 rather than 1. REFUSED keeps meaning 'I could not look'; RETIRED means 'there is nothing to look at, and here is where it went'.",
+      "why": "A recorded negative is not an absence — the distinction the box has arrived at independently in at least six places (subject-consent's emptied-is-not-absent, bureau's blank napkin, vault_leak_lint's UNKNOWN-must-not-swallow-PASS, aristarchus's empty reopen_when, Jeles's contested gap, Nestor's own pending). Without it the refusal list accumulates entries nobody can act on, which is the same failure mode as an advisory that fires every turn and stops being read (0221)."
+    },
+    {
+      "question": "Why is this file authored when 0222 was emphatic that the plan must be derived?",
+      "commitment": "Because a tombstone is an operator decision and nothing can derive it. An absent checkout is indistinguishable from an unmounted disk, a renamed directory, or a clone that has not happened yet. The refresh plan is derived precisely so it cannot reverse an operator decision; a tombstone IS that decision, so it must be written down and read rather than inferred.",
+      "why": "These are the same principle from two sides, not a contradiction. Deriving the roster prevents the driver from silently undoing a recorded choice; authoring the tombstone is how a choice gets recorded at all. Inferring retirement from a missing directory would be the driver deciding an operator question on the evidence of a filesystem, which is exactly what deriving the plan was meant to prevent."
+    },
+    {
+      "question": "What vocabulary do tombstones use, and what is refused?",
+      "commitment": "Reused verbatim from safe-app-store-public/docs/conventions/tombstones.md: ended is a closed enum of merged | promoted | rebuilt | retired, each with a required forward — successor for the first three, reason for retired, which is the only shape permitted to point nowhere. A record with an end-shape outside the enum, or missing its required forward, raises rather than being skipped.",
+      "why": "A second vocabulary for the same idea is the drift the convention exists to prevent, and its own words apply unchanged here: a merge with nowhere to point is a deletion wearing an archive. Raising rather than skipping matters because a tombstone that silently did not apply would put the repository back in the refusal list with nothing to indicate anyone had tried to retire it — a failure that looks exactly like never having written one."
+    },
+    {
+      "question": "Which repositories are tombstoned in this change?",
+      "commitment": "Only willow-grove, as ended=rebuilt with successor willows-grove, sourced from github/archive/RETIRE-grove-2026-08-27.md. willow is deliberately NOT tombstoned and continues to refuse.",
+      "why": "The retirement record settles willow-grove explicitly — the grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted, and the record names the local move, both archived remotes, and the removed registry id. It does not settle willow: rows 5 and 6 of that same record read 'held at operator's call — swept and cleared, not yet archived', while ~/github-archive-willow-2026-08-27/willow exists on disk. The record and the disk disagree, and which end-shape willow took is an operator question — its charter and fleet roster relocated to $WILLOW_HOME, which is not a repository and so is not a successor the enum can express. Guessing would put a wrong forward into a record whose whole purpose is to be the durable answer. It refuses until someone decides, which is the mechanism working."
+    }
+  ]
+}

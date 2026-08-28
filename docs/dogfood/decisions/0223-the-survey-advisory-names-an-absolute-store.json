@@ -1,0 +1,23 @@
+{
+  "branch": "fix/advisory-store-path-is-absolute",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "0221 added before_survey as a sibling to before_build and copied its BRAIN_DB reference, which is repo-relative. That is correct for before_build, which fires on a build intent inside a checkout, and wrong for before_survey, which is the advisory intended to ride a box-wide seat: run from any other directory, `nestor --db docs/dogfood/nestor.db` names nothing. Found while wiring the advisory into a user-level UserPromptSubmit hook so it reaches the ~/github seat — the willow-mcp registry structurally cannot do it, because project_wiring._owned_path refuses absolute paths and anything escaping the project root, which is a correct confinement (otherwise a registry entry could make any project execute an arbitrary script every prompt).",
+  "decisions": [
+    {
+      "question": "Which store should the survey advisory tell a reader to consult?",
+      "commitment": "An absolute path, chosen in this order: $NESTOR_DB when set, then the household corpus at ~/.nestor/keep/nestor.db when it exists, then this repository's BRAIN_DB resolved against its root. Never a bare relative path.",
+      "why": "A suggested command that does not resolve is worse than no suggestion: it reads as a store the reader failed to find rather than one that was never there, and the reader's next move is to go looking. BRAIN_DB is nestor's own development record; a fan-out survey asks about the box, and the box's memory is the household corpus — 24 repositories of extracted claims plus the sealed pairs. Naming the wrong one sends a reader to check a claim about the box against a store that never held it."
+    },
+    {
+      "question": "Should an explicitly exported NESTOR_DB win over the household corpus?",
+      "commitment": "Yes. A seat that has been pointed at a particular store has already answered this question, and the reminder must not override it.",
+      "why": "This ordering is what keeps an isolated seat isolated: a sandbox, a test harness, or a bench that exports NESTOR_DB must not be handed the real household corpus by an advisory. The cost of the rule showed up immediately on this box — .willow/env line 42 still exports NESTOR_DB pointing at a 29-pair demo store that has no corpus_claims table at all, so a shell that sources it gets the demo rather than the 599-pair, 9,977-claim corpus. That is a stale export to fix in .willow, not a reason to make the hook second-guess an explicit instruction."
+    },
+    {
+      "question": "Why not reach the ~/github seat through the project registry instead?",
+      "commitment": "It cannot be done there. willow-mcp's project_wiring._owned_path refuses an absolute path and refuses one that escapes the project root, and a manifest's `command` resolves against the PROJECT root rather than the manifest's, so the github entry cannot name nestor's hooks/nestor-hook. The advisory reaches that seat through a user-level UserPromptSubmit hook invoking nestor-hook by absolute path, which works because nestor-hook self-roots from its own file location (IDEAS §6.108) rather than from cwd.",
+      "why": "The confinement is right and should not be loosened: without it a registry entry could make any project execute an arbitrary script on every prompt, which is a larger surface than the advisory is worth. Putting the hook at the user level also matches what the advisory is about — the box, not one directory — and is why this decision had to fix the store path first. Only `before_survey` is wired there, never the consolidated `prompt_submit` action, because the seat anchor in that action fires on every turn and emits nestor-repo-relative instructions (docs/dogfood/decisions/, scripts/dogfood_store.py) that are meaningless in any other project."
+    }
+  ]
+}
