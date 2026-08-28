@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 205,
+    "pairs": 208,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-28T00:00:00+00:00",
-  "digest": "de9a71e77316923b5b6e41e0e4c94deddbf0f154b57c2c781aab8efa2c778f22",
+  "digest": "17372239d107933593b701c7df380739796ad0dc331aea3ad6d69f4848b2d4d9",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -108,6 +108,34 @@
     },
     {
       "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "b399672d-2eb9-5a1d-bca6-d779d4651658",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which store should the survey advisory tell a reader to consult",
+      "source_text": "Which store should the survey advisory tell a reader to consult?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "An absolute path, chosen in this order: $NESTOR_DB when set, then the household corpus at ~/.nestor/keep/nestor.db when it exists, then this repository's BRAIN_DB resolved against its root. Never a bare relative path.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "aff9eb3d-6456-5f65-8b35-a0fdee0a0426",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why not reach the github seat through the project registry instead",
+      "source_text": "Why not reach the ~/github seat through the project registry instead?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It cannot be done there. willow-mcp's project_wiring._owned_path refuses an absolute path and refuses one that escapes the project root, and a manifest's `command` resolves against the PROJECT root rather than the manifest's, so the github entry cannot name nestor's hooks/nestor-hook. The advisory reaches that seat through a user-level UserPromptSubmit hook invoking nestor-hook by absolute path, which works because nestor-hook self-roots from its own file location (IDEAS §6.108) rather than from cwd.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
       "id": "8c754433-ebcd-54a7-96e9-b83bf60ac945",
       "origin": "pr:242",
       "seal_sig": "",
@@ -131,6 +159,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No corpus write verb. No corpus attach, no corpus reject, no way to promote a corpus claim into tm_pairs from over the wire. The corpus schema and the sync direction (extractors -> corpus_claims -> read) are unchanged. describe() gains an inventory of all tools present in this server plus a named reason for any withheld one (nestor_propose withheld: --read-only; nestor_draft withheld: engine=offline; nestor_corpus_* withheld: no --corpus-dir), so a model reads absence as refusal rather than as 'no such path'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "60b8500f-d7a6-59a7-b299-446d6f68c0eb",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should an explicitly exported nestor_db win over the household corpus",
+      "source_text": "Should an explicitly exported NESTOR_DB win over the household corpus?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes. A seat that has been pointed at a particular store has already answered this question, and the reminder must not override it.",
       "verifier": "",
       "weight": 1.0
     },
