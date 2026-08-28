@@ -66,10 +66,31 @@ rather than losing the repository. What is *not* tolerated is a repository the
 household knows about with no source database at all — syncing then would
 silently drop it, because ``corpus.sync`` rebuilds the whole snapshot from
 whatever ``data/corpus/`` holds.
+
+**And one outcome that is not a refusal at all.** A repository recorded in
+``tombstones.json`` reports as **RETIRED** with the shape it ended in and where
+it went, is excluded from the refusal count, and is never looked for. Without
+that, a retired repository refuses on every run forever: ``willow-grove`` was
+archived 2026-08-27 and would have sat in the refusal list beside conditions an
+operator can actually fix, until the list stopped being read — the same way an
+advisory that fires every turn stops being read (0221).
+
+The tombstone file is **the one authored thing in this driver**, and 0222 is the
+reason it has to be. The plan is derived so it cannot reverse an operator
+decision; a tombstone *is* an operator decision, and nothing can derive it — an
+absent checkout is indistinguishable from an unmounted disk, a renamed
+directory, or a clone that has not happened yet. So ``REFUSED`` keeps meaning
+*I could not look* and ``RETIRED`` means *there is nothing to look at, and here
+is where it went*: a recorded negative, not an absence. Its vocabulary is reused
+verbatim from ``safe-app-store-public/docs/conventions/tombstones.md`` rather
+than invented, and a record missing the forward its end-shape requires raises
+rather than being skipped — a tombstone that silently did not apply would put
+the repository back in the refusal list with nothing to say anyone had tried.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import re
 import sqlite3
@@ -163,6 +184,65 @@ def find_checkout(roots: list[pathlib.Path], row: Row) -> pathlib.Path | None:
     return None
 
 
+#: The end-shapes a tombstone may declare, and the field each one must carry.
+#: Reused verbatim from safe-app-store-public/docs/conventions/tombstones.md
+#: rather than invented here, because a second vocabulary for the same idea is
+#: the drift that convention exists to prevent. ``retired`` is the only shape
+#: permitted to point nowhere, and it must say why "deliberately rather than by
+#: omission".
+_END_SHAPES = {
+    "merged": "successor",
+    "promoted": "successor",
+    "rebuilt": "successor",
+    "retired": "reason",
+}
+
+TOMBSTONES = pathlib.Path(__file__).resolve().parent / "tombstones.json"
+
+
+def tombstones(path: pathlib.Path | None = None) -> dict[str, dict]:
+    """Repositories recorded as retired, keyed by ``corpus_claims.repository``.
+
+    **Authored, not derived** — and the one thing in this driver that is. The
+    refresh *plan* is read out of the corpus precisely so it cannot reverse an
+    operator decision (0222). A tombstone **is** an operator decision, and it is
+    derivable from nothing: an absent checkout is indistinguishable from an
+    unmounted disk, a renamed directory, or a clone that has not happened yet.
+    So it must be written down, and this reads it rather than inferring it.
+
+    The distinction it buys is the one the box keeps arriving at independently:
+    **a recorded negative is not an absence.** ``REFUSED`` means *I could not
+    look*; ``RETIRED`` means *there is nothing to look at, and here is where it
+    went*. Without it a refusal list accumulates entries nobody can act on until
+    nobody reads it — the same way an advisory that fires every turn stops being
+    read (0221).
+
+    A malformed record raises rather than being skipped: a tombstone that
+    silently did not apply would put the repository back in the refusal list
+    with no indication that anyone had tried to retire it.
+    """
+    path = path or TOMBSTONES
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("version") != 1:
+        raise ValueError(f"{path}: tombstones version must be 1")
+    out = {}
+    for repository, record in (data.get("tombstones") or {}).items():
+        ended = record.get("ended")
+        if ended not in _END_SHAPES:
+            raise ValueError(
+                f"{path}: {repository}: ended must be one of "
+                f"{', '.join(sorted(_END_SHAPES))}, not {ended!r}")
+        required = _END_SHAPES[ended]
+        if not str(record.get(required) or "").strip():
+            raise ValueError(
+                f"{path}: {repository}: ended={ended!r} requires {required!r} — "
+                f"a {ended} with nowhere to point is a deletion wearing an archive")
+        out[repository] = record
+    return out
+
+
 def git_state(path: pathlib.Path, since: str) -> tuple[str, bool, int | None]:
     """``(head, dirty, commits_since)`` for a checkout. Never raises."""
     def run(*args: str) -> str:
@@ -212,10 +292,23 @@ def main() -> int:
         return 1
 
     known = extractors()
+    retired = tombstones()
     ready: list[tuple[Row, pathlib.Path, pathlib.Path]] = []
     refused: list[tuple[Row, str]] = []
+    laid_to_rest: list[tuple[Row, dict]] = []
     print(f"{'repository':<26} {'pinned':<9} {'head':<9} {'behind':>6}  {'extractor':<24} checkout / refusal")
     for row in rows:
+        # A tombstoned repository is reported before anything else is tried.
+        # Looking for a checkout that is recorded as gone, and then reporting
+        # its absence as a failure, is how a refusal list fills with entries
+        # nobody can act on.
+        record = retired.get(row.repository)
+        if record is not None:
+            forward = record.get("successor") or record.get("reason") or ""
+            print(f"  {row.repository:<24} {row.commit:<9} {'—':<9} {'—':>6}  "
+                  f"{'RETIRED (' + str(record.get('ended')) + ')':<24} {forward}")
+            laid_to_rest.append((row, record))
+            continue
         extractor = known.get(row.toolchain)
         checkout = find_checkout(roots, row)
         if extractor is None:
@@ -248,7 +341,8 @@ def main() -> int:
         print(f"  {row.repository:<24} {row.commit:<9} {'—':<9} {'—':>6}  REFUSED: {reason}")
         refused.append((row, reason))
 
-    print(f"\n{len(ready)} ready, {len(refused)} refused")
+    rest = f", {len(laid_to_rest)} retired" if laid_to_rest else ""
+    print(f"\n{len(ready)} ready, {len(refused)} refused{rest}")
     if args.dry_run:
         print("dry run — nothing extracted, nothing synced")
         return 1 if refused else 0
