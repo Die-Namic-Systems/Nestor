@@ -160,6 +160,68 @@ def test_corpus_search_refuses_an_oversize_limit(server):
     assert "limit" in out["error"]
 
 
+def test_corpus_search_refuses_a_non_integer_limit(server):
+    """int('abc') and int(3.7) bypassed the named refusal.
+
+    ``int("abc")`` raises a bare ValueError out of the tool call, and
+    ``int(3.7)`` truncates silently to 3 — both breach the "refusals name
+    the reason" posture. Type-check first, then bound-check.
+    """
+    assert "integer" in call(
+        server, "nestor_corpus_search", query="cabin", limit="abc")["error"]
+    assert "integer" in call(
+        server, "nestor_corpus_search", query="cabin", limit=3.7)["error"]
+    # bool is a subclass of int and must not slip through as a limit of 1.
+    assert "integer" in call(
+        server, "nestor_corpus_search", query="cabin", limit=True)["error"]
+
+
+def test_corpus_search_widens_shortlist_to_make_limit_achievable(server, monkeypatch):
+    """A limit of 50 on an unscoped search must actually let 50 rows through.
+
+    ``CorpusRetriever.search``'s default ``shortlist=50`` fetches only 50
+    candidates from FTS, and the unscoped per-repo cap of 2 across many
+    repositories then trims that further — so ``limit=50`` could never
+    return 50 rows without the handler widening ``shortlist``.
+    """
+    captured: dict = {}
+
+    def spy(task, *, limit, shortlist, repository=None):
+        captured["limit"] = limit
+        captured["shortlist"] = shortlist
+        captured["repository"] = repository
+        return corpus.CorpusSearchResult(
+            mode="fts", query_sha256="q", snapshot_sha256="s",
+            candidate_count=0, eligible_count=0, claims=())
+
+    monkeypatch.setattr(server.corpus_retriever, "search", spy)
+    call(server, "nestor_corpus_search", query="cabin", limit=50)
+    assert captured["limit"] == 50
+    assert captured["shortlist"] >= 200, (
+        "shortlist must scale with limit so unscoped searches can fill it")
+
+
+def test_corpus_search_caches_the_repository_taxonomy(server, monkeypatch):
+    """The taxonomy is fetched once and reused across scoped calls."""
+    call_count = {"n": 0}
+    original = server.corpus_retriever.repositories
+
+    def counting():
+        call_count["n"] += 1
+        return original()
+
+    monkeypatch.setattr(server.corpus_retriever, "repositories", counting)
+    call(server, "nestor_corpus_search",
+         query="cabin pressurization", repository="faa")
+    call(server, "nestor_corpus_search",
+         query="cabin pressurization", repository="icao")
+    call(server, "nestor_corpus_search",
+         query="cabin pressurization", repository="faa")
+    assert call_count["n"] == 1, (
+        "repositories() must be called once per process, "
+        "not once per scoped search")
+
+
 def test_corpus_search_refuses_a_blank_query(server):
     out = call(server, "nestor_corpus_search", query="   ")
     assert "query" in out["error"]

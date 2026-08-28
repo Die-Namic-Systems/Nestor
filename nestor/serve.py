@@ -279,6 +279,12 @@ class Server:
     corpus_retriever: corpus.CorpusRetriever | None = None
     client: str = "unknown-client"
     _initialized: bool = field(default=False, repr=False)
+    # Cache of the taxonomy nestor_corpus_search checks its ``repository``
+    # argument against. Populated on first scoped call; stable for the life
+    # of the process, since ``corpus.sync`` runs only at server start
+    # (nestor/serve.py::main). If a future refresh path lands, this cache
+    # is what would need invalidating.
+    _corpus_repositories: tuple[str, ...] | None = field(default=None, repr=False)
 
     def _draft_sealed_context(
         self, task: str, source_lang: str, target_lang: str,
@@ -693,8 +699,19 @@ class Server:
             query = str(args.get("query", "")).strip()
             if not query:
                 raise ValueError("query must not be empty")
+            # A limit that is not an integer is a refusal, not an int()
+            # cast: bare int("abc") raises an unnamed ValueError out of the
+            # tool call, and int(3.7) truncates silently to 3. Both were
+            # bypasses of the same named refusal the bounds check uses.
+            # ``bool`` is a subclass of ``int``, so exclude it explicitly.
             limit_raw = args.get("limit")
-            limit = 8 if limit_raw is None else int(limit_raw)
+            if limit_raw is None:
+                limit = 8
+            elif isinstance(limit_raw, bool) or not isinstance(limit_raw, int):
+                raise ValueError(
+                    f"limit must be an integer 1..{MAX_CORPUS_SEARCH_LIMIT}")
+            else:
+                limit = limit_raw
             if limit < 1 or limit > MAX_CORPUS_SEARCH_LIMIT:
                 raise ValueError(
                     f"limit must be 1..{MAX_CORPUS_SEARCH_LIMIT}")
@@ -710,14 +727,26 @@ class Server:
                 # Taxonomy refusal at the edge — same posture WARRANT_KINDS
                 # uses in nestor/warrant.py. A typo becomes a refusal that
                 # names the whole list, not silent zero results.
-                mapping = self.corpus_retriever.repositories()
-                known = [repo.repository for repo in mapping.repositories]
+                if self._corpus_repositories is None:
+                    mapping = self.corpus_retriever.repositories()
+                    self._corpus_repositories = tuple(
+                        repo.repository for repo in mapping.repositories)
+                known = self._corpus_repositories
                 if repository not in known:
                     raise ValueError(
                         f"unknown repository {repository!r}; "
                         f"nestor_corpus_map lists: {', '.join(known) or '(none)'}")
+            # Widen the shortlist relative to the requested ``limit`` so a
+            # ceiling of 50 is achievable on unscoped searches. The default
+            # shortlist of 50 in CorpusRetriever.search caps unscoped
+            # selection at (per-repo cap * repository count) minus dedup
+            # collisions — for the household's 24 repositories that is 48
+            # before dedup, so a limit=50 request could never return 50
+            # rows. Scoped searches disable the per-repo cap and don't
+            # need the widening, but the extra candidates are cheap.
             search_result = self.corpus_retriever.search(
                 query, limit=limit,
+                shortlist=max(50, limit * 4),
                 repository=repository or None)
             return {
                 "mode": search_result.mode,

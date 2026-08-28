@@ -7529,3 +7529,11 @@ the closest existing models. Any next write verb should adopt (c) unless
 there's a reason to fall back to (a); (b) alone laundered assertions into
 knowledge.
 
+**Not to be logged as corroboration.** This PR was motivated by, and cites,
+the consumer session that raised the gap; the reviewer of PR #242 pointed
+out that the shared posture (pointers not verdicts, `authority: "none"`,
+taxonomy refusal mirroring `WARRANT_KINDS`) is derivation rather than
+independent arrival. By the standard in `docs/the-house-already-knew.md` §6
+that earns no corroboration warrant, and the convergence must not be logged
+as one when `decision_warrants` starts carrying rows.
+
