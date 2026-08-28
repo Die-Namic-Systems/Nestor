@@ -10,6 +10,18 @@
       "carried": [
         "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
       ]
+    },
+    "willow": {
+      "ended": "merged",
+      "successor": "willows-grove",
+      "retired": "2026-08-27",
+      "reason": "The charter repo. Its content did not go to one place: the charter documents (CONSTITUTION.md, PROTECTED_AGENTS.md, PROTECTED_PERSONS.md, AGENT_SERVICES.md) and the governance/ tree were relocated 2026-08-28 to willows-grove/governance/, the watchman's seat; fleet.json had already gone to $WILLOW_HOME/fleet.json, mem_ratify/ to willow-mcp, seed/ to both. willows-grove is named as successor because it now holds the charter itself. Archive: ~/github-archive-willow-2026-08-27/willow. Both remotes (rudi193-cmd/Willow, willow-memory/Willow) are archived.",
+      "carried": [
+        "134 corpus claims remain under repository 'willow', pinned at willow@ba332ae - 100 of them CONSTITUTION.md, 28 PROTECTED_AGENTS.md. They describe the archived tree. willows-grove has never been extracted and holds 0 claims, so the charter's text is queryable only under the retired name until the successor is read.",
+        "envelopes/ deliberately stayed in the archive: its own MOVED.md records the default-path role moving to $WILLOW_HOME/constitutional/, and the archived pre-approved.json / syscall-table.json are the operator's real grants as of 2026-07-22 / 2026-07-06, kept as historical record.",
+        "design/ (2.8 MB), tools/, notes/ and soil/ were not relocated and remain archive-only.",
+        "FLEET_PLACEMENT_DRAFT.md carries two open items overtaken by the archival - a present-tense claim that the charter is on disk at willow-memory/willow (\u00a7490), and 'ratify transfer' as outstanding (\u00a7613). Left for the operator: amending a draft's open items is a ratification, not a path repair."
+      ]
     }
   }
 }
