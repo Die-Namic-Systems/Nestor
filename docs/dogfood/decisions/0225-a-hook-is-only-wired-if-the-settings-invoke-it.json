@@ -1,0 +1,23 @@
+{
+  "branch": "test/prompt-advisories-are-reachable",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "0221 added hooks/before_survey.py, registered it in MODULES, wired it into prompt_submit_context, and shipped with a test asserting prompt_submit carries it alongside its siblings. That assertion was true and it was the wrong surface: .claude/settings.json named its advisories individually — reinject, before_build, before_propose — and never named prompt_submit, so the new advisory could not fire in this repository at all. Reachable by name, dead in practice, which is precisely the failure the original test was written to prevent. #246 fixed the wiring; this pins the seam so the next advisory cannot repeat it.",
+  "decisions": [
+    {
+      "question": "What does it take to prove a hook is wired, as opposed to implemented?",
+      "commitment": "Two assertions kept deliberately apart: that .claude/settings.json invokes the consolidated prompt_submit action at all, and that every hooks/ module declaring EVENT = \"UserPromptSubmit\" is evaluated by prompt_submit_context. Neither alone is sufficient.",
+      "why": "A hook has two independent halves — the runner that implements it and the settings that invoke the runner — and a test exercising only the first proves nothing about whether anything runs. They are kept apart rather than combined because they fail for different reasons and a reader should be able to tell which broke: settings invoking prompt_submit while the joiner has dropped an advisory is the silent half, and a joiner evaluating everything while the settings name individual actions is the half 0221 actually hit."
+    },
+    {
+      "question": "How is the list of advisories to check kept current?",
+      "commitment": "Read from each module's own EVENT constant by scanning hooks/*.py, never from a roster maintained in the test.",
+      "why": "A roster in the test file would be one more thing to remember to update, which is the same shape as the bug being guarded against — the advisory existed, was registered, and still did not run, because one list was not updated. Deriving the set means a new advisory is covered the moment it is written. Same reasoning as 0222's derived refresh plan: a list that must be maintained is a list that will silently go stale."
+    },
+    {
+      "question": "How is this guard kept from passing vacuously?",
+      "commitment": "A prove-it-can-fail case asserting that a settings file naming the three actions individually — the exact pre-#246 shape — does not satisfy the reachability assertion. Verified in practice too: checked out against master's pre-#246 .claude/settings.json, the guard fails and names the actions it did find.",
+      "why": "A rewrite of the settings reader that returned everything would leave both real assertions green forever, and a guard that cannot fail is not a guard — the same rule marching-arts states for its mutation tests and willow-data-vault's verify_receipts self_test states for tamper detection. Confirming it against the real historical defect rather than only a synthetic one is what distinguishes a test that would have caught the bug from a test that merely describes it."
+    }
+  ]
+}
