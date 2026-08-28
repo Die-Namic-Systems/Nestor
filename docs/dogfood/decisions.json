@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 219,
+    "pairs": 223,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-28T00:00:00+00:00",
-  "digest": "310e996c1b5dee651d6dd9c8203038d9c019352634754d185f6ee84934c42211",
+  "digest": "ac0eb95aa410e76b695fcb7de2a69e6912b98c782eaf76933c4761563db6d405",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -262,6 +262,20 @@
     },
     {
       "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "5f594233-30cb-5f4f-913c-ed9998812814",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the pairing of the two willowmcp claims show that neither shows alone",
+      "source_text": "What does the pairing of the two willow-mcp claims show that neither shows alone?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "That the own-line rule has two halves and only one was enforced. test_authority_surface.py asserted no capability flag is INSIDE a permission group — the safety half, which prevents over-granting. Nothing asserted that every capability flag is GRANTABLE — the usability half. mcp_federation satisfied the first and failed the second for weeks, and the suite stayed green throughout. Both halves are now derived from the same gate constants, in two tests kept apart because they fail for different reasons.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
       "id": "5a79d2f3-67f4-5df2-a2d0-d38c068b125c",
       "origin": "pr:TBD",
       "seal_sig": "",
@@ -271,6 +285,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No, and it should not be widened to. before_build fires on build intent; a third sibling, hooks/before_survey.py, fires on fan-out survey intent and carries a different rule — decision 1878ea86's 'finding, not asserting'. Wired into prompt_submit_context alongside the seat anchor, before_build, and before_propose, each still failing open independently.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "546a256e-de78-5c7a-927b-e241cee00ddc",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what did seven lanes independently arrive at",
+      "source_text": "What did seven lanes independently arrive at?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "That a privilege must be granted one at a time and never implied — and that the enumeration must not be a second copy of an authority that already exists. Six of the seven state the positive rule in their own vocabulary for their own lane: MCP tool grants, manifest capability flags, LAN packet kinds, quarantined event fields, context-window rungs, and servable-row declarations. The seventh states the constraint on the rule, and states it by refusing an application of it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "5202f097-6ad5-5e53-9233-c52da1908384",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why is the counterinstance evidence for the rule rather than against it",
+      "source_text": "Why is the counter-instance evidence FOR the rule rather than against it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because it refuses per-kind enumeration for the same reason the others adopt it: a hand-maintained list drifts from the authority it copies. Nestor declined a per-kind allow-list because it would be a second copy of cascade.LEDGER_KINDS and a missing kind would under-count. The rule is not 'enumerate per kind'; it is 'the enumeration must be the authority, never a copy of one'. Under that reading all seven agree, and the two decisions differ only in where the authority already lives.",
       "verifier": "",
       "weight": 1.0
     },
@@ -397,6 +439,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Three things, matching the two error classes the sealed decision separates: claims about this box are cheap to confirm because the evidence is on disk, so confirm them (with the repo's own `decision check` command); claims about the outside world need independent checking; and agreement across a model's own passes is not corroboration, because separate instances of one base model are presumed non-independent. Plus a pointer to the-house-already-knew.md before concluding a pattern.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "09ac47ee-4742-5f94-9a38-3e8857cc89ae",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "why is this recorded as a decision document rather than attached with nestor warrant attach",
+      "source_text": "Why is this recorded as a decision document rather than attached with nestor warrant attach?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Because warrant.attach requires a pair_id and this finding is not a translation pair — it is a claim about seven corpus rows across six repositories. The warrant's substance is complete and stored above (kind, authority, expected_digest, recipe, check_procedure, and the seven locators), so a reader can perform the check today; only its row in decision_warrants is missing. That table remains at 0 rows.",
       "verifier": "",
       "weight": 1.0
     },
