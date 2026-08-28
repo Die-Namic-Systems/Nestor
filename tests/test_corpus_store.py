@@ -295,3 +295,44 @@ def test_full_local_corpus_sync_and_query_stay_bounded(tmp_path):
     assert found.claims
     assert sync_seconds < 10.0
     assert query_seconds < 1.0
+
+
+def test_limit_is_a_ceiling_the_per_repo_cap_may_hold_below(tmp_path):
+    """``limit`` is a ceiling, not a target — and that is the guarantee.
+
+    An unscoped diversified pass is bounded by ``2 * repositories``, so a
+    caller asking for more rows than that gets fewer and no shortlist width
+    changes it: the candidate pool is not the constraint, the cap is.
+
+    That looks like a defect from the API's side and is not one.
+    ``test_large_repository_cannot_crowd_out_smaller_sources`` pins the reason:
+    the cap is an anti-crowd-out *guarantee*, not an ordering preference. A
+    backfill pass that filled the remaining slots from repositories already at
+    their cap would make ``limit`` reachable and would let one large source
+    drown the small ones — trading a tested guarantee for an arithmetic
+    convenience. This test exists so that trade is made deliberately, if ever,
+    rather than by someone reading ``selected_count < limit`` as a bug.
+
+    Three repositories of five matching rows each: the ceiling is 6, and
+    ``limit=10`` correctly returns 6.
+    """
+    sources = tmp_path / "sources"
+    sources.mkdir()
+    for repo in ("alpha", "beta", "gamma"):
+        _source(
+            sources / f"{repo}.db",
+            [
+                (f"runway rule {n}", f"{repo} answer {n}", "term", "term",
+                 f"{repo}@a:rules.md")
+                for n in range(5)
+            ],
+        )
+    household = tmp_path / "household.db"
+    corpus.sync(sources, household)
+
+    found = corpus.CorpusRetriever(household).search("runway rule", limit=10)
+
+    assert len(found.claims) == 6
+    assert sorted(claim.repository for claim in found.claims) == [
+        "alpha", "alpha", "beta", "beta", "gamma", "gamma"
+    ]

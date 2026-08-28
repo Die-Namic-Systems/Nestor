@@ -1,0 +1,23 @@
+{
+  "branch": "claude/nestor-improvement-idea-w5xdo6",
+  "date": "2026-08-28",
+  "pr": "242",
+  "note": "The reviewer of #242 (a Claude session, 2026-08-28) reported that limit=50 was unreachable on an unscoped nestor_corpus_search: the per-repo cap of 2 across 24 repositories bounds a diversified pass at 48. The diagnosis was correct. The remedy the same note recommended — widen the FTS shortlist relative to limit — was not, and was shipped as d26f31e before anyone checked whether an existing invariant already governed the ceiling. It did: test_large_repository_cannot_crowd_out_smaller_sources asserts that a large source contributes at most 2 rows, which is the same number, reached from the other side. A backfill pass that filled the remaining slots would have made limit reachable by letting one large repository drown the small ones. The reviewer proposed a change without searching for what already decided it, which is the rediscovery tax this repository's own hooks/before_build.py advisory exists to charge.",
+  "decisions": [
+    {
+      "question": "Is the unscoped per-repo cap an ordering preference or a guarantee?",
+      "commitment": "A guarantee. The cap bounds how many rows any one repository may contribute to an unscoped result, full stop — it is not a diversifier that decides what comes first and may be relaxed to fill a quota. selected_count < limit on an unscoped search is the guarantee working, not a truncation to be repaired.",
+      "why": "test_large_repository_cannot_crowd_out_smaller_sources predates the MCP surface and pins the reason: a source with many matching rows must not be able to drown sources with few. Reading the cap as an ordering heuristic makes limit reachable and silently removes that protection. The shortlist widening in d26f31e is retained — a larger candidate pool is cheap and helps the diversified pass find rows from more repositories — but it does not and cannot make limit reachable, because the pool was never the binding constraint."
+    },
+    {
+      "question": "How is a caller told that limit will not be filled?",
+      "commitment": "On the tool surface, in the argument's own description: limit is documented as a ceiling and not a target, with the reason (at most two rows per repository so one large source cannot crowd out smaller ones) and the way to lift it (scope with repository, which disables the cap). No code change to the selection loop.",
+      "why": "The condition is intended, so the fix belongs in the description a caller reads rather than in the behaviour. An undocumented ceiling reads as a defect and invites exactly the change this decision refuses; a documented one reads as a guarantee. Same reasoning as describe()'s named withholding in 0219 — an absence with a stated reason is legible, an unexplained one is not."
+    },
+    {
+      "question": "How is the reachability claim kept from being asserted by a test that does not check it?",
+      "commitment": "test_corpus_search_widens_shortlist_to_make_limit_achievable is renamed to test_corpus_search_scales_the_shortlist_with_limit and its docstring now says it pins the mechanism only. Its assertion was always on the captured shortlist width; its name and docstring promised reachability, so it would have passed against a build where limit=50 returned 48 rows forever. The contract itself is pinned by test_limit_is_a_ceiling_the_per_repo_cap_may_hold_below in tests/test_corpus_store.py, which drives a real retriever rather than a spy.",
+      "why": "A test whose name claims a property its assertion does not check is worse than no test: it reports coverage of the thing most likely to regress. The split is deliberate — the spy test belongs at the handler, where the mechanism lives, and the contract test belongs at the retriever, where the behaviour lives."
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 192,
+    "pairs": 198,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
-  "created_at": "2026-08-27T00:00:00+00:00",
-  "digest": "2bea71f28b40fe33cfb8731c34edce5c48f8304655c8a8bcdf82e7f5dda5905a",
+  "created_at": "2026-08-28T00:00:00+00:00",
+  "digest": "b838c6227e6f41d2662e86647c1f381cbccc63642dd2b8709de0c318d8ce1906",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,90 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "f4f6a8af-7134-5468-b197-85f0671d96e1",
+      "origin": "pr:242",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is a caller told that limit will not be filled",
+      "source_text": "How is a caller told that limit will not be filled?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "On the tool surface, in the argument's own description: limit is documented as a ceiling and not a target, with the reason (at most two rows per repository so one large source cannot crowd out smaller ones) and the way to lift it (scope with repository, which disables the cap). No code change to the selection loop.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "f397d29d-6aba-5d13-9740-83c266ca59cd",
+      "origin": "pr:242",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the unscoped perrepo cap an ordering preference or a guarantee",
+      "source_text": "Is the unscoped per-repo cap an ordering preference or a guarantee?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A guarantee. The cap bounds how many rows any one repository may contribute to an unscoped result, full stop — it is not a diversifier that decides what comes first and may be relaxed to fill a quota. selected_count < limit on an unscoped search is the guarantee working, not a truncation to be repaired.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "eb3eb02a-5f29-52c9-8b8e-ae41c544af99",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "may the corpus lane be reached over mcp without granting its rows authority",
+      "source_text": "May the corpus lane be reached over MCP without granting its rows authority?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes, via two pure-read verbs whose return shape carries the non-authority itself. nestor_corpus_map returns per-repository counts, source/target langs, and the snapshot sha256. nestor_corpus_search wraps CorpusRetriever.search verbatim: attributed claim pointers with repository, origin, source_status, matched_terms, query_coverage, authority='none', and no answer field, no state, no verdict, no would_serve, no suggested_next. A model reading a corpus_search result cannot mistake it for an answer because there is no answer field to mistake.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "c69f0e14-2cef-57cb-89fa-6ba0f9559df6",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the repository facet on nestor_corpus_search kept from silently growing an unqueryable taxonomy",
+      "source_text": "How is the repository facet on nestor_corpus_search kept from silently growing an unqueryable taxonomy?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The repository argument is checked against the set nestor_corpus_map publishes, before the search runs. An unknown repository is refused with the taxonomy the map publishes; nothing is executed. Same posture as WARRANT_KINDS in nestor/warrant.py: refuse at the edge, before the store opens, so a typo becomes a refusal, not silent zero results.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "8c754433-ebcd-54a7-96e9-b83bf60ac945",
+      "origin": "pr:242",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is the reachability claim kept from being asserted by a test that does not check it",
+      "source_text": "How is the reachability claim kept from being asserted by a test that does not check it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "test_corpus_search_widens_shortlist_to_make_limit_achievable is renamed to test_corpus_search_scales_the_shortlist_with_limit and its docstring now says it pins the mechanism only. Its assertion was always on the captured shortlist width; its name and docstring promised reachability, so it would have passed against a build where limit=50 returned 48 rows forever. The contract itself is pinned by test_limit_is_a_ceiling_the_per_repo_cap_may_hold_below in tests/test_corpus_store.py, which drives a real retriever rather than a spy.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "8a4cbe91-a81e-5db9-a3a9-b882552a0b64",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is not exposed in this change and why",
+      "source_text": "What is not exposed in this change, and why?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No corpus write verb. No corpus attach, no corpus reject, no way to promote a corpus claim into tm_pairs from over the wire. The corpus schema and the sync direction (extractors -> corpus_claims -> read) are unchanged. describe() gains an inventory of all tools present in this server plus a named reason for any withheld one (nestor_propose withheld: --read-only; nestor_draft withheld: engine=offline; nestor_corpus_* withheld: no --corpus-dir), so a model reads absence as refusal rather than as 'no such path'.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-27T00:00:00+00:00",
       "id": "e8f8b8bc-3f46-555d-81c8-66ea5a84aecf",

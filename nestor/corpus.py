@@ -129,6 +129,23 @@ class CorpusSearchResult:
     semantic_error: str = ""
 
 
+@dataclass(frozen=True)
+class CorpusRepository:
+    repository: str
+    claims: int
+    source_langs: tuple[str, ...]
+    target_langs: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CorpusMap:
+    snapshot_sha256: str
+    consolidated_at: str
+    sources_total: int
+    claims_total: int
+    repositories: tuple[CorpusRepository, ...]
+
+
 def _canonical_row(row: dict) -> str:
     return json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -380,6 +397,64 @@ class CorpusRetriever:
         except sqlite3.DatabaseError as exc:
             raise CorpusError(f"{self.path}: no consolidated corpus: {exc}") from exc
 
+    def repositories(self) -> CorpusMap:
+        """Per-repository counts and language sets, plus the snapshot row.
+
+        The taxonomy `nestor_corpus_search`'s `repository` argument is checked
+        against. Names come from the same ``corpus_claims.repository`` column
+        the retriever reads, so a name published here is a name the store will
+        accept — and one absent here is refused with the whole list, not a
+        silent zero.
+        """
+        try:
+            with self._connect() as conn:
+                snapshot_row = conn.execute(
+                    "SELECT snapshot_sha256, source_count, claim_count, created_at "
+                    "FROM corpus_snapshots ORDER BY created_at DESC LIMIT 1"
+                ).fetchone()
+                count_rows = conn.execute(
+                    "SELECT repository, COUNT(*) AS claims "
+                    "FROM corpus_claims GROUP BY repository ORDER BY repository"
+                ).fetchall()
+                # Fetch (repository, source_lang, target_lang) tuples and
+                # dedupe in Python rather than GROUP_CONCAT-then-split-on-
+                # comma. A source_lang value that ever contained a comma
+                # would fracture into bogus tokens with no error under the
+                # split approach; this path is faithful to whatever the
+                # extractor wrote, and the row count is bounded by the
+                # cross product of repositories and language tags — trivial.
+                lang_rows = conn.execute(
+                    "SELECT DISTINCT repository, source_lang, target_lang "
+                    "FROM corpus_claims"
+                ).fetchall()
+        except sqlite3.DatabaseError as exc:
+            raise CorpusError(f"{self.path}: no consolidated corpus: {exc}") from exc
+        if snapshot_row is None:
+            raise CorpusError(f"{self.path}: no consolidated corpus snapshot")
+        source_langs_by_repo: dict[str, set[str]] = defaultdict(set)
+        target_langs_by_repo: dict[str, set[str]] = defaultdict(set)
+        for lang_row in lang_rows:
+            source_langs_by_repo[str(lang_row["repository"])].add(
+                str(lang_row["source_lang"]))
+            target_langs_by_repo[str(lang_row["repository"])].add(
+                str(lang_row["target_lang"]))
+        repositories = tuple(
+            CorpusRepository(
+                repository=str(row["repository"]),
+                claims=int(row["claims"]),
+                source_langs=tuple(sorted(source_langs_by_repo[str(row["repository"])])),
+                target_langs=tuple(sorted(target_langs_by_repo[str(row["repository"])])),
+            )
+            for row in count_rows
+        )
+        return CorpusMap(
+            snapshot_sha256=str(snapshot_row["snapshot_sha256"]),
+            consolidated_at=str(snapshot_row["created_at"]),
+            sources_total=int(snapshot_row["source_count"]),
+            claims_total=int(snapshot_row["claim_count"]),
+            repositories=repositories,
+        )
+
     @staticmethod
     def _tokens(text: str) -> tuple[str, ...]:
         return meaningful_tokens(text)
@@ -449,11 +524,28 @@ class CorpusRetriever:
             self._embedding_cache[key] = tuple(self._embedder(text))
         return self._embedding_cache[key]
 
-    def search(self, task: str, *, limit: int = 8, shortlist: int = 50) -> CorpusSearchResult:
+    def search(self, task: str, *, limit: int = 8, shortlist: int = 50,
+               repository: str | None = None) -> CorpusSearchResult:
         query = self._query(str(task))
         query_sha = _digest(str(task))
         if not query or limit <= 0:
             return CorpusSearchResult("fts", query_sha, "", 0, 0, ())
+        # A repository filter narrows the FTS-join in SQL rather than trimming
+        # after: the shortlist could otherwise be dominated by other repos and
+        # drop rows the caller asked for. It also skips the per-repo cap below,
+        # since the caller already scoped and the cap is a diversifier.
+        sql = (
+            "SELECT c.*, bm25(corpus_claims_fts, 0.0, 5.0, 2.0, 0.5) AS rank_score "
+            "FROM corpus_claims_fts "
+            "JOIN corpus_claims c ON c.id = corpus_claims_fts.claim_id "
+            "WHERE corpus_claims_fts MATCH ?"
+        )
+        params: list[object] = [query]
+        if repository:
+            sql += " AND c.repository = ?"
+            params.append(repository)
+        sql += " ORDER BY rank_score, c.repository, c.id LIMIT ?"
+        params.append(max(limit, shortlist))
         try:
             with self._connect() as conn:
                 snapshot_row = conn.execute(
@@ -461,14 +553,7 @@ class CorpusRetriever:
                 ).fetchone()
                 if snapshot_row is None:
                     raise CorpusError(f"{self.path}: no consolidated corpus snapshot")
-                rows = conn.execute(
-                    "SELECT c.*, bm25(corpus_claims_fts, 0.0, 5.0, 2.0, 0.5) AS rank_score "
-                    "FROM corpus_claims_fts "
-                    "JOIN corpus_claims c ON c.id = corpus_claims_fts.claim_id "
-                    "WHERE corpus_claims_fts MATCH ? "
-                    "ORDER BY rank_score, c.repository, c.id LIMIT ?",
-                    (query, max(limit, shortlist)),
-                ).fetchall()
+                rows = conn.execute(sql, tuple(params)).fetchall()
         except sqlite3.DatabaseError as exc:
             raise CorpusError(f"{self.path}: corpus retrieval failed: {exc}") from exc
 
@@ -529,6 +614,10 @@ class CorpusRetriever:
         seen: set[tuple[str, str, str, str]] = set()
         per_repo: dict[str, int] = defaultdict(int)
         matcher = StringMatcher()
+        # The per-repo cap is a diversifier for the cross-corpus search; when
+        # the caller has scoped to one repository it becomes an arbitrary cap
+        # of 2 on that one repo, which is not what a scoped call asked for.
+        per_repo_cap = None if repository else 2
         for row, matched_terms, score in ranked:
             key = (
                 str(row["source_norm"]),
@@ -536,11 +625,13 @@ class CorpusRetriever:
                 str(row["source_lang"]),
                 str(row["target_lang"]),
             )
-            repository = str(row["repository"])
-            if key in seen or per_repo[repository] >= 2:
+            row_repository = str(row["repository"])
+            if key in seen:
+                continue
+            if per_repo_cap is not None and per_repo[row_repository] >= per_repo_cap:
                 continue
             seen.add(key)
-            per_repo[repository] += 1
+            per_repo[row_repository] += 1
             selected.append(
                 self._claim(row, score=round(score, 6),
                             rank=len(selected) + 1,
