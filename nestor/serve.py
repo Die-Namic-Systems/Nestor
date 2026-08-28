@@ -88,6 +88,8 @@ PROPOSE_KEYS = frozenset({"source_text", "candidate", "source_lang",
                           "target_lang", "title"})
 DRAFT_KEYS = frozenset({"task", "excerpts", "source_lang", "target_lang"})
 
+MAX_CORPUS_SEARCH_LIMIT = 50
+
 
 def _citation_report(draft: str, contexts: list[dict]) -> dict:
     """Report whether a corpus-backed draft used only supplied short tokens."""
@@ -497,6 +499,44 @@ class Server:
                 },
             },
         ]
+        if self.corpus_retriever is not None:
+            out.extend([
+                {
+                    "name": "nestor_corpus_map",
+                    "description":
+                        "Enumerate what the household corpus lane holds: repositories, "
+                        "per-repository claim counts, source/target languages, and the "
+                        "snapshot sha. Nobody has verified any of it — the corpus is a "
+                        "read-only extractor lane, not a seal. Use this to discover the "
+                        "'repository' argument nestor_corpus_search accepts.",
+                    "inputSchema": {"type": "object", "properties": {}},
+                },
+                {
+                    "name": "nestor_corpus_search",
+                    "description":
+                        "Look up unverified corpus excerpts by query, optionally scoped to "
+                        "one repository. Returns attributed pointers into corpus stores "
+                        "(repository, origin, source_status, matched_terms, "
+                        "query_coverage) with authority='none' on every row and no answer "
+                        "field, no state, no verdict. A row here is a place to look, not a "
+                        "checked answer — never quote it as verified. Feed rows to "
+                        "nestor_draft or nestor_propose; do not present them directly.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string",
+                                      "description": "phrase or terms to look up"},
+                            "repository": {"type": "string",
+                                           "description": "one of the names nestor_corpus_map returns; "
+                                                          "an unknown name is refused with the whole list"},
+                            "limit": {"type": "integer",
+                                      "description": f"1..{MAX_CORPUS_SEARCH_LIMIT}; default 8",
+                                      "minimum": 1, "maximum": MAX_CORPUS_SEARCH_LIMIT},
+                        },
+                        "required": ["query"],
+                    },
+                },
+            ])
         if self.engine_name == "ollama":
             out.append({
                 "name": "nestor_draft",
@@ -630,6 +670,63 @@ class Server:
             if key:
                 return {"key": key, "value": preferences.get(key)}
             return {"preferences": preferences.load()}
+        if name == "nestor_corpus_map":
+            if self.corpus_retriever is None:
+                raise PermissionError(
+                    "nestor_corpus_map requires --corpus-dir; this server has no "
+                    "consolidated corpus attached")
+            mapping = self.corpus_retriever.repositories()
+            return {
+                "snapshot_sha256": mapping.snapshot_sha256,
+                "consolidated_at": mapping.consolidated_at,
+                "sources_total": mapping.sources_total,
+                "claims_total": mapping.claims_total,
+                "authority": "none",
+                "repositories": [asdict(repository)
+                                 for repository in mapping.repositories],
+            }
+        if name == "nestor_corpus_search":
+            if self.corpus_retriever is None:
+                raise PermissionError(
+                    "nestor_corpus_search requires --corpus-dir; this server has no "
+                    "consolidated corpus attached")
+            query = str(args.get("query", "")).strip()
+            if not query:
+                raise ValueError("query must not be empty")
+            limit_raw = args.get("limit")
+            limit = 8 if limit_raw is None else int(limit_raw)
+            if limit < 1 or limit > MAX_CORPUS_SEARCH_LIMIT:
+                raise ValueError(
+                    f"limit must be 1..{MAX_CORPUS_SEARCH_LIMIT}")
+            repository_raw = args.get("repository")
+            repository = str(repository_raw).strip() if repository_raw else ""
+            if repository:
+                # Taxonomy refusal at the edge — same posture WARRANT_KINDS
+                # uses in nestor/warrant.py. A typo becomes a refusal that
+                # names the whole list, not silent zero results.
+                mapping = self.corpus_retriever.repositories()
+                known = [repo.repository for repo in mapping.repositories]
+                if repository not in known:
+                    raise ValueError(
+                        f"unknown repository {repository!r}; "
+                        f"nestor_corpus_map lists: {', '.join(known) or '(none)'}")
+            search_result = self.corpus_retriever.search(
+                query, limit=limit,
+                repository=repository or None)
+            return {
+                "mode": search_result.mode,
+                "query_sha256": search_result.query_sha256,
+                "snapshot_sha256": search_result.snapshot_sha256,
+                "candidate_count": search_result.candidate_count,
+                "eligible_count": search_result.eligible_count,
+                "selected_count": len(search_result.claims),
+                "repository": repository or None,
+                "semantic_error": search_result.semantic_error,
+                "claims": [
+                    {**asdict(claim), "authority": "none"}
+                    for claim in search_result.claims
+                ],
+            }
         if name == "nestor_draft":
             if self.engine_name != "ollama":
                 raise PermissionError(
@@ -834,6 +931,20 @@ class Server:
 
 def describe(server: Server) -> str:
     """The instructions a client shows its model. Says what is withheld, and why."""
+    # A named absence is a refusal; a silent absence looks like "no such path".
+    # The consumer session that motivated this (2026-08-28) never reached for
+    # nestor_provenance or nestor_match though they were present, and never
+    # learned that nestor_propose was absent because --read-only was set — the
+    # withholding was invisible. Listing both what is here and what is
+    # withheld with a named reason is the cheapest fix that scales.
+    present = [tool["name"] for tool in server.tools()]
+    withheld: list[str] = []
+    if server.read_only:
+        withheld.append("nestor_propose (--read-only)")
+    if server.engine_name != "ollama":
+        withheld.append("nestor_draft (engine is not ollama)")
+    if server.corpus_retriever is None:
+        withheld.append("nestor_corpus_map, nestor_corpus_search (no --corpus-dir)")
     return (
         "Nestor answers one question about an answer: has a human checked it?\n"
         "Every result carries a state — 'sealed' (verified by a named human; serve it "
@@ -843,6 +954,14 @@ def describe(server: Server) -> str:
         "say what is missing and offer nestor_propose so a human can verify it.\n"
         f"This server cannot {', '.join(WITHHELD)}. Verification is a human act, and "
         "a model marking its own output as verified would empty the word.\n"
+        f"Tools available: {', '.join(present)}."
+        + (f" Withheld here: {'; '.join(withheld)}." if withheld else "")
+        + "\n"
+        "Reach for nestor_provenance when a caller asks who verified a pair or "
+        "why they should believe it. Reach for nestor_match to test whether a "
+        "phrase or number would be served, without asking. Corpus verbs (when "
+        "available) return unverified pointers — a place to look, not an "
+        "answer; never quote a corpus row as verified.\n"
         # Named here because nothing else tells a model what keys this domain,
         # and nestor_match's `matcher` argument is otherwise a guess. The browser
         # surface publishes the same fact via /api/state; this is serve's

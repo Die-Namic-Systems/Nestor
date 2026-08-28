@@ -1,0 +1,23 @@
+{
+  "branch": "claude/nestor-improvement-idea-w5xdo6",
+  "date": "2026-08-28",
+  "pr": "TBD",
+  "note": "0213 committed the corpus to being an inert, authority-free household lane and exposed it to a model only as private input to nestor_draft. A consumer session (rudi193@gmail.com, 2026-08-28) reported that this made 94% of the household knowledge (9,977 corpus_claims vs 599 sealed tm_pairs) unreachable by any MCP verb — so the consumer bashed raw SQLite for it fifteen times in one evening and lost the attribution discipline the lane was built to preserve. The safety property inverted: refusing to expose the lane pushed the consumer into a worse lane.",
+  "decisions": [
+    {
+      "question": "May the corpus lane be reached over MCP without granting its rows authority?",
+      "commitment": "Yes, via two pure-read verbs whose return shape carries the non-authority itself. nestor_corpus_map returns per-repository counts, source/target langs, and the snapshot sha256. nestor_corpus_search wraps CorpusRetriever.search verbatim: attributed claim pointers with repository, origin, source_status, matched_terms, query_coverage, authority='none', and no answer field, no state, no verdict, no would_serve, no suggested_next. A model reading a corpus_search result cannot mistake it for an answer because there is no answer field to mistake.",
+      "why": "The one-directional rule in 0213 is preserved (no corpus operation writes tm_pairs, the ledger, a verifier, or a signature) while the lane becomes reachable through a discipline the store enforces. The alternative — leaving the lane addressable only via nestor_draft — makes the model either generate an unverified draft over 9,977 rows for every lookup or reach for the raw store; both are worse than a locator verb that returns pointers."
+    },
+    {
+      "question": "How is the repository facet on nestor_corpus_search kept from silently growing an unqueryable taxonomy?",
+      "commitment": "The repository argument is checked against the set nestor_corpus_map publishes, before the search runs. An unknown repository is refused with the taxonomy the map publishes; nothing is executed. Same posture as WARRANT_KINDS in nestor/warrant.py: refuse at the edge, before the store opens, so a typo becomes a refusal, not silent zero results.",
+      "why": "warrant.py already codifies this posture and its docstring names the failure mode ('a typo must not silently grow an unqueryable taxonomy'). The tool surface has the same property: a facet added loosely is harder to remove than a kind. Refusing at the edge keeps the taxonomy queryable and the failure legible."
+    },
+    {
+      "question": "What is not exposed in this change, and why?",
+      "commitment": "No corpus write verb. No corpus attach, no corpus reject, no way to promote a corpus claim into tm_pairs from over the wire. The corpus schema and the sync direction (extractors -> corpus_claims -> read) are unchanged. describe() gains an inventory of all tools present in this server plus a named reason for any withheld one (nestor_propose withheld: --read-only; nestor_draft withheld: engine=offline; nestor_corpus_* withheld: no --corpus-dir), so a model reads absence as refusal rather than as 'no such path'.",
+      "why": "0213 defines the corpus as read-only for the household; a write verb over the wire would break that. Discovery of what is intentionally withheld is a separate concern the consumer session raised (nestor_provenance and nestor_match were present but unreached, and nestor_propose/nestor_draft were absent with no named reason). describe() is the cheapest fix that scales with any new withholding."
+    }
+  ]
+}

@@ -7493,3 +7493,39 @@ lines down; a human still has to reissue the PAT with `Contents: read/write` and
 *A check that answers "it exists" to the question "does it work" is not a weaker
 check. It is a check that reports success in the failing case, which is worse
 than none — and this is the fourth place in this repository that has been true.*
+
+---
+
+### 6.125 The MCP surface could not see 94% of the household knowledge — **shipped** (reads), **open** (write posture)
+
+*Consumer session (rudi193@gmail.com, 2026-08-28) spent an evening bashing raw
+SQLite for the corpus lane, because the only MCP path to it was `nestor_draft`
+— which turns every lookup into a draft, then correctly refuses to serve it as
+verified. The safety property inverted: refusing to expose the lane pushed the
+consumer into a worse lane, with no attribution discipline at all.*
+
+**Shipped (decision `0219`).** Two pure-read verbs whose return shape carries
+its own non-authority — `nestor_corpus_map` (per-repository counts, snapshot
+sha, `authority: "none"`) and `nestor_corpus_search` (attributed claim
+pointers, `authority: "none"` on every row, no `state`, no `verdict`, no
+`would_serve`, no `answer` field for a model to mistake for one). Wraps
+`CorpusRetriever.search` verbatim with an added `repository` filter narrowing
+the FTS-join in SQL. Taxonomy refusal at the edge (`repository` checked
+against the map before search runs), same posture `WARRANT_KINDS` uses. And
+`describe()` now enumerates the tools present and names each withheld tool
+with its reason (`--read-only`, `engine is not ollama`, `no --corpus-dir`) —
+consumer had no way to learn that `nestor_propose` was absent because
+`--read-only` was set; silence looked like "no such path".
+
+**Open — the write-verb posture.** Deferred decisions (a hypothetical
+`warrant_attach`, or exposing the corpus for pointer additions) have three
+shapes, not two: (a) queue-shaped like `nestor_propose`, (b) direct write with
+origin stamp, (c) the **jeles pattern** — accept the write at the lowest
+rung and label it on read (`verification_kind: "asserted"`,
+`confidence: "unverified"`). Jeles's `corpus_server.corpus_put` and
+`conflict_scan.react` (which requires **N independent domains**, not N hits,
+matching the charter's Independent Witness clause with a countable unit) are
+the closest existing models. Any next write verb should adopt (c) unless
+there's a reason to fall back to (a); (b) alone laundered assertions into
+knowledge.
+
