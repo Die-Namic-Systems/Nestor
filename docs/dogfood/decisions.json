@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 201,
+    "pairs": 205,
     "rejections": 0,
     "sealed": 0,
     "servable": 0,
     "warrants": 0
   },
   "created_at": "2026-08-28T00:00:00+00:00",
-  "digest": "2dfc8feef1bb2428b6992ecac3ac99bdfd8092c8c4d9c844f6e1452781385ccb",
+  "digest": "de9a71e77316923b5b6e41e0e4c94deddbf0f154b57c2c781aab8efa2c778f22",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -66,6 +66,34 @@
     },
     {
       "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "d6c440b0-ec38-50ea-9096-90a9190793bb",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what happens when a refused repository has no source database at all",
+      "source_text": "What happens when a refused repository has no source database at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The sync is refused entirely and the repositories are named. corpus.sync rebuilds the whole snapshot from whatever data/corpus/ holds, so proceeding would remove those repositories from the corpus rather than leave them stale.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "c6c41559-6aca-5e4e-b68d-d0c5e1197443",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does a refresh driver get the list of repositories and the extractor for each",
+      "source_text": "Where does a refresh driver get the list of repositories, and the extractor for each?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Out of the corpus itself, never from a roster authored in the driver. corpus_claims.repository names which repositories; the origin's toolchain digest resolves against the content hash of every committed extract_*.py and names which extractor read them; the origin's prefix gives the --name the run used; the origin's commit gives what it last read. All 24 repositories resolved on the first run. Only the checkout path is passed in, because that is a property of the machine rather than of the corpus.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
       "id": "c69f0e14-2cef-57cb-89fa-6ba0f9559df6",
       "origin": "pr:TBD",
       "seal_sig": "",
@@ -117,6 +145,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No, and it should not be widened to. before_build fires on build intent; a third sibling, hooks/before_survey.py, fires on fan-out survey intent and carries a different rule — decision 1878ea86's 'finding, not asserting'. Wired into prompt_submit_context alongside the seat anchor, before_build, and before_propose, each still failing open independently.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "5164070c-8675-5403-9441-26e3be39e71d",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how is an archived copy of a retired repository kept from being reextracted as though it were live",
+      "source_text": "How is an archived copy of a retired repository kept from being re-extracted as though it were live?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It is not prevented; it is made visible. The resolved checkout path is printed on every ready line, and the default --repos-root is ~/github only, so reaching an archive requires passing a wider root deliberately. On the first run with --repos-root ~, willow resolved to ~/github-archive-willow-2026-08-27/willow.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-08-28T00:00:00+00:00",
+      "id": "3b9940ce-5b92-5154-aabe-3571889fffee",
+      "origin": "pr:TBD",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what does the driver refuse rather than working around",
+      "source_text": "What does the driver refuse, rather than working around?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Three things, each fail-closed and named in the output. An unresolvable toolchain (the extractor changed since those rows were written). A missing checkout (§6.101's could-not-look case). A dirty working tree. Refused repositories keep their existing data/corpus/<repository>.db and so keep their old rows and old pin through the sync.",
       "verifier": "",
       "weight": 1.0
     },
