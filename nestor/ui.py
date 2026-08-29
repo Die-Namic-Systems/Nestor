@@ -416,6 +416,58 @@ def _verifier_for_seal(app: App, payload: Mapping[str, Any],
     return _verifier(app, payload)
 
 
+def _verifier_for_rejection(app: App, payload: Mapping[str, Any]) -> str:
+    """The name a *rejection* is recorded under — asked for, never authenticated.
+
+    A rejection must not be refused for want of a session, because the library
+    one layer down goes out of its way never to refuse one. ``signing``'s
+    ``_rejection_sign_ref`` says it in as many words:
+
+        *"A seal by an unregistered verifier must fail loudly; a rejection by
+        one must not, because refusing to record a 'no' is the one direction
+        rejection cannot fail in — it would leave a bad answer serving because
+        the reviewer's name was not on a list. An unknown verifier's rejection
+        is recorded, honored, and reported as unsigned."*
+
+    ``rejection_is_valid`` is explicitly *reporting only* — "Nestor honors a
+    rejection whether or not it verifies" — and ``memory.reject_pair`` takes
+    ``verifier: str = ""``, accepting an unnamed one. Every layer below this
+    function is built so a "no" always lands.
+
+    :func:`_verifier` sends rejections down the opposite path. With a keyring
+    installed it demands a :class:`Sessions` token, and ``Sessions.open`` checks
+    a typed secret against ``Keyring.signing_key`` — which an ed25519
+    PUBLIC-only entry does not have, by
+    :meth:`~nestor.keyring.Keyring.signing_entry`'s own refusal. That verifier's
+    browser holds the private half and signs seals directly, so **they could
+    seal and could never reject**: measured 2026-08-28 on a live instance whose
+    only keyring entry was public-only. Confirming was one click and refusing
+    was impossible, in the surface whose whole premise is that a human may do
+    either.
+
+    So this asks who, and stops there. It deliberately does NOT take the
+    signature route :func:`_verifier_for_seal` takes: that function's own
+    docstring warns it "must never be called except where the signature it
+    trusts is the exact one about to be checked", and a prior draft that
+    resolved a verifier that way without forwarding the signature was a live
+    authentication bypass. Rejection needs no such ceremony — the write is
+    signed server-side by ``signing.sign_rejection`` where a key allows, and
+    recorded as unsigned where it does not, exactly as the library intends.
+    ``memory.rejection_signature_report`` is where signed and unsigned are told
+    apart, after the fact and by audit, which is the correct place for a
+    distinction that must never block the write.
+
+    A name is still required. That is not authentication — it is attribution,
+    and it is always satisfiable by typing one, unlike a session.
+    """
+    who = _str(payload, "verifier")
+    if not who:
+        raise ApiError(400, "Who is making this decision? Set a name in the "
+                            "'acting as' box — an empty verifier is recorded as "
+                            "unknown, not as you.", code="verifier_required")
+    return who
+
+
 def _pair_id(payload: Mapping[str, Any]) -> str:
     pair_id = _str(payload, "pair_id")
     if not pair_id:
@@ -1270,7 +1322,7 @@ def _reject_pair(app: App, query: Mapping[str, Any], payload: Mapping[str, Any])
     """The mapping itself is wrong — retire it everywhere."""
     _require_rejection(app)
     pair_id = _pair_id(payload)
-    memory.reject_pair(pair_id, verifier=_verifier(app, payload),
+    memory.reject_pair(pair_id, verifier=_verifier_for_rejection(app, payload),
                        reason=_str(payload, "reason"), store=app.store)
     return {"pair": app.curator().get(pair_id)}
 
@@ -1292,7 +1344,8 @@ def _reject_match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
     rejection = memory.reject_match(
         source, source_lang, target_lang,
         pair_id=_str(payload, "pair_id"), target_text=_str(payload, "target_text"),
-        verifier=_verifier(app, payload), reason=_str(payload, "reason"), store=app.store,
+        verifier=_verifier_for_rejection(app, payload),
+        reason=_str(payload, "reason"), store=app.store,
         # A rejection is filed under the query's key, and `best_sealed` looks it
         # up under the domain's. Keyed by the default instead, the human's "no"
         # is recorded correctly, signed, and invisible — and the wrong match is
@@ -1383,7 +1436,7 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
     seg = app.store.get_segment(segment_id) or {}
     doc = app.store.get_document(seg.get("document_id", "")) or {} if seg else {}
     rejection = cascade.reject_segment(
-        segment_id, verifier=_verifier(app, payload),
+        segment_id, verifier=_verifier_for_rejection(app, payload),
         reason=_str(payload, "reason"), store=app.store,
         matcher=_domain_matcher(app, doc.get("source_lang", app.source_lang),
                                 doc.get("target_lang", app.target_lang)))
