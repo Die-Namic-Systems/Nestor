@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.16.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.0...v0.16.1) (2026-08-29)
+
+
+### Fixed
+
+* **ui:** a rejection must not require a session ([3f075a2](https://github.com/Die-Namic-Systems/Nestor/commit/3f075a2e73e8b987af5662301fdbd64644f2825a))
+* **ui:** a rejection must not require a session ([#256](https://github.com/Die-Namic-Systems/Nestor/issues/256)) ([c59fcfc](https://github.com/Die-Namic-Systems/Nestor/commit/c59fcfcdea4b76c60b13310beb8125c8ec386401))
+
 ## [0.16.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.15.0...v0.16.0) (2026-08-28)
 
 
