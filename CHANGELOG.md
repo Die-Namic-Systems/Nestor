@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.16.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.1...v0.16.2) (2026-08-29)
+
+
+### Fixed
+
+* **store:** a rejection must annotate a row, not overwrite its history ([bb91418](https://github.com/Die-Namic-Systems/Nestor/commit/bb91418c9a4083502219180a8384fb06ffcda460))
+* **store:** a rejection must annotate a row, not overwrite its history ([#258](https://github.com/Die-Namic-Systems/Nestor/issues/258)) ([313df51](https://github.com/Die-Namic-Systems/Nestor/commit/313df51ce4a01e63942f5bdd8151ce19a9ffbe4e))
+
 ## [0.16.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.0...v0.16.1) (2026-08-29)
 
 
