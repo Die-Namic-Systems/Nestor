@@ -1227,11 +1227,50 @@ class SqliteStore:
 
     def memory_reject_pair(self, pair_id: str, verifier: str,
                           reason: str) -> None:
+        """Retire a mapping, recording WHY in `reason` and leaving `origin` alone.
+
+        This used to write ``origin = f"rejected:{reason}"[:200]``, which cost
+        two things a rejection has no business costing.
+
+        **It destroyed provenance.** `origin` records where a pair came from —
+        every sealed sibling in the tool-oracle store still says
+        ``imported-unverifiable:willow-build``; the three rejected ones said
+        ``rejected:Jeles carries web search`` instead, and no longer recorded
+        that they came from that import at all. The ledger keeps the reason, so
+        nothing was lost about the decision; what was lost was the fact the
+        decision was made *about*. A "no" should annotate a row, not overwrite
+        its history.
+
+        **And the reason was findable only by knowing that.** `reason` sat
+        empty on every rejected pair while the text lived under a prefix in a
+        column named for something else — so the obvious query returns nothing
+        and the obvious conclusion is that no reason was given.
+
+        `reason` is the right home. The column's own comment calls it "the
+        rationale for the YES", because `tm_rejections` always carried one for
+        the no — but that table is `reject_match`'s, keyed on `query_norm` for
+        "right pair, wrong query". A pair-level rejection writes no row there
+        and had nowhere else to go. Widening `reason` to "the rationale for the
+        decision, either way" costs nothing: a rejected pair has no seal, so the
+        field is free.
+
+        Appended rather than replaced when a rationale is already present, so a
+        pair that was sealed with a reason and later rejected keeps both halves
+        — the argument for it and the argument against it are exactly the pair
+        a future reader needs, and keeping only the second is how a reversal
+        becomes unreviewable.
+        """
         with self._db() as conn:
+            row = conn.execute(
+                "SELECT reason FROM tm_pairs WHERE id=?", (pair_id,)
+            ).fetchone()
+            prior = (row[0] if row else "") or ""
+            note = f"rejected: {reason}" if reason else "rejected"
+            merged = f"{prior} | {note}" if prior else note
             conn.execute(
-                "UPDATE tm_pairs SET status='rejected', verifier=?, origin=? "
+                "UPDATE tm_pairs SET status='rejected', verifier=?, reason=? "
                 "WHERE id=?",
-                (verifier, f"rejected:{reason}"[:200], pair_id),
+                (verifier, merged[:2000], pair_id),
             )
 
     def memory_add_rejection(self, rejection: dict) -> None:
