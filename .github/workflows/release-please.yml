@@ -31,12 +31,12 @@ name: Release Please
 #   whoever armed it, so armed with GITHUB_TOKEN the release PR would merge and
 #   this workflow would never run again to cut the tag.
 #
-# SETUP — `RELEASE_PLEASE_TOKEN` must exist as a repository secret: a
-# fine-grained PAT scoped to this repo with Contents: read/write and Pull
-# requests: read/write (classic equivalent: `repo`). The first job below refuses
-# to run without it rather than falling back to GITHUB_TOKEN, because that
-# fallback produces a working-looking release PR and a publish that never
-# happens. See docs/releasing.md.
+# SETUP — the willow-ci GitHub App (id 4749508) must be installed on this org
+# with Contents: read/write and Pull requests: read/write, and the org must
+# carry the variable WILLOW_CI_APP_ID and the secret WILLOW_CI_PRIVATE_KEY.
+# The mint step below refuses to run without them rather than falling back to
+# GITHUB_TOKEN, because that fallback produces a working-looking release PR and
+# a publish that never happens. See docs/releasing.md.
 
 on:
   push:
@@ -59,30 +59,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Require the release PAT
-        # A missing secret degrades to GITHUB_TOKEN, which still opens a release
-        # PR — so everything looks healthy right up until nothing reaches PyPI.
-        # Fail here, where the message can say what to do.
-        env:
-          TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-        run: |
-          if [ -z "${TOKEN}" ]; then
-            echo "::error::RELEASE_PLEASE_TOKEN is not set on this repository."
-            cat <<'MSG'
-          release-please would fall back to GITHUB_TOKEN, and the release PR
-          would look fine — but the tag it pushes would start no workflow, so
-          publish.yml would never run and nothing would reach PyPI. Silently.
-
-          Add a fine-grained PAT scoped to this repo with:
-            Contents: read/write
-            Pull requests: read/write
-          as the repository secret RELEASE_PLEASE_TOKEN.
-
-          See docs/releasing.md.
-          MSG
-            exit 1
-          fi
-          echo "RELEASE_PLEASE_TOKEN present"
+      # Mints a short-lived installation token for the willow-ci GitHub App
+      # (org variable WILLOW_CI_APP_ID + org secret WILLOW_CI_PRIVATE_KEY).
+      #
+      # GitHub suppresses workflow runs for events generated with GITHUB_TOKEN,
+      # so a tag cut with it starts no release workflow and nothing reaches
+      # PyPI — everything reads as fine. An App installation token is not
+      # GITHUB_TOKEN, so its tag triggers workflows normally, exactly as the
+      # PAT did. Unlike the PAT it is minted per run and expires in an hour;
+      # its sibling ENGINE_PROPAGATION_TOKEN expired on 2026-08-04 and stopped
+      # eleven repos receiving engine changes for three and a half weeks with
+      # no signal.
+      #
+      # This step is also the guard: if the App is not installed or the key is
+      # wrong it fails here and loudly, rather than degrading to GITHUB_TOKEN.
+      - name: Mint a willow-ci installation token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.WILLOW_CI_APP_ID }}
+          private-key: ${{ secrets.WILLOW_CI_PRIVATE_KEY }}
 
       - uses: actions/checkout@v7
         with:
@@ -93,7 +89,7 @@ jobs:
           # commit lands as github-actions[bot] and the release PR's CI comes
           # back `action_required` — held awaiting manual approval — so
           # auto-merge waits on a check that never reports.
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: googleapis/release-please-action@v5
         id: release
@@ -102,7 +98,7 @@ jobs:
         # translated.
         continue-on-error: true
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -130,16 +126,16 @@ jobs:
         if: steps.release.outcome == 'failure'
         run: |
           echo "::error::release-please failed. The commonest cause by far is"
-          echo "::error::RELEASE_PLEASE_TOKEN lacking a permission, NOT a bad commit."
+          echo "::error::the willow-ci App lacking a permission, NOT a bad commit."
           cat <<'MSG'
 
-          The token must be a fine-grained PAT scoped to THIS repository with:
+          The willow-ci App must be installed on this repository with:
 
               Contents:      read/write     <- creating the release branch needs this
               Pull requests: read/write     <- opening and updating the release PR
 
-          A token that is merely PRESENT passes the first step of this job and
-          then fails here, because "exists" and "works" are different questions.
+          An App that is merely INSTALLED passes the mint step and then fails
+          here, because "exists" and "works" are different questions.
 
           Read the failing step's log and look for a 403 whose body says
           "Resource not accessible by personal access token". The response
@@ -172,7 +168,7 @@ jobs:
       # the same posture willow-mcp and kartikeya run.
       - name: Arm auto-merge on the release PR
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
