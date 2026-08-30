@@ -80,15 +80,11 @@
    "reason": "A working clone of kartikeya. The live checkout is willow-memory/kartikeya; this one is history. Extracted 2026-08-30 from the local archive, 121 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
   }
  },
- "_excluded_comment": "Never extracted, by operator decision. Distinct from a tombstone: a tombstone says a repository ENDED, an exclusion says a present, live thing is NOT THIS CORPUS'S to hold. docs/corpus-order.md carries the prose; this is the copy the driver reads, because an exception that only exists in prose is one a later session silently undoes.",
+ "_excluded_comment": "Never extracted, by operator decision. Distinct from a tombstone: a tombstone says a repository ENDED; an exclusion says a present thing is NOT THIS CORPUS'S TO HOLD. The only general reason that survives scrutiny is a LANE reason -- the material is private, or is live box state, or is somebody's personal data. Foreign authorship is NOT a reason: Nestor stores pairs with a resolvable origin, cites rather than copies, and marks every corpus row draft, and the almanac rung is designed to hold third-party documentation outright. Volume is a RANKING problem, not an inclusion one. See the 'method' section for sources that are read a particular way rather than not read.",
  "excluded": {
-  ".willow": "The live box -- vault.db, vault.key, receipts, the gate ledger, per-app ACL manifests. Not a repository of source. Extracting it would put box state into a lane whose whole posture is attributed, authority-free PUBLIC context. Same line willow-data-vault's README draws: repo is blueprint, box is the populated instance that stays home. It has been skipped for being dirty, which is an accident; this makes it a decision.",
+  ".willow": "The live box -- vault.db, vault.key, receipts, the gate ledger, per-app ACL manifests. A LANE reason, not an authorship one: this is private state, not source, and the corpus lane is public attributed context. Same line willow-data-vault's README draws: repo is blueprint, box is the populated instance that stays home.",
   "mealie": "Operator's decision -- a fork taken to read, not to build on. corpus-order.md, 98th.",
-  "litellm": "Operator's decision -- contribution never merged. corpus-order.md, 12th.",
-  "textual": "Third-party upstream (Textualize/textual). Not this box's decisions. Extracted 2026-08-30 to 4,823 claims and held rather than synced.",
-  "openclaw": "Third-party upstream (openclaw/openclaw). Extracted 2026-08-30 to 61 claims and held.",
-  "hermes-agent": "A fork. The box's rule is that a fork's unit is the delta, which is why extract_fork.py exists; extract_standard.py over the whole tree would add 13,325 claims of upstream code. Read it with extract_fork.py or not at all.",
-  "mcp-memory-service": "A fork, same rule as hermes-agent. 5,560 claims held."
+  "litellm": "Operator's decision -- contribution never merged. corpus-order.md, 12th."
  },
  "_derived_comment": "Sources with no checkout of their own, because they are derived from something else: session logs, decision records, manifests, the GitHub API. Without this they REFUSE on every run forever -- 'no checkout named X' -- which is the refusal-list noise the tombstone convention exists to prevent. The value is the command that regenerates the source, so the driver can say how to refresh it instead of merely failing to find it.",
  "derived": {
@@ -102,5 +98,10 @@
   "gh-almanac-data": "python scripts/corpus/extract_github.py --org almanac-data --out data/corpus/gh-almanac-data.db",
   "gh-forge-play": "python scripts/corpus/extract_github.py --org forge-play --out data/corpus/gh-forge-play.db",
   "gh-terpsi-programs": "python scripts/corpus/extract_github.py --org terpsi-programs --out data/corpus/gh-terpsi-programs.db"
+ },
+ "_method_comment": "Sources that ARE read, but by a particular extractor. Not exclusions. A fork's unit is the delta because upstream would otherwise sit in the corpus twice -- that is deduplication, not a ban, and it was wrongly recorded as an exclusion on 2026-08-30.",
+ "method": {
+  "hermes-agent": "extract_fork.py — a fork; read the delta, not the whole tree.",
+  "mcp-memory-service": "extract_fork.py — a fork; read the delta, not the whole tree."
  }
 }

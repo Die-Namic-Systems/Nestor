@@ -205,10 +205,22 @@ def excluded(path: pathlib.Path | None = None) -> dict[str, str]:
     """Repositories never to be extracted, by operator decision.
 
     Authored like ``tombstones`` and for the same reason, but a different claim.
-    A tombstone says a repository **ended**; an exclusion says a present, often
-    live thing is **not this corpus's to hold** — ``.willow`` is a running box,
-    ``textual`` is somebody else's library, ``hermes-agent`` is a fork whose unit
-    is the delta.
+    A tombstone says a repository **ended**; an exclusion says a present thing is
+    **not this corpus's to hold**.
+
+    The only general reason that survives scrutiny is a **lane** reason: the
+    material is private, or live box state, or somebody's personal data.
+    ``.willow`` holds ``vault.key``, receipts and the gate ledger, and that is
+    why it is here.
+
+    **Foreign authorship is not a reason,** and recording it as one on
+    2026-08-30 was wrong. Nestor stores pairs with a resolvable origin — it
+    cites rather than copies, every corpus row is ``draft``, and the almanac rung
+    is designed to hold third-party documentation outright. Excluding somebody
+    else's source while planning to ingest their docs is incoherent. Volume is a
+    **ranking** problem, not an inclusion one. A fork is read by
+    ``extract_fork.py`` because its unit is the delta — deduplication, not a ban,
+    and it belongs in ``method`` rather than here.
 
     ``docs/corpus-order.md`` has carried these in a prose table since the corpus
     began and nothing has ever read it, which is the failure mode that document
