@@ -28,10 +28,10 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import common                                                      # noqa: E402
-import provenance                                                  # noqa: E402
+import common
+import provenance
 
-from nestor.sqlite_store import SqliteStore                        # noqa: E402
+from nestor.sqlite_store import SqliteStore
 
 PATTERNS = ("**/safe-app-manifest.json", "**/mcp_apps/*/manifest.json",
             "**/manifest.json")

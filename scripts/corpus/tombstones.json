@@ -103,5 +103,27 @@
  "method": {
   "hermes-agent": "extract_fork.py --email rudi193@gmail.com — 2 operator commits over 7 files. The other 3,319 commits are upstream and are not this corpus's subject.",
   "mcp-memory-service": "extract_fork.py --email rudi193@gmail.com — 2 operator commits over 24 files. Upstream is doobidoo/henry.krupp."
+ },
+ "_families_comment": "Repositories that are one another's siblings, so a shared idea between them is lineage rather than independent arrival. AUTHORED, like tombstones and for the same reason: descent and kinship are exactly what a directory listing cannot tell you. Tombstone successor chains capture ended->successor and miss siblings entirely, which left 628 of 1,024 convergence edges misfiled on 2026-08-30. gh-* sources are deliberately NOT a family: two different orgs landing the same CI fix is a real convergence.",
+ "families": {
+  "homestead": "homestead",
+  "homestead-law": "homestead",
+  "homestead-health": "homestead",
+  "homestead-ledger": "homestead",
+  "willow": "willow",
+  "willow-1.9": "willow",
+  "willow-2.0": "willow",
+  "willow-mcp": "willow",
+  "willow-gate": "willow",
+  "willow-grove": "willow",
+  "willows-grove": "willow",
+  "willow-canonical": "willow",
+  "willow-nest": "willow",
+  "willow-seed": "willow",
+  "willow-compose": "willow",
+  "willow-data-vault": "willow",
+  "willow-bot": "willow",
+  "kartikeya": "willow",
+  "kartikeya-work": "willow"
  }
 }

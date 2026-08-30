@@ -31,13 +31,13 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import provenance                                                  # noqa: E402
-import common                                                      # noqa: E402
+import common
+import provenance
 
-from nestor.sqlite_store import SqliteStore                        # noqa: E402
+from nestor.sqlite_store import SqliteStore
 
 SEP = "\x1f"
-QUERY = f"""
+QUERY = """
 SELECT id, COALESCE(title,''), COALESCE(summary, substring(content::text from 1 for 800), ''),
        COALESCE(tier::text,'untiered'), COALESCE(category,''), COALESCE(domain,'')
 FROM knowledge
@@ -57,7 +57,7 @@ def main() -> int:
     sql = " ".join(QUERY.split())
     try:
         p = subprocess.run(["psql", "-d", args.db, "-tA", "-F", SEP, "-c", sql],
-                           capture_output=True, text=True, timeout=600)
+                           capture_output=True, text=True, timeout=600, check=False)
     except (OSError, subprocess.SubprocessError) as e:
         print(f"error: psql failed: {e}", file=sys.stderr)
         return 1

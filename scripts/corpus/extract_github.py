@@ -32,17 +32,17 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import common                                                      # noqa: E402
-import provenance                                                  # noqa: E402
+import common
+import provenance
 
-from nestor.sqlite_store import SqliteStore                        # noqa: E402
+from nestor.sqlite_store import SqliteStore
 
-FIELDS = "number,title,state,body,url,closedAt"
+FIELDS = "number,title,state,body,url,closedAt,author"
 
 
 def gh(*args: str) -> list | None:
     try:
-        p = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=180)
+        p = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=180, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
     if p.returncode != 0:
@@ -62,7 +62,7 @@ def first_para(body: str) -> str:
 
 
 def rows_for(repo: str, root: pathlib.Path) -> tuple[list, int]:
-    rows, seen = [], 0
+    rows, seen, bots = [], 0, 0
     for kind, cmd in (("pr", ["pr", "list", "--json", FIELDS + ",mergedAt"]),
                       ("issue", ["issue", "list", "--json", FIELDS])):
         items = gh(*cmd, "--repo", repo, "--state", "all", "--limit", "400")
@@ -71,6 +71,15 @@ def rows_for(repo: str, root: pathlib.Path) -> tuple[list, int]:
             continue
         for it in items:
             seen += 1
+            # A bot's PR is boilerplate, not a decision. 60 dependabot rows --
+            # 2% of the GitHub claims -- produced 137 convergence edges, 13% of
+            # all of them, because "Bumps X from 4 to 7" is maximally similar to
+            # itself across every org. Matched on the type GitHub asserts, never
+            # on a login: BOT-INVENTORY's match-bot-by-type-not-login constraint.
+            author = it.get("author") or {}
+            if author.get("is_bot") or str(author.get("login", "")).endswith("[bot]"):
+                bots += 1
+                continue
             title = " ".join(str(it.get("title", "")).split())
             if not title:
                 continue
@@ -87,7 +96,7 @@ def rows_for(repo: str, root: pathlib.Path) -> tuple[list, int]:
                 outcome = "closed" if it.get("closedAt") else "open"
             rows.append((f"{ref} · outcome", outcome,
                          f"{kind} titled: {title}", root, f"{num}-outcome"))
-    return rows, seen
+    return rows, seen, bots
 
 
 def main() -> int:
@@ -103,15 +112,17 @@ def main() -> int:
         print(f"error: gh could not list repositories for {args.org}", file=sys.stderr)
         return 1
     root = pathlib.Path(args.anchor_repo).resolve()
-    rows, seen = [], 0
+    rows, seen, bots = [], 0, 0
     for r in repos:
         name = r["nameWithOwner"]
-        got, n = rows_for(name, root)
+        got, n, b = rows_for(name, root)
         seen += n
+        bots += b
         if got:
             print(f"    {name}: {len(got)} row(s) from {n} item(s)")
         rows.extend(got)
-    print(f"  {args.org}: {len(rows)} row(s) from {seen} item(s)")
+    print(f"  {args.org}: {len(rows)} row(s) from {seen} item(s)"
+          + (f", {bots} bot-authored skipped" if bots else ""))
     if not rows:
         print("error: nothing to write — refusing to create an empty store", file=sys.stderr)
         return 1

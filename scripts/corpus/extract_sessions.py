@@ -39,9 +39,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import provenance                                                  # noqa: E402
+import provenance
 
-from nestor.sqlite_store import SqliteStore                        # noqa: E402
+from nestor.sqlite_store import SqliteStore
 
 HOME = pathlib.Path.home()
 
@@ -84,7 +84,7 @@ def lens(root: pathlib.Path, adapter: str, out: pathlib.Path) -> str | None:
     proc = subprocess.run(
         [sys.executable, "-m", "corpuslens", "run", str(root),
          "--adapter", adapter, "--out", str(out)],
-        cwd=str(LENS), capture_output=True, text=True, timeout=1800)
+        cwd=str(LENS), capture_output=True, text=True, timeout=1800, check=False)
     if proc.returncode == 3:
         print(f"    REFUSED: the lens's egress guard rejected this report -- "
               f"a quarantined value reached it. Not salvaged.\n"
@@ -184,7 +184,7 @@ def main() -> int:
     store = SqliteStore(str(out))
     store.memory_init()
     try:
-        import common                                              # noqa: E402
+        import common
         common.load(store, [("measure", plan_rows, "measure", "reading")], origin)
     finally:
         store.close()

@@ -190,6 +190,12 @@ def find_checkout(roots: list[pathlib.Path], row: Row) -> pathlib.Path | None:
 #: the drift that convention exists to prevent. ``retired`` is the only shape
 #: permitted to point nowhere, and it must say why "deliberately rather than by
 #: omission".
+#: An em dash used inside the report's f-strings. Written as a constant
+#: because a backslash escape inside an f-string expression is a syntax
+#: error before Python 3.12, and this driver has to run wherever the
+#: corpus does.
+DASH = "\u2014"
+
 _END_SHAPES = {
     "merged": "successor",
     "promoted": "successor",
@@ -375,12 +381,12 @@ def main() -> int:
         # its absence as a failure, is how a refusal list fills with entries
         # nobody can act on.
         if row.repository in made:
-            print(f"  {row.repository:<24} {row.commit:<9} {'\u2014':<9} {'\u2014':>6}  "
+            print(f"  {row.repository:<24} {row.commit:<9} {DASH:<9} {DASH:>6}  "
                   f"{'DERIVED':<24} {made[row.repository]}")
             n_derived += 1
             continue
         if row.repository in skip:
-            print(f"  {row.repository:<24} {row.commit:<9} {'\u2014':<9} {'\u2014':>6}  "
+            print(f"  {row.repository:<24} {row.commit:<9} {DASH:<9} {DASH:>6}  "
                   f"{'EXCLUDED':<24} {skip[row.repository][:60]}")
             n_excluded += 1
             continue
