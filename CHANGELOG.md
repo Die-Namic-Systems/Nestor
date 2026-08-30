@@ -136,6 +136,23 @@ what moved.
 
 ---
 
+## [0.17.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.2...v0.17.0) (2026-08-30)
+
+
+### Added
+
+* **corpus:** embed the corpus and propose the edges between claims ([41d5886](https://github.com/Die-Namic-Systems/Nestor/commit/41d5886a6df0fa82ea1065a6104b4f8602b43d5c))
+* **corpus:** every session log in the box, through the lens, into the corpus ([1f2db5e](https://github.com/Die-Namic-Systems/Nestor/commit/1f2db5efa4c00d8d153033e52db0d4e0b837fa0d))
+* **corpus:** feed the box into the corpus, then find the edges between claims ([#263](https://github.com/Die-Namic-Systems/Nestor/issues/263)) ([2427063](https://github.com/Die-Namic-Systems/Nestor/commit/2427063dd51cff79ac811aadb4d28aeb8fa295ff))
+* **corpus:** four extractors for the structure the box already had ([4674ace](https://github.com/Die-Namic-Systems/Nestor/commit/4674acea265c64822f663729af1874d8062da6e7))
+* **corpus:** name every category the refresh driver can report ([8498aa1](https://github.com/Die-Namic-Systems/Nestor/commit/8498aa18314be5e4b0d0e5058f2e7b0d5ca3a9a4))
+
+
+### Fixed
+
+* **corpus:** foreign authorship is not a reason to exclude ([77f01d0](https://github.com/Die-Namic-Systems/Nestor/commit/77f01d0e96c01e1ac68cfeab81f699087ad56ef7))
+* **corpus:** one static query for corpus_links, not an assembled clause ([2854abb](https://github.com/Die-Namic-Systems/Nestor/commit/2854abbc236afff0ea1c0b066e99822f4652505f))
+
 ## [0.16.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.1...v0.16.2) (2026-08-29)
 
 
