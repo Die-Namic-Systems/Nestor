@@ -711,33 +711,37 @@ def corpus_links(db: str | Path, *, claim_id: str = "", kind: str = "",
     is empty until a person ratifies it. The machine proposes; it does not
     confirm.
     """
-    where, args = [], []
-    if claim_id:
-        where.append("(e.src_id = ? OR e.dst_id = ?)")
-        args += [claim_id, claim_id]
-    if kind:
-        where.append("e.kind = ?")
-        args.append(kind)
-    if repository:
-        where.append("(a.repository = ? OR b.repository = ?)")
-        args += [repository, repository]
-    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    # One static query with optional predicates, rather than a WHERE clause
+    # assembled from parts. The assembled version parameterised every value
+    # correctly and was still the wrong shape: a reader has to reconstruct which
+    # branches ran to know what was asked, and bandit B608 cannot tell a safe
+    # concatenation from an unsafe one -- neither can a reviewer at a glance.
+    # An empty filter matching everything is expressed in SQL, so the text
+    # executed is the same text every time.
+    sql = (
+        "SELECT e.kind, e.score, e.reason, e.verifier, "
+        "       a.id a_id, a.repository a_repo, a.source_text a_src, "
+        "       a.target_text a_tgt, a.origin a_origin, "
+        "       b.id b_id, b.repository b_repo, b.source_text b_src, "
+        "       b.target_text b_tgt, b.origin b_origin "
+        "FROM corpus_edges e "
+        "JOIN corpus_claims a ON a.id = e.src_id "
+        "JOIN corpus_claims b ON b.id = e.dst_id "
+        "WHERE (:claim_id = '' OR e.src_id = :claim_id OR e.dst_id = :claim_id) "
+        "  AND (:kind = '' OR e.kind = :kind) "
+        "  AND (:repository = '' OR a.repository = :repository "
+        "       OR b.repository = :repository) "
+        "ORDER BY e.score DESC, e.id LIMIT :limit"
+    )
 
     conn = sqlite3.connect(str(db))
     conn.row_factory = sqlite3.Row
     try:
         totals = {row["kind"]: row["n"] for row in conn.execute(
             "SELECT kind, count(*) n FROM corpus_edges GROUP BY kind")}
-        rows = conn.execute(
-            "SELECT e.kind, e.score, e.reason, e.verifier, "
-            "       a.id a_id, a.repository a_repo, a.source_text a_src, a.target_text a_tgt, "
-            "       a.origin a_origin, "
-            "       b.id b_id, b.repository b_repo, b.source_text b_src, b.target_text b_tgt, "
-            "       b.origin b_origin "
-            "FROM corpus_edges e "
-            "JOIN corpus_claims a ON a.id = e.src_id "
-            "JOIN corpus_claims b ON b.id = e.dst_id"
-            f"{clause} ORDER BY e.score DESC, e.id LIMIT ?", (*args, limit)).fetchall()
+        rows = conn.execute(sql, {"claim_id": claim_id, "kind": kind,
+                                  "repository": repository,
+                                  "limit": limit}).fetchall()
     finally:
         conn.close()
 
