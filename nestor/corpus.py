@@ -71,6 +71,40 @@ CREATE INDEX IF NOT EXISTS idx_corpus_claims_key
     ON corpus_claims(source_norm, source_lang, target_lang);
 CREATE INDEX IF NOT EXISTS idx_corpus_claims_repository
     ON corpus_claims(repository);
+CREATE TABLE IF NOT EXISTS corpus_embeddings (
+    claim_id   TEXT NOT NULL,
+    model_name TEXT NOT NULL,
+    source_sha TEXT NOT NULL,
+    embedding  BLOB NOT NULL,
+    PRIMARY KEY (claim_id, model_name)
+);
+CREATE INDEX IF NOT EXISTS idx_corpus_embeddings_sha
+    ON corpus_embeddings(source_sha);
+-- Corpus-lane embeddings. Deliberately NOT ``tm_embeddings``: that table's
+-- pair_id is a foreign key into ``tm_pairs``, where every row is a human seal,
+-- and a corpus claim is a draft that nobody verified. Sharing the table would
+-- put unverified vectors in the seal store's namespace, which is the collapse
+-- the two lanes exist to prevent. ``source_sha`` is over the embedded text, so
+-- a re-extraction that changes a claim's wording invalidates its vector and a
+-- re-run notices; one that does not, costs nothing.
+CREATE TABLE IF NOT EXISTS corpus_edges (
+    id         TEXT PRIMARY KEY,
+    src_id     TEXT NOT NULL,
+    dst_id     TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    score      REAL NOT NULL DEFAULT 0.0,
+    reason     TEXT NOT NULL DEFAULT '',
+    verifier   TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_corpus_edges_src ON corpus_edges(src_id, kind);
+CREATE INDEX IF NOT EXISTS idx_corpus_edges_dst ON corpus_edges(dst_id, kind);
+CREATE INDEX IF NOT EXISTS idx_corpus_edges_kind ON corpus_edges(kind, score);
+-- Edges between corpus claims, and separate from ``decision_edges`` for the
+-- same reason: that table holds edges between things a human sealed, and these
+-- are proposals over draft rows. ``verifier`` is empty until a person ratifies
+-- one, so the covenant holds by construction -- the machine may propose an
+-- edge and may not confirm it.
 CREATE VIRTUAL TABLE IF NOT EXISTS corpus_claims_fts USING fts5(
     claim_id UNINDEXED,
     source_text,
@@ -649,3 +683,88 @@ class CorpusRetriever:
             claims=tuple(selected),
             semantic_error=semantic_error,
         )
+
+
+def corpus_links(db: str | Path, *, claim_id: str = "", kind: str = "",
+                 repository: str = "", limit: int = 10) -> dict:
+    """Proposed links between corpus claims. Nothing here is verified.
+
+    The corpus keys on the *source*, which for code is a file path, so the only
+    agreement it could ever see was two repositories sharing a filename. Its
+    widest such "agreement" was one almanac template copied twelve times.
+    Meanwhile ``willow-mcp`` and ``UTETY`` had both written the hash-chain
+    invariant, and ``Forge`` and ``willow-gate`` had both written
+    ``friction_score``, and the store could not be asked.
+
+    Three kinds, because *these two say the same thing* hides three different
+    facts and a graph that cannot tell them apart is noise:
+
+    ``copy``
+        Same normalised source key. A template, a vendored file.
+    ``lineage``
+        An authored family or a tombstone successor chain — one idea travelling.
+    ``convergence``
+        Different key, unrelated repositories, similar meaning. The only kind
+        that is evidence of anything.
+
+    Every row is returned with ``authority: "none"`` and its ``verifier``, which
+    is empty until a person ratifies it. The machine proposes; it does not
+    confirm.
+    """
+    # One static query with optional predicates, rather than a WHERE clause
+    # assembled from parts. The assembled version parameterised every value
+    # correctly and was still the wrong shape: a reader has to reconstruct which
+    # branches ran to know what was asked, and bandit B608 cannot tell a safe
+    # concatenation from an unsafe one -- neither can a reviewer at a glance.
+    # An empty filter matching everything is expressed in SQL, so the text
+    # executed is the same text every time.
+    sql = (
+        "SELECT e.kind, e.score, e.reason, e.verifier, "
+        "       a.id a_id, a.repository a_repo, a.source_text a_src, "
+        "       a.target_text a_tgt, a.origin a_origin, "
+        "       b.id b_id, b.repository b_repo, b.source_text b_src, "
+        "       b.target_text b_tgt, b.origin b_origin "
+        "FROM corpus_edges e "
+        "JOIN corpus_claims a ON a.id = e.src_id "
+        "JOIN corpus_claims b ON b.id = e.dst_id "
+        "WHERE (:claim_id = '' OR e.src_id = :claim_id OR e.dst_id = :claim_id) "
+        "  AND (:kind = '' OR e.kind = :kind) "
+        "  AND (:repository = '' OR a.repository = :repository "
+        "       OR b.repository = :repository) "
+        "ORDER BY e.score DESC, e.id LIMIT :limit"
+    )
+
+    conn = sqlite3.connect(str(db))
+    conn.row_factory = sqlite3.Row
+    try:
+        totals = {row["kind"]: row["n"] for row in conn.execute(
+            "SELECT kind, count(*) n FROM corpus_edges GROUP BY kind")}
+        rows = conn.execute(sql, {"claim_id": claim_id, "kind": kind,
+                                  "repository": repository,
+                                  "limit": limit}).fetchall()
+    finally:
+        conn.close()
+
+    return {
+        "authority": "none",
+        "totals": totals,
+        "kinds": {
+            "copy": "same source key in two repositories — evidence of nothing",
+            "lineage": "an authored family or successor chain — one idea travelling",
+            "convergence": "different key, unrelated repositories — independent arrival",
+        },
+        "selected_count": len(rows),
+        "links": [
+            {
+                "kind": r["kind"],
+                "score": round(r["score"], 4),
+                "verifier": r["verifier"],
+                "verified": bool(r["verifier"]),
+                "reason": r["reason"],
+                "a": {"id": r["a_id"], "repository": r["a_repo"],
+                      "at": r["a_src"], "says": r["a_tgt"], "origin": r["a_origin"]},
+                "b": {"id": r["b_id"], "repository": r["b_repo"],
+                      "at": r["b_src"], "says": r["b_tgt"], "origin": r["b_origin"]},
+            } for r in rows
+        ],
+    }

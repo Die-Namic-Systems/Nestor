@@ -518,6 +518,33 @@ class Server:
                     "inputSchema": {"type": "object", "properties": {}},
                 },
                 {
+                    "name": "nestor_corpus_links",
+                    "description":
+                        "What else in the corpus says this — proposed links between claims, "
+                        "never verified. Three kinds and they are not interchangeable: "
+                        "'copy' (the same source key in two repositories — a template or a "
+                        "vendored file, evidence of nothing), 'lineage' (an authored family "
+                        "or successor chain — one idea travelling), and 'convergence' "
+                        "(different key, unrelated repositories, similar meaning — the only "
+                        "kind that is evidence of independent arrival). Every row carries "
+                        "authority='none' and an empty verifier: a machine may propose a "
+                        "link and may not confirm one, and 'convergence' in particular is a "
+                        "claim a human settles by reading both sides.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "claim_id": {"type": "string",
+                                         "description": "a claim id from nestor_corpus_search; "
+                                                        "omit to survey the whole graph"},
+                            "kind": {"type": "string",
+                                     "description": "copy | lineage | convergence"},
+                            "repository": {"type": "string",
+                                           "description": "restrict to links touching this repository"},
+                            "limit": {"type": "integer", "description": "1..50; default 10"},
+                        },
+                    },
+                },
+                {
                     "name": "nestor_corpus_search",
                     "description":
                         "Look up unverified corpus excerpts by query, optionally scoped to "
@@ -697,6 +724,26 @@ class Server:
                 "repositories": [asdict(repository)
                                  for repository in mapping.repositories],
             }
+        if name == "nestor_corpus_links":
+            if self.corpus_retriever is None:
+                raise PermissionError(
+                    "nestor_corpus_links requires --corpus-dir; this server has no "
+                    "consolidated corpus attached")
+            claim_id = str(args.get("claim_id", "") or "").strip()
+            kind = str(args.get("kind", "") or "").strip()
+            repository = str(args.get("repository", "") or "").strip()
+            if kind and kind not in ("copy", "lineage", "convergence"):
+                raise ValueError(
+                    f"unknown kind {kind!r} — one of copy, lineage, convergence. "
+                    "Refused at the edge so a typo cannot silently return an empty "
+                    "graph that reads as 'nothing links here'.")
+            try:
+                limit = int(args.get("limit", 10) or 10)
+            except (TypeError, ValueError):
+                raise ValueError("limit must be an integer between 1 and 50") from None
+            limit = max(1, min(50, limit))
+            return corpus.corpus_links(self.corpus_retriever.path, claim_id=claim_id, kind=kind,
+                                repository=repository, limit=limit)
         if name == "nestor_corpus_search":
             if self.corpus_retriever is None:
                 raise PermissionError(

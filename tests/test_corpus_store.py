@@ -290,7 +290,12 @@ def test_full_local_corpus_sync_and_query_stay_bounded(tmp_path):
     )
     query_seconds = time.perf_counter() - query_started
 
-    assert report.sources == 24
+    # Floors, not equalities. This test bounds *time* over a realistically
+    # sized corpus; the corpus itself is meant to grow, and an exact source
+    # count turns every extraction into a failing test that says nothing about
+    # performance. `claims` was already a floor — `sources` was not, and broke
+    # the first time the box fed the store something new.
+    assert report.sources >= 24
     assert report.claims >= 9_000
     assert found.claims
     assert sync_seconds < 10.0
