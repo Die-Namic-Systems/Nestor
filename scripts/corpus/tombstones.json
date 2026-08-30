@@ -101,7 +101,7 @@
  },
  "_method_comment": "Sources that ARE read, but by a particular extractor. Not exclusions. A fork's unit is the delta because upstream would otherwise sit in the corpus twice -- that is deduplication, not a ban, and it was wrongly recorded as an exclusion on 2026-08-30.",
  "method": {
-  "hermes-agent": "extract_fork.py — a fork; read the delta, not the whole tree.",
-  "mcp-memory-service": "extract_fork.py — a fork; read the delta, not the whole tree."
+  "hermes-agent": "extract_fork.py --email rudi193@gmail.com — 2 operator commits over 7 files. The other 3,319 commits are upstream and are not this corpus's subject.",
+  "mcp-memory-service": "extract_fork.py --email rudi193@gmail.com — 2 operator commits over 24 files. Upstream is doobidoo/henry.krupp."
  }
 }
