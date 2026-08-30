@@ -1,27 +1,83 @@
 {
-  "version": 1,
-  "_comment": "Retired corpus repositories. See docs/corpus-order.md and the convention this reuses: safe-app-store-public/docs/conventions/tombstones.md. 'ended' is a closed enum and each shape has a required forward; refresh.py refuses a record that omits it.",
-  "tombstones": {
-    "willow-grove": {
-      "ended": "rebuilt",
-      "successor": "willows-grove",
-      "retired": "2026-08-27",
-      "reason": "The grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted. The identity was never retired -- only the repo and the registry id. Source: github/archive/RETIRE-grove-2026-08-27.md, which records the local move to ~/github-archive-grove-2026-08-27/willow-grove, the archival of both remotes, and the removal of the safe-app-willow-grove registry id.",
-      "carried": [
-        "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
-      ]
-    },
-    "willow": {
-      "ended": "merged",
-      "successor": "willows-grove",
-      "retired": "2026-08-27",
-      "reason": "The charter repo. Its content did not go to one place: the charter documents (CONSTITUTION.md, PROTECTED_AGENTS.md, PROTECTED_PERSONS.md, AGENT_SERVICES.md) and the governance/ tree were relocated 2026-08-28 to willows-grove/governance/, the watchman's seat; fleet.json had already gone to $WILLOW_HOME/fleet.json, mem_ratify/ to willow-mcp, seed/ to both. willows-grove is named as successor because it now holds the charter itself. Archive: ~/github-archive-willow-2026-08-27/willow. Both remotes (rudi193-cmd/Willow, willow-memory/Willow) are archived.",
-      "carried": [
-        "134 corpus claims remain under repository 'willow', pinned at willow@ba332ae - 100 of them CONSTITUTION.md, 28 PROTECTED_AGENTS.md. They describe the archived tree. willows-grove has never been extracted and holds 0 claims, so the charter's text is queryable only under the retired name until the successor is read.",
-        "envelopes/ deliberately stayed in the archive: its own MOVED.md records the default-path role moving to $WILLOW_HOME/constitutional/, and the archived pre-approved.json / syscall-table.json are the operator's real grants as of 2026-07-22 / 2026-07-06, kept as historical record.",
-        "design/ (2.8 MB), tools/, notes/ and soil/ were not relocated and remain archive-only.",
-        "FLEET_PLACEMENT_DRAFT.md carries two open items overtaken by the archival - a present-tense claim that the charter is on disk at willow-memory/willow (\u00a7490), and 'ratify transfer' as outstanding (\u00a7613). Left for the operator: amending a draft's open items is a ratification, not a path repair."
-      ]
-    }
+ "version": 1,
+ "_comment": "Retired corpus repositories. See docs/corpus-order.md and the convention this reuses: safe-app-store-public/docs/conventions/tombstones.md. 'ended' is a closed enum and each shape has a required forward; refresh.py refuses a record that omits it.",
+ "tombstones": {
+  "willow-grove": {
+   "ended": "rebuilt",
+   "successor": "willows-grove",
+   "retired": "2026-08-27",
+   "reason": "The grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted. The identity was never retired -- only the repo and the registry id. Source: github/archive/RETIRE-grove-2026-08-27.md, which records the local move to ~/github-archive-grove-2026-08-27/willow-grove, the archival of both remotes, and the removal of the safe-app-willow-grove registry id.",
+   "carried": [
+    "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
+   ]
+  },
+  "willow": {
+   "ended": "merged",
+   "successor": "willows-grove",
+   "retired": "2026-08-27",
+   "reason": "The charter repo. Its content did not go to one place: the charter documents (CONSTITUTION.md, PROTECTED_AGENTS.md, PROTECTED_PERSONS.md, AGENT_SERVICES.md) and the governance/ tree were relocated 2026-08-28 to willows-grove/governance/, the watchman's seat; fleet.json had already gone to $WILLOW_HOME/fleet.json, mem_ratify/ to willow-mcp, seed/ to both. willows-grove is named as successor because it now holds the charter itself. Archive: ~/github-archive-willow-2026-08-27/willow. Both remotes (rudi193-cmd/Willow, willow-memory/Willow) are archived.",
+   "carried": [
+    "134 corpus claims remain under repository 'willow', pinned at willow@ba332ae - 100 of them CONSTITUTION.md, 28 PROTECTED_AGENTS.md. They describe the archived tree. willows-grove has never been extracted and holds 0 claims, so the charter's text is queryable only under the retired name until the successor is read.",
+    "envelopes/ deliberately stayed in the archive: its own MOVED.md records the default-path role moving to $WILLOW_HOME/constitutional/, and the archived pre-approved.json / syscall-table.json are the operator's real grants as of 2026-07-22 / 2026-07-06, kept as historical record.",
+    "design/ (2.8 MB), tools/, notes/ and soil/ were not relocated and remain archive-only.",
+    "FLEET_PLACEMENT_DRAFT.md carries two open items overtaken by the archival - a present-tense claim that the charter is on disk at willow-memory/willow (§490), and 'ratify transfer' as outstanding (§613). Left for the operator: amending a draft's open items is a ratification, not a path repair."
+   ]
+  },
+  "willow-2.0": {
+   "ended": "rebuilt",
+   "successor": "willow-mcp",
+   "retired": "2026-08-19",
+   "reason": "The fleet-dev monolith. Archived on GitHub 2026-08-19 and kept locally at ~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0 -- clean, 52,320 files, extracted 2026-08-30. Its platform half became willow-mcp; several tools did not travel and have no successor yet, notably apps/ratatosk (a capability-gated phone + desktop runtime: doctor/listen/explain/panic, termux boot scripts, a systemd listener) and scripts/gitsync/gitsync-loop.py (the whole-tree sync on a timer that the 2026-07-20 box map assumed and which no longer runs). Recorded so the code stays findable: the repo ended, the tools did not necessarily end with it."
+  },
+  "willow-canonical": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "The canonical-home experiment. Archived in the 2026-08-10 greenfield and kept at ~/github-archive-greenfield-2026-08-10. Extracted 2026-08-30 from the local archive, 2002 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "willow-1.9": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "The generation before willow-2.0. Archived in the 2026-08-10 greenfield; kept for lineage, not for use. Extracted 2026-08-30 from the local archive, 1339 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "willow-compose": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "Held the repatriation/compose thinking. The willow_compose database it assumed has never existed on this box. Extracted 2026-08-30 from the local archive, 36 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "willow-nest": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "An early Nest. The live Nest is willow-mcp's nest/ intake. Extracted 2026-08-30 from the local archive, 35 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "safe-design": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "Design notes predating safe-app-store-public. Extracted 2026-08-30 from the local archive, 34 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "openclaw-sap-gate": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "A gate experiment against openclaw, which is a third-party upstream and is deliberately not in this corpus. Extracted 2026-08-30 from the local archive, 35 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "quiet-corner": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "Named by voices_seed2.py as a writing source and reported by a standing plan as not present at all. It is present, in the greenfield archive. Extracted 2026-08-30 from the local archive, 90 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "claude-deep-review": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "A review tool from before the fleet's own review path. Extracted 2026-08-30 from the local archive, 260 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "awesome-claude-skills": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "A list repo. Kept distinct from awesome-sovereign-software, which is live under homestead-affairs. Extracted 2026-08-30 from the local archive, 1255 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "kartikeya-work": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "A working clone of kartikeya. The live checkout is willow-memory/kartikeya; this one is history. Extracted 2026-08-30 from the local archive, 121 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
   }
+ }
 }
