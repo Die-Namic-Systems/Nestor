@@ -200,6 +200,63 @@ _END_SHAPES = {
 TOMBSTONES = pathlib.Path(__file__).resolve().parent / "tombstones.json"
 
 
+
+def excluded(path: pathlib.Path | None = None) -> dict[str, str]:
+    """Repositories never to be extracted, by operator decision.
+
+    Authored like ``tombstones`` and for the same reason, but a different claim.
+    A tombstone says a repository **ended**; an exclusion says a present, often
+    live thing is **not this corpus's to hold** — ``.willow`` is a running box,
+    ``textual`` is somebody else's library, ``hermes-agent`` is a fork whose unit
+    is the delta.
+
+    ``docs/corpus-order.md`` has carried these in a prose table since the corpus
+    began and nothing has ever read it, which is the failure mode that document
+    warns about in its own first paragraph: *an exception agreed in conversation
+    and not written down is one a later session will silently undo*. It was
+    written down and still undone, because it was written where only a human
+    looks. This is the copy the driver reads.
+    """
+    path = path or TOMBSTONES
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out = {}
+    for name, reason in (data.get("excluded") or {}).items():
+        if not str(reason).strip():
+            raise ValueError(f"{path}: excluded {name!r} needs a reason — "
+                             "an exclusion with no reason is indistinguishable from an oversight")
+        out[name] = str(reason)
+    return out
+
+
+def derived(path: pathlib.Path | None = None) -> dict[str, str]:
+    """Sources with no checkout, keyed to the command that regenerates them.
+
+    A third authored category, and the newest. ``sessions``, ``decisions``,
+    ``app-manifests`` and the ``gh-*`` sources are read out of session logs,
+    decision records, manifests and the GitHub API — none of which is a
+    repository, so the checkout scan cannot find one and every run reports *no
+    checkout named X*.
+
+    That is the refusal-list decay this driver already guards against in the
+    other direction (0221): entries nobody can act on, accumulating until the
+    list stops being read. The value here is the regeneration command rather
+    than a forwarding pointer, because the honest answer to "how do I refresh
+    this" is not *where did it go* but *run this*.
+    """
+    path = path or TOMBSTONES
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out = {}
+    for name, cmd in (data.get("derived") or {}).items():
+        if not str(cmd).strip():
+            raise ValueError(f"{path}: derived {name!r} needs the command that regenerates it")
+        out[name] = str(cmd)
+    return out
+
+
 def tombstones(path: pathlib.Path | None = None) -> dict[str, dict]:
     """Repositories recorded as retired, keyed by ``corpus_claims.repository``.
 
@@ -293,6 +350,9 @@ def main() -> int:
 
     known = extractors()
     retired = tombstones()
+    skip = excluded()
+    made = derived()
+    n_derived = n_excluded = 0
     ready: list[tuple[Row, pathlib.Path, pathlib.Path]] = []
     refused: list[tuple[Row, str]] = []
     laid_to_rest: list[tuple[Row, dict]] = []
@@ -302,6 +362,16 @@ def main() -> int:
         # Looking for a checkout that is recorded as gone, and then reporting
         # its absence as a failure, is how a refusal list fills with entries
         # nobody can act on.
+        if row.repository in made:
+            print(f"  {row.repository:<24} {row.commit:<9} {'\u2014':<9} {'\u2014':>6}  "
+                  f"{'DERIVED':<24} {made[row.repository]}")
+            n_derived += 1
+            continue
+        if row.repository in skip:
+            print(f"  {row.repository:<24} {row.commit:<9} {'\u2014':<9} {'\u2014':>6}  "
+                  f"{'EXCLUDED':<24} {skip[row.repository][:60]}")
+            n_excluded += 1
+            continue
         record = retired.get(row.repository)
         if record is not None:
             forward = record.get("successor") or record.get("reason") or ""
@@ -341,7 +411,12 @@ def main() -> int:
         print(f"  {row.repository:<24} {row.commit:<9} {'—':<9} {'—':>6}  REFUSED: {reason}")
         refused.append((row, reason))
 
-    rest = f", {len(laid_to_rest)} retired" if laid_to_rest else ""
+    # Every category is named. A tally that reports only ready/refused makes an
+    # excluded or derived source look like a failure, which is how a refusal list
+    # earns being skipped.
+    rest = "".join(f", {n} {label}" for n, label in (
+        (len(laid_to_rest), "retired"), (n_derived, "derived"), (n_excluded, "excluded"))
+        if n)
     print(f"\n{len(ready)} ready, {len(refused)} refused{rest}")
     if args.dry_run:
         print("dry run — nothing extracted, nothing synced")
