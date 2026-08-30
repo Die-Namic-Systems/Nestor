@@ -1,27 +1,32 @@
 {
-  "version": 1,
-  "_comment": "Retired corpus repositories. See docs/corpus-order.md and the convention this reuses: safe-app-store-public/docs/conventions/tombstones.md. 'ended' is a closed enum and each shape has a required forward; refresh.py refuses a record that omits it.",
-  "tombstones": {
-    "willow-grove": {
-      "ended": "rebuilt",
-      "successor": "willows-grove",
-      "retired": "2026-08-27",
-      "reason": "The grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted. The identity was never retired -- only the repo and the registry id. Source: github/archive/RETIRE-grove-2026-08-27.md, which records the local move to ~/github-archive-grove-2026-08-27/willow-grove, the archival of both remotes, and the removal of the safe-app-willow-grove registry id.",
-      "carried": [
-        "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
-      ]
-    },
-    "willow": {
-      "ended": "merged",
-      "successor": "willows-grove",
-      "retired": "2026-08-27",
-      "reason": "The charter repo. Its content did not go to one place: the charter documents (CONSTITUTION.md, PROTECTED_AGENTS.md, PROTECTED_PERSONS.md, AGENT_SERVICES.md) and the governance/ tree were relocated 2026-08-28 to willows-grove/governance/, the watchman's seat; fleet.json had already gone to $WILLOW_HOME/fleet.json, mem_ratify/ to willow-mcp, seed/ to both. willows-grove is named as successor because it now holds the charter itself. Archive: ~/github-archive-willow-2026-08-27/willow. Both remotes (rudi193-cmd/Willow, willow-memory/Willow) are archived.",
-      "carried": [
-        "134 corpus claims remain under repository 'willow', pinned at willow@ba332ae - 100 of them CONSTITUTION.md, 28 PROTECTED_AGENTS.md. They describe the archived tree. willows-grove has never been extracted and holds 0 claims, so the charter's text is queryable only under the retired name until the successor is read.",
-        "envelopes/ deliberately stayed in the archive: its own MOVED.md records the default-path role moving to $WILLOW_HOME/constitutional/, and the archived pre-approved.json / syscall-table.json are the operator's real grants as of 2026-07-22 / 2026-07-06, kept as historical record.",
-        "design/ (2.8 MB), tools/, notes/ and soil/ were not relocated and remain archive-only.",
-        "FLEET_PLACEMENT_DRAFT.md carries two open items overtaken by the archival - a present-tense claim that the charter is on disk at willow-memory/willow (\u00a7490), and 'ratify transfer' as outstanding (\u00a7613). Left for the operator: amending a draft's open items is a ratification, not a path repair."
-      ]
-    }
+ "version": 1,
+ "_comment": "Retired corpus repositories. See docs/corpus-order.md and the convention this reuses: safe-app-store-public/docs/conventions/tombstones.md. 'ended' is a closed enum and each shape has a required forward; refresh.py refuses a record that omits it.",
+ "tombstones": {
+  "willow-grove": {
+   "ended": "rebuilt",
+   "successor": "willows-grove",
+   "retired": "2026-08-27",
+   "reason": "The grove was rebuilt as willows-grove, which carries the Heimdallr identity the old repo hosted. The identity was never retired -- only the repo and the registry id. Source: github/archive/RETIRE-grove-2026-08-27.md, which records the local move to ~/github-archive-grove-2026-08-27/willow-grove, the archival of both remotes, and the removal of the safe-app-willow-grove registry id.",
+   "carried": [
+    "693 corpus claims remain under the repository name 'willow-grove', extracted as 'safe-app-willow-grove'. They describe the retired tree and are NOT claims about willows-grove, which has never been extracted and holds 0 claims."
+   ]
+  },
+  "willow": {
+   "ended": "merged",
+   "successor": "willows-grove",
+   "retired": "2026-08-27",
+   "reason": "The charter repo. Its content did not go to one place: the charter documents (CONSTITUTION.md, PROTECTED_AGENTS.md, PROTECTED_PERSONS.md, AGENT_SERVICES.md) and the governance/ tree were relocated 2026-08-28 to willows-grove/governance/, the watchman's seat; fleet.json had already gone to $WILLOW_HOME/fleet.json, mem_ratify/ to willow-mcp, seed/ to both. willows-grove is named as successor because it now holds the charter itself. Archive: ~/github-archive-willow-2026-08-27/willow. Both remotes (rudi193-cmd/Willow, willow-memory/Willow) are archived.",
+   "carried": [
+    "134 corpus claims remain under repository 'willow', pinned at willow@ba332ae - 100 of them CONSTITUTION.md, 28 PROTECTED_AGENTS.md. They describe the archived tree. willows-grove has never been extracted and holds 0 claims, so the charter's text is queryable only under the retired name until the successor is read.",
+    "envelopes/ deliberately stayed in the archive: its own MOVED.md records the default-path role moving to $WILLOW_HOME/constitutional/, and the archived pre-approved.json / syscall-table.json are the operator's real grants as of 2026-07-22 / 2026-07-06, kept as historical record.",
+    "design/ (2.8 MB), tools/, notes/ and soil/ were not relocated and remain archive-only.",
+    "FLEET_PLACEMENT_DRAFT.md carries two open items overtaken by the archival - a present-tense claim that the charter is on disk at willow-memory/willow (§490), and 'ratify transfer' as outstanding (§613). Left for the operator: amending a draft's open items is a ratification, not a path repair."
+   ]
+  },
+  "willow-config": {
+   "ended": "retired",
+   "retired": "2026-08-30",
+   "reason": "Cut by operator decision. The repository still exists on GitHub as rudi193-cmd/willow-config (private) and was pushed 2026-08-28, and it still contains mcp_apps/ manifests, constitutional/pre-approved.json and a validate workflow -- none of which makes it live. It is NOT a source of truth and is not to be read for configuration, manifests, or fleet state. It points nowhere deliberately: this is a cut, not a rebuild or a merge, and no successor inherits it. Recorded because a present repository with a recent push is indistinguishable from a live one unless the decision is written down -- the same reason an absent checkout is not evidence of retirement. scripts/corpus/extract_willow_config.py is a dead extractor and must not be run. Prior sessions have twice reported this repo as live on the strength of its pushedAt timestamp; that is API state, not an operator decision."
   }
+ }
 }
