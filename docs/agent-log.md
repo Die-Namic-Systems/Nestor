@@ -7641,6 +7641,57 @@ drift-guard. **Status of this proposal: hypothesis.** Nothing has been built or
 measured against it; the registries' coverage of the misfiled pairs above has
 not been checked.
 
+**Coverage measured 2026-08-31 — the hypothesis is half right, and the priority
+was inverted.** Tallying the 15 sampled convergence rows against each candidate
+mechanism:
+
+| mechanism | catches | share |
+| --- | --- | --- |
+| provenance stated in the **module docstring** | 7 | **47%** |
+| the **vendor-sync registries** (the proposal above) | 3 | 20% |
+| both combined (they overlap on `subject_consent`) | 8 | 53% |
+| **template / org-default propagation** — neither touches it | 5 | **33%** |
+
+Two corrections to the falsification above, which was itself too broad.
+
+**The provenance signal is not absent; it is inconsistently placed.** The Forge
+writes its vendor note as a `#` comment block *above* the module docstring, so
+the extractor drops it — that part stands. But UTETY and Jeles write theirs
+*inside* the docstring, where it is extracted and fully searchable. Both return
+at `query_coverage 1.0`:
+
+- `utety/core/mastery.py` — *"A dependency-free **vendored copy** of the
+  inference path of the fleet's `core/bkt.py`… it does not import the fleet's
+  Python across the repo boundary."*
+- `jeles/sources.py` — *"**Originally** `jeles-remote/sources.py`, itself
+  **ported from** willow-2.0's `core/jeles_sources.py`."* Several functions in
+  that file add *"Ported from willow-2.0 (#649)"*, *"tracked it as #646/#647"*.
+
+**And the authors already distinguish the two relations in prose.** UTETY says
+*vendored copy* — a `copy`, no descent, and UTETY is not kin to willow-2.0.
+Jeles says *originally X, itself ported from Y* — a successor chain, willow-2.0
+→ `jeles-remote` → Jeles, which is `lineage`. Writing `UTETY -> willow` into
+`families` would be the false-lineage trade this entry warns against; writing
+`Jeles -> willow` would be correct. **The distinction the taxonomy needs is
+already authored, in the corpus, in the authors' own words — just unstructured.**
+
+**The largest single class is one neither proposal addresses.** Five of fifteen
+are template and org-default propagation: a shared `pull_request_template.md`, a
+`SUPPORT.md` community-health default, and release-wiring tests copied between
+homestead, homestead-health and Jeles. These are `copy` in substance at
+different paths in unrelated orgs. That is this module's founding case — *"one
+almanac template copied twelve times"* — solved for the same-path form and still
+misfiling in the different-path form.
+
+**So the revised proposal, ordered by measured coverage rather than by which
+idea came first:** (1) key a fourth kind on docstring-stated provenance,
+distinguishing *vendored/copied* from *ported/originally*, since the vocabulary
+is already there; (2) treat template propagation as its own relation, not a
+convergence; (3) read the vendor registries for the files whose note sits in a
+comment block the extractor never sees, and consider asking the Forge to move
+its note into the docstring so (1) covers it. **Still hypothesis** — nothing is
+built, and the 15-row sample is a sample.
+
 **What is not claimed.** Not every `convergence` row is wrong. `subject_consent`
 (willow-mcp ↔ UTETY) narrates genuine independent need in its own docstring — *"a
 gap designed twice and built zero times"* — and is a real arrival. The defect is
