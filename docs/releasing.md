@@ -105,11 +105,12 @@ mention the filename.
 moved from `rudi193-cmd/Nestor` into the `Die-Namic-Systems` organisation. A
 GitHub transfer redirects clones and web links, but PyPI's Trusted Publishing
 check is on the OIDC claim, not on a redirect: a publisher still registered
-against the old owner rejects the upload. This is unverified from inside the
-repository — nothing in this tree can read PyPI's configuration — so before the
-next tag, open <https://pypi.org/manage/projects/> and confirm the publisher
-reads `Die-Namic-Systems`. The failure mode if it does not is a tag that builds
-green and never uploads.
+against the old owner rejects the upload, with a tag that builds green and
+never uploads. The publisher was re-pointed to `Die-Namic-Systems` (operator,
+2026-09-01) — recorded here rather than left implicit, because nothing in this
+tree can read PyPI's configuration to check it. If an upload ever fails
+authentication after an owner or rename change, this table is the first place
+to look.
 
 **A pending publisher claims the name.** Registering one creates the PyPI
 project immediately, with zero release files — so the name stops being available

@@ -32,6 +32,12 @@ README = (ROOT / "README.md").read_text(encoding="utf-8")
 #: was trimmed to a front door it moved here, and the two drift gates below moved
 #: with it — the gate is the same assertion, read at the manifest's new home.
 LAYOUT = (ROOT / "docs" / "project-layout.md").read_text(encoding="utf-8")
+#: The long-form half. The README was trimmed to a front door once before (see
+#: LAYOUT above) and grew back to 878 lines of introductions; the second trim
+#: moved eleven sections here verbatim, anchors and all. Two gates below read
+#: this instead of README because the content they check came with it — the
+#: runnable examples stayed behind in Quick start, the server's refusal did not.
+MANUAL = (ROOT / "docs" / "manual.md").read_text(encoding="utf-8")
 #: Root-level markdown, plus the nested docs that carry operating rules rather
 #: than prose. `docs/agent-guide.md` is here because 263 lines moved out of
 #: `CLAUDE.md` into it, and a corpus built from `ROOT.glob("*.md")` alone
@@ -60,7 +66,12 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
                 # local-fleet.md documents the sibling-checkout overrides
                 # (WILLOW_CHARTER_REPO, WILLOW_CONSTITUTION_CASES, WILLOW_20_REPO)
                 # that _fleet_paths.py reads.
-                "docs/local-fleet.md")}
+                "docs/local-fleet.md",
+                # The eleven sections the second README trim moved out, and the
+                # page that indexes what is kept but does not ship. Both are
+                # here for the reason every entry above is: content that leaves
+                # the scanned corpus stops being link-checked, silently.
+                "docs/manual.md", "docs/build-record.md")}
 
 
 def slugify(heading: str) -> str:
@@ -386,8 +397,11 @@ def test_the_readme_documents_the_warning_the_quick_start_emits():
     assert "RuntimeWarning" in README and "NESTOR_SEAL_KEY" in README
 
 
-def test_the_readme_quotes_the_servers_refusal_verbatim():
+def test_the_manual_quotes_the_servers_refusal_verbatim():
     """It is printed as a transcript, so it has to be one.
+
+    Lived in the README until the second front-door trim; the assertion did not
+    change, only the file it reads.
 
     A quoted refusal that drifts from the real message is the same failure as a
     stale test count, with worse consequences: this is the sentence that tells a
@@ -400,5 +414,5 @@ def test_the_readme_quotes_the_servers_refusal_verbatim():
         server.call("nestor_seal", {})
     except PermissionError as exc:
         actual = " ".join(str(exc).split())
-    quoted = " ".join(README.split("PermissionError:", 1)[1].split("```", 1)[0].split())
-    assert quoted == actual, f"README quotes:\n{quoted}\nthe server says:\n{actual}"
+    quoted = " ".join(MANUAL.split("PermissionError:", 1)[1].split("```", 1)[0].split())
+    assert quoted == actual, f"the manual quotes:\n{quoted}\nthe server says:\n{actual}"

@@ -1,12 +1,12 @@
 # Why the numbers are published
 
-*The argument behind the [Accuracy](../README.md#accuracy-and-how-to-measure-yours)
+*The argument behind the [Accuracy](manual.md#accuracy-and-how-to-measure-yours)
 section: why a measured false-verification rate lives in the README rather than a
 better adjective. Linked from there.*
 
 ---
 
-The [README](../README.md#accuracy-and-how-to-measure-yours) admits a failure
+The [manual](manual.md#accuracy-and-how-to-measure-yours) admits a failure
 rate, in public. That is deliberate, and it is the point of the section rather
 than a caveat attached to it.
 

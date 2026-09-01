@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 229,
+    "pairs": 232,
     "rejections": 0,
     "sealed": 229,
     "servable": 229,
     "warrants": 0
   },
-  "created_at": "2026-08-31T00:00:00+00:00",
-  "digest": "d132badf7b6cc87d39852174e6caa5641768740d36d7f755e78b1a89e5cba336",
+  "created_at": "2026-09-01T00:00:00+00:00",
+  "digest": "49ecb08368cb49193df872b4a20d15cfd83cf20252a54940ec68f40d5dd73eed",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "9287cc3e-8d7e-5f8e-aaf8-fbc4900a2108",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what has to move with content that leaves the readme",
+      "source_text": "What has to move with content that leaves the README?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Its gates. tests/test_docs.py reads README at module scope and asserts against it; two of those assertions were about content that moved. docs/manual.md and docs/build-record.md were added to the DOCS corpus so they stay link-checked, a MANUAL constant was added beside README and LAYOUT, and test_the_readme_quotes_the_servers_refusal_verbatim was renamed to test_the_manual_quotes_... and repointed, because the PermissionError transcript it compares against nestor.serve went to the manual. The runnable-example gate stayed on README, unchanged, because the single 'Save this as `demo.py`' block is in Quick start and Quick start did not move.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "880cfe35-048e-5488-bb87-cb6769ea3f0c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the longform readme content go on a second frontdoor trim into one manual or into topic files per section",
+      "source_text": "Where does the long-form README content go on a second front-door trim — into one manual, or into topic files per section?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One file: docs/manual.md, holding the eleven sections from 'The Matcher seam' through 'Accuracy' verbatim, in their original order, with their heading text unchanged so every anchor slug survives. README drops from 878 lines to 298 and gains a 'Going further' table that routes by task rather than by feature name. The first trim distributed content to topic files (project-layout.md, matcher-seam.md, frank.md, storage-protocol.md, accuracy.md, home-paths.md) and those files stay; they are companions that go deeper than the manual's introduction, and each is linked from its section. What did NOT get another topic file is the material that had no home to go back to.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "4af42b6b-c719-592f-b074-15fb6fa4ff72",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the build record ideasmd dogfood agentlogmd archive audits bench scriptscorpus hooks be deleted moved to another repository or kept and labelled",
+      "source_text": "Should the build record — IDEAS.md, dogfood/, agent-log.md, archive/, audits/, bench/, scripts/corpus/, hooks/ — be deleted, moved to another repository, or kept and labelled?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Kept and labelled. docs/build-record.md draws the line, states that none of it ships (the wheel is nestor/ and the sdist adds tests/ plus four root files, both named explicitly in pyproject.toml), indexes each part with its size and what it is, and routes by the question a reader is actually asking. It closes with a section on what the record does NOT establish: that the numbers generalise, that the decisions had a second reader, or that a sealed pair is still current.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-31T00:00:00+00:00",
       "id": "e5939824-2f3b-5798-abde-0a1daa57b3c9",
@@ -3234,7 +3276,7 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": true
+    "enabled": false
   },
   "warrants": []
 }

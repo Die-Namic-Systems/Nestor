@@ -1,6 +1,6 @@
 # The Matcher seam — in depth
 
-*The [README](../README.md#the-matcher-seam) introduces the `Matcher` protocol and
+*The [manual](manual.md#the-matcher-seam) introduces the `Matcher` protocol and
 the shipped matchers. This is the rest: how the embedding cache is signed, and
 why a domain is its tags **and** its matcher. Both were measured, not
 anticipated.*
