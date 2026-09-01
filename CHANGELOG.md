@@ -136,6 +136,13 @@ what moved.
 
 ---
 
+## [0.18.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.0...v0.18.1) (2026-09-01)
+
+
+### Fixed
+
+* **tests:** isolate cloud_seal import check in a subprocess. ([840c82e](https://github.com/Die-Namic-Systems/Nestor/commit/840c82e2468a6dbc948a46d5357a8a18d0564b32))
+
 ## [0.18.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.17.0...v0.18.0) (2026-09-01)
 
 
