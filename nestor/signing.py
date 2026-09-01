@@ -200,17 +200,64 @@ def seal_attribution(source_norm: str, target_text: str, verifier: str,
 def verifier_key_type(verifier: str) -> str:
     """The key type behind a verifier's name — for surfaces (Nestor#17).
 
-    ``"hmac"`` / ``"ed25519"`` (their keyring entry), ``"shared"`` (no
-    keyring, deployment-wide NESTOR_SEAL_KEY), ``"unsigned"`` (signing off),
-    ``"unknown"`` (keyring installed, name not in it). "Signed by rita's
-    HMAC" and "signed by rita's key" are different claims, and a curator
-    migrating between them needs to see which one each seal makes.
+    ``"hmac"`` / ``"ed25519"`` / ``"ed25519-public"`` (their keyring entry),
+    ``"shared"`` (no keyring, deployment-wide NESTOR_SEAL_KEY), ``"unsigned"``
+    (signing off), ``"unknown"`` (keyring installed, name not in it). "Signed
+    by rita's HMAC" and "signed by rita's key" are different claims, and a
+    curator migrating between them needs to see which one each seal makes.
+
+    ``"ed25519"`` and ``"ed25519-public"`` are the two halves of decision
+    ``0074``, and they are opposite sides of a threat model rather than a
+    detail. Both are produced by ``nestor keys add --type ed25519``, one flag
+    apart:
+
+    * ``"ed25519"`` — the keypair was generated here, so the keyring holds the
+      private half and **this instance can sign as them**. That is 0074's
+      named problem: the operator of the signing instance can forge as anyone
+      whose key lives on it.
+    * ``"ed25519-public"`` — only the public half was registered (``--public``),
+      so this instance can verify that verifier's seals and is structurally
+      unable to produce one. Verification capability without forgery
+      capability, which is the entire reason the type exists.
+
+    Reported because afterwards the difference lives in one place: a
+    ``private`` field present or absent in the keyring file. The CLI
+    distinguishes them clearly at creation time and nothing did afterwards.
     """
     ring = keyring_mod.get_keyring()
     if ring is None:
         return "shared" if _key(None) else "unsigned"
     entry = ring.get(verifier)
-    return entry.kind if entry is not None else "unknown"
+    return entry.key_type if entry is not None else "unknown"
+
+
+def seal_trust(key: bytes | None = None) -> str:
+    """What a served seal's signature is evidence *of*, deployment-wide.
+
+    :func:`signing_enabled` answers "are seals signed at all", which is one
+    bit over three situations that do not mean the same thing. All three make
+    :func:`nestor.memory.is_verified_seal` return ``True``, and that is
+    correct — it answers "may I serve this row", which is binary — but a
+    surface *reporting* the deployment's posture with the same bit collapses
+    them. This is the reporting answer, on :func:`cache_trust`'s precedent.
+
+    * ``"keyring"`` — per-verifier keys. A seal verifies only under the key
+      belonging to the verifier *named on it*, so the signature is evidence
+      about a person, and an unknown name is refused at seal time
+      (:class:`~nestor.keyring.UnknownVerifierError`, raised before any store
+      write).
+    * ``"shared"`` — one deployment-wide ``NESTOR_SEAL_KEY`` and no keyring.
+      Seals are signed and tamper-evident, but the ``verifier`` field is not
+      checked against anything: **anyone holding the key signs as anyone**.
+      Decision ``0074`` named this; the keyring is the answer to it.
+    * ``"unsigned"`` — nothing configured. Nobody signed anything, and a row
+      that merely says ``sealed`` is trusted on the store's word (Nestor#2).
+      ``NESTOR_REQUIRE_SEAL_KEY=1`` turns this state into a hard refusal
+      rather than a warning.
+    """
+    if keyring_mod.enabled():
+        return "keyring"
+    return "shared" if _key(key) is not None else "unsigned"
 
 
 def _strict() -> bool:

@@ -96,7 +96,7 @@ not hold — you cannot inspect your way to the answer, so you sign it. It is al
 why Susan Calvin's anger is aimed at the people who authorized the modification
 rather than at the robot: the constraint was never the machine's to relax, and
 when a human relaxes it the accountability is that human's. See
-[`verifier=`](../README.md#the-ledger).
+[`verifier=`](manual.md#the-ledger).
 
 One place it cuts the other way, which is the useful part. Asimov's failure is
 harm *by inaction* — the machine standing there, permitted to let something

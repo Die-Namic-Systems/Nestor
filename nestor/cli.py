@@ -59,6 +59,16 @@ from .sqlite_store import SqliteStore
 
 EXIT_OK, EXIT_ANSWER_IS_NO, EXIT_USAGE = 0, 1, 2
 
+#: What `nestor stats` says for each :func:`nestor.signing.seal_trust` state.
+#: A person reading "on" cannot tell a keyring from one shared key that signs
+#: as anyone, so the line names the state and what it buys.
+_SEAL_TRUST_LINE = {
+    "keyring": "per-verifier keys — a signature is evidence about a person",
+    "shared": "one shared key — signed and tamper-evident, but the verifier "
+              "name is unchecked: anyone holding it signs as anyone",
+    "unsigned": "OFF — stored status is trusted",
+}
+
 #: Shared by every subcommand that keys a query, so the sentence a user reads is
 #: the same one wherever they meet it. A shipped name, or `module:attribute` for
 #: a domain's own — see `answer.load_matcher`, and IDEAS §6.41 for why a name
@@ -769,12 +779,20 @@ def cmd_keys(args) -> int:
     if args.keys_command == "list":
         ring = keyring_mod.load(path)
         rows = [{"name": e.name, "status": ring.status(e.name),
+                 # Which side of decision 0074 this entry is on. Both ed25519
+                 # cases come from `keys add --type ed25519`, one `--public`
+                 # apart, and afterwards the only trace was a `private` field
+                 # present or absent in the file.
+                 "key_type": e.key_type,
                  "created_at": e.created_at, "revoked_at": e.revoked_at,
                  "reason": e.reason} for e in ring.entries()]
         human = [f"{len(rows)} verifier(s) in {path}"]
         for r in rows:
             note = f"  {r['reason']}" if r["reason"] else ""
-            human.append(f"  {r['status']:<12} {r['name']}{note}")
+            human.append(f"  {r['status']:<12} {r['key_type']:<15} {r['name']}{note}")
+        if any(r["key_type"] == "ed25519" for r in rows):
+            human.append("  (ed25519 = this instance holds the private half and "
+                         "can sign as them; ed25519-public = it cannot)")
         if ring.legacy_key:
             human.append("  legacy       (seals made before this keyring still verify)")
         _emit({"keyring": path, "verifiers": rows,
@@ -959,6 +977,10 @@ def cmd_stats(args) -> int:
     ok, detail = ledger_mod.verify()
     stats = memory.stats(store=store)
     payload = {"db": args.db, "memory": stats, "signing_enabled": signing.signing_enabled(),
+               # The bit is kept for every reader that already parses it; the
+               # state is what a person needs, because "on" covers both a
+               # keyring and one shared key anyone can sign as anyone with.
+               "seal_trust": signing.seal_trust(),
                "ledger": {"ok": ok, "detail": detail, "path": str(cascade._ledger_path())}}
     if storage.supports_curation(store):
         from .curator import Curator
@@ -969,7 +991,7 @@ def cmd_stats(args) -> int:
                      f"but would not be served")
     human.append("  domains: " + ", ".join(f"{sl}→{tl} ({n})" for sl, tl, n in stats["lang_pairs"])
                  if stats["lang_pairs"] else "  no domains yet")
-    human.append(f"  seal signatures: {'on' if signing.signing_enabled() else 'OFF — stored status is trusted'}")
+    human.append("  seal signatures: " + _SEAL_TRUST_LINE[signing.seal_trust()])
     human.append(f"  ledger: {'✓' if ok else '✗'} {detail}")
     _emit(payload, args.json, "\n".join(human))
     return EXIT_OK

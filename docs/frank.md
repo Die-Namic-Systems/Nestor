@@ -2,7 +2,7 @@
 
 *Fleet-only. Nestor runs standalone with a purely local ledger; FRANK is the opt-in
 seam that also mirrors every entry into willow-mcp's shared governance ledger.
-Linked from the [README](../README.md#the-ledger).*
+Linked from the [manual](manual.md#the-ledger).*
 
 ---
 

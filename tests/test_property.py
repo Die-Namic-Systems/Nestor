@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import unicodedata
 
 import pytest
 
@@ -56,9 +57,23 @@ class TestStringMatcherNormalize:
 
     @given(text=any_text)
     def test_output_is_lowercase_alnum_and_spaces(self, text: str) -> None:
+        # Decision 0202 widened what survives the strip pass: `So` (Symbol,
+        # other — the emoji block) and `Sk` (Symbol, modifier — skin tones) are
+        # preserved so distinct emoji key distinctly instead of colliding on the
+        # empty string. This assertion predates that decision and only ever
+        # passed because Hypothesis rarely drew one of those codepoints; `¦`
+        # (U+00A6, `So`) fails it, and so do `°`, `©` and a bare backtick. The
+        # property still has teeth — punctuation, `Sc` currency and `Sm` maths
+        # are stripped as they always were, and tests/test_matcher_emoji.py
+        # locks the narrow scope of 0202 case by case.
         norm = self.sm.normalize(text)
         for ch in norm:
-            assert ch.isalnum() or ch == " " or ch == "_"
+            assert (
+                ch.isalnum()
+                or ch == " "
+                or ch == "_"
+                or unicodedata.category(ch) in ("So", "Sk")
+            )
 
     @given(text=any_text)
     def test_no_leading_or_trailing_whitespace(self, text: str) -> None:
