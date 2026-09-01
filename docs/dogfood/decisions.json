@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 229,
+    "pairs": 238,
     "rejections": 0,
     "sealed": 229,
     "servable": 229,
     "warrants": 0
   },
-  "created_at": "2026-08-31T00:00:00+00:00",
-  "digest": "d132badf7b6cc87d39852174e6caa5641768740d36d7f755e78b1a89e5cba336",
+  "created_at": "2026-09-01T00:00:00+00:00",
+  "digest": "956625b06cec2081caf2a1916ad7be7120e03031608fbd0471fe677d499513b9",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,132 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "fe8aa263-2fca-5a0b-a5a7-214b68d62058",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is proposed and what is deliberately not",
+      "source_text": "What is proposed, and what is deliberately not?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing is proposed as a fix. This decision records evidence and stops there. Three candidate directions are named so a later decision can pick one up with the frame in place, none of them adopted here: (a) a re-verification duty on the READER — a pair that cites a file path or an IDEAS section is checked against the tree before being quoted, which is what the seat's verification doctrine already asks of an agent and no code enforces; (b) a staleness signal derived from the citation — if a pair's text names IDEAS §6.36 and that section's tag has changed since created_at, flag it, which covers this corpus and nothing else; (c) quorum or expiry as docs/seal-staleness-and-quorum.md sketches. Explicitly not proposed: any automatic unsealing, any age threshold, and any change to is_verified_seal — the four pairs are validly sealed and a mechanism that quietly stopped serving them would be a worse failure than the one being described.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "e2d8361f-db40-539e-9934-d96091ae4305",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this the same failure as a seal that no longer verifies and can staleness be inferred from what the store already holds",
+      "source_text": "Is this the same failure as a seal that no longer verifies, and can staleness be inferred from what the store already holds?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No to both, and the second is the harder half. A seal whose signature fails is already surfaced — the curator lists it as unverifiable and no serve path will use it. These four verify perfectly. Nor is `created_at` sufficient: three of the four were overtaken by a specific release, and the fourth (pair 4) was never wrong about the tree at the moment it was quoted — it was quoted without running the command it describes, which is a different error wearing the same clothes. So the signal is neither 'old' nor 'invalid', but 'the thing this describes has since moved', and nothing in tm_pairs (id, source_text, source_norm, source_lang, target_text, target_lang, status, verifier, weight, origin, created_at, seal_sig, reason, superseded_by, visibility) records what a pair is ABOUT closely enough to detect it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "c771a5fb-306a-5220-b1a0-ba6a13e97403",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what was observed while doing this and deliberately not changed",
+      "source_text": "What was observed while doing this and deliberately NOT changed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two things, both recorded rather than fixed. (1) The portable export header hardcodes `\"algorithm\": \"hmac-sha256\"` next to the new `trust` field, and that string is already wrong for a store whose keyring holds ed25519 entries. It is a wire field with importers on the other side, so correcting it is its own decision with its own compatibility question, not a rider on this one. (2) The seat's self-grant tripwire (hooks/before_authority.py) refused `nestor keys add ... --type ed25519 --public <hex>` from the shell, although its own denial text names registering a peer's public key as permitted and `_KEYS_ADD_RE`/`_PUBLIC_RE` are written to exempt it. Reported, not worked around and not diagnosed further: reverse-engineering a tripwire to find what passes is the move the tripwire exists to catch. The CLI rendering was verified through the in-process keyring fixture tests/test_asymmetric_seals.py already uses.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "b0095e97-f42c-5e23-a491-fb9bbf929446",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the measured evidence that a sealed pair goes stale while still reading as a presenttense fact",
+      "source_text": "What is the measured evidence that a sealed pair goes stale while still reading as a present-tense fact?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Four pairs in one evening, each reported as current, each overtaken. (1) `4988f34f-0393-59b1-9391-1112325e5c84` — 'There is no per-domain verifier policy. Measured: add_pair(status=sealed, verifier=anybody-at-all) is accepted.' The allowlist shipped in v0.10.0 on 2026-08-19 (issue #167): `verifier_policy` table at nestor/sqlite_store.py:238, enforced at nestor/memory.py:659 and :821, `nestor policy` in the CLI. Separately and more to the point, with a keyring installed add_pair raises UnknownVerifierError before any store read or write — measured here across five configurations. (2) `96a65094-8b2c-5bef-8c5a-21ce56c97c84` — 'the instance that signs holds its verifiers' private keys ... browser/client-side signing is deliberately left open.' The client-signing seam is shipped: `_resolve_seal_sig` at nestor/memory.py:393 verifies a caller-supplied signature, `keys add --type ed25519 --public` registers a peer's public half (nestor/cli.py:841), and tests/test_client_signed_seals.py passes 14 tests with a frozen wire contract. (3) `1d20e05b-bace-5eb8-a6ac-9b4511e539b7` — 'Not through the entity recipe — it has only seal. Left open, IDEAS §6.39.' EntityResolver.propose() is at nestor/entity.py:91 and IDEAS.md:115 tags §6.39 'measured, fix shipped'. (4) `ce388d48-18c5-54df-a002-d610efc61913` — '`nestor keys add` prints the public half and calls it the only copy. Left open, IDEAS §6.36.' IDEAS.md:112 tags §6.36 'measured, fix shipped'.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "96fa0581-32a5-58fa-9ae2-4911241d56e4",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "signing_enabled is one bit over three deployment states that do not mean the same thing should the reporting surfaces keep using it",
+      "source_text": "signing_enabled() is one bit over three deployment states that do not mean the same thing. Should the reporting surfaces keep using it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `signing.seal_trust()` is added, returning `\"keyring\"` (per-verifier keys — a signature is evidence about a person, and an unknown name is refused at seal time), `\"shared\"` (one deployment-wide NESTOR_SEAL_KEY — signed and tamper-evident, but the verifier field is unchecked: anyone holding the key signs as anyone), or `\"unsigned\"` (nothing configured — a row that merely says sealed is trusted on the store's word). `nestor stats` prints the state and what it buys instead of `on`/`OFF`, and the portable export header carries `signing.trust` beside `signing.enabled`. Built on `cache_trust()`'s precedent, which is the same three-valued answer for the embedding cache, in the same module, with the same docstring shape. `memory.is_verified_seal` stays boolean and unchanged: it answers 'may I serve this row', which really is binary.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "9287cc3e-8d7e-5f8e-aaf8-fbc4900a2108",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what has to move with content that leaves the readme",
+      "source_text": "What has to move with content that leaves the README?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Its gates. tests/test_docs.py reads README at module scope and asserts against it; two of those assertions were about content that moved. docs/manual.md and docs/build-record.md were added to the DOCS corpus so they stay link-checked, a MANUAL constant was added beside README and LAYOUT, and test_the_readme_quotes_the_servers_refusal_verbatim was renamed to test_the_manual_quotes_... and repointed, because the PermissionError transcript it compares against nestor.serve went to the manual. The runnable-example gate stayed on README, unchanged, because the single 'Save this as `demo.py`' block is in Quick start and Quick start did not move.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "880cfe35-048e-5488-bb87-cb6769ea3f0c",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does the longform readme content go on a second frontdoor trim into one manual or into topic files per section",
+      "source_text": "Where does the long-form README content go on a second front-door trim — into one manual, or into topic files per section?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One file: docs/manual.md, holding the eleven sections from 'The Matcher seam' through 'Accuracy' verbatim, in their original order, with their heading text unchanged so every anchor slug survives. README drops from 878 lines to 298 and gains a 'Going further' table that routes by task rather than by feature name. The first trim distributed content to topic files (project-layout.md, matcher-seam.md, frank.md, storage-protocol.md, accuracy.md, home-paths.md) and those files stay; they are companions that go deeper than the manual's introduction, and each is linked from its section. What did NOT get another topic file is the material that had no home to go back to.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "4af42b6b-c719-592f-b074-15fb6fa4ff72",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "should the build record ideasmd dogfood agentlogmd archive audits bench scriptscorpus hooks be deleted moved to another repository or kept and labelled",
+      "source_text": "Should the build record — IDEAS.md, dogfood/, agent-log.md, archive/, audits/, bench/, scripts/corpus/, hooks/ — be deleted, moved to another repository, or kept and labelled?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Kept and labelled. docs/build-record.md draws the line, states that none of it ships (the wheel is nestor/ and the sdist adds tests/ plus four root files, both named explicitly in pyproject.toml), indexes each part with its size and what it is, and routes by the question a reader is actually asking. It closes with a section on what the record does NOT establish: that the numbers generalise, that the decisions had a second reader, or that a sealed pair is still current.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "48815e8b-9e43-5db2-81a1-f6c9551b2bb9",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "`keys add type ed25519` and `type ed25519 public hex` are one flag apart and land on opposite sides of decision 0074 should verifier_key_type keep reporting both as ed25519",
+      "source_text": "`keys add --type ed25519` and `--type ed25519 --public <hex>` are one flag apart and land on opposite sides of decision 0074. Should verifier_key_type keep reporting both as \"ed25519\"?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The rule lives on `keyring.VerifierKey.key_type`, a property returning `\"ed25519\"` when the entry holds the private half (generated here — this instance can sign as that verifier) and `\"ed25519-public\"` when it does not (registered by public half — verification capability without forgery capability). `signing.verifier_key_type` and `nestor keys list` both read that property rather than reimplementing the test; `keys list` gains a key_type column and, only when some entry actually holds a private half, one line saying what the two values mean.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-08-31T00:00:00+00:00",
       "id": "e5939824-2f3b-5798-abde-0a1daa57b3c9",
@@ -3234,7 +3360,8 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": true
+    "enabled": false,
+    "trust": "unsigned"
   },
   "warrants": []
 }

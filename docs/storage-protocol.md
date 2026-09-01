@@ -1,6 +1,6 @@
 # The `Storage` Protocol
 
-*The full persistence seam. The [README](../README.md#injected-storage) explains
+*The full persistence seam. The [manual](manual.md#injected-storage) explains
 what injected storage is and why; this is the operation-by-operation reference a
 host implements against.*
 

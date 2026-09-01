@@ -141,6 +141,8 @@ docs/sovereign-deployment.md  what a default install does (and does not) do with
 docs/policy-brief.md  a one-pager aimed at a chief-of-staff / procurement officer / policy analyst — the audience that decides whether a ministry adopts something like Nestor
 docs/walk-through-covenant.md  a ninety-second beat-by-beat tour of the policy seed that ends at the moment a machine's draft becomes a human's decision — the doc-side companion to demo/sixty_seconds.py, gated by tests/test_walk_through_covenant.py
 docs/project-layout.md  this file — the full annotated manifest the README's short tree points at
+docs/manual.md        the long-form half of the documentation — the eleven sections the README's second front-door trim moved out, verbatim and anchors intact
+docs/build-record.md  the line between the product and the record of building it, and an index to the ~10 MB on the record's side — none of which ships in the wheel
 docs/drafts/          design drafts not yet landed — MCP resources, schema migrations, templates, preferences
 docs/journal/         not reference docs — kept writing the reference tree should not mix in
 ├── public-sector-audience.md  the shape of the audience a public-diplomacy speaker rotation puts Nestor in front of, and the verified/asserted line drawn against a pitch
