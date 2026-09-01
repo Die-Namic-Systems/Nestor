@@ -50,6 +50,7 @@ import contextlib
 import importlib
 import os
 import socket
+import subprocess
 import sys
 from collections.abc import Iterator
 
@@ -271,16 +272,26 @@ def test_cloud_seal_is_not_imported_by_the_default_read_path():
     (`nestor/cloud_seal.py:37-46`). Nothing in the default read path may
     import it, or a `[gate]`-less deployment fails to load Nestor at all.
     """
-    # Fresh import of the meaningful surfaces, none of which should pull
-    # nestor.cloud_seal in transitively.
-    for name in ("nestor.answer", "nestor.memory", "nestor.cascade",
-                 "nestor.matcher", "nestor.curator"):
-        importlib.import_module(name)
-    assert "nestor.cloud_seal" not in sys.modules, (
+    # Fresh subprocess — same pattern as tests/test_import_purity.py. An
+    # in-process sys.modules pop/reimport poisons xdist workers when
+    # tests/test_cloud_seal.py ran earlier in the same worker.
+    probe = """
+import importlib, sys
+for name in ("nestor.answer", "nestor.memory", "nestor.cascade",
+             "nestor.matcher", "nestor.curator"):
+    importlib.import_module(name)
+if "nestor.cloud_seal" in sys.modules:
+    raise SystemExit(
         "nestor.cloud_seal was pulled into sys.modules by a default read "
         "path — that module is gated on the [gate] extra and imports "
         "willow_gate at module top; a deployment without the extra would "
-        "fail to import the read path.")
+        "fail to import the read path."
+    )
+"""
+    done = subprocess.run([sys.executable, "-c", probe], check=False,
+                          capture_output=True, text=True)
+    assert done.returncode == 0, (
+        done.stderr or done.stdout or f"probe exited {done.returncode}")
 
 
 def test_ui_server_bind_default_is_loopback():

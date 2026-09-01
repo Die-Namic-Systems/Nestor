@@ -123,18 +123,40 @@ bridge, verification, two audits), the charter three, willow-gate one
 Measured on a 2026-08-12 container, same tree: **944 passed / 24 skipped** at the
 `.[dev,keys]` baseline, **972 passed / 4 skipped** with the seams above attached.
 
-**Playwright: match the version to the image, never download.** The browser
-suite asks Playwright where Chromium is and skips if that path is empty
+**Playwright: match the Python package to the Chromium build on disk.** The
+browser suite asks Playwright where Chromium is and skips if that path is empty
 (`tests/test_client_signed_seals_browser.py`), so a version mismatch reads as a
-missing browser. An image shipping `chromium-1194` (Chromium 141.0.7390.37,
-older `chrome-linux/` layout) is served by `playwright==1.56.0`; 1.62 looks for
-`chromium-1234/chrome-linux64/chrome` and finds nothing. Pin to the image:
+missing browser — not a missing `PLAYWRIGHT_BROWSERS_PATH`.
+
+| Chromium on disk | Playwright | Layout |
+|---|---|---|
+| `chromium-1194` (fleet CI image, `/opt/pw-browsers/…`) | `playwright==1.56.0` | `chrome-linux/` |
+| `chromium-1234` (default `~/.cache/ms-playwright/…`) | `playwright>=1.62` | `chrome-linux64/` |
+
+Desktop / fleet-standup install (matches a prior `playwright install` or a
+modern cache):
+
+```bash
+pip install -e ".[browser]"           # playwright>=1.62 from pyproject
+export NESTOR_BROWSER_TEST=1
+bash scripts/ci-test.sh browser
+python -c "from playwright.sync_api import sync_playwright as s
+with s() as p: print(p.chromium.executable_path)"   # must exist
+```
+
+Fleet image with `chromium-1194` preinstalled — pin explicitly, never download:
 
 ```bash
 pip install "playwright==1.56.0"      # never `playwright install`
 python -c "from playwright.sync_api import sync_playwright as s
 with s() as p: print(p.chromium.executable_path)"   # must exist
 ```
+
+**Ubuntu 26.04+:** `playwright install chromium` fails with
+`Playwright does not support chromium on ubuntu26.04-x64`. Use the
+`chromium-1234` you already have under `~/.cache/ms-playwright/` and
+`pip install -e ".[browser]"` (or `playwright>=1.62`) — do not try to fetch
+build 1194 on that OS.
 
 **`[semantic]` and `--matcher ollama` need egress that a locked-down container
 does not have.** Both fetch model weights — fastembed from `huggingface.co`,

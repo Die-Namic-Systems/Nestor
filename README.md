@@ -126,6 +126,7 @@ Optional extras add capability without moving the core:
 pip install "nestor-meaning[keys]"      # ed25519 per-verifier signing
 pip install "nestor-meaning[cloud]"     # the Anthropic draft engine
 pip install "nestor-meaning[semantic]"  # embedding matcher (fastembed)
+pip install "nestor-meaning[browser]"   # Playwright browser lane (see docs/local-fleet.md)
 pip install "nestor-meaning[gate]"      # the willow-gate seam
 ```
 
@@ -276,9 +277,10 @@ python bench/bench_accuracy.py     # measurements -> bench/results/
 
 Optional integrations never activate merely because their dependency or daemon
 is present. Run them deliberately with `scripts/ci-test.sh semantic`, `ollama`,
-`browser`, or `external`; scale/corpus checks are the `slow` lane. The
-`semantic`, `ollama`, and `external` lanes set their opt-in environment flags
-themselves. Serial wall-clock assertions live in `performance`, because xdist
+`browser`, or `external`; scale/corpus checks are the `slow` lane. Install
+`pip install -e ".[browser]"` before the browser lane (Playwright must match
+the Chromium build on disk — see `docs/local-fleet.md`). The `semantic`, `ollama`,
+and `external` lanes set their opt-in environment flags themselves. Serial wall-clock assertions live in `performance`, because xdist
 or coverage contention makes those numbers meaningless.
 
 **Returning to an existing clone:** the install persists, the activation does

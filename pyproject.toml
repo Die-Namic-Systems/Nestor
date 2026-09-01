@@ -115,6 +115,16 @@ semantic = [
 gate = [
     "willow-gate",
 ]
+# The browser lane (`tests/test_client_signed_seals_browser.py`,
+# `tests/test_fix_null_nodes.py`). Opt-in via `NESTOR_BROWSER_TEST=1` and
+# `scripts/ci-test.sh browser`. Playwright couples to a specific Chromium
+# *build* on disk, not semver alone — see docs/local-fleet.md. The floor is
+# 1.62 for desktops that ship `chromium-1234` (`chrome-linux64/`); fleet images
+# that ship `chromium-1194` (`chrome-linux/`) should `pip install
+# playwright==1.56.0` explicitly instead of relying on this extra.
+browser = [
+    "playwright>=1.62",
+]
 # Kept out of [dev] on purpose: CI's dev install would carry a build backend and
 # an upload client it never uses, and a release toolchain is not a test
 # dependency. `pip install -e ".[publish]"` is step 1 of docs/releasing.md.
