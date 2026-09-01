@@ -136,6 +136,18 @@ what moved.
 
 ---
 
+## [0.18.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.17.0...v0.18.0) (2026-09-01)
+
+
+### Added
+
+* **signing:** report what a seal signature is evidence of, not a bit ([3f8c31e](https://github.com/Die-Namic-Systems/Nestor/commit/3f8c31ebcea875daae1be4c6a93a1da4445f3431))
+
+
+### Fixed
+
+* **corpus:** move willow-config from tombstone to excluded ([386011f](https://github.com/Die-Namic-Systems/Nestor/commit/386011f0a5c9515e8ae30153bff9f4d1a7456708))
+
 ## [0.17.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.16.2...v0.17.0) (2026-08-30)
 
 
