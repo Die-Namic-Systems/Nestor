@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 235,
+    "pairs": 238,
     "rejections": 0,
     "sealed": 229,
     "servable": 229,
     "warrants": 0
   },
   "created_at": "2026-09-01T00:00:00+00:00",
-  "digest": "6218b46004ddc6562cf48661bc0e0a1b2f21623fd55ddd38f00e86a38f132476",
+  "digest": "956625b06cec2081caf2a1916ad7be7120e03031608fbd0471fe677d499513b9",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -24,6 +24,34 @@
   "pairs": [
     {
       "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "fe8aa263-2fca-5a0b-a5a7-214b68d62058",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is proposed and what is deliberately not",
+      "source_text": "What is proposed, and what is deliberately not?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing is proposed as a fix. This decision records evidence and stops there. Three candidate directions are named so a later decision can pick one up with the frame in place, none of them adopted here: (a) a re-verification duty on the READER — a pair that cites a file path or an IDEAS section is checked against the tree before being quoted, which is what the seat's verification doctrine already asks of an agent and no code enforces; (b) a staleness signal derived from the citation — if a pair's text names IDEAS §6.36 and that section's tag has changed since created_at, flag it, which covers this corpus and nothing else; (c) quorum or expiry as docs/seal-staleness-and-quorum.md sketches. Explicitly not proposed: any automatic unsealing, any age threshold, and any change to is_verified_seal — the four pairs are validly sealed and a mechanism that quietly stopped serving them would be a worse failure than the one being described.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "e2d8361f-db40-539e-9934-d96091ae4305",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this the same failure as a seal that no longer verifies and can staleness be inferred from what the store already holds",
+      "source_text": "Is this the same failure as a seal that no longer verifies, and can staleness be inferred from what the store already holds?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No to both, and the second is the harder half. A seal whose signature fails is already surfaced — the curator lists it as unverifiable and no serve path will use it. These four verify perfectly. Nor is `created_at` sufficient: three of the four were overtaken by a specific release, and the fourth (pair 4) was never wrong about the tree at the moment it was quoted — it was quoted without running the command it describes, which is a different error wearing the same clothes. So the signal is neither 'old' nor 'invalid', but 'the thing this describes has since moved', and nothing in tm_pairs (id, source_text, source_norm, source_lang, target_text, target_lang, status, verifier, weight, origin, created_at, seal_sig, reason, superseded_by, visibility) records what a pair is ABOUT closely enough to detect it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
       "id": "c771a5fb-306a-5220-b1a0-ba6a13e97403",
       "origin": "pr:",
       "seal_sig": "",
@@ -33,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Two things, both recorded rather than fixed. (1) The portable export header hardcodes `\"algorithm\": \"hmac-sha256\"` next to the new `trust` field, and that string is already wrong for a store whose keyring holds ed25519 entries. It is a wire field with importers on the other side, so correcting it is its own decision with its own compatibility question, not a rider on this one. (2) The seat's self-grant tripwire (hooks/before_authority.py) refused `nestor keys add ... --type ed25519 --public <hex>` from the shell, although its own denial text names registering a peer's public key as permitted and `_KEYS_ADD_RE`/`_PUBLIC_RE` are written to exempt it. Reported, not worked around and not diagnosed further: reverse-engineering a tripwire to find what passes is the move the tripwire exists to catch. The CLI rendering was verified through the in-process keyring fixture tests/test_asymmetric_seals.py already uses.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "b0095e97-f42c-5e23-a491-fb9bbf929446",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the measured evidence that a sealed pair goes stale while still reading as a presenttense fact",
+      "source_text": "What is the measured evidence that a sealed pair goes stale while still reading as a present-tense fact?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Four pairs in one evening, each reported as current, each overtaken. (1) `4988f34f-0393-59b1-9391-1112325e5c84` — 'There is no per-domain verifier policy. Measured: add_pair(status=sealed, verifier=anybody-at-all) is accepted.' The allowlist shipped in v0.10.0 on 2026-08-19 (issue #167): `verifier_policy` table at nestor/sqlite_store.py:238, enforced at nestor/memory.py:659 and :821, `nestor policy` in the CLI. Separately and more to the point, with a keyring installed add_pair raises UnknownVerifierError before any store read or write — measured here across five configurations. (2) `96a65094-8b2c-5bef-8c5a-21ce56c97c84` — 'the instance that signs holds its verifiers' private keys ... browser/client-side signing is deliberately left open.' The client-signing seam is shipped: `_resolve_seal_sig` at nestor/memory.py:393 verifies a caller-supplied signature, `keys add --type ed25519 --public` registers a peer's public half (nestor/cli.py:841), and tests/test_client_signed_seals.py passes 14 tests with a frozen wire contract. (3) `1d20e05b-bace-5eb8-a6ac-9b4511e539b7` — 'Not through the entity recipe — it has only seal. Left open, IDEAS §6.39.' EntityResolver.propose() is at nestor/entity.py:91 and IDEAS.md:115 tags §6.39 'measured, fix shipped'. (4) `ce388d48-18c5-54df-a002-d610efc61913` — '`nestor keys add` prints the public half and calls it the only copy. Left open, IDEAS §6.36.' IDEAS.md:112 tags §6.36 'measured, fix shipped'.",
       "verifier": "",
       "weight": 1.0
     },
