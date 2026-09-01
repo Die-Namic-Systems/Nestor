@@ -54,6 +54,7 @@ the machine's own decisions.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import glob
 import json
 import os
@@ -74,7 +75,7 @@ os.environ.setdefault("NESTOR_SEAL_KEY", "dogfooding-fixture-key-not-a-secret")
 from demo import desks                                          # noqa: E402
 from demo.desks import (AMBER, BOLD, DIM, GREEN, OFF, RED,       # noqa: E402
                         beat, claim, note, say, verdict)
-from nestor import memory                                        # noqa: E402
+from nestor import keyring as keyring_mod, memory                                        # noqa: E402
 from nestor.matcher import StringMatcher, uses_raw_score        # noqa: E402
 from nestor.sqlite_store import SqliteStore                     # noqa: E402
 from recipes import patch_review                                # noqa: E402
@@ -82,6 +83,7 @@ from recipes import patch_review                                # noqa: E402
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEFAULT_DECISIONS_DIR = REPO / "docs" / "dogfood" / "decisions"
 COMMITTED_DB = REPO / "docs" / "dogfood" / "nestor.db"
+DOGFOOD_KEYRING = REPO / "docs" / "dogfood" / "verifiers.json"
 BUNDLE = REPO / "docs" / "dogfood" / "decisions.json"
 
 DOMAIN = "decision"        # the same domain scripts/dogfood_store.py builds under
@@ -108,6 +110,31 @@ PARAPHRASES = [
 # --------------------------------------------------------------------------
 # The corpus, read from the repository and nowhere else
 # --------------------------------------------------------------------------
+
+@contextlib.contextmanager
+def _shipped_store_trust():
+    """Verify ed25519 seals in the committed store, not the fixture HMAC key.
+
+    Beats 3+ seal throwaway copies with ``dogfood-fixture``; beat 2 reads the
+    real ``docs/dogfood/nestor.db`` whose rows were signed in the browser.
+    """
+    saved_seal = os.environ.pop("NESTOR_SEAL_KEY", None)
+    saved_kr = os.environ.get("NESTOR_KEYRING")
+    os.environ["NESTOR_KEYRING"] = str(DOGFOOD_KEYRING)
+    keyring_mod.set_keyring(None)
+    try:
+        yield
+    finally:
+        keyring_mod.set_keyring(None)
+        if saved_kr is not None:
+            os.environ["NESTOR_KEYRING"] = saved_kr
+        else:
+            os.environ.pop("NESTOR_KEYRING", None)
+        if saved_seal is not None:
+            os.environ["NESTOR_SEAL_KEY"] = saved_seal
+        else:
+            os.environ.setdefault("NESTOR_SEAL_KEY", "dogfooding-fixture-key-not-a-secret")
+
 
 def load_decisions(decisions_dir: pathlib.Path | None = None) -> list[dict]:
     """``[{file, question, commitment}]`` for every decision file in the repo.
@@ -348,23 +375,37 @@ def main() -> int:
          "and the reason this measurement can be trusted at all.")
 
     # ---------------------------------------------------------------- 2
-    beat(2, "In the store that ships, nothing serves")
+    beat(2, "In the store that ships, seals trace to reviewable files")
     copied = work / "committed"
     copied.mkdir(parents=True, exist_ok=True)
     shutil.copy(COMMITTED_DB, copied / "nestor.db")             # never touch the real one
-    shipped = SqliteStore(str(copied / "nestor.db"))
-    shipped.memory_init()
-    st = memory.stats(store=shipped)
-    claim(st["sealed"] == 0, "the committed decision store has sealed nothing")
-    example = memory.best_sealed(decisions[0]["question"], DOMAIN, DOMAIN,
-                                 store=shipped, matcher=StringMatcher())
-    claim(example is None, "so it serves nothing as verified, by covenant")
-    shipped.close()
+    with _shipped_store_trust():
+        shipped = SqliteStore(str(copied / "nestor.db"))
+        shipped.memory_init()
+        st = memory.stats(store=shipped)
+        seal_dir = REPO / "docs" / "dogfood" / "seals"
+        seal_files = sorted(seal_dir.glob("*.json")) if seal_dir.is_dir() else []
+        claim(st["sealed"] == len(seal_files),
+              "every sealed row in git must have a matching seal file, and vice versa")
+        if st["sealed"]:
+            sealed_rows = [r for r in shipped.memory_candidates(DOMAIN, DOMAIN)
+                           if r.get("status") == "sealed"]
+            probe_q = (sealed_rows[0]["source_text"] if sealed_rows
+                       else decisions[0]["question"])
+            example = memory.best_sealed(probe_q, DOMAIN, DOMAIN,
+                                         store=shipped, matcher=StringMatcher())
+            claim(example is not None,
+                  "a verbatim question serves its sealed answer from the shipped store")
+        else:
+            example = memory.best_sealed(decisions[0]["question"], DOMAIN, DOMAIN,
+                                         store=shipped, matcher=StringMatcher())
+            claim(example is None, "so it serves nothing as verified, by covenant")
+        shipped.close()
     say(f"{st['total']} rows, {GREEN}{st['sealed']} sealed{OFF}, "
-        f"{AMBER}{st['draft']} draft{OFF}. best_sealed(...) → {AMBER}None{OFF}.")
-    note("dogfood_store.py proposes and never confirms, so the shipped memory is all "
-         "queue. To measure what it WOULD serve, the rest of this seals throwaway "
-         "copies with a fixture key.")
+        f"{AMBER}{st['draft']} draft{OFF}, {len(seal_files)} seal file(s).")
+    note("dogfood_store.py rebuilds drafts from decision files and folds in "
+         "docs/dogfood/seals/*.json at --rebuild — so a sealed row in git always "
+         "traces to reviewable JSON, not an ambient local store.")
 
     # ---------------------------------------------------------------- 3
     string_store = desks.seal_measurable_copy(

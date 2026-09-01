@@ -60,7 +60,7 @@ def test_nothing_in_the_committed_store_is_sealed_without_seal_files():
         f"{stats['sealed']} sealed row(s) in store vs {len(seal_ids)} seal file(s)")
     assert {r["id"] for r in sealed} == seal_ids, (
         "every sealed row must have a matching seal file, and vice versa")
-    assert stats["draft"] > 0, "an empty store would pass every other gate here"
+    assert stats["total"] > 0, "an empty store would pass every other gate here"
 
 
 def test_every_row_is_traceable_to_a_decision_file():
@@ -366,6 +366,8 @@ def _seal_fixture(tmp_path):
     store.memory_init()
     dogfood_store.DECISIONS_DIR = decisions
     dogfood_common.DECISIONS_DIR = decisions
+    dogfood_store.SEALS_DIR = seals
+    dogfood_common.SEALS_DIR = seals
     dogfood_store.build(store)
     row = store.memory_list(limit=1)[0]
     sig = private.sign(

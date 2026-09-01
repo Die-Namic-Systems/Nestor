@@ -393,12 +393,14 @@ def _verifier_for_seal(app: App, payload: Mapping[str, Any],
     the edge-confirmation ceremony does not grow a second, driftable copy of
     it: **deliberately narrow either way** — only the endpoints that actually
     forward the named field to a verify-only seam may call this with that
-    field name. Every other write (``unseal``, ``restore``, ``reject-pair``,
-    ``entity/seal``, ``reconcile/seal``, …) still calls :func:`_verifier` and
-    still requires a session — those endpoints have no signature to check
-    identity against, so a session token remains the only proof available for
-    them, and a browser-key-only verifier cannot make those calls from this UI
-    (a stated gap, not a silent one: see decision 0078). A prior draft of
+    field name.     Every other write (``unseal``, ``restore``, ``reject-pair``,
+    ``entity/seal``, …) still calls :func:`_verifier` and still requires a
+    session — those endpoints have no signature to check identity against, so a
+    session token remains the only proof available for them, and a
+    browser-key-only verifier cannot make those calls from this UI (a stated
+    gap, not a silent one: see decision 0078). ``reconcile/seal`` forwards
+    ``seal_sig`` like ``/api/seal`` and uses this function when one is present.
+    A prior draft of
     ``/api/queue/seal`` resolved the verifier this way for BOTH its branches
     before one of them forwarded the signature anywhere — a live
     authentication bypass, fixed by resolving per branch (see
@@ -1151,16 +1153,37 @@ def _reconcile_check(app: App, query: Mapping[str, Any], payload: Mapping[str, A
                         pct_tol=_float(payload, "pct_tol", 0.05))
 
 
+def _reconcile_normalize(app: App, query: Mapping[str, Any],
+                         payload: Mapping[str, Any]) -> dict:
+    """Read-only: the ``source_norm`` a numeric baseline seal would bind to.
+
+    Same contract as :func:`_normalize`, but uses the reconciler's
+    :class:`~nestor.matcher.NumericMatcher` (with the request's tolerance
+    knobs) rather than the App's domain matcher — otherwise a browser signer
+    would normalize under ``StringMatcher`` while ``seal_baseline`` seals
+    under ``NumericMatcher`` and the signature would never verify.
+    """
+    value = _str(payload, "value")
+    if not value:
+        raise ApiError(400, "nothing to normalize", code="bad_request")
+    rec = _reconciler(payload, app)
+    return {"source_norm": rec.matcher.normalize(value),
+            "label": _str(payload, "label"),
+            "domain": _str(payload, "domain") or rec.domain}
+
+
 def _reconcile_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Seal a numeric baseline — same client-signing seam as :func:`_seal`."""
     label = _str(payload, "label")
     value = _str(payload, "value")
     if not label or not value:
         raise ApiError(400, "a baseline needs a label and a value", code="bad_request")
     override = bool(payload.get("override"))
     return _reconciler(payload, app).seal_baseline(
-        label, value, verifier=_verifier(app, payload),
+        label, value, verifier=_verifier_for_seal(app, payload),
         origin=_str(payload, "origin", "ui"),
-        override_conflict=override, override_rejection=override)
+        override_conflict=override, override_rejection=override,
+        seal_sig=_str(payload, "seal_sig"))
 
 
 def _match(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -1398,11 +1421,20 @@ def _queue_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
     seg_matcher = _domain_matcher(app, seg_doc.get("source_lang", app.source_lang),
                                   seg_doc.get("target_lang", app.target_lang))
     if not edited or edited == seg.get("candidate"):
-        # graduate_segment signs server-side and has no seal_sig seam — a
-        # session is the only proof of identity available on this branch.
-        who = _verifier(app, payload)
-        pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store,
-                                        matcher=seg_matcher)
+        seal_sig = _str(payload, "seal_sig")
+        if seal_sig:
+            # Client-signed as-drafted: the signature is checked in add_pair,
+            # same as the edited branch — never auto-sign server-side on the
+            # strength of an unverified seal_sig (decision 0078).
+            who = _verifier_for_seal(app, payload)
+            pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store,
+                                            matcher=seg_matcher, seal_sig=seal_sig)
+        else:
+            # graduate_segment signs server-side and has no client sig — a
+            # session is the only proof of identity available on this branch.
+            who = _verifier(app, payload)
+            pair = cascade.graduate_segment(segment_id, verifier=who, store=app.store,
+                                            matcher=seg_matcher)
         if pair is None:
             raise ApiError(404, "no such segment, or it has no candidate to seal",
                            code="not_found")
@@ -1449,7 +1481,8 @@ def _queue_reject(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]
 Handler = Callable[[App, Mapping[str, Any], Mapping[str, Any]], dict]
 
 # POSTs that record nothing, and so survive --read-only.
-_NO_DECISION = ("/api/session", "/api/session/end", "/api/normalize")
+_NO_DECISION = ("/api/session", "/api/session/end", "/api/normalize",
+                "/api/reconcile/normalize")
 
 _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/state"): _state,
@@ -1475,6 +1508,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("POST", "/api/entity/resolve"): _entity_resolve,
     ("POST", "/api/entity/seal"): _entity_seal,
     ("POST", "/api/reconcile/check"): _reconcile_check,
+    ("POST", "/api/reconcile/normalize"): _reconcile_normalize,
     ("POST", "/api/reconcile/seal"): _reconcile_seal,
     ("POST", "/api/seal"): _seal,
     ("POST", "/api/seal-draft"): _seal_draft,

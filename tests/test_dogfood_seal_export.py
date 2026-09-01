@@ -34,7 +34,9 @@ def _fixture_db(tmp_path, monkeypatch):
     from nestor import signing
 
     decisions = tmp_path / "decisions"
+    seals = tmp_path / "seals"
     decisions.mkdir()
+    seals.mkdir()
     (decisions / "0999-export-fixture.json").write_text(json.dumps({
         "pr": "fixture",
         "date": "2026-08-27",
@@ -54,6 +56,8 @@ def _fixture_db(tmp_path, monkeypatch):
 
     monkeypatch.setattr(dogfood_store, "DECISIONS_DIR", decisions)
     monkeypatch.setattr(dogfood_common, "DECISIONS_DIR", decisions)
+    monkeypatch.setattr(dogfood_store, "SEALS_DIR", seals)
+    monkeypatch.setattr(dogfood_common, "SEALS_DIR", seals)
 
     private = Ed25519PrivateKey.generate()
     pub = private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)

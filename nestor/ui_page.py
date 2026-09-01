@@ -73,6 +73,7 @@ _TEMPLATE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nestor</title>
+<link rel="icon" href="data:,">
 <style>
 :root {
   --bg: #e9e0cf; --panel: #f6f0e4; --ink: #241f18; --muted: #6f6757;
@@ -1311,9 +1312,9 @@ function keyDialogMenu(identities) {
     h("button", { class: "small",
       onclick: () => { S.keyDialogMode = "import"; renderKeyDialog(); } }, "Import an existing key")));
   kids.push(h("p", { class: "small muted", style: "margin-top:14px" },
-    "Can seal from Queue (once you edit the candidate text), Memory, and Ask → Translate. It " +
-    "cannot yet sign in for unseal, reject, restore, or the entity/numeric recipes — those need " +
-    "a shared-key sign-in above (decision 0078 says why)."));
+    "Can seal from Queue, Memory, Ask → Translate, " +
+    "and Ask → Numeric. It cannot yet sign in for unseal, reject, restore, or the " +
+    "entity recipe — those need a shared-key sign-in above (decision 0078 says why)."));
   return kids;
 }
 
@@ -1650,17 +1651,6 @@ async function sealSegment(doc, seg, target) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
   const trimmed = target.trim();
   if (!trimmed) return toast("Nothing to seal — type the verified text.", "err");
-  // /api/queue/seal only accepts seal_sig on the EDITED branch (server-side,
-  // matching decision 0077's scope) — sealing an unedited candidate verbatim
-  // still goes through `graduate_segment`, which has no signature seam and
-  // needs a session. Checked here so a browser-key-only verifier gets a clear
-  // answer instead of a wasted sign-and-then-401 round trip.
-  const willEdit = trimmed !== (seg.candidate || "");
-  if (S.browserKey && !willEdit) {
-    return toast("Sealing this candidate as drafted (no edits) still needs a shared-key sign-in " +
-                 "— only an edited correction seals with a browser key here. Edit the text, or " +
-                 "sign in above.", "err");
-  }
   const extra = await signSealFields(seg.source_text, trimmed,
                                      doc.source_lang || (S.state && S.state.domain.source_lang),
                                      doc.target_lang || (S.state && S.state.domain.target_lang));
@@ -2809,12 +2799,32 @@ function numericResult(r) {
   return card;
 }
 
+async function signNumericBaseline(value, label, domain, query) {
+  if (!S.browserKey) return { verifier: verifier() };
+  const who = S.browserKey.verifier;
+  let norm;
+  try {
+    norm = (await api("/api/reconcile/normalize",
+      { value, label, domain,
+        abs_tol: query.abs_tol, pct_tol: query.pct_tol })).source_norm;
+  } catch (e) { toast("Could not normalize the baseline figure: " + e.message, "err"); return null; }
+  const approved = await confirmSign(norm, value, who);
+  if (!approved) return null;
+  try {
+    const seal_sig = await signWithBrowserKey(norm, value, who);
+    return { verifier: who, seal_sig };
+  } catch (e) { toast("Signing failed: " + e.message, "err"); return null; }
+}
+
 async function sealBaseline(r) {
   if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
   const value = $("num-baseline").value.trim();
   if (!value) return toast("Nothing to seal — type the verified figure.", "err");
-  await sealWithOverride("/api/reconcile/seal",
-    { ...r.query, value, verifier: verifier(), origin: "ui:numeric" },
+  const body = { ...r.query, value, origin: "ui:numeric" };
+  const extra = await signNumericBaseline(value, r.label, r.query.domain, r.query);
+  if (extra === null) return;
+  Object.assign(body, extra);
+  await sealWithOverride("/api/reconcile/seal", body,
     "Baseline sealed for " + r.label + ".");
 }
 

@@ -197,45 +197,49 @@ class TestClientSignedSealThroughDispatch:
         assert body["pair"]["status"] == "sealed"
         assert body["pair"]["verifier"] == "bob"
 
-    def test_queue_seal_as_drafted_still_needs_a_session_not_a_signature(self, ring, app):
-        """Regression guard for an authentication-bypass bug this PR
-        introduced and then found and fixed while wiring the browser signer
-        into the UI.
-
-        `graduate_segment` (the as-drafted branch) has no `seal_sig`
-        parameter and never checks one -- it signs SERVER-SIDE, exactly as it
-        always has. An earlier draft of `_queue_seal` resolved the verifier
-        with `_verifier_for_seal` ONCE, before branching, so ANY non-empty
-        `seal_sig` -- garbage, unrelated, signed by nobody with sam's key at
-        all -- was enough to skip the session check entirely; the request
-        then reached `graduate_segment`, which happily AUTO-SIGNED a sealed
-        row as "sam" using the key this server already holds for him. Verified
-        directly against that code (before the fix in this PR): a random
-        Ed25519 keypair signing the literal bytes ``b"anything"`` -- nothing
-        to do with sam, this segment, or the frozen wire contract -- still
-        produced a 200 and a genuinely, validly sealed row attributed to sam,
-        with no session ever presented. That is a full authentication bypass
-        for every HMAC or private-half verifier in the keyring, reachable by
-        anyone who can reach this endpoint at all. Fixed by resolving the
-        verifier PER BRANCH: `_verifier_for_seal` only where the signature is
-        actually forwarded and checked (see decision 0078).
-        """
-        ring.add("sam")  # hmac -- the server CAN and, unfixed, WOULD auto-sign for him
+    def test_queue_seal_as_drafted_rejects_a_forged_signature(self, ring, app):
+        """Regression guard (decision 0078): a garbage ``seal_sig`` on the
+        as-drafted branch must not skip authentication and must not write."""
+        ring.add("sam")  # hmac -- server could auto-sign if the sig were ignored
         doc = app.store.create_document("a document", "en", "es")
         seg = app.store.create_segment(doc["id"], 0, "the monthly report", "el informe", 0.8)
-        # The attacker holds no key for sam at all -- a signature over bytes
-        # with nothing to do with sam, this segment, or the wire contract.
         attacker_priv, _attacker_pub = _keypair()
         garbage_sig = Ed25519PrivateKey.from_private_bytes(attacker_priv).sign(b"anything").hex()
 
         status, body = post(app, "/api/queue/seal", segment_id=seg["id"], target="el informe",
                             verifier="sam", seal_sig=garbage_sig)
 
-        assert status == 401
-        assert body["code"] == "session_required"
-        # And nothing was sealed under sam's name as a side effect.
+        assert status == 400
+        assert body["code"] == "invalid_seal_signature"
         assert app.store.get_segment(seg["id"])["status"] != "verified"
         assert memory.best_sealed("the monthly report", "en", "es", store=app.store) is None
+
+    def test_queue_seal_as_drafted_without_signature_still_needs_session(self, ring, app):
+        _priv, pub = _keypair()
+        ring.add("bob", key=pub, kind="ed25519")
+        doc = app.store.create_document("a document", "en", "es")
+        seg = app.store.create_segment(doc["id"], 0, "the monthly report", "el informe", 0.8)
+        status, body = post(app, "/api/queue/seal", segment_id=seg["id"], target="el informe",
+                            verifier="bob")
+        assert status == 401
+        assert body["code"] == "session_required"
+
+    def test_queue_seal_as_drafted_accepts_a_client_signature(self, ring, app):
+        priv, pub = _keypair()
+        ring.add("bob", key=pub, kind="ed25519")
+        doc = app.store.create_document("a document", "en", "es")
+        seg = app.store.create_segment(doc["id"], 0, "the monthly report", "el informe", 0.8)
+        norm = memory.get_matcher(None).normalize("the monthly report")
+        sig = _client_sign(priv, norm, "el informe", "bob")
+
+        status, body = post(app, "/api/queue/seal", segment_id=seg["id"], target="el informe",
+                            verifier="bob", seal_sig=sig)
+
+        assert status == 200
+        assert body["edited"] is False
+        assert body["pair"]["status"] == "sealed"
+        assert body["pair"]["verifier"] == "bob"
+        assert app.store.get_segment(seg["id"])["status"] == "verified"
 
     def test_a_hmac_or_private_half_verifier_can_still_seal_the_old_way(self, ring, app):
         """seal_sig is additive: a verifier whose key lives on this server
@@ -250,3 +254,35 @@ class TestClientSignedSealThroughDispatch:
         assert status == 200
         assert body["pair"]["status"] == "sealed"
         assert body["pair"]["seal_sig"]
+
+    def test_reconcile_normalize_uses_numeric_matcher_not_string(self, app):
+        status, body = post(app, "/api/reconcile/normalize", value="0.004",
+                            label="false_seal_rate", domain="value")
+        assert status == 200
+        assert body["source_norm"] == "0.004"   # NumericMatcher repr, not StringMatcher lower()
+
+    def test_reconcile_seal_accepts_a_client_signature(self, ring, app):
+        priv, pub = _keypair()
+        ring.add("bob", key=pub, kind="ed25519")
+        value = "1000000"
+        norm = post(app, "/api/reconcile/normalize", value=value,
+                    label="ceiling", domain="contract")[1]["source_norm"]
+        sig = _client_sign(priv, norm, value, "bob")
+
+        status, body = post(app, "/api/reconcile/seal", label="ceiling", value=value,
+                            domain="contract", verifier="bob", seal_sig=sig)
+
+        assert status == 200
+        assert body["sealed"] is True
+        assert body["verifier"] == "bob"
+        ok = post(app, "/api/reconcile/check", label="ceiling", observed="1030000",
+                  domain="contract")[1]
+        assert ok["within_tolerance"] is True
+
+    def test_reconcile_seal_without_signature_still_needs_a_session(self, ring, app):
+        _priv, pub = _keypair()
+        ring.add("bob", key=pub, kind="ed25519")
+        status, body = post(app, "/api/reconcile/seal", label="ceiling", value="1000000",
+                            domain="contract", verifier="bob")
+        assert status == 401
+        assert body["code"] == "session_required"

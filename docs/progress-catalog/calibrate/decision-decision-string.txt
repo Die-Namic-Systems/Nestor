@@ -1,0 +1,20 @@
+599 sealed pair(s) in decision→decision; sampled 300
+
+  threshold   collisions   rate
+    0.80           2     0.67% ←recommended
+    0.85           2     0.67%
+    0.90           1     0.33%
+    0.92           1     0.33% ←shipped
+    0.94           1     0.33%
+    0.96           0     0.00%
+    0.98           0     0.00%
+
+  0.92 is stricter than this corpus needs: 0.8 already meets 1.00%. Lowering it serves more real rewrites; check the recall side before you do.
+
+  worst collisions (both sealed, different answers):
+    0.940  'The eight gap assertions pass. Do they mean '
+           would serve  'Proven by mutation, one per gap, before comm'  (sealed for 'The new gap assertions pass. Do th')
+    0.861  "How was the jeles audit's reader shown to be"
+           would serve  'Four mutations, all red.'  (sealed for 'How was the demo shown to be a gat')
+
+  This is a lower bound: it can only see collisions already in the memory.

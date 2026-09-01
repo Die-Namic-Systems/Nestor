@@ -1,0 +1,38 @@
+{
+  "branch": "progress-catalog/threshold-policy-2026-08-31",
+  "date": "2026-08-31",
+  "note": "Operating policy for Nestor's three similarity bars, grounded in live nestor calibrate (599 decision pairs, 2026-08-31), bench/results/accuracy.json, decision_n1.json, and triage --calibrate. Full prose in docs/progress-catalog/THRESHOLD-POLICY.md.",
+  "pr": "",
+  "decisions": [
+    {
+      "question": "What similarity threshold should tier-1 verified serve use for StringMatcher on the decision domain?",
+      "commitment": "Keep SEAL_THRESHOLD at 0.92 for StringMatcher tier-1 serve until a semantic matcher owns the serve path with its own per-corpus calibrated bar. Live calibrate on 599 sealed decision→decision pairs (sampled 300, 2026-08-31): collision rate at 0.92 is 0.33% (1/300), below the 1% safety target. Lowering serve to recover paraphrase is forbidden on this matcher — decision_n1 shows rank@1 21–23/24 at 0.92 with recall 0/24 because scores sit below the bar, not because the wrong row ranks first.",
+      "why": "accuracy.json and IDEAS §1.3: no single StringMatcher threshold is simultaneously safe and useful for paraphrase on synthetic corpora. Calibrate on the operator's real memory says 0.92 is collision-safe; the utility gap is matcher-class, not a missing dial turn. Semantic stand-in reaches 24/24 at 0.92 on N1 but is not the shipped serve matcher (decision 0198)."
+    },
+    {
+      "question": "What bar should triage and engine context use when clustering or feeding draft material?",
+      "commitment": "Use DEFAULT_BAR / CONTEXT_THRESHOLD at 0.55 for triage clustering and context feed — not 0.45. Triage --calibrate on 223 dogfood decisions (2026-08-31): at 0.55 → 208 groups / 1 edge; at 0.45 → 91 groups / 6 edges (floods skeleton false positives, decision 0174). At 0.92 triage yields 223 groups / 0 edges — correct for serve isolation, wrong for clustering re-wordings.",
+      "why": "0174 measured structural skeleton overlap scoring 0.55–0.65 on difflib — above a 0.45 bar but below genuine same-question pairs. Triage keys off recall knee, still below the 0.92 seal bar (test_triage_contract)."
+    },
+    {
+      "question": "What fuzzy bar should constraints_on use when a decision question is re-worded?",
+      "commitment": "Use fuzzy_bar ≈ 0.45 for DecisionMemory.constraints_on when matching re-worded questions to committed decisions on StringMatcher — distinct from the 0.92 serve bar and the 0.55 triage bar. bench/results/decision_n1.json: string matcher clean knee at 0.45 → 18/24 recall with 0 wrong-key; token matcher knee 0.45 → 15/24. Below ~0.40 wrong-key cost begins on the N1 corpus.",
+      "why": "decision_n1 finding: at 0.92 the failure is the BAR not the matcher (rank@1 88–96%). Constraint lookup and verified serve are different jobs; conflating their bars would either false-serve or fail to surface the live decision to a proposer."
+    },
+    {
+      "question": "Should the global serve threshold be lowered to fix paraphrase recall on StringMatcher?",
+      "commitment": "No. Paraphrase queries that score below 0.92 on StringMatcher return pending or draft with the top candidate surfaced — they are not tier-1 sealed serves. Improving paraphrase on serve requires a semantic/Ollama matcher (with its own calibrated bar per decision 0198) or accepting draft-tier answers, not lowering SEAL_THRESHOLD globally.",
+      "why": "At 0.80 calibrate still meets the 1% collision target on live memory but would increase false serves on held-out probes (accuracy.json). At 0.45 decision_n1 gains recall but that bar is for constraints_on, not verification. Three bars exist precisely so one dial is not asked to do three jobs."
+    },
+    {
+      "question": "When should the serve bar be raised above 0.92 on the decision domain?",
+      "commitment": "Raise to 0.96 only when eliminating known near-duplicate collisions among sealed pairs is worth the recall cost — calibrate sweep hits 0% collision at 0.96 with two documented collision examples at 0.861 and 0.940 (2026-08-31). Default remains 0.92 until those pairs are superseded by human review or a semantic serve path ships.",
+      "why": "Calibrate examples: 'eight gap assertions' vs 'new gap assertions' (0.940) and jeles audit reader vs demo gate (0.861) — both human-sealed, different answers. Threshold cannot split them at 0.92; 0.96 suppresses serve collisions but does not replace supersede/review."
+    },
+    {
+      "question": "What measured false-seal rate at the shipped bar should progress reporting cite for prose retrieval?",
+      "commitment": "Cite 0.004 (0.4%) false-seal rate at threshold 0.92 on the prose corpus size 4000 from bench/results/accuracy.json (latest run), with paraphrase recall 0.248 at the same point — measured, synthetic held-out probes, not yet sealed as a numeric baseline. Re-run bench_accuracy before changing the cited number.",
+      "why": "progress-catalog FINDINGS 2026-08-31; nestor_check returned no_baseline until operator seals numeric rows (see docs/progress-catalog/draft-pairs/numeric-baselines.json)."
+    }
+  ]
+}

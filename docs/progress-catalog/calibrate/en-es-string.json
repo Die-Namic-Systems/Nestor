@@ -1,0 +1,54 @@
+{
+  "domain": {
+    "source_lang": "en",
+    "target_lang": "es"
+  },
+  "corpus": 0,
+  "sampled": 0,
+  "sweep": [
+    {
+      "threshold": 0.8,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.85,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.9,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.92,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.94,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.96,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.98,
+      "collisions": 0,
+      "collision_rate": 0.0
+    }
+  ],
+  "current": 0.92,
+  "current_rate": 0.0,
+  "target_rate": 0.01,
+  "recommended": 0.8,
+  "examples": [],
+  "floor": 0.8,
+  "sample_floor": 30,
+  "stable": false,
+  "matcher": "StringMatcher"
+}

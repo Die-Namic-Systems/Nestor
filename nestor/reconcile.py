@@ -36,7 +36,8 @@ class Reconciler:
 
     def seal_baseline(self, label: str, value, verifier: str = "",
                       origin: str = "", override_conflict: bool = False,
-                      override_rejection: bool = False) -> dict:
+                      override_rejection: bool = False,
+                      seal_sig: str = "") -> dict:
         """Seal a canonical numeric baseline for ``label``.
 
         The value's canonical numeric key is the pair's source (so an
@@ -88,6 +89,7 @@ class Reconciler:
             store=self.store, matcher=self.matcher,
             override_conflict=override_conflict,
             override_rejection=override_rejection,
+            seal_sig=seal_sig,
         )
         _ledger_append({
             "kind": "baseline_seal", "domain": self.domain, "label": label,

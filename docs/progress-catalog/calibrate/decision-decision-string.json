@@ -1,0 +1,73 @@
+{
+  "domain": {
+    "source_lang": "decision",
+    "target_lang": "decision"
+  },
+  "corpus": 599,
+  "sampled": 300,
+  "sweep": [
+    {
+      "threshold": 0.8,
+      "collisions": 2,
+      "collision_rate": 0.006666666666666667
+    },
+    {
+      "threshold": 0.85,
+      "collisions": 2,
+      "collision_rate": 0.006666666666666667
+    },
+    {
+      "threshold": 0.9,
+      "collisions": 1,
+      "collision_rate": 0.0033333333333333335
+    },
+    {
+      "threshold": 0.92,
+      "collisions": 1,
+      "collision_rate": 0.0033333333333333335
+    },
+    {
+      "threshold": 0.94,
+      "collisions": 1,
+      "collision_rate": 0.0033333333333333335
+    },
+    {
+      "threshold": 0.96,
+      "collisions": 0,
+      "collision_rate": 0.0
+    },
+    {
+      "threshold": 0.98,
+      "collisions": 0,
+      "collision_rate": 0.0
+    }
+  ],
+  "current": 0.92,
+  "current_rate": 0.0033333333333333335,
+  "target_rate": 0.01,
+  "recommended": 0.8,
+  "examples": [
+    {
+      "score": 0.94,
+      "id": "6fb9dd47-ff02-57d5-9aa8-89d9eeff62d0",
+      "source": "The eight gap assertions pass. Do they mean anything?",
+      "target": "Proven by mutation, twice, before commit.",
+      "collides_with": "The new gap assertions pass. Do they mean anything?",
+      "would_serve": "Proven by mutation, one per gap, before commit.",
+      "verifier": "sean campbell"
+    },
+    {
+      "score": 0.861,
+      "id": "63458ab3-fa91-5226-94bf-0ac43d2213ee",
+      "source": "How was the jeles audit's reader shown to be a gate rather than a description?",
+      "target": "Six mutations of the reader; five went red. The sixth survives because the property is defended twice.",
+      "collides_with": "How was the demo shown to be a gate rather than a description?",
+      "would_serve": "Four mutations, all red.",
+      "verifier": "sean campbell"
+    }
+  ],
+  "floor": 0.8,
+  "sample_floor": 30,
+  "stable": true,
+  "matcher": "StringMatcher"
+}
