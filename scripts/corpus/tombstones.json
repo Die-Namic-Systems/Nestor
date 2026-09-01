@@ -27,7 +27,7 @@
    "ended": "rebuilt",
    "successor": "willow-mcp",
    "retired": "2026-08-19",
-   "reason": "The fleet-dev monolith. Archived on GitHub 2026-08-19 and kept locally at ~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0 -- clean, 52,320 files, extracted 2026-08-30. Its platform half became willow-mcp; several tools did not travel and have no successor yet, notably apps/ratatosk (a capability-gated phone + desktop runtime: doctor/listen/explain/panic, termux boot scripts, a systemd listener) and scripts/gitsync/gitsync-loop.py (the whole-tree sync on a timer that the 2026-07-20 box map assumed and which no longer runs). Recorded so the code stays findable: the repo ended, the tools did not necessarily end with it."
+   "reason": "The fleet-dev monolith. Archived on GitHub 2026-08-19 and kept locally under the greenfield archive (directory name ``willow-2.0`` on disk) — clean, 52,320 files, extracted 2026-08-30. Its platform half became willow-mcp; several tools did not travel and have no successor yet, notably apps/ratatosk (a capability-gated phone + desktop runtime: doctor/listen/explain/panic, termux boot scripts, a systemd listener) and scripts/gitsync/gitsync-loop.py (the whole-tree sync on a timer that the 2026-07-20 box map assumed and which no longer runs). Recorded so the code stays findable: the repo ended, the tools did not necessarily end with it."
   },
   "willow-canonical": {
    "ended": "retired",
@@ -37,7 +37,7 @@
   "willow-1.9": {
    "ended": "retired",
    "retired": "2026-08-30",
-   "reason": "The generation before willow-2.0. Archived in the 2026-08-10 greenfield; kept for lineage, not for use. Extracted 2026-08-30 from the local archive, 1339 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+   "reason": "The generation before the legacy fleet monolith. Archived in the 2026-08-10 greenfield; kept for lineage, not for use. Extracted 2026-08-30 from the local archive, 1339 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
   },
   "willow-compose": {
    "ended": "retired",

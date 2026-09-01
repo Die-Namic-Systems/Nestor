@@ -1,11 +1,12 @@
-"""Shapes declared by archived `rudi193-cmd/willow-2.0` — rung 18 (historical).
+"""Shapes declared by the archived legacy fleet monolith — rung 18 (historical).
 
     python scripts/corpus/extract_willow_20.py \
         --repo ~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0 \
         --out data/corpus/willow-2.0.db
 
-**Not a live join.** ``willow-2.0`` is tier F — not cloned for day-to-day work.
-Point ``--repo`` at the greenfield archive tree (or ``WILLOW_20_REPO``), never at
+**Not a live join.** The monolith is tier F — not cloned for day-to-day work.
+Point ``--repo`` at the greenfield archive tree (or ``WILLOW_LEGACY_MONOLITH_REPO``;
+``WILLOW_20_REPO`` is a deprecated alias), never at
 the charter. Living constitution case cards are in
 ``willow/governance/compliance/cases/``, not here.
 
