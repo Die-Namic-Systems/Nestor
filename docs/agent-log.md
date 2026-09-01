@@ -7537,3 +7537,226 @@ independent arrival. By the standard in `docs/the-house-already-knew.md` §6
 that earns no corroboration warrant, and the convergence must not be logged
 as one when `decision_warrants` starts carrying rows.
 
+
+### 6.126 `convergence` is the `else` branch, and ~94% of the set is not independent arrival — **measured** across all 389; fourth-kind proposal **hypothesis**
+
+*Proposed 2026-08-31, from a downstream session in `forge-play/forge-jig` that
+used `nestor_corpus_links` as evidence for "these two arrived independently" and
+was wrong to. No Nestor code changed; this records the measurement and the
+proposal, per §6's own rule.*
+
+**The mechanic.** `scripts/corpus/link_claims.py` classifies every proposed edge
+in a three-branch chain:
+
+```python
+if sa == sb:                                  # same normalised source key
+    kind = "copy"
+elif roots.get(ra, ra) == roots.get(rb, rb):  # same tombstone/family root
+    kind = "lineage"
+else:
+    kind = "convergence"
+```
+
+**`convergence` is the `else`.** It is never tested for — it is what remains when
+a pair is neither same-key nor same-family. So the kind the module's own
+docstring calls *"the only one that is evidence of anything"* is the one branch
+that asserts nothing about the pair.
+
+**A vendored file evades both tests.** Vendoring changes the path (so `sa != sb`)
+and is not descent (so the family root does not match). It lands in
+`convergence` by elimination.
+
+**Measured 2026-08-31**, against `nestor.db` snapshot `5263c6a5`, totals
+`copy 1705 / lineage 578 / convergence 389`. Sampled the first 15 convergence
+rows, all at cosine 1.000. The majority are the same code at a different path:
+
+| pair | reality |
+|---|---|
+| `escalation_score` — willow-gate ↔ **Forge** | `Forge/forge/friction_floor.py` carries a vendor header stating it is byte-for-byte from willow-mcp, itself byte-for-byte from willow-gate. Three hops, documented in the file |
+| `mastered` — **UTETY** ↔ willow-2.0 `core/bkt.py` | same docstring, different path |
+| `search_open_meteo`, `search_bhl`, `search_federal_register`, `search_worldbank` — **Jeles** `jeles/sources.py` ↔ willow-2.0 `core/jeles_sources.py` | one file, moved |
+| `require_authorized` — **openclaw-sap-gate** ↔ willow-2.0 `sap/core/gate.py` | vendored gate |
+| `calibration.py::summary` — Forge ↔ **oakenscrolls-office** | same docstring |
+| release-wiring / PR-template rows — homestead ↔ **Jeles**, terpsi ↔ hornbook | propagated templates and shared org defaults |
+
+**Confirming probe.** `corpus_links(kind="copy", repository="Forge")` returns
+**zero rows**. The Forge's known-vendored `friction_floor.py` is absent from the
+`copy` set and present in the `convergence` set — the misfiling, directly.
+
+**Two causes, and the second is the real one.**
+
+1. **A roster gap.** `tombstones.json` `families` holds 19 entries, covering the
+   homestead cluster and the willow cluster. `Forge`, `UTETY`, `Jeles`,
+   `oakenscrolls-office` and `openclaw-sap-gate` are absent, so
+   `roots.get(r, r)` falls back to the repository's own name and can never
+   match anything. Every false positive sampled involves at least one absent
+   repository.
+
+2. **A taxonomy gap, which a complete roster would not close.** Vendoring is
+   neither descent nor sibling-hood. The Forge did not *descend* from
+   willow-gate; it *copied a file* from it. Authoring `Forge -> willow` into
+   `families` would assert a kinship that is not true in order to suppress a
+   misfiling — trading a false `convergence` for a false `lineage`. **There is
+   no relation for "vendored," and vendoring is this fleet's deliberate,
+   dominant reuse mechanism** — `friction_floor` (three hops), `human_loop`,
+   `subject_consent`, `nest-pipeline`, each carrying a two-sided drift-guard
+   (willow-mcp #185, #190, #191, #192). The one relation the corpus most needs
+   to express is the one the taxonomy cannot.
+
+**This is the module's own founding defect, one level up.** The docstring
+records that the corpus keys on the source, so *"the only convergence it can see
+is two repositories sharing a filename… Neither is agreement; both are
+copying."* Same-path copying was fixed. **Different-path copying is the
+residual case of exactly that problem.**
+
+**The first proposal was falsified the same day — recorded, not erased.**
+It read: *vendored files announce themselves in the claim text, so key a fourth
+kind on the declared vendor header.* **They do not.** In
+`Forge/forge/friction_floor.py` the vendor note is a `#` comment block on lines
+2–24; the module docstring begins at line 25, and the extractor takes
+docstrings (`[docstring/2e1387d]`). The header is never ingested. A corpus
+search for the header's own phrases returns only *other* files discussing
+vendoring — tests, tools, issues — and no vendored module carrying its own
+note. `willow-mcp/scripts/check_vendor_sync.py` states the reason outright: it
+compares *"the module body (the module docstring onward)"*, because the header
+is the one part that legitimately differs between copies.
+
+**The better source already exists, authored and CI-enforced.** Two repositories
+maintain an explicit registry of which file is vendored from where:
+
+- `Forge/tools/vendor_sync_check.py` — *"The Forge vendors a handful of modules
+  from willow-mcp (`friction_floor.py`, `human_loop.py`, and the detection half
+  of `model_egress.py`) rather than depending on the package."* Its
+  `FullFileVendor` type is defined as *"a vendored file that is the upstream
+  file plus a header block."*
+- `willow-mcp/scripts/check_vendor_sync.py` — the cross-repo drift-guard, run in
+  CI with willow-gate checked out beside the repo (willow-mcp #185, #190, #191,
+  #192).
+
+So the proposal is now: **read the vendor registries these tools already hold**
+into a `vendored` map beside `families` in `tombstones.json`, and add a fourth
+kind. It meets the standard `tombstone_families` sets — authored, never guessed
+— without asking anyone to author it twice, and it is already kept honest by a
+drift-guard. **Status of this proposal: hypothesis.** Nothing has been built or
+measured against it; the registries' coverage of the misfiled pairs above has
+not been checked.
+
+**Coverage measured 2026-08-31 — the hypothesis is half right, and the priority
+was inverted.** Tallying the 15 sampled convergence rows against each candidate
+mechanism:
+
+| mechanism | catches | share |
+| --- | --- | --- |
+| provenance stated in the **module docstring** | 7 | **47%** |
+| the **vendor-sync registries** (the proposal above) | 3 | 20% |
+| both combined (they overlap on `subject_consent`) | 8 | 53% |
+| **template / org-default propagation** — neither touches it | 5 | **33%** |
+
+Two corrections to the falsification above, which was itself too broad.
+
+**The provenance signal is not absent; it is inconsistently placed.** The Forge
+writes its vendor note as a `#` comment block *above* the module docstring, so
+the extractor drops it — that part stands. But UTETY and Jeles write theirs
+*inside* the docstring, where it is extracted and fully searchable. Both return
+at `query_coverage 1.0`:
+
+- `utety/core/mastery.py` — *"A dependency-free **vendored copy** of the
+  inference path of the fleet's `core/bkt.py`… it does not import the fleet's
+  Python across the repo boundary."*
+- `jeles/sources.py` — *"**Originally** `jeles-remote/sources.py`, itself
+  **ported from** willow-2.0's `core/jeles_sources.py`."* Several functions in
+  that file add *"Ported from willow-2.0 (#649)"*, *"tracked it as #646/#647"*.
+
+**And the authors already distinguish the two relations in prose.** UTETY says
+*vendored copy* — a `copy`, no descent, and UTETY is not kin to willow-2.0.
+Jeles says *originally X, itself ported from Y* — a successor chain, willow-2.0
+→ `jeles-remote` → Jeles, which is `lineage`. Writing `UTETY -> willow` into
+`families` would be the false-lineage trade this entry warns against; writing
+`Jeles -> willow` would be correct. **The distinction the taxonomy needs is
+already authored, in the corpus, in the authors' own words — just unstructured.**
+
+**The largest single class is one neither proposal addresses.** Five of fifteen
+are template and org-default propagation: a shared `pull_request_template.md`, a
+`SUPPORT.md` community-health default, and release-wiring tests copied between
+homestead, homestead-health and Jeles. These are `copy` in substance at
+different paths in unrelated orgs. That is this module's founding case — *"one
+almanac template copied twelve times"* — solved for the same-path form and still
+misfiling in the different-path form.
+
+**So the revised proposal, ordered by measured coverage rather than by which
+idea came first:** (1) key a fourth kind on docstring-stated provenance,
+distinguishing *vendored/copied* from *ported/originally*, since the vocabulary
+is already there; (2) treat template propagation as its own relation, not a
+convergence; (3) read the vendor registries for the files whose note sits in a
+comment block the extractor never sees, and consider asking the Forge to move
+its note into the docstring so (1) covers it. **Still hypothesis** — nothing is
+built, and the 15-row sample is a sample.
+
+**Run across the full population, 2026-08-31 — the sample was not
+representative, and the biggest class was invisible to it.** Classified all
+**389** convergence edges out of `corpus_edges` directly (the MCP verb caps at
+50). Rules keyed on the vocabulary the authors already use, plus an authored map
+of which corpus "repositories" are extraction lanes over one project:
+
+| class | rows | share |
+| --- | --- | --- |
+| **same project, different lane** | 81 | **20.8%** |
+| same filename, different path, no prose marker | 64 | 16.5% |
+| template / org-default propagation | 60 | 15.4% |
+| declared in a vendor registry | 32 | 8.2% |
+| docstring says *ported/originally* | 6 | 1.5% |
+| docstring says *vendored/copied* | 1 | 0.3% |
+| unclassified | 145 | 37.3% |
+
+**The 15-row sample was badly unrepresentative.** It put docstring-stated
+provenance at 47%; across the population it is **1.8%** (7 of 389). The sample
+was the first rows the MCP verb returned, and they were heavy on the two
+repositories that happen to state provenance in prose. The sampled estimate was
+wrong by a factor of twenty-five, in the direction that flattered the proposal.
+
+**The largest single class did not appear in the sample at all: one project
+talking to itself across extraction lanes.** `nestor`, `decisions` (its own
+dogfood decision records) and `gh-Die-Namic-Systems` (its own issues) are three
+lanes over one repository, extracted in one run at the same snapshot. Their
+cross-links are labelled *independent arrival*:
+
+- `nestor/seed_policy_fr.py` ↔ `decisions/0201-multilingual-policy-seeds`
+- `scripts/build_dogfood_smoke_fixture.py` ↔ `decisions/0216-dogfood-smoke-fixture-and-archive`
+- `tests/test_unconventional.py::test_emoji_only_stories` ↔ `decisions/0202-emoji-preserved-in-normalize`
+
+**A decision record and the code that implements it is the least independent
+pair in the store** — same author, same change, often the same commit. This is a
+roster gap of a kind `families` cannot express: not descent, not sibling-hood,
+but *the same project seen through two extractors*.
+
+**Hand-judging a random 12 of the 145 unclassified** (seed 42) suggests the
+remainder is mostly more of the same: 3 template propagation the regex missed,
+3 ports where only the *module* docstring carries the marker while the edge sits
+on a *function-level* claim, 4 cross-project documentation-describes-
+implementation (`safe-app-store-public` prose ↔ the module it documents), and 2
+plausibly genuine. Extrapolated, **genuine independent arrival is on the order of
+6% of the convergence set** — call it 20–30 rows of 389. That is a 12-row hand
+sample and should be read as an order of magnitude, not a figure.
+
+**One finding is directly actionable and cheap.** The provenance marker lives on
+the **module** docstring; the edges are built from **per-symbol** claims, which
+inherit nothing. `utety/core/mastery.py` says *"a dependency-free vendored
+copy"* — but the edge is on `mastery.py::mastered`, whose own docstring is one
+line about a threshold. **Propagating a module's stated provenance to its
+symbols would move most of the ported/vendored rows out of `convergence` without
+any new signal being invented.**
+
+**What is not claimed.** Not every `convergence` row is wrong. `subject_consent`
+(willow-mcp ↔ UTETY) narrates genuine independent need in its own docstring — *"a
+gap designed twice and built zero times"* — and is a real arrival. The defect is
+that the kind cannot be trusted **without reading both sides**, which is what the
+module's covenant and decision `0227` already say. The proposal is to make the
+label carry that weight rather than leaving it to the reader.
+
+**The covenant held; the reading did not.** Every row returned
+`verifier=""`, `verified=false`, `authority="none"`, and the tool's own
+description says convergence *"is a claim a human settles by reading both
+sides."* Nestor proposed correctly. The downstream consumer built four
+"independent arrival" claims on those proposals and passed them along as
+evidence — the harm this entry records is a reading error, not a Nestor bug.
+That it was so easy to make is the argument for the fourth kind.
