@@ -272,9 +272,14 @@ def test_cloud_seal_is_not_imported_by_the_default_read_path():
     import it, or a `[gate]`-less deployment fails to load Nestor at all.
     """
     # Fresh import of the meaningful surfaces, none of which should pull
-    # nestor.cloud_seal in transitively.
-    for name in ("nestor.answer", "nestor.memory", "nestor.cascade",
-                 "nestor.matcher", "nestor.curator"):
+    # nestor.cloud_seal in transitively. Drop any prior test-session import
+    # (e.g. tests/test_cloud_seal.py runs earlier alphabetically) so this
+    # asserts transitive default-path behavior, not collection order.
+    _surfaces = ("nestor.answer", "nestor.memory", "nestor.cascade",
+                 "nestor.matcher", "nestor.curator")
+    for name in _surfaces + ("nestor.cloud_seal",):
+        sys.modules.pop(name, None)
+    for name in _surfaces:
         importlib.import_module(name)
     assert "nestor.cloud_seal" not in sys.modules, (
         "nestor.cloud_seal was pulled into sys.modules by a default read "
