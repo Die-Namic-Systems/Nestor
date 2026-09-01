@@ -128,6 +128,22 @@ class VerifierKey:
         return bool(self.revoked_at)
 
     @property
+    def key_type(self) -> str:
+        """``"hmac"``, ``"ed25519"``, or ``"ed25519-public"``.
+
+        The two ed25519 values are opposite sides of decision ``0074``: with
+        ``private`` this instance can sign as this verifier, without it the
+        entry verifies their seals and can never produce one. Both come from
+        ``nestor keys add --type ed25519``, one ``--public`` apart, so the
+        rule for telling them apart lives here rather than at each surface
+        that wants to report it (:func:`nestor.signing.verifier_key_type`,
+        ``nestor keys list``).
+        """
+        if self.kind == "ed25519" and not self.private:
+            return "ed25519-public"
+        return self.kind
+
+    @property
     def can_sign(self) -> bool:
         """A revoked key makes no new seals, whatever the reason."""
         return not self.revoked

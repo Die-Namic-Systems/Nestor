@@ -378,7 +378,13 @@ def export_bundle(store: Storage | None = None, source_lang: str = "",
         # The matcher that keyed these norms, for import to compare against its
         # own. Advisory, and deliberately outside the digest — see the docstring.
         "matcher": matcher_audit_fields(memory.get_matcher(matcher))["matcher"],
-        "signing": {"enabled": signing.signing_enabled(), "algorithm": "hmac-sha256"},
+        # `trust` is what `enabled` could never say: the destination is told
+        # whether these signatures are evidence about a person (a keyring) or
+        # only that someone held one shared key (decision 0074). Header only —
+        # the digest is taken over the rows, so adding it changes no bundle's
+        # digest and no importer that ignores it.
+        "signing": {"enabled": signing.signing_enabled(),
+                    "trust": signing.seal_trust(), "algorithm": "hmac-sha256"},
         # In the bundle, not only in a warning. Python dedupes warnings by code
         # location, so a long-lived exporter (nestor.ui serves bundles from a
         # thread pool) warns on the first short export and stays silent for

@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 232,
+    "pairs": 235,
     "rejections": 0,
     "sealed": 229,
     "servable": 229,
     "warrants": 0
   },
   "created_at": "2026-09-01T00:00:00+00:00",
-  "digest": "49ecb08368cb49193df872b4a20d15cfd83cf20252a54940ec68f40d5dd73eed",
+  "digest": "6218b46004ddc6562cf48661bc0e0a1b2f21623fd55ddd38f00e86a38f132476",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "c771a5fb-306a-5220-b1a0-ba6a13e97403",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what was observed while doing this and deliberately not changed",
+      "source_text": "What was observed while doing this and deliberately NOT changed?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Two things, both recorded rather than fixed. (1) The portable export header hardcodes `\"algorithm\": \"hmac-sha256\"` next to the new `trust` field, and that string is already wrong for a store whose keyring holds ed25519 entries. It is a wire field with importers on the other side, so correcting it is its own decision with its own compatibility question, not a rider on this one. (2) The seat's self-grant tripwire (hooks/before_authority.py) refused `nestor keys add ... --type ed25519 --public <hex>` from the shell, although its own denial text names registering a peer's public key as permitted and `_KEYS_ADD_RE`/`_PUBLIC_RE` are written to exempt it. Reported, not worked around and not diagnosed further: reverse-engineering a tripwire to find what passes is the move the tripwire exists to catch. The CLI rendering was verified through the in-process keyring fixture tests/test_asymmetric_seals.py already uses.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "96fa0581-32a5-58fa-9ae2-4911241d56e4",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "signing_enabled is one bit over three deployment states that do not mean the same thing should the reporting surfaces keep using it",
+      "source_text": "signing_enabled() is one bit over three deployment states that do not mean the same thing. Should the reporting surfaces keep using it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `signing.seal_trust()` is added, returning `\"keyring\"` (per-verifier keys — a signature is evidence about a person, and an unknown name is refused at seal time), `\"shared\"` (one deployment-wide NESTOR_SEAL_KEY — signed and tamper-evident, but the verifier field is unchecked: anyone holding the key signs as anyone), or `\"unsigned\"` (nothing configured — a row that merely says sealed is trusted on the store's word). `nestor stats` prints the state and what it buys instead of `on`/`OFF`, and the portable export header carries `signing.trust` beside `signing.enabled`. Built on `cache_trust()`'s precedent, which is the same three-valued answer for the embedding cache, in the same module, with the same docstring shape. `memory.is_verified_seal` stays boolean and unchanged: it answers 'may I serve this row', which really is binary.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-01T00:00:00+00:00",
       "id": "9287cc3e-8d7e-5f8e-aaf8-fbc4900a2108",
@@ -61,6 +89,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Kept and labelled. docs/build-record.md draws the line, states that none of it ships (the wheel is nestor/ and the sdist adds tests/ plus four root files, both named explicitly in pyproject.toml), indexes each part with its size and what it is, and routes by the question a reader is actually asking. It closes with a section on what the record does NOT establish: that the numbers generalise, that the decisions had a second reader, or that a sealed pair is still current.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "48815e8b-9e43-5db2-81a1-f6c9551b2bb9",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "`keys add type ed25519` and `type ed25519 public hex` are one flag apart and land on opposite sides of decision 0074 should verifier_key_type keep reporting both as ed25519",
+      "source_text": "`keys add --type ed25519` and `--type ed25519 --public <hex>` are one flag apart and land on opposite sides of decision 0074. Should verifier_key_type keep reporting both as \"ed25519\"?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The rule lives on `keyring.VerifierKey.key_type`, a property returning `\"ed25519\"` when the entry holds the private half (generated here — this instance can sign as that verifier) and `\"ed25519-public\"` when it does not (registered by public half — verification capability without forgery capability). `signing.verifier_key_type` and `nestor keys list` both read that property rather than reimplementing the test; `keys list` gains a key_type column and, only when some entry actually holds a private half, one line saying what the two values mean.",
       "verifier": "",
       "weight": 1.0
     },
@@ -3276,7 +3318,8 @@
   "rejections": [],
   "signing": {
     "algorithm": "hmac-sha256",
-    "enabled": false
+    "enabled": false,
+    "trust": "unsigned"
   },
   "warrants": []
 }
