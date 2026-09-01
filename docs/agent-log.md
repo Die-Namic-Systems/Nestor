@@ -7538,7 +7538,7 @@ that earns no corroboration warrant, and the convergence must not be logged
 as one when `decision_warrants` starts carrying rows.
 
 
-### 6.126 `convergence` is the `else` branch, and the fleet's dominant reuse mechanism has no relation of its own — defect **measured**, fourth-kind proposal **hypothesis** (first proposal falsified)
+### 6.126 `convergence` is the `else` branch, and ~94% of the set is not independent arrival — **measured** across all 389; fourth-kind proposal **hypothesis**
 
 *Proposed 2026-08-31, from a downstream session in `forge-play/forge-jig` that
 used `nestor_corpus_links` as evidence for "these two arrived independently" and
@@ -7691,6 +7691,60 @@ convergence; (3) read the vendor registries for the files whose note sits in a
 comment block the extractor never sees, and consider asking the Forge to move
 its note into the docstring so (1) covers it. **Still hypothesis** — nothing is
 built, and the 15-row sample is a sample.
+
+**Run across the full population, 2026-08-31 — the sample was not
+representative, and the biggest class was invisible to it.** Classified all
+**389** convergence edges out of `corpus_edges` directly (the MCP verb caps at
+50). Rules keyed on the vocabulary the authors already use, plus an authored map
+of which corpus "repositories" are extraction lanes over one project:
+
+| class | rows | share |
+| --- | --- | --- |
+| **same project, different lane** | 81 | **20.8%** |
+| same filename, different path, no prose marker | 64 | 16.5% |
+| template / org-default propagation | 60 | 15.4% |
+| declared in a vendor registry | 32 | 8.2% |
+| docstring says *ported/originally* | 6 | 1.5% |
+| docstring says *vendored/copied* | 1 | 0.3% |
+| unclassified | 145 | 37.3% |
+
+**The 15-row sample was badly unrepresentative.** It put docstring-stated
+provenance at 47%; across the population it is **1.8%** (7 of 389). The sample
+was the first rows the MCP verb returned, and they were heavy on the two
+repositories that happen to state provenance in prose. The sampled estimate was
+wrong by a factor of twenty-five, in the direction that flattered the proposal.
+
+**The largest single class did not appear in the sample at all: one project
+talking to itself across extraction lanes.** `nestor`, `decisions` (its own
+dogfood decision records) and `gh-Die-Namic-Systems` (its own issues) are three
+lanes over one repository, extracted in one run at the same snapshot. Their
+cross-links are labelled *independent arrival*:
+
+- `nestor/seed_policy_fr.py` ↔ `decisions/0201-multilingual-policy-seeds`
+- `scripts/build_dogfood_smoke_fixture.py` ↔ `decisions/0216-dogfood-smoke-fixture-and-archive`
+- `tests/test_unconventional.py::test_emoji_only_stories` ↔ `decisions/0202-emoji-preserved-in-normalize`
+
+**A decision record and the code that implements it is the least independent
+pair in the store** — same author, same change, often the same commit. This is a
+roster gap of a kind `families` cannot express: not descent, not sibling-hood,
+but *the same project seen through two extractors*.
+
+**Hand-judging a random 12 of the 145 unclassified** (seed 42) suggests the
+remainder is mostly more of the same: 3 template propagation the regex missed,
+3 ports where only the *module* docstring carries the marker while the edge sits
+on a *function-level* claim, 4 cross-project documentation-describes-
+implementation (`safe-app-store-public` prose ↔ the module it documents), and 2
+plausibly genuine. Extrapolated, **genuine independent arrival is on the order of
+6% of the convergence set** — call it 20–30 rows of 389. That is a 12-row hand
+sample and should be read as an order of magnitude, not a figure.
+
+**One finding is directly actionable and cheap.** The provenance marker lives on
+the **module** docstring; the edges are built from **per-symbol** claims, which
+inherit nothing. `utety/core/mastery.py` says *"a dependency-free vendored
+copy"* — but the edge is on `mastery.py::mastered`, whose own docstring is one
+line about a threshold. **Propagating a module's stated provenance to its
+symbols would move most of the ported/vendored rows out of `convergence` without
+any new signal being invented.**
 
 **What is not claimed.** Not every `convergence` row is wrong. `subject_consent`
 (willow-mcp ↔ UTETY) narrates genuine independent need in its own docstring — *"a
