@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 238,
+    "pairs": 241,
     "rejections": 0,
     "sealed": 229,
     "servable": 229,
     "warrants": 0
   },
   "created_at": "2026-09-01T00:00:00+00:00",
-  "digest": "956625b06cec2081caf2a1916ad7be7120e03031608fbd0471fe677d499513b9",
+  "digest": "91963b57f3c3692a43c0c92d75e6a50d5e60c5eec50be70632af140ffd526349",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -47,6 +47,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No to both, and the second is the harder half. A seal whose signature fails is already surfaced — the curator lists it as unverifiable and no serve path will use it. These four verify perfectly. Nor is `created_at` sufficient: three of the four were overtaken by a specific release, and the fourth (pair 4) was never wrong about the tree at the moment it was quoted — it was quoted without running the command it describes, which is a different error wearing the same clothes. So the signal is neither 'old' nor 'invalid', but 'the thing this describes has since moved', and nothing in tm_pairs (id, source_text, source_norm, source_lang, target_text, target_lang, status, verifier, weight, origin, created_at, seal_sig, reason, superseded_by, visibility) records what a pair is ABOUT closely enough to detect it.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "e148a55b-4b0c-5a9f-9bdc-cb51c781b86a",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is the actual state of this repositorys history and how much of the published release record is reachable from master",
+      "source_text": "What is the actual state of this repository's history, and how much of the published release record is reachable from master?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The history was REPLACED on 2026-08-25/26, not rewritten. `git merge-base v0.11.1 origin/master` returns nothing: the two sides share no common ancestor at all. Master is rooted at 7f91b12 (2026-08-25 19:27, 'Plumb --matcher through nestor decision check (#212)') and was 169 commits when this was written; the other side is 832 and cannot grow. Nineteen release tags (v0.2.0 through v0.11.1) are not ancestors of master, and `git for-each-ref --contains b44cc4f` returns only the tag itself — those commits are held alive by their tags and by nothing else. The tags from v0.12.0 onward are on the mainline and that set grows with every release. CHANGELOG.md presents every release as one continuous story from 0.2.0, so the nineteen entries covering 0.2.0 through 0.11.1 describe commits that are not in this repository's mainline — a fixed nineteen against a denominator that climbs. The entry for 0.12.0 links `compare/v0.11.1...v0.12.0`, a comparison across two unrelated histories; run locally that diff is 67 files changed, 13718 insertions.",
       "verifier": "",
       "weight": 1.0
     },
@@ -145,6 +159,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. The rule lives on `keyring.VerifierKey.key_type`, a property returning `\"ed25519\"` when the entry holds the private half (generated here — this instance can sign as that verifier) and `\"ed25519-public\"` when it does not (registered by public half — verification capability without forgery capability). `signing.verifier_key_type` and `nestor keys list` both read that property rather than reimplementing the test; `keys list` gains a key_type column and, only when some entry actually holds a private half, one line saying what the two values mean.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "400a3b07-f2ad-5b0a-9ba4-eb3bfeaae659",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is this a defect to repair or a fact to document",
+      "source_text": "Is this a defect to repair, or a fact to document?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A fact to document. Nothing here is proposed as a repair: not grafting the histories, not rewriting CHANGELOG.md, not deleting or retargeting the nineteen tags. The reasons the replacement happened are operator knowledge and are not derivable from the tree, so a session cannot supply them and should not invent them. What is added is a section in docs/build-record.md, under the heading that already exists for exactly this — 'What this record does not establish' — and a line in docs/releasing.md recording that the pre-0.12.0 tags are load-bearing.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-01T00:00:00+00:00",
+      "id": "15e6ccf7-f8f4-555b-b278-7f69a404dc43",
+      "origin": "pr:",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what protects the nineteen orphaned tags and what happens if one is deleted",
+      "source_text": "What protects the nineteen orphaned tags, and what happens if one is deleted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Nothing protects them today, and docs/releasing.md now says so. Those tags are the sole refs keeping 832 commits reachable. Deleting one on the remote makes its commits unreferenced; a fresh clone would not carry them, and local garbage collection eventually reclaims them. GitHub retains unreachable objects for a while and this is not a same-day loss, but it is a one-command, unrecoverable-in-principle loss of published-release provenance, and no gate or note stands between an operator and it. Not proposed here: a test asserting the tag set, or branch/tag protection rules. Both are real options and both are operator decisions about a remote's configuration rather than code.",
       "verifier": "",
       "weight": 1.0
     },

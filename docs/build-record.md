@@ -80,6 +80,25 @@ widen it has to move a decision first.
   [`seal-staleness-and-quorum.md`](seal-staleness-and-quorum.md) is the open
   question about what to do when it stops being. At least one pair in the store
   is a measurement that a later release fixed, still reading as present tense.
+- **That the git history behind it is continuous.** It is not. On 2026-08-25/26
+  this repository's history was *replaced* rather than rewritten: `git
+  merge-base v0.11.1 origin/master` returns nothing, because the two sides share
+  no common ancestor. Master is rooted at `7f91b12`; the history it replaced is
+  832 commits and cannot grow. Nineteen release tags — `v0.2.0` through
+  `v0.11.1` — are not ancestors of master, and the commits they name are
+  reachable from those tags and nothing else. `CHANGELOG.md` presents every
+  release as one story, so its nineteen entries for 0.2.0 through 0.11.1
+  describe commits outside the mainline, and the `0.12.0` entry links a
+  `compare/v0.11.1...v0.12.0` that spans two unrelated histories (locally: 67
+  files changed, 13,718 insertions).
+
+  Why it happened is operator knowledge and is deliberately not guessed at here.
+  What is checkable is stated above, and decision `0232` carries the full
+  measurement. Two consequences worth holding onto: those nineteen tags are
+  load-bearing, since deleting one orphans published-release provenance
+  ([`releasing.md`](releasing.md)); and a reader running `git log` will see 169
+  commits against a changelog claiming 29 releases, which is not an
+  inconsistency to explain away but the seam, visible.
 
 ---
 
