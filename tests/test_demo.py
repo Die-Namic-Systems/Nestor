@@ -93,7 +93,7 @@ def test_the_dogfooding_measures_and_every_claim_holds(dogfooding_result):
     done = dogfooding_result[0]
     assert done.returncode == 0, done.stdout + done.stderr
     for beat in ("The corpus is real",
-                 "In the store that ships, nothing serves",
+                 "In the store that ships, seals trace to reviewable files",
                  "The floor",
                  "asking in their own words",
                  "authoring-free",
