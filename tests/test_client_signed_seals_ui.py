@@ -215,7 +215,7 @@ class TestClientSignedSealThroughDispatch:
         assert memory.best_sealed("the monthly report", "en", "es", store=app.store) is None
 
     def test_queue_seal_as_drafted_without_signature_still_needs_session(self, ring, app):
-        priv, pub = _keypair()
+        _priv, pub = _keypair()
         ring.add("bob", key=pub, kind="ed25519")
         doc = app.store.create_document("a document", "en", "es")
         seg = app.store.create_segment(doc["id"], 0, "the monthly report", "el informe", 0.8)
@@ -280,7 +280,7 @@ class TestClientSignedSealThroughDispatch:
         assert ok["within_tolerance"] is True
 
     def test_reconcile_seal_without_signature_still_needs_a_session(self, ring, app):
-        priv, pub = _keypair()
+        _priv, pub = _keypair()
         ring.add("bob", key=pub, kind="ed25519")
         status, body = post(app, "/api/reconcile/seal", label="ceiling", value="1000000",
                             domain="contract", verifier="bob")
