@@ -101,6 +101,17 @@ The workflow filename is part of what PyPI checks. Renaming `publish.yml`
 without updating PyPI breaks uploads with an authentication error that does not
 mention the filename.
 
+**The pre-0.12.0 tags are load-bearing — do not tidy them.** Nineteen tags,
+`v0.2.0` through `v0.11.1`, are not ancestors of `master`: this repository's
+history was replaced on 2026-08-25/26 and the two sides share no common
+ancestor (decision `0232`, [`build-record.md`](build-record.md)). Those tags are
+the only refs keeping 832 commits reachable, including every commit behind nine
+published PyPI versions. Deleting one on the remote makes its commits
+unreferenced — a fresh clone will not carry them, and a PyPI version can never
+be reused, so the release it marks becomes undescribable from the repository.
+Nothing enforces this today; it is written here because a tag list that spans
+two histories looks untidy and is not.
+
 **The owner is part of it too, and this repository changed owners.** Nestor
 moved from `rudi193-cmd/Nestor` into the `Die-Namic-Systems` organisation. A
 GitHub transfer redirects clones and web links, but PyPI's Trusted Publishing
