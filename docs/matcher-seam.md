@@ -32,7 +32,7 @@ not from the text. A seal signature covers `(source_norm, target_text,
 verifier)` — it says what a human approved, and nothing about what the row
 *matches*. So a store-writer who cannot forge a seal could still choose which
 queries a sealed row answers, by writing the vector. Same shape as
-[Nestor#2](https://github.com/rudi193-cmd/Nestor/issues/2), one object over.
+[Nestor#2](https://github.com/Die-Namic-Systems/Nestor/issues/2), one object over.
 
 Each cached vector therefore carries an HMAC over
 `(pair_id, model_name, source_sha, vector)`, and one that does not verify is

@@ -2,7 +2,7 @@
 
 **Meaning infrastructure. *In medio, fides* — in the middle, trust.**
 
-[![Tests](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml/badge.svg)](https://github.com/rudi193-cmd/Nestor/actions/workflows/tests.yml)
+[![Tests](https://github.com/Die-Namic-Systems/Nestor/actions/workflows/tests.yml/badge.svg)](https://github.com/Die-Namic-Systems/Nestor/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Dependencies](https://img.shields.io/badge/runtime%20deps-none-lightgrey)](pyproject.toml)
@@ -209,7 +209,7 @@ python demo/record_demo.py              # capture it as an asciicast under demo/
 From source, for development:
 
 ```bash
-git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
+git clone https://github.com/Die-Namic-Systems/Nestor.git && cd Nestor
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"                 # + pytest, ruff, bandit
 bash scripts/ci-test.sh core            # fast, deterministic, no live services

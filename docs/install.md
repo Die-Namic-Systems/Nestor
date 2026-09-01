@@ -29,7 +29,7 @@ code, and stays that way regardless of what it is called on the index.
 From a checkout instead of the index — same tool, same one line:
 
 ```bash
-git clone https://github.com/rudi193-cmd/Nestor.git && cd Nestor
+git clone https://github.com/Die-Namic-Systems/Nestor.git && cd Nestor
 pipx install .
 ```
 

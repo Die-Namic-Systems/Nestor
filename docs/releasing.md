@@ -92,7 +92,7 @@ long-lived credential to leak or rotate. On PyPI, under the project (or as a
 
 | field | value |
 |---|---|
-| Owner | `rudi193-cmd` |
+| Owner | `Die-Namic-Systems` |
 | Repository | `Nestor` |
 | Workflow | `publish.yml` |
 | Environment | `pypi` |
@@ -100,6 +100,16 @@ long-lived credential to leak or rotate. On PyPI, under the project (or as a
 The workflow filename is part of what PyPI checks. Renaming `publish.yml`
 without updating PyPI breaks uploads with an authentication error that does not
 mention the filename.
+
+**The owner is part of it too, and this repository changed owners.** Nestor
+moved from `rudi193-cmd/Nestor` into the `Die-Namic-Systems` organisation. A
+GitHub transfer redirects clones and web links, but PyPI's Trusted Publishing
+check is on the OIDC claim, not on a redirect: a publisher still registered
+against the old owner rejects the upload. This is unverified from inside the
+repository — nothing in this tree can read PyPI's configuration — so before the
+next tag, open <https://pypi.org/manage/projects/> and confirm the publisher
+reads `Die-Namic-Systems`. The failure mode if it does not is a tag that builds
+green and never uploads.
 
 **A pending publisher claims the name.** Registering one creates the PyPI
 project immediately, with zero release files — so the name stops being available
