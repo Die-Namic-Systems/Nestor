@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import pytest
+from conftest import semantic_tests_enabled
 
 from nestor.matcher import StringMatcher
 from nestor.semantic_matcher import SemanticMatcher
-from tests.conftest import semantic_tests_enabled
 
 
 @pytest.mark.semantic

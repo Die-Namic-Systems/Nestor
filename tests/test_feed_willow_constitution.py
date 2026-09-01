@@ -27,8 +27,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import feed_willow_constitution as FEED
-
-from tests._fleet_paths import constitution_cases
+from _fleet_paths import constitution_cases
 
 CASES = constitution_cases()
 

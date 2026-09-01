@@ -1,9 +1,10 @@
 """Local drafts expose corpus context without laundering its authority."""
 from __future__ import annotations
 
+from test_corpus_store import _source
+
 from nestor import corpus, engine, memory, serve
 from nestor.sqlite_store import SqliteStore
-from tests.test_corpus_store import _source
 
 
 def test_draft_tool_returns_separate_unverified_corpus_basis(

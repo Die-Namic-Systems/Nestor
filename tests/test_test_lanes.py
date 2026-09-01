@@ -4,11 +4,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import conftest
 import pytest
 
 from nestor import memory
 from nestor.matcher import StringMatcher
-from tests import conftest
 
 REPO = Path(__file__).resolve().parent.parent
 

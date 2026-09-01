@@ -102,8 +102,9 @@ def test_score_is_used_when_matcher_exposes_it():
 
 @pytest.mark.slow
 def test_smoke_over_the_real_corpus_at_the_knee():
+    from conftest import DOGFOOD_SMOKE_DECISIONS
+
     from nestor.triage import load_decisions
-    from tests.conftest import DOGFOOD_SMOKE_DECISIONS
 
     edges = find_supersessions(load_decisions(DOGFOOD_SMOKE_DECISIONS), M, BAR)
     # deterministic, every kind valid, and no self-edges

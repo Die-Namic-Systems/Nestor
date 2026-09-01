@@ -33,8 +33,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import audit_against_jeles as AUDIT
-
-from tests._fleet_paths import jeles_checkout
+from _fleet_paths import jeles_checkout
 
 JELES = jeles_checkout()
 SCRIPT = REPO / "scripts" / "audit_against_jeles.py"
