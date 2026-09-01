@@ -127,7 +127,7 @@ docs/local-fleet.md   wiring nestor to the fleet repos on one machine — paths 
 docs/home-paths.md  ~/.nestor ledger/keep paths vs the repo's ./data/ (household hosts)
 docs/local-agent-prototype.md  one signed household store shared by Cursor, Claude, and loopback Ollama
 docs/roots-willow-and-homestead.md  ~/.willow fleet root vs ~/.nestor household root — audience, not brand
-docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, willow-2.0's §0.2, Jeles, here
+docs/covenant-lineage.md  where "you may propose, you may not confirm" came from — willow-1.9, the legacy monolith's §0.2, Jeles, here
 docs/two-stores.md    jeles' corpus and this store on the same problem — read with citations, not run
 docs/embedder-stand-in.md  a language model in place of the embedder (§6.99) — an instrument, never a cache key or a seal
 docs/decision-rewording-bench.md  N1 — does the matcher recognize a re-worded decision? (the gate under `nestor decision check`)

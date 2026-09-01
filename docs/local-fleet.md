@@ -108,14 +108,15 @@ that can be wired:
 JELES_REPO=~/github/hornbook-knowledge/Jeles \
 WILLOW_CHARTER_REPO=~/github/willow-memory/willow \
 WILLOW_CONSTITUTION_CASES=~/github/willow-memory/willow/governance/compliance/cases \
-WILLOW_20_REPO=~/github/willow-memory/willow-2.0 \
+WILLOW_LEGACY_MONOLITH_REPO=~/github-archive-greenfield-2026-08-10/archive/legacy-flat-2026-08-10/willow-2.0 \
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
 python -m pytest -q -rs
 ```
 
 `tests/_fleet_paths.py` resolves the first four; each accepts an env override
 ahead of the org-folder defaults, which is what makes a flat container layout
-(`/home/user/Jeles`) work without moving anything. `pip install -e <path>` for
+(`/home/user/Jeles`) work without moving anything. ``WILLOW_20_REPO`` is a
+deprecated alias for ``WILLOW_LEGACY_MONOLITH_REPO``. `pip install -e <path>` for
 jeles and willow-gate attaches the rest: jeles clears eight skips (border,
 bridge, verification, two audits), the charter three, willow-gate one
 (`nestor.cloud_seal` fail-closes on import without it).

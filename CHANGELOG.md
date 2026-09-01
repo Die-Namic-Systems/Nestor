@@ -464,6 +464,11 @@ what moved.
 
 ### Changed
 
+- **Fleet naming:** the archived origin monorepo is **legacy fleet monolith** in
+  docs and env (`WILLOW_LEGACY_MONOLITH_REPO`; `WILLOW_20_REPO` and
+  `willow20_checkout()` remain as deprecated aliases). Corpus tombstone keys
+  unchanged.
+
 - **BREAKING — Nestor's household root is now `~/.nestor` (`NESTOR_HOME`).**
   `nestor/homestead_paths.py` becomes `nestor/home_paths.py`, and the resolver
   no longer defaults to another product's root. This is

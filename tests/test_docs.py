@@ -64,7 +64,7 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
                 # when content moves out of the README.
                 "docs/home-paths.md",
                 # local-fleet.md documents the sibling-checkout overrides
-                # (WILLOW_CHARTER_REPO, WILLOW_CONSTITUTION_CASES, WILLOW_20_REPO)
+                # (WILLOW_CHARTER_REPO, WILLOW_CONSTITUTION_CASES, WILLOW_LEGACY_MONOLITH_REPO)
                 # that _fleet_paths.py reads.
                 "docs/local-fleet.md",
                 # The eleven sections the second README trim moved out, and the
@@ -196,7 +196,7 @@ def _env_names_in_code() -> set[str]:
     paths = [*(ROOT / "nestor").glob("*.py"), ROOT / "tests" / "_fleet_paths.py"]
     source = "\n".join(p.read_text(encoding="utf-8") for p in paths)
     # `[A-Z0-9_]`, not `[A-Z_]`: the old class stopped at the first digit, so
-    # `WILLOW_20_REPO` was captured as `WILLOW_` — a prefix that appears in
+    # `WILLOW_LEGACY_MONOLITH_REPO` was captured as `WILLOW_` — a prefix that appears in
     # several documents, so it satisfied the reverse gate by accident and that
     # variable was covered in neither direction. Found by widening the scan
     # above and then checking which names it had actually gained.
