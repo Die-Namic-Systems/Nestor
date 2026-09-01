@@ -1,0 +1,8 @@
+calibration over 223 decisions (pick the bar where the counts stop moving):
+
+    bar   groups    edges
+  -----  -------  -------
+   0.35        3       89
+   0.45       91        6
+   0.55      208        1
+   0.92      223        0

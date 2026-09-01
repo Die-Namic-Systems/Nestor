@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Progress Catalog</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; background: #0f1115; color: #e6e8ec; }
+    body { margin: 1.5rem; max-width: 1200px; }
+    h1 { font-size: 1.4rem; font-weight: 600; }
+    .meta { color: #9aa3b2; margin-bottom: 1rem; }
+    input, select { background: #1a1f2a; color: inherit; border: 1px solid #333; padding: .4rem .6rem; border-radius: 4px; }
+    .filters { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #2a3140; vertical-align: top; }
+    th { color: #9aa3b2; font-weight: 500; }
+    tr.t1 { background: rgba(80, 160, 120, .08); }
+    tr.t2 { background: rgba(120, 140, 180, .06); }
+    code { font-size: .82rem; word-break: break-all; }
+    a { color: #7eb8ff; }
+  </style>
+</head>
+<body>
+  <h1>Progress Catalog</h1>
+  <p class="meta">Local browser — loads <code>data/catalog.json</code>. Serve this directory over HTTP (not file://).</p>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Filter summary…" aria-label="Filter">
+    <select id="tier"><option value="">All tiers</option><option value="1">Tier 1</option><option value="2">Tier 2</option></select>
+    <select id="tree"><option value="">All sources</option></select>
+    <select id="kind"><option value="">All kinds</option></select>
+  </div>
+  <table>
+    <thead><tr><th>Tier</th><th>Kind</th><th>Source</th><th>Summary</th><th>Path</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <script>
+    const tbody = document.getElementById('rows');
+    const q = document.getElementById('q');
+    const tier = document.getElementById('tier');
+    const tree = document.getElementById('tree');
+    const kind = document.getElementById('kind');
+    let data = [];
+    function uniq(arr) { return [...new Set(arr)].sort(); }
+    function render() {
+      const fq = q.value.toLowerCase();
+      tbody.innerHTML = '';
+      data.filter(r => {
+        if (tier.value && String(r.tier) !== tier.value) return false;
+        if (tree.value && r.source_tree !== tree.value) return false;
+        if (kind.value && r.kind !== kind.value) return false;
+        if (fq && !(r.summary || '').toLowerCase().includes(fq)) return false;
+        return true;
+      }).forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = 't' + (r.tier || 3);
+        tr.innerHTML = `<td>${r.tier ?? '—'}</td><td>${r.kind ?? '—'}</td><td>${r.source_tree ?? '—'}</td><td>${r.summary ?? r.id ?? ''}</td><td><code>${r.path ?? ''}</code></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    fetch('data/catalog.json').then(r => r.json()).then(rows => {
+      data = rows;
+      uniq(rows.map(r => r.source_tree).filter(Boolean)).forEach(v => {
+        const o = document.createElement('option'); o.value = v; o.textContent = v; tree.appendChild(o);
+      });
+      uniq(rows.map(r => r.kind).filter(Boolean)).forEach(v => {
+        const o = document.createElement('option'); o.value = v; o.textContent = v; kind.appendChild(o);
+      });
+      [q, tier, tree, kind].forEach(el => el.addEventListener('input', render));
+      render();
+    }).catch(e => { tbody.innerHTML = `<tr><td colspan="5">Failed to load catalog: ${e}</td></tr>`; });
+  </script>
+</body>
+</html>

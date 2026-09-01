@@ -1,0 +1,56 @@
+{
+  "description": "Proposed numeric baselines for nestor check / nestor_check after human seal",
+  "seal_via": "nestor ui numeric reconcile, or Reconciler.seal_baseline",
+  "baselines": [
+    {
+      "label": "false_seal_rate_prose_4000_at_092",
+      "value": "0.004",
+      "domain": "value",
+      "pct_tol": 0.05,
+      "evidence": "bench/results/accuracy.json latest run, prose corpus n=4000",
+      "note": "Synthetic held-out absent probes; re-run bench_accuracy before re-sealing"
+    },
+    {
+      "label": "paraphrase_recall_prose_4000_at_092",
+      "value": "0.248",
+      "domain": "value",
+      "pct_tol": 0.05,
+      "evidence": "bench/results/accuracy.json"
+    },
+    {
+      "label": "decision_collision_rate_at_092",
+      "value": "0.00333",
+      "domain": "value",
+      "pct_tol": 0.05,
+      "evidence": "nestor calibrate --from decision --to decision 2026-08-31, sampled 300"
+    },
+    {
+      "label": "serve_threshold_string_matcher",
+      "value": "0.92",
+      "domain": "value",
+      "pct_tol": 0.0,
+      "evidence": "memory.SEAL_THRESHOLD + THRESHOLD-POLICY.md"
+    },
+    {
+      "label": "triage_bar",
+      "value": "0.55",
+      "domain": "value",
+      "pct_tol": 0.0,
+      "evidence": "triage DEFAULT_BAR, calibrate/triage-sweep.txt"
+    },
+    {
+      "label": "constraint_fuzzy_bar_string",
+      "value": "0.45",
+      "domain": "value",
+      "pct_tol": 0.0,
+      "evidence": "decision_n1.json clean knee, decision-rewording-bench"
+    },
+    {
+      "label": "sealed_pairs_decision_domain",
+      "value": "599",
+      "domain": "value",
+      "pct_tol": 0.0,
+      "evidence": "nestor_ledger_verify 2026-08-31"
+    }
+  ]
+}

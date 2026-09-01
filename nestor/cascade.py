@@ -703,7 +703,8 @@ def reject_segment(segment_id: str, verifier: str = "", reason: str = "",
 
 def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
                      store: Storage | None = None,
-                     matcher: Matcher | None = None) -> dict | None:
+                     matcher: Matcher | None = None,
+                     seal_sig: str = "") -> dict | None:
     """Tier 3 → tier 1: a verified segment's pair enters the sealed memory.
     Called from the host's review path when a segment reaches 'verified'.
 
@@ -718,7 +719,7 @@ def graduate_segment(segment_id: str, verifier: str = "", weight: float = 1.0,
         source_text=seg["source_text"], target_text=seg["candidate"],
         source_lang=doc.get("source_lang", "en"), target_lang=doc.get("target_lang", "es"),
         status="sealed", verifier=verifier, weight=weight, origin=f"doc:{seg['document_id'][:8]}",
-        store=store, matcher=matcher,
+        store=store, matcher=matcher, seal_sig=seal_sig,
     )
     # Mark the segment decided, exactly as `reject_segment` does. Without this a
     # sealed segment stayed 'pending' forever: the pair was in the memory and

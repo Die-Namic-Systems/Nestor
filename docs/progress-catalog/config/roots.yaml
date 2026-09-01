@@ -1,0 +1,63 @@
+# Progress catalog scan roots — read-only on archives.
+version: 1
+
+live:
+  - path: /home/sean-campbell/github/Die-Namic-Systems/nestor/bench/results
+    label: nestor-bench-results
+    priority: 1
+  - path: /home/sean-campbell/github/Die-Namic-Systems/nestor/docs/dogfood/decisions
+    label: nestor-decisions
+    priority: 1
+  - path: /home/sean-campbell/github/Die-Namic-Systems/nestor/audits
+    label: nestor-audits
+    priority: 2
+  - path: /home/sean-campbell/github/workshop/warrant-loop/box
+    label: warrant-loop-campaigns
+    priority: 2
+  - path: /home/sean-campbell/github/safe-app-store-public/apps/aristarchus/bench
+    label: aristarchus-bench
+    priority: 2
+
+archives:
+  greenfield_github:
+    base: /home/sean-campbell/github-archive-greenfield-2026-08-10
+    paths:
+      - path: workshop/sean-data-vault/slm-corpus
+        label: slm-corpus
+        priority: 1
+      - path: archive/legacy-flat-2026-08-10
+        label: legacy-flat
+        priority: 3
+  greenfield_vault:
+    base: /home/sean-campbell/sean-data-vault-archive-pre-greenfield-2026-08-10
+    paths:
+      - path: repo-drops/reset-2026-08-10
+        label: pg-git-drops
+        priority: 1
+  greenfield_willow:
+    base: /home/sean-campbell/.willow-archive-greenfield-2026-08-10
+    paths:
+      - path: locomo_results
+        label: locomo-willow-archive
+        priority: 1
+      - path: tools/pikoci-rig/willow-ci
+        label: pikoci-rig-bench
+        priority: 1
+  grove_archive:
+    base: /home/sean-campbell/github-archive-grove-2026-08-27/willow-grove/docs
+    label: willow-grove-docs
+    priority: 2
+  willow_archive:
+    base: /home/sean-campbell/github-archive-willow-2026-08-27/willow
+    paths:
+      - path: design
+        label: willow-charter-design
+        priority: 2
+
+skip_patterns:
+  - "**/node_modules/**"
+  - "**/venv/**"
+  - "**/venvs/**"
+  - "**/.git/**"
+  - "**/llama.cpp/**"
+  - "**/kaggle/**"
