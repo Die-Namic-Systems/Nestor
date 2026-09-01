@@ -14,8 +14,7 @@ import subprocess
 import sys
 
 import pytest
-
-from tests.conftest import DOGFOOD_SMOKE_DECISIONS
+from conftest import DOGFOOD_SMOKE_DECISIONS
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEMO = REPO / "demo" / "sixty_seconds.py"

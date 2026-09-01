@@ -16,11 +16,11 @@ import sys
 import time
 
 import pytest
+from conftest import DOGFOOD_SMOKE_DECISIONS
 
 from nestor.matcher import StringMatcher
 from nestor.triage import Decision, load_decisions
 from nestor.triage.cluster import group
-from tests.conftest import DOGFOOD_SMOKE_DECISIONS
 
 
 def _timing_distorted() -> bool:

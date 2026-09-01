@@ -799,7 +799,7 @@ class TestRevisingADraftKeepsWhatItReplaced:
 
     def test_it_ledgers_a_supersede_and_never_a_seal(self, store):
         """A seal entry would say a human had acted. Nobody did."""
-        from tests.conftest import read_ledger
+        from conftest import read_ledger
         memory.add_pair("Q", "first", "d", "d", status="draft", store=store)
         memory.revise_draft("Q", "second", "d", "d", reason="why", store=store)
         kinds = [e["kind"] for e in read_ledger()]
@@ -965,7 +965,7 @@ class TestTheLedgerDoesNotAssertWhatItDidNotCheck:
     def test_same_verifier_is_computed_not_hardcoded(self, store, seal_key):
         """memory_unseal clears seal_sig and KEEPS verifier, so a revised
         once-sealed row has a predecessor verifier while this caller has none."""
-        from tests.conftest import read_ledger
+        from conftest import read_ledger
         pair = memory.add_pair("Q", "v0", "decision", "decision", status="sealed",
                                verifier="bob", store=store)
         from nestor.curator import Curator

@@ -4,8 +4,9 @@ change to either is a deliberate, visible edit, not a silent drift.
 """
 from __future__ import annotations
 
+from conftest import ARCHIVE_DECISIONS
+
 from nestor.triage import DEFAULT_BAR, EDGE_KINDS, Decision, load_decisions
-from tests.conftest import ARCHIVE_DECISIONS
 
 
 def test_load_expands_every_pair_with_a_stable_id():

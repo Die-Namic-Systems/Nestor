@@ -31,8 +31,9 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from _fleet_paths import jeles_checkout
+
 from demo import the_verification as DEMO
-from tests._fleet_paths import jeles_checkout
 
 JELES = jeles_checkout()
 SCRIPT = ROOT / "demo" / "the_verification.py"

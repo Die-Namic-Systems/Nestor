@@ -23,9 +23,9 @@ import sys
 import textwrap
 
 import pytest
+from _fleet_paths import constitution_cases
 
 from nestor import keyring as keyring_mod
-from tests._fleet_paths import constitution_cases
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 AUDIT = REPO / "scripts" / "audit_against_constitution.py"

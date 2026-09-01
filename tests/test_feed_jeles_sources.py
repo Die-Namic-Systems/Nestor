@@ -26,8 +26,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import feed_jeles_sources as FEED
-
-from tests._fleet_paths import jeles_checkout
+from _fleet_paths import jeles_checkout
 
 JELES = jeles_checkout()
 

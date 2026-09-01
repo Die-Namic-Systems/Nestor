@@ -398,7 +398,7 @@ def test_semantic_without_extra_is_refused_not_defaulted(filled, without_fastemb
 
 @pytest.mark.semantic
 def test_semantic_match_when_extra_installed(filled):
-    from tests.conftest import semantic_tests_enabled
+    from conftest import semantic_tests_enabled
 
     if not semantic_tests_enabled():
         pytest.skip("set NESTOR_SEMANTIC_TEST=1 and install the semantic extra")

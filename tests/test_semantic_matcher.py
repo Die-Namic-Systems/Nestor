@@ -14,11 +14,11 @@ can hold both the installed-extra and the missing-extra cases.
 from __future__ import annotations
 
 import pytest
+from conftest import semantic_tests_enabled
 
 from nestor import answer
 from nestor.matcher import StringMatcher
 from nestor.semantic_matcher import SemanticMatcher, _cosine
-from tests.conftest import semantic_tests_enabled
 
 requires_semantic = pytest.mark.skipif(
     not semantic_tests_enabled(),
