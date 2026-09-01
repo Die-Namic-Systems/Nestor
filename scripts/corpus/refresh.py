@@ -275,6 +275,19 @@ def derived(path: pathlib.Path | None = None) -> dict[str, str]:
     return out
 
 
+def orphans(path: pathlib.Path | None = None) -> frozenset[str]:
+    """Tombstoned repositories this household corpus never held.
+
+    ``refresh.plan()`` has no rows for them; they are listed so fleet
+    retirement is written down without pretending corpus claims exist.
+    """
+    path = path or TOMBSTONES
+    if not path.is_file():
+        return frozenset()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return frozenset(data.get("orphans") or [])
+
+
 def tombstones(path: pathlib.Path | None = None) -> dict[str, dict]:
     """Repositories recorded as retired, keyed by ``corpus_claims.repository``.
 

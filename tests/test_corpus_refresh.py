@@ -240,15 +240,18 @@ def test_the_committed_tombstones_are_valid_and_name_real_repositories():
 
     A tombstone naming a repository the corpus does not hold is a record that
     can never apply — it would read as retired-and-handled while the real
-    repository went on refusing.
+    repository went on refusing — unless it is listed in ``orphans`` (retired
+    before this household ever extracted it).
     """
     records = refresh.tombstones()
     assert records, "expected at least one committed tombstone"
     household = pathlib.Path.home() / ".nestor" / "keep" / "nestor.db"
     if household.is_file():
         known = {row.repository for row in refresh.plan(household)}
-        assert set(records) <= known, (
-            f"tombstoned but not in the corpus: {set(records) - known}")
+        orphans = set(refresh.orphans())
+        assert set(records) - known <= orphans, (
+            f"tombstoned but not in the corpus and not listed as orphan: "
+            f"{set(records) - known - orphans}")
 
 
 def _repo_with_content(path: pathlib.Path, body: str, message: str) -> str:

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Shapes declared by `rudi193-cmd/willow-config` — rung 21.
+"""Shapes declared by `rudi193-cmd/willow-config` — rung 21 (TOMBSTONED).
 
     python scripts/corpus/extract_willow_config.py --repo /workspace/willow-config \
         --out data/corpus/willow-config.db
+
+**Do not run.** ``willow-config`` is retired (2026-09-01). The live box lives
+at ``willow-memory/.willow`` but is no longer a checkout of that repository.
+See ``github/archive/RETIRE-willow-config-2026-09-01.md``.
 
 617 markdown documents and three Python modules: a configuration and handoff
 repository, mostly session records. Two shapes are worth naming and one is

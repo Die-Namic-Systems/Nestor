@@ -464,6 +464,10 @@ what moved.
 
 ### Changed
 
+- **corpus:** restore **willow-config** tombstone (orphan — never extracted here);
+  remove from excluded. Box retirement recorded in
+  `github/archive/RETIRE-willow-config-2026-09-01.md`.
+
 - **Fleet naming:** the archived origin monorepo is **legacy fleet monolith** in
   docs and env (`WILLOW_LEGACY_MONOLITH_REPO`; `WILLOW_20_REPO` and
   `willow20_checkout()` remain as deprecated aliases). Corpus tombstone keys

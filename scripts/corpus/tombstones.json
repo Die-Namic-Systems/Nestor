@@ -78,14 +78,22 @@
    "ended": "retired",
    "retired": "2026-08-30",
    "reason": "A working clone of kartikeya. The live checkout is willow-memory/kartikeya; this one is history. Extracted 2026-08-30 from the local archive, 121 claims. No successor is recorded: this points nowhere deliberately rather than by omission. If its code did travel somewhere, upgrade this to merged/rebuilt with the successor -- that is an operator decision and is not derivable from the tree."
+  },
+  "willow-config": {
+   "ended": "retired",
+   "retired": "2026-09-01",
+   "reason": "Cut by operator decision. The repository still exists on GitHub as rudi193-cmd/willow-config (private) and was pushed 2026-08-28; none of that makes it live. It is NOT a source of truth and is not to be read for configuration, manifests, or fleet state. The live box at willow-memory/.willow (symlinked ~/.willow) keeps its runtime files but is no longer a willow-config checkout — see github/archive/RETIRE-willow-config-2026-09-01.md. No successor is recorded: this is a cut, not a merge. scripts/corpus/extract_willow_config.py is a dead extractor and must not be run."
   }
  },
+ "_orphans_comment": "Tombstones for repositories this household corpus never held. refresh.plan() has no rows for them; they are recorded so fleet retirement is written down without pretending corpus rows exist to retire.",
+ "orphans": [
+  "willow-config"
+ ],
  "_excluded_comment": "Never extracted, by operator decision. Distinct from a tombstone: a tombstone says a repository ENDED; an exclusion says a present thing is NOT THIS CORPUS'S TO HOLD. The only general reason that survives scrutiny is a LANE reason -- the material is private, or is live box state, or is somebody's personal data. Foreign authorship is NOT a reason: Nestor stores pairs with a resolvable origin, cites rather than copies, and marks every corpus row draft, and the almanac rung is designed to hold third-party documentation outright. Volume is a RANKING problem, not an inclusion one. See the 'method' section for sources that are read a particular way rather than not read.",
  "excluded": {
   ".willow": "The live box -- vault.db, vault.key, receipts, the gate ledger, per-app ACL manifests. A LANE reason, not an authorship one: this is private state, not source, and the corpus lane is public attributed context. Same line willow-data-vault's README draws: repo is blueprint, box is the populated instance that stays home.",
   "mealie": "Operator's decision -- a fork taken to read, not to build on. corpus-order.md, 98th.",
-  "litellm": "Operator's decision -- contribution never merged. corpus-order.md, 12th.",
-  "willow-config": "Cut by operator decision. The repository still exists on GitHub as rudi193-cmd/willow-config (private) and was pushed 2026-08-28, and it still contains mcp_apps/ manifests, constitutional/pre-approved.json and a validate workflow -- none of which makes it live. It is NOT a source of truth and is not to be read for configuration, manifests, or fleet state. Recorded because a present repository with a recent push is indistinguishable from a live one unless the decision is written down. scripts/corpus/extract_willow_config.py is a dead extractor and must not be run. Prior sessions have twice reported this repo as live on the strength of its pushedAt timestamp; that is API state, not an operator decision. Not a tombstone: this household corpus never held claims under that repository name, and a tombstone without rows to retire is a record that can never apply."
+  "litellm": "Operator's decision -- contribution never merged. corpus-order.md, 12th."
  },
  "_derived_comment": "Sources with no checkout of their own, because they are derived from something else: session logs, decision records, manifests, the GitHub API. Without this they REFUSE on every run forever -- 'no checkout named X' -- which is the refusal-list noise the tombstone convention exists to prevent. The value is the command that regenerates the source, so the driver can say how to refresh it instead of merely failing to find it.",
  "derived": {
@@ -124,6 +132,7 @@
   "willow-compose": "willow",
   "willow-data-vault": "willow",
   "willow-bot": "willow",
+  "willow-config": "willow",
   "kartikeya": "willow",
   "kartikeya-work": "willow"
  }
