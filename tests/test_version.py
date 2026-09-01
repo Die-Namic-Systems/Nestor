@@ -67,7 +67,41 @@ def test_version_is_a_plausible_pep440_string():
 
 def test_version_agrees_with_the_installed_distribution():
     """Or says plainly that there isn't one. Both are correct; a third answer
-    would mean the package invented a number."""
+    would mean the package invented a number.
+
+    **If this fails locally, the venv is stale, not the code, and one re-run
+    fixes it.** Both sides are the same call —
+    ``importlib.metadata.version("nestor-meaning")`` — made at two moments:
+    ``nestor.__version__`` captures it at import (``nestor/__init__.py``), this
+    reads it again now. hatch-vcs derives the number from ``git describe
+    --dirty``, and an editable install regenerates its ``.dist-info``
+    **lazily, during the process**, whenever that output has changed. So the
+    first run after any git-state change imports the old value and then reads
+    the regenerated one.
+
+    "Git-state change" is wider than it sounds. A commit does it, and so does
+    editing a single tracked file, because the ``--dirty`` marker is part of
+    the version. Measured 2026-09-01, both directions:
+
+    * commit: import ``0.17.1.dev12+g3f8c31ebc.d20260901``, read
+      ``0.17.1.dev13+g064b4fe88`` — the ``dist-info`` directory itself was
+      renamed mid-run;
+    * merely editing two files on an unmoved HEAD: import
+      ``...dev13+g064b4fe88``, read ``...dev13+g064b4fe88.d20260901``.
+
+    Run it a second time without touching anything and it passes, because both
+    sides then read the regenerated metadata. ``pip install -e ".[dev]"`` does
+    the same thing deliberately.
+
+    CI never sees it: one install, no edits and no commits mid-run. That is
+    also why this is not a flake to quarantine — the assertion is exactly
+    right and the environment is what moved. Three wrong explanations were
+    written down before this one, each discarded by a measurement: that
+    ``test_packaging``'s wheel build rewrote the metadata (its ``METADATA``
+    mtime does not change across a run of it); that a settled working tree was
+    enough; and that an unmoved HEAD was enough (this docstring's own commit
+    disproved that one — the edit that added it turned the suite red).
+    """
     try:
         installed = dist_version("nestor-meaning")
     except PackageNotFoundError:

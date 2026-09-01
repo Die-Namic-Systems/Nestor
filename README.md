@@ -288,6 +288,15 @@ so snippets keep working while `nestor` and `pytest` are missing or stale. If
 commands are half-working, check `which python` first. (Sessions on Claude Code
 on the web skip this — a `SessionStart` hook builds `.venv` and puts it on `PATH`.)
 
+**One test goes red after you edit or commit, and passes on a re-run:**
+`test_version.py::test_version_agrees_with_the_installed_distribution`. The
+version comes from `git describe --dirty` via hatch-vcs, and an editable
+install regenerates its metadata during the run when that output changes — so
+the first run after any commit *or* any edit to a tracked file compares a value
+captured at import against the regenerated one. Run it again without touching
+anything, or `pip install -e ".[dev]"`, and it goes green. CI never sees it:
+one install, nothing changing mid-run.
+
 CI runs lint and the test matrix (Python 3.10 and 3.12) on every pull request,
 plus a daily scheduled run to catch drift. Ideas, open questions and measured
 dead ends live in [`IDEAS.md`](IDEAS.md) — each entry tagged
