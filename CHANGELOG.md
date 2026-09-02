@@ -136,6 +136,14 @@ what moved.
 
 ---
 
+## [0.19.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.2...v0.19.0) (2026-09-02)
+
+
+### Added
+
+* **established:** expand tier-1.5 lexicon for commons facts ([408314e](https://github.com/Die-Namic-Systems/Nestor/commit/408314eab5db5cfbb33f5d952a13d6ab62c78ac1))
+* **established:** expand tier-1.5 lexicon for commons facts ([#276](https://github.com/Die-Namic-Systems/Nestor/issues/276)) ([38944ea](https://github.com/Die-Namic-Systems/Nestor/commit/38944ea79ddea6580c2dbf2894b5c41935077404))
+
 ## [0.18.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.1...v0.18.2) (2026-09-02)
 
 
