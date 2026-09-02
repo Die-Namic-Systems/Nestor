@@ -109,7 +109,8 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 # CLI, MCP server — #159, #167 piece 2 / decision 0184, and #203).
 # Re-exported under the historical private name so tests that reach
 # ``cli._ask_domain`` directly keep working.
-from .domain import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG, resolve_domain as _ask_domain
+from .domain import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG
+from .domain import resolve_domain as _ask_domain
 
 
 def cmd_ask(args) -> int:
