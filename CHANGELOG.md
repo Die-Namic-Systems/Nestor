@@ -136,6 +136,13 @@ what moved.
 
 ---
 
+## [0.18.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.1...v0.18.2) (2026-09-02)
+
+
+### Fixed
+
+* **domain:** default reads to decision→decision instead of en→es ([e6bb58f](https://github.com/Die-Namic-Systems/Nestor/commit/e6bb58f7775421e6a5afedf2e050813f1f9b05b7))
+
 ## [0.18.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.0...v0.18.1) (2026-09-01)
 
 
