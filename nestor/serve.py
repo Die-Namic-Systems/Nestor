@@ -1179,6 +1179,12 @@ def main(argv: list[str] | None = None) -> int:
     store.init_db()
     store.memory_init()
     storage.set_store(store)
+    try:
+        from . import established
+
+        established.install()
+    except Exception as exc:  # noqa: BLE001 — optional lane; log and continue
+        print(f"established lane not installed: {exc}", file=sys.stderr)
     corpus_retriever = None
     if args.corpus_dir:
         try:

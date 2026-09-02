@@ -86,7 +86,8 @@ def test_the_stdio_loop_reads_lines_and_survives_junk(server):
 # --- what a model can do ---------------------------------------------------
 
 def test_ask_returns_the_state_not_just_the_string(server):
-    out = call(server, "nestor_ask", text="good evening")
+    out = call(server, "nestor_ask", text="good evening",
+               source_lang="en", target_lang="es")
     assert out["verified"] is True
     assert out["passage"]["state"] == "sealed"
     assert out["passage"]["meta"]["verifier"] == "rita", "a model can cite who verified it"
