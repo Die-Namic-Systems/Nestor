@@ -2,8 +2,8 @@
 fallback the CLI has (issue #203, sibling to decision 0184 which extended it
 from ``cmd_ask`` to ``cmd_match``).
 
-The rule, unchanged from the CLI half: the configured ``en → es`` default
-wins when the store holds it, or when either the model *or* the operator
+The rule, unchanged from the CLI half: the configured ``decision → decision``
+default wins when the store holds it, or when either the model *or* the operator
 named a domain explicitly; otherwise the largest domain the store actually
 holds wins. An empty store keeps the configured default.
 
@@ -80,14 +80,14 @@ def test_empty_store_keeps_the_built_in_default(store):
 
 
 def test_store_holds_the_default_so_the_default_wins(store):
-    memory.add_pair("hello", "hola", "en", "es",
+    memory.add_pair("may we ship?", "yes", "decision", "decision",
                     status="sealed", verifier="rita", store=store)
     for i in range(5):
         memory.add_pair(f"decision {i}?", "yes", "decision", "commitment",
                         status="sealed", verifier="rita", store=store)
     server = serve.Server(store=store)
-    # Membership beats size: en→es is present, so en→es keeps winning.
-    assert server._domain_for_read({}) == ("en", "es")
+    # Membership beats size: decision→decision is present, so it keeps winning.
+    assert server._domain_for_read({}) == ("decision", "decision")
 
 
 # --- end to end through nestor_ask -------------------------------------------

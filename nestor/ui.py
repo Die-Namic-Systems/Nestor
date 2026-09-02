@@ -84,6 +84,7 @@ from . import answer, cascade, config, home_paths, keyring, memory, portable, si
 from . import ledger as ledger_mod
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
+from .domain import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG
 from .entity import EntityResolver
 from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
@@ -234,8 +235,8 @@ class App:
     """
 
     store: Storage
-    source_lang: str = "en"
-    target_lang: str = "es"
+    source_lang: str = DEFAULT_SOURCE_LANG
+    target_lang: str = DEFAULT_TARGET_LANG
     engine_name: str = "offline"
     matcher: Matcher | None = None
     read_only: bool = False
@@ -1710,8 +1711,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="hash-chained ledger path (default: NESTOR_LEDGER or alongside --db)")
     p.add_argument("--host", default="127.0.0.1", help="bind address (default: 127.0.0.1)")
     p.add_argument("--port", type=int, default=8765, help="bind port (default: 8765)")
-    p.add_argument("--source-lang", default="en", help="default source domain tag")
-    p.add_argument("--target-lang", default="es", help="default target domain tag")
+    p.add_argument("--source-lang", default=DEFAULT_SOURCE_LANG,
+                   help="default source domain tag")
+    p.add_argument("--target-lang", default=DEFAULT_TARGET_LANG,
+                   help="default target domain tag")
     p.add_argument("--matcher", default="string",
                    help="the matcher that keys this domain (default: string). A "
                         "domain is the tags AND the matcher; aiming this surface "

@@ -2543,14 +2543,14 @@ function domainList(id) {
 }
 
 /* The domain to ask in, preferring one the store actually holds.
-   `S.state.domain` is what this *surface* was configured with — en→es unless a
-   flag said otherwise — and a store of `decision → commitment` answers nothing
+   `S.state.domain` is what this *surface* was configured with — decision→decision
+   unless a flag said otherwise — and a store of `decision → commitment` answers nothing
    asked in it. A reader types a real question, gets silence, and concludes the
    memory is empty while 26 sealed answers sit behind the wrong two words. The
    configured domain wins when the store actually has rows in it; otherwise the
    largest domain present does, because that is the one being asked about. */
 function askDomain() {
-  const configured = (S.state && S.state.domain) || { source_lang: "en", target_lang: "es" };
+  const configured = (S.state && S.state.domain) || { source_lang: "decision", target_lang: "decision" };
   const held = S.domains || [];
   if (!held.length) return configured;
   const match = held.find((d) => d.source_lang === configured.source_lang

@@ -254,10 +254,10 @@ class Server:
     """The tool surface. ``read_only`` removes even the proposal."""
 
     store: Storage
-    source_lang: str = "en"
-    target_lang: str = "es"
+    source_lang: str = domain.DEFAULT_SOURCE_LANG
+    target_lang: str = domain.DEFAULT_TARGET_LANG
     #: Whether the operator named a domain at startup, or accepted the built-in
-    #: ``en → es``. Same distinction the CLI draws between ``nestor ask``
+    #: ``decision → decision``. Same distinction the CLI draws between ``nestor ask``
     #: (parser default ``None`` → store-aware fallback engages) and
     #: ``nestor ask --from en`` (explicit → honoured verbatim); on this server
     #: the operator's startup flag plays the CLI human's role. Decision 0184
@@ -628,8 +628,9 @@ class Server:
         Priority: the model's own ``source_lang``/``target_lang`` wins when it
         sent one; else the operator's explicit startup flag wins; else the
         store-aware fallback in :func:`nestor.domain.resolve_domain` picks the
-        largest domain the store actually holds (or the built-in ``en → es``
-        default when the store is empty). Reads only — a write (``propose``)
+        largest domain the store actually holds (or the built-in
+        ``decision → decision`` default when the store is empty). Reads only —
+        a write (``propose``)
         must not silently switch domains and stays on the effective default.
         """
         sl_arg = args.get("source_lang")
@@ -1093,11 +1094,13 @@ def build_parser() -> argparse.ArgumentParser:
     # largest domain, same as ``nestor ask`` with no ``--from``/``--to``.
     # See :meth:`Server._domain_for_read` and :func:`nestor.domain.resolve_domain`.
     p.add_argument("--source-lang", default=None, help="default source domain tag "
-                                                       "(default: en, or the store's "
-                                                       "largest domain if en→es holds nothing)")
+                                                       f"(default: {domain.DEFAULT_SOURCE_LANG}, "
+                                                       "or the store's largest domain if the "
+                                                       "configured pair holds nothing)")
     p.add_argument("--target-lang", default=None, help="default target domain tag "
-                                                       "(default: es, or the store's "
-                                                       "largest domain if en→es holds nothing)")
+                                                       f"(default: {domain.DEFAULT_TARGET_LANG}, "
+                                                       "or the store's largest domain if the "
+                                                       "configured pair holds nothing)")
     p.add_argument("--engine", default="offline",
                    choices=("offline", "auto", "claude", "ollama"),
                    help="draft engine for nestor_ask (default: offline)")

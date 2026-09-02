@@ -7,10 +7,10 @@ server (issue #203, decision 0187's follow-up).
 
 The rule, unchanged from the CLI half:
 
-* the *configured* domain (default ``en → es``) wins when the store actually
-  holds rows in it, or when either flag was named explicitly — an explicit
-  flag is the human typing a domain directly, and is used as-is rather than
-  second-guessed;
+* the *configured* domain (default ``decision → decision``) wins when the store
+  actually holds rows in it, or when either flag was named explicitly — an
+  explicit flag is the human typing a domain directly, and is used as-is rather
+  than second-guessed;
 * otherwise the largest domain present wins, because that is the one being
   asked about;
 * an empty store keeps the configured default — there is nothing yet to
@@ -25,10 +25,10 @@ from . import memory
 from .storage import Storage
 
 #: The pair a read opens on when neither the caller nor the store's largest
-#: domain says otherwise. A store seeded with ``decision → commitment`` and
-#: never ``en → es`` answers nothing asked against it — silence that reads as
-#: "the memory is empty" when it is really "the wrong two words were asked".
-DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG = "en", "es"
+#: domain says otherwise. Nestor's primary store is human-verified decisions;
+#: translation memory (``en → es``) remains a domain operators can name
+#: explicitly or seed — not the silent default every surface assumes.
+DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG = "decision", "decision"
 
 
 def resolve_domain(

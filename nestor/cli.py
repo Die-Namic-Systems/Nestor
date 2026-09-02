@@ -109,7 +109,7 @@ def _emit(payload, as_json: bool, human: str = "") -> None:
 # CLI, MCP server — #159, #167 piece 2 / decision 0184, and #203).
 # Re-exported under the historical private name so tests that reach
 # ``cli._ask_domain`` directly keep working.
-from .domain import resolve_domain as _ask_domain
+from .domain import DEFAULT_SOURCE_LANG, DEFAULT_TARGET_LANG, resolve_domain as _ask_domain
 
 
 def cmd_ask(args) -> int:
@@ -1269,7 +1269,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="machine-readable output")
     sub = p.add_subparsers(dest="command", required=True)
 
-    def domain_args(sp, source="en", target="es"):
+    def domain_args(sp, source=DEFAULT_SOURCE_LANG, target=DEFAULT_TARGET_LANG):
         sp.add_argument("--source-lang", "--from", dest="source_lang", default=source,
                         help="source domain tag (default: %(default)s)")
         sp.add_argument("--target-lang", "--to", dest="target_lang", default=target,
@@ -1283,11 +1283,11 @@ def build_parser() -> argparse.ArgumentParser:
     # piece 2 — see _ask_domain for the rule, mirrored from askDomain() in
     # nestor/ui_page.py, landed for the UI in #159).
     ask.add_argument("--source-lang", "--from", dest="source_lang", default=None,
-                     help="source domain tag (default: en, or the store's "
-                          "largest domain if en→es holds nothing)")
+                     help=f"source domain tag (default: {DEFAULT_SOURCE_LANG}, or the store's "
+                          "largest domain if the configured pair holds nothing)")
     ask.add_argument("--target-lang", "--to", dest="target_lang", default=None,
-                     help="target domain tag (default: es, or the store's "
-                          "largest domain if en→es holds nothing)")
+                     help=f"target domain tag (default: {DEFAULT_TARGET_LANG}, or the store's "
+                          "largest domain if the configured pair holds nothing)")
     ask.add_argument("--engine", default="offline",
                      choices=("offline", "auto", "claude", "ollama"),
                      help="cascade engine: offline (store only), auto (store then LLM), "
@@ -1313,11 +1313,11 @@ def build_parser() -> argparse.ArgumentParser:
     mat = sub.add_parser("match", help="the bare seam over any domain")
     mat.add_argument("text", help="the text to match against sealed pairs")
     mat.add_argument("--source-lang", "--from", dest="source_lang", default=None,
-                     help="source domain tag (default: en, or the store's "
-                          "largest domain if en→es holds nothing)")
+                     help=f"source domain tag (default: {DEFAULT_SOURCE_LANG}, or the store's "
+                          "largest domain if the configured pair holds nothing)")
     mat.add_argument("--target-lang", "--to", dest="target_lang", default=None,
-                     help="target domain tag (default: es, or the store's "
-                          "largest domain if en→es holds nothing)")
+                     help=f"target domain tag (default: {DEFAULT_TARGET_LANG}, or the store's "
+                          "largest domain if the configured pair holds nothing)")
     mat.add_argument("--matcher", default="string", help=_MATCHER_HELP)
     mat.add_argument("--abs-tol", dest="abs_tol", type=float, default=0.0,
                      help="absolute tolerance (default: 0)")
