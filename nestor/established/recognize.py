@@ -40,6 +40,61 @@ DEFAULT_LEXICON: Lexicon = {
         "check": "Confirm the association is the well-known Adams reference.",
         "confidence": 1.0,
     },
+    ("math", "value", "pi"): {
+        "target_text": "approximately 3.141592653589793 (the ratio of a circle's circumference to its diameter)",
+        "authority": "math:constants",
+        "locator": "https://en.wikipedia.org/wiki/Pi",
+        "check": "Universal mathematical constant; commonly rounded to 3.14.",
+        "confidence": 1.0,
+    },
+    ("math", "value", "314"): {
+        "target_text": "a common decimal approximation of π (pi), the circle constant",
+        "authority": "math:constants",
+        "locator": "https://en.wikipedia.org/wiki/Pi",
+        "check": "Rounded form of pi — StringMatcher normalizes '3.14' to '314'.",
+        "confidence": 1.0,
+    },
+    ("physics", "law", "newton first law"): {
+        "target_text": (
+            "An object remains at rest or in uniform motion in a straight line "
+            "unless acted upon by a net external force (law of inertia)."
+        ),
+        "authority": "physics:newton",
+        "locator": "https://en.wikipedia.org/wiki/Newton%27s_laws_of_motion",
+        "check": "First of Newton's three laws of motion (1687, Principia).",
+        "confidence": 1.0,
+    },
+    ("physics", "law", "newton second law"): {
+        "target_text": "The net force on an object equals its mass times its acceleration (F = ma).",
+        "authority": "physics:newton",
+        "locator": "https://en.wikipedia.org/wiki/Newton%27s_laws_of_motion",
+        "check": "Second of Newton's three laws of motion.",
+        "confidence": 1.0,
+    },
+    ("physics", "law", "newton third law"): {
+        "target_text": (
+            "For every action there is an equal and opposite reaction — "
+            "forces always occur in interacting pairs."
+        ),
+        "authority": "physics:newton",
+        "locator": "https://en.wikipedia.org/wiki/Newton%27s_laws_of_motion",
+        "check": "Third of Newton's three laws of motion.",
+        "confidence": 1.0,
+    },
+    ("physics", "constant", "speed of light"): {
+        "target_text": "299,792,458 meters per second in vacuum (exact by SI definition since 1983)",
+        "authority": "physics:si",
+        "locator": "https://en.wikipedia.org/wiki/Speed_of_light",
+        "check": "Fundamental physical constant.",
+        "confidence": 1.0,
+    },
+    ("physics", "constant", "c"): {
+        "target_text": "the speed of light in vacuum: 299,792,458 m/s",
+        "authority": "physics:si",
+        "locator": "https://en.wikipedia.org/wiki/Speed_of_light",
+        "check": "Standard symbol for the speed of light.",
+        "confidence": 1.0,
+    },
     ("http", "desc", "404"): {
         "target_text": "not found",
         "authority": "iana:http-status",
