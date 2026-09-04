@@ -19,7 +19,7 @@
 # UPGRADING: change a version here and nowhere else, then run
 # `pip install -r scripts/lint-pins.txt` locally and fix what the new version
 # finds. Both callers move together or neither does.
-ruff==0.16.4
+ruff==0.16.5
 bandit==1.9.4
 mypy==2.3.1
 pip-audit==2.10.1
