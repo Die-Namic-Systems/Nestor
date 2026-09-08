@@ -109,6 +109,19 @@ what moved.
 
 ### Fixed
 
+* **Superseded rows no longer appear in the review desk.** `memory_list` had no
+  `superseded_by` filter, so a row already outside the live key space — that is
+  what `idx_tm_pairs_key_live`'s `WHERE superseded_by = ''` means — still
+  rendered as queued work. A curator who retired a duplicate kept seeing it,
+  sealed it again, and got a 200 that changed nothing, because the seal landed
+  on the live twin instead. Measured on a live store: a queue reporting 50
+  pending when 5 were real. `memory_list` now excludes superseded rows by
+  default; `include_superseded=True` returns the whole history for callers that
+  mean it, and `portable.py` passes it so export bundles are byte-unchanged.
+  Two related defects are recorded and deliberately **not** fixed here — a
+  matcher change that orphans stored keys, and `_seal_draft` reporting success
+  for a no-op. See IDEAS §6.127.
+
 * **Stale counts and missing help text across CLI, README, and docs.**
   README view table updated from four to seven (added Signals, Graph, Triage);
   MCP tool count updated from seven to eight (`nestor_prefs` was missing);

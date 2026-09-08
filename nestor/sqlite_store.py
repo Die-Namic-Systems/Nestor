@@ -1322,9 +1322,24 @@ class SqliteStore:
 
     def memory_list(self, source_lang: str = "", target_lang: str = "",
                     status: str = "", verifier: str = "", contains: str = "",
-                    limit: int = 50, offset: int = 0) -> list[dict]:
+                    limit: int = 50, offset: int = 0,
+                    include_superseded: bool = False) -> list[dict]:
+        """List pairs. Superseded rows are excluded unless asked for.
+
+        A superseded row is already out of the live key space — that is what
+        `idx_tm_pairs_key_live` means by `WHERE superseded_by = ''`. Listing it
+        anyway made the review desk disagree with the index: a curator who had
+        just retired a duplicate still saw it queued, sealed it again, and got a
+        200 that changed nothing, because the row the seal landed on was the
+        live twin. Measured 2026-09-07 (§6.127): 45 such rows in one store.
+
+        `include_superseded=True` is for callers that mean the whole history —
+        an export, an audit — rather than the working set.
+        """
         where: list[str] = []
         params: list[object] = []   # SQL params mix str filters and int limit/offset
+        if not include_superseded:
+            where.append("COALESCE(superseded_by,'')=''")
         for col, val in (("source_lang", source_lang), ("target_lang", target_lang),
                          ("status", status), ("verifier", verifier)):
             if val:

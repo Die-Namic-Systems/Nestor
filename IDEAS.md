@@ -200,6 +200,7 @@ this map is not, CI fails. It cannot drift.
 | [6.124](docs/agent-log.md#6124-eight-red-releases-one-permission-and-a-check-that-asked-the-wrong-question--measured-guard-shipped-token-operators) | Eight red releases, one permission, and a check that asked the wrong question | measured, guard shipped, token operator's |
 | [6.125](docs/agent-log.md#6125-the-mcp-surface-could-not-see-94-of-the-household-knowledge--shipped-reads-open-write-posture) | The MCP surface could not see 94% of the household knowledge | shipped (reads), open (write posture) |
 | [6.126](docs/agent-log.md#6126-convergence-is-the-else-branch-and-94-of-the-set-is-not-independent-arrival--measured-across-all-389-fourth-kind-proposal-hypothesis) | `convergence` is the `else` branch; ~94% of the set is not independent arrival | measured across all 389; fourth-kind proposal hypothesis |
+| [6.127](docs/agent-log.md#6127-a-matcher-change-orphaned-every-stored-key-with-a-hyphen-and-the-seal-endpoint-reported-success-for-doing-nothing--measured-listing-fix-shipped-cause-and-contract-open) | A matcher change orphaned every stored key with a hyphen, and the seal endpoint reported success for doing nothing | measured; listing fix shipped, cause and contract open |
 | [7.1](#71-skills--shipped-83) | Skills | shipped (#83) |
 | [7.2](#72-hooks--shipped-87-88-105) | Hooks | shipped (#87, #88, #105) |
 | [7.3](#73-rubrics--open-the-criterion-the-brain-scored-against-first) | Rubrics | open (the criterion the brain scored against first) |
