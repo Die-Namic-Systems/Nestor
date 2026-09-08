@@ -277,13 +277,20 @@ class Storage(Protocol):
 
     def memory_list(self, source_lang: str = "", target_lang: str = "",
                     status: str = "", verifier: str = "", contains: str = "",
-                    limit: int = 50, offset: int = 0) -> list[dict]:
+                    limit: int = 50, offset: int = 0,
+                    include_superseded: bool = False) -> list[dict]:
         """Browse pairs. Empty-string filters mean "no filter on this field".
 
         ``contains`` is a case-insensitive substring match against source OR
         target text. Results are newest-first and Nestor treats ``limit`` /
         ``offset`` as a stable pagination window. Each dict exposes the same
         columns as :meth:`memory_find`.
+
+        Superseded rows are omitted unless ``include_superseded`` is set: a
+        superseded row is already outside the live key space, so a listing that
+        showed it would disagree with the index about what exists (§6.127). Set
+        it for callers that mean the whole history — an export, an audit —
+        rather than the working set.
         """
 
     def memory_get(self, pair_id: str) -> dict | None:

@@ -253,8 +253,12 @@ def export_bundle(store: Storage | None = None, source_lang: str = "",
     # "truncated". `len(rows) >= limit` cannot tell those apart, and a warning
     # that cries wolf on a complete export is the failure `_canonical` names:
     # a check people learn to ignore is worse than no check.
+    # An export is the whole history, not the working set — the comment above
+    # says replacement history has always lived here, so superseded rows are
+    # asked for explicitly rather than inherited from `memory_list`'s default.
+    # This keeps the bundle byte-identical across §6.127's change.
     listed = store.memory_list(source_lang=source_lang, target_lang=target_lang,
-                               limit=limit + 1)
+                               limit=limit + 1, include_superseded=True)
     pairs_truncated = len(listed) > limit
     listed = listed[:limit]
     # `demo:`-origin rows never travel. The demo's forged seal (origin

@@ -7760,3 +7760,82 @@ sides."* Nestor proposed correctly. The downstream consumer built four
 "independent arrival" claims on those proposals and passed them along as
 evidence — the harm this entry records is a reading error, not a Nestor bug.
 That it was so easy to make is the argument for the fourth kind.
+
+### 6.127 A matcher change orphaned every stored key with a hyphen, and the seal endpoint reported success for doing nothing — **measured**; listing fix **shipped**, cause and contract **open**
+
+Found by an operator sealing a review queue, not by a test. The symptom they
+reported was *"I sealed them, they don't go away."* They had pressed seal on the
+same rows many times across two sittings.
+
+**What was measured.** In one store, 172 of 194 drafts could not be sealed. The
+cause is a normalization change: `StringMatcher.normalize` now strips hyphens and
+underscores, and the stored keys preserve them.
+
+```
+TEXT   'Should the phone app reuse app_id=willow across Pangolin?'
+STORED 'should the phone app reuse app_id=willow across pangolin'
+RECOMP 'should the phone app reuse app_idwillow across pangolin'
+```
+
+`_seal_draft` (`nestor/ui.py:1279`) passes `row["source_text"]` to `add_pair`,
+which recomputes the key. Under the new normalization it matches nothing, so
+`add_pair` inserts a *new* sealed row and the draft it was sealing stays queued.
+The endpoint returns 200. Its own docstring at line 1302 names this outcome
+exactly — *"a 200, a signed seal, and nothing retired"* — as the failure the
+`_domain_matcher` argument exists to prevent. It prevents the wrong-domain case.
+It cannot prevent this one, because both sides agree on the domain and disagree
+about what the domain's matcher *does*.
+
+Rows containing `-` or `_` are not an edge case in a fleet's own decision
+record: `willow-mcp`, `app_id`, `store_scope`, `grove-serve`. The 22 rows that
+sealed cleanly were the ones with no punctuation in them.
+
+**The damage is invisible by construction.** 91 POSTs produced 62 sealed rows,
+of which only 17 carried `upgraded_from`. 45 were duplicates. Nothing in the
+response, the log, or the ledger distinguishes a seal that retired a draft from
+one that quietly created a twin — a no-op and a success are the same HTTP 200.
+The audit trail was intact throughout and could not have caught this: nothing
+was tampered with, and every entry verified. Same blind spot §6.40 recorded, in
+a different organ.
+
+**Repair, and what the schema already knew.** The stores were repaired by
+rewriting `source_norm` with the installed matcher. A plain rewrite fails —
+`UNIQUE constraint failed: tm_pairs.source_norm, source_lang, target_lang` —
+because a draft cannot take the key its duplicate already holds. The index that
+raises it is the answer:
+
+```sql
+CREATE UNIQUE INDEX idx_tm_pairs_key_live ON tm_pairs(source_norm, source_lang, target_lang)
+  WHERE superseded_by = ''
+```
+
+Partial, on `superseded_by`. So the duplicates are superseded — archived, not
+deleted — which frees the key, and the re-key then proceeds. Four stores were
+repaired this way with row counts unchanged and zero live key clashes.
+
+**Which left the third defect, and it is the one fixed here.** After repair the
+desk still listed the superseded rows: `memory_list` had no `superseded_by`
+filter, so the review surface and the unique index disagreed about what exists.
+The operator's queue said 50 when 5 were real. `memory_list` now excludes
+superseded rows by default, with `include_superseded=True` for callers that mean
+the whole history; `nestor/portable.py` passes it so export bundles are
+byte-unchanged. Benched in `tests/test_superseded_hidden.py`.
+
+**Open, deliberately.** Two questions are recorded and not answered here.
+
+*The cause.* Nothing in a store records which matcher version wrote its keys, so
+any normalization change silently orphans every key that disagrees. Re-keying is
+a remedy, not a fix; the same class recurs on the next change. Whether the
+answer is a recorded matcher version per store, a migration hook, or a
+normalization contract that may not change is a design question this entry does
+not settle.
+
+*The contract.* `_seal_draft` returning 200 for a seal that retired nothing is
+what made three sittings of wasted effort possible. Reporting it — a distinct
+status, or `upgraded_from` in the response body — is an API change that wants
+deciding rather than patching in passing.
+
+**Provenance.** Measured 2026-09-07 against four live stores by direct SQL and
+ledger read, with the repair run under a recorded authorization that bounded it
+to `source_norm` and `superseded_by`. Counts in this entry are from those
+stores, not from a fixture.
