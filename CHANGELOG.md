@@ -149,6 +149,14 @@ what moved.
 
 ---
 
+## [0.19.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.19.0...v0.19.1) (2026-09-10)
+
+
+### Fixed
+
+* **ui:** refuse an unsigned seal for a verifier the store knows by signature ([57219e2](https://github.com/Die-Namic-Systems/Nestor/commit/57219e2f11fcc29d157285368f6ecee8d312e84f))
+* **ui:** refuse an unsigned seal for a verifier the store knows by signature ([#285](https://github.com/Die-Namic-Systems/Nestor/issues/285)) ([420e6b2](https://github.com/Die-Namic-Systems/Nestor/commit/420e6b2d6d7935f42aca32361f0a0dcb870fdd05))
+
 ## [0.19.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.18.2...v0.19.0) (2026-09-02)
 
 
