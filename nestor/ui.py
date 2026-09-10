@@ -1550,6 +1550,10 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
         return 409, {"error": str(exc), "code": "rejected_pair"}
     except memory.InvalidSealSignatureError as exc:
         return 400, {"error": str(exc), "code": "invalid_seal_signature"}
+    except memory.UnsignedSealError as exc:
+        # 403, not 400: the request is well-formed; this process is not
+        # entitled to put that name on a seal without their key.
+        return 403, {"error": str(exc), "code": "unsigned_seal"}
     except keyring.UnknownVerifierError as exc:
         return 403, {"error": str(exc), "code": "unknown_verifier"}
     except keyring.RevokedKeyError as exc:

@@ -341,6 +341,62 @@ class InvalidSealSignatureError(NestorError):
     """
 
 
+class UnsignedSealError(NestorError):
+    """Refusing to record an UNSIGNED seal into a store that already knows
+    this verifier by their signature.
+
+    :func:`nestor.signing.sign_seal` degrades to ``""`` when no key is
+    configured — the legacy posture, kept so a fresh checkout can seal at all.
+    That degrade is fine on a store where nothing was ever signed. It is not
+    fine on a store where ``verifier`` has signed seals: a UI started without
+    ``NESTOR_SEAL_KEY`` then writes rows that *say* sealed by that person and
+    carry no signature, and the first thing that notices is
+    ``dogfood_seal_export`` refusing them a week later. Measured 2026-09-10:
+    twelve such rows, every one made through ``nestor ui`` (Nestor#2 one
+    shift-change deeper — the store believing a name with no key behind it).
+
+    Raised from :func:`add_pair` BEFORE ``memory_find``/``memory_insert``/
+    ``memory_seal``, so the refused seal leaves no row. Read-only on the
+    store. Opt-in by evidence rather than by flag: a store with no signed
+    seals for this verifier keeps the legacy degrade, and
+    ``NESTOR_REQUIRE_SEAL_KEY=1`` refuses everywhere as before.
+    """
+
+
+def verifier_has_signed_seals(store: Storage, verifier: str, *, limit: int = 200) -> bool:
+    """Whether ``store`` holds at least one sealed row by ``verifier`` that
+    carries a signature. Read-only; the evidence :class:`UnsignedSealError`
+    is decided on. A store without ``memory_list`` answers False."""
+    if not verifier:
+        return False
+    lister = getattr(store, "memory_list", None)
+    if lister is None:
+        return False
+    try:
+        rows = lister(status="sealed", verifier=verifier, limit=limit,
+                      include_superseded=True)
+    except TypeError:  # an older store signature without include_superseded
+        rows = lister(status="sealed", verifier=verifier, limit=limit)
+    return any((r.get("seal_sig") or "") for r in rows)
+
+
+def _check_seal_signed(store: Storage, status: str, verifier: str, seal_sig: str) -> None:
+    """The gate :class:`UnsignedSealError` describes. Runs after
+    :func:`_resolve_seal_sig`, before any store write."""
+    if status != "sealed" or seal_sig:
+        return
+    if not verifier_has_signed_seals(store, verifier):
+        return
+    raise UnsignedSealError(
+        f"refusing to record an unsigned seal by {verifier!r}: this store "
+        f"already holds seals by {verifier!r} that carry a signature, so an "
+        f"unsigned one would be indistinguishable from a forgery at export and "
+        f"on import. This process has no signing key for them "
+        f"(NESTOR_SEAL_KEY / NESTOR_KEYRING unset, or the keyring has no entry). "
+        f"Start it with the key and seal again. Nothing was written."
+    )
+
+
 def _same_verifier(a: str, b: str) -> bool:
     """Whether two verifier strings may be assumed to name the same actor.
 
@@ -676,6 +732,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
             f"if this collision is intentional."
         )
     seal_sig = _resolve_seal_sig(status, norm, target_text, verifier, seal_sig)
+    _check_seal_signed(store, status, verifier, seal_sig)
     existing = store.memory_find(norm, source_lang, target_lang)
     if existing:
         if (existing.get("source_text") or "") != source_text:
