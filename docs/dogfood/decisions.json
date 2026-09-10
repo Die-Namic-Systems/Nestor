@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 241,
+    "pairs": 244,
     "rejections": 0,
-    "sealed": 241,
-    "servable": 241,
+    "sealed": 244,
+    "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-01T00:00:00+00:00",
-  "digest": "e7b8498f81e8872cf26f32029c3a0c7e87742bb2123195f24ad06b4b87cc3865",
+  "created_at": "2026-09-10T00:00:00+00:00",
+  "digest": "e2d7b971fd48a60ed261bb9a550819b40d92af515ff501ed8e1fc52f90cb61ab",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-10T00:00:00+00:00",
+      "id": "f1dcd4c3-dedf-57d6-b42a-ed97c2918a93",
+      "origin": "pr:https://github.com/Die-Namic-Systems/Nestor/pull/285",
+      "seal_sig": "f6c549c13621d755d4a2a584a33748c56468cd5b89636317f2054df14e11c931084bc27fcc553ea83df9309eabe244d8d05651cd51490a13c8057ca6f78f0b01",
+      "source_lang": "decision",
+      "source_norm": "where are seals made and how does a seal become part of the committed store",
+      "source_text": "Where are seals made, and how does a seal become part of the committed store?",
+      "status": "sealed",
+      "target_lang": "decision",
+      "target_text": "Never in docs/dogfood/nestor.db. That file is derived: dogfood_store.py --rebuild produces it from docs/dogfood/decisions/*.json plus docs/dogfood/seals/<pair_id>.json, and --verify is the CI gate that the committed store matches those files. A human seals in a reviewer's copy (VACUUM INTO review.db at the repo root, gitignored, with its own ledger copy), then dogfood_seal_export.py --all --from-db review.db writes one seal file per signed row, then --rebuild regenerates the store, then the seal files and the derived store are committed. Done that way on 2026-09-10 for the twelve: 83 decision files, 241 pairs, 0 draft, 241 sealed, digest 212131672d9401e2, verify passing, PR 287.",
+      "verifier": "sean campbell",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-10T00:00:00+00:00",
+      "id": "c1f45b9f-a925-5bfa-bf3a-c40abfcb04c9",
+      "origin": "pr:https://github.com/Die-Namic-Systems/Nestor/pull/285",
+      "seal_sig": "e2d9682540f95990b6ea9eec990f58d68c04a13f364ff98e1b63cfb07fe23914929a697a6a023e0107d1d4cc55eaef8f0947e23012d1b87b6c524bc1744d2c0a",
+      "source_lang": "decision",
+      "source_norm": "should a ui pointed at a store whose sibling rows are signed refuse to write an unsigned seal at all rather than accept it and let ci find it days later",
+      "source_text": "Should a UI pointed at a store whose sibling rows are signed refuse to write an unsigned seal at all, rather than accept it and let CI find it days later?",
+      "status": "sealed",
+      "target_lang": "decision",
+      "target_text": "Yes, and the refusal is decided on evidence in the store rather than on a flag. memory.add_pair runs _check_seal_signed after _resolve_seal_sig: sealing with an empty signature into a store where that verifier already has signed seals raises UnsignedSealError before any read or write, so nothing is written. verifier_has_signed_seals is the read-only helper that decides it. A store with no signed seals for the verifier keeps the legacy no-key degrade and its warning, so a first checkout can still seal anything; NESTOR_REQUIRE_SEAL_KEY=1 still refuses everywhere. The UI maps the error to 403 unsigned_seal so the page can say what to fix. Shipped in 0.19.1 (PR 285).",
+      "verifier": "sean campbell",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-10T00:00:00+00:00",
+      "id": "2faa6bb8-81c7-5c87-9222-a1630d7f5ef5",
+      "origin": "pr:https://github.com/Die-Namic-Systems/Nestor/pull/285",
+      "seal_sig": "2326115c3a22c02dc34be193128842846fc8778494c417a77712c825fb5183853f948ed5532a8266c3aead3b3755aa4ce3cbb6ed2e9a0293130f1cea9e479e0c",
+      "source_lang": "decision",
+      "source_norm": "who holds the signing key for dogfood seals and where does the signature get made",
+      "source_text": "Who holds the signing key for dogfood seals, and where does the signature get made?",
+      "status": "sealed",
+      "target_lang": "decision",
+      "target_text": "The operator's browser. docs/dogfood/verifiers.json carries the ed25519 PUBLIC half of 'sean campbell' and nothing else; the private half lives in the browser's origin-bound key store for 127.0.0.1:8765 and nowhere else on the box. So the UI is run with NESTOR_KEYRING=docs/dogfood/verifiers.json and NESTOR_REQUIRE_SEAL_KEY=1 on port 8765: the page signs each seal, the server verifies it against the public key before any write (the client-signing seam, Nestor#17), and a seal the server could not verify is refused before it reaches the store. The 8765 port is load-bearing: the key is bound to that origin, so the seal UI never moves off it.",
+      "verifier": "sean campbell",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-01T00:00:00+00:00",
       "id": "fe8aa263-2fca-5a0b-a5a7-214b68d62058",
