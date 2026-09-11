@@ -149,6 +149,14 @@ what moved.
 
 ---
 
+## [0.20.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.19.1...v0.20.0) (2026-09-11)
+
+
+### Added
+
+* **recipes:** bridge a corpus-lens report into process_lens drafts ([597e2e8](https://github.com/Die-Namic-Systems/Nestor/commit/597e2e8cd24bdd456f7a818b8b05f7a54a3dbeab))
+* **recipes:** bridge a corpus-lens report into process_lens drafts ([#289](https://github.com/Die-Namic-Systems/Nestor/issues/289)) ([9667d39](https://github.com/Die-Namic-Systems/Nestor/commit/9667d3977f2bde2124b05a662997d489bbfe54b4))
+
 ## [0.19.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.19.0...v0.19.1) (2026-09-10)
 
 
