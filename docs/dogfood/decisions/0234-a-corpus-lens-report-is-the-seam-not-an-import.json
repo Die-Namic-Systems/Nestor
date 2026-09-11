@@ -1,0 +1,17 @@
+{
+  "branch": "claude/corpus-lens-integration-wpu9is",
+  "date": "2026-09-11",
+  "note": "Proposed, not sealed. Written by the willow seat while wiring corpus-lens into the fleet. The process_lens recipe had answered the question 'does Nestor subsume corpus-lens' with a matcher and a wall, but nothing carried a real report into it: the receiving half existed and the bridge did not. Building the bridge against a real corpus-lens 0.3 report surfaced one gap in nestor/ itself.",
+  "decisions": [
+    {
+      "question": "How does a corpus-lens measurement reach Nestor: does Nestor import corpus-lens, does corpus-lens import Nestor, or does a file cross?",
+      "commitment": "A file crosses. recipes/process_lens.from_report reads the JSON envelope corpuslens run --format json writes ({schema_version, audit, results}) and proposes one draft per analyzer: the observation is the analyzer's numeric readings under a per-corpus key (steering_density@claude-code), the proposed target is the tool's own headline sentence, and the reason carries the denominator, the analyzer version, the GRADING.md question and the adapter. Neither package imports the other. A different schema_version is refused whole, the same rule corpuslens diff applies. Nothing on this path can reach status=sealed; a person seals or revises in nestor ui.",
+      "why": "corpus-lens is stdlib-only by charter and a leaf in the fleet's dependency graph; importing Nestor would end that, and importing corpus-lens into Nestor would make a recipe depend on a package the recipe's own docstring says it only has to read the shape of. The report is already the tool's stated machine-readable output, versioned, and passes the tool's own egress scan before it is written. GRADING.md defines no letter grades, so the only honest machine-supplied target is the tool's reading of the number; a grade is a person's reading and stays theirs. The key is scoped per corpus from the start because the recipe's own docstring said to do it before two corpora were live, and the first bridge run is exactly the moment before."
+    },
+    {
+      "question": "When the same corpus is re-read and a number moves under an unchanged headline, is that a revision or an idempotent re-submission?",
+      "commitment": "A revision. nestor.memory.revise_draft now refuses only when both the target and the source text equal the live draft; a moved source under the same target is revised, with the old row kept as history. The bridge checks the live row's readings with ProcessMatcher.score before proposing and reports a moved reading as a rival by default; --revise replaces it. Test: test_a_moved_source_under_the_same_target_is_a_revision beside the original refusal, and test_a_moved_reading_under_the_same_headline_is_still_a_rival in the recipe's tests.",
+      "why": "The refusal compared targets only because for StringMatcher the normalized source is the source; a dedup-key matcher, which IDEAS §3.1 already allows and ProcessMatcher is, keeps one live row per metric while the readings under it legitimately change. Left as it was, a tempo whose p25 moved while its headline did not was absorbed as the same draft and the old numbers were what the store served, which is a measurement silently frozen at its first reading. Found by the CLI test, not by reasoning: the first draft of the test changed a number the headline did not quote and the exit code came back 0."
+    }
+  ]
+}

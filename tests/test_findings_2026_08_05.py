@@ -835,6 +835,22 @@ class TestRevisingADraftKeepsWhatItReplaced:
         with pytest.raises(ValueError, match="nothing to revise"):
             memory.revise_draft("Q", "same", "d", "d", store=store)
 
+    def test_a_moved_source_under_the_same_target_is_a_revision(self, store):
+        """A dedup-key matcher keeps one live row per key while the source text
+        under it moves (recipes/process_lens: a re-read measurement with the
+        same headline). The refusal above is for the fully identical pair
+        only; this one has a new source to keep."""
+        from recipes.process_lens import MATCHER, observation
+        first = observation("tempo@c", median_gap_s=750.0)
+        moved = observation("tempo@c", median_gap_s=9.0)
+        memory.add_pair(first, "same headline", "process", "process",
+                        status="draft", store=store, matcher=MATCHER)
+        new = memory.revise_draft(moved, "same headline", "process", "process",
+                                  reason="re-read", store=store, matcher=MATCHER)
+        assert new["source_text"] == moved
+        live = store.memory_find(MATCHER.normalize(moved), "process", "process")
+        assert live["id"] == new["id"] and live["source_text"] == moved
+
     def test_the_conflict_error_points_at_the_verb(self, store):
         """The refusal added in §6.19 was a dead end until this existed."""
         memory.add_pair("Q", "first", "d", "d", status="draft", store=store)

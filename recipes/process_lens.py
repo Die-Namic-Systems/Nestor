@@ -81,14 +81,36 @@ from nestor.memory import ConflictingDraftError
 
 DOMAIN = "process"
 
-#: Metric keys this recipe knows how to read. A key outside this set is not
-#: refused — the rubric grows — but it is normalized the same way, so a typo
-#: silently becomes its own metric rather than colliding with the real one.
+#: Metric keys this recipe knows how to read: the analyzer names corpus-lens
+#: emits under ``results`` in a ``--format json`` report, as of corpus-lens
+#: 0.3. A key outside this set is not refused — the rubric grows — but it is
+#: normalized the same way, so a typo silently becomes its own metric rather
+#: than colliding with the real one. :func:`from_report` names the ones it
+#: did not recognise, so a new analyzer upstream is noticed rather than absorbed.
 KNOWN_METRICS = frozenset({
     "steering_density",
     "composition_mix",
     "clarification_pull",
+    "thread_shape",
+    "thread_span",
+    "tempo",
+    "authorship_mix",
+    "signature_plurality",
 })
+
+#: The JSON envelope shape :func:`from_report` was written against. corpus-lens
+#: bumps this when the envelope itself changes, and its own ``diff`` refuses a
+#: document with a different value for the same reason this does: reading a
+#: shape this code has never seen and guessing that a field still means what
+#: it meant is an overclaim about the tool, not about the process.
+REPORT_SCHEMA_VERSION = 1
+
+#: Fields on an analyzer result that are provenance or prose, never readings.
+#: Everything numeric that is NOT on this list is a reading. The analyzer
+#: version is provenance too — it belongs in ``reason``, where a regrade after
+#: a semantics bump can be seen, not in the observation, where a version bump
+#: would read as the process moving.
+_RESULT_META = frozenset({"analyzer_version"})
 
 #: Substrings that mean an absolute anchor rode along. Deliberately crude and
 #: deliberately over-broad: a false refusal costs a caller one edit, and a false
@@ -259,3 +281,222 @@ def observation(metric: str, **readings: Any) -> str:
     out = f"{key} | {body}" if body else key
     check_wall(out)
     return out
+
+
+# ── the bridge: a corpus-lens report → one draft per analyzer ──────────────────
+#
+# corpus-lens writes ``corpuslens run ... --format json`` as
+# ``{schema_version, audit, results, caveat}``; every entry under ``results`` is
+# one analyzer's numbers beside its ``denominator``, ``analyzer_version``,
+# ``grading_question`` and a one-sentence ``headline`` — the tool's own reading
+# of the number. This bridge consumes that file. It never imports corpus-lens:
+# the file is the seam, so corpus-lens stays the stdlib-only leaf it is by
+# charter and this recipe stays a recipe.
+#
+# What the draft's target is, and why. The recipe's target is "the grade this
+# measurement earns", and GRADING.md defines no letter grades — a grade is a
+# person's reading of a number against the rubric. A machine cannot supply
+# that, so the bridge proposes the nearest honest thing: corpus-lens's own
+# headline sentence, which is the *tool's* reading. A person then either seals
+# it (the reading stands) or :func:`revise` it with their own grade and a
+# reason. Either way the number reaches the ledger as a draft, and the covenant
+# holds: nothing here can reach ``status="sealed"``.
+
+#: What a draft carries when an analyzer result has no headline to propose.
+#: Never silently empty — an empty target would look like a grade of nothing.
+UNREAD = "unread"
+
+
+def scoped_metric(metric: str, corpus: str) -> str:
+    """``steering_density@claude-code`` — the per-corpus key the module
+    docstring says to adopt *before* two corpora are live at once. ``@`` is
+    not a separator :func:`_key_of` splits on, so the whole thing is the key,
+    and two corpora graded at once are two metrics rather than one rival."""
+    corpus = "_".join(str(corpus).split()).strip().lower()
+    if not corpus:
+        raise ValueError("corpus is required — an unscoped metric collides with "
+                         "every other corpus's reading of the same analyzer")
+    return f"{metric}@{corpus}"
+
+
+def readings_of(result: dict) -> dict:
+    """The numeric scalars of one analyzer result, provenance excluded.
+    Booleans are not readings (``bool`` is an ``int`` subclass); nested
+    structures are not readings either — a bucket table is prose here."""
+    out = {}
+    for k, v in result.items():
+        if k in _RESULT_META or isinstance(v, bool):
+            continue
+        if isinstance(v, (int, float)):
+            out[k] = v
+    return out
+
+
+def _reason_for(name: str, result: dict, adapter: str) -> str:
+    denominator = str(result.get("denominator", "")).strip() or "denominator not stated"
+    version = result.get("analyzer_version", "?")
+    question = str(result.get("grading_question", "")).strip() or "no GRADING.md question named"
+    return (f"{denominator} — corpus-lens analyzer {name} v{version}; "
+            f"GRADING.md: {question}; adapter={adapter}")
+
+
+def from_report(doc: dict, *, corpus: str, origin: str = "", store=None,
+                revise_rivals: bool = False) -> dict:
+    """Every analyzer result in a corpus-lens JSON report → one draft.
+
+    Returns a summary, never raises for an individual analyzer::
+
+        {"proposed":  [scoped metric, ...],       # no live row existed; a draft now does
+         "unchanged": [scoped metric, ...],       # the live draft already reads the same
+         "revised":   [scoped metric, ...],       # only with revise_rivals=True
+         "rivals":    [scoped metric, ...],       # a live draft reads differently
+         "skipped":   {scoped metric: why, ...},  # e.g. the analyzer errored
+         "unknown":   [analyzer name, ...]}       # not in KNOWN_METRICS, still proposed
+
+    "Reads differently" means either the headline moved or the readings moved
+    beyond :class:`ProcessMatcher`'s tolerance. The second half matters:
+    ``nestor.memory`` keys a live row by the metric alone and conflicts on the
+    *target*, so a reading that moved under an unchanged headline would
+    otherwise be absorbed as the same draft and the old numbers kept. The
+    bridge checks the live row's readings itself so a moved number is a rival.
+
+    Refuses the whole document (``ValueError``) when its ``schema_version`` is
+    not :data:`REPORT_SCHEMA_VERSION` or it has no ``results`` — the same two
+    hard refusals ``corpuslens diff`` makes, for the same reason. Refuses any
+    single observation the wall rejects (:class:`WallError`) rather than
+    skipping it: a report that carries an anchor is a bug upstream, and a
+    bridge that quietly dropped the evidence would be hiding it.
+
+    ``revise_rivals``: when a metric already holds a different live draft, the
+    default is to leave it and name it under ``rivals`` — overwriting a reading
+    is a decision. Pass ``True`` to :func:`revise` each one instead, with a
+    reason that says this is a re-run; the old reading is kept as history.
+    """
+    if not isinstance(doc, dict):
+        raise TypeError("a corpus-lens report is a JSON object")
+    version = doc.get("schema_version")
+    if version != REPORT_SCHEMA_VERSION:
+        raise ValueError(
+            f"report schema_version is {version!r}; this bridge reads "
+            f"{REPORT_SCHEMA_VERSION}. A different envelope is refused rather "
+            f"than guessed at — see corpuslens/diff.py for the same rule.")
+    results = doc.get("results")
+    if not isinstance(results, dict) or not results:
+        raise ValueError("report carries no results")
+    audit = doc.get("audit") if isinstance(doc.get("audit"), dict) else {}
+    adapter = str(audit.get("adapter") or "unknown")
+
+    summary: dict = {"proposed": [], "unchanged": [], "revised": [], "rivals": [],
+                     "skipped": {}, "unknown": []}
+    for name in sorted(results):
+        result = results[name]
+        key = scoped_metric(name, corpus)
+        if name not in KNOWN_METRICS:
+            summary["unknown"].append(name)
+        if not isinstance(result, dict):
+            summary["skipped"][key] = "result is not an object"
+            continue
+        if "error" in result:
+            summary["skipped"][key] = f"analyzer reported an error: {result['error']}"
+            continue
+        readings = readings_of(result)
+        if not readings:
+            summary["skipped"][key] = "no numeric readings"
+            continue
+        obs = observation(key, **readings)
+        grade = str(result.get("headline") or "").strip() or UNREAD
+        reason = _reason_for(name, result, adapter)
+        live = _live_row(obs, store)
+        if live is None:
+            propose(obs, grade, reason, origin=origin, store=store)
+            summary["proposed"].append(key)
+            continue
+        same_reading = MATCHER.score(live.get("source_text", ""), obs) == 1.0
+        if same_reading and live.get("target_text") == grade:
+            summary["unchanged"].append(key)
+            continue
+        if not revise_rivals:
+            summary["rivals"].append(key)
+            continue
+        revise(obs, grade, f"re-run of the same corpus; {reason}",
+               origin=origin, store=store)
+        summary["revised"].append(key)
+    return summary
+
+
+def _live_row(obs: str, store=None) -> dict | None:
+    """The live pair keyed by ``obs``'s metric, or None. ``lookup`` ranks by
+    the matcher, and :class:`ProcessMatcher` scores a different metric at
+    exactly 0.0, so only the same metric's row can come back — but the key is
+    compared explicitly anyway, because a lookup that returned a neighbour
+    would otherwise be read as this metric's own history."""
+    for hit in memory.lookup(obs, DOMAIN, DOMAIN, limit=5, store=store, matcher=MATCHER):
+        pair = hit.get("pair", hit)
+        if _key_of(pair.get("source_text", "")) == _key_of(obs):
+            return pair
+    return None
+
+
+def main(argv=None) -> int:
+    """``python -m recipes.process_lens REPORT.json --corpus NAME [--store DB]``
+
+    Reads one ``corpuslens run --format json`` file and proposes a draft per
+    analyzer into a Nestor store. Exit 0 when every analyzer was proposed or
+    revised; 1 when at least one was left as a rival (re-run with ``--revise``
+    to replace those readings, keeping the old as history); 2 on a refused
+    document. A store path given with ``--store`` is opened as a SQLite store
+    for this process; without it the process-wide store is used.
+    """
+    import argparse
+    import json
+    import sys
+
+    ap = argparse.ArgumentParser(
+        prog="recipes.process_lens",
+        description="propose a corpus-lens report's measurements as Nestor drafts")
+    ap.add_argument("report", help="a corpuslens run --format json file")
+    ap.add_argument("--corpus", required=True,
+                    help="a short label scoping every metric key (e.g. claude-code); "
+                         "two corpora graded at once are two metrics, not one")
+    ap.add_argument("--store", default=None, help="SQLite store path (default: the process-wide store)")
+    ap.add_argument("--origin", default="corpuslens", help="origin recorded on each draft")
+    ap.add_argument("--revise", action="store_true",
+                    help="replace a metric's differing live draft instead of leaving it as a rival")
+    args = ap.parse_args(argv)
+
+    try:
+        with open(args.report, encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read {args.report}: {exc}", file=sys.stderr)
+        return 2
+
+    store = None
+    if args.store:
+        from nestor.sqlite_store import SqliteStore
+        store = SqliteStore(args.store)
+    try:
+        summary = from_report(doc, corpus=args.corpus, origin=args.origin,
+                              store=store, revise_rivals=args.revise)
+    except (TypeError, ValueError, WallError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    for key in summary["proposed"]:
+        print(f"draft    {key}")
+    for key in summary["unchanged"]:
+        print(f"same     {key}: the live draft already reads this")
+    for key in summary["revised"]:
+        print(f"revised  {key}")
+    for key, why in summary["skipped"].items():
+        print(f"skipped  {key}: {why}")
+    for key in summary["rivals"]:
+        print(f"rival    {key}: a different live draft exists; --revise replaces it, keeping the old as history")
+    if summary["unknown"]:
+        print(f"note     analyzers not in KNOWN_METRICS (proposed anyway): {', '.join(summary['unknown'])}")
+    print("every draft above is a draft. A person seals a grade in `nestor ui`; nothing here can.")
+    return 1 if summary["rivals"] else 0
+
+
+if __name__ == "__main__":  # pragma: no cover — exercised through main() in tests
+    raise SystemExit(main())
