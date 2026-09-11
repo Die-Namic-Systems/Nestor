@@ -1004,8 +1004,15 @@ def revise_draft(source_text: str, target_text: str, source_lang: str,
             f"pair {old['id']} is sealed — a human checked it, so replacing it "
             f"is supersede_pair's job and needs a verifier. revise_draft only "
             f"touches proposals nobody has ratified.")
-    if old["target_text"] == target_text:
-        raise ValueError(f"revised target equals the live draft {target_text!r} "
+    if old["target_text"] == target_text and old.get("source_text") == source_text:
+        # Both halves equal, not just the target. A matcher whose ``normalize``
+        # is a dedup key and whose ``score`` reads the raw text (IDEAS §3.1;
+        # recipes/process_lens.ProcessMatcher) keeps one live row per key
+        # while the source text under that key legitimately moves — a
+        # measurement re-read with a new number and the same headline. That
+        # is a revision with something to keep, so only the fully identical
+        # re-submission is sent back to add_pair.
+        raise ValueError(f"revised pair equals the live draft {target_text!r} "
                          f"— nothing to revise (add_pair is the idempotent path)")
     # A human may already have refused this exact answer for this query. The
     # status check above only catches reject_pair; reject_match lives in

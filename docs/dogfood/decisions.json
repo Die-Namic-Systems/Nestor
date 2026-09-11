@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 244,
+    "pairs": 246,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-10T00:00:00+00:00",
-  "digest": "e2d7b971fd48a60ed261bb9a550819b40d92af515ff501ed8e1fc52f90cb61ab",
+  "created_at": "2026-09-11T00:00:00+00:00",
+  "digest": "fe4fd84b0ff1458b296c3088bd8379e2990fed2aa08a384ede55b753f98f3065",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-11T00:00:00+00:00",
+      "id": "87eefa2e-06ed-5bff-888c-c95c344f4927",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when the same corpus is reread and a number moves under an unchanged headline is that a revision or an idempotent resubmission",
+      "source_text": "When the same corpus is re-read and a number moves under an unchanged headline, is that a revision or an idempotent re-submission?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A revision. nestor.memory.revise_draft now refuses only when both the target and the source text equal the live draft; a moved source under the same target is revised, with the old row kept as history. The bridge checks the live row's readings with ProcessMatcher.score before proposing and reports a moved reading as a rival by default; --revise replaces it. Test: test_a_moved_source_under_the_same_target_is_a_revision beside the original refusal, and test_a_moved_reading_under_the_same_headline_is_still_a_rival in the recipe's tests.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-11T00:00:00+00:00",
+      "id": "5a462a57-b75d-5208-afaa-818210105091",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does a corpuslens measurement reach nestor does nestor import corpuslens does corpuslens import nestor or does a file cross",
+      "source_text": "How does a corpus-lens measurement reach Nestor: does Nestor import corpus-lens, does corpus-lens import Nestor, or does a file cross?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A file crosses. recipes/process_lens.from_report reads the JSON envelope corpuslens run --format json writes ({schema_version, audit, results}) and proposes one draft per analyzer: the observation is the analyzer's numeric readings under a per-corpus key (steering_density@claude-code), the proposed target is the tool's own headline sentence, and the reason carries the denominator, the analyzer version, the GRADING.md question and the adapter. Neither package imports the other. A different schema_version is refused whole, the same rule corpuslens diff applies. Nothing on this path can reach status=sealed; a person seals or revises in nestor ui.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-10T00:00:00+00:00",
       "id": "f1dcd4c3-dedf-57d6-b42a-ed97c2918a93",

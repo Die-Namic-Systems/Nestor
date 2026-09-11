@@ -111,3 +111,165 @@ def test_propose_has_no_path_to_sealed():
 def test_revise_requires_a_reason():
     with pytest.raises(ValueError):
         pl.revise("steering_density | sessions=8", "grade", "   ")
+
+
+# --- the bridge: a corpus-lens report → drafts -----------------------------
+#
+# The fixture is a real `corpuslens run examples/sample-corpus --adapter
+# claude-code --format json` (corpus-lens 0.3), not a hand-written stand-in:
+# the bridge's claim is that it reads what the tool actually writes.
+
+import copy
+import json
+import pathlib
+
+from nestor.sqlite_store import SqliteStore
+
+FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "corpus_lens" / "sample_report.json"
+
+
+def _report() -> dict:
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+def _live(store) -> dict:
+    """{scoped metric: pair} for every live process row in the store."""
+    rows = store.memory_list(source_lang=pl.DOMAIN, target_lang=pl.DOMAIN, limit=1000)
+    return {pl._key_of(r["source_text"]): r for r in rows}
+
+
+def test_fixture_is_a_real_report_with_one_errored_analyzer():
+    doc = _report()
+    assert doc["schema_version"] == pl.REPORT_SCHEMA_VERSION
+    assert set(doc["results"]) == pl.KNOWN_METRICS
+    errored = [k for k, v in doc["results"].items() if "error" in v]
+    assert errored == ["signature_plurality"], "the sample corpus is below that analyzer's floor"
+
+
+def test_from_report_proposes_one_draft_per_analyzer_and_skips_the_errored_one():
+    store = SqliteStore(":memory:")
+    summary = pl.from_report(_report(), corpus="claude-code", store=store)
+    assert sorted(summary["proposed"]) == sorted(
+        f"{m}@claude-code" for m in pl.KNOWN_METRICS if m != "signature_plurality")
+    assert list(summary["skipped"]) == ["signature_plurality@claude-code"]
+    assert "error" in summary["skipped"]["signature_plurality@claude-code"]
+    assert summary["rivals"] == [] and summary["revised"] == [] and summary["unknown"] == []
+    live = _live(store)
+    assert set(live) == set(summary["proposed"])
+    row = live["steering_density@claude-code"]
+    assert row["status"] == "draft"
+    assert row["target_text"].startswith("70.0% of the operator role's prompt turns")
+    assert "mid_task_share_pct=70.0" in row["source_text"]
+    assert "analyzer_version" not in row["source_text"], "provenance goes in reason, not the reading"
+    assert "operator prompt turns with >=12 characters" in row["reason"]
+    assert "v1" in row["reason"] and "question 1" in row["reason"] and "adapter=claude-code" in row["reason"]
+
+
+def test_from_report_never_seals():
+    store = SqliteStore(":memory:")
+    pl.from_report(_report(), corpus="claude-code", store=store)
+    assert {r["status"] for r in _live(store).values()} == {"draft"}
+
+
+def test_same_report_twice_is_idempotent():
+    store = SqliteStore(":memory:")
+    pl.from_report(_report(), corpus="claude-code", store=store)
+    again = pl.from_report(_report(), corpus="claude-code", store=store)
+    assert again["rivals"] == [] and again["proposed"] == []
+    assert len(again["unchanged"]) == 7
+    assert len(_live(store)) == 7, "one live row per metric, not one per run"
+
+
+def test_a_moved_reading_under_the_same_headline_is_still_a_rival():
+    """nestor.memory conflicts on the target; the bridge must notice the source."""
+    store = SqliteStore(":memory:")
+    pl.from_report(_report(), corpus="claude-code", store=store)
+    moved = _report()
+    moved["results"]["tempo"]["median_gap_s"] = 9.0          # headline untouched
+    summary = pl.from_report(moved, corpus="claude-code", store=store)
+    assert summary["rivals"] == ["tempo@claude-code"]
+    assert "median_gap_s=750.0" in _live(store)["tempo@claude-code"]["source_text"]
+    summary = pl.from_report(moved, corpus="claude-code", store=store, revise_rivals=True)
+    assert summary["revised"] == ["tempo@claude-code"]
+    assert "median_gap_s=9.0" in _live(store)["tempo@claude-code"]["source_text"]
+
+
+def test_a_moved_reading_is_a_rival_by_default_and_a_revision_on_request():
+    store = SqliteStore(":memory:")
+    pl.from_report(_report(), corpus="claude-code", store=store)
+    moved = _report()
+    moved["results"]["steering_density"]["mid_task_share_pct"] = 11.0
+    moved["results"]["steering_density"]["headline"] = "11.0% of the operator role's prompt turns arrive mid-task."
+    summary = pl.from_report(moved, corpus="claude-code", store=store)
+    assert summary["rivals"] == ["steering_density@claude-code"]
+    assert "mid_task_share_pct=70.0" in _live(store)["steering_density@claude-code"]["source_text"], \
+        "a rival never overwrites"
+    summary = pl.from_report(moved, corpus="claude-code", store=store, revise_rivals=True)
+    assert summary["revised"] == ["steering_density@claude-code"]
+    row = _live(store)["steering_density@claude-code"]
+    assert "mid_task_share_pct=11.0" in row["source_text"]
+    assert row["reason"].startswith("re-run of the same corpus")
+
+
+def test_two_corpora_are_two_metrics_not_one_rival():
+    store = SqliteStore(":memory:")
+    pl.from_report(_report(), corpus="claude-code", store=store)
+    moved = _report()
+    moved["results"]["steering_density"]["mid_task_share_pct"] = 11.0
+    summary = pl.from_report(moved, corpus="cursor", store=store)
+    assert summary["rivals"] == []
+    assert len(_live(store)) == 14
+
+
+def test_from_report_refuses_a_different_envelope():
+    doc = _report()
+    doc["schema_version"] = 2
+    with pytest.raises(ValueError, match="schema_version"):
+        pl.from_report(doc, corpus="c", store=SqliteStore(":memory:"))
+    with pytest.raises(ValueError, match="no results"):
+        pl.from_report({"schema_version": 1, "results": {}}, corpus="c", store=SqliteStore(":memory:"))
+    with pytest.raises(ValueError, match="corpus is required"):
+        pl.from_report(_report(), corpus="  ", store=SqliteStore(":memory:"))
+
+
+def test_from_report_refuses_rather_than_skips_a_leaky_headline():
+    """A report carrying an anchor is an upstream bug; hiding it would be worse."""
+    doc = _report()
+    doc["results"]["tempo"]["headline"] = "the first prompt arrived at 14:32"
+    with pytest.raises(pl.WallError):
+        pl.from_report(doc, corpus="c", store=SqliteStore(":memory:"))
+
+
+def test_readings_exclude_provenance_booleans_and_structure():
+    got = pl.readings_of({"analyzer_version": 3, "n": 4, "pct": 1.5, "flag": True,
+                          "buckets": {"a": 1}, "headline": "x"})
+    assert got == {"n": 4, "pct": 1.5}
+
+
+def test_unknown_analyzer_is_proposed_and_named():
+    doc = _report()
+    doc["results"]["brand_new"] = {"denominator": "things", "analyzer_version": 1,
+                                   "grading_question": "none", "headline": "h", "n": 3}
+    summary = pl.from_report(doc, corpus="c", store=SqliteStore(":memory:"))
+    assert summary["unknown"] == ["brand_new"]
+    assert "brand_new@c" in summary["proposed"]
+
+
+def test_main_exit_codes(tmp_path, capsys):
+    db = str(tmp_path / "pl.db")
+    assert pl.main([str(FIXTURE), "--corpus", "claude-code", "--store", db]) == 0
+    out = capsys.readouterr().out
+    assert out.count("draft    ") == 7 and "skipped  signature_plurality@claude-code" in out
+    assert "nothing here can" in out
+    moved = copy.deepcopy(_report())
+    moved["results"]["tempo"]["median_gap_s"] = 9.0
+    p = tmp_path / "moved.json"
+    p.write_text(json.dumps(moved), encoding="utf-8")
+    assert pl.main([str(p), "--corpus", "claude-code", "--store", db]) == 1
+    assert "rival    tempo@claude-code" in capsys.readouterr().out
+    assert pl.main([str(p), "--corpus", "claude-code", "--store", db, "--revise"]) == 0
+    assert "revised  tempo@claude-code" in capsys.readouterr().out
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"schema_version": 9}', encoding="utf-8")
+    assert pl.main([str(bad), "--corpus", "c", "--store", db]) == 2
+    assert pl.main([str(tmp_path / "missing.json"), "--corpus", "c", "--store", db]) == 2

@@ -230,7 +230,7 @@ merged CI branches, or upstream forks — not IDEAS expanders.*
 | **redential-cli** `docs/principle-2-amendment` (+2, diverged) | §4.2 *category* language only (vault anchor governance); no seal API. |
 | **safe-app-store** `claude/task-1qugto`, `claude/willow-pg-lib-a5` | D8 vault / source-trail — adjacent §6.10; heavily behind default. |
 | **willow-mcp** `claude/willow-mcp-pr-211-afy9xt` (+1) | Hook allow-side tests — meta-parallel to §6.9; merge or delete for willow-mcp, not nestor. |
-| **corpus-lens** `claude/redential-cli-clone-f8hlu9` (stale) | Fail-closed egress — same *shape* as verify-before-act (§5.8). |
+| **corpus-lens** (`willow-memory/corpus-lens`, main) | Wired: `recipes/process_lens.py` reads a `corpuslens run --format json` report and proposes one draft per analyzer (`from_report`, `python -m recipes.process_lens REPORT --corpus NAME`); the file is the seam, nothing imports corpus-lens. Its fail-closed egress is the same *shape* as verify-before-act (§5.8). |
 | **Dependabot** pillow/rapidfuzz on SAFE | No IDEAS link. |
 | **Jeles** CI remotes (0 ahead) | Prune candidates; no nestor IDEAS. |
 | **hermes-agent**, **mcp-memory-service**, draft **DispatchesFromReality** | Not nestor queue. |
