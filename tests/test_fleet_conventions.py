@@ -33,10 +33,11 @@ that proves the check fires on a tree that breaks it:
   beside the setting it explains.
 * `CONTRIBUTING.md` names the test command — the one thing the PR template's
   Evidence line can quote.
-* a numbered pile exists (`IDEAS.md`), so `required_when_pile_exists` bites:
-  `trailers.yml`, which E3-trailers (fleet plan Wave 3) adds. That test is
-  `xfail(strict=True)` until it lands — the rule is not weakened, and the day
-  the workflow appears the xfail turns into a failure that says so.
+* a numbered pile exists (`docs/ideas.md`, the reconciler-form pile E3-piles
+  made of `TODO.md`'s queue — not `IDEAS.md`, which is this repo's own evidence
+  dialect and not what `reconciler` parses), so `required_when_pile_exists`
+  bites: `trailers.yml`, which E3-trailers added beside it. Until that bite
+  landed this test was `xfail(strict=True)`; the rule was never weakened.
 
 `publish.yml` is this repo's release workflow and is never renamed; the
 published document does not name `release.yml`, and nothing here does either.
@@ -66,9 +67,12 @@ RULES = json.loads(DOCUMENT.read_text(encoding="utf-8"))
 RELEASE_PLEASE = ".github/workflows/release-please.yml"
 RELEASE_CONFIG = "release-please-config.json"
 CONTRIBUTING = "CONTRIBUTING.md"
-#: This repo's numbered pile: `IDEAS.md`, which opens with a CI-gated Map of
-#: every subsection and carries the idea ids a trailer would join to.
-PILE = "IDEAS.md"
+#: This repo's numbered pile in the reconciler's form: top-level `N. ` items
+#: whose numbers are permanent join keys, read by `reconciler run` and joined
+#: to commits by `Idea-Id` trailers. `IDEAS.md` is deliberately not this: its
+#: §-numbered sections and five status tags are Nestor's own evidence dialect,
+#: and the reconciler's parser would see none of them as items.
+PILE = "docs/ideas.md"
 ARMS_AUTOMERGE = "gh pr merge --auto"
 #: The gate `AGENTS.md`'s table and `CONTRIBUTING.md`'s table both name for a
 #: code change, and the command CI's `test` job runs the same collection under
@@ -202,12 +206,11 @@ def test_contributing_names_the_test_command():
         "line has nothing to quote")
 
 
-@pytest.mark.xfail(strict=True, reason="E3-trailers (fleet plan Wave 3) adds trailers.yml")
 def test_trailers_workflow_is_present_because_a_pile_exists():
-    """This repo has a numbered pile, so the rule bites today and the file it
-    requires does not exist yet. Strict xfail: the rule is not weakened, and
-    when E3-trailers lands the unexpected pass fails this test until the
-    marker is removed."""
+    """This repo has a numbered pile, so the rule bites, and the workflow it
+    requires exists (E3-trailers). Landed as a strict xfail one bite earlier,
+    when the pile existed and the workflow did not; the marker came off with
+    the workflow, never the rule."""
     assert (REPO_ROOT / PILE).exists()
     assert _missing_when_pile_exists(REPO_ROOT, RULES["required_when_pile_exists"]) == []
 

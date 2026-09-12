@@ -27,6 +27,7 @@ willow charter seat — no willow-mcp for routine work here; see `hooks/seat.md`
    | `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | full | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
    | `docs/`, `IDEAS.md`, `docs/dogfood/decisions/*.json` | docs-only | `bash scripts/ci-docs.sh` |
    | `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/` | lint-only | `bash scripts/ci-lint.sh` |
+   | `docs/ideas.md`, or a commit carrying an `Idea-Id` trailer | trailers | `reconciler verify --repo ./ --doc docs/ideas.md` (`pip install "willow-reconciler>=0.6.0"`; CI runs it in `trailers.yml`) |
    | Mixed (any combination of the above) | full | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
 
    During implementation, `bash scripts/ci-test.sh core` is the fast deterministic

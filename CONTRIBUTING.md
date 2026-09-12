@@ -57,6 +57,22 @@ not a claim that tests pass.
 `docs/dogfood/decisions/` and run `python scripts/dogfood_store.py --rebuild`.
 Decisions land as **drafts** — only a human seals them in `nestor ui`.
 
+## The Idea-Id commit-trailer convention
+
+A commit that lands an idea recorded in [`docs/ideas.md`](docs/ideas.md) carries
+an `Idea-Id: willow-ideas-<num>` git trailer (add `Idea-Status: partial` when a
+commit only partly lands it). It is the durable join key willow-reconciler
+reads; a wrong id is worse than no id, so never type one by hand:
+
+    reconciler id --repo ./ --doc docs/ideas.md --grep "words from the item"
+    reconciler install-hook --repo ./     # derives it from a branch named idea-NN
+
+`.github/workflows/trailers.yml` runs `reconciler verify` on every PR and fails
+on a trailer that names an item the doc does not contain. The reconciler is not
+one of this repo's pinned dev tools; `pip install "willow-reconciler>=0.6.0"`
+in your venv when you need the two commands above (`--repo ./` is a path — a
+bare `.` is read as a repo name and will not resolve).
+
 ## The one rule
 
 **You may propose. You may not confirm.**
