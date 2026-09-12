@@ -46,6 +46,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, TextIO
 
 from . import (
+    __version__,
     answer,
     cascade,
     config,
@@ -64,7 +65,13 @@ from .sqlite_store import SqliteStore
 from .storage import Storage
 
 SERVER_NAME = "nestor"
-SERVER_VERSION = "0.1.0"
+# The MCP `serverInfo.version` a client sees on `initialize`. No release
+# cadence of its own — ships inside nestor-meaning and moves with it — so it
+# reports the package's version rather than the hand-typed "0.1.0" this used
+# to freeze at. A server/protocol version that must genuinely differ from the
+# package's gets its own constant, named and exempted in test_version.py —
+# never a reused, re-literalled SERVER_VERSION.
+SERVER_VERSION = __version__
 # Versions of the MCP spec this server knows how to speak. A client asking for
 # one of these gets it back; anything else is answered with the newest we know,
 # which is what the spec prescribes for an unknown version.

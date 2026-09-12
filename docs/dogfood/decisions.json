@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 246,
+    "pairs": 249,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-11T00:00:00+00:00",
-  "digest": "fe4fd84b0ff1458b296c3088bd8379e2990fed2aa08a384ede55b753f98f3065",
+  "created_at": "2026-09-12T00:00:00+00:00",
+  "digest": "81fc3e4fefeef99ba44d6b73f108da62947b2c163822d58589cd8314ef4b6e28",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "d7c2aef9-4e27-5b31-820b-9b9b2ea6bad0",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "readmemd and docsprojectlayoutmd each summarize ideasmds status vocabulary in one line as measured verified hypothesis open four tags ideasmds own status table lists exactly those four a fifth shipped is introduced in the paragraph immediately after the table mark it shipped and is by count in the map the single most common tag roughly 60 of 170 entries is the fourtag summary wrong and if so what stops it drifting back",
+      "source_text": "README.md and docs/project-layout.md each summarize IDEAS.md's status vocabulary in one line as \"measured / verified / hypothesis / open\" — four tags. IDEAS.md's own status table lists exactly those four; a fifth, shipped, is introduced in the paragraph immediately after the table (\"mark it **shipped**\") and is, by count in the Map, the single most common tag (roughly 60 of 170 entries). Is the four-tag summary wrong, and if so what stops it drifting back?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Wrong, and fixed to name all five in both places. A new test, tests/test_docs.py::test_readme_and_layout_name_every_ideas_status_tag, reads IDEAS.md's table and its shipped-sentence as the one source of the vocabulary (not a hardcoded tuple duplicated three ways) and asserts both summaries reproduce it exactly, tag for tag, in order.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "6124e71c-7aa4-58d8-8530-5f876e66127f",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "nestorservepys server_version was a handtyped literal 010 frozen since an early release while the package moved to 0200 through hatchvcs should the mcp server report its own version or the packages",
+      "source_text": "nestor/serve.py's SERVER_VERSION was a hand-typed literal (\"0.1.0\") frozen since an early release while the package moved to 0.20.0 through hatch-vcs. Should the MCP server report its own version, or the package's?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The package's. SERVER_VERSION = __version__ (nestor/__init__.py's own derived value, imported alongside the other package submodules serve.py already imports from `.`). The MCP server has no release cadence independent of the nestor-meaning distribution — it ships inside the same wheel and moves with every tag — so a second number was never tracking anything real, only going stale. tests/test_the_version_is_written_once's rule (\"nothing tracked in this tree may carry the version literal\") is now enforced tree-wide, not just for nestor/__init__.py's own __version__: test_no_version_literal_hides_anywhere_under_nestor in tests/test_version.py scans every nestor/*.py file for a *VERSION*-named assignment holding a semver-shaped string literal, with no name exempted. If a genuinely independent server/protocol revision is ever needed, it gets its own constant, its own name, and its own line in that test's exemption set — argued for by name, not defaulted into reusing SERVER_VERSION.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "32dd074d-dd6f-5d66-8956-04000dc33ac9",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "precommitconfigyaml pinned ruff at v0150 while scriptslintpinstxt and pyprojecttomls dev extra had both already moved to 0166 agentlog 61146119 record exactly this shape of drift for the same tool one level up should the precommit pin be corrected once or should something read it going forward",
+      "source_text": ".pre-commit-config.yaml pinned ruff at v0.15.0 while scripts/lint-pins.txt and pyproject.toml's [dev] extra had both already moved to 0.16.6 (agent-log §6.114/§6.119 record exactly this shape of drift, for the same tool, one level up). Should the pre-commit pin be corrected once, or should something read it going forward?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both. The pin is corrected to v0.16.6 now, and scripts/lint-pins-check.sh (already the single place that compares the local environment's tool versions against lint-pins.txt) reads .pre-commit-config.yaml's ruff-pre-commit rev too and refuses on disagreement, with the mismatch reported in the same voice as its existing checks (\"this environment has X, CI pins Y\"). A pre-commit hook running a different ruff from ci-lint.sh and CI is a gate disagreeing with the one branch protection runs, which is the exact failure lint-pins.txt was created to close for pip-installed tools — a hook pin is the same fact, held a third way, and had no guard.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-11T00:00:00+00:00",
       "id": "87eefa2e-06ed-5bff-888c-c95c344f4927",

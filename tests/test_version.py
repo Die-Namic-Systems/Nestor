@@ -146,6 +146,55 @@ def test_the_version_is_written_once():
         f"importlib.metadata so the installed distribution answers")
 
 
+#: A `*VERSION* = "X.Y.Z..."` assignment — the shape `nestor/serve.py`'s
+#: `SERVER_VERSION` had, frozen at `"0.1.0"` for a dozen releases. Widens
+#: `test_the_version_is_written_once` from `__init__.py` alone to any name.
+_VERSION_LITERAL = re.compile(
+    r'\b([A-Za-z_][A-Za-z0-9_]*VERSION[A-Za-z0-9_]*)\s*=\s*'
+    r'["\']((?:\d+\.){2}\d+[^"\']*)["\']')
+
+
+def _version_literal_hits(pkg_root: pathlib.Path) -> list[str]:
+    """Every hit as ``"path: NAME = 'value'"``. Shared by the real scan below
+    and its own plant, so the plant proves the function that actually runs."""
+    hits = []
+    for path in sorted(pkg_root.rglob("*.py")):
+        for name, value in _VERSION_LITERAL.findall(path.read_text(encoding="utf-8")):
+            hits.append(f"{path}: {name} = {value!r}")
+    return hits
+
+
+def test_no_version_literal_hides_anywhere_under_nestor():
+    """No name containing `VERSION` anywhere under `nestor/` may be assigned a
+    semver-shaped literal — a second source of truth nothing checks, which is
+    exactly what let `SERVER_VERSION` sit at `"0.1.0"` while the package moved
+    to 0.20.0. Deriving one from `nestor.__version__` (a name, not a literal —
+    see `serve.py`) is fine. No name is exempted: a server/protocol version
+    that must genuinely differ from the package's still isn't a hand-typed
+    literal — it needs its own justification added here, and nothing does today.
+    """
+    hits = _version_literal_hits(ROOT / "nestor")
+    assert not hits, (
+        "a *VERSION* name under nestor/ carries a semver-looking literal — a "
+        "second source of truth for the version the git tag already supplies "
+        "(derive it from nestor.__version__ instead):\n  " + "\n  ".join(hits))
+
+
+def test_the_hidden_version_literal_scan_actually_fires(tmp_path):
+    """Plants this file's own history — `SERVER_VERSION = "0.1.0"` — and
+    proves `_version_literal_hits` catches it but leaves a derived assignment
+    alone."""
+    (tmp_path / "planted_server.py").write_text(
+        'SERVER_VERSION = "0.1.0"\n', encoding="utf-8")
+    hits = _version_literal_hits(tmp_path)
+    assert len(hits) == 1 and "SERVER_VERSION = '0.1.0'" in hits[0]
+
+    (tmp_path / "planted_ok.py").write_text(
+        "SERVER_VERSION = __version__\n", encoding="utf-8")
+    assert _version_literal_hits(tmp_path) == hits, (
+        "a VERSION name assigned another name (not a literal) must not be flagged")
+
+
 def test_the_build_backend_derives_the_version_from_the_tag():
     """The other half of the same rule, in the table that implements it.
 

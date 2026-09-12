@@ -343,6 +343,54 @@ def test_the_readme_still_refuses_to_hardcode_counts_that_drift():
     assert not stale, f"README hardcodes a count that will drift: {stale}"
 
 
+def _ideas_status_vocabulary(ideas: str) -> tuple[str, ...]:
+    """The status table's rows, plus `shipped` — introduced right after the
+    table ("mark it **shipped**"), not in it, but part of the same vocabulary
+    and the Map's single most common tag (~60 of 170 entries). Read from the
+    file so a future change moves this test instead of outrunning it."""
+    # Scoped to the table block: the bare `| **word** |` shape recurs deep in
+    # the file's own measurement tables (`| **overlap** | B→A | ... |`), and
+    # an unscoped scan silently picked those up as "statuses".
+    table_block = ideas.split("| Status | Means |", 1)[1].split("\n\n", 1)[0]
+    table_tags = tuple(re.findall(r"^\| \*\*(\w+)\*\* \|", table_block, re.MULTILINE))
+    shipped = re.search(r"mark it \*\*(\w+)\*\*", ideas)
+    assert table_tags and shipped, (
+        "IDEAS.md's status table or its shipped-tag sentence moved; "
+        "update the patterns in test_docs.py to match")
+    return table_tags + (shipped.group(1),)
+
+
+def _slash_tag_list(text: str, marker: str) -> list[str]:
+    """The `/`-separated words right after `marker` — how README and the
+    layout manifest each restate IDEAS.md's tag vocabulary in one line."""
+    tail = text[text.index(marker) + len(marker):]
+    m = re.match(r"[\s*]*([A-Za-z]+(?:\s*/\s*[A-Za-z]+)+)", tail)
+    assert m, f"no slash-separated tag list found right after {marker!r}"
+    return [t.strip() for t in m.group(1).split("/")]
+
+
+def test_readme_and_layout_name_every_ideas_status_tag():
+    """IDEAS.md's table lists four statuses; `shipped`, introduced in the very
+    next paragraph, is the tag most entries actually carry. README and
+    docs/project-layout.md each restate the vocabulary in one line and both
+    had drifted to the table's four, silently dropping the one used most.
+
+    Planted: reverting either summary to the four-tag form must fail here.
+    """
+    vocabulary = _ideas_status_vocabulary(DOCS["IDEAS.md"])
+    assert vocabulary == ("measured", "verified", "hypothesis", "open", "shipped")
+
+    readme_tags = _slash_tag_list(README, "each entry tagged")
+    assert readme_tags == list(vocabulary), (
+        f"README's tag list {readme_tags} disagrees with IDEAS.md's own "
+        f"vocabulary {list(vocabulary)}")
+
+    layout_tags = _slash_tag_list(LAYOUT, "each tagged")
+    assert layout_tags == list(vocabulary), (
+        f"docs/project-layout.md's tag list {layout_tags} disagrees with "
+        f"IDEAS.md's own vocabulary {list(vocabulary)}")
+
+
 # --- the example everyone runs first ---------------------------------------
 
 def runnable_examples() -> list[tuple[str, str, str]]:
