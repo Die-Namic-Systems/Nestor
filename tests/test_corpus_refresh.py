@@ -86,6 +86,41 @@ def test_a_repository_with_no_rows_is_not_in_the_plan(tmp_path):
     assert [row.repository for row in refresh.plan(household)] == ["nestor"]
 
 
+def test_a_household_with_no_corpus_lane_yet_plans_nothing(tmp_path):
+    """A stood-up household that has never synced a corpus holds no claims.
+
+    This is a **state**, not a fault, and it is the state every household is in
+    between ``python -m nestor.home_init`` and the first ``nestor corpus sync``.
+    ``corpus_claims`` is created by the sync, so the table is simply not there
+    yet; reading that as a crash collapses *empty* into *broken*, which is the
+    one collapse the three-state contract forbids.
+
+    Found by walking the path rather than reasoning about it: standing up a
+    household store made ``test_the_committed_tombstones_are_valid_and_name_real_repositories``
+    fail on an unmodified tree, because that test reads the real
+    ``~/.nestor/keep/nestor.db`` when one exists.
+    """
+    household = tmp_path / "empty.db"
+    conn = sqlite3.connect(household)
+    conn.execute("CREATE TABLE unrelated (x TEXT)")
+    conn.commit()
+    conn.close()
+    assert refresh.plan(household) == []
+
+
+def test_an_unreadable_household_is_not_reported_as_empty(tmp_path):
+    """The other half of the three states: broken must not read as empty.
+
+    A file that is not a database at all has to raise. Returning ``[]`` here
+    would make a corrupt store indistinguishable from the un-synced one above,
+    and the fix for that test is exactly the kind that over-catches.
+    """
+    household = tmp_path / "not-a-db.db"
+    household.write_bytes(b"this is not a sqlite file, not even close")
+    with pytest.raises(sqlite3.DatabaseError):
+        refresh.plan(household)
+
+
 def test_every_toolchain_in_the_live_corpus_resolves_to_a_committed_extractor():
     """The digest is only resolvable because §6.53 commits the extractors.
 
@@ -245,13 +280,29 @@ def test_the_committed_tombstones_are_valid_and_name_real_repositories():
     """
     records = refresh.tombstones()
     assert records, "expected at least one committed tombstone"
+
+    # `household.is_file()` was the predicate here and it admitted three ambient
+    # states, one of which could only ever fail on a correct tree: a household
+    # stood up by `nestor.home_init` but never corpus-synced has the file and no
+    # claims, so every tombstone reads as naming a repository "the corpus does
+    # not hold". An empty corpus is not evidence that a tombstone is wrong, and
+    # a test that answers about the developer's machine has not answered about
+    # the tree. So the question is asked only where it can be answered, and the
+    # unanswerable case skips out loud rather than passing quietly.
     household = pathlib.Path.home() / ".nestor" / "keep" / "nestor.db"
-    if household.is_file():
-        known = {row.repository for row in refresh.plan(household)}
-        orphans = set(refresh.orphans())
-        assert set(records) - known <= orphans, (
-            f"tombstoned but not in the corpus and not listed as orphan: "
-            f"{set(records) - known - orphans}")
+    if not household.is_file():
+        pytest.skip(f"no household corpus at {household} to check tombstones against")
+    known = {row.repository for row in refresh.plan(household)}
+    if not known:
+        pytest.skip(
+            f"household at {household} holds no corpus claims — stood up but "
+            "never synced, so it cannot say whether a tombstone names a real "
+            "repository"
+        )
+    orphans = set(refresh.orphans())
+    assert set(records) - known <= orphans, (
+        f"tombstoned but not in the corpus and not listed as orphan: "
+        f"{set(records) - known - orphans}")
 
 
 def _repo_with_content(path: pathlib.Path, body: str, message: str) -> str:

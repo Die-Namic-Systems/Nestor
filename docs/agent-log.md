@@ -7839,3 +7839,72 @@ deciding rather than patching in passing.
 ledger read, with the repair run under a recorded authorization that bounded it
 to `source_norm` and `superseded_by`. Counts in this entry are from those
 stores, not from a fixture.
+
+### 6.128 Standing up a household made a green tree red, and the survey caught three repos it had silently dropped — **measured**; both fixes **shipped**, the ambient-read pattern **open**
+
+Found by walking a first-run path rather than reasoning about it. The session was
+asked to feed the fleet corpus, so it ran `python -m nestor.home_init` and then
+`scripts/feed_fleet_repos.py`. Two unrelated things fell out.
+
+**What was measured — the survey.** `feed_fleet_repos.py --root /home/user`
+wrote 9 rows and printed 3 repositories in red under *"on disk, not in the
+survey."* `ratatosk`, `willow-reconciler` and `willows-grove` were checkouts
+with no `SURVEY` entry, so no brief was written for any of them. That is the
+branch the script's own docstring says exists because the pass which produced
+`SURVEY` had already dropped a repo once. **It fired, and it was right.** Briefs
+were added for all three as drafts; the re-run wrote 12 and the red branch went
+away. Two of the three produced a finding worth more than the brief:
+
+* **`willow-reconciler`'s stdlib-only claim is verified rather than read** —
+  `pyproject` declares `dependencies = []` and every import in
+  `reconciler/*.py` resolves to the standard library. No other row in `SURVEY`
+  carries evidence that strong.
+* **`willows-grove` is not `safe-app-willow-grove`**, which `SURVEY` already
+  covers. One is a portless Textual dashboard; the other serves a page on
+  `127.0.0.1:8766` and optionally exposes MCP over HTTP+OAuth on `8767`, and its
+  stack is Python **and** JavaScript — a `package.json` and 8 web components, so
+  the obvious "Python" answer is wrong twice.
+
+**What was measured — the red gate.** With a household store present,
+`tests/test_corpus_refresh.py::test_the_committed_tombstones_are_valid_and_name_real_repositories`
+failed on an **unmodified tree** — confirmed by stashing the session's only edit
+and re-running. It failed first with `sqlite3.OperationalError: no such table:
+corpus_claims`, and after that was fixed, with the assertion itself.
+
+The cause is one predicate admitting three ambient states:
+
+| `~/.nestor/keep/nestor.db` | `corpus_claims` | Outcome before |
+|---|---|---|
+| absent | — | assertion never runs; vacuous pass |
+| present, synced | populated | assertion is meaningful |
+| present, never synced | **absent** | **can only fail on a correct tree** |
+
+`corpus_claims` is created by `nestor corpus sync`, so the third row is the state
+**every** household occupies between `home_init` and its first sync. A test that
+answers about the developer's machine has not answered about the tree.
+
+**Both halves are the same defect at different layers**, and it is the one
+`docs/agent-guide.md` names — *a condition checked in Python, guarding a write
+that cannot re-assert it*:
+
+* `refresh.plan()` collapsed *empty corpus lane* into *broken store*. Fixed by
+  asking `sqlite_master` for the table first, so an un-synced household returns
+  `[]` and a file that is not a database still raises. Both states now have a
+  test, and the second one is a **guard** — it passed before the fix, so it is
+  worth having and is not evidence.
+* the test's `if household.is_file()` was the wrong question. It now skips with
+  the reason named when the corpus cannot answer, rather than passing quietly on
+  one machine and failing on another. An empty corpus is not evidence that a
+  tombstone is wrong.
+
+**Still open: the pattern, not this instance.** `test_corpus_refresh.py` reads
+the real `~/.nestor` at all, which is the shape `test_dogfood_store.py` installs
+a poisoned ambient store specifically to forbid. One call site was corrected
+here; nothing stops the next one, and a sweep for tests that read a live
+household was not done.
+
+**Provenance.** Measured 2026-09-12 in a cloud container against a household
+stood up in this session. Counts are from that run and from the tree: 9 then 12
+survey rows written, 3 repositories flagged, 2307 tests passing before the
+change with 2 failures, one of which (`test_version`) passes in isolation and is
+ordering pollution rather than anything this session touched.

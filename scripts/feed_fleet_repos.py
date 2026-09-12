@@ -143,6 +143,13 @@ SURVEY: dict[str, tuple[str, str, str]] = {
         "pathways.",
         "HTML/JS + Python server",
         "README + tree; .html/.js/.css files plus serve.sh — matches."),
+    "ratatosk": (
+        "Platform session runtime — the process that runs agent turns on any node (desk, laptop, "
+        "Termux phone) and speaks MCP to willow-mcp. Not memory, not the desk.",
+        "Python",
+        "README + pyproject + tree; ratatosk/ with tests, plus deploy/ and termux/ — the phone "
+        "target the README claims has a directory behind it, so the unusual half of the claim is "
+        "the checked half."),
     "safe-app-store": (
         "Provision-house for SAFE apps across two tiers — a shared playground under apps/, and "
         "promotion out into standing repos of their own.",
@@ -194,6 +201,22 @@ SURVEY: dict[str, tuple[str, str, str]] = {
         "Python (MCP + Postgres)",
         "README + pyproject + tree; src/ present. Needs Postgres to run, so it was NOT stood up "
         "on 2026-08-12 — Nestor's FRANK mirror was proved with an injected forwarder instead."),
+    "willow-reconciler": (
+        "Deterministic idea-to-landing reconciler — reads a fleet doc plus the target repo's git "
+        "history and reports what landed, partially landed, or shows no evidence. No model call.",
+        "Python (stdlib only)",
+        "README + pyproject + tree, and the stdlib-only claim was VERIFIED rather than read: "
+        "pyproject declares dependencies = [] and every import in reconciler/*.py resolves to the "
+        "standard library. Stronger evidence than a README reading."),
+    "willows-grove": (
+        "The operator's seat — a loopback-only served page on 127.0.0.1:8766 hosting Grove Web "
+        "Components over Postgres, the Nestor store and willow-mcp's kb_journal seam.",
+        "Python + JavaScript",
+        "README + pyproject + tree; grove_serve.py cites 8766 and web/components/ holds 8 "
+        "components. TWO CORRECTIONS TO THE OBVIOUS READING: the stack is not Python-only (a "
+        "package.json and 8 JS components), and this is NOT the safe-app-willow-grove row above — "
+        "that one is a portless Textual dashboard, this one serves a page and optionally exposes "
+        "MCP over HTTP+OAuth on 8767. Conflating them is the mistake this row exists to prevent."),
 }
 
 

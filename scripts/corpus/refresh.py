@@ -130,9 +130,17 @@ def plan(household: pathlib.Path) -> list[Row]:
     """
     conn = sqlite3.connect(f"file:{household}?mode=ro", uri=True)
     try:
+        # A household between `nestor.home_init` and its first `nestor corpus
+        # sync` has no `corpus_claims` table, because the sync is what creates
+        # it. That is an empty corpus lane, not a broken store, and the two must
+        # not arrive here as the same exception: asked for the table first, so a
+        # genuinely unreadable file still raises from the read below.
+        has_lane = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='corpus_claims'"
+        ).fetchone()
         rows = conn.execute(
             "SELECT repository, origin FROM corpus_claims"
-        ).fetchall()
+        ).fetchall() if has_lane else []
     finally:
         conn.close()
     tally: dict[str, dict[tuple[str, str, str], int]] = {}
