@@ -27,6 +27,8 @@ import os
 import pathlib
 import subprocess
 
+from conftest import runs_the_bash_hooks
+
 import hooks.before_propose as bp
 from hooks.before_propose import advisory, for_prompt, is_collision_intent, scan
 
@@ -232,6 +234,7 @@ def test_before_propose_is_a_known_module_but_not_a_blocking_gate():
     assert "before_propose" not in hook_guard.BLOCKING
 
 
+@runs_the_bash_hooks
 def test_the_wired_hook_injects_on_a_propose_prompt_and_nothing_otherwise():
     fires = _run({"prompt": "let's propose a decision about the collision guard"})
     assert fires.returncode == 0, fires.stderr

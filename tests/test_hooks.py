@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 
 import pytest
+from conftest import runs_the_bash_hooks
 
 from hooks.before_mcp import evaluate_mcp, normalize_for_mcp_gate
 from hooks.hook_runner import _emit_before_mcp, _emit_before_stop, _emit_before_write
@@ -136,6 +137,7 @@ def _run_hook(payload: dict) -> dict:
     return json.loads(done.stdout)
 
 
+@runs_the_bash_hooks
 def test_the_mcp_gate_denies_end_to_end():
     """Through the real ``hooks/nestor-hook``, which the emit tests cannot cover.
 
@@ -150,6 +152,7 @@ def test_the_mcp_gate_denies_end_to_end():
     assert out["hookSpecificOutput"]["permissionDecisionReason"]
 
 
+@runs_the_bash_hooks
 def test_the_mcp_gate_allows_end_to_end():
     """Through the real wrapper: an allowed MCP call writes nothing to stdout."""
     done = subprocess.run(

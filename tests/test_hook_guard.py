@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 import pytest
+from conftest import runs_the_bash_hooks
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
@@ -24,6 +25,7 @@ import hook_guard
 from hooks import review_receipt
 
 
+@runs_the_bash_hooks
 def test_every_wired_gate_denies_on_the_wire():
     """End to end through the script, the way CI would."""
     done = subprocess.run(
@@ -46,6 +48,7 @@ def test_a_new_blocking_gate_without_a_case_is_a_gap():
 
 
 @pytest.mark.parametrize("ambient", ["absent", "fresh"])
+@runs_the_bash_hooks
 def test_the_guard_ignores_whatever_receipt_the_developer_holds(tmp_path, ambient):
     """The regression: this harness must prove the gate, not the machine.
 
@@ -83,6 +86,7 @@ def test_the_gate_is_proven_to_open_as_well_as_shut():
     assert any(c.expect == "deny" and c.receipt == "absent" for c in write.values())
 
 
+@runs_the_bash_hooks
 def test_the_harness_reports_a_wiring_mismatch():
     """The can-fail proof. A deny case mislabeled 'allow' must be reported wrong,
     not passed — otherwise the harness proves nothing."""

@@ -22,6 +22,7 @@ import pathlib
 import subprocess
 
 import pytest
+from conftest import runs_the_bash_hooks
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SETTINGS = REPO / ".claude" / "settings.json"
@@ -102,6 +103,7 @@ def test_wiring_resolves_from_a_subdirectory_too():
     assert json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
+@runs_the_bash_hooks
 def test_nestor_hook_self_locates_from_a_foreign_cwd(tmp_path):
     """Reached by absolute path from outside the repo with no env: it still finds
     its own root (via BASH_SOURCE), so a correct invocation does not depend on the
@@ -115,6 +117,7 @@ def test_nestor_hook_self_locates_from_a_foreign_cwd(tmp_path):
     assert json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
+@runs_the_bash_hooks
 def test_session_start_script_self_locates_and_is_loud_when_declining(tmp_path):
     """Run from /tmp with no env and CLAUDE_CODE_REMOTE unset: the bootstrap
     script names the *repo* root it resolved (not tmp), and says on stderr that

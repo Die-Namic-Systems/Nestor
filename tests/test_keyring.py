@@ -148,10 +148,20 @@ def test_without_a_keyring_nothing_changes(store):
 
 # --- the file holds every key in the deployment ------------------------------
 
+#: 0o600 is a POSIX mode; Windows reports 0o666 for every writable file and
+#: keeps the permission in an ACL the bits do not see, so keyring.load reads
+#: the bits only there. Declared, not skipped-by-list.
+posix_mode_bits = pytest.mark.skipif(
+    os.name != "posix",
+    reason="owner-only is a POSIX mode bit; Windows carries permission in ACLs")
+
+
+@posix_mode_bits
 def test_a_saved_keyring_is_owner_only(ring):
     assert stat.S_IMODE(os.stat(ring.path).st_mode) == 0o600
 
 
+@posix_mode_bits
 def test_a_world_readable_keyring_is_refused(ring):
     os.chmod(ring.path, 0o644)
     with pytest.raises(keyring.KeyringError, match="readable by other users"):

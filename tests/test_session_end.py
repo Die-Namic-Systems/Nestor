@@ -14,6 +14,8 @@ import subprocess
 import sys
 import types
 
+from conftest import runs_the_bash_hooks
+
 from hooks import session_end
 from hooks.session_end import run, verify_drift
 
@@ -56,6 +58,7 @@ def test_run_never_raises_and_reports_the_shape():
     assert isinstance(out["warnings"], list)
 
 
+@runs_the_bash_hooks
 def test_the_wired_hook_cannot_block_and_exits_zero():
     """The contract, on the wire: SessionEnd emits nothing blocking to stdout and
     exits 0 — warnings, if any, go to stderr."""

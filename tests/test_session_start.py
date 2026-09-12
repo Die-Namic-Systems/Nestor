@@ -15,6 +15,7 @@ import sqlite3
 import subprocess
 
 import pytest
+from conftest import runs_the_bash_hooks
 
 from hooks import session_start
 from hooks.session_start import build_context
@@ -389,6 +390,7 @@ def test_pytest_line_reports_no_venv_without_crashing(tmp_path):
     assert "[check] pytest:" in line and "no .venv" in line
 
 
+@runs_the_bash_hooks
 def test_session_start_emits_valid_claude_json_end_to_end():
     """Through the real wrapper: SessionStart must emit the envelope Claude Code
     reads (``hookSpecificOutput.additionalContext``), with the brain inside it."""

@@ -54,7 +54,7 @@ def test_every_source_literal_kind_is_pinned():
     src = pathlib.Path(cascade.__file__).parent
     found = set()
     for py in src.glob("*.py"):
-        found |= set(re.findall(r'"kind": "([a-z_]+)"', py.read_text()))
+        found |= set(re.findall(r'"kind": "([a-z_]+)"', py.read_text(encoding="utf-8")))
     assert found <= cascade.LEDGER_KINDS, (
         f"unpinned kind literals in source: {sorted(found - cascade.LEDGER_KINDS)}")
 
@@ -80,14 +80,15 @@ def test_reader_stays_permissive_for_historical_kinds(tmp_path):
     cascade.ledger_append({"kind": "seal", "verifier": "rita"})
     # Forge history the honest way: rewrite the file with an unknown kind,
     # re-chaining it correctly, as an old build would have written it.
-    rows = [json.loads(ln) for ln in lp.read_text().splitlines()]
+    rows = [json.loads(ln) for ln in lp.read_text(encoding="utf-8").splitlines()]
     old = {"ts": rows[0]["ts"], "prev": rows[0]["prev"],
            "kind": "a_kind_from_2025", "detail": "predates the set"}
     import hashlib
     line0 = json.dumps(old, ensure_ascii=False)
     row1 = {"ts": rows[0]["ts"], "prev": hashlib.sha256(line0.encode()).hexdigest(),
             "kind": "seal", "verifier": "rita"}
-    lp.write_text(line0 + "\n" + json.dumps(row1, ensure_ascii=False) + "\n")
+    lp.write_text(line0 + "\n" + json.dumps(row1, ensure_ascii=False) + "\n",
+                  encoding="utf-8")
 
     ok, detail = ledger.verify(str(lp))
     assert ok, detail
@@ -103,7 +104,7 @@ def test_appending_after_historical_unknown_kind_still_works(tmp_path):
     lp = tmp_path / "old-ledger.jsonl"
     old = {"ts": "2025-01-01T00:00:00+00:00", "prev": "genesis",
            "kind": "prehistoric", "detail": "predates the set"}
-    lp.write_text(json.dumps(old, ensure_ascii=False) + "\n")
+    lp.write_text(json.dumps(old, ensure_ascii=False) + "\n", encoding="utf-8")
     cascade.set_ledger_path(lp)
     cascade.ledger_append({"kind": "restore", "pair_id": "x"})
     ok, detail = ledger.verify(str(lp))

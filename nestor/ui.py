@@ -121,7 +121,9 @@ def _read_demo_sealkey(path: pathlib.Path) -> str:
     It holds the HMAC secret that could forge any seal, so a group/other-readable
     file is re-``chmod``ed to 0600 and the fix is announced, rather than silently
     trusted (cf. :func:`nestor.keyring.load`, which refuses one outright)."""
-    if os.stat(path).st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+    # POSIX mode bits only: on Windows they read 0o666 for every writable file
+    # and carry no permission (cf. nestor.keyring.load).
+    if os.name == "posix" and os.stat(path).st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         os.chmod(path, 0o600)
         print(f"  demo     tightened {path} to 0600 — it holds the demo seal key")
     return path.read_text(encoding="utf-8").strip()

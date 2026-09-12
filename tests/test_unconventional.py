@@ -553,8 +553,9 @@ class TestExportImportFidelity:
         bundle = portable.export_bundle(store)
         # Write and re-read.
         out = tmp_path / "export.json"
-        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str))
-        reimported = json.loads(out.read_text())
+        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str),
+                       encoding="utf-8")
+        reimported = json.loads(out.read_text(encoding="utf-8"))
         ok, _detail = portable.verify_bundle(reimported)
         assert ok
         # Import into a fresh store.
@@ -572,8 +573,9 @@ class TestExportImportFidelity:
                         store=store)
         bundle = portable.export_bundle(store)
         out = tmp_path / "export.json"
-        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str))
-        reimported = json.loads(out.read_text())
+        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str),
+                       encoding="utf-8")
+        reimported = json.loads(out.read_text(encoding="utf-8"))
         store2 = SqliteStore(str(tmp_path / "store2.db"))
         store2.init_db()
         store2.memory_init()
@@ -589,8 +591,9 @@ class TestExportImportFidelity:
         bundle = portable.export_bundle(
             store, source_lang="\U0001f600", target_lang="\U0001f600")
         out = tmp_path / "export.json"
-        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str))
-        reimported = json.loads(out.read_text())
+        out.write_text(json.dumps(bundle, ensure_ascii=False, default=str),
+                       encoding="utf-8")
+        reimported = json.loads(out.read_text(encoding="utf-8"))
         store2 = SqliteStore(str(tmp_path / "store2.db"))
         store2.init_db()
         store2.memory_init()
