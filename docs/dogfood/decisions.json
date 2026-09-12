@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 252,
+    "pairs": 255,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "41250ba40e6bb653db7e48a50cf195a4ca9fb93fc73cf1ad68d26aac99f0fc85",
+  "digest": "6f7972135068bc7ff1f7f3740619a030728a3a4973929d46d63d5f8fba4e2726",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -80,6 +80,20 @@
     },
     {
       "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "951b3bed-badb-52eb-9901-25e9c9db82c7",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "`required_config_comments` requires `commenthiddenrule` and `commentwhatcutsarelease` in releasepleaseconfigjson nestors config carries its reasoning under three other `comment` keys tagformat noextrafiles firstbump and neither required one is the rule wrong for nestor or does the config gain the two comments",
+      "source_text": "`required_config_comments` requires `$comment-hidden-rule` and `$comment-what-cuts-a-release` in release-please-config.json. Nestor's config carries its reasoning under three other `$comment-*` keys (tag-format, no-extra-files, first-bump) and neither required one. Is the rule wrong for Nestor, or does the config gain the two comments?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The config gains both, written for this repo: the hidden rule names what `pip install nestor-meaning` delivers and cites jeles v0.4.1; the what-cuts-a-release comment names the closed un-hidden set, cites willow-mcp 2.1.5, says that pr-title.yml reads the list from this file, and gives #292 as the ordinary case. The three existing comments stay. A sixth real-tree check holds the config's un-hidden set to the published `release_cutting_types`, beside the hidden-set check, because pr-title.yml enforces exactly that set from this file.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
       "id": "6124e71c-7aa4-58d8-8530-5f876e66127f",
       "origin": "pr:?",
       "seal_sig": "",
@@ -89,6 +103,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The package's. SERVER_VERSION = __version__ (nestor/__init__.py's own derived value, imported alongside the other package submodules serve.py already imports from `.`). The MCP server has no release cadence independent of the nestor-meaning distribution — it ships inside the same wheel and moves with every tag — so a second number was never tracking anything real, only going stale. tests/test_the_version_is_written_once's rule (\"nothing tracked in this tree may carry the version literal\") is now enforced tree-wide, not just for nestor/__init__.py's own __version__: test_no_version_literal_hides_anywhere_under_nestor in tests/test_version.py scans every nestor/*.py file for a *VERSION*-named assignment holding a semver-shaped string literal, with no name exempted. If a genuinely independent server/protocol revision is ever needed, it gets its own constant, its own name, and its own line in that test's exemption set — argued for by name, not defaulted into reusing SERVER_VERSION.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "4bed5cb0-ef9f-52fd-9ec8-8ab9f74f1493",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "`contributing_must_name_test_command` needs one command to hold contributingmd to contributings setup and gate table named `python m pytest q` agentsmds gate table names `bash scriptscitestsh full` cis test job runs `pytest n auto dist loadgroup` which is the test command and does contributing change",
+      "source_text": "`contributing_must_name_test_command` needs one command to hold CONTRIBUTING.md to. CONTRIBUTING's setup and gate table named `python -m pytest -q`; AGENTS.md's gate table names `bash scripts/ci-test.sh full`; CI's test job runs `pytest -n auto --dist loadgroup`. Which is the test command, and does CONTRIBUTING change?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "`bash scripts/ci-test.sh` (held as the script's name, so a lane argument after it still counts). CONTRIBUTING.md's gate table now names `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` for the code and mixed rows, the same command AGENTS.md's table carries, with a sentence saying the two tables must not disagree and what the lanes are. The setup block's `python -m pytest -q` smoke run stays: it is a first-run check, not the gate.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "3ab58c86-ed5f-5e6e-9231-7abcd69372f0",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the fleets convention set now has one home willowreconciler 060s `reconciler conventions json` teststest_fleet_conventionspy must read its rules from that document should nestor a add `willowreconciler060` to the dev extra and `from reconcilerconventions import conventions` or b vendor the document as testsfleet_conventionsjson with a sha256 pin and an optional liveequality check when `reconciler` is importable",
+      "source_text": "The fleet's convention set now has one home, willow-reconciler 0.6.0's `reconciler conventions --json`. tests/test_fleet_conventions.py must read its rules from that document. Should Nestor (a) add `willow-reconciler>=0.6.0` to the dev extra and `from reconciler.conventions import conventions`, or (b) vendor the document as tests/fleet_conventions.json with a sha256 pin and an optional live-equality check when `reconciler` is importable?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "(b). tests/fleet_conventions.json is the byte-for-byte output of `reconciler conventions --json` from willow-reconciler 0.6.0 (2301 bytes, sha256 8c2ba122a7100141200d8c76ad086339f984446ab7e90dd9c27a092dbf7f5335, which is also the digest the fleet plan named for that version). The test pins the file to that digest and names the source version; a planted one-key edit is shown to change the digest; and when `reconciler.conventions` is importable on the seat, `conventions()` must equal the vendored document (skipped, not passed, where it is not importable). Nothing is added to pyproject.toml, lint-pins.txt, or CI's install lines.",
       "verifier": "",
       "weight": 1.0
     },

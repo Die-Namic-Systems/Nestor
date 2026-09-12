@@ -20,7 +20,9 @@
         { "type": "test", "section": "Tests", "hidden": true },
         { "type": "ci", "section": "CI", "hidden": true },
         { "type": "chore", "section": "Chores", "hidden": true }
-      ]
+      ],
+      "$comment-hidden-rule": "docs, test, ci and chore are hidden because they change nothing `pip install nestor-meaning` delivers: a doc, a test, a workflow file or a housekeeping edit ships no different wheel, so a release cut for one would be a tag over an unchanged package (jeles v0.4.1 did exactly that for a single `ci:` commit). The set is the fleet's published `hidden_types` (willow-reconciler `conventions`), and tests/test_fleet_conventions.py holds this block to it -- a type cannot be quietly un-hidden here without that test naming it.",
+      "$comment-what-cuts-a-release": "Every type NOT hidden above cuts a release on its own: feat, fix, security, perf, refactor, build, deps. The set is closed and named because every un-hidden type releases (willow-mcp 2.1.5: a `fix(ci):` over tools/ and .github/ still cut a release). .github/workflows/pr-title.yml reads this exact list from this block -- a PR title claiming one of these types must touch packaged files (nestor/ or pyproject.toml) -- and tests/test_fleet_conventions.py holds the list to the fleet's published `release_cutting_types`. #292 is the ordinary case: `fix(serve):` touched nestor/serve.py and cut 0.20.1."
     }
   },
 

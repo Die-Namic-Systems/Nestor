@@ -23,10 +23,17 @@ Which verification to run depends on what you changed:
 
 | Changed paths | Gate command |
 |---|---|
-| `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | `bash scripts/ci-lint.sh && python -m pytest -q` |
+| `nestor/`, `recipes/`, `tests/`, `scripts/`, `hooks/`, `demo/` | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
 | `docs/`, `IDEAS.md`, `docs/dogfood/decisions/*.json` | `bash scripts/ci-docs.sh` |
 | `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/` | `bash scripts/ci-lint.sh` |
-| Mixed | `bash scripts/ci-lint.sh && python -m pytest -q` |
+| Mixed | `bash scripts/ci-lint.sh && bash scripts/ci-test.sh full` |
+
+This is the same table `AGENTS.md` carries; the two must not disagree.
+`bash scripts/ci-test.sh full` is what CI's `test` job runs (the whole suite,
+`-n auto --dist loadgroup`), and `bash scripts/ci-test.sh core` is the fast
+deterministic lane for use while implementing. Installing an optional extra
+never enlarges either lane — the `semantic`, `ollama`, `browser`, `slow`,
+`performance` and `external` lanes are explicit.
 
 CI runs the lint job, a test matrix (Python 3.10 and 3.12 with coverage), and a
 JS test job on every PR. The branch-protection check is named `test` — it must
