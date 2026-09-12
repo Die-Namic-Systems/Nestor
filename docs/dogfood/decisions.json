@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 258,
+    "pairs": 261,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "a0356158e6dfd2d6e02feb9c557bbbe61268de9ca683541868e5ba7f571f1aae",
+  "digest": "a872d2fc2566f0874b732e90065d48da0c957e7c65ce1c2c5e44bb36897b749e",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -47,6 +47,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Wrong, and fixed to name all five in both places. A new test, tests/test_docs.py::test_readme_and_layout_name_every_ideas_status_tag, reads IDEAS.md's table and its shipped-sentence as the one source of the vocabulary (not a hardcoded tuple duplicated three ways) and asserts both summaries reproduce it exactly, tag for tag, in order.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "c64effe5-06d3-55e6-87f8-624825220306",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the gate scripts are bash and nestors tests assume posix in places fcntl file locks with a threading fallback 0o600 mode checks on the keyring how does the windows leg run the suite through the bash scripts directly through pytest or with the posixonly tests excluded",
+      "source_text": "The gate scripts are bash and Nestor's tests assume POSIX in places (fcntl file locks with a threading fallback, 0o600 mode checks on the keyring). How does the Windows leg run the suite: through the bash scripts, directly through pytest, or with the POSIX-only tests excluded?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Through `bash scripts/ci-test.sh full` on the windows-latest runner, where Git Bash is present: the same command AGENTS.md and CONTRIBUTING.md name for a code change, not a second command nobody types. Nothing is excluded up front. A test that fails on Windows is either a real portability defect in nestor/ (fixed there) or a test of a POSIX-only property (a mode bit, an fcntl lock), which is marked as such by platform — a declaration of scope with a reason on the marker, never a quarantine of a failing test — and named in the PR that adds it. Coverage stays a Linux number; the Windows leg is for the platform, not the percentage.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "c5c1c391-eef1-5fa0-ae05-1dcc867c3b57",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the linux matrix listed two python versions by hand 310 and 312 floor and current while pyprojecttomls classifiers declared four 310 through 313 which is the source and what stops them drifting again",
+      "source_text": "The Linux matrix listed two Python versions by hand (3.10 and 3.12, 'floor and current') while pyproject.toml's classifiers declared four (3.10 through 3.13). Which is the source, and what stops them drifting again?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The classifiers. `Programming Language :: Python :: 3.X` is the one declaration of what the package supports — it is what PyPI shows and what pip checks against `requires-python` — so the matrix is every declared minor, in classifier order, and tests/test_ci_floor.py holds the two equal (planted with the exact two-of-four matrix this repo shipped). The Windows leg is the first and last classifier minor, held the same way. The matrix list stays first in the file because scripts/ci_venv.py reads the first `python-version: [...]` as CI's matrix, and a test pins that ordering too.",
       "verifier": "",
       "weight": 1.0
     },
@@ -103,6 +131,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The config gains both, written for this repo: the hidden rule names what `pip install nestor-meaning` delivers and cites jeles v0.4.1; the what-cuts-a-release comment names the closed un-hidden set, cites willow-mcp 2.1.5, says that pr-title.yml reads the list from this file, and gives #292 as the ordinary case. The three existing comments stay. A sixth real-tree check holds the config's un-hidden set to the published `release_cutting_types`, beside the hidden-set check, because pr-title.yml enforces exactly that set from this file.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "80778cd3-d5e4-50c9-8b58-46ce1ffaed90",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the aggregate `test` job branch protection requires already existed and `needs` every leg is that the floors gate or does it need `if always` and an explicit check on each result",
+      "source_text": "The aggregate `test` job branch protection requires already existed and `needs:` every leg. Is that the floor's gate, or does it need `if: always()` and an explicit check on each result?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It needs both, and now has them. Without `if: always()` a skipped or cancelled leg skips the gate itself, and a skipped required check is not red — branch protection reads it as pending, and a human reads the green legs beside it as a pass. With `always()` and no explicit check, the job passes whatever the legs did. So the gate reads `toJSON(needs)`, prints every result, and exits non-zero on any that is not `success` — failure, cancelled and skipped all fail, by name. tests/test_ci_floor.py plants the previous gate (needs, no always, no check), a gate that runs always but never names success, and a gate missing a job, and each is refused; CodeQL stays GitHub's default setup, documented in the workflow header because a codeql.yml would be refused by that setup.",
       "verifier": "",
       "weight": 1.0
     },

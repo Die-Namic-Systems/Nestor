@@ -63,3 +63,7 @@ kept so the number, and the reason, stay on record.
 
 14. ✅ **shipped**: This file — `TODO.md`'s queue as a numbered pile the reconciler reads (`reconciler run --repo ./ --doc docs/ideas.md`), with `TODO.md` reduced to a pointer plus the closing note the codebase cites. Decision `0238`.
 15. ✅ **shipped**: Adopt `Idea-Id` commit trailers (fleet CONVENTION, decision-2026-09-11) — the convention section in `CONTRIBUTING.md`, the gate row in `AGENTS.md`, and `.github/workflows/trailers.yml` running `reconciler verify` on every push and PR to `master`.
+
+## E. The CI floor (fleet plan Wave 4, decision 5)
+
+16. ✅ **shipped**: The fleet CI floor in `tests.yml` — a Linux matrix equal to `pyproject.toml`'s Python classifiers (every declared minor, not two of them by hand), a Windows leg on the floor and ceiling Pythons running the same bash gate script, ruff pinned in exactly one place, CodeQL on python and actions (GitHub's default setup, kept), and an aggregate `test` job that runs `if: always()` and fails on any leg that is not a success. `tests/test_ci_floor.py` holds each fact to its source with a plant per rule. Decision `0239`.
