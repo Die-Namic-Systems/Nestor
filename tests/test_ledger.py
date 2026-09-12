@@ -26,9 +26,13 @@ def test_verify_intact_then_detects_tamper(tmp_path):
     assert "broken chain" in detail
 
 
-def test_ledger_refuses_non_file():
-    cascade.set_ledger_path("/dev/null")
-    with pytest.raises(ledger.LedgerError):
+def test_ledger_refuses_non_file(tmp_path):
+    """Exists and is not a regular file: a directory, on every platform.
+    `/dev/null` was the example; on Windows that is a relative path that
+    does not exist, the refusal never fires, and the append would have
+    created `\\dev\\null` on the current drive."""
+    cascade.set_ledger_path(tmp_path)
+    with pytest.raises(ledger.LedgerError, match="not a regular file"):
         cascade._ledger_append({"kind": "seal"})
 
 

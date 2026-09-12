@@ -163,11 +163,21 @@ jobs:
     # runner, so the leg runs the same `bash scripts/ci-test.sh full` AGENTS.md
     # and CONTRIBUTING.md name, not a second command nobody types. Coverage is
     # measured on Linux above; this leg is for the platform, not the number.
-    timeout-minutes: 25
+    # 45 minutes, not 25: the suite spawns hundreds of subprocesses and
+    # Windows starts each slowly — a green run measured 20.5 minutes on 3.10.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.13"]
+    env:
+      # Python's UTF-8 mode (PEP 540; the default from 3.15). Without it a
+      # Windows pipe is cp1252 and every script that prints a check mark —
+      # the CLI, the hooks, the demos, mutation_guard — dies with
+      # UnicodeEncodeError before its first line (PR #297, round two: 50
+      # failures, 23 of them that character). Declared here on the leg;
+      # running under a legacy code page is docs/ideas.md item 17.
+      PYTHONUTF8: "1"
 
     steps:
       - uses: actions/checkout@v7

@@ -8,7 +8,7 @@
     "warrants": 0
   },
   "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "0e8b9e78b845db82d35ae1f3b620d80b9e511a83cefc8446ba8bace7d3405c2b",
+  "digest": "b934c9103aef6fbea6b0d7eecf79ebfaf9c62e898307de0d626e6658789852cb",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -150,20 +150,6 @@
     },
     {
       "created_at": "2026-09-12T00:00:00+00:00",
-      "id": "62bfb25d-6409-5cb9-b652-332b91087aee",
-      "origin": "pr:?",
-      "seal_sig": "",
-      "source_lang": "decision",
-      "source_norm": "the windows legs first run failed 625 of 2380 tests the ledgers appendtime checkpoint cascadepy 53 stores a byte offset computed as file size minus the lines utf8 length minus one newline opened in text mode with the platform default windows wrote two bytes of newline the offset landed one byte into the line and every second append in a process refused its own tail as tampered 413 refusals and most of the rest downstream of them is that a portability defect in nestor or a posixonly property",
-      "source_text": "The Windows leg's first run failed 625 of 2380 tests. The ledger's append-time checkpoint (cascade.py, §5.3) stores a byte offset computed as file size minus the line's UTF-8 length minus one newline; opened in text mode with the platform default, Windows wrote two bytes of newline, the offset landed one byte into the line, and every second append in a process refused its own tail as tampered (413 refusals, and most of the rest downstream of them). Is that a portability defect in nestor/ or a POSIX-only property?",
-      "status": "draft",
-      "target_lang": "decision",
-      "target_text": "A defect, fixed in nestor/: the ledger is opened with newline=\"\\n\" so the bytes on disk are the same on every platform — one-byte newlines, which is the bytes-appended-only assumption _check_tail already states — and tests/test_ledger.py holds the checkpoint to the bytes it names and plants a line written with Windows newlines (newline=\"\\r\\n\", the exact translation text mode applied) that the walk and the next append must both survive. The same run found the owner-only keyring refusal reading POSIX mode bits that Windows does not carry (os.stat reports 0o666 for every writable file; the permission is in an ACL the bits cannot see), which would refuse every keyring there and vouch for none: keyring.load and the demo-key re-tighten in ui.py read the bits only where os.name is posix, and the two tests of the mode itself are declared POSIX. Two things the product already declares POSIX stay declared, on the tests that exercise them, each marker carrying its reason: the hooks are bash scripts exec'd by their shebang (hooks/nestor-hook resolves python3 and .venv/bin/python), and the cross-process ledger lock is fcntl.flock with a one-process threading lock standing in without it. A .gitattributes with `* text=auto eol=lf` keeps a checkout byte-identical on every platform, which the sha256-pinned tests/fleet_conventions.json and the gate scripts under Git Bash both need. Test-side file I/O with no encoding= (four sites fired: an emoji export, a source scan, a constitution case, a ledger rewrite) is fixed where it fired and the class — ruff PLW1514 across the suite — is pile item 17, not this PR.",
-      "verifier": "",
-      "weight": 1.0
-    },
-    {
-      "created_at": "2026-09-12T00:00:00+00:00",
       "id": "6124e71c-7aa4-58d8-8530-5f876e66127f",
       "origin": "pr:?",
       "seal_sig": "",
@@ -215,6 +201,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both. The pin is corrected to v0.16.6 now, and scripts/lint-pins-check.sh (already the single place that compares the local environment's tool versions against lint-pins.txt) reads .pre-commit-config.yaml's ruff-pre-commit rev too and refuses on disagreement, with the mismatch reported in the same voice as its existing checks (\"this environment has X, CI pins Y\"). A pre-commit hook running a different ruff from ci-lint.sh and CI is a gate disagreeing with the one branch protection runs, which is the exact failure lint-pins.txt was created to close for pip-installed tools — a hook pin is the same fact, held a third way, and had no guard.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "3037f94a-4522-53e7-a661-36b7bf1fadb6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the windows legs first run failed 625 of 2380 tests the ledgers appendtime checkpoint cascadepy 53 stores a byte offset computed as file size minus the lines utf8 length minus one newline opened in text mode with the platform default windows wrote two bytes of newline the offset landed one byte into the line and every second append in a process refused its own tail as tampered 413 refusals and most of the rest downstream of them is that a portability defect in nestor or a posixonly property",
+      "source_text": "The Windows leg's first run failed 625 of 2380 tests. The ledger's append-time checkpoint (cascade.py, §5.3) stores a byte offset computed as file size minus the line's UTF-8 length minus one newline; opened in text mode with the platform default, Windows wrote two bytes of newline, the offset landed one byte into the line, and every second append in a process refused its own tail as tampered (413 refusals, and most of the rest downstream of them). Is that a portability defect in nestor/ or a POSIX-only property?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A defect, fixed in nestor/: the ledger is opened with newline=\"\\n\" so the bytes on disk are the same on every platform — one-byte newlines, which is the bytes-appended-only assumption _check_tail already states — and tests/test_ledger.py holds the checkpoint to the bytes it names and plants a line written with Windows newlines (newline=\"\\r\\n\", the exact translation text mode applied) that the walk and the next append must both survive. The same run found the owner-only keyring refusal reading POSIX mode bits that Windows does not carry (os.stat reports 0o666 for every writable file; the permission is in an ACL the bits cannot see), which would refuse every keyring there and vouch for none: keyring.load and the demo-key re-tighten in ui.py read the bits only where os.name is posix, and the two tests of the mode itself are declared POSIX. Two things the product already declares POSIX stay declared, on the tests that exercise them, each marker carrying its reason: the hooks are bash scripts exec'd by their shebang (hooks/nestor-hook resolves python3 and .venv/bin/python), and the cross-process ledger lock is fcntl.flock with a one-process threading lock standing in without it. A .gitattributes with `* text=auto eol=lf` keeps a checkout byte-identical on every platform, which the sha256-pinned tests/fleet_conventions.json and the gate scripts under Git Bash both need. Test-side file I/O with no encoding= (four sites fired: an emoji export, a source scan, a constitution case, a ledger rewrite) is fixed where it fired and the class — ruff PLW1514 across the suite — is pile item 17, not this PR. The second run, 50 failures, was one class and three strays: a Windows pipe is cp1252 and every script that prints a check mark (the CLI, hooks, demos, mutation_guard) died with UnicodeEncodeError, so the leg declares Python's UTF-8 mode (PYTHONUTF8=1, the default from 3.15) and the legacy-code-page CLI is item 17; `/dev/null` as the non-file ledger is a relative path on Windows (the test uses a directory, which is a non-file everywhere); the stood-up message renders its path as_posix, the spelling the docs use; and the mode-bit half of the public-only keyring test is declared POSIX like its siblings.",
       "verifier": "",
       "weight": 1.0
     },
