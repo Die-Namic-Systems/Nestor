@@ -1,40 +1,14 @@
 # What is left
 
-The queue, in priority order. Longer arguments live in
+The queue now lives in [`docs/ideas.md`](docs/ideas.md) — the same items, in
+the same priority order, as a numbered pile willow-reconciler reads (top-level
+`N. ` items whose numbers are permanent join keys; a commit that lands one
+carries its `Idea-Id` trailer, see `CONTRIBUTING.md`). Longer arguments live in
 [`IDEAS.md`](IDEAS.md) (each entry tagged **measured / verified / hypothesis /
 open / shipped**) and [`QUESTIONS.md`](QUESTIONS.md) (what this gets asked, and
-the honest "not yet"s). This file is only the index — if an item here disagrees
-with one of those, they are right and this is stale.
-
----
-
-## Shipped (kept for the "why not" records)
-
-* ~~**Asymmetric seal signatures.**~~ Shipped: `nestor.keyring`, `[keys]` extra,
-  decisions `0074`/`0077`/`0078`. `QUESTIONS.md` §6; `IDEAS.md` §2.
-* ~~**Three deferred audit findings.**~~ Shipped: decisions `0073`/`0076`,
-  `test_findings_2026_08_07_deferred.py`. `IDEAS.md` §6.92.
-* ~~**Hot backup while WAL is open.**~~ Shipped: `nestor db checkpoint --out`.
-  `IDEAS.md` §6.7; `docs/local-fleet.md`.
-* ~~**UI domain matcher.**~~ Shipped: `ui.App(matcher=)`, `nestor ui --matcher`.
-  `IDEAS.md` §6.40–§6.41.
-* ~~**Household trust root for dogfood seals.**~~ Shipped: `~/.nestor` +
-  [`docs/local-agent-prototype.md`](docs/local-agent-prototype.md);
-  `scripts/household_activate_sealed_dogfood.sh`.
-* ~~**Git-reviewable dogfood seals.**~~ Shipped: `docs/dogfood/seals/<pair_id>.json`
-  folded at `dogfood_store.py --rebuild` (decision `0218`,
-  `scripts/dogfood_seal_export.py`).
-* **A terminal `nestor seal`** is deliberately absent — `--verifier "$USER"` in a
-  cron job is not a human checking anything. `IDEAS.md` §5.1.
-
-## Open
-
-* **Sync between instances.** `QUESTIONS.md` §8.
-* **An erasure path.** `QUESTIONS.md` §10.
-* **A store that takes concurrent writers.** `QUESTIONS.md` §15.
-* **A checkpoint somebody else holds.** `IDEAS.md` §5.5.
-* **Seal staleness and quorum.** `IDEAS.md` §1.4.
-* **Record the sixty seconds.** `IDEAS.md` §4.3.
+the honest "not yet"s). If the pile disagrees with one of those, they are right
+and it is stale. This file keeps only the note below, which the codebase cites
+by name.
 
 ---
 

@@ -1,0 +1,22 @@
+{
+  "branch": "claude/nestor-evidence",
+  "date": "2026-09-12",
+  "note": "Proposed, not sealed. Written by the willow fleet seat while closing E3-piles and E3-trailers (fleet plan Wave 3, the evidence loop) for this repo. IDEAS.md is untouched: it is Nestor's own evidence dialect and the reconciler's parser would see none of its §-sections as items. The plan's bite here is narrower — TODO.md's queue becomes a numbered pile the reconciler can read, and commits that land a pile item carry an Idea-Id trailer that CI verifies.",
+  "decisions": [
+    {
+      "question": "The plan says 'TODO.md → numbered'. Does TODO.md itself become the numbered pile, does it stay the human queue with docs/ideas.md mirroring it, or does the queue move to docs/ideas.md and TODO.md become a pointer?",
+      "commitment": "The queue moves to docs/ideas.md in the reconciler's form (top-level `N. ` items, the legend, the permanent-numbers rule, `## A.`-style sections), in the same order TODO.md carried it, and TODO.md becomes a short pointer that keeps exactly one thing of its own: the closing note, 'A note on how this repo finds things'. No mirror.",
+      "why": "A mirror is two copies of one queue with nothing checking they agree — the shape #292 and #294 exist to close. TODO.md itself could not become the pile in place, because it is cited by name for something other than its queue: nestor/sqlite_store.py, nestor/engine.py, scripts/dogfood_common.py, tests/test_engine.py, tests/test_import_hygiene.py, tests/test_open_findings.py, tests/test_matcher.py, tests/test_seal_trust_state.py, demo/big_jim.py and docs/detection-kit-as-gates.md all point at 'TODO.md's closing note', the two-paths-in defect shape. Turning that file into a parser-shaped list would either bury the note among numbered items or strand ten citations. Moving the queue and keeping the note keeps every citation true and gives the reconciler one file to read. The layout manifest and test_docs.py's env-var exemption name docs/ideas.md beside TODO.md for the same reason TODO.md was exempt: the pile describes work not in the tree."
+    },
+    {
+      "question": "The pile needs a shape for entries that are neither shipped, partial, nor proposed: TODO.md kept 'a terminal `nestor seal` is deliberately absent' as a why-not record. The legend has no word for refused-on-purpose. Drop it, tag it, or keep it untagged?",
+      "commitment": "Keep it, untagged, as item 13 in its own section ('Decided, not built') whose one-line intro says the legend has no word for it and the number is kept so the reason stays on record. Its text ends 'Not to be started.'",
+      "why": "Retiring the number would lose the one record that says why the verb is absent, which IDEAS.md §5.1 argues and demo/big_jim.py, scripts/two_instances.py and a dogfood fixture cite. Inventing a fourth tag would be a Nestor-only extension the reconciler does not read and every other repo would not share. Untagged is what the tool sees as 'not started', which is literally true; the section heading and the sentence carry the part the legend cannot."
+    },
+    {
+      "question": "willow-reconciler 0.6.0's ids.py derives `willow-ideas-<num>` for every repo, while the fleet convention document names the shape `<corpus>-ideas-<num>`. Which does Nestor write in its docs and trailers?",
+      "commitment": "What the tool emits: `Idea-Id: willow-ideas-<num>`, generated with `reconciler id --repo ./ --doc docs/ideas.md --grep ...`, never typed. docs/ideas.md and CONTRIBUTING.md say `willow-ideas-<num>` and name the convention's `<corpus>` shape beside it as the published form. Both also say `--repo ./`, because 0.6.0 reads a bare `.` as a repo name to resolve beside sibling checkouts, not as the current directory.",
+      "why": "A wrong id is worse than no id — the convention's own rule 2a. The only id `reconciler verify` will resolve is the one `reconciler id` derives, so the docs describe that, and the discrepancy with the published shape is named in the PR rather than papered over by writing a prefix the tool would reject. The `--repo ./` spelling was measured, not assumed: `reconciler verify --repo . --doc docs/ideas.md` from a repo root fails with 'repo . not found', and `--repo ./` passes."
+    }
+  ]
+}

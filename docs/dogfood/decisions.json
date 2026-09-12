@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 255,
+    "pairs": 258,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "6f7972135068bc7ff1f7f3740619a030728a3a4973929d46d63d5f8fba4e2726",
+  "digest": "a0356158e6dfd2d6e02feb9c557bbbe61268de9ca683541868e5ba7f571f1aae",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -61,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Yes: tests/test_scans_fire.py, ported from homestead-ledger's tests/test_scans_fire.py with its discovery rule and plant rule kept verbatim. Discovery is structural (parses or walks source; matches a pattern; reads a file and asks membership of it; walks a module-level word list; filters the caller's terms by membership) with the repo's own name stems on top, so a public `offenders(text)` and a `_run_decision_check` are found by what they do or what they are called, not by a leading underscore. A helper counts as planted only when a test whose name carries plant/fires/catches, or whose docstring carries plant, actually calls it — directly or through the module's own helpers. The meta-scan is itself planted: every discovery shape and every plant-rule edge has a tmp_path fixture that must be reported or must be cleared, and a real file of this repo's (test_version.py) is the control. On the day it landed it reported eleven helpers in seven files; each got a same-file plant in this PR.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "a8cd8713-bd02-5102-aa0e-240565fc2bcb",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the pile needs a shape for entries that are neither shipped partial nor proposed todomd kept a terminal `nestor seal` is deliberately absent as a whynot record the legend has no word for refusedonpurpose drop it tag it or keep it untagged",
+      "source_text": "The pile needs a shape for entries that are neither shipped, partial, nor proposed: TODO.md kept 'a terminal `nestor seal` is deliberately absent' as a why-not record. The legend has no word for refused-on-purpose. Drop it, tag it, or keep it untagged?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Keep it, untagged, as item 13 in its own section ('Decided, not built') whose one-line intro says the legend has no word for it and the number is kept so the reason stays on record. Its text ends 'Not to be started.'",
       "verifier": "",
       "weight": 1.0
     },
@@ -145,6 +159,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both. The pin is corrected to v0.16.6 now, and scripts/lint-pins-check.sh (already the single place that compares the local environment's tool versions against lint-pins.txt) reads .pre-commit-config.yaml's ruff-pre-commit rev too and refuses on disagreement, with the mismatch reported in the same voice as its existing checks (\"this environment has X, CI pins Y\"). A pre-commit hook running a different ruff from ci-lint.sh and CI is a gate disagreeing with the one branch protection runs, which is the exact failure lint-pins.txt was created to close for pip-installed tools — a hook pin is the same fact, held a third way, and had no guard.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "13074996-c2a1-598b-872e-2f1c318b1033",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the plan says todomd numbered does todomd itself become the numbered pile does it stay the human queue with docsideasmd mirroring it or does the queue move to docsideasmd and todomd become a pointer",
+      "source_text": "The plan says 'TODO.md → numbered'. Does TODO.md itself become the numbered pile, does it stay the human queue with docs/ideas.md mirroring it, or does the queue move to docs/ideas.md and TODO.md become a pointer?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The queue moves to docs/ideas.md in the reconciler's form (top-level `N. ` items, the legend, the permanent-numbers rule, `## A.`-style sections), in the same order TODO.md carried it, and TODO.md becomes a short pointer that keeps exactly one thing of its own: the closing note, 'A note on how this repo finds things'. No mirror.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "0b9327d9-f563-5670-bf51-8558efe9bc3a",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "willowreconciler 060s idspy derives `willowideasnum` for every repo while the fleet convention document names the shape `corpusideasnum` which does nestor write in its docs and trailers",
+      "source_text": "willow-reconciler 0.6.0's ids.py derives `willow-ideas-<num>` for every repo, while the fleet convention document names the shape `<corpus>-ideas-<num>`. Which does Nestor write in its docs and trailers?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "What the tool emits: `Idea-Id: willow-ideas-<num>`, generated with `reconciler id --repo ./ --doc docs/ideas.md --grep ...`, never typed. docs/ideas.md and CONTRIBUTING.md say `willow-ideas-<num>` and name the convention's `<corpus>` shape beside it as the published form. Both also say `--repo ./`, because 0.6.0 reads a bare `.` as a repo name to resolve beside sibling checkouts, not as the current directory.",
       "verifier": "",
       "weight": 1.0
     },

@@ -71,7 +71,11 @@ DOCS = {p.name: p.read_text(encoding="utf-8")
                 # page that indexes what is kept but does not ship. Both are
                 # here for the reason every entry above is: content that leaves
                 # the scanned corpus stops being link-checked, silently.
-                "docs/manual.md", "docs/build-record.md")}
+                "docs/manual.md", "docs/build-record.md",
+                # TODO.md's queue, as the numbered pile willow-reconciler reads.
+                # It moved out of a root-level file, so it is named here for the
+                # same reason: the links it carries stay checked.
+                "docs/ideas.md")}
 
 
 def slugify(heading: str) -> str:
@@ -276,11 +280,12 @@ def test_the_env_scanner_fires_on_each_indirection_and_not_on_an_unread_name(tmp
 def test_documented_environment_variables_exist():
     """Every knob the docs name must be one the code reads.
 
-    TODO.md is exempt in this direction and only this one: it exists to describe
-    work that is *not* in the tree yet — including a variable on an unmerged
-    branch — so requiring its identifiers to resolve would invert its purpose.
-    The reverse check below still covers it, so a real variable can be documented
-    there and nowhere else without slipping past.
+    TODO.md and docs/ideas.md (the queue, now a numbered pile) are exempt in
+    this direction and only this one: they exist to describe work that is *not*
+    in the tree yet — including a variable on an unmerged branch — so requiring
+    their identifiers to resolve would invert their purpose. The reverse check
+    below still covers both, so a real variable can be documented there and
+    nowhere else without slipping past.
 
     local-fleet.md is exempt for the same structural reason: it documents
     wiring between repos (WILLOW_STORE_ROOT, WILLOW_PGP_FINGERPRINT) that
@@ -289,7 +294,7 @@ def test_documented_environment_variables_exist():
     """
     documented = set()
     for name, text in DOCS.items():
-        if name in ("TODO.md", "docs/local-fleet.md"):
+        if name in ("TODO.md", "docs/ideas.md", "docs/local-fleet.md"):
             continue
         documented |= set(re.findall(r"`(NESTOR_[A-Z_]+|WILLOW_[A-Z_]+)`", text))
     unknown = sorted(documented - _env_names_in_code())
