@@ -59,6 +59,17 @@ def _is_key_hex(tok: str) -> bool:
     return True
 
 
+def test_the_key_hex_check_fires_on_a_planted_non_key():
+    """Planted: the tests below find the printed key by this predicate, so a
+    predicate that accepted anything would let them pass on a line that was
+    never a key. 64 hex digits is a key; 63 is not; 64 characters that are
+    not all hex is not."""
+    assert _is_key_hex("ab" * 32)
+    assert not _is_key_hex("ab" * 31 + "a")
+    assert not _is_key_hex("zz" * 32)
+    assert not _is_key_hex("")
+
+
 @pytest.fixture(autouse=True)
 def _no_ambient_keyring(monkeypatch):
     """Neither NESTOR_KEYRING nor a cached injection may decide who can seal."""

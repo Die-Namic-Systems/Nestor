@@ -75,6 +75,28 @@ def _run_decision_check(store_path: str, question: str, *,
 # --- plumbing tests --------------------------------------------------------
 
 
+def test_the_check_runner_fires_the_real_cli_on_a_planted_bad_matcher(
+    tmp_path, seal_key, seeded_store, capsys,
+):
+    """Planted: `_run_decision_check` is the seam every test here trusts, so
+    it must be shown to reach the real CLI rather than a stub of it. An
+    unknown `--matcher` is refused by `load_matcher` and the CLI exits 2
+    naming it; a question nothing matches at an impossible bar comes back
+    `match: none`. Both go through the helper unchanged."""
+    del seeded_store
+    db = str(tmp_path / "nestor.db")
+
+    rc = _run_decision_check(db, "anything", matcher="bogus_matcher")
+    captured = capsys.readouterr()
+    assert rc == 2, "an unknown matcher must be refused, not silently defaulted"
+    assert "unknown matcher 'bogus_matcher'" in captured.err
+
+    rc = _run_decision_check(db, "Entirely unrelated question about weather", bar=0.99)
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["match"] == "none" and payload["live"] is None
+
+
 def test_default_matcher_is_string_and_the_default_bar_holds(
     tmp_path, seal_key, seeded_store, capsys,
 ):

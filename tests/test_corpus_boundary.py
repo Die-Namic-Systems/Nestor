@@ -112,3 +112,19 @@ def _strip_comments_and_docstrings(source: str) -> str:
 def _module_docstring(source: str) -> str:
     m = _TRIPLE_STRING_RE.match(source.lstrip())
     return m.group(0) if m else ""
+
+
+def test_the_docstring_reader_fires_on_a_module_with_one_and_not_without():
+    """Planted: the doc-gate above is only as good as `_module_docstring`. A
+    module that opens with a docstring must yield it; a module with none,
+    or one whose only triple-quoted string comes *after* code, must yield
+    "" — the gate's own `assert docstring` is what turns that into a
+    failure, and a reader that returned any later string would let the
+    boundary sentence hide in a constant."""
+    assert _module_docstring('"""The boundary."""\nx = 1\n') == '"""The boundary."""'
+    assert _module_docstring("x = 1\n") == ""
+    assert _module_docstring('x = 1\nY = """not a docstring"""\n') == ""
+    assert _strip_comments_and_docstrings(
+        '"""docs/dogfood/decisions"""\n# docs/dogfood/decisions\nopen("docs/dogfood/decisions")\n'
+    ).strip() == 'open("docs/dogfood/decisions")', (
+        "the stripper must remove the docstring and the comment and leave the code hit")
