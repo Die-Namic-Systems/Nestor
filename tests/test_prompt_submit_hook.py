@@ -6,6 +6,8 @@ import os
 import pathlib
 import subprocess
 
+from conftest import runs_the_bash_hooks
+
 from hooks import hook_runner
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -39,6 +41,7 @@ def test_one_broken_advisory_does_not_drop_the_other_two(monkeypatch, tmp_path):
     assert hook_runner.prompt_submit_context({"prompt": "open a PR"}, tmp_path) == "anchor\n\npropose"
 
 
+@runs_the_bash_hooks
 def test_combined_hook_emits_one_context_envelope_end_to_end():
     done = subprocess.run(
         [str(REPO / "hooks" / "nestor-hook"), "claude", "prompt_submit"],

@@ -20,6 +20,19 @@ def _pair_row(pair_id: str, source: str, norm: str, target: str) -> tuple:
             1.0, "", "2026-07-31T00:00:00+00:00", "")
 
 
+def test_a_file_backed_connection_waits_for_the_write_lock_not_five_seconds(tmp_path):
+    """The busy timeout is the store's, not sqlite3's default. Five seconds
+    is what the test below exceeded on PR #297's Windows leg: 24 sealing
+    threads, one `database is locked`, on a runner whose disk was busy.
+    PRAGMA busy_timeout reads back in milliseconds."""
+    store = SqliteStore(str(tmp_path / "busy.db"))
+    store.memory_init()
+    with store._db() as conn:
+        ms = conn.execute("PRAGMA busy_timeout").fetchone()[0]
+    assert ms == int(sqlite_store._BUSY_TIMEOUT_SEC * 1000)
+    assert ms > 5000, "sqlite3's default busy timeout is what the thread-pool test exceeded"
+
+
 def test_file_backed_store_survives_concurrent_add_pair(tmp_path):
     """IDEAS §2.4 — nestor.ui serves from a thread pool on one SqliteStore."""
     store = SqliteStore(str(tmp_path / "threads.db"))

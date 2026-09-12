@@ -96,7 +96,9 @@ def test_an_installed_wheel_can_actually_build_the_served_page(tmp_path, built_w
     venv_dir = tmp_path / "venv"
     subprocess.run([sys.executable, "-m", "venv", str(venv_dir)],
                    check=True, capture_output=True, text=True, timeout=60)
-    venv_python = venv_dir / "bin" / "python"
+    # venv lays its interpreter out per platform: bin/python, Scripts\python.exe.
+    venv_python = (venv_dir / "Scripts" / "python.exe" if sys.platform == "win32"
+                   else venv_dir / "bin" / "python")
     install = subprocess.run(
         [str(venv_python), "-m", "pip", "install", "--no-deps", "-q", str(built_wheel)],
         capture_output=True, text=True, timeout=120, check=False)

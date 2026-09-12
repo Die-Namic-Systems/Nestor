@@ -359,6 +359,10 @@ class StoreSchemaTooNewError(NestorError):
 # ceiling: anything borrowed beyond it is closed on return, not accumulated.
 _POOL_MAX = 8
 
+#: Seconds a connection waits for the write lock before raising
+#: ``OperationalError: database is locked`` (see ``_connect``).
+_BUSY_TIMEOUT_SEC = 30.0
+
 
 class _Conn(sqlite3.Connection):
     """A connection that remembers whether ``memory_init`` has run on it.
@@ -449,8 +453,14 @@ class SqliteStore:
         # check_same_thread is relaxed because no connection is ever used by two
         # threads at once: the shared one is serialized by self._lock, and a
         # pooled one is out of the pool for as long as a caller holds it.
+        # timeout is SQLite's busy handler: how long a writer waits for the
+        # WAL write lock before "database is locked". sqlite3's default is
+        # five seconds, which a thread pool over one file-backed store (IDEAS
+        # §2.4) exceeds on a slow disk — PR #297's Windows leg, 24 sealing
+        # threads, one OperationalError. A writer that waits is the store
+        # working as designed; one that raises after five seconds is not.
         conn = sqlite3.connect(self.db_path, check_same_thread=False,
-                               factory=_Conn)
+                               factory=_Conn, timeout=_BUSY_TIMEOUT_SEC)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         if self.db_path != ":memory:":

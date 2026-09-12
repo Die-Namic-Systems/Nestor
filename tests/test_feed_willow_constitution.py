@@ -34,7 +34,10 @@ CASES = constitution_cases()
 
 def case(tmp_path, doc: str, trace="CONST-9-9", clause="A clause.") -> pathlib.Path:
     p = tmp_path / "const_9_9_thing.py"
-    p.write_text(f'"""{doc}"""\n\nTRACE_ID = {trace!r}\nCLAUSE = {clause!r}\n')
+    # The feeder reads UTF-8; a platform-default write (cp1252 on Windows)
+    # turns the em dashes in these docs into bytes it cannot decode.
+    p.write_text(f'"""{doc}"""\n\nTRACE_ID = {trace!r}\nCLAUSE = {clause!r}\n',
+                 encoding="utf-8")
     return p
 
 

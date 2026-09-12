@@ -31,6 +31,7 @@ import subprocess
 import sys
 
 import pytest
+from conftest import runs_the_bash_hooks
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -107,6 +108,7 @@ def test_a_non_write_tool_is_untouched(receipt):
     assert allow
 
 
+@runs_the_bash_hooks
 def test_the_hook_emits_a_deny_both_dialects_understand(receipt):
     """End-to-end through the real wrapper, which `evaluate_write` cannot cover.
 
@@ -126,6 +128,7 @@ def test_the_hook_emits_a_deny_both_dialects_understand(receipt):
     assert "review_desk.py" in out["hookSpecificOutput"]["permissionDecisionReason"]
 
 
+@runs_the_bash_hooks
 def test_the_gate_fails_open_on_its_own_bugs(receipt):
     """Closed on its subject, open on itself — opposite defaults, on purpose.
 

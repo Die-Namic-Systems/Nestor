@@ -123,11 +123,16 @@ def test_a_workflow_that_stops_saying_it_is_refused(tmp_path, workflow, missing,
 
 
 def test_a_version_outside_cis_matrix_is_refused_not_run():
-    """Running 3.11 when CI runs 3.10 and 3.12 answers a question nobody asked,
-    and answers it in a way that reads like coverage."""
+    """Running a Python CI never runs answers a question nobody asked, and
+    answers it in a way that reads like coverage.
+
+    The example was 3.11 while CI ran 3.10 and 3.12 by hand; the matrix is now
+    every classifier minor (tests/test_ci_floor.py), so 3.11 is inside it and
+    asking for it would build a real venv and run the whole suite here. 3.9 is
+    below `requires-python` and can never be in the matrix."""
     proc = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "ci_venv.py"),
-         "--run", "--python", "3.11"],
+         "--run", "--python", "3.9"],
         capture_output=True, text=True, cwd=str(REPO), check=False)
     assert proc.returncode == 2
     assert "not in CI's matrix" in proc.stderr

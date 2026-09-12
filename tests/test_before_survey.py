@@ -20,6 +20,8 @@ import os
 import pathlib
 import subprocess
 
+from conftest import runs_the_bash_hooks
+
 from hooks import before_survey
 from hooks.before_survey import (
     advisory,
@@ -72,6 +74,7 @@ def test_the_count_is_derived_from_the_tree_not_asserted():
     assert f"{actual} recorded decisions" in advisory(REPO)
 
 
+@runs_the_bash_hooks
 def test_the_wired_hook_injects_on_a_survey_prompt_and_nothing_otherwise():
     survey = _run({"prompt": "audit every repo on this box"})
     assert survey.returncode == 0, survey.stderr
@@ -84,6 +87,7 @@ def test_the_wired_hook_injects_on_a_survey_prompt_and_nothing_otherwise():
     assert quiet.stdout.strip() == ""     # nothing injected on a non-survey turn
 
 
+@runs_the_bash_hooks
 def test_prompt_submit_carries_the_survey_advisory_alongside_its_siblings():
     """The consolidated action must not drop the newest evaluator.
 

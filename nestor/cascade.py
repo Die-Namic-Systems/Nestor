@@ -397,8 +397,14 @@ def ledger_append(entry: dict) -> None:
     ledger.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.now(timezone.utc).isoformat(), "prev": "genesis", **entry}
     # "a+" creates the file if absent and keeps the read and the write on one
-    # handle, so the tail we hash is the tail we chain onto.
-    with _append_lock, open(ledger, "a+", encoding="utf-8") as f:
+    # handle, so the tail we hash is the tail we chain onto. newline="\n"
+    # because the checkpoint below is a BYTE offset: with the platform default,
+    # text mode on Windows writes "\r\n" for the "\n" written here, the file
+    # grows by one byte more than the arithmetic assumes, the offset lands one
+    # byte into the line, and the next append in this process refuses its own
+    # tail as tampered. A one-byte newline on every platform keeps the ledger
+    # bytes-appended-only, which is the assumption _check_tail states.
+    with _append_lock, open(ledger, "a+", encoding="utf-8", newline="\n") as f:
         _lock_file(f)
         try:
             # Both reads happen inside the lock, for the same reason the

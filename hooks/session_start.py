@@ -328,7 +328,9 @@ def _nestor_section(root: Path) -> str:
     # design, so looking only there would reject the very thing the ask asks for.
     for db in (_cli_default_db(root), root.joinpath(*DEMO_DB)):
         if db.is_file():
-            return (f"[nestor] stood up: {db.relative_to(root)}"
+            # as_posix: the path is what a person types after `--db`, and the
+            # docs spell it data/nestor.db on every platform.
+            return (f"[nestor] stood up: {db.relative_to(root).as_posix()}"
                     f"{_store_summary(db)}. Nothing to ask.")
     default = _cli_default_db(root)
     return _ask_prompt(

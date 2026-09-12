@@ -224,6 +224,19 @@ def test_concurrent_appends_keep_the_chain_intact(signed):
     assert ok, detail
 
 
+#: The lock two processes take on the ledger is fcntl.flock, and cascade.py
+#: says what stands without it: the threading lock, which is one process
+#: wide. Windows has no fcntl, so a second process appending there is a race
+#: the product declares open, not one these tests can prove closed — a POSIX
+#: property, declared here; a cross-process lock for Windows is docs/ideas.md
+#: item 17.
+posix_file_lock = pytest.mark.skipif(
+    os.name != "posix",
+    reason="cross-process ledger locking is fcntl.flock; without it cascade.py "
+           "holds a threading lock only — docs/ideas.md item 17")
+
+
+@posix_file_lock
 def test_a_second_process_appending_at_the_same_time_keeps_it_intact(signed):
     """Two processes over one ledger is a UI plus a cron job, not an exotic case."""
     ledger = signed / "ledger.jsonl"
@@ -325,6 +338,7 @@ def test_a_wedged_frank_mirror_cannot_hang_a_seal(signed):
         "the local entry is written regardless — it is the source of truth"
 
 
+@posix_file_lock
 def test_an_append_waits_for_a_torn_line_instead_of_reading_it(signed):
     """The one that turned master red, pinned deterministically.
 

@@ -16,6 +16,7 @@ signing (the positioning decision), timestamping, transparency logs.
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 
@@ -138,6 +139,16 @@ class TestTheAcceptanceProperty:
         assert loaded.get("bob").kind == "ed25519"
         assert not loaded.get("bob").private
 
+    @pytest.mark.skipif(
+        os.name != "posix",
+        reason="the refusal reads POSIX mode bits; Windows carries permission in ACLs")
+    def test_a_keyring_holding_a_private_half_still_refuses_when_readable(self, tmp_path):
+        # The other half of the property above: the refusal follows the key
+        # MATERIAL, and a file holding any secret is refused when others can
+        # read it. A mode bit is the POSIX spelling of that, so this half is
+        # declared by platform (keyring.load reads the bits only there).
+        ring = keyring.Keyring()
+        ring.add("bob", kind="ed25519")
         secret = tmp_path / "secret.keyring"
         ring.save(str(secret))                      # holds the private half
         secret.chmod(0o644)

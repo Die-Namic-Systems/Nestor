@@ -136,8 +136,10 @@ def test_malformed_json_raises_never_returns_default(tmp_path: Path):
     p.write_text("{ this is not json ", encoding="utf-8")
     with pytest.raises(ConfigError) as exc:
         config.load_file(p)
-    # The error must name the file and say broken != empty.
-    assert str(p) in str(exc.value)
+    # The error must name the file and say broken != empty. It quotes the
+    # path with !r, so match the repr: on Windows the backslashes are doubled
+    # there and the bare str is not a substring.
+    assert repr(str(p)) in str(exc.value)
 
 
 def test_top_level_non_object_raises(tmp_path: Path):

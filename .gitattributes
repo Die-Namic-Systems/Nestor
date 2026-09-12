@@ -1,0 +1,6 @@
+# A checkout is byte-identical on every platform. The ledger is bytes-appended-
+# only, tests/fleet_conventions.json is pinned by sha256, and the gate scripts
+# run under Git Bash on the Windows leg; Git for Windows defaults to
+# core.autocrlf=true, which rewrote every text file to CRLF there (PR #297).
+* text=auto eol=lf
+*.db binary

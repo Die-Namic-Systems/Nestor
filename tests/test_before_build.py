@@ -14,6 +14,8 @@ import os
 import pathlib
 import subprocess
 
+from conftest import runs_the_bash_hooks
+
 from hooks.before_build import advisory, for_prompt, is_build_intent
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -55,6 +57,7 @@ def test_the_count_is_derived_from_the_tree_not_asserted():
     assert f"{actual} recorded decisions" in advisory(REPO)
 
 
+@runs_the_bash_hooks
 def test_the_wired_hook_injects_on_a_build_prompt_and_nothing_otherwise():
     build = _run({"prompt": "build a new clustering module"})
     assert build.returncode == 0, build.stderr

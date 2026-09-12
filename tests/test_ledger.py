@@ -26,9 +26,13 @@ def test_verify_intact_then_detects_tamper(tmp_path):
     assert "broken chain" in detail
 
 
-def test_ledger_refuses_non_file():
-    cascade.set_ledger_path("/dev/null")
-    with pytest.raises(ledger.LedgerError):
+def test_ledger_refuses_non_file(tmp_path):
+    """Exists and is not a regular file: a directory, on every platform.
+    `/dev/null` was the example; on Windows that is a relative path that
+    does not exist, the refusal never fires, and the append would have
+    created `\\dev\\null` on the current drive."""
+    cascade.set_ledger_path(tmp_path)
+    with pytest.raises(ledger.LedgerError, match="not a regular file"):
         cascade._ledger_append({"kind": "seal"})
 
 
@@ -100,6 +104,69 @@ def test_the_refusal_lands_before_the_store_write(live_ledger, store, seal_key):
         memory.add_pair("the invoice is overdue", "la factura está vencida",
                         "en", "es", status="sealed", verifier="rita", store=store)
     assert memory.stats(store=store)["total"] == 0, "no sealed row without a trail"
+
+
+def _checkpoint_facts(raw: bytes, offset: int) -> dict:
+    """What the file's bytes say about a checkpoint: whether the offset
+    starts on a line boundary, the line it names, and whether a carriage
+    return is anywhere in the file — the platform newline the offset
+    arithmetic cannot count. The two tests below read the real ledger and
+    ask this; the second plants the Windows write and asks it again."""
+    return {
+        "on_boundary": offset == 0 or raw[offset - 1:offset] == b"\n",
+        "line": raw[offset:].split(b"\n", 1)[0].decode("utf-8"),
+        "has_cr": b"\r" in raw,
+    }
+
+
+def test_the_checkpoint_offset_is_where_the_lines_bytes_begin(live_ledger):
+    """The checkpoint is a byte offset: file size after the write, minus the
+    line's UTF-8 length, minus one newline. That arithmetic is only true when
+    the newline on disk is one byte. Opened with the platform default, text
+    mode on Windows wrote "\\r\\n", the offset landed one byte into the line,
+    and the very next append in the same process refused its own tail as
+    tampered (PR #297's Windows leg: 413 such refusals). The ledger is now
+    written with newline="\\n" on every platform; this holds the offset to
+    the bytes it names, and the file to one-byte newlines, which is the
+    bytes-appended-only assumption _check_tail states."""
+    offset, digest = cascade._checkpoints[str(live_ledger)]
+    facts = _checkpoint_facts(live_ledger.read_bytes(), offset)
+    assert facts["on_boundary"], "the checkpoint does not start on a line boundary"
+    assert cascade._line_sha(facts["line"]) == digest
+    assert facts["has_cr"] is False, "the ledger is written with one-byte newlines everywhere"
+
+
+def test_a_line_appended_with_windows_newlines_is_planted_and_still_chained(live_ledger):
+    """Planted: the write the platform default made on Windows, on any
+    platform. newline="\\r\\n" is exactly the translation text mode applies
+    there, so this is a line an older build (or a foreign writer on Windows)
+    left in the file: two bytes of newline where the arithmetic counted one.
+    The chain has to survive it in both directions — the walk (`verify`)
+    reads it as one entry, and this process's next append chains onto it and
+    checkpoints byte-exact — and the bytes this process writes stay one-byte
+    newlines regardless of what came before."""
+    import hashlib
+    last = live_ledger.read_text(encoding="utf-8").splitlines()[-1]
+    foreign = json.dumps({"kind": "passage", "prev":
+                          hashlib.sha256(last.encode("utf-8")).hexdigest()},
+                         ensure_ascii=False)
+    with live_ledger.open("a", encoding="utf-8", newline="\r\n") as fh:
+        fh.write(foreign + "\n")
+    raw = live_ledger.read_bytes()
+    assert raw.endswith(foreign.encode("utf-8") + b"\r\n"), "the plant did not land"
+
+    cascade._ledger_append({"kind": "passage"})
+    ok, detail = ledger.verify(str(live_ledger))
+    assert ok, detail
+
+    raw = live_ledger.read_bytes()
+    offset, digest = cascade._checkpoints[str(live_ledger)]
+    facts = _checkpoint_facts(raw, offset)
+    assert facts["on_boundary"] and facts["has_cr"] is True   # the plant is in the file
+    assert cascade._line_sha(facts["line"]) == digest
+    assert raw.count(b"\r") == 1, "our append wrote a one-byte newline after the plant"
+    assert json.loads(facts["line"])["prev"] == cascade._line_sha(foreign)
+    cascade._ledger_append({"kind": "restore"})       # the tail guard still lets us on
 
 
 def test_another_writer_appending_is_not_tampering(live_ledger):

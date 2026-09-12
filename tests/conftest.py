@@ -65,6 +65,19 @@ def semantic_tests_enabled() -> bool:
 
     return integration_tests_enabled() and _semantic_model_loadable()
 
+#: The hooks under hooks/ and .claude/hooks/ are bash scripts that resolve
+#: `python3` and `.venv/bin/python`, and the tests that run them end to end
+#: exec the file the way the wired command does (`hooks/nestor-hook claude
+#: <module>`), which needs a kernel that honours `#!/usr/bin/env bash`.
+#: Windows has none (WinError 193 on PR #297's Windows leg). That is a POSIX
+#: property of the hooks, declared here on the tests that exec them rather
+#: than listed to skip in CI; hooks on Windows is docs/ideas.md item 17.
+runs_the_bash_hooks = pytest.mark.skipif(
+    os.name != "posix",
+    reason=("execs a bash hook as wired (#!/usr/bin/env bash, python3, "
+            ".venv/bin/python): a POSIX property of hooks/ — docs/ideas.md item 17"),
+)
+
 requires_embedding = pytest.mark.skipif(
     not semantic_tests_enabled(),
     reason=("set NESTOR_SEMANTIC_TEST=1 and install the semantic extra; "
@@ -132,6 +145,11 @@ def isolate_globals(tmp_path):
     saved_ledger = cascade._LEDGER_OVERRIDE
     saved_forwarder = frank.get_forwarder()
     saved_matcher = memory.get_matcher()
+    # serve.main() installs the established-lane recognizer process-wide and
+    # nothing uninstalls it; a test that runs the server in-process left it
+    # for whichever test the worker scheduled next (test_established_lane's
+    # `installed() is False` went red on both Windows legs and once here).
+    saved_recognizer = cascade.get_tier15_recognizer()
     saved_env = {k: os.environ.pop(k, None) for k in CONFIGURED_BY_ENV}
     storage._store = None
     frank.set_forwarder(None)
@@ -145,6 +163,7 @@ def isolate_globals(tmp_path):
     cascade.reset_ledger_session()
     frank.set_forwarder(saved_forwarder)
     memory.set_matcher(saved_matcher)
+    cascade.set_tier15_recognizer(saved_recognizer)
     keyring.set_keyring(None)
     for name, value in saved_env.items():
         if value is None:

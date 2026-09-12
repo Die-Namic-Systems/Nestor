@@ -428,8 +428,12 @@ def load(path: str) -> Keyring:
     # side of an import.
     holds_secrets = bool(legacy_key) or any(
         v.kind != "ed25519" or v.private for v in verifiers)
+    # The refusal reads POSIX mode bits, and only where they are the
+    # permission. On Windows os.stat reports 0o666 for every writable file and
+    # the permission lives in an ACL the bits do not see, so the same check
+    # there would refuse every keyring and vouch for none.
     mode = os.stat(p).st_mode
-    if holds_secrets and mode & (stat.S_IRWXG | stat.S_IRWXO):
+    if holds_secrets and os.name == "posix" and mode & (stat.S_IRWXG | stat.S_IRWXO):
         raise KeyringError(
             f"{p} is readable by other users (mode {oct(mode & 0o777)}). It holds "
             f"secret key material — `chmod 600 {p}` and try again. (A keyring "

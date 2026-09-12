@@ -1,5 +1,19 @@
 name: Tests
 
+# The fleet CI floor (fleet plan decision 5, C4-tests-yml): a Linux job whose
+# Python matrix is derived from pyproject.toml's classifiers, a Windows job on
+# the floor and ceiling Pythons, a lint job whose ruff is pinned in exactly one
+# place, CodeQL, and an aggregate `test` job that fails when any leg is not a
+# success. tests/test_ci_floor.py holds each of those facts to the files that
+# declare them, with a planted violation per rule.
+#
+# CodeQL (C4-codeql): this repo runs GitHub's default CodeQL setup, which
+# already analyses python, actions and javascript-typescript on every PR (the
+# three `Analyze (...)` checks). A codeql.yml in this directory would be
+# refused by that setup ("advanced configurations cannot be processed when
+# default setup is enabled"), so none is added; the floor's CodeQL leg is the
+# default setup, kept as is.
+
 on:
   push:
     # Both names: the fleet is split between `main` and `master`, and a
@@ -49,6 +63,10 @@ jobs:
         # to live in this comment — pip-audit before detect-secrets, so the
         # latter's KeywordDetector does not flag the pin line on itself — lives
         # in that file now, next to the order it constrains.
+        #
+        # The floor asks for ruff pinned to an exact version. It is: `ruff==`
+        # appears exactly once in the tree, in scripts/lint-pins.txt, and this
+        # file never repeats it (tests/test_ci_floor.py holds both halves).
         run: |
           python -m pip install --upgrade pip setuptools
           pip install -r scripts/lint-pins.txt
@@ -95,8 +113,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Floor and current for requires-python >= 3.10.
-        python-version: ["3.10", "3.12"]
+        # Every minor pyproject.toml declares under
+        # `Programming Language :: Python :: 3.X` — the classifiers are the
+        # one declaration of what this package supports, and the matrix is
+        # held equal to them by tests/test_ci_floor.py rather than kept as a
+        # second list by hand (it used to name two of the four). This list
+        # stays first in the file: scripts/ci_venv.py reads the first
+        # `python-version: [...]` it finds as CI's matrix.
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v7
@@ -131,6 +155,47 @@ jobs:
           # pytest-cov writes .coverage; the report reads it.
           coverage report --fail-under=85
 
+  test-windows:
+    runs-on: windows-latest
+    # The floor's second platform, on the floor and ceiling Pythons only (the
+    # first and last classifier minors; tests/test_ci_floor.py holds that).
+    # The gate scripts are bash and stay bash: Git Bash is on the Windows
+    # runner, so the leg runs the same `bash scripts/ci-test.sh full` AGENTS.md
+    # and CONTRIBUTING.md name, not a second command nobody types. Coverage is
+    # measured on Linux above; this leg is for the platform, not the number.
+    # 45 minutes, not 25: the suite spawns hundreds of subprocesses and
+    # Windows starts each slowly — a green run measured 20.5 minutes on 3.10.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    env:
+      # Python's UTF-8 mode (PEP 540; the default from 3.15). Without it a
+      # Windows pipe is cp1252 and every script that prints a check mark —
+      # the CLI, the hooks, the demos, mutation_guard — dies with
+      # UnicodeEncodeError before its first line (PR #297, round two: 50
+      # failures, 23 of them that character). Declared here on the leg;
+      # running under a legacy code page is docs/ideas.md item 17.
+      PYTHONUTF8: "1"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package (Windows)
+        shell: bash
+        run: python -m pip install -e '.[keys]' pytest pytest-xdist
+
+      - name: Run the full lane through the bash gate script
+        shell: bash
+        run: bash scripts/ci-test.sh full
+
   js-test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -148,9 +213,30 @@ jobs:
         run: node --test 'tests/js/*.js'
 
   # Aggregate gate: branch protection requires a single check named "test"
-  # across the whole fleet. Green only when lint and every matrix leg are.
+  # across the whole fleet. It `needs:` every other job in this file and runs
+  # `if: always()` so it reports even when a leg was skipped or cancelled —
+  # and then fails on exactly those, explicitly: a `needs:` chain without
+  # `always()` is skipped when a leg is skipped, and a skipped required check
+  # reads as green to nobody and as "still waiting" to branch protection.
+  # `success` is the only result that passes; failure, cancelled and skipped
+  # all fail, by name. tests/test_ci_floor.py plants a workflow missing each
+  # half and shows the check refuses it.
   test:
-    needs: [test-matrix, lint, js-test]
+    needs: [lint, test-matrix, test-windows, js-test]
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: echo "lint, all matrix legs, and JS tests green"
+      - name: Every leg succeeded (failure, cancelled and skipped all fail)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS"])
+          for job, info in sorted(needs.items()):
+              print(f"{job}: {info['result']}")
+          bad = {job: info["result"] for job, info in needs.items()
+                 if info["result"] != "success"}
+          if bad:
+              sys.exit(f"not every leg succeeded: {bad}")
+          EOF
