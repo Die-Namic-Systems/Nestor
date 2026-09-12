@@ -39,6 +39,27 @@ def _tamper_first_line_kind(ledger, old='"kind": "seal"', new='"kind": "nope"'):
     ledger.write_text("\n".join(lines) + "\n")
 
 
+def test_the_tamper_helper_plants_a_break_the_size_check_cannot_see(tmp_path):
+    """Planted: the tests below rely on this edit being invisible to a size
+    or line-count check and visible only to a chain walk. So: the first line
+    changes, its length does not, the second line is untouched — and a
+    ledger whose first line does not carry the target is refused rather than
+    silently left unbroken, which would make the refusal tests below pass
+    on an untampered chain."""
+    ledger = tmp_path / "ledger.jsonl"
+    first = '{"kind": "seal", "n": 1}'
+    second = '{"kind": "seal", "n": 2}'
+    ledger.write_text(f"{first}\n{second}\n")
+
+    _tamper_first_line_kind(ledger)
+    lines = ledger.read_text().splitlines()
+    assert lines[0] == '{"kind": "nope", "n": 1}' and len(lines[0]) == len(first)
+    assert lines[1] == second
+
+    with pytest.raises(AssertionError):
+        _tamper_first_line_kind(ledger)  # already tampered: the target is gone
+
+
 def test_always_verify_refuses_a_mid_chain_tamper(signed, interval_guard):
     """With interval < 0 every append re-walks; history edits cannot hide."""
     cascade.set_ledger_verify_interval(-1)
