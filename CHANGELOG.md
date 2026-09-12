@@ -149,6 +149,14 @@ what moved.
 
 ---
 
+## [0.20.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.0...v0.20.1) (2026-09-12)
+
+
+### Fixed
+
+* **serve:** serverInfo.version is the package version; pre-commit's ruff pin is checked; README names all five status tags ([a74b6ab](https://github.com/Die-Namic-Systems/Nestor/commit/a74b6aba84b7bbc30fd70c5b2ce89d5cba61f086))
+* **serve:** serverInfo.version is the package version; pre-commit's ruff pin is checked; README names all five status tags ([#292](https://github.com/Die-Namic-Systems/Nestor/issues/292)) ([aac2987](https://github.com/Die-Namic-Systems/Nestor/commit/aac2987abd3980ac74d8dbb62cf676219c2b22cd))
+
 ## [0.20.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.19.1...v0.20.0) (2026-09-11)
 
 
