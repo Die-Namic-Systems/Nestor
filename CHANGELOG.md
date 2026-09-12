@@ -149,6 +149,15 @@ what moved.
 
 ---
 
+## [0.20.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.1...v0.20.2) (2026-09-12)
+
+
+### Fixed
+
+* one-byte ledger newlines and POSIX-only mode bits, so the suite runs on Windows ([0ea4368](https://github.com/Die-Namic-Systems/Nestor/commit/0ea436811c7318f2f25127c8c39abea35e689f14))
+* the file-backed store names its busy timeout instead of sqlite3's five seconds ([77fed00](https://github.com/Die-Namic-Systems/Nestor/commit/77fed00befba2c27d2759b29d2b011922935b7eb))
+* the Windows leg runs in UTF-8 mode, and three tests stop assuming POSIX paths ([5e6f78e](https://github.com/Die-Namic-Systems/Nestor/commit/5e6f78e4b1fe3870a42e57a58e9516e6356046dd))
+
 ## [0.20.1](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.0...v0.20.1) (2026-09-12)
 
 
