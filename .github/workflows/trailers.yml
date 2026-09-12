@@ -21,6 +21,12 @@ on:
   pull_request:
     branches: [master]
 
+# The job only reads history and the doc; it never writes to the repo, opens
+# a PR, or comments. Least privilege, the way tests.yml and publish.yml set it
+# (CodeQL: "Workflow does not contain permissions", #296).
+permissions:
+  contents: read
+
 jobs:
   verify-trailers:
     runs-on: ubuntu-latest
