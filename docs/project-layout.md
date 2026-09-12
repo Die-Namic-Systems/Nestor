@@ -108,7 +108,8 @@ CONTRIBUTING.md       the single path from clone to merged PR — setup, gates, 
 docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
 IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open/shipped; opens with a CI-gated Map of every subsection
 docs/agent-log.md     §6, the implementation-session log, lifted out of IDEAS.md; numbers preserved
-TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
+TODO.md               a pointer to docs/ideas.md (the queue moved there) plus the closing note the codebase cites on how this repo finds things
+docs/ideas.md         the queue as a numbered pile — top-level N. items with permanent numbers, read by willow-reconciler; Idea-Id commit trailers join commits to it
 QUESTIONS.md          the questions this gets asked, answered or admitted
 docs/archive/          historical FINDINGS audits, archived decisions, probe snapshots — not live docs (see archive/README.md)
 docs/dogfood/         Nestor's own decisions, one file per merged PR; the .db is derived (docs/decision-memory.md)
