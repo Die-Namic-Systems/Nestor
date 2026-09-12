@@ -41,9 +41,10 @@ SETTINGS = REPO / ".claude" / "settings.json"
 _ACTION_RX = re.compile(r"\bclaude\s+(\w+)\b")
 
 
-def _invoked_actions(event: str) -> set[str]:
-    """The runner actions ``.claude/settings.json`` invokes for ``event``."""
-    data = json.loads(SETTINGS.read_text(encoding="utf-8"))
+def _invoked_actions(event: str, settings: pathlib.Path = SETTINGS) -> set[str]:
+    """The runner actions ``settings`` (the tracked ``.claude/settings.json``
+    by default) invokes for ``event``."""
+    data = json.loads(settings.read_text(encoding="utf-8"))
     return {
         action
         for entry in data.get("hooks", {}).get(event, [])
@@ -52,8 +53,9 @@ def _invoked_actions(event: str) -> set[str]:
     }
 
 
-def _prompt_advisory_modules() -> list[str]:
-    """Every hooks/ module that declares itself as riding UserPromptSubmit.
+def _prompt_advisory_modules(hooks_dir: pathlib.Path = REPO / "hooks") -> list[str]:
+    """Every module in ``hooks_dir`` that declares itself as riding
+    UserPromptSubmit.
 
     Read from the modules' own ``EVENT`` constant rather than from a list kept
     here, so a new advisory is covered the moment it is written — a roster in
@@ -61,7 +63,7 @@ def _prompt_advisory_modules() -> list[str]:
     being guarded against.
     """
     names = []
-    for path in sorted((REPO / "hooks").glob("*.py")):
+    for path in sorted(hooks_dir.glob("*.py")):
         text = path.read_text(encoding="utf-8")
         if 'EVENT = "UserPromptSubmit"' in text:
             names.append(path.stem)
@@ -99,12 +101,32 @@ def test_the_advisory_modules_are_registered_as_runner_modules():
     assert not missing, f"not in MODULES: {', '.join(missing)}"
 
 
-def test_the_guard_can_fail():
-    """The prove-it-can-fail half: a settings file naming actions individually
-    — the exact pre-#246 shape — must not satisfy the first assertion.
-
-    Without this, a rewrite of ``_invoked_actions`` that returned everything
-    would leave both real tests green forever.
+def test_the_guards_fire_on_a_planted_settings_file_and_a_planted_hooks_dir(tmp_path):
+    """The prove-it-can-fail half, planted for real. Until the meta-scan
+    (`tests/test_scans_fire.py`) landed, this test asserted a set literal it
+    had built itself and never called either helper — a plant in name only,
+    which is the exact shape that file exists to report. Now: a settings file
+    naming actions individually — the pre-#246 shape — must come back
+    without `prompt_submit`, and a hooks directory with one module riding
+    UserPromptSubmit and one riding something else must name only the first.
+    Without this, a rewrite of ``_invoked_actions`` that returned everything,
+    or of ``_prompt_advisory_modules`` that returned every module, would
+    leave the three real tests above green forever.
     """
-    individually = {"reinject", "before_build", "before_propose"}
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"hooks": {"UserPromptSubmit": [{"hooks": [
+        {"command": "python hooks/nestor-hook claude reinject"},
+        {"command": "python hooks/nestor-hook claude before_build"},
+        {"command": "python hooks/nestor-hook claude before_propose"},
+    ]}]}}), encoding="utf-8")
+    individually = _invoked_actions("UserPromptSubmit", settings=settings)
+    assert individually == {"reinject", "before_build", "before_propose"}
     assert "prompt_submit" not in individually
+    assert _invoked_actions("Stop", settings=settings) == set(), "an event with no hooks invokes nothing"
+
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    (hooks / "riding.py").write_text('EVENT = "UserPromptSubmit"\n', encoding="utf-8")
+    (hooks / "elsewhere.py").write_text('EVENT = "Stop"\n', encoding="utf-8")
+    (hooks / "silent.py").write_text("x = 1\n", encoding="utf-8")
+    assert _prompt_advisory_modules(hooks_dir=hooks) == ["riding"]

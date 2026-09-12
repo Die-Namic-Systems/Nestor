@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 252,
+    "pairs": 255,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "c8be79d76576a1eec41c71fddd1b8ac3bed16f44c185840003b32409b3faf601",
+  "digest": "6f7972135068bc7ff1f7f3740619a030728a3a4973929d46d63d5f8fba4e2726",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -24,6 +24,20 @@
   "pairs": [
     {
       "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "fb09d9cd-145b-5ff0-b14f-8fd3ede14793",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "several of the eleven are reported by the namestem half of the rule or by a shape that is not obviously a scan _run_decision_check by the stem check _tamper_first_line_kind by read_text plus an `in` slugify and fenced by a regex call should the rule be narrowed so these are not reported or should they be planted",
+      "source_text": "Several of the eleven are reported by the name-stem half of the rule or by a shape that is not obviously a scan — _run_decision_check by the stem 'check', _tamper_first_line_kind by read_text plus an `in`, slugify and fenced by a regex call. Should the rule be narrowed so these are not reported, or should they be planted?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Planted, every one, in the same file, with a test that shows the helper fires on a planted input and does not fire on the control. Where the helper read a hard-coded path (_env_names_in_code over nestor/, _invoked_actions over .claude/settings.json, _prompt_advisory_modules over hooks/, runnable_examples over README) it gained an optional parameter defaulting to that path so the plant can hand it a file it wrote; no caller changed. The rule was not narrowed and no name was exempted.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
       "id": "d7c2aef9-4e27-5b31-820b-9b9b2ea6bad0",
       "origin": "pr:?",
       "seal_sig": "",
@@ -33,6 +47,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Wrong, and fixed to name all five in both places. A new test, tests/test_docs.py::test_readme_and_layout_name_every_ideas_status_tag, reads IDEAS.md's table and its shipped-sentence as the one source of the vocabulary (not a hardcoded tuple duplicated three ways) and asserts both summaries reproduce it exactly, tag for tag, in order.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "bdccd919-f7d8-5d8f-8fbf-bcbc8cac6c87",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "this suite carries dozens of test helpers that read source and judge it ast walks regex scans read_text plus a membership question nothing checked that any of them had ever been shown to fire on a planted violation test_import_hygienepy and test_versionpy plant theirs by hand most do not should there be a test that reads the other test files and holds every scanshaped helper to a plantedviolation test in the same file",
+      "source_text": "This suite carries dozens of test helpers that read source and judge it — AST walks, regex scans, read_text plus a membership question. Nothing checked that any of them had ever been shown to fire on a planted violation; test_import_hygiene.py and test_version.py plant theirs by hand, most do not. Should there be a test that reads the other test files and holds every scan-shaped helper to a planted-violation test in the same file?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Yes: tests/test_scans_fire.py, ported from homestead-ledger's tests/test_scans_fire.py with its discovery rule and plant rule kept verbatim. Discovery is structural (parses or walks source; matches a pattern; reads a file and asks membership of it; walks a module-level word list; filters the caller's terms by membership) with the repo's own name stems on top, so a public `offenders(text)` and a `_run_decision_check` are found by what they do or what they are called, not by a leading underscore. A helper counts as planted only when a test whose name carries plant/fires/catches, or whose docstring carries plant, actually calls it — directly or through the module's own helpers. The meta-scan is itself planted: every discovery shape and every plant-rule edge has a tmp_path fixture that must be reported or must be cleared, and a real file of this repo's (test_version.py) is the control. On the day it landed it reported eleven helpers in seven files; each got a same-file plant in this PR.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-12T00:00:00+00:00",
+      "id": "9f19d1da-b9f7-5994-9bff-0bdb75fcbda3",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the same port finds fiftyfive test bodies that are themselves inline scans they read a real file and judge it in place with no helper to name and so nothing to plant homestead factored its own out in a separate bite zero is not reachable in this pr an allowlist would excuse them an xfail would quarantine the test how is the inline half held",
+      "source_text": "The same port finds fifty-five test bodies that are themselves inline scans — they read a real file and judge it in place, with no helper to name and so nothing to plant. Homestead factored its own out in a separate bite. Zero is not reachable in this PR; an allowlist would excuse them; an xfail would quarantine the test. How is the inline half held?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A shrink-only ledger, INLINE_SCAN_LEDGER, of the fifty-five test ids as found, and one test with two assertions: no offender outside the ledger (a new inline scan anywhere in tests/ fails today), and no ledger entry that has stopped offending (a refactored, renamed or removed test must be struck, or the same test fails). A third test holds every entry to an existing file so a typo cannot sit in the ledger looking like a debt. The PR body names all fifty-five as the follow-up; the day the ledger is empty the test collapses to `assert not offenders`.",
       "verifier": "",
       "weight": 1.0
     },

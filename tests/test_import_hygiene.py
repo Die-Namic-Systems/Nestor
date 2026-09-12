@@ -56,7 +56,7 @@ def test_no_module_under_tests_imports_the_tests_package():
 
 
 def test_the_check_would_actually_catch_one():
-    """A scan that matches nothing passes forever whether or not it works.
+    """Planted: a scan that matches nothing passes forever whether or not it works.
 
     The forbidden forms are assembled from fragments rather than written out,
     so this file does not trip its own scan and need exempting from it — an

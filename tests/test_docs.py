@@ -89,6 +89,20 @@ def fenced(text: str, language: str) -> list[str]:
     return re.findall(r"```" + language + r"\n(.*?)```", text, re.DOTALL)
 
 
+def test_slugify_and_fenced_fire_on_the_cases_their_docstrings_name():
+    """Planted: every anchor and command gate below stands on these two. The
+    em-dash case is the one `slugify`'s own docstring records finding the
+    hard way — removed, not replaced, leaving two hyphens — and `fenced` must
+    return only the block of the language asked for, whole, and nothing when
+    there is none."""
+    assert slugify("The curator — seeing") == "the-curator--seeing"
+    assert slugify("  Quick start: run it  ") == "quick-start-run-it"
+    text = "intro\n```python\nprint(1)\n```\nmore\n```bash\nls\n```\n"
+    assert fenced(text, "python") == ["print(1)\n"]
+    assert fenced(text, "bash") == ["ls\n"]
+    assert fenced(text, "json") == []
+
+
 # --- the file list ---------------------------------------------------------
 
 def test_the_project_layout_lists_every_module_and_no_ghosts():
@@ -181,8 +195,12 @@ def test_every_documented_flag_is_accepted():
 
 # --- the environment -------------------------------------------------------
 
-def _env_names_in_code() -> set[str]:
+def _env_names_in_code(paths: list[pathlib.Path] | None = None) -> set[str]:
     """Every environment variable the code reads.
+
+    ``paths`` defaults to the real tree below and exists so the plant can hand
+    the scanner a file it wrote; the registry indirection at the end is the
+    package's own and is read either way.
 
     ``tests/_fleet_paths.py`` is in scope alongside the package because it is
     the only other place that reads a knob a *document* is entitled to name:
@@ -193,7 +211,8 @@ def _env_names_in_code() -> set[str]:
     work, and are read on every run, which is the false positive that sends a
     writer to delete a true sentence.
     """
-    paths = [*(ROOT / "nestor").glob("*.py"), ROOT / "tests" / "_fleet_paths.py"]
+    if paths is None:
+        paths = [*(ROOT / "nestor").glob("*.py"), ROOT / "tests" / "_fleet_paths.py"]
     source = "\n".join(p.read_text(encoding="utf-8") for p in paths)
     # `[A-Z0-9_]`, not `[A-Z_]`: the old class stopped at the first digit, so
     # `WILLOW_LEGACY_MONOLITH_REPO` was captured as `WILLOW_` — a prefix that appears in
@@ -230,6 +249,28 @@ def _env_names_in_code() -> set[str]:
     via_registry = set(_nestor_config.configurable_names())
 
     return direct | via_const | via_registry
+
+
+def test_the_env_scanner_fires_on_each_indirection_and_not_on_an_unread_name(tmp_path):
+    """Planted: the forward and reverse env gates below are only as wide as
+    this scanner. A direct `environ.get("X")`, a constant passed to
+    `environ.get`, and a constant that is *never* passed are written to a
+    file the scanner is handed; the first two must be found, the third must
+    not — the docstring above records the false positive that a scanner
+    reporting unread strings sends a writer to fix by deleting a true
+    sentence."""
+    probe = tmp_path / "probe.py"
+    probe.write_text(
+        'import os\n'
+        '_READ = "PLANT_VIA_CONST"\n'
+        '_UNREAD = "PLANT_NEVER_READ"\n'
+        'a = os.environ.get("PLANT_DIRECT")\n'
+        'b = os.environ.get(_READ)\n',
+        encoding="utf-8")
+    names = _env_names_in_code([probe])
+    assert {"PLANT_DIRECT", "PLANT_VIA_CONST"} <= names
+    assert "PLANT_NEVER_READ" not in names
+    assert "_READ" not in names, "the constant's own name is not an env var"
 
 
 def test_documented_environment_variables_exist():
@@ -393,7 +434,7 @@ def test_readme_and_layout_name_every_ideas_status_tag():
 
 # --- the example everyone runs first ---------------------------------------
 
-def runnable_examples() -> list[tuple[str, str, str]]:
+def runnable_examples(text: str = README) -> list[tuple[str, str, str]]:
     """Every ``Save this as `x.py`\u200b`` example, with the output printed below it.
 
     The convention is the promise: if the README tells you to save and run it,
@@ -403,11 +444,25 @@ def runnable_examples() -> list[tuple[str, str, str]]:
     """
     out = []
     for name, rest in re.findall(r"Save this as `([\w.]+)`(.*?)(?=Save this as `|\Z)",
-                                 README, re.DOTALL):
+                                 text, re.DOTALL):
         found = re.search(r"```python\n(.*?)```.*?```\n(.*?)```", rest, re.DOTALL)
         if found:
             out.append((name, found.group(1), found.group(2)))
     return out
+
+
+def test_the_example_finder_fires_on_a_saved_example_and_skips_an_illustration():
+    """Planted: the quick-start check runs whatever this finds, so a finder
+    that found nothing would leave the first thing anyone runs unchecked, and
+    one that found the illustrative transcripts would execute a fiction. A
+    "Save this as" block with its printed output is found, name and both
+    halves; a python fence without that introduction is not."""
+    doc = (
+        "## Quick start\n\nSave this as `hello.py`:\n\n```python\nprint('hi')\n```\n\n"
+        "and run it:\n\n```\nhi\n```\n\n## Rejection\n\n```python\nfrom nestor import x\n```\n"
+    )
+    assert runnable_examples(doc) == [("hello.py", "print('hi')\n", "hi\n")]
+    assert runnable_examples("no examples here\n```python\nx = 1\n```\n") == []
 
 
 @pytest.mark.parametrize("name,demo,expected",
