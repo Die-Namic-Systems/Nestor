@@ -106,7 +106,7 @@ AGENTS.md             cold-start for any agent — git sync, ci-lint, hook point
 CHANGELOG.md          releases, newest first — "Unreleased" until the first tag (docs/releasing.md)
 CONTRIBUTING.md       the single path from clone to merged PR — setup, gates, conventions, the one rule
 docs/agent-guide.md   participant-neutral operating rules (seals, tests, dogfood)
-IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open; opens with a CI-gated Map of every subsection
+IDEAS.md              running list of ideas, each tagged measured/verified/hypothesis/open/shipped; opens with a CI-gated Map of every subsection
 docs/agent-log.md     §6, the implementation-session log, lifted out of IDEAS.md; numbers preserved
 TODO.md               the queue — what is left, in order; IDEAS/QUESTIONS hold the arguments
 QUESTIONS.md          the questions this gets asked, answered or admitted

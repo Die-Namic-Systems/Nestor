@@ -3,7 +3,10 @@
 #
 # Called by scripts/ci-lint.sh before any check runs. Reads the pins from
 # scripts/lint-pins.txt — the same file .github/workflows/tests.yml installs
-# from — and compares them to what is actually importable here.
+# from — and compares them to what is actually importable here. Also checks
+# that .pre-commit-config.yaml's ruff hook `rev:` agrees with this file's
+# ruff==, since that is a third place the same version can be pinned and go
+# stale (see the ruff_pin block below).
 #
 # WHY IT REFUSES RATHER THAN WARNS, and rather than quietly running the pinned
 # version out of a throwaway environment: three of these five tools are only
@@ -33,6 +36,7 @@ module_for() {
 
 mismatched=""
 missing=""
+ruff_pin=""
 
 while IFS= read -r line; do
   line="${line%%#*}"
@@ -62,7 +66,34 @@ except Exception:
     mismatched="$mismatched  $name: this environment has $got, CI pins $want
 "
   fi
+
+  [ "$name" = "ruff" ] && ruff_pin="$want"
 done < "$pins_file"
+
+# .pre-commit-config.yaml pins ruff a second, independent way — a hook `rev:`,
+# not a pip requirement — and nothing kept the two numbers in sync: it sat at
+# v0.15.0 while this file and [dev] in pyproject.toml had already moved to
+# 0.16.6, so `pre-commit run` and `ci-lint.sh`/CI could report different
+# findings for the same push. Checked here because this is the one place that
+# already reads lint-pins.txt's ruff pin.
+precommit_file=".pre-commit-config.yaml"
+if [ -n "$ruff_pin" ] && [ -f "$precommit_file" ]; then
+  # Scoped to the block that starts at the ruff-pre-commit repo's own `repo:`
+  # line, so a `rev:` belonging to a different hook is never read as ruff's.
+  precommit_ruff="$(awk '
+    /repo: *https:\/\/github\.com\/astral-sh\/ruff-pre-commit/ { in_block=1; next }
+    in_block && /^ *rev:/ { sub(/^ *rev: *v?/, ""); print; exit }
+    /^ *-? *repo:/ { in_block=0 }
+  ' "$precommit_file")"
+
+  if [ -z "$precommit_ruff" ]; then
+    missing="$missing  $precommit_file: no astral-sh/ruff-pre-commit rev found
+"
+  elif [ "$precommit_ruff" != "$ruff_pin" ]; then
+    mismatched="$mismatched  ruff (pre-commit hook): $precommit_file pins v$precommit_ruff, $pins_file pins $ruff_pin
+"
+  fi
+fi
 
 if [ -n "$missing" ] || [ -n "$mismatched" ]; then
   echo "ci-lint: refusing to run — this environment's lint tools are not CI's." >&2

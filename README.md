@@ -302,7 +302,7 @@ one install, nothing changing mid-run.
 CI runs lint and the test matrix (Python 3.10 and 3.12) on every pull request,
 plus a daily scheduled run to catch drift. Ideas, open questions and measured
 dead ends live in [`IDEAS.md`](IDEAS.md) — each entry tagged
-**measured / verified / hypothesis / open**.
+**measured / verified / hypothesis / open / shipped**.
 
 ## License
 
