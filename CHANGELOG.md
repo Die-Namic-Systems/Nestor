@@ -153,6 +153,14 @@ what moved.
 
 ---
 
+## [0.21.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.2...v0.21.0) (2026-09-16)
+
+
+### Added
+
+* add embed-tick to warm tm_embeddings under a wall-clock budget ([b7fe3c1](https://github.com/Die-Namic-Systems/Nestor/commit/b7fe3c1af03cd1672688c523b4f6bb4d602552ba))
+* bounded embed-tick to warm tm_embeddings ([#299](https://github.com/Die-Namic-Systems/Nestor/issues/299)) ([691d31a](https://github.com/Die-Namic-Systems/Nestor/commit/691d31ac3eeafd79d06c53fcb2ef10146675b2f6))
+
 ## [0.20.2](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.1...v0.20.2) (2026-09-12)
 
 
