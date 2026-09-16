@@ -13,6 +13,7 @@ nestor/
 ├── matcher.py        the domain seam — Matcher protocol, StringMatcher, NumericMatcher
 ├── semantic_matcher.py  optional SemanticMatcher (fastembed extra or Ollama backend)
 ├── ollama_embed.py   stdlib client for local Ollama embeddings (nomic-embed-text)
+├── embed_tick.py     bounded warm of missing tm_embeddings under --budget-s / --limit
 ├── curator.py        the curator surface — browse, audit, unseal, export
 ├── calibrate.py      where the seal threshold should sit for *your* corpus
 ├── answer.py         what Nestor answers — one definition, shared by every surface

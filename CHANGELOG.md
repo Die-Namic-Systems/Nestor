@@ -22,6 +22,10 @@ what moved.
 
 ### Added
 
+* **`nestor embed-tick`** — wall-clock-bounded warm of `tm_embeddings` for the
+  ollama / semantic matcher (`SemanticMatcher.warm_embeddings`). Receipt is
+  three-state (`ok` / `empty` / `unreachable`) so a timer or steward tick can
+  keep the cache warm without a long sync embed on the first `ask`.
 * **Warrants** — `nestor/warrant.py`, a `decision_warrants` table, the
   `warrants` storage capability, and the `attach_warrant` ledger kind. A pair
   can now record *why a stranger should believe it* — a `citation` (a named
