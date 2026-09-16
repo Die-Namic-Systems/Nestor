@@ -701,6 +701,39 @@ _TRIAGE_MATCHERS = ("string", "semantic", "ollama")
 _TRIAGE_CALIBRATION_BARS = (0.35, 0.45, 0.55, 0.92)
 
 
+def cmd_embed_tick(args) -> int:
+    """Warm missing tm_embeddings under a wall-clock budget."""
+    from . import embed_tick as embed_tick_mod
+
+    store = _store(args)
+    try:
+        receipt = embed_tick_mod.run_embed_tick(
+            store,
+            matcher_spec=args.matcher,
+            source_lang=args.source_lang or "",
+            target_lang=args.target_lang or "",
+            budget_s=args.budget_s,
+            limit=args.limit,
+            batch_size=args.batch_size,
+        )
+    except ValueError as exc:
+        print(f"ValueError: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    human = (
+        f"embed-tick {receipt['status']}: backend={receipt['backend']} "
+        f"model={receipt['model']!r} embedded={receipt['embedded']}/"
+        f"{receipt['candidates']} remaining={receipt['remaining']} "
+        f"stopped={receipt['stopped']} elapsed_s={receipt['elapsed_s']}"
+    )
+    if receipt.get("reason"):
+        human += f"\n  reason: {receipt['reason']}"
+    _emit(receipt, args.json, human)
+    if receipt["status"] == "unreachable":
+        return EXIT_ANSWER_IS_NO
+    return EXIT_OK
+
+
 def cmd_triage(args) -> int:
     """Triage the decision queue — group it, find supersessions. Read-only."""
     from .triage import DEFAULT_BAR, load_decisions
@@ -1468,6 +1501,26 @@ def build_parser() -> argparse.ArgumentParser:
                      help="rows to probe; 0 for the whole corpus (default: 300)")
     cal.add_argument("--seed", type=int, default=0, help="sampling seed")
     cal.set_defaults(func=cmd_calibrate)
+
+    emb = sub.add_parser(
+        "embed-tick",
+        help="warm missing semantic/ollama embeddings under a wall-clock budget",
+    )
+    emb.add_argument("--source-lang", "--from", dest="source_lang", default="",
+                     help="limit to one source domain (default: all)")
+    emb.add_argument("--target-lang", "--to", dest="target_lang", default="",
+                     help="limit to one target domain (default: all)")
+    emb.add_argument("--matcher", default="ollama",
+                     choices=("ollama", "semantic"),
+                     help="embedding backend to warm (default: ollama — the "
+                          "local semantic embedder; 'semantic' is fastembed)")
+    emb.add_argument("--budget-s", dest="budget_s", type=float, default=5.0,
+                     help="wall-clock seconds for this tick (default: 5)")
+    emb.add_argument("--limit", type=int, default=64,
+                     help="max uncached sealed rows to warm this tick (default: 64)")
+    emb.add_argument("--batch-size", dest="batch_size", type=int, default=8,
+                     help="rows per embed batch between budget checks (default: 8)")
+    emb.set_defaults(func=cmd_embed_tick)
 
     tri = sub.add_parser("triage",
                          help="group the decision queue and find supersessions")

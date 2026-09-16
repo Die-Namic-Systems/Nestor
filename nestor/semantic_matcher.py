@@ -234,6 +234,39 @@ class SemanticMatcher:
                 continue
             save_embedding(store, row["id"], self.model_name, raw, vec)
 
+    def warm_embeddings(self, rows: list[dict], store) -> int:
+        """Embed and persist missing store-backed vectors for ``rows``.
+
+        Returns how many rows were written this call. Hydrates first so a
+        current cache entry is never recomputed; ``persist=False`` writes
+        nothing (same contract as :meth:`scores_against_for_rows`). Used by
+        ``nestor embed-tick`` so long cold-cache work can run on a budget
+        instead of on the first ``ask``.
+        """
+        if not rows or not store or not supports_embedding_store(store):
+            return 0
+        with self._lock:
+            cached = self._hydrate_embeddings_from_store(rows, store)
+            need_rows: list[dict] = []
+            need_texts: list[str] = []
+            for row in rows:
+                text = (row.get("source_text") or "").strip()
+                if not text or row["id"] in cached:
+                    continue
+                need_rows.append(row)
+                need_texts.append(text)
+            if not need_texts:
+                return 0
+            self._embed_batch_unlocked(need_texts)
+            if not self.persist:
+                return 0
+            before = set(cached)
+            self._persist_embeddings_to_store(need_rows, need_texts, store, cached)
+            return sum(
+                1 for row, text in zip(need_rows, need_texts)
+                if row["id"] not in before and text in self._cache
+            )
+
     def _scores_against_unlocked(self, query_text: str,
                                  stored_texts: list[str]) -> list[float]:
         q = "" if query_text is None else str(query_text)
