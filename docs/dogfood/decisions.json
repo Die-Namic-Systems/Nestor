@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 265,
+    "pairs": 266,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-20T00:00:00+00:00",
-  "digest": "0e3f93f5a7b0c6aebb618ff0551aba106f96eca8a860a2ac01857fcb4285f664",
+  "digest": "d303d88f54d83f7e482d1b782f88cc909cce39efb962d92fe7ac062b624697ac",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -61,6 +61,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Heal the key, then let add_pair run unchanged. Before add_pair, `_seal_draft` recomputes the domain-matcher norm; if it differs from the stored one it re-keys the draft in place (new store method memory_rekey) when no correctly-keyed live twin exists, or — when a twin already holds the canonical key (the state after an earlier errant click minted the sealed duplicate) — retires the stale draft into the twin (ledger kind draft_retired_duplicate) rather than mint a third row. add_pair then keeps every guarantee it already had: verifier policy, ledger, conflict/rejection checks, supersession.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "059d2450-4419-5c4c-a38c-642a76b04815",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "dogfooding the repair against a real operator store 13 stale decision drafts surfaced two things the first cut got wrong it treated a rejected row like a draft and run storewide it keyed a numeric domains rows 045 092 with stringmatcher and called them stale what does renormalize do with a rejected row and how does it behave on a multidomain store",
+      "source_text": "Dogfooding the repair against a real operator store (13 stale decision drafts) surfaced two things the first cut got wrong: it treated a rejected row like a draft, and run store-wide it keyed a numeric domain's rows (0.45, 0.92) with StringMatcher and called them stale. What does renormalize do with a rejected row, and how does it behave on a multi-domain store?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A rejected row with a stale key is reported as `rejected_stale` and never re-keyed or retired — a rejection is a deliberate no filed against a key, so moving it takes the no off the query it answers and retiring it buries it; restore it first if the key is genuinely wrong. And renormalize is documented and surfaced as a per-domain tool: one matcher cannot key two domains (§6.40), so an unscoped run on a mixed store keys every domain with its one matcher and mis-judges the others. The CLI now warns when sealed_stale/rejected_stale rows appear that they are likely a different domain caught by the wrong matcher, and points at --source-lang/--target-lang. Sealed and rejected rows are only ever reported, never written, so the mis-judgement stays cosmetic.",
       "verifier": "",
       "weight": 1.0
     },

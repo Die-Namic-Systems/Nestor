@@ -204,6 +204,60 @@ def test_renormalize_never_rekeys_a_sealed_row(tmp_path, seal_key):
     assert after["seal_sig"] == "sig-over-the-stale-key", "the seal was disturbed"
 
 
+def _dumped_row(store, source_text, *, source_norm, status, source_lang=DOMAIN,
+                target_lang=DOMAIN, target_text="x", verifier="", seal_sig=""):
+    pair = {
+        "id": str(uuid.uuid4()), "source_text": source_text,
+        "source_norm": source_norm, "source_lang": source_lang,
+        "target_text": target_text, "target_lang": target_lang, "status": status,
+        "verifier": verifier, "weight": 1.0, "origin": "dump",
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "seal_sig": seal_sig, "reason": "", "superseded_by": "",
+    }
+    store.memory_insert(pair)
+    return pair
+
+
+def test_renormalize_never_touches_a_rejected_row(tmp_path, seal_key):
+    """The forbidden act: a rejection is a deliberate 'no' filed against a key.
+    renormalize must report it and leave status, key and lineage intact — never
+    re-key it (moves the no) or retire it into a twin (buries the no)."""
+    store = _store(tmp_path)
+    # A correctly-keyed sealed twin, plus a stale-keyed REJECTED row for the
+    # same source — the shape that tempts a retire.
+    memory.add_pair(STALE, "the commitment", DOMAIN, DOMAIN, status="sealed",
+                    verifier="rita", store=store)
+    rej = _dumped_row(store, STALE, source_norm=STALE, status="rejected")
+
+    report = memory.renormalize_keys(store, apply=True)
+    assert [r["id"] for r in report["rejected_stale"]] == [rej["id"]]
+    assert not [r for r in report["rekeyed"] + report["retired"]
+                if r["id"] == rej["id"]], "the rejection was rekeyed or retired"
+    after = store.memory_get(rej["id"])
+    assert after["status"] == "rejected", "the no was flipped"
+    assert after["source_norm"] == STALE, "the no was re-keyed off its query"
+    assert after["superseded_by"] == "", "the no was buried into a twin"
+
+
+def test_renormalize_scoped_to_one_domain_leaves_other_domains_untouched(tmp_path, seal_key):
+    """A single matcher cannot key two domains. Scoped to one, renormalize must
+    not compute a foreign domain's key at all — a numeric row keyed by its own
+    matcher must not be dragged in by StringMatcher."""
+    store = _store(tmp_path)
+    mine = _dumped_row(store, STALE, source_norm=STALE, status="draft")
+    # A numeric pair in another domain, correctly keyed by a value matcher as
+    # "0.45" — StringMatcher would call this stale and want "45".
+    numeric = _dumped_row(store, "0.45", source_norm="0.45", status="sealed",
+                          source_lang="serve_threshold", target_lang="value")
+
+    report = memory.renormalize_keys(store, source_lang=DOMAIN, target_lang=DOMAIN,
+                                     apply=True)
+    touched = {r["id"] for bucket in report.values() for r in bucket}
+    assert numeric["id"] not in touched, "a foreign-domain row was judged by the wrong matcher"
+    assert mine["id"] in {r["id"] for r in report["rekeyed"]}
+    assert store.memory_get(numeric["id"])["source_norm"] == "0.45", "the numeric key was moved"
+
+
 def test_cli_db_renormalize_apply_heals_the_store(tmp_path, seal_key):
     from nestor import cli
 

@@ -966,14 +966,20 @@ def renormalize_keys(store: Storage | None = None, *,
       untouched. A seal signature covers the ``source_norm`` (see
       :func:`nestor.signing.sign_seal`), so re-keying a sealed row would break
       its signature — that is a re-seal, a human decision, not a mechanical fix.
+    * **Rejected row with a stale key** → reported as ``rejected_stale`` and
+      left untouched. A rejection is a deliberate "no" filed against this key;
+      re-keying moves the no off the query it answers and retiring buries it.
     * **Empty normalisation / no lineage to retire** → reported, never guessed.
 
     Pass one domain's ``matcher`` and scope with ``source_lang`` /
-    ``target_lang``: a single matcher cannot key two domains (§6.40). With
+    ``target_lang``: a single matcher cannot key two domains (§6.40), so on a
+    multi-domain store an unscoped run keys every domain with this one matcher
+    and will mis-judge the others (a numeric ``0.45`` looks "stale" to
+    StringMatcher). Scope to one domain and pass its matcher. With
     ``apply=False`` (the default) nothing is written — the returned report is
-    the plan. Returns ``{"rekeyed", "retired", "sealed_stale", "empty_norm",
-    "conflicts"}``, each a list of ``{id, source_text, from, to, status}``
-    (retired/conflicts also carry ``twin``).
+    the plan. Returns ``{"rekeyed", "retired", "sealed_stale", "rejected_stale",
+    "empty_norm", "conflicts"}``, each a list of ``{id, source_text, from, to,
+    status}`` (retired/conflicts also carry ``twin``).
     """
     store = get_store(store)
     matcher = get_matcher(matcher)
@@ -983,7 +989,7 @@ def renormalize_keys(store: Storage | None = None, *,
                              limit=1_000_000)
     report: dict[str, list[dict]] = {
         "rekeyed": [], "retired": [], "sealed_stale": [],
-        "empty_norm": [], "conflicts": [],
+        "rejected_stale": [], "empty_norm": [], "conflicts": [],
     }
     for row in rows:
         correct = matcher.normalize(row.get("source_text", ""))
@@ -999,6 +1005,13 @@ def renormalize_keys(store: Storage | None = None, *,
             continue
         if row.get("status") == "sealed":
             report["sealed_stale"].append(entry)
+            continue
+        if row.get("status") == "rejected":
+            # A rejection is a deliberate "no", filed against this key. Re-keying
+            # it would move the no off the query it answers; retiring it into a
+            # twin would bury it. Report it, never touch it — restore it first
+            # (Curator.restore) if the key is genuinely wrong.
+            report["rejected_stale"].append(entry)
             continue
         twin = store.memory_find(correct, sl, tl)
         if twin is None or twin["id"] == row["id"]:

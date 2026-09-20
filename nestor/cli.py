@@ -564,9 +564,13 @@ def cmd_db(args) -> int:
             f"  {verb}: {counts['rekeyed']} stale-keyed draft(s)",
             f"  {retire_verb}: {counts['retired']} duplicate draft(s) into a live twin",
             f"  sealed with a stale key (needs re-seal, left untouched): {counts['sealed_stale']}",
+            f"  rejected with a stale key (left untouched): {counts['rejected_stale']}",
             f"  empty normalisation (cannot re-key): {counts['empty_norm']}",
             f"  unresolved conflicts: {counts['conflicts']}",
         ]
+        if counts["sealed_stale"] or counts["rejected_stale"]:
+            lines.append("  (untouched rows below are likely a DIFFERENT domain's "
+                         "matcher — scope with --source-lang/--target-lang)")
         for row in report["sealed_stale"]:
             lines.append(f"    sealed_stale {row['id'][:8]} {row['source_text']!r} "
                          f"({row['from']!r} -> {row['to']!r})")
