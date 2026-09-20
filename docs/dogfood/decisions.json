@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 262,
+    "pairs": 264,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "5238f819358db0c0f8123022bdd8fc5cde80cbb6cd39d9c255546caebaf320ad",
+  "created_at": "2026-09-20T00:00:00+00:00",
+  "digest": "489a4c3a865aa447ad041c2967e79fd21047fcf1650b114ae38bc5588954b78d",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "f6419b24-90d0-5ea0-9031-5835c1da240a",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the graph tab renders a line of dots and explains nothing its data is 264 decisions and 0 relationships what does it show when there are decisions but no edges between them",
+      "source_text": "The Graph tab renders a line of dots and explains nothing. Its data is 264 decisions and 0 relationships. What does it show when there are decisions but no edges between them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It stops drawing. Instead of laying every decision out as a node (which, with no edges, the breadthfirst layout lines up as unreadable dots), the tab shows a plain-language panel: N decisions, none related yet; this page draws the relationships between decisions — supersedes (a newer replaces an older) and contradicts (two disagree) — and there is nothing to draw until one exists; confirm a proposed relationship in Triage to draw the first; this view only reads. A one-line intro naming what a box and an arrow are runs above the canvas in every state.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "ca68a856-cb30-51bb-9d3f-d1e3368116ee",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when relationships do exist a store of hundreds of decisions with a handful of edges would still bury those edges among hundreds of unconnected nodes what does the canvas draw by default",
+      "source_text": "When relationships DO exist, a store of hundreds of decisions with a handful of edges would still bury those edges among hundreds of unconnected nodes. What does the canvas draw by default?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The connected sub-graph: only decisions touched by at least one edge, with a toggle ('show all N, connected or not') to reveal the rest. The relationships are the picture; the unconnected decisions live in Memory and Triage and are one click away here, never gone.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-12T00:00:00+00:00",
       "id": "fb09d9cd-145b-5ff0-b14f-8fd3ede14793",

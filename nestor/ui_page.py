@@ -803,6 +803,12 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // destroys it before every re-render so a stale one never
             // outlives the canvas element it was drawn into (see render()).
             graph: null, cy: null, graphSelected: null,
+            // The graph draws relationships, so it leads with the decisions
+            // that have one — a store of a few hundred decisions with a handful
+            // of sealed edges is otherwise hundreds of unconnected nodes the
+            // breadthfirst layout lines up as dots. `graphShowAll` expands the
+            // canvas to every decision, connected or not, on demand.
+            graphShowAll: false,
             // Triage tab (read-only, GET /api/triage only — no seal, no edge
             // write reachable from this tab; see nestor.ui's `_triage`).
             // `triageDetail` is the full pair fetched via the existing
@@ -3175,8 +3181,13 @@ function viewGraph() {
     h("div", { class: "row" },
       h("h2", { style: "margin:0", text: "Decision graph" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge good", text: g.nodes.length + " decision(s)" }),
-      h("span", { class: "badge", text: g.edges.length + " relation(s)" })));
+      h("span", { class: "badge good", text: g.nodes.length + " decisions" }),
+      h("span", { class: "badge", text: g.edges.length + " relationships" })),
+    h("p", { class: "small muted", text:
+      "How your decisions connect to each other. Each box is a decision; an arrow "
+      + "is a sealed relationship between two — ↻ one replaces another (supersedes) "
+      + "or ⚠ two disagree (contradicts). Relationships are made by confirming a "
+      + "proposal in the Triage tab; this view only reads." }));
   view.append(card);
 
   if (!g.nodes.length) {
@@ -3186,11 +3197,46 @@ function viewGraph() {
     return;
   }
 
+  // The graph draws relationships. With none, laying every decision out as a
+  // node is a line of unreadable dots that says nothing — so say what the page
+  // is for instead of drawing an empty relationship-graph as if it were full.
+  if (!g.edges.length) {
+    view.append(h("div", { class: "card" },
+      h("p", { class: "empty", text:
+        g.nodes.length + " decisions, but none are related to each other yet. "
+        + "This page draws the relationships between decisions — a newer one "
+        + "replacing an older (↻ supersedes), or two that disagree (⚠ contradicts) "
+        + "— and there is nothing to draw until one exists. Confirm a proposed "
+        + "relationship in the Triage tab to draw the first; this view only reads, "
+        + "so it cannot create one for you." })));
+    return;
+  }
+
+  // Relationships exist: lead with the decisions that have one. `connected` is
+  // every node touched by an edge; the rest are drawn only when the reviewer
+  // asks (graphShowAll), so a few relationships are not lost among hundreds of
+  // unconnected nodes the layout would line up as dots.
+  const linked = new Set();
+  for (const e of g.edges) { linked.add(e.source); linked.add(e.target); }
+  const shownNodes = S.graphShowAll ? g.nodes : g.nodes.filter((n) => linked.has(n.id));
+  const hidden = g.nodes.length - shownNodes.length;
+  const shownGraph = { nodes: shownNodes, edges: g.edges };
+
+  if (hidden > 0 || S.graphShowAll) {
+    view.append(h("div", { class: "card" }, h("div", { class: "row small muted" },
+      h("span", { text: S.graphShowAll
+        ? "showing all " + g.nodes.length + " decisions, connected or not"
+        : "showing " + shownNodes.length + " related decision(s); "
+          + hidden + " unconnected one(s) are hidden" }),
+      h("button", { class: "small", onclick: () => { S.graphShowAll = !S.graphShowAll; render(); } },
+        S.graphShowAll ? "show related only" : "show all " + g.nodes.length))));
+  }
+
   const canvas = h("div", { id: "graph-canvas" });
   const legend = h("div", { class: "graph-legend" },
-    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed"),
-    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft"),
-    h("span", { class: "item" }, h("span", { class: "line" }), "relation"),
+    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed decision"),
+    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft decision"),
+    h("span", { class: "item" }, h("span", { class: "line" }), "supersedes →"),
     h("span", { class: "item" }, h("span", { class: "line contradicts" }), "contradicts"));
   const frame = h("div", { class: "graph-frame" }, canvas, legend);
   const detail = h("div", { class: "card", id: "graph-detail-card" }, graphDetail(S.graphSelected));
@@ -3198,7 +3244,7 @@ function viewGraph() {
 
   const cy = cytoscape({
     container: canvas,
-    elements: graphElements(g),
+    elements: graphElements(shownGraph),
     style: graphStylesheet(graphPalette()),
     layout: { name: "breadthfirst", directed: true, spacingFactor: 1.15, padding: 24 },
     // Canvas only, no DOM to click through — a read-only view has nothing to
