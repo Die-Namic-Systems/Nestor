@@ -1028,14 +1028,30 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
                  "status": statuses.get(pid, "draft")}
                 for pid in open_ids]
 
+    def _q(pid: str) -> str:
+        return by_id[pid].question if pid in by_id else ""
+
+    def _c(pid: str) -> str:
+        return by_id[pid].commitment if pid in by_id else ""
+
+    # Members carry their question text, not just an id: the Triage tab renders
+    # a group by what its decisions ask, so a human can see what is being
+    # consolidated without tapping eight hashes one at a time.
     clusters = [{"representative_id": c.representative_id,
-                "member_ids": list(c.member_ids), "label": c.label}
+                "member_ids": list(c.member_ids), "label": c.label,
+                "members": [{"id": mid, "question": _q(mid)} for mid in c.member_ids]}
                for c in report.clusters]
 
     edges = sorted(report.edges, key=lambda e: (
         _TRIAGE_EDGE_ORDER.get(e.kind, len(_TRIAGE_EDGE_ORDER)), e.src_id, e.dst_id))
+    # Same reason as clusters: an edge is a question about two specific
+    # decisions, so it carries their text. src/dst still travel as ids for the
+    # seal ceremony (edge_sig covers the ids), the text is for the human.
     edge_rows = [{"src_id": e.src_id, "dst_id": e.dst_id, "kind": e.kind,
-                 "score": e.score} for e in edges]
+                 "score": e.score,
+                 "src_question": _q(e.src_id), "src_commitment": _c(e.src_id),
+                 "dst_question": _q(e.dst_id), "dst_commitment": _c(e.dst_id)}
+                for e in edges]
 
     result = {
         "bar": report.bar,
