@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 262,
+    "pairs": 265,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-12T00:00:00+00:00",
-  "digest": "5238f819358db0c0f8123022bdd8fc5cde80cbb6cd39d9c255546caebaf320ad",
+  "created_at": "2026-09-20T00:00:00+00:00",
+  "digest": "0e3f93f5a7b0c6aebb618ff0551aba106f96eca8a860a2ac01857fcb4285f664",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "edd9f7ef-aaa0-5fac-877b-ccc576a09aba",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a curator seals a draft in nestor ui and it stays in the queue but only for drafts that came from a bulk import is the ui failing to refresh or is the store not recording the seal",
+      "source_text": "A curator seals a draft in nestor ui and it stays in the queue, but only for drafts that came from a bulk import. Is the UI failing to refresh, or is the store not recording the seal?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Neither. The store records a seal — a NEW, correctly-keyed sealed row — and the UI refresh faithfully shows the original draft still there. `_seal_draft` seals via `memory.add_pair`, which re-derives the key as `matcher.normalize(source_text)` and finds the draft by that key (`memory_find`). A bulk import can store a `source_norm` the domain matcher does not reproduce (the raw text, an older normaliser), so the lookup misses, the write becomes an insert, and the draft is stranded. Store-origin-dependent because only imported rows carry a stale key; drafts created through add_pair key consistently and seal in place (§6.40).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "e0814c8f-f6ca-53ff-8db9-969844aa83a8",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "existing stores already carry stranded drafts and their duplicate sealed twins fix only going forward or also repair the damage on disk",
+      "source_text": "Existing stores already carry stranded drafts and their duplicate sealed twins. Fix only going forward, or also repair the damage on disk?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both. `nestor db renormalize` (dry run unless --apply) walks live rows and, per row: re-keys a stale-keyed draft with no twin; retires a stale draft that duplicates a live twin; reports (never touches) a sealed row with a stale key as needing a human re-seal; reports empty-normalisation and lineage-less conflicts instead of guessing. memory.renormalize_keys is the library entry point. It uses the default StringMatcher and scopes by domain, because one matcher cannot key two domains (§6.40).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "c155df16-9912-53ac-b6d2-97a41007c6f2",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the seal path holds the exact draft id but keys the write by recomputed text fix it by sealing the known row by id or by healing the stale key so the existing add_pair ceremony lands on it",
+      "source_text": "The seal path holds the exact draft id but keys the write by recomputed text. Fix it by sealing the known row by id, or by healing the stale key so the existing add_pair ceremony lands on it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Heal the key, then let add_pair run unchanged. Before add_pair, `_seal_draft` recomputes the domain-matcher norm; if it differs from the stored one it re-keys the draft in place (new store method memory_rekey) when no correctly-keyed live twin exists, or — when a twin already holds the canonical key (the state after an earlier errant click minted the sealed duplicate) — retires the stale draft into the twin (ledger kind draft_retired_duplicate) rather than mint a third row. add_pair then keeps every guarantee it already had: verifier policy, ledger, conflict/rejection checks, supersession.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-12T00:00:00+00:00",
       "id": "fb09d9cd-145b-5ff0-b14f-8fd3ede14793",

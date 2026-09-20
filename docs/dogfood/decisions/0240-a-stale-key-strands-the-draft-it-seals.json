@@ -1,0 +1,22 @@
+{
+  "branch": "claude/youthful-albattani-wvsoge",
+  "date": "2026-09-20",
+  "note": "Proposed, not sealed. Found dogfooding nestor ui against a store built from bulk imports: sealing a draft appeared to do nothing — the row would not leave the queue — and it only happened to imported rows, not to pairs drafted through the product. This records the root cause and the two-part fix (prevent in the seal path, repair existing stores). Reproduced in tests/test_seal_draft_stale_key.py; the surrounding §6.40 tests (tests/test_ui_custom_matcher.py) still pass unchanged.",
+  "decisions": [
+    {
+      "question": "A curator seals a draft in nestor ui and it stays in the queue, but only for drafts that came from a bulk import. Is the UI failing to refresh, or is the store not recording the seal?",
+      "commitment": "Neither. The store records a seal — a NEW, correctly-keyed sealed row — and the UI refresh faithfully shows the original draft still there. `_seal_draft` seals via `memory.add_pair`, which re-derives the key as `matcher.normalize(source_text)` and finds the draft by that key (`memory_find`). A bulk import can store a `source_norm` the domain matcher does not reproduce (the raw text, an older normaliser), so the lookup misses, the write becomes an insert, and the draft is stranded. Store-origin-dependent because only imported rows carry a stale key; drafts created through add_pair key consistently and seal in place (§6.40).",
+      "why": "Read, not concluded: memory_seal by id would have upgraded the row, but _seal_draft does not call it — nestor/ui.py:1281 -> nestor/memory.py:736. The insert-vs-upgrade branch turns on whether memory_find(recomputed_norm) returns the draft, and a stored norm the matcher cannot reproduce is exactly the miss. Confirmed by reproduction: a draft whose source_norm is the verbatim text seals into a second row while the draft remains live; a draft whose source_norm the matcher reproduces upgrades in place."
+    },
+    {
+      "question": "The seal path holds the exact draft id but keys the write by recomputed text. Fix it by sealing the known row by id, or by healing the stale key so the existing add_pair ceremony lands on it?",
+      "commitment": "Heal the key, then let add_pair run unchanged. Before add_pair, `_seal_draft` recomputes the domain-matcher norm; if it differs from the stored one it re-keys the draft in place (new store method memory_rekey) when no correctly-keyed live twin exists, or — when a twin already holds the canonical key (the state after an earlier errant click minted the sealed duplicate) — retires the stale draft into the twin (ledger kind draft_retired_duplicate) rather than mint a third row. add_pair then keeps every guarantee it already had: verifier policy, ledger, conflict/rejection checks, supersession.",
+      "why": "Sealing by id would have to re-implement add_pair's whole ceremony or bypass it; healing the key is smaller and reuses the ceremony verbatim. The heal fires only when the stored norm is actually stale, so the §6.40 case (draft drafted with the domain matcher) is untouched and its tests still pass. A sealed row's signature covers its source_norm, so re-keying is confined to unsigned drafts; a stale-keyed SEALED row is reported, never silently moved."
+    },
+    {
+      "question": "Existing stores already carry stranded drafts and their duplicate sealed twins. Fix only going forward, or also repair the damage on disk?",
+      "commitment": "Both. `nestor db renormalize` (dry run unless --apply) walks live rows and, per row: re-keys a stale-keyed draft with no twin; retires a stale draft that duplicates a live twin; reports (never touches) a sealed row with a stale key as needing a human re-seal; reports empty-normalisation and lineage-less conflicts instead of guessing. memory.renormalize_keys is the library entry point. It uses the default StringMatcher and scopes by domain, because one matcher cannot key two domains (§6.40).",
+      "why": "The prevention fix stops new strandings but cannot un-strand the rows a curator is already looking at. The repair is deliberately conservative — it re-keys only unsigned drafts and refuses to move a sealed row's key (that would invalidate the seal signature), so a mechanical maintenance step can never quietly break a human's decision. Verified against a VACUUM INTO copy of docs/dogfood/nestor.db: 0 rows to touch, because that store is built through add_pair and was never damaged — the tool's clean answer on a clean store."
+    }
+  ]
+}
