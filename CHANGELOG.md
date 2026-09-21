@@ -153,6 +153,13 @@ what moved.
 
 ---
 
+## [0.26.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.25.0...v0.26.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make the Ask tab legible and decision-native ([#308](https://github.com/Die-Namic-Systems/Nestor/issues/308)) ([ca1846b](https://github.com/Die-Namic-Systems/Nestor/commit/ca1846b3c1491ceaefb5825c2eb3deb50117003a))
+
 ## [0.25.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.24.0...v0.25.0) (2026-09-21)
 
 
