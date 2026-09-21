@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 268,
+    "pairs": 270,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-20T00:00:00+00:00",
-  "digest": "ff9e2ea911590cb00f6d0a682c33e286d2d5a3cb99c72bf3e3dafab1e2104b80",
+  "digest": "4599a7f7f1329e755d14a150918440f92681f271cab85b41b9da53f1b794097e",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -89,6 +89,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Heal the key, then let add_pair run unchanged. Before add_pair, `_seal_draft` recomputes the domain-matcher norm; if it differs from the stored one it re-keys the draft in place (new store method memory_rekey) when no correctly-keyed live twin exists, or — when a twin already holds the canonical key (the state after an earlier errant click minted the sealed duplicate) — retires the stale draft into the twin (ledger kind draft_retired_duplicate) rather than mint a third row. add_pair then keeps every guarantee it already had: verifier policy, ledger, conflict/rejection checks, supersession.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "adc58f9b-4ead-53a3-a23a-8b38c1129706",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "even readable the tab drowns its signal on a real store it renders 262 open rows and 243 clusters 232 of which are onemember groups with nothing to consolidate to surface one proposed edge what gets shown and in what order",
+      "source_text": "Even readable, the tab drowns its signal: on a real store it renders 262 open rows and 243 clusters — 232 of which are one-member 'groups' with nothing to consolidate — to surface one proposed edge. What gets shown, and in what order?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Lead with the signal, fold the noise. The tab now orders as: proposed conflicts/duplicates first, then multi-member groups only, then the full open list. Single-member clusters are folded behind a count line ('N decisions stand alone (nothing to consolidate) — show them'); the open list caps at 25 (it is already ranked signal-first server-side) with a 'show all N' toggle. Nothing is removed — both folds expand on demand, and the expanded state survives a refresh — so the handful of real signals are not buried under a row per decision.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "62d0e524-272e-5356-a164-e38afad7393c",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a curator cannot use the triage tab a proposed edge shows as `a1b2c3d4 e5f6g7h8 score 055 contradicts` and group members as bare hashes so there is no way to tell what two decisions are involved or what is being asked what does the tab show instead",
+      "source_text": "A curator cannot use the Triage tab: a proposed edge shows as `a1b2c3d4 -> e5f6g7h8 score 0.55 contradicts` and group members as bare hashes, so there is no way to tell what two decisions are involved or what is being asked. What does the tab show instead?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The decisions themselves, in plain language. /api/triage (_triage in ui.py) now carries each proposed edge's src/dst question and commitment text, and each cluster member's question text, alongside the ids. The tab renders a proposed edge as a framed statement — 'These two decisions disagree' (contradicts) or 'A newer decision looks like it replaces an older one' (supersedes), with each side's question and answer shown and a plain-verb button ('Flag the conflict' / 'Replace the older') rather than 'Confirm' on a hash. The ids still travel for the seal ceremony (edge_sig covers them); the text is purely for the human.",
       "verifier": "",
       "weight": 1.0
     },
