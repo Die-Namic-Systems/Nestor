@@ -206,6 +206,28 @@ def test_the_matrix_check_catches_a_planted_hand_kept_matrix():
     assert _matrix_versions(_job_block(none, "lint")) == []
 
 
+def test_the_windows_matrix_check_catches_a_planted_dropped_floor():
+    """Planted: a Windows leg whose push/schedule array silently drops the
+    floor Python (both branches of the ternary name only the ceiling) — the
+    one-Python reduction widened past the pull_request event. `_windows_matrix`
+    reads both `fromJSON` arrays, so the floor test's
+    `full_versions == [floor, ceiling]` fails on it; the healthy two-array
+    shape parses as `(pr, full)` in order."""
+    dropped = _workflow(
+        "  test-windows:\n    strategy:\n      matrix:\n"
+        "        python-version: ${{ (github.event_name == 'pull_request')"
+        " && fromJSON('[\"3.13\"]') || fromJSON('[\"3.13\"]') }}\n")
+    pr, full = _windows_matrix(_job_block(dropped, WINDOWS_JOB))
+    assert pr == ["3.13"] and full == ["3.13"]         # the plant: floor dropped
+    assert full != ["3.10", "3.13"]                     # so the floor test catches it
+
+    healthy = _workflow(
+        "  test-windows:\n    strategy:\n      matrix:\n"
+        "        python-version: ${{ (github.event_name == 'pull_request')"
+        " && fromJSON('[\"3.13\"]') || fromJSON('[\"3.10\", \"3.13\"]') }}\n")
+    assert _windows_matrix(_job_block(healthy, WINDOWS_JOB)) == (["3.13"], ["3.10", "3.13"])
+
+
 def test_the_ruff_pin_check_catches_a_planted_second_pin():
     """Planted: the workflow repeating `ruff==` is the two-copies drift
     #292 closed for pre-commit; a pins file with no pin, or two, fails too."""
