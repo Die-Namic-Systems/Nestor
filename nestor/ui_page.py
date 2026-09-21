@@ -3617,7 +3617,133 @@ function viewSignals() {
       text: "This store does not implement the curation capability (storage.supports_curation)." })));
     return;
   }
-  view.append(replacedCard(), rejectedQueriesCard(), junkPairsCard());
+  const s = S.signals || {};
+  // Alarms: something is wrong. Empty across all of them is the good state,
+  // and the header says so rather than leaving three blank cards to read as
+  // broken. Overrules (replaced, self-corrections hidden by default), junk
+  // pairs still being served, and rows that say sealed but will not verify.
+  const alarms = (s.replaced || []).length
+    + ((s.rejections && s.rejections.pairs) || []).length
+    + (s.unverifiable || []).length;
+
+  view.append(h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("h2", { style: "margin:0", text: "Signals" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge" + (alarms ? "" : " good"),
+                  text: alarms ? alarms + " to look at" : "all clear" })),
+    h("p", { class: "small muted", text:
+      "What the store is telling you about itself. Alarms first — empty is good, "
+      + "it means nothing is wrong — then coverage and upkeep, which are worth a "
+      + "glance even on a healthy store." })));
+
+  view.append(h("div", { class: "row", style: "margin:4px 2px" }, h("b", { text: "Alarms" })));
+  if (!alarms) {
+    view.append(h("div", { class: "card" }, h("p", { class: "empty", text:
+      "All clear — no seal overruled, no junk pair being served, every sealed row verifies." })));
+  }
+  // replacedCard always renders: it carries the "include self-corrections"
+  // toggle, the only way to reveal the overrules the alarm count hides.
+  view.append(replacedCard());
+  if (((s.rejections && s.rejections.pairs) || []).length) view.append(junkPairsCard());
+  if ((s.unverifiable || []).length) view.append(unverifiableCard());
+
+  view.append(h("div", { class: "row", style: "margin:12px 2px 4px" }, h("b", { text: "Coverage & upkeep" })));
+  view.append(dueCard(), missesCard(), rejectedQueriesCard());
+}
+
+function unverifiableCard() {
+  const rows = (S.signals && S.signals.unverifiable) || [];
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Sealed, but Nestor won't serve them" }),
+    h("p", { class: "small muted", text:
+      "These rows say 'sealed', but their signature does not verify here, so every serve "
+      + "path refuses them (Nestor#2). A seal written by something that did not hold the key "
+      + "looks exactly like this. Open one in Memory to unseal or re-seal it." }));
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Every sealed row verifies." }));
+    return card;
+  }
+  for (const p of rows) {
+    card.append(h("div", { class: "pair",
+                           onclick: async () => { S.tab = "memory"; await refresh(); openPair(p.id); } },
+      h("div", { class: "texts" }, mark(p.status),
+        h("span", { class: "src", text: p.source_text || "(row is gone)" }),
+        h("span", { class: "arrow", text: "→" }),
+        h("span", { text: p.target_text })),
+      h("div", { class: "row small muted", style: "margin-top:4px" },
+        h("span", { class: "chip", style: "color:var(--rejected);border-color:var(--rejected)",
+                    text: "won't verify" }),
+        p.verifier ? h("span", { class: "chip", text: p.verifier }) : null)));
+  }
+  return card;
+}
+
+function dueCard() {
+  const d = (S.signals && S.signals.due) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Seals due for re-verification" }),
+    h("p", { class: "small muted", text:
+      "Sealed answers whose last human check is older than " + (d.threshold_days ?? 90)
+      + " days. Not wrong — aging; a human may want to confirm they still hold." }));
+  if (d.chain_ok === false) {
+    card.append(h("p", { class: "empty", text:
+      "Can't check — the ledger chain does not verify: " + (d.detail || "") }));
+    return card;
+  }
+  const rows = d.rows || [];
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Nothing is past the re-verification age." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["age (days)", "pair", "last verifier", "last checked"].map((t) => h("th", { text: t }))));
+  for (const r of rows) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.days) })),
+      h("td", { class: "mono small", text: (r.pair_id || "").slice(0, 8) }),
+      h("td", { text: r.verifier || "(unknown)" }),
+      h("td", { class: "small muted", text: (r.last || "").slice(0, 10) })));
+  }
+  card.append(table);
+  if (d.total > rows.length) {
+    card.append(h("p", { class: "small muted", text: "showing " + rows.length + " of " + d.total }));
+  }
+  return card;
+}
+
+function missesCard() {
+  const m = (S.signals && S.signals.misses) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Questions Nestor couldn't answer" }),
+    h("p", { class: "small muted", text:
+      "Inputs that were asked but had no verified answer to serve — the shortlist of what "
+      + "to seal next. Questions seen only once are counted but their text is not shown." }));
+  if (m.supported === false) {
+    card.append(h("p", { class: "empty", text: "This store does not record misses." }));
+    return card;
+  }
+  const q = m.queue || [];
+  if (!q.length) {
+    card.append(h("p", { class: "empty", text: m.withheld
+      ? m.withheld + " one-off question(s) seen; none has been asked more than once yet."
+      : "No unanswered question has been recorded." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["times", "query (normalized)", "domain"].map((t) => h("th", { text: t }))));
+  for (const r of q) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.seen) })),
+      h("td", { class: "mono small", text: r.query }),
+      h("td", { class: "small muted", text: (r.source_lang || "") + "→" + (r.target_lang || "") })));
+  }
+  card.append(table);
+  if (m.withheld) {
+    card.append(h("p", { class: "small muted", text:
+      m.withheld + " question(s) seen only once are counted but not shown." }));
+  }
+  return card;
 }
 
 function replacedCard() {
@@ -3869,6 +3995,9 @@ async function refresh() {
       S.signals = {
         replaced: (await api("/api/replaced-seals?all=" + (S.showAllReplaced ? "1" : "0"))).replaced,
         rejections: await api("/api/rejections?" + q.toString()),
+        unverifiable: (await api("/api/pairs?unverifiable=1&limit=200")).pairs,
+        due: await api("/api/due-for-reverification?limit=200"),
+        misses: await api("/api/misses?limit=200"),
       };
     }
     if (S.tab === "ledger") {
