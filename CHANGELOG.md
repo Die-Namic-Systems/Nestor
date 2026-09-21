@@ -153,6 +153,14 @@ what moved.
 
 ---
 
+## [0.27.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.26.0...v0.27.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** collapse each Signals panel to a summary that opens on demand ([0099f40](https://github.com/Die-Namic-Systems/Nestor/commit/0099f403447b7dedc00dc38dae30393b84cd8470))
+* **ui:** collapse each Signals panel to a summary that opens on demand ([#314](https://github.com/Die-Namic-Systems/Nestor/issues/314)) ([607ad2f](https://github.com/Die-Namic-Systems/Nestor/commit/607ad2fbedb29c6873884255a27bf335b41e397e))
+
 ## [0.26.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.25.0...v0.26.0) (2026-09-21)
 
 
