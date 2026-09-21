@@ -153,6 +153,13 @@ what moved.
 
 ---
 
+## [0.25.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.24.0...v0.25.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make the Queue a review hub, not just a segment list ([#306](https://github.com/Die-Namic-Systems/Nestor/issues/306)) ([978e008](https://github.com/Die-Namic-Systems/Nestor/commit/978e0089216953354e070477c35471a9360d74c2))
+
 ## [0.24.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.23.0...v0.24.0) (2026-09-21)
 
 

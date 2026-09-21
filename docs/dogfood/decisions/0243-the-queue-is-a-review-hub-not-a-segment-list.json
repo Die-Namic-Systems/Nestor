@@ -1,0 +1,12 @@
+{
+  "branch": "claude/queue-review-hub",
+  "date": "2026-09-21",
+  "note": "Proposed, not sealed. Dogfooding feedback on nestor ui: in a month of running an operator store, only once did anything land in the Queue tab, and its header 'Awaiting a human' read as a promise the tab was not keeping. The Queue only counted translation *segments* — text the cascade ingests through a document — a workflow this operator no longer uses; the review work that actually awaits a human (draft pairs to seal, proposed relationships to confirm) lives in Memory and Triage. So the one tab named 'Awaiting a human' was the one place they were not. Front-end only (viewQueue in ui_page.py); no API or write-path change. Pinned in tests/test_ui.py.",
+  "decisions": [
+    {
+      "question": "The Queue tab named 'Awaiting a human' is empty and inert for a decision-first store because it only lists translation segments — a workflow no longer central to Nestor. Rename it, explain the emptiness, or repurpose it?",
+      "commitment": "Repurpose it into a review hub. 'Awaiting a human' now surfaces every kind of review work in this store as a row with a count and a jump: draft pairs awaiting a seal (open in Memory, count from the store summary), proposed relationships to review (open in Triage), and translation segments queued (the original inline seal/reject rows, kept as one section when a store still has them). The name stays because it is now true.",
+      "why": "The user's own words — 'Nestor isn't really a translation tool anymore' — are the finding: the tab's premise was a workflow they left behind, so the honest fix is not a better empty-state sentence but making the named tab mean what it says. A hub of counts-and-jumps makes it true without duplicating the seal/confirm ceremonies Memory and Triage already own correctly (that duplication was the more useful but higher-risk option, deferred). The counts come from data already loaded each refresh (store summary for drafts, the queue payload for segments); the proposed-relationships count shows only when Triage was already computed and otherwise reads '—', because triage clustering is O(n^2) and must never be triggered from this tab. The early return on a missing segment-queue capability is removed so the drafts/proposals rows still render on a store without the segment pipeline."
+    }
+  ]
+}

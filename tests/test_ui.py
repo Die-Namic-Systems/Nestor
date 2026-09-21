@@ -742,6 +742,51 @@ def test_the_numeric_check_tells_the_page_the_figure_was_half_read(filled):
     assert out["baseline_partial"] is False and out["flagged"] is True
 
 
+def test_ask_tab_is_legible_and_decision_native():
+    """The Ask tab says what it's for in plain words, drops the insider jargon
+    from the recipe blurbs, and offers a first-class Decision recipe (ask a
+    question → the sealed answer, or an honest 'no decision on record') that a
+    decision-shaped store opens on by default."""
+    from nestor.ui_page import PAGE
+    # a plain-language orientation line, not just a recipe picker
+    assert "You get an answer only when a human has verified it" in PAGE
+    # the Decision recipe exists, is first, and is decision-framed
+    assert '["decision",  "Decision"' in PAGE
+    assert "function decisionForm" in PAGE
+    assert "function decisionResult" in PAGE
+    assert "No decision on record" in PAGE
+    # a decision-shaped store defaults to it
+    assert "function defaultRecipe" in PAGE
+    assert 'startsWith("decision") ? "decision" : "translate"' in PAGE
+    # the insider jargon is gone from the user-facing recipe blurbs
+    assert "the bare seam: any domain, either shipped matcher" not in PAGE
+    assert "through the three-tier cascade" not in PAGE
+
+
+def test_the_queue_tab_is_a_review_hub_not_only_a_segment_list():
+    """The Queue tab is named "Awaiting a human", but on a decision-first store
+    the segment queue is empty while the real review work (drafts, proposals)
+    lives elsewhere. It is now a hub: a count and a jump per review surface,
+    with the segment queue one inline section — so the named tab is true."""
+    from nestor.ui_page import PAGE
+
+    assert "function viewQueue" in PAGE
+    assert "Awaiting a human" in PAGE
+    assert "function reviewRow" in PAGE
+    # jumps to where each kind of review work actually lives
+    assert "Open in Memory" in PAGE
+    assert "Open in Triage" in PAGE
+    # the draft count comes from the store summary, not the segment queue
+    assert "awaiting a seal" in PAGE
+    # the tab no longer bails out early when the store has no segment queue —
+    # the hub (drafts/proposals) still renders without the queue capability
+    q = PAGE.split("function viewQueue()", 1)[1].split("\nfunction ", 1)[0]
+    assert "if (!S.state.capabilities.queue)" not in q, (
+        "viewQueue must not early-return on a missing segment-queue capability")
+    # never trigger the O(n^2) triage compute from this tab — link only
+    assert '"/api/triage"' not in q
+
+
 # --- Signals: coverage misses + the health panel ----------------------------
 
 def test_api_misses_surfaces_repeat_misses_and_withholds_one_offs(tmp_path):

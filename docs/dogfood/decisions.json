@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 274,
+    "pairs": 277,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-21T00:00:00+00:00",
-  "digest": "3f613df919e72159dc46b28dfc51453c1d778bf0ddd3031c2170476dd2d8eb03",
+  "digest": "222c51931944063d68ac46fe414a7a48c1a8028a16ac8bd5c351aee6ed483a7a",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -52,6 +52,20 @@
     },
     {
       "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "c3027c24-76e6-5c1e-8ee0-b3633127d5ca",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the ask tab reads as confusing a picker of translateentitynumericmatch with jargon blurbs and no statement of purpose what does it say it is",
+      "source_text": "The Ask tab reads as confusing — a picker of Translate/Entity/Numeric/Match with jargon blurbs and no statement of purpose. What does it say it is?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A plain-language orientation line now heads the tab: you ask a question; you get an answer only when a human has verified it, otherwise Nestor says it can't vouch for one and shows the closest it found; nothing is invented and every answer is logged. The recipe blurbs are reworded to drop the insider terms ('the bare seam: any domain, either shipped matcher' -> 'look something up in any domain, with a matcher you pick'; 'through the three-tier cascade' -> 'served only if a human verified it'). Results lead verdict-first with the plain sentence already in the code and demote tier/engine/matcher to one small details line.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
       "id": "a35b95f9-a879-561e-bd3a-e3a1a72502ae",
       "origin": "pr:?",
       "seal_sig": "",
@@ -61,6 +75,34 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A new read-only GET /api/misses returns nestor.misses.coverage verbatim — {supported, distinct_misses, total_misses, surfaced, withheld, queue} — and the Signals card renders the queue (queries missed more than once, with their text and sighting count) and states the withheld count. It never shows the text of a one-off. The endpoint reads the miss ledger only; there is no POST counterpart.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "9632dba0-e3d3-5cd4-83c6-ce8abbad7671",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a decisionfirst store has no natural path in ask the recipes are translateentitynumericmatch so asking what did we decide about x means reaching for translate or match over the decision domain what carries that",
+      "source_text": "A decision-first store has no natural path in Ask — the recipes are translate/entity/numeric/match, so asking 'what did we decide about X?' means reaching for Translate or Match over the decision domain. What carries that?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A first-class 'Decision' recipe, listed first and defaulted to on a decision-shaped store (askDomain's source_lang starts with 'decision'; an explicit human pick always wins). Its form is a single question box scoped to the store's decision domain — no source/target tag boxes — and it calls /api/ask over that domain. Its result is decision-framed: '✓ Decided' with the sealed commitment and who verified it, '~ Proposed, not sealed' for a draft, or '✗ No decision on record' with the closest questions found for a miss. Sealing from a miss reuses the existing seal-from-ask ceremony.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "46dabfb8-d05c-534f-b0d6-f477fab53a8d",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the queue tab named awaiting a human is empty and inert for a decisionfirst store because it only lists translation segments a workflow no longer central to nestor rename it explain the emptiness or repurpose it",
+      "source_text": "The Queue tab named 'Awaiting a human' is empty and inert for a decision-first store because it only lists translation segments — a workflow no longer central to Nestor. Rename it, explain the emptiness, or repurpose it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Repurpose it into a review hub. 'Awaiting a human' now surfaces every kind of review work in this store as a row with a count and a jump: draft pairs awaiting a seal (open in Memory, count from the store summary), proposed relationships to review (open in Triage), and translation segments queued (the original inline seal/reject rows, kept as one section when a store still has them). The name stays because it is now true.",
       "verifier": "",
       "weight": 1.0
     },
