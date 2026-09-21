@@ -1384,6 +1384,26 @@ class SqliteStore:
                 (f"unsealed:{verifier}:{reason}"[:200], pair_id),
             )
 
+    def memory_rekey(self, pair_id: str, source_norm: str) -> None:
+        """Correct a live row's normalized key in place.
+
+        A row whose stored ``source_norm`` no longer reproduces under the
+        domain's matcher — a bulk import that stored the raw text, an older
+        normaliser — is unreachable by ``memory_find`` and every exact-key read,
+        so sealing it in place misses and mints a duplicate (§6.40's dump
+        sibling). This moves the row onto the key the matcher computes, without
+        touching its status, text or signature. The partial unique index refuses
+        the move if a DIFFERENT live row already holds that key — two live rows
+        for one source is exactly what the index exists to prevent — so a caller
+        checks ``memory_find`` first and retires the redundant row instead of
+        colliding here.
+        """
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE tm_pairs SET source_norm=? WHERE id=? AND superseded_by=''",
+                (source_norm, pair_id),
+            )
+
     def memory_rejections_for_pair(self, pair_id: str) -> list[dict]:
         with self._db() as conn:
             return [dict(r) for r in conn.execute(

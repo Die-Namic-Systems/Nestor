@@ -78,7 +78,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, cast
 
 from . import answer, cascade, config, home_paths, keyring, memory, portable, signing, storage
 from . import ledger as ledger_mod
@@ -90,7 +90,14 @@ from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .staleness import age_seals as _age_seals
-from .storage import Storage, supports_curation, supports_queue, supports_rejection
+from .storage import (
+    LineageStorage,
+    Storage,
+    supports_curation,
+    supports_lineage,
+    supports_queue,
+    supports_rejection,
+)
 from .triage import DEFAULT_BAR as TRIAGE_BAR
 from .triage import Decision as TriageDecision
 from .triage import triage as run_triage
@@ -1307,6 +1314,56 @@ def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         raise ApiError(400, "a seal needs a target commitment", code="bad_request")
     who = _verifier_for_seal(app, payload)
     override = bool(payload.get("override"))
+    # A draft whose stored source_norm no longer reproduces under this domain's
+    # matcher — a bulk import that stored the raw text, an older normaliser — is
+    # invisible to the memory_find(recomputed norm) that add_pair does below:
+    # the seal misses it, inserts a second correctly-keyed row, and leaves the
+    # draft queued (§6.40's dump sibling; test_seal_draft_stale_key.py). We hold
+    # the row's id here, so heal the key before add_pair recomputes it.
+    src_lang = row.get("source_lang", app.source_lang)
+    tgt_lang = row.get("target_lang", app.target_lang)
+    seal_matcher = memory.get_matcher(_domain_matcher(app, src_lang, tgt_lang))
+    norm = seal_matcher.normalize(row.get("source_text", ""))
+    if norm and row.get("source_norm") != norm:
+        twin = app.store.memory_find(norm, src_lang, tgt_lang)
+        if twin is None:
+            rekey = getattr(app.store, "memory_rekey", None)
+            if not callable(rekey):
+                raise ApiError(
+                    500,
+                    f"{type(app.store).__name__} cannot re-key a stale draft, "
+                    f"so sealing it would mint a duplicate; extend the store "
+                    f"with memory_rekey or repair the key offline "
+                    f"(nestor db renormalize).",
+                    code="cannot_rekey")
+            rekey(row["id"], norm)
+        elif twin["id"] != row["id"]:
+            # A correctly-keyed live row already holds this source: the stale
+            # draft duplicates it (the state a curator reaches after an earlier
+            # click already minted the sealed twin). Retire the redundant draft
+            # rather than mint a third row — a draft holds no decision to keep
+            # (supersede_pair's own rule), so this needs the lineage marker, not
+            # its ceremony.
+            if not supports_lineage(app.store):
+                raise ApiError(
+                    409,
+                    "this source already has a live pair and the store cannot "
+                    "retire the duplicate draft (no lineage capability); resolve "
+                    "the duplicate before sealing.",
+                    code="duplicate_source")
+            lineage_store = cast(LineageStorage, app.store)
+            lineage_store.memory_mark_superseded(row["id"], twin["id"])
+            cascade._ledger_append({
+                "kind": "draft_retired_duplicate",
+                "pair_id": row["id"], "canonical_id": twin["id"],
+                "source_lang": src_lang, "target_lang": tgt_lang,
+                "verifier": who, "origin": "ui:seal-draft",
+            })
+            if twin["status"] == "sealed":
+                # The decision is already sealed under the canonical row; the
+                # stale draft only had to leave the queue.
+                return {"pair": app.curator().get(twin["id"]) or twin}
+            # twin is itself a draft — fall through so add_pair upgrades it.
     pair = memory.add_pair(
         row["source_text"],
         target,

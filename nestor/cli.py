@@ -552,6 +552,31 @@ def cmd_db(args) -> int:
             _emit({"action": "checkpoint", "db": args.db},
                   args.json, f"checkpointed {args.db}")
         return EXIT_OK
+    if args.db_command == "renormalize":
+        report = memory.renormalize_keys(
+            store, source_lang=args.source_lang, target_lang=args.target_lang,
+            apply=args.apply)
+        counts = {k: len(v) for k, v in report.items()}
+        verb = "re-keyed" if args.apply else "would re-key"
+        retire_verb = "retired" if args.apply else "would retire"
+        lines = [
+            ("applied" if args.apply else "dry run — pass --apply to write"),
+            f"  {verb}: {counts['rekeyed']} stale-keyed draft(s)",
+            f"  {retire_verb}: {counts['retired']} duplicate draft(s) into a live twin",
+            f"  sealed with a stale key (needs re-seal, left untouched): {counts['sealed_stale']}",
+            f"  rejected with a stale key (left untouched): {counts['rejected_stale']}",
+            f"  empty normalisation (cannot re-key): {counts['empty_norm']}",
+            f"  unresolved conflicts: {counts['conflicts']}",
+        ]
+        if counts["sealed_stale"] or counts["rejected_stale"]:
+            lines.append("  (untouched rows below are likely a DIFFERENT domain's "
+                         "matcher — scope with --source-lang/--target-lang)")
+        for row in report["sealed_stale"]:
+            lines.append(f"    sealed_stale {row['id'][:8]} {row['source_text']!r} "
+                         f"({row['from']!r} -> {row['to']!r})")
+        _emit({"action": "renormalize", "applied": args.apply,
+               "counts": counts, "report": report}, args.json, "\n".join(lines))
+        return EXIT_OK
     return EXIT_USAGE
 
 
@@ -1444,8 +1469,20 @@ def build_parser() -> argparse.ArgumentParser:
     exp.set_defaults(func=cmd_export)
 
     dbp = sub.add_parser("db", help="SQLite maintenance (file-backed stores)")
-    dbp.add_argument("db_command", nargs="?", choices=("checkpoint",), default="checkpoint",
-                     help="only 'checkpoint' today; optional, so 'nestor db' works")
+    dbp.add_argument("db_command", nargs="?",
+                     choices=("checkpoint", "renormalize"), default="checkpoint",
+                     help="'checkpoint' (default) or 'renormalize' — re-key live "
+                          "rows whose stored source_norm no longer reproduces "
+                          "under the domain matcher, so sealing them stops "
+                          "minting duplicates (dry run unless --apply)")
+    dbp.add_argument("--apply", action="store_true",
+                     help="with 'renormalize', write the repair; omit for a dry-run plan")
+    dbp.add_argument("--source-lang", default="",
+                     help="with 'renormalize', scope to one domain (default: all). "
+                          "Uses the default StringMatcher — a domain with a custom "
+                          "matcher must be repaired with its own tooling")
+    dbp.add_argument("--target-lang", default="",
+                     help="with 'renormalize', the target tag of the scoped domain")
     dbp.add_argument("--out", default="",
                      help="consistent SQLite copy (VACUUM INTO); also copies the hash-chained "
                           "ledger to <basename>.ledger.jsonl beside it unless --no-ledger")
