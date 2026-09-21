@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 277,
+    "pairs": 279,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-21T00:00:00+00:00",
-  "digest": "222c51931944063d68ac46fe414a7a48c1a8028a16ac8bd5c351aee6ed483a7a",
+  "digest": "8d25572351fad1d7f731f701b726ef799f2989603c7b0229e42d0def34970b79",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -94,6 +94,20 @@
     },
     {
       "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "82c2deb3-62c5-50ec-81b1-22bdd7ff7596",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the signals tab shows all six signals fully expanded at once six rowtables stacked that is still overwhelming even with the healthpanel framing how should the volume come down without losing any signal",
+      "source_text": "The Signals tab shows all six signals fully expanded at once — six row-tables stacked. That is still overwhelming even with the health-panel framing. How should the volume come down without losing any signal?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Each signal is now a collapsed panel: a native <details> whose <summary> is the signal's title plus a one-line count/clear badge, opened to its rows on click. The tab reads as a short scannable list of ~6 lines. A firing alarm (overwritten seals, junk pairs, sealed-but-unverifiable) is rendered open so a real problem is visible without a click; quiet alarms and all of Coverage & upkeep start closed. The header keeps its 'N to look at' / 'all clear' badge. No signal or row is dropped — they move behind a disclosure.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
       "id": "46dabfb8-d05c-534f-b0d6-f477fab53a8d",
       "origin": "pr:?",
       "seal_sig": "",
@@ -103,6 +117,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Repurpose it into a review hub. 'Awaiting a human' now surfaces every kind of review work in this store as a row with a count and a jump: draft pairs awaiting a seal (open in Memory, count from the store summary), proposed relationships to review (open in Triage), and translation segments queued (the original inline seal/reject rows, kept as one section when a store still has them). The name stays because it is now true.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "221a9a4b-0566-5ad6-9286-9fb3cba25873",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the six card functions each built a full divcard with its own h2 title with the title now in the panel summary what happens to them",
+      "source_text": "The six *Card() functions each built a full div.card with its own <h2> title. With the title now in the panel summary, what happens to them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Each *Card() keeps its body (description + rows/table + any toggle, e.g. the overwritten-seals 'include self-corrections' control) but drops its outer card wrapper and its <h2>; the title is passed once to signalPanel(), which owns the summary. The function names are unchanged, so the surfaces that reference them stay put. Two small helpers were added: signalPanel(title, badge, open, body) and sigBadge(n, tone).",
       "verifier": "",
       "weight": 1.0
     },

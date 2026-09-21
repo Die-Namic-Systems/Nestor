@@ -1,0 +1,17 @@
+{
+  "branch": "claude/signals-collapse-summary",
+  "date": "2026-09-21",
+  "note": "Proposed, not sealed. Second round of dogfooding on the Signals tab after #307: the operator, looking at what landed, said Signals is 'still overwhelming' and — asked what kind — chose 'too much at once'. #307 fixed legibility (health-panel framing, alarms-first, 'all clear') but not volume: on a real store the tab renders six full cards stacked, most dumping every row into a table, so it reads as a wall. Front-end only; the /api endpoints and the six signal bodies are unchanged.",
+  "decisions": [
+    {
+      "question": "The Signals tab shows all six signals fully expanded at once — six row-tables stacked. That is still overwhelming even with the health-panel framing. How should the volume come down without losing any signal?",
+      "commitment": "Each signal is now a collapsed panel: a native <details> whose <summary> is the signal's title plus a one-line count/clear badge, opened to its rows on click. The tab reads as a short scannable list of ~6 lines. A firing alarm (overwritten seals, junk pairs, sealed-but-unverifiable) is rendered open so a real problem is visible without a click; quiet alarms and all of Coverage & upkeep start closed. The header keeps its 'N to look at' / 'all clear' badge. No signal or row is dropped — they move behind a disclosure.",
+      "why": "The operator's own read is the finding: 'too much at once', not 'wrong' or 'illegible' — #307 already fixed those. A summary-first collapse cuts the tab from a full-height wall to a list you scan in one glance, while keeping every signal one click away and surfacing the urgent ones (firing alarms) automatically. Native <details>/<summary> was chosen over a JS-tracked open/closed state because it needs no state, is keyboard-accessible, and adds no inline script — the page's CSP forbids inline handlers and innerHTML, and a disclosure that relied on either would not load."
+    },
+    {
+      "question": "The six *Card() functions each built a full div.card with its own <h2> title. With the title now in the panel summary, what happens to them?",
+      "commitment": "Each *Card() keeps its body (description + rows/table + any toggle, e.g. the overwritten-seals 'include self-corrections' control) but drops its outer card wrapper and its <h2>; the title is passed once to signalPanel(), which owns the summary. The function names are unchanged, so the surfaces that reference them stay put. Two small helpers were added: signalPanel(title, badge, open, body) and sigBadge(n, tone).",
+      "why": "One title per signal, in one place (the summary), rather than a title in the card and a second implicit one in the section. Keeping the body builders intact and named means the change is a re-wrap, not a rewrite — the rows, the Memory drill-ins, and the self-corrections toggle all behave exactly as before, which tests/test_ui.py pins alongside the new collapse-structure assertions."
+    }
+  ]
+}

@@ -846,3 +846,27 @@ def test_signals_is_a_health_panel_with_alarms_and_coverage():
     assert "all clear" in PAGE
     assert "Coverage &amp; upkeep" in PAGE or "Coverage & upkeep" in PAGE
     assert "Questions Nestor couldn't answer" in PAGE
+
+
+def test_signals_collapses_each_signal_to_a_summary_that_opens_on_demand():
+    """The overwhelm fix (round two): six full row-tables stacked read as a
+    wall, so each signal is now a collapsed <details> panel — a title plus a
+    count/clear badge you scan — that opens to its rows on click. A firing
+    alarm is passed open=true so a real problem is not hidden behind a click;
+    quiet signals and all of coverage/upkeep stay closed."""
+    from nestor.ui_page import PAGE
+    # the collapse machinery: a native <details> panel per signal, and the
+    # one-line count/clear badge that stands in for the rows until opened
+    assert "function signalPanel" in PAGE
+    assert "function sigBadge" in PAGE
+    assert 'h("details", { class: "card signal"' in PAGE
+    assert 'h("summary"' in PAGE
+    # a firing alarm opens itself; the badge reads "clear" when a signal is empty
+    assert "replaced.length > 0" in PAGE            # overwritten-seals alarm auto-opens when non-empty
+    assert 'text: "clear"' in PAGE
+    # the six signals are still built by the same body functions, now unwrapped
+    for fn in ("replacedCard", "junkPairsCard", "unverifiableCard",
+               "dueCard", "missesCard", "rejectedQueriesCard"):
+        assert "function " + fn in PAGE
+    # and the collapse is CSS-driven native details, so no innerHTML / inline script
+    assert "details.signal > summary" in PAGE
