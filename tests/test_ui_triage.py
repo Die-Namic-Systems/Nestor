@@ -175,6 +175,36 @@ def test_a_sealed_decision_reports_its_status(app):
     assert out["open"][0]["status"] == "sealed"
 
 
+# --- legibility: edges and clusters carry their decisions' text --------------
+
+def test_proposed_edges_carry_both_decisions_text(app):
+    """A proposed edge is a question about two specific decisions, so the tab
+    must be able to show them as text, not two hashes — the payload carries the
+    question and commitment of each endpoint."""
+    _seed_cluster_and_contradiction(app.store)
+    out = get(app, "/api/triage")[1]
+    by_id = {r["id"]: r for r in DecisionMemory(app.store).all_decisions()}
+    assert out["proposed_edges"]
+    for e in out["proposed_edges"]:
+        assert e["src_question"] == by_id[e["src_id"]]["source_text"]
+        assert e["dst_question"] == by_id[e["dst_id"]]["source_text"]
+        assert e["src_commitment"] == by_id[e["src_id"]]["target_text"]
+        assert e["dst_commitment"] == by_id[e["dst_id"]]["target_text"]
+
+
+def test_cluster_members_carry_question_text(app):
+    """A group is rendered by what its decisions ask, so every member travels
+    with its question text alongside the id — no tab-side per-hash fetch."""
+    _seed_cluster_and_contradiction(app.store)
+    out = get(app, "/api/triage")[1]
+    multi = [c for c in out["clusters"] if len(c["member_ids"]) > 1]
+    assert multi
+    for c in multi:
+        assert [m["id"] for m in c["members"]] == c["member_ids"]
+        for m in c["members"]:
+            assert m["question"], "a seeded decision's question came back blank"
+
+
 # --- the refusal: read-only means read-only ----------------------------------
 
 def test_triage_post_is_refused(app):
@@ -235,6 +265,24 @@ def test_the_page_carries_the_triage_tab(app):
     # no confirm/reject/seal affordance is built for a proposal on this tab
     assert "seal-triage" not in PAGE
     assert "/api/triage/confirm" not in PAGE
+
+
+def test_the_triage_tab_reads_in_plain_language(app):
+    """The overwhelm fix: the tab leads with conflicts/duplicates in words, not
+    a hash and a jargon kind; singleton 'groups' fold away and the open list
+    caps, each behind a toggle so nothing is lost."""
+    from nestor.ui_page import PAGE
+    assert "Conflicts &amp; duplicates" in PAGE or "Conflicts & duplicates" in PAGE
+    assert "These two decisions disagree" in PAGE      # contradicts, framed
+    assert "Flag the conflict" in PAGE                 # the plain verb, not "Confirm"
+    assert "Replace the older" in PAGE                 # supersedes, framed
+    # the noise folds behind toggles rather than dumping every row
+    assert "triageShowSingletons" in PAGE
+    assert "triageShowAllOpen" in PAGE
+    assert "stand alone (nothing to consolidate)" in PAGE
+    # edges and members render by their decision text, not a bare id
+    assert "src_question" in PAGE
+    assert "m.question" in PAGE
 
 
 def test_csp_and_page_are_unchanged_by_the_triage_view(app):

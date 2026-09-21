@@ -2,7 +2,8 @@
 
 Fleet plan decision 5 names a floor every repo's `tests.yml` stands on: a
 Linux matrix derived from `pyproject.toml`'s Python classifiers, a Windows
-leg on the floor and ceiling Pythons, ruff pinned in exactly one place, CodeQL
+leg on the floor and ceiling Pythons (one Python on a pull_request, both on
+push and nightly), ruff pinned in exactly one place, CodeQL
 on python and actions, and an aggregate `test` job that fails when any leg
 is anything but a success. Each of those is a fact declared once and easy to
 repeat by hand somewhere nothing checks — the shape #292 named — so each is
@@ -69,6 +70,19 @@ def _matrix_versions(job_text: str) -> list[str]:
     return re.findall(r'"(3\.\d+)"', m.group(1)) if m else []
 
 
+def _windows_matrix(job_text: str) -> tuple[list[str], list[str]]:
+    """The Windows leg's matrix is event-conditional (see tests.yml): a ternary
+    over two ``fromJSON('[...]')`` arrays. Returns ``(pr_versions,
+    full_versions)`` — the pull_request list first, the push/schedule list
+    second, each as its ``3.x`` minors."""
+    arrays = re.findall(r"fromJSON\('(\[[^\]]*\])'\)", job_text)
+    versions = [re.findall(r'"(3\.\d+)"', a) for a in arrays]
+    if len(versions) != 2:
+        raise AssertionError(
+            f"expected two fromJSON matrix arrays in {WINDOWS_JOB}, found {versions}")
+    return versions[0], versions[1]
+
+
 def _aggregate_gate(job_text: str) -> dict:
     """What the aggregate job actually does: which jobs it needs, whether it
     runs `if: always()`, and whether its check names `success` and exits
@@ -108,12 +122,24 @@ def test_the_linux_matrix_is_every_classifier_minor():
         f"{LINUX_JOB}'s matrix must equal the classifiers {minors}, in order")
 
 
-def test_the_windows_leg_runs_the_floor_and_ceiling_pythons():
+def test_the_windows_leg_runs_one_python_on_prs_and_floor_and_ceiling_otherwise():
+    """The slow platform (~20 min; hundreds of subprocess spawns). To keep PR
+    feedback fast the leg runs a single Python — the ceiling — on a
+    pull_request, and the floor+ceiling pair on push and the nightly schedule,
+    where the platform×version coverage belongs. The floor's 'Windows on floor
+    and ceiling' is held on those authoritative runs; the PR run is a smoke of
+    the newest supported Python."""
     workflow = WORKFLOW.read_text(encoding="utf-8")
     minors = _classifier_minors(PYPROJECT.read_text(encoding="utf-8"))
     block = _job_block(workflow, WINDOWS_JOB)
     assert "runs-on: windows-latest" in block
-    assert _matrix_versions(block) == [minors[0], minors[-1]]
+    pr_versions, full_versions = _windows_matrix(block)
+    assert pr_versions == [minors[-1]], (
+        "the Windows pull_request run must be the ceiling Python only")
+    assert full_versions == [minors[0], minors[-1]], (
+        "push and the nightly schedule must still run the floor and ceiling Pythons")
+    assert "github.event_name == 'pull_request'" in block, (
+        "the one-Python reduction must be scoped to pull_request events")
     assert "bash scripts/ci-test.sh full" in block, (
         "the Windows leg runs the same gate command AGENTS.md names, through bash")
 
@@ -178,6 +204,28 @@ def test_the_matrix_check_catches_a_planted_hand_kept_matrix():
     assert _matrix_versions(_job_block(stale, "test-matrix")) != ["3.10", "3.11", "3.12", "3.13"]
     none = _workflow("  lint:\n    runs-on: ubuntu-latest\n")
     assert _matrix_versions(_job_block(none, "lint")) == []
+
+
+def test_the_windows_matrix_check_catches_a_planted_dropped_floor():
+    """Planted: a Windows leg whose push/schedule array silently drops the
+    floor Python (both branches of the ternary name only the ceiling) — the
+    one-Python reduction widened past the pull_request event. `_windows_matrix`
+    reads both `fromJSON` arrays, so the floor test's
+    `full_versions == [floor, ceiling]` fails on it; the healthy two-array
+    shape parses as `(pr, full)` in order."""
+    dropped = _workflow(
+        "  test-windows:\n    strategy:\n      matrix:\n"
+        "        python-version: ${{ (github.event_name == 'pull_request')"
+        " && fromJSON('[\"3.13\"]') || fromJSON('[\"3.13\"]') }}\n")
+    pr, full = _windows_matrix(_job_block(dropped, WINDOWS_JOB))
+    assert pr == ["3.13"] and full == ["3.13"]         # the plant: floor dropped
+    assert full != ["3.10", "3.13"]                     # so the floor test catches it
+
+    healthy = _workflow(
+        "  test-windows:\n    strategy:\n      matrix:\n"
+        "        python-version: ${{ (github.event_name == 'pull_request')"
+        " && fromJSON('[\"3.13\"]') || fromJSON('[\"3.10\", \"3.13\"]') }}\n")
+    assert _windows_matrix(_job_block(healthy, WINDOWS_JOB)) == (["3.13"], ["3.10", "3.13"])
 
 
 def test_the_ruff_pin_check_catches_a_planted_second_pin():

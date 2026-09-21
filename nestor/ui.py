@@ -78,9 +78,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, cast
 
-from . import answer, cascade, config, home_paths, keyring, memory, portable, signing, storage
+from . import answer, cascade, config, home_paths, keyring, memory, misses, portable, signing, storage
 from . import ledger as ledger_mod
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
@@ -90,7 +90,14 @@ from .matcher import Matcher, matcher_audit_fields
 from .reconcile import Reconciler
 from .sqlite_store import SqliteStore
 from .staleness import age_seals as _age_seals
-from .storage import Storage, supports_curation, supports_queue, supports_rejection
+from .storage import (
+    LineageStorage,
+    Storage,
+    supports_curation,
+    supports_lineage,
+    supports_queue,
+    supports_rejection,
+)
 from .triage import DEFAULT_BAR as TRIAGE_BAR
 from .triage import Decision as TriageDecision
 from .triage import triage as run_triage
@@ -716,6 +723,21 @@ def _due_for_reverification(app: App, query: Mapping[str, Any],
             "threshold_days": threshold, "total": total}
 
 
+def _misses(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Coverage misses: inputs asked with no verified answer to serve.
+
+    Read-only over the miss ledger the cascade writes on every unanswered ask
+    (:func:`nestor.misses.record`). Returns :func:`nestor.misses.coverage` —
+    ``{supported, distinct_misses, total_misses, surfaced, withheld, queue}`` —
+    the shortlist of what to seal next. Questions seen only once are counted in
+    ``withheld`` but their text is withheld (misses.py's own privacy gate), so
+    every row in ``queue`` carries readable text. A store without the misses
+    capability returns ``{"supported": false}`` rather than an error.
+    """
+    limit = max(1, min(_int(query, "limit", 200), 2000))
+    return misses.coverage(app.store, limit=limit)
+
+
 def _replaced_seals(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
     """Seals somebody overwrote — the one thing the store keeps no trace of.
 
@@ -1028,14 +1050,30 @@ def _triage(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> d
                  "status": statuses.get(pid, "draft")}
                 for pid in open_ids]
 
+    def _q(pid: str) -> str:
+        return by_id[pid].question if pid in by_id else ""
+
+    def _c(pid: str) -> str:
+        return by_id[pid].commitment if pid in by_id else ""
+
+    # Members carry their question text, not just an id: the Triage tab renders
+    # a group by what its decisions ask, so a human can see what is being
+    # consolidated without tapping eight hashes one at a time.
     clusters = [{"representative_id": c.representative_id,
-                "member_ids": list(c.member_ids), "label": c.label}
+                "member_ids": list(c.member_ids), "label": c.label,
+                "members": [{"id": mid, "question": _q(mid)} for mid in c.member_ids]}
                for c in report.clusters]
 
     edges = sorted(report.edges, key=lambda e: (
         _TRIAGE_EDGE_ORDER.get(e.kind, len(_TRIAGE_EDGE_ORDER)), e.src_id, e.dst_id))
+    # Same reason as clusters: an edge is a question about two specific
+    # decisions, so it carries their text. src/dst still travel as ids for the
+    # seal ceremony (edge_sig covers the ids), the text is for the human.
     edge_rows = [{"src_id": e.src_id, "dst_id": e.dst_id, "kind": e.kind,
-                 "score": e.score} for e in edges]
+                 "score": e.score,
+                 "src_question": _q(e.src_id), "src_commitment": _c(e.src_id),
+                 "dst_question": _q(e.dst_id), "dst_commitment": _c(e.dst_id)}
+                for e in edges]
 
     result = {
         "bar": report.bar,
@@ -1291,6 +1329,56 @@ def _seal_draft(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) 
         raise ApiError(400, "a seal needs a target commitment", code="bad_request")
     who = _verifier_for_seal(app, payload)
     override = bool(payload.get("override"))
+    # A draft whose stored source_norm no longer reproduces under this domain's
+    # matcher — a bulk import that stored the raw text, an older normaliser — is
+    # invisible to the memory_find(recomputed norm) that add_pair does below:
+    # the seal misses it, inserts a second correctly-keyed row, and leaves the
+    # draft queued (§6.40's dump sibling; test_seal_draft_stale_key.py). We hold
+    # the row's id here, so heal the key before add_pair recomputes it.
+    src_lang = row.get("source_lang", app.source_lang)
+    tgt_lang = row.get("target_lang", app.target_lang)
+    seal_matcher = memory.get_matcher(_domain_matcher(app, src_lang, tgt_lang))
+    norm = seal_matcher.normalize(row.get("source_text", ""))
+    if norm and row.get("source_norm") != norm:
+        twin = app.store.memory_find(norm, src_lang, tgt_lang)
+        if twin is None:
+            rekey = getattr(app.store, "memory_rekey", None)
+            if not callable(rekey):
+                raise ApiError(
+                    500,
+                    f"{type(app.store).__name__} cannot re-key a stale draft, "
+                    f"so sealing it would mint a duplicate; extend the store "
+                    f"with memory_rekey or repair the key offline "
+                    f"(nestor db renormalize).",
+                    code="cannot_rekey")
+            rekey(row["id"], norm)
+        elif twin["id"] != row["id"]:
+            # A correctly-keyed live row already holds this source: the stale
+            # draft duplicates it (the state a curator reaches after an earlier
+            # click already minted the sealed twin). Retire the redundant draft
+            # rather than mint a third row — a draft holds no decision to keep
+            # (supersede_pair's own rule), so this needs the lineage marker, not
+            # its ceremony.
+            if not supports_lineage(app.store):
+                raise ApiError(
+                    409,
+                    "this source already has a live pair and the store cannot "
+                    "retire the duplicate draft (no lineage capability); resolve "
+                    "the duplicate before sealing.",
+                    code="duplicate_source")
+            lineage_store = cast(LineageStorage, app.store)
+            lineage_store.memory_mark_superseded(row["id"], twin["id"])
+            cascade._ledger_append({
+                "kind": "draft_retired_duplicate",
+                "pair_id": row["id"], "canonical_id": twin["id"],
+                "source_lang": src_lang, "target_lang": tgt_lang,
+                "verifier": who, "origin": "ui:seal-draft",
+            })
+            if twin["status"] == "sealed":
+                # The decision is already sealed under the canonical row; the
+                # stale draft only had to leave the queue.
+                return {"pair": app.curator().get(twin["id"]) or twin}
+            # twin is itself a draft — fall through so add_pair upgrades it.
     pair = memory.add_pair(
         row["source_text"],
         target,
@@ -1492,6 +1580,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/pairs"): _pairs,
     ("GET", "/api/pair"): _pair,
     ("GET", "/api/queue"): _queue,
+    ("GET", "/api/misses"): _misses,
     ("GET", "/api/ledger"): _ledger_view,
     ("GET", "/api/due-for-reverification"): _due_for_reverification,
     ("GET", "/api/replaced-seals"): _replaced_seals,

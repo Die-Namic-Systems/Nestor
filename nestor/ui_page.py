@@ -786,10 +786,11 @@ const PAGE = 50;
 // above the threshold or don't — with a different matcher and a different
 // meaning for "source → target". Translation is one instance, not the product.
 const RECIPES = [
-  ["translate", "Translate", "phrase → verified translation, through the three-tier cascade"],
-  ["entity",    "Entity",    "alias/surface → canonical entity, over a sealed alias graph"],
-  ["numeric",   "Numeric",   "figure → sealed baseline, with tolerance and variation"],
-  ["match",     "Match",     "the bare seam: any domain, either shipped matcher"],
+  ["decision",  "Decision",  "ask a question — get the answer a human sealed, or an honest \"no decision on record\""],
+  ["translate", "Translate", "translate a phrase — served only if a human verified it"],
+  ["entity",    "Entity",    "resolve a name or alias to its canonical entity"],
+  ["numeric",   "Numeric",   "check a figure against its sealed baseline"],
+  ["match",     "Match",     "look something up in any domain, with a matcher you pick"],
 ];
 
 const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
@@ -803,14 +804,29 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // destroys it before every re-render so a stale one never
             // outlives the canvas element it was drawn into (see render()).
             graph: null, cy: null, graphSelected: null,
+            // The graph draws relationships, so it leads with the decisions
+            // that have one — a store of a few hundred decisions with a handful
+            // of sealed edges is otherwise hundreds of unconnected nodes the
+            // breadthfirst layout lines up as dots. `graphShowAll` expands the
+            // canvas to every decision, connected or not, on demand.
+            graphShowAll: false,
             // Triage tab (read-only, GET /api/triage only — no seal, no edge
             // write reachable from this tab; see nestor.ui's `_triage`).
             // `triageDetail` is the full pair fetched via the existing
             // GET /api/pair when a decision, cluster member or edge endpoint
-            // is tapped — the triage payload itself carries ids and (for the
-            // open list only) a question, never every commitment, to keep
-            // that response the shape nestor.ui documents.
+            // is tapped for the full record. The triage payload now carries
+            // each open row's, edge endpoint's and cluster member's question
+            // text (and each edge's commitments) so the tab reads as decisions
+            // rather than hashes; the tap still fetches the whole pair.
             triage: null, triageDetail: null, triageLoading: false,
+            // The tab leads with what needs a human (proposed edges, then
+            // multi-member groups) and folds the rest away: a store of a few
+            // hundred decisions is otherwise one open row and one singleton
+            // "group" per decision, burying the handful of real signals. These
+            // two flags expand the folded sections on demand; nothing is lost,
+            // it starts out of the way. Both reset to false only here, so a
+            // refresh keeps whatever the reviewer expanded.
+            triageShowAllOpen: false, triageShowSingletons: false,
             // What this SESSION has confirmed via the Triage tab's Confirm
             // button (see confirmEdge) — keyed by src|dst|kind, valued by
             // who ratified it. GET /api/triage's proposed edges are a pure
@@ -829,7 +845,10 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // finds no persisted draft to seal in place (see the comment
             // above the Triage block) and creates a fresh one every call.
             triageConfirming: {},
-            recipe: localStorage.getItem("nestor.recipe") || "translate",
+            // Empty until the human picks one, so viewAsk can default to the
+            // Decision recipe on a decision-shaped store rather than always
+            // landing on Translate — Nestor is not mostly a translation tool.
+            recipe: localStorage.getItem("nestor.recipe") || "",
             // Open on what is still yours to decide. A curator arriving at a
             // store of 70 rows where 26 are already settled was shown all 70,
             // and sealing one changed nothing on the page: the row stayed put
@@ -1579,51 +1598,76 @@ function sim(value) {
     h("span", { class: "small muted mono", text: value.toFixed(3) }));
 }
 
-/* ---------- Queue --------------------------------------------------------- */
+/* ---------- Queue: "Awaiting a human" — the review hub -------------------- */
+/* This tab used to read only *segments* — text the cascade ingested through a
+   document. Nestor is not mostly a translation tool any more, so on a store
+   built by decisions and add_pair the segment queue is empty while real review
+   work (drafts to seal, relationships to confirm) sits in other tabs — the one
+   tab named "Awaiting a human" was the one place they were not. It is now a hub
+   over every review surface: each row is a count and a jump to the tab that
+   owns that work, and the legacy segment queue is one section of it, inline,
+   when a store still has segments. (History: 44 rows once awaited a human two
+   inches under a badge that said everything was decided — the empty-queue
+   message this hub replaces.) */
+function reviewRow(count, label, hint, btnLabel, onclick) {
+  const known = count !== null && count !== undefined;
+  return h("div", { class: "seg" },
+    h("div", { class: "row" },
+      h("span", { class: "badge" + (known && count ? " good" : ""),
+                  text: known ? String(count) : "—" }),
+      h("b", { text: label }),
+      h("span", { class: "spacer" }),
+      (btnLabel && onclick) ? h("button", { class: "small", onclick }, btnLabel) : null),
+    h("div", { class: "small muted", style: "margin-top:4px", text: hint }));
+}
+
 function viewQueue() {
   const view = $("view");
-  if (!S.state.capabilities.queue) {
-    view.append(h("div", { class: "card" },
-      h("p", { class: "empty", text: "This store cannot list the review queue " +
-        "(storage.supports_queue). Sealing and curation still work." })));
-    return;
-  }
+  const st = S.state || {}, sum = st.summary || {}, base = st.stats || {};
+  const drafts = sum.draft ?? base.draft ?? 0;
+  const capQueue = !!(st.capabilities && st.capabilities.queue);
   const q = S.queue || { documents: [], pending: 0 };
+  const segs = capQueue ? (q.pending || 0) : 0;
+  // Triage clustering is O(n^2) and only computed on its own tab; show its
+  // count only when a prior visit already cached it, and never trigger it here.
+  const props = (S.triage && S.triage.counts) ? (S.triage.counts.edges || 0) : null;
+
   view.append(h("div", { class: "card" },
     h("h2", { text: "Awaiting a human" }),
-    h("p", { class: "muted small", text: q.pending
-      ? q.pending + " segment(s) the cascade could not serve from the sealed memory. " +
-        "Sealing one enters it into tier 1; rejecting one means that candidate is never offered for this text again."
-      : queueEmptyLine() })));
+    h("p", { class: "muted small", text:
+      "What still needs a person in this store. Nestor only serves an answer a "
+      + "human signed, so this is the work that earns that — drafts to seal, "
+      + "relationships to review, and any text the translate cascade queued." })));
 
-  for (const doc of q.documents) {
+  view.append(h("div", { class: "card" },
+    reviewRow(drafts, "draft" + (drafts === 1 ? "" : "s") + " awaiting a seal",
+      "Unsealed pairs — open them in Memory to seal, correct, or reject.",
+      "Open in Memory",
+      () => { S.filters.status = "draft"; S.offset = 0; S.tab = "memory"; refresh(); }),
+    reviewRow(props, "proposed relationship" + (props === 1 ? "" : "s") + " to review",
+      props === null
+        ? "Conflicts and duplicates between decisions — open Triage to compute and review them."
+        : "Conflicts and duplicates nestor.triage found between your decisions.",
+      "Open in Triage",
+      () => { S.tab = "triage"; refresh(); }),
+    reviewRow(segs, "translation segment" + (segs === 1 ? "" : "s") + " queued",
+      capQueue
+        ? (segs ? "Text the cascade could not serve from sealed memory — reviewed below."
+                : "Text the cascade ingested through a document; none are queued now.")
+        : "This store has no segment queue (storage.supports_queue is off).",
+      "", null)));
+
+  // The segment queue itself, inline — the tab's original content, now one
+  // section of the hub rather than the whole tab.
+  for (const doc of (capQueue ? q.documents : [])) {
     const card = h("div", { class: "card" },
       h("div", { class: "row" },
         h("b", { text: doc.title || "(untitled)" }),
         h("span", { class: "chip", text: (doc.source_lang || "?") + " → " + (doc.target_lang || "?") }),
         h("span", { class: "chip mono", text: (doc.id || "").slice(0, 8) })));
     for (const seg of doc.segments) card.append(segmentRow(doc, seg));
-    $("view").append(card);
+    view.append(card);
   }
-}
-
-/* What an empty queue means depends on what is in the store.
-   This tab reads *segments* — text the cascade ingested through a document. A
-   store filled by `memory.add_pair` has none, so the queue is empty while the
-   memory is full: 44 rows were awaiting a human here, two inches under a header
-   badge that said so, and this card claimed everything had been decided. An
-   empty room is not the same as a finished job, and only one of those is
-   something a person should be told. */
-function queueEmptyLine() {
-  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
-  const draft = c.draft ?? base.draft ?? 0;
-  if (draft) {
-    return `No segments are queued — this tab reads text the cascade ingested `
-      + `through a document, and this store has none. ${draft} row(s) are still `
-      + `awaiting a human in Memory, which is where they were added directly.`;
-  }
-  return "Nothing queued. Every segment the cascade has seen was either served "
-    + "from the sealed memory or already decided.";
 }
 
 function segmentRow(doc, seg) {
@@ -2509,25 +2553,104 @@ async function applyImport() {
 }
 
 /* ---------- Ask: one mechanic, four recipes -------------------------------- */
+/* The recipe to open on. A human's explicit pick (S.recipe / localStorage)
+   always wins; with none, a decision-shaped store opens on Decision and
+   anything else on Translate, so nobody lands on a translation form for a
+   store that holds none. */
+function defaultRecipe() {
+  const d = askDomain();
+  return (d.source_lang || "").startsWith("decision") ? "decision" : "translate";
+}
+
 function viewAsk() {
   const view = $("view");
+  const rid = S.recipe || defaultRecipe();
+  const forms = { decision: decisionForm, translate: translateForm,
+                  entity: entityForm, numeric: numericForm, match: matchForm };
+  const results = { decision: decisionResult, translate: translateResult,
+                    entity: entityResult, numeric: numericResult, match: matchResult };
   const picker = h("div", { class: "card" },
     h("h2", { text: "Ask Nestor" }),
-    h("div", { class: "row", style: "margin-bottom:6px" },
+    h("p", { class: "small muted", text:
+      "Ask a question. You get an answer only when a human has verified it; "
+      + "otherwise Nestor tells you it can't vouch for one and shows the closest "
+      + "it found. Nothing here is invented, and every answer is logged." }),
+    h("div", { class: "row", style: "margin:8px 0 6px" },
       ...RECIPES.map(([id, label]) =>
-        h("button", { class: S.recipe === id ? "primary small" : "small",
+        h("button", { class: rid === id ? "primary small" : "small",
           onclick: () => { S.recipe = id; localStorage.setItem("nestor.recipe", id);
                            S.result = null; render(); } }, label))),
     h("p", { class: "muted small", style: "margin:0",
-      text: RECIPES.find((r) => r[0] === S.recipe)[2] +
-            " — same seal, same threshold, same ledger." }));
+      text: RECIPES.find((r) => r[0] === rid)[2] }));
   view.append(picker);
-  view.append({ translate: translateForm, entity: entityForm,
-                numeric: numericForm, match: matchForm }[S.recipe]());
-  if (S.result && S.result.recipe === S.recipe) {
-    view.append({ translate: translateResult, entity: entityResult,
-                  numeric: numericResult, match: matchResult }[S.recipe](S.result));
+  view.append(forms[rid]());
+  if (S.result && S.result.recipe === rid) {
+    view.append(results[rid](S.result));
   }
+}
+
+/* --- decision: ask the decision store a question -------------------------- */
+function decisionForm() {
+  const d = askDomain(), q = asked();
+  return h("div", { class: "card" },
+    h("textarea", { id: "ask-text",
+      placeholder: "ask a question — e.g. \"what did we decide about the seal bar?\"" },
+      q.text || ""),
+    h("div", { class: "row", style: "margin-top:8px" },
+      h("span", { class: "small muted", text: "over " + d.source_lang + " decisions" }),
+      h("span", { class: "spacer" }),
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitDecision,
+        title: S.state.read_only
+          ? "read-only: answering records a passage in the ledger, so it needs a writable store."
+          : "" }, "Ask"),
+      S.state.read_only
+        ? h("span", { class: "small muted", style: "margin-left:8px",
+            text: "read-only: an answer would leave no trail" })
+        : null));
+}
+
+async function submitDecision() {
+  const text = $("ask-text").value.trim();
+  if (!text) return;
+  const d = askDomain();
+  const body = { text, source_lang: d.source_lang, target_lang: d.target_lang };
+  nestorMood("thinking");
+  try { S.result = { recipe: "decision", ...(await api("/api/ask", body)), query: body }; render(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function decisionResult(r) {
+  const p = r.passage || {};
+  const v = {
+    sealed: { t: "✓ Decided", cls: "good", say: "A human sealed this answer." },
+    draft: { t: "~ Proposed, not sealed", cls: "",
+             say: "A machine drafted this; no human has verified it, so it is not served as decided." },
+    pending: { t: "✗ No decision on record", cls: "bad",
+               say: "Nestor has no verified answer for this — and won't invent one. The closest it found is below." },
+  }[p.state] || { t: p.state || "—", cls: "", say: "" };
+  const detail = "tier " + (p.tier ?? "?")
+    + (p.engine ? " · " + p.engine : "")
+    + (p.confidence ? " · confidence " + p.confidence : "")
+    + (askDomain().matcher ? " · matcher " + askDomain().matcher : "");
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("b", { class: v.cls, text: v.t }),
+      p.meta && p.meta.verifier ? h("span", { class: "chip", text: "verified by " + p.meta.verifier }) : null,
+      h("span", { class: "spacer" }),
+      h("span", { class: "small muted mono", title: "how Nestor answered", text: detail })),
+    (p.state === "sealed" || p.state === "draft")
+      ? h("p", { style: "font-size:17px;margin:10px 0 2px", text: p.target || "—" }) : null,
+    h("p", { class: "small muted", style: "margin-top:4px", text: v.say }));
+  if (p.state !== "sealed") {
+    card.append(h("div", { class: "row", style: "margin-top:10px" },
+      h("input", { id: "ask-seal-target", value: p.target || "", placeholder: "the verified answer",
+                   style: "flex:1;min-width:220px" }),
+      h("button", { class: "primary small", disabled: S.state.read_only, onclick: () => sealFromAsk(r) },
+        "Seal this decision")));
+  }
+  card.append(candidates(r.matches, r.threshold, "source", "target",
+    (m) => rejectMatch(r.query, m)));
+  return card;
 }
 
 function remembered(key, fallback) { return localStorage.getItem("nestor." + key) || fallback; }
@@ -3175,8 +3298,13 @@ function viewGraph() {
     h("div", { class: "row" },
       h("h2", { style: "margin:0", text: "Decision graph" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge good", text: g.nodes.length + " decision(s)" }),
-      h("span", { class: "badge", text: g.edges.length + " relation(s)" })));
+      h("span", { class: "badge good", text: g.nodes.length + " decisions" }),
+      h("span", { class: "badge", text: g.edges.length + " relationships" })),
+    h("p", { class: "small muted", text:
+      "How your decisions connect to each other. Each box is a decision; an arrow "
+      + "is a sealed relationship between two — ↻ one replaces another (supersedes) "
+      + "or ⚠ two disagree (contradicts). Relationships are made by confirming a "
+      + "proposal in the Triage tab; this view only reads." }));
   view.append(card);
 
   if (!g.nodes.length) {
@@ -3186,11 +3314,46 @@ function viewGraph() {
     return;
   }
 
+  // The graph draws relationships. With none, laying every decision out as a
+  // node is a line of unreadable dots that says nothing — so say what the page
+  // is for instead of drawing an empty relationship-graph as if it were full.
+  if (!g.edges.length) {
+    view.append(h("div", { class: "card" },
+      h("p", { class: "empty", text:
+        g.nodes.length + " decisions, but none are related to each other yet. "
+        + "This page draws the relationships between decisions — a newer one "
+        + "replacing an older (↻ supersedes), or two that disagree (⚠ contradicts) "
+        + "— and there is nothing to draw until one exists. Confirm a proposed "
+        + "relationship in the Triage tab to draw the first; this view only reads, "
+        + "so it cannot create one for you." })));
+    return;
+  }
+
+  // Relationships exist: lead with the decisions that have one. `connected` is
+  // every node touched by an edge; the rest are drawn only when the reviewer
+  // asks (graphShowAll), so a few relationships are not lost among hundreds of
+  // unconnected nodes the layout would line up as dots.
+  const linked = new Set();
+  for (const e of g.edges) { linked.add(e.source); linked.add(e.target); }
+  const shownNodes = S.graphShowAll ? g.nodes : g.nodes.filter((n) => linked.has(n.id));
+  const hidden = g.nodes.length - shownNodes.length;
+  const shownGraph = { nodes: shownNodes, edges: g.edges };
+
+  if (hidden > 0 || S.graphShowAll) {
+    view.append(h("div", { class: "card" }, h("div", { class: "row small muted" },
+      h("span", { text: S.graphShowAll
+        ? "showing all " + g.nodes.length + " decisions, connected or not"
+        : "showing " + shownNodes.length + " related decision(s); "
+          + hidden + " unconnected one(s) are hidden" }),
+      h("button", { class: "small", onclick: () => { S.graphShowAll = !S.graphShowAll; render(); } },
+        S.graphShowAll ? "show related only" : "show all " + g.nodes.length))));
+  }
+
   const canvas = h("div", { id: "graph-canvas" });
   const legend = h("div", { class: "graph-legend" },
-    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed"),
-    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft"),
-    h("span", { class: "item" }, h("span", { class: "line" }), "relation"),
+    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed decision"),
+    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft decision"),
+    h("span", { class: "item" }, h("span", { class: "line" }), "supersedes →"),
     h("span", { class: "item" }, h("span", { class: "line contradicts" }), "contradicts"));
   const frame = h("div", { class: "graph-frame" }, canvas, legend);
   const detail = h("div", { class: "card", id: "graph-detail-card" }, graphDetail(S.graphSelected));
@@ -3198,7 +3361,7 @@ function viewGraph() {
 
   const cy = cytoscape({
     container: canvas,
-    elements: graphElements(g),
+    elements: graphElements(shownGraph),
     style: graphStylesheet(graphPalette()),
     layout: { name: "breadthfirst", directed: true, spacingFactor: 1.15, padding: 24 },
     // Canvas only, no DOM to click through — a read-only view has nothing to
@@ -3287,27 +3450,53 @@ function triageOpenRow(row) {
 }
 
 function triageClusterRow(c) {
+  // Members carry their question text now (see nestor.ui's _triage); fall back
+  // to the id for an older payload so the tab never renders blank.
+  const members = c.members && c.members.length
+    ? c.members : (c.member_ids || []).map((id) => ({ id, question: "" }));
   return h("div", { class: "seg" },
     h("div", { class: "row" },
       h("b", { text: c.label || "(untitled group)" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge", text: c.member_ids.length + " member(s)" })),
-    h("div", { class: "row small", style: "gap:6px;flex-wrap:wrap;margin-top:6px" },
-      ...c.member_ids.map((mid) => h("span", {
-        class: "chip mono", style: "cursor:pointer" + (mid === c.representative_id ? ";font-weight:700" : ""),
-        title: mid === c.representative_id ? "representative — most central member" : "member",
-        onclick: () => selectTriageDecision(mid),
-        text: (mid === c.representative_id ? "★ " : "") + mid.slice(0, 8),
-      }))));
+      h("span", { class: "badge", text: members.length + " similar decisions" })),
+    h("div", { class: "small muted", style: "margin:4px 0", text:
+      "These questions look alike — you could seal one answer instead of several. "
+      + "★ is the most central." }),
+    ...members.map((m) => h("div", {
+      class: "row small", style: "gap:8px;cursor:pointer;padding:2px 0;align-items:flex-start",
+      title: m.id + (m.id === c.representative_id ? " — most central member" : ""),
+      onclick: () => selectTriageDecision(m.id) },
+      h("span", { class: "mono muted", text: m.id === c.representative_id ? "★" : "·" }),
+      h("span", { text: m.question || ("(" + m.id.slice(0, 8) + ")") }))));
 }
 
-// contradicts reads as an alarm (same reason the Graph tab's edge gets its
-// own dashed red line) — supersedes reads as tidy — refines is unemitted
-// today (see nestor/triage/supersede.py) but gets a plain badge if that
-// changes, so an unrecognised kind never falls through with no styling at all.
-function triageEdgeKindBadge(kind) {
-  const cls = kind === "contradicts" ? "badge bad" : kind === "supersedes" ? "badge good" : "badge";
-  return h("span", { class: cls, text: kind });
+// Plain-language framing for each proposed edge. contradicts reads as an alarm
+// (same reason the Graph tab's edge gets its own dashed red line); supersedes
+// reads as tidy; anything else gets a neutral line so an unrecognised kind
+// never falls through unlabelled. `src` is the later decision, `dst` the
+// earlier (nestor/triage/supersede.py: src_id=later.id, dst_id=earlier.id) —
+// so for supersedes the newer would replace the older.
+function triageEdgeFraming(kind) {
+  if (kind === "contradicts") {
+    return { cls: "bad", icon: "⚠", head: "These two decisions disagree",
+             srcLabel: "one says", dstLabel: "the other says", verb: "Flag the conflict" };
+  }
+  if (kind === "supersedes") {
+    return { cls: "good", icon: "↻", head: "A newer decision looks like it replaces an older one",
+             srcLabel: "newer", dstLabel: "older", verb: "Replace the older" };
+  }
+  return { cls: "", icon: "•", head: "These two decisions look related (" + kind + ")",
+           srcLabel: "one", dstLabel: "the other", verb: "Confirm" };
+}
+
+function triageEdgeParty(label, question, commitment, id) {
+  return h("div", { class: "row small", title: id,
+                   style: "gap:8px;cursor:pointer;align-items:flex-start;padding:2px 0",
+                   onclick: () => selectTriageDecision(id) },
+    h("span", { class: "chip", style: "flex:0 0 auto", text: label }),
+    h("div", {},
+      h("div", { text: question || ("(" + id.slice(0, 8) + ")") }),
+      commitment ? h("div", { class: "small muted", text: commitment }) : null));
 }
 
 function edgeKey(e) { return e.src_id + "|" + e.dst_id + "|" + e.kind; }
@@ -3363,24 +3552,26 @@ function triageEdgeRow(e) {
   const key = edgeKey(e);
   const confirmedBy = S.triageConfirmed[key];
   const confirming = !!S.triageConfirming[key];
+  const f = triageEdgeFraming(e.kind);
   return h("div", { class: "seg" },
     h("div", { class: "row" },
-      triageEdgeKindBadge(e.kind),
-      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
-                 onclick: () => selectTriageDecision(e.src_id), text: e.src_id.slice(0, 8) }),
-      h("span", { class: "muted", text: "→" }),
-      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
-                 onclick: () => selectTriageDecision(e.dst_id), text: e.dst_id.slice(0, 8) }),
+      h("span", { class: "badge " + f.cls, text: f.icon + " " + e.kind }),
+      h("b", { text: f.head }),
       h("span", { class: "spacer" }),
-      h("span", { class: "small muted", text: "score " + Number(e.score).toFixed(2) }),
+      h("span", { class: "small muted", text: Math.round(Number(e.score) * 100) + "% match" })),
+    triageEdgeParty(f.srcLabel, e.src_question, e.src_commitment, e.src_id),
+    triageEdgeParty(f.dstLabel, e.dst_question, e.dst_commitment, e.dst_id),
+    h("div", { class: "row", style: "margin-top:6px" },
+      h("span", { class: "spacer" }),
       confirmedBy
         ? h("span", { class: "badge good", title: confirmedBy + "'s ratified judgment, ledgered",
-                      text: "confirmed" })
+                      text: "confirmed by " + confirmedBy })
         : (S.browserKey
             ? h("button", { class: "small primary",
                             disabled: confirming || (S.state && S.state.read_only),
-                            onclick: () => confirmEdge(e) }, confirming ? "Confirming…" : "Confirm")
-            : null)));
+                            onclick: () => confirmEdge(e) }, confirming ? "Confirming…" : f.verb)
+            : h("span", { class: "small muted",
+                          text: "sign in with a browser key to act on this" }))));
 }
 
 function viewTriage() {
@@ -3405,18 +3596,15 @@ function viewTriage() {
     h("div", { class: "row" },
       h("h2", { style: "margin:0", text: "Decision triage" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge", text: (c.decisions ?? 0) + " decision(s)" }),
-      h("span", { class: "badge", text: (c.groups ?? 0) + " group(s)" }),
-      h("span", { class: "badge", text: (c.edges ?? 0) + " proposed edge(s)" }),
+      h("span", { class: "badge", text: (c.decisions ?? 0) + " decisions" }),
+      h("span", { class: "badge", text: (c.edges ?? 0) + " to review" }),
       h("span", { class: "badge good", text: (c.open ?? 0) + " open" })),
     h("p", { class: "small muted", text:
-      "Proposed, not decided. nestor.triage groups near-duplicate decisions and proposes "
-      + "supersedes/contradicts/refines edges at bar " + Number(t.bar || 0).toFixed(2)
-      + " — a human signed in with a browser key can confirm (seal) a proposed edge below; "
-      + "everything else on this tab stays read-only, and there is no way to reject a "
-      + "proposal here yet. Below: what still needs you, ranked so a live contradiction or "
-      + "a group worth consolidating sorts ahead of a decision with nothing proposed about "
-      + "it." })));
+      "Nestor looked over your decisions for ones that ask the same question. What it "
+      + "found is below — pairs that may conflict or duplicate first, then groups of "
+      + "similar questions, then the rest of the open decisions. Nothing here is decided: "
+      + "the tab is read-only until you sign in with a browser key (top right), and even "
+      + "then you can only confirm a relationship, never reject one here yet." })));
 
   if (!c.decisions) {
     view.append(h("div", { class: "card" }, h("p", { class: "empty",
@@ -3424,44 +3612,70 @@ function viewTriage() {
     return;
   }
 
-  const openList = h("div", { class: "card" },
-    h("h2", { text: "Open — what needs you" }));
-  if (!t.open.length) {
-    openList.append(h("p", { class: "empty", text:
-      "Nothing open: every decision here is already the dst of a proposed supersession "
-      + "(or carries a hand-written consolidated_onto note). Still proposed, not sealed." }));
-  } else {
-    for (const row of t.open) openList.append(triageOpenRow(row));
-  }
-  const detail = h("div", { class: "card", id: "triage-detail-card" }, triageDetail());
-  view.append(h("div", { class: "grid" }, openList, detail));
-
-  const clustersCard = h("div", { class: "card" },
-    h("h2", { text: "Themed groups" }),
-    h("p", { class: "small muted", text:
-      "Near-duplicate questions, clustered by nestor.triage — a candidate to seal once "
-      + "instead of several times. ★ marks the most central member." }));
-  if (!t.clusters.length) {
-    clustersCard.append(h("p", { class: "empty", text: "No groups found at this bar." }));
-  } else {
-    for (const cl of t.clusters) clustersCard.append(triageClusterRow(cl));
-  }
-  view.append(clustersCard);
-
+  // 1) The actionable signal, first: proposed conflicts and duplicates.
   const edgesCard = h("div", { class: "card" },
-    h("h2", { text: "Proposed edges" }),
+    h("h2", { text: "Conflicts & duplicates — worth a look" }),
     h("p", { class: "small muted", text: S.browserKey
-      ? "src → dst, proposed until signed. Confirm signs it with " + S.browserKey.verifier
-        + "'s browser key and writes a sealed edge, ledgered — the only write this tab makes. "
-        + "There is no way to reject a proposal here yet."
-      : "src → dst, proposed only — nothing here has a verifier or a signature yet. Sign in "
-        + "with a browser key (top right) to confirm one; without it this list is read-only." }));
+      ? "Confirming signs the relationship with " + S.browserKey.verifier
+        + "'s browser key and writes a sealed, ledgered edge — the only write this tab makes."
+      : "Proposed only — sign in with a browser key (top right) to act on one; until then this is read-only." }));
   if (!t.proposed_edges.length) {
-    edgesCard.append(h("p", { class: "empty", text: "No supersession or contradiction proposed at this bar." }));
+    edgesCard.append(h("p", { class: "empty", text:
+      "Nothing looks like a conflict or a duplicate at this similarity bar ("
+      + Number(t.bar || 0).toFixed(2) + ")." }));
   } else {
     for (const e of t.proposed_edges) edgesCard.append(triageEdgeRow(e));
   }
   view.append(edgesCard);
+
+  // 2) Themed groups — only the ones with something to compare. A one-member
+  // "group" has nothing to consolidate, and on a few-hundred-decision store
+  // there is one per decision; fold them away behind a count the reviewer can
+  // expand, so the handful of real groups are not buried.
+  const groups = t.clusters.filter((cl) => (cl.member_ids || []).length > 1);
+  const singletons = t.clusters.length - groups.length;
+  const clustersCard = h("div", { class: "card" },
+    h("h2", { text: "Groups of similar questions" }),
+    h("p", { class: "small muted", text:
+      "Questions that cluster together — seal one answer instead of several." }));
+  if (!groups.length) {
+    clustersCard.append(h("p", { class: "empty", text: "No multi-decision groups at this bar." }));
+  } else {
+    for (const cl of groups) clustersCard.append(triageClusterRow(cl));
+  }
+  if (singletons > 0) {
+    clustersCard.append(h("div", { class: "row small muted", style: "margin-top:8px" },
+      h("span", { text: singletons + " decision(s) stand alone (nothing to consolidate)." }),
+      h("button", { class: "small", onclick: () => { S.triageShowSingletons = !S.triageShowSingletons; render(); } },
+        S.triageShowSingletons ? "hide" : "show them")));
+    if (S.triageShowSingletons) {
+      for (const cl of t.clusters) {
+        if ((cl.member_ids || []).length <= 1) clustersCard.append(triageClusterRow(cl));
+      }
+    }
+  }
+  view.append(clustersCard);
+
+  // 3) The full open list, capped — it is ranked signal-first server-side, so
+  // the top is what matters; the rest is one tap away behind "show all".
+  const OPEN_CAP = 25;
+  const shownOpen = S.triageShowAllOpen ? t.open : t.open.slice(0, OPEN_CAP);
+  const openList = h("div", { class: "card" },
+    h("h2", { text: "All open decisions" }));
+  if (!t.open.length) {
+    openList.append(h("p", { class: "empty", text:
+      "Nothing open — every decision here is already the target of a proposed supersession." }));
+  } else {
+    for (const row of shownOpen) openList.append(triageOpenRow(row));
+    if (t.open.length > shownOpen.length || S.triageShowAllOpen) {
+      openList.append(h("div", { class: "row small muted", style: "margin-top:8px" },
+        h("span", { text: "showing " + shownOpen.length + " of " + t.open.length }),
+        h("button", { class: "small", onclick: () => { S.triageShowAllOpen = !S.triageShowAllOpen; render(); } },
+          S.triageShowAllOpen ? "show fewer" : "show all " + t.open.length)));
+    }
+  }
+  const detail = h("div", { class: "card", id: "triage-detail-card" }, triageDetail());
+  view.append(h("div", { class: "grid" }, openList, detail));
 }
 
 /* ---------- shell --------------------------------------------------------- */
@@ -3511,7 +3725,133 @@ function viewSignals() {
       text: "This store does not implement the curation capability (storage.supports_curation)." })));
     return;
   }
-  view.append(replacedCard(), rejectedQueriesCard(), junkPairsCard());
+  const s = S.signals || {};
+  // Alarms: something is wrong. Empty across all of them is the good state,
+  // and the header says so rather than leaving three blank cards to read as
+  // broken. Overrules (replaced, self-corrections hidden by default), junk
+  // pairs still being served, and rows that say sealed but will not verify.
+  const alarms = (s.replaced || []).length
+    + ((s.rejections && s.rejections.pairs) || []).length
+    + (s.unverifiable || []).length;
+
+  view.append(h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("h2", { style: "margin:0", text: "Signals" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge" + (alarms ? "" : " good"),
+                  text: alarms ? alarms + " to look at" : "all clear" })),
+    h("p", { class: "small muted", text:
+      "What the store is telling you about itself. Alarms first — empty is good, "
+      + "it means nothing is wrong — then coverage and upkeep, which are worth a "
+      + "glance even on a healthy store." })));
+
+  view.append(h("div", { class: "row", style: "margin:4px 2px" }, h("b", { text: "Alarms" })));
+  if (!alarms) {
+    view.append(h("div", { class: "card" }, h("p", { class: "empty", text:
+      "All clear — no seal overruled, no junk pair being served, every sealed row verifies." })));
+  }
+  // replacedCard always renders: it carries the "include self-corrections"
+  // toggle, the only way to reveal the overrules the alarm count hides.
+  view.append(replacedCard());
+  if (((s.rejections && s.rejections.pairs) || []).length) view.append(junkPairsCard());
+  if ((s.unverifiable || []).length) view.append(unverifiableCard());
+
+  view.append(h("div", { class: "row", style: "margin:12px 2px 4px" }, h("b", { text: "Coverage & upkeep" })));
+  view.append(dueCard(), missesCard(), rejectedQueriesCard());
+}
+
+function unverifiableCard() {
+  const rows = (S.signals && S.signals.unverifiable) || [];
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Sealed, but Nestor won't serve them" }),
+    h("p", { class: "small muted", text:
+      "These rows say 'sealed', but their signature does not verify here, so every serve "
+      + "path refuses them (Nestor#2). A seal written by something that did not hold the key "
+      + "looks exactly like this. Open one in Memory to unseal or re-seal it." }));
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Every sealed row verifies." }));
+    return card;
+  }
+  for (const p of rows) {
+    card.append(h("div", { class: "pair",
+                           onclick: async () => { S.tab = "memory"; await refresh(); openPair(p.id); } },
+      h("div", { class: "texts" }, mark(p.status),
+        h("span", { class: "src", text: p.source_text || "(row is gone)" }),
+        h("span", { class: "arrow", text: "→" }),
+        h("span", { text: p.target_text })),
+      h("div", { class: "row small muted", style: "margin-top:4px" },
+        h("span", { class: "chip", style: "color:var(--rejected);border-color:var(--rejected)",
+                    text: "won't verify" }),
+        p.verifier ? h("span", { class: "chip", text: p.verifier }) : null)));
+  }
+  return card;
+}
+
+function dueCard() {
+  const d = (S.signals && S.signals.due) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Seals due for re-verification" }),
+    h("p", { class: "small muted", text:
+      "Sealed answers whose last human check is older than " + (d.threshold_days ?? 90)
+      + " days. Not wrong — aging; a human may want to confirm they still hold." }));
+  if (d.chain_ok === false) {
+    card.append(h("p", { class: "empty", text:
+      "Can't check — the ledger chain does not verify: " + (d.detail || "") }));
+    return card;
+  }
+  const rows = d.rows || [];
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Nothing is past the re-verification age." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["age (days)", "pair", "last verifier", "last checked"].map((t) => h("th", { text: t }))));
+  for (const r of rows) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.days) })),
+      h("td", { class: "mono small", text: (r.pair_id || "").slice(0, 8) }),
+      h("td", { text: r.verifier || "(unknown)" }),
+      h("td", { class: "small muted", text: (r.last || "").slice(0, 10) })));
+  }
+  card.append(table);
+  if (d.total > rows.length) {
+    card.append(h("p", { class: "small muted", text: "showing " + rows.length + " of " + d.total }));
+  }
+  return card;
+}
+
+function missesCard() {
+  const m = (S.signals && S.signals.misses) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Questions Nestor couldn't answer" }),
+    h("p", { class: "small muted", text:
+      "Inputs that were asked but had no verified answer to serve — the shortlist of what "
+      + "to seal next. Questions seen only once are counted but their text is not shown." }));
+  if (m.supported === false) {
+    card.append(h("p", { class: "empty", text: "This store does not record misses." }));
+    return card;
+  }
+  const q = m.queue || [];
+  if (!q.length) {
+    card.append(h("p", { class: "empty", text: m.withheld
+      ? m.withheld + " one-off question(s) seen; none has been asked more than once yet."
+      : "No unanswered question has been recorded." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["times", "query (normalized)", "domain"].map((t) => h("th", { text: t }))));
+  for (const r of q) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.seen) })),
+      h("td", { class: "mono small", text: r.query }),
+      h("td", { class: "small muted", text: (r.source_lang || "") + "→" + (r.target_lang || "") })));
+  }
+  card.append(table);
+  if (m.withheld) {
+    card.append(h("p", { class: "small muted", text:
+      m.withheld + " question(s) seen only once are counted but not shown." }));
+  }
+  return card;
 }
 
 function replacedCard() {
@@ -3763,6 +4103,9 @@ async function refresh() {
       S.signals = {
         replaced: (await api("/api/replaced-seals?all=" + (S.showAllReplaced ? "1" : "0"))).replaced,
         rejections: await api("/api/rejections?" + q.toString()),
+        unverifiable: (await api("/api/pairs?unverifiable=1&limit=200")).pairs,
+        due: await api("/api/due-for-reverification?limit=200"),
+        misses: await api("/api/misses?limit=200"),
       };
     }
     if (S.tab === "ledger") {

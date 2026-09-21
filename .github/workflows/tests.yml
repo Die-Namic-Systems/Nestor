@@ -157,8 +157,11 @@ jobs:
 
   test-windows:
     runs-on: windows-latest
-    # The floor's second platform, on the floor and ceiling Pythons only (the
-    # first and last classifier minors; tests/test_ci_floor.py holds that).
+    # The floor's second platform. On push and the nightly schedule it runs the
+    # floor and ceiling Pythons (the first and last classifier minors); on a
+    # pull_request it runs the ceiling only, to keep PR feedback fast on this
+    # slow leg — the platform×version coverage still lands on every push to
+    # master and nightly. tests/test_ci_floor.py holds that shape.
     # The gate scripts are bash and stay bash: Git Bash is on the Windows
     # runner, so the leg runs the same `bash scripts/ci-test.sh full` AGENTS.md
     # and CONTRIBUTING.md name, not a second command nobody types. Coverage is
@@ -169,7 +172,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.13"]
+        # Event-conditional: one Python (the ceiling) on a pull_request to keep
+        # PR feedback fast on this slow ~20-minute leg, and the floor+ceiling
+        # pair on push and the nightly schedule. A non-empty fromJSON array is
+        # truthy, so the ternary picks the PR list when the event matches and
+        # the full list otherwise. tests/test_ci_floor.py holds both halves.
+        python-version: ${{ (github.event_name == 'pull_request') && fromJSON('["3.13"]') || fromJSON('["3.10", "3.13"]') }}
     env:
       # Python's UTF-8 mode (PEP 540; the default from 3.15). Without it a
       # Windows pipe is cp1252 and every script that prints a check mark —

@@ -232,6 +232,22 @@ def test_the_page_carries_the_graph_tab_and_the_vendored_library():
     assert 'version="3.34.1"' in PAGE
 
 
+def test_the_graph_tab_explains_itself_and_the_edgeless_case():
+    """The overwhelm fix: the tab says what it draws in plain words, does NOT
+    lay out a pile of unconnected nodes when there are no relationships, and
+    defaults to the connected sub-graph (with a toggle) when there are."""
+    from nestor.ui_page import PAGE
+    # a plain-language intro naming what a node and an arrow are
+    assert "How your decisions connect to each other" in PAGE
+    # the "decisions but no edges" case is handled explicitly, not drawn
+    assert "none are related to each other yet" in PAGE
+    assert "if (!g.edges.length)" in PAGE
+    # connected-first default with a reveal toggle
+    assert "graphShowAll" in PAGE
+    assert "unconnected one(s) are hidden" in PAGE
+    assert "graphElements(shownGraph)" in PAGE
+
+
 def test_csp_header_is_unchanged_by_the_graph_view(app):
     """A regression test that the viewer did NOT loosen the CSP: pinned
     byte-for-byte, the exact string nestor/ui.py sends today. Vendoring a
