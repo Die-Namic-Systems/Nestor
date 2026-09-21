@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 272,
+    "pairs": 274,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-21T00:00:00+00:00",
-  "digest": "5797064494e4c109a795da2a11c36b94934891cca19b505265d00f7c480432c0",
+  "digest": "3f613df919e72159dc46b28dfc51453c1d778bf0ddd3031c2170476dd2d8eb03",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "f5d961be-3d69-59c7-9485-7d723147fdf1",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "teststest_ci_floorpy pins the windows legs matrix to exactly floor ceiling with a parser that only reads a literal pythonversion list how does the floor invariant hold once the matrix is a conditional expression",
+      "source_text": "tests/test_ci_floor.py pins the windows leg's matrix to exactly [floor, ceiling] with a parser that only reads a literal python-version list. How does the floor invariant hold once the matrix is a conditional expression?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The invariant is updated, not relaxed: a _windows_matrix helper parses the two fromJSON arrays, and the test asserts the pull_request array is [ceiling] and the push/schedule array is [floor, ceiling], plus that the reduction is scoped to github.event_name == 'pull_request'. The floor's plain-English statement ('Windows on floor and ceiling') is held on the authoritative runs; the file's docstring is updated to say so.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "c7898142-829e-5eeb-8a3d-049f4184913d",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the testwindows leg runs the floor and ceiling pythons 310 313 on every event doubling a 20minute leg on each pr push cut it to one python and if so everywhere or only on prs",
+      "source_text": "The test-windows leg runs the floor and ceiling Pythons (3.10, 3.13) on every event, doubling a ~20-minute leg on each PR push. Cut it to one Python — and if so, everywhere, or only on PRs?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Event-conditional matrix: on a pull_request the leg runs the ceiling Python only (3.13); on push to master and the nightly schedule it still runs the floor and ceiling pair (3.10, 3.13). Written as a ternary over two fromJSON('[...]') arrays in .github/workflows/tests.yml, PR list first.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-21T00:00:00+00:00",
       "id": "a35b95f9-a879-561e-bd3a-e3a1a72502ae",

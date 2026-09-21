@@ -1,0 +1,17 @@
+{
+  "branch": "claude/windows-pr-matrix-one-python",
+  "date": "2026-09-21",
+  "note": "Proposed, not sealed. Dogfooding feedback while merging the UI-tab PRs: 'I don't remember windows tests taking this long before.' Investigation (git log + the workflow's own comments + GitHub status) found no regression and no outage: the test-windows leg is documented to run ~20.5 minutes (it spawns hundreds of subprocesses and Windows starts each slowly), the leg itself only landed 2026-09-12, and today's pain was concurrency cancellations from rapid branch churn, not slowness. The operator asked to reduce the Windows PR matrix to one Python. Touches the fleet CI floor (decision 5 / 0239), so tests/test_ci_floor.py's windows-leg invariant is updated in the same change rather than skipped.",
+  "decisions": [
+    {
+      "question": "The test-windows leg runs the floor and ceiling Pythons (3.10, 3.13) on every event, doubling a ~20-minute leg on each PR push. Cut it to one Python — and if so, everywhere, or only on PRs?",
+      "commitment": "Event-conditional matrix: on a pull_request the leg runs the ceiling Python only (3.13); on push to master and the nightly schedule it still runs the floor and ceiling pair (3.10, 3.13). Written as a ternary over two fromJSON('[...]') arrays in .github/workflows/tests.yml, PR list first.",
+      "why": "The operator's ask was specifically the 'PR matrix', and PR feedback time is what the churn made painful. Dropping the floor Python everywhere would lose Windows×3.10 coverage entirely; scoping the reduction to pull_request keeps the full platform×version matrix on the authoritative runs (every push to master, and nightly) while halving the PR-time Windows cost. The Windows-specific failures this repo has actually hit were platform, not version — subprocess spawning and the cp1252/PYTHONUTF8 encoding bug (PR #297) — so one Python is a sound PR smoke; version-specific regressions are still caught on push/nightly before a release."
+    },
+    {
+      "question": "tests/test_ci_floor.py pins the windows leg's matrix to exactly [floor, ceiling] with a parser that only reads a literal python-version list. How does the floor invariant hold once the matrix is a conditional expression?",
+      "commitment": "The invariant is updated, not relaxed: a _windows_matrix helper parses the two fromJSON arrays, and the test asserts the pull_request array is [ceiling] and the push/schedule array is [floor, ceiling], plus that the reduction is scoped to github.event_name == 'pull_request'. The floor's plain-English statement ('Windows on floor and ceiling') is held on the authoritative runs; the file's docstring is updated to say so.",
+      "why": "A gate that fires is an answer, not an obstacle — the floor test firing on this change is correct, and the fix is to teach it the new shape, never to skip or delete it (that is the forbidden act the CI-floor file exists to catch). Keeping the assertion exact (two named arrays, in order, scoped to the pull_request event) means a future edit that quietly drops the floor Python from push/nightly, or widens the PR reduction, still fails the floor."
+    }
+  ]
+}
