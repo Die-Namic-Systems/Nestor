@@ -742,6 +742,30 @@ def test_the_numeric_check_tells_the_page_the_figure_was_half_read(filled):
     assert out["baseline_partial"] is False and out["flagged"] is True
 
 
+def test_the_queue_tab_is_a_review_hub_not_only_a_segment_list():
+    """The Queue tab is named "Awaiting a human", but on a decision-first store
+    the segment queue is empty while the real review work (drafts, proposals)
+    lives elsewhere. It is now a hub: a count and a jump per review surface,
+    with the segment queue one inline section — so the named tab is true."""
+    from nestor.ui_page import PAGE
+
+    assert "function viewQueue" in PAGE
+    assert "Awaiting a human" in PAGE
+    assert "function reviewRow" in PAGE
+    # jumps to where each kind of review work actually lives
+    assert "Open in Memory" in PAGE
+    assert "Open in Triage" in PAGE
+    # the draft count comes from the store summary, not the segment queue
+    assert "awaiting a seal" in PAGE
+    # the tab no longer bails out early when the store has no segment queue —
+    # the hub (drafts/proposals) still renders without the queue capability
+    q = PAGE.split("function viewQueue()", 1)[1].split("\nfunction ", 1)[0]
+    assert "if (!S.state.capabilities.queue)" not in q, (
+        "viewQueue must not early-return on a missing segment-queue capability")
+    # never trigger the O(n^2) triage compute from this tab — link only
+    assert '"/api/triage"' not in q
+
+
 # --- Signals: coverage misses + the health panel ----------------------------
 
 def test_api_misses_surfaces_repeat_misses_and_withholds_one_offs(tmp_path):

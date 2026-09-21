@@ -1594,51 +1594,76 @@ function sim(value) {
     h("span", { class: "small muted mono", text: value.toFixed(3) }));
 }
 
-/* ---------- Queue --------------------------------------------------------- */
+/* ---------- Queue: "Awaiting a human" — the review hub -------------------- */
+/* This tab used to read only *segments* — text the cascade ingested through a
+   document. Nestor is not mostly a translation tool any more, so on a store
+   built by decisions and add_pair the segment queue is empty while real review
+   work (drafts to seal, relationships to confirm) sits in other tabs — the one
+   tab named "Awaiting a human" was the one place they were not. It is now a hub
+   over every review surface: each row is a count and a jump to the tab that
+   owns that work, and the legacy segment queue is one section of it, inline,
+   when a store still has segments. (History: 44 rows once awaited a human two
+   inches under a badge that said everything was decided — the empty-queue
+   message this hub replaces.) */
+function reviewRow(count, label, hint, btnLabel, onclick) {
+  const known = count !== null && count !== undefined;
+  return h("div", { class: "seg" },
+    h("div", { class: "row" },
+      h("span", { class: "badge" + (known && count ? " good" : ""),
+                  text: known ? String(count) : "—" }),
+      h("b", { text: label }),
+      h("span", { class: "spacer" }),
+      (btnLabel && onclick) ? h("button", { class: "small", onclick }, btnLabel) : null),
+    h("div", { class: "small muted", style: "margin-top:4px", text: hint }));
+}
+
 function viewQueue() {
   const view = $("view");
-  if (!S.state.capabilities.queue) {
-    view.append(h("div", { class: "card" },
-      h("p", { class: "empty", text: "This store cannot list the review queue " +
-        "(storage.supports_queue). Sealing and curation still work." })));
-    return;
-  }
+  const st = S.state || {}, sum = st.summary || {}, base = st.stats || {};
+  const drafts = sum.draft ?? base.draft ?? 0;
+  const capQueue = !!(st.capabilities && st.capabilities.queue);
   const q = S.queue || { documents: [], pending: 0 };
+  const segs = capQueue ? (q.pending || 0) : 0;
+  // Triage clustering is O(n^2) and only computed on its own tab; show its
+  // count only when a prior visit already cached it, and never trigger it here.
+  const props = (S.triage && S.triage.counts) ? (S.triage.counts.edges || 0) : null;
+
   view.append(h("div", { class: "card" },
     h("h2", { text: "Awaiting a human" }),
-    h("p", { class: "muted small", text: q.pending
-      ? q.pending + " segment(s) the cascade could not serve from the sealed memory. " +
-        "Sealing one enters it into tier 1; rejecting one means that candidate is never offered for this text again."
-      : queueEmptyLine() })));
+    h("p", { class: "muted small", text:
+      "What still needs a person in this store. Nestor only serves an answer a "
+      + "human signed, so this is the work that earns that — drafts to seal, "
+      + "relationships to review, and any text the translate cascade queued." })));
 
-  for (const doc of q.documents) {
+  view.append(h("div", { class: "card" },
+    reviewRow(drafts, "draft" + (drafts === 1 ? "" : "s") + " awaiting a seal",
+      "Unsealed pairs — open them in Memory to seal, correct, or reject.",
+      "Open in Memory",
+      () => { S.filters.status = "draft"; S.offset = 0; S.tab = "memory"; refresh(); }),
+    reviewRow(props, "proposed relationship" + (props === 1 ? "" : "s") + " to review",
+      props === null
+        ? "Conflicts and duplicates between decisions — open Triage to compute and review them."
+        : "Conflicts and duplicates nestor.triage found between your decisions.",
+      "Open in Triage",
+      () => { S.tab = "triage"; refresh(); }),
+    reviewRow(segs, "translation segment" + (segs === 1 ? "" : "s") + " queued",
+      capQueue
+        ? (segs ? "Text the cascade could not serve from sealed memory — reviewed below."
+                : "Text the cascade ingested through a document; none are queued now.")
+        : "This store has no segment queue (storage.supports_queue is off).",
+      "", null)));
+
+  // The segment queue itself, inline — the tab's original content, now one
+  // section of the hub rather than the whole tab.
+  for (const doc of (capQueue ? q.documents : [])) {
     const card = h("div", { class: "card" },
       h("div", { class: "row" },
         h("b", { text: doc.title || "(untitled)" }),
         h("span", { class: "chip", text: (doc.source_lang || "?") + " → " + (doc.target_lang || "?") }),
         h("span", { class: "chip mono", text: (doc.id || "").slice(0, 8) })));
     for (const seg of doc.segments) card.append(segmentRow(doc, seg));
-    $("view").append(card);
+    view.append(card);
   }
-}
-
-/* What an empty queue means depends on what is in the store.
-   This tab reads *segments* — text the cascade ingested through a document. A
-   store filled by `memory.add_pair` has none, so the queue is empty while the
-   memory is full: 44 rows were awaiting a human here, two inches under a header
-   badge that said so, and this card claimed everything had been decided. An
-   empty room is not the same as a finished job, and only one of those is
-   something a person should be told. */
-function queueEmptyLine() {
-  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
-  const draft = c.draft ?? base.draft ?? 0;
-  if (draft) {
-    return `No segments are queued — this tab reads text the cascade ingested `
-      + `through a document, and this store has none. ${draft} row(s) are still `
-      + `awaiting a human in Memory, which is where they were added directly.`;
-  }
-  return "Nothing queued. Every segment the cascade has seen was either served "
-    + "from the sealed memory or already decided.";
 }
 
 function segmentRow(doc, seg) {
