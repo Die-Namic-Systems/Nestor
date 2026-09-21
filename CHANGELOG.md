@@ -153,6 +153,13 @@ what moved.
 
 ---
 
+## [0.24.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.23.0...v0.24.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make the Graph tab draw relationships, not a node pile ([#304](https://github.com/Die-Namic-Systems/Nestor/issues/304)) ([12fa59b](https://github.com/Die-Namic-Systems/Nestor/commit/12fa59b449b495c95301fcab58394f9327764839))
+
 ## [0.23.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.22.0...v0.23.0) (2026-09-21)
 
 
