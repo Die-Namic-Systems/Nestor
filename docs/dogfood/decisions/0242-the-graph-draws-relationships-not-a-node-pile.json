@@ -1,0 +1,17 @@
+{
+  "branch": "claude/graph-legibility",
+  "date": "2026-09-20",
+  "note": "Proposed, not sealed. Dogfooding feedback on nestor ui: the Graph tab showed 'a straight line of horizontal dots, with no real way of telling what the page is even supposed to be doing'. Verified on the operator store: /api/graph returns 264 nodes and 0 edges. The breadthfirst layout puts every node at the same depth when there are no edges, so all 264 render in one row of unreadable boxes; the empty-state only fired at zero NODES, so 'nodes but no relationships' fell through to that line. Front-end only (viewGraph); the read-only /api/graph endpoint and its covenant are unchanged. Pinned in tests/test_ui_graph.py.",
+  "decisions": [
+    {
+      "question": "The Graph tab renders a line of dots and explains nothing. Its data is 264 decisions and 0 relationships. What does it show when there are decisions but no edges between them?",
+      "commitment": "It stops drawing. Instead of laying every decision out as a node (which, with no edges, the breadthfirst layout lines up as unreadable dots), the tab shows a plain-language panel: N decisions, none related yet; this page draws the relationships between decisions — supersedes (a newer replaces an older) and contradicts (two disagree) — and there is nothing to draw until one exists; confirm a proposed relationship in Triage to draw the first; this view only reads. A one-line intro naming what a box and an arrow are runs above the canvas in every state.",
+      "why": "The graph's whole subject is relationships; with none, a node-per-decision canvas is not a sparse graph, it is a non-graph dressed as one, and the breadthfirst layout's single row of 264 boxes actively misleads (it looks like a structure). The honest rendering of an empty relationship-graph is a sentence that says it is empty and where relationships come from — the same move the Triage legibility change made, and the same spirit as the existing noDecisionGraphLine, extended to the 'nodes but no edges' case the old code let fall through to the dot-line."
+    },
+    {
+      "question": "When relationships DO exist, a store of hundreds of decisions with a handful of edges would still bury those edges among hundreds of unconnected nodes. What does the canvas draw by default?",
+      "commitment": "The connected sub-graph: only decisions touched by at least one edge, with a toggle ('show all N, connected or not') to reveal the rest. The relationships are the picture; the unconnected decisions live in Memory and Triage and are one click away here, never gone.",
+      "why": "A relationship graph is legible in proportion to how much of what it draws is a relationship. Drawing every decision regardless scales the noise with the store while the signal stays a handful of edges — the same overwhelm the Triage tab had. Connected-first keeps the canvas about the edges; the toggle keeps the whole set reachable, so nothing is hidden that a reviewer cannot get back. This is view-only: /api/graph still returns every node and edge (its tests pin that), and the filtering happens in the page."
+    }
+  ]
+}

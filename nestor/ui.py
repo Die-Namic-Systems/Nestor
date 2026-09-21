@@ -80,7 +80,7 @@ from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, cast
 
-from . import answer, cascade, config, home_paths, keyring, memory, portable, signing, storage
+from . import answer, cascade, config, home_paths, keyring, memory, misses, portable, signing, storage
 from . import ledger as ledger_mod
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
@@ -721,6 +721,21 @@ def _due_for_reverification(app: App, query: Mapping[str, Any],
 
     return {"rows": serialised, "chain_ok": True,
             "threshold_days": threshold, "total": total}
+
+
+def _misses(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """Coverage misses: inputs asked with no verified answer to serve.
+
+    Read-only over the miss ledger the cascade writes on every unanswered ask
+    (:func:`nestor.misses.record`). Returns :func:`nestor.misses.coverage` —
+    ``{supported, distinct_misses, total_misses, surfaced, withheld, queue}`` —
+    the shortlist of what to seal next. Questions seen only once are counted in
+    ``withheld`` but their text is withheld (misses.py's own privacy gate), so
+    every row in ``queue`` carries readable text. A store without the misses
+    capability returns ``{"supported": false}`` rather than an error.
+    """
+    limit = max(1, min(_int(query, "limit", 200), 2000))
+    return misses.coverage(app.store, limit=limit)
 
 
 def _replaced_seals(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -1565,6 +1580,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/pairs"): _pairs,
     ("GET", "/api/pair"): _pair,
     ("GET", "/api/queue"): _queue,
+    ("GET", "/api/misses"): _misses,
     ("GET", "/api/ledger"): _ledger_view,
     ("GET", "/api/due-for-reverification"): _due_for_reverification,
     ("GET", "/api/replaced-seals"): _replaced_seals,

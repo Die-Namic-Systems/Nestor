@@ -764,3 +764,64 @@ def test_the_queue_tab_is_a_review_hub_not_only_a_segment_list():
         "viewQueue must not early-return on a missing segment-queue capability")
     # never trigger the O(n^2) triage compute from this tab — link only
     assert '"/api/triage"' not in q
+
+
+# --- Signals: coverage misses + the health panel ----------------------------
+
+def test_api_misses_surfaces_repeat_misses_and_withholds_one_offs(tmp_path):
+    """The coverage odometer, read-only: a query asked-and-missed twice is a
+    seal candidate and shows with its text; one seen once is counted but its
+    text is withheld (misses.py's privacy gate). Recorded on every unanswered
+    ask, read by nothing until this endpoint.
+
+    File-backed store (not the :memory: `app` fixture): the miss ledger is
+    written and read across pooled connections, and a :memory: store gives each
+    pooled connection its own database — the same reason tests/test_misses.py
+    uses a file store.
+    """
+    from nestor import cascade, misses, storage, ui
+    from nestor.sqlite_store import SqliteStore
+    cascade.set_ledger_path(tmp_path / "ledger.jsonl")
+    store = SqliteStore(str(tmp_path / "n.db"))
+    store.init_db()
+    store.memory_init()
+    storage.set_store(store)
+    app = ui.App(store=store, source_lang="en", target_lang="es",
+                 db_path=str(tmp_path / "n.db"))
+    misses.record(store, "how do i rotate the seal key", "en", "es")
+    misses.record(store, "how do i rotate the seal key", "en", "es")
+    misses.record(store, "a one-off question", "en", "es")
+
+    status, out = get(app, "/api/misses")
+    assert status == 200
+    assert out["supported"] is True
+    assert out["distinct_misses"] == 2
+    assert out["surfaced"] == 1 and out["withheld"] == 1
+    assert [r["query"] for r in out["queue"]] == ["how do i rotate the seal key"]
+    assert out["queue"][0]["seen"] == 2
+    # the one-off's text is never in the payload
+    assert "a one-off question" not in json.dumps(out)
+
+
+def test_api_misses_is_read_only(app):
+    assert post(app, "/api/misses")[0] == 404
+
+
+def test_signals_is_a_health_panel_with_alarms_and_coverage():
+    """The Signals tab is no longer three inert cards. It fetches the
+    surfaced-but-unshown signals (due-for-reverification, sealed-unverifiable,
+    coverage misses), frames alarms so empty reads as 'all clear', and groups
+    alarms apart from coverage/upkeep."""
+    from nestor.ui_page import PAGE
+    # the three newly-wired signal sources
+    assert '"/api/due-for-reverification?limit=200"' in PAGE
+    assert "unverifiable=1" in PAGE
+    assert '"/api/misses?limit=200"' in PAGE
+    # the new cards
+    assert "function unverifiableCard" in PAGE
+    assert "function dueCard" in PAGE
+    assert "function missesCard" in PAGE
+    # the health framing
+    assert "all clear" in PAGE
+    assert "Coverage &amp; upkeep" in PAGE or "Coverage & upkeep" in PAGE
+    assert "Questions Nestor couldn't answer" in PAGE
