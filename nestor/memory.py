@@ -57,6 +57,7 @@ from .storage import (
     VerifierPolicyStorage,
     get_store,
     require_capability,
+    supports_lineage,
     supports_rejection,
     supports_verifier_policy,
 )
@@ -939,6 +940,104 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
             "same_verifier": old.get("verifier", "") == verifier,
         })
     return new_pair
+
+
+def renormalize_keys(store: Storage | None = None, *,
+                     source_lang: str = "", target_lang: str = "",
+                     matcher: Matcher | None = None,
+                     apply: bool = False) -> dict:
+    """Heal live rows whose stored ``source_norm`` no longer reproduces under
+    ``matcher`` — the corruption a bulk import leaves behind.
+
+    A dump can write a ``source_norm`` the domain's matcher does not recompute
+    (the raw text, an older normaliser). Such a row is invisible to
+    ``memory_find``, so sealing it in place misses and mints a duplicate while
+    the draft stays queued (§6.40's dump sibling — see
+    ``nestor/ui.py:_seal_draft`` and ``test_seal_draft_stale_key.py``). This is
+    the offline repair for stores that already carry the damage.
+
+    It is deliberately conservative:
+
+    * **Draft, no live twin at the correct key** → re-keyed in place. A draft is
+      unsigned, so moving its key destroys no signature.
+    * **Draft duplicating a correctly-keyed live twin** → retired into the twin
+      (``draft_retired_duplicate``); a draft holds no decision to keep.
+    * **Sealed row with a stale key** → reported as ``sealed_stale`` and left
+      untouched. A seal signature covers the ``source_norm`` (see
+      :func:`nestor.signing.sign_seal`), so re-keying a sealed row would break
+      its signature — that is a re-seal, a human decision, not a mechanical fix.
+    * **Rejected row with a stale key** → reported as ``rejected_stale`` and
+      left untouched. A rejection is a deliberate "no" filed against this key;
+      re-keying moves the no off the query it answers and retiring buries it.
+    * **Empty normalisation / no lineage to retire** → reported, never guessed.
+
+    Pass one domain's ``matcher`` and scope with ``source_lang`` /
+    ``target_lang``: a single matcher cannot key two domains (§6.40), so on a
+    multi-domain store an unscoped run keys every domain with this one matcher
+    and will mis-judge the others (a numeric ``0.45`` looks "stale" to
+    StringMatcher). Scope to one domain and pass its matcher. With
+    ``apply=False`` (the default) nothing is written — the returned report is
+    the plan. Returns ``{"rekeyed", "retired", "sealed_stale", "rejected_stale",
+    "empty_norm", "conflicts"}``, each a list of ``{id, source_text, from, to,
+    status}`` (retired/conflicts also carry ``twin``).
+    """
+    store = get_store(store)
+    matcher = get_matcher(matcher)
+    store.memory_init()
+    lineage = supports_lineage(store)
+    rows = store.memory_list(source_lang=source_lang, target_lang=target_lang,
+                             limit=1_000_000)
+    report: dict[str, list[dict]] = {
+        "rekeyed": [], "retired": [], "sealed_stale": [],
+        "rejected_stale": [], "empty_norm": [], "conflicts": [],
+    }
+    for row in rows:
+        correct = matcher.normalize(row.get("source_text", ""))
+        if correct == row.get("source_norm"):
+            continue
+        sl = row.get("source_lang", "")
+        tl = row.get("target_lang", "")
+        entry = {"id": row["id"], "source_text": row.get("source_text", ""),
+                 "from": row.get("source_norm", ""), "to": correct,
+                 "status": row.get("status", "")}
+        if not correct:
+            report["empty_norm"].append(entry)
+            continue
+        if row.get("status") == "sealed":
+            report["sealed_stale"].append(entry)
+            continue
+        if row.get("status") == "rejected":
+            # A rejection is a deliberate "no", filed against this key. Re-keying
+            # it would move the no off the query it answers; retiring it into a
+            # twin would bury it. Report it, never touch it — restore it first
+            # (Curator.restore) if the key is genuinely wrong.
+            report["rejected_stale"].append(entry)
+            continue
+        twin = store.memory_find(correct, sl, tl)
+        if twin is None or twin["id"] == row["id"]:
+            rekey = getattr(store, "memory_rekey", None)
+            if not callable(rekey):
+                report["conflicts"].append({**entry, "twin": ""})
+                continue
+            if apply:
+                rekey(row["id"], correct)
+            report["rekeyed"].append(entry)
+            continue
+        # A correctly-keyed live row already holds this source; this row (a
+        # draft — sealed rows took the sealed_stale branch above) duplicates it.
+        marked = {**entry, "twin": twin["id"]}
+        if not lineage:
+            report["conflicts"].append(marked)
+            continue
+        if apply:
+            cast(LineageStorage, store).memory_mark_superseded(row["id"], twin["id"])
+            _log_seal_event({
+                "kind": "draft_retired_duplicate", "pair_id": row["id"],
+                "canonical_id": twin["id"], "source_lang": sl,
+                "target_lang": tl, "verifier": "", "origin": "db:renormalize",
+            })
+        report["retired"].append(marked)
+    return report
 
 
 def revise_draft(source_text: str, target_text: str, source_lang: str,
