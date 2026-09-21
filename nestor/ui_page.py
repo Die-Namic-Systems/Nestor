@@ -807,10 +807,19 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // write reachable from this tab; see nestor.ui's `_triage`).
             // `triageDetail` is the full pair fetched via the existing
             // GET /api/pair when a decision, cluster member or edge endpoint
-            // is tapped — the triage payload itself carries ids and (for the
-            // open list only) a question, never every commitment, to keep
-            // that response the shape nestor.ui documents.
+            // is tapped for the full record. The triage payload now carries
+            // each open row's, edge endpoint's and cluster member's question
+            // text (and each edge's commitments) so the tab reads as decisions
+            // rather than hashes; the tap still fetches the whole pair.
             triage: null, triageDetail: null, triageLoading: false,
+            // The tab leads with what needs a human (proposed edges, then
+            // multi-member groups) and folds the rest away: a store of a few
+            // hundred decisions is otherwise one open row and one singleton
+            // "group" per decision, burying the handful of real signals. These
+            // two flags expand the folded sections on demand; nothing is lost,
+            // it starts out of the way. Both reset to false only here, so a
+            // refresh keeps whatever the reviewer expanded.
+            triageShowAllOpen: false, triageShowSingletons: false,
             // What this SESSION has confirmed via the Triage tab's Confirm
             // button (see confirmEdge) — keyed by src|dst|kind, valued by
             // who ratified it. GET /api/triage's proposed edges are a pure
@@ -3287,27 +3296,53 @@ function triageOpenRow(row) {
 }
 
 function triageClusterRow(c) {
+  // Members carry their question text now (see nestor.ui's _triage); fall back
+  // to the id for an older payload so the tab never renders blank.
+  const members = c.members && c.members.length
+    ? c.members : (c.member_ids || []).map((id) => ({ id, question: "" }));
   return h("div", { class: "seg" },
     h("div", { class: "row" },
       h("b", { text: c.label || "(untitled group)" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge", text: c.member_ids.length + " member(s)" })),
-    h("div", { class: "row small", style: "gap:6px;flex-wrap:wrap;margin-top:6px" },
-      ...c.member_ids.map((mid) => h("span", {
-        class: "chip mono", style: "cursor:pointer" + (mid === c.representative_id ? ";font-weight:700" : ""),
-        title: mid === c.representative_id ? "representative — most central member" : "member",
-        onclick: () => selectTriageDecision(mid),
-        text: (mid === c.representative_id ? "★ " : "") + mid.slice(0, 8),
-      }))));
+      h("span", { class: "badge", text: members.length + " similar decisions" })),
+    h("div", { class: "small muted", style: "margin:4px 0", text:
+      "These questions look alike — you could seal one answer instead of several. "
+      + "★ is the most central." }),
+    ...members.map((m) => h("div", {
+      class: "row small", style: "gap:8px;cursor:pointer;padding:2px 0;align-items:flex-start",
+      title: m.id + (m.id === c.representative_id ? " — most central member" : ""),
+      onclick: () => selectTriageDecision(m.id) },
+      h("span", { class: "mono muted", text: m.id === c.representative_id ? "★" : "·" }),
+      h("span", { text: m.question || ("(" + m.id.slice(0, 8) + ")") }))));
 }
 
-// contradicts reads as an alarm (same reason the Graph tab's edge gets its
-// own dashed red line) — supersedes reads as tidy — refines is unemitted
-// today (see nestor/triage/supersede.py) but gets a plain badge if that
-// changes, so an unrecognised kind never falls through with no styling at all.
-function triageEdgeKindBadge(kind) {
-  const cls = kind === "contradicts" ? "badge bad" : kind === "supersedes" ? "badge good" : "badge";
-  return h("span", { class: cls, text: kind });
+// Plain-language framing for each proposed edge. contradicts reads as an alarm
+// (same reason the Graph tab's edge gets its own dashed red line); supersedes
+// reads as tidy; anything else gets a neutral line so an unrecognised kind
+// never falls through unlabelled. `src` is the later decision, `dst` the
+// earlier (nestor/triage/supersede.py: src_id=later.id, dst_id=earlier.id) —
+// so for supersedes the newer would replace the older.
+function triageEdgeFraming(kind) {
+  if (kind === "contradicts") {
+    return { cls: "bad", icon: "⚠", head: "These two decisions disagree",
+             srcLabel: "one says", dstLabel: "the other says", verb: "Flag the conflict" };
+  }
+  if (kind === "supersedes") {
+    return { cls: "good", icon: "↻", head: "A newer decision looks like it replaces an older one",
+             srcLabel: "newer", dstLabel: "older", verb: "Replace the older" };
+  }
+  return { cls: "", icon: "•", head: "These two decisions look related (" + kind + ")",
+           srcLabel: "one", dstLabel: "the other", verb: "Confirm" };
+}
+
+function triageEdgeParty(label, question, commitment, id) {
+  return h("div", { class: "row small", title: id,
+                   style: "gap:8px;cursor:pointer;align-items:flex-start;padding:2px 0",
+                   onclick: () => selectTriageDecision(id) },
+    h("span", { class: "chip", style: "flex:0 0 auto", text: label }),
+    h("div", {},
+      h("div", { text: question || ("(" + id.slice(0, 8) + ")") }),
+      commitment ? h("div", { class: "small muted", text: commitment }) : null));
 }
 
 function edgeKey(e) { return e.src_id + "|" + e.dst_id + "|" + e.kind; }
@@ -3363,24 +3398,26 @@ function triageEdgeRow(e) {
   const key = edgeKey(e);
   const confirmedBy = S.triageConfirmed[key];
   const confirming = !!S.triageConfirming[key];
+  const f = triageEdgeFraming(e.kind);
   return h("div", { class: "seg" },
     h("div", { class: "row" },
-      triageEdgeKindBadge(e.kind),
-      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
-                 onclick: () => selectTriageDecision(e.src_id), text: e.src_id.slice(0, 8) }),
-      h("span", { class: "muted", text: "→" }),
-      h("span", { class: "mono small", style: "cursor:pointer", title: "tap to read this decision",
-                 onclick: () => selectTriageDecision(e.dst_id), text: e.dst_id.slice(0, 8) }),
+      h("span", { class: "badge " + f.cls, text: f.icon + " " + e.kind }),
+      h("b", { text: f.head }),
       h("span", { class: "spacer" }),
-      h("span", { class: "small muted", text: "score " + Number(e.score).toFixed(2) }),
+      h("span", { class: "small muted", text: Math.round(Number(e.score) * 100) + "% match" })),
+    triageEdgeParty(f.srcLabel, e.src_question, e.src_commitment, e.src_id),
+    triageEdgeParty(f.dstLabel, e.dst_question, e.dst_commitment, e.dst_id),
+    h("div", { class: "row", style: "margin-top:6px" },
+      h("span", { class: "spacer" }),
       confirmedBy
         ? h("span", { class: "badge good", title: confirmedBy + "'s ratified judgment, ledgered",
-                      text: "confirmed" })
+                      text: "confirmed by " + confirmedBy })
         : (S.browserKey
             ? h("button", { class: "small primary",
                             disabled: confirming || (S.state && S.state.read_only),
-                            onclick: () => confirmEdge(e) }, confirming ? "Confirming…" : "Confirm")
-            : null)));
+                            onclick: () => confirmEdge(e) }, confirming ? "Confirming…" : f.verb)
+            : h("span", { class: "small muted",
+                          text: "sign in with a browser key to act on this" }))));
 }
 
 function viewTriage() {
@@ -3405,18 +3442,15 @@ function viewTriage() {
     h("div", { class: "row" },
       h("h2", { style: "margin:0", text: "Decision triage" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge", text: (c.decisions ?? 0) + " decision(s)" }),
-      h("span", { class: "badge", text: (c.groups ?? 0) + " group(s)" }),
-      h("span", { class: "badge", text: (c.edges ?? 0) + " proposed edge(s)" }),
+      h("span", { class: "badge", text: (c.decisions ?? 0) + " decisions" }),
+      h("span", { class: "badge", text: (c.edges ?? 0) + " to review" }),
       h("span", { class: "badge good", text: (c.open ?? 0) + " open" })),
     h("p", { class: "small muted", text:
-      "Proposed, not decided. nestor.triage groups near-duplicate decisions and proposes "
-      + "supersedes/contradicts/refines edges at bar " + Number(t.bar || 0).toFixed(2)
-      + " — a human signed in with a browser key can confirm (seal) a proposed edge below; "
-      + "everything else on this tab stays read-only, and there is no way to reject a "
-      + "proposal here yet. Below: what still needs you, ranked so a live contradiction or "
-      + "a group worth consolidating sorts ahead of a decision with nothing proposed about "
-      + "it." })));
+      "Nestor looked over your decisions for ones that ask the same question. What it "
+      + "found is below — pairs that may conflict or duplicate first, then groups of "
+      + "similar questions, then the rest of the open decisions. Nothing here is decided: "
+      + "the tab is read-only until you sign in with a browser key (top right), and even "
+      + "then you can only confirm a relationship, never reject one here yet." })));
 
   if (!c.decisions) {
     view.append(h("div", { class: "card" }, h("p", { class: "empty",
@@ -3424,44 +3458,70 @@ function viewTriage() {
     return;
   }
 
-  const openList = h("div", { class: "card" },
-    h("h2", { text: "Open — what needs you" }));
-  if (!t.open.length) {
-    openList.append(h("p", { class: "empty", text:
-      "Nothing open: every decision here is already the dst of a proposed supersession "
-      + "(or carries a hand-written consolidated_onto note). Still proposed, not sealed." }));
-  } else {
-    for (const row of t.open) openList.append(triageOpenRow(row));
-  }
-  const detail = h("div", { class: "card", id: "triage-detail-card" }, triageDetail());
-  view.append(h("div", { class: "grid" }, openList, detail));
-
-  const clustersCard = h("div", { class: "card" },
-    h("h2", { text: "Themed groups" }),
-    h("p", { class: "small muted", text:
-      "Near-duplicate questions, clustered by nestor.triage — a candidate to seal once "
-      + "instead of several times. ★ marks the most central member." }));
-  if (!t.clusters.length) {
-    clustersCard.append(h("p", { class: "empty", text: "No groups found at this bar." }));
-  } else {
-    for (const cl of t.clusters) clustersCard.append(triageClusterRow(cl));
-  }
-  view.append(clustersCard);
-
+  // 1) The actionable signal, first: proposed conflicts and duplicates.
   const edgesCard = h("div", { class: "card" },
-    h("h2", { text: "Proposed edges" }),
+    h("h2", { text: "Conflicts & duplicates — worth a look" }),
     h("p", { class: "small muted", text: S.browserKey
-      ? "src → dst, proposed until signed. Confirm signs it with " + S.browserKey.verifier
-        + "'s browser key and writes a sealed edge, ledgered — the only write this tab makes. "
-        + "There is no way to reject a proposal here yet."
-      : "src → dst, proposed only — nothing here has a verifier or a signature yet. Sign in "
-        + "with a browser key (top right) to confirm one; without it this list is read-only." }));
+      ? "Confirming signs the relationship with " + S.browserKey.verifier
+        + "'s browser key and writes a sealed, ledgered edge — the only write this tab makes."
+      : "Proposed only — sign in with a browser key (top right) to act on one; until then this is read-only." }));
   if (!t.proposed_edges.length) {
-    edgesCard.append(h("p", { class: "empty", text: "No supersession or contradiction proposed at this bar." }));
+    edgesCard.append(h("p", { class: "empty", text:
+      "Nothing looks like a conflict or a duplicate at this similarity bar ("
+      + Number(t.bar || 0).toFixed(2) + ")." }));
   } else {
     for (const e of t.proposed_edges) edgesCard.append(triageEdgeRow(e));
   }
   view.append(edgesCard);
+
+  // 2) Themed groups — only the ones with something to compare. A one-member
+  // "group" has nothing to consolidate, and on a few-hundred-decision store
+  // there is one per decision; fold them away behind a count the reviewer can
+  // expand, so the handful of real groups are not buried.
+  const groups = t.clusters.filter((cl) => (cl.member_ids || []).length > 1);
+  const singletons = t.clusters.length - groups.length;
+  const clustersCard = h("div", { class: "card" },
+    h("h2", { text: "Groups of similar questions" }),
+    h("p", { class: "small muted", text:
+      "Questions that cluster together — seal one answer instead of several." }));
+  if (!groups.length) {
+    clustersCard.append(h("p", { class: "empty", text: "No multi-decision groups at this bar." }));
+  } else {
+    for (const cl of groups) clustersCard.append(triageClusterRow(cl));
+  }
+  if (singletons > 0) {
+    clustersCard.append(h("div", { class: "row small muted", style: "margin-top:8px" },
+      h("span", { text: singletons + " decision(s) stand alone (nothing to consolidate)." }),
+      h("button", { class: "small", onclick: () => { S.triageShowSingletons = !S.triageShowSingletons; render(); } },
+        S.triageShowSingletons ? "hide" : "show them")));
+    if (S.triageShowSingletons) {
+      for (const cl of t.clusters) {
+        if ((cl.member_ids || []).length <= 1) clustersCard.append(triageClusterRow(cl));
+      }
+    }
+  }
+  view.append(clustersCard);
+
+  // 3) The full open list, capped — it is ranked signal-first server-side, so
+  // the top is what matters; the rest is one tap away behind "show all".
+  const OPEN_CAP = 25;
+  const shownOpen = S.triageShowAllOpen ? t.open : t.open.slice(0, OPEN_CAP);
+  const openList = h("div", { class: "card" },
+    h("h2", { text: "All open decisions" }));
+  if (!t.open.length) {
+    openList.append(h("p", { class: "empty", text:
+      "Nothing open — every decision here is already the target of a proposed supersession." }));
+  } else {
+    for (const row of shownOpen) openList.append(triageOpenRow(row));
+    if (t.open.length > shownOpen.length || S.triageShowAllOpen) {
+      openList.append(h("div", { class: "row small muted", style: "margin-top:8px" },
+        h("span", { text: "showing " + shownOpen.length + " of " + t.open.length }),
+        h("button", { class: "small", onclick: () => { S.triageShowAllOpen = !S.triageShowAllOpen; render(); } },
+          S.triageShowAllOpen ? "show fewer" : "show all " + t.open.length)));
+    }
+  }
+  const detail = h("div", { class: "card", id: "triage-detail-card" }, triageDetail());
+  view.append(h("div", { class: "grid" }, openList, detail));
 }
 
 /* ---------- shell --------------------------------------------------------- */
