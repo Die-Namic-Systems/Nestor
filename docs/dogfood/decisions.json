@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 268,
+    "pairs": 270,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-20T00:00:00+00:00",
-  "digest": "d23da17ad0c602b2c1462c0af0d6350bed730dd7f00372c5130aa48c19aebab2",
+  "created_at": "2026-09-21T00:00:00+00:00",
+  "digest": "e87be03895b8358747e96133f1e55ebd23046e72ec6e2f845c99b134d36da8e6",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "c3027c24-76e6-5c1e-8ee0-b3633127d5ca",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the ask tab reads as confusing a picker of translateentitynumericmatch with jargon blurbs and no statement of purpose what does it say it is",
+      "source_text": "The Ask tab reads as confusing — a picker of Translate/Entity/Numeric/Match with jargon blurbs and no statement of purpose. What does it say it is?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A plain-language orientation line now heads the tab: you ask a question; you get an answer only when a human has verified it, otherwise Nestor says it can't vouch for one and shows the closest it found; nothing is invented and every answer is logged. The recipe blurbs are reworded to drop the insider terms ('the bare seam: any domain, either shipped matcher' -> 'look something up in any domain, with a matcher you pick'; 'through the three-tier cascade' -> 'served only if a human verified it'). Results lead verdict-first with the plain sentence already in the code and demote tier/engine/matcher to one small details line.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "9632dba0-e3d3-5cd4-83c6-ce8abbad7671",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "a decisionfirst store has no natural path in ask the recipes are translateentitynumericmatch so asking what did we decide about x means reaching for translate or match over the decision domain what carries that",
+      "source_text": "A decision-first store has no natural path in Ask — the recipes are translate/entity/numeric/match, so asking 'what did we decide about X?' means reaching for Translate or Match over the decision domain. What carries that?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A first-class 'Decision' recipe, listed first and defaulted to on a decision-shaped store (askDomain's source_lang starts with 'decision'; an explicit human pick always wins). Its form is a single question box scoped to the store's decision domain — no source/target tag boxes — and it calls /api/ask over that domain. Its result is decision-framed: '✓ Decided' with the sealed commitment and who verified it, '~ Proposed, not sealed' for a draft, or '✗ No decision on record' with the closest questions found for a miss. Sealing from a miss reuses the existing seal-from-ask ceremony.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-20T00:00:00+00:00",
       "id": "edd9f7ef-aaa0-5fac-877b-ccc576a09aba",

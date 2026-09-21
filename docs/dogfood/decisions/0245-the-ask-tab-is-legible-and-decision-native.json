@@ -1,0 +1,17 @@
+{
+  "branch": "claude/ask-legible-decision",
+  "date": "2026-09-21",
+  "note": "Proposed, not sealed. Dogfooding feedback on nestor ui: the Ask tab was 'confusing — I don't know what it's for.' It led with the Translate recipe and described its recipes in insider terms ('the bare seam', 'the three-tier cascade', 'either shipped matcher'), and a decision-first operator had no natural way to ask their store a question — they'd reach for Translate or Match. Front-end only (viewAsk/RECIPES/result renderers in ui_page.py); the new Decision recipe reuses /api/ask, no endpoint added. Pinned in tests/test_ui.py.",
+  "decisions": [
+    {
+      "question": "The Ask tab reads as confusing — a picker of Translate/Entity/Numeric/Match with jargon blurbs and no statement of purpose. What does it say it is?",
+      "commitment": "A plain-language orientation line now heads the tab: you ask a question; you get an answer only when a human has verified it, otherwise Nestor says it can't vouch for one and shows the closest it found; nothing is invented and every answer is logged. The recipe blurbs are reworded to drop the insider terms ('the bare seam: any domain, either shipped matcher' -> 'look something up in any domain, with a matcher you pick'; 'through the three-tier cascade' -> 'served only if a human verified it'). Results lead verdict-first with the plain sentence already in the code and demote tier/engine/matcher to one small details line.",
+      "why": "The purpose the Welcome splash states ('he only serves an answer a real person signed') never appeared on the Ask tab itself, and the recipe vocabulary was the machine's, not a reader's — the same illegibility the Triage change fixed one tab over. Saying what the tab is, in the reader's terms, is the whole of what 'I don't know what it's for' asks for."
+    },
+    {
+      "question": "A decision-first store has no natural path in Ask — the recipes are translate/entity/numeric/match, so asking 'what did we decide about X?' means reaching for Translate or Match over the decision domain. What carries that?",
+      "commitment": "A first-class 'Decision' recipe, listed first and defaulted to on a decision-shaped store (askDomain's source_lang starts with 'decision'; an explicit human pick always wins). Its form is a single question box scoped to the store's decision domain — no source/target tag boxes — and it calls /api/ask over that domain. Its result is decision-framed: '✓ Decided' with the sealed commitment and who verified it, '~ Proposed, not sealed' for a draft, or '✗ No decision on record' with the closest questions found for a miss. Sealing from a miss reuses the existing seal-from-ask ceremony.",
+      "why": "Nestor is decision-first now (the operator's own words, and the store bears it out: one domain, decision->decision), so the tab should open on the question a decision operator actually asks rather than on a translation form. It is a specialisation of the translate recipe over the decision domain with decision vocabulary, not a new mechanism — /api/ask is unchanged, verified in-process (a sealed decision asked verbatim returns state=sealed with its commitment; an unrelated question returns state=pending, which the result renders as 'no decision on record'). The default is domain-aware rather than global so a translation deployment still opens on Translate."
+    }
+  ]
+}

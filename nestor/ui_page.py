@@ -786,10 +786,11 @@ const PAGE = 50;
 // above the threshold or don't — with a different matcher and a different
 // meaning for "source → target". Translation is one instance, not the product.
 const RECIPES = [
-  ["translate", "Translate", "phrase → verified translation, through the three-tier cascade"],
-  ["entity",    "Entity",    "alias/surface → canonical entity, over a sealed alias graph"],
-  ["numeric",   "Numeric",   "figure → sealed baseline, with tolerance and variation"],
-  ["match",     "Match",     "the bare seam: any domain, either shipped matcher"],
+  ["decision",  "Decision",  "ask a question — get the answer a human sealed, or an honest \"no decision on record\""],
+  ["translate", "Translate", "translate a phrase — served only if a human verified it"],
+  ["entity",    "Entity",    "resolve a name or alias to its canonical entity"],
+  ["numeric",   "Numeric",   "check a figure against its sealed baseline"],
+  ["match",     "Match",     "look something up in any domain, with a matcher you pick"],
 ];
 
 const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
@@ -838,7 +839,10 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // finds no persisted draft to seal in place (see the comment
             // above the Triage block) and creates a fresh one every call.
             triageConfirming: {},
-            recipe: localStorage.getItem("nestor.recipe") || "translate",
+            // Empty until the human picks one, so viewAsk can default to the
+            // Decision recipe on a decision-shaped store rather than always
+            // landing on Translate — Nestor is not mostly a translation tool.
+            recipe: localStorage.getItem("nestor.recipe") || "",
             // Open on what is still yours to decide. A curator arriving at a
             // store of 70 rows where 26 are already settled was shown all 70,
             // and sealing one changed nothing on the page: the row stayed put
@@ -2518,25 +2522,104 @@ async function applyImport() {
 }
 
 /* ---------- Ask: one mechanic, four recipes -------------------------------- */
+/* The recipe to open on. A human's explicit pick (S.recipe / localStorage)
+   always wins; with none, a decision-shaped store opens on Decision and
+   anything else on Translate, so nobody lands on a translation form for a
+   store that holds none. */
+function defaultRecipe() {
+  const d = askDomain();
+  return (d.source_lang || "").startsWith("decision") ? "decision" : "translate";
+}
+
 function viewAsk() {
   const view = $("view");
+  const rid = S.recipe || defaultRecipe();
+  const forms = { decision: decisionForm, translate: translateForm,
+                  entity: entityForm, numeric: numericForm, match: matchForm };
+  const results = { decision: decisionResult, translate: translateResult,
+                    entity: entityResult, numeric: numericResult, match: matchResult };
   const picker = h("div", { class: "card" },
     h("h2", { text: "Ask Nestor" }),
-    h("div", { class: "row", style: "margin-bottom:6px" },
+    h("p", { class: "small muted", text:
+      "Ask a question. You get an answer only when a human has verified it; "
+      + "otherwise Nestor tells you it can't vouch for one and shows the closest "
+      + "it found. Nothing here is invented, and every answer is logged." }),
+    h("div", { class: "row", style: "margin:8px 0 6px" },
       ...RECIPES.map(([id, label]) =>
-        h("button", { class: S.recipe === id ? "primary small" : "small",
+        h("button", { class: rid === id ? "primary small" : "small",
           onclick: () => { S.recipe = id; localStorage.setItem("nestor.recipe", id);
                            S.result = null; render(); } }, label))),
     h("p", { class: "muted small", style: "margin:0",
-      text: RECIPES.find((r) => r[0] === S.recipe)[2] +
-            " — same seal, same threshold, same ledger." }));
+      text: RECIPES.find((r) => r[0] === rid)[2] }));
   view.append(picker);
-  view.append({ translate: translateForm, entity: entityForm,
-                numeric: numericForm, match: matchForm }[S.recipe]());
-  if (S.result && S.result.recipe === S.recipe) {
-    view.append({ translate: translateResult, entity: entityResult,
-                  numeric: numericResult, match: matchResult }[S.recipe](S.result));
+  view.append(forms[rid]());
+  if (S.result && S.result.recipe === rid) {
+    view.append(results[rid](S.result));
   }
+}
+
+/* --- decision: ask the decision store a question -------------------------- */
+function decisionForm() {
+  const d = askDomain(), q = asked();
+  return h("div", { class: "card" },
+    h("textarea", { id: "ask-text",
+      placeholder: "ask a question — e.g. \"what did we decide about the seal bar?\"" },
+      q.text || ""),
+    h("div", { class: "row", style: "margin-top:8px" },
+      h("span", { class: "small muted", text: "over " + d.source_lang + " decisions" }),
+      h("span", { class: "spacer" }),
+      h("button", { class: "primary", disabled: S.state.read_only, onclick: submitDecision,
+        title: S.state.read_only
+          ? "read-only: answering records a passage in the ledger, so it needs a writable store."
+          : "" }, "Ask"),
+      S.state.read_only
+        ? h("span", { class: "small muted", style: "margin-left:8px",
+            text: "read-only: an answer would leave no trail" })
+        : null));
+}
+
+async function submitDecision() {
+  const text = $("ask-text").value.trim();
+  if (!text) return;
+  const d = askDomain();
+  const body = { text, source_lang: d.source_lang, target_lang: d.target_lang };
+  nestorMood("thinking");
+  try { S.result = { recipe: "decision", ...(await api("/api/ask", body)), query: body }; render(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+function decisionResult(r) {
+  const p = r.passage || {};
+  const v = {
+    sealed: { t: "✓ Decided", cls: "good", say: "A human sealed this answer." },
+    draft: { t: "~ Proposed, not sealed", cls: "",
+             say: "A machine drafted this; no human has verified it, so it is not served as decided." },
+    pending: { t: "✗ No decision on record", cls: "bad",
+               say: "Nestor has no verified answer for this — and won't invent one. The closest it found is below." },
+  }[p.state] || { t: p.state || "—", cls: "", say: "" };
+  const detail = "tier " + (p.tier ?? "?")
+    + (p.engine ? " · " + p.engine : "")
+    + (p.confidence ? " · confidence " + p.confidence : "")
+    + (askDomain().matcher ? " · matcher " + askDomain().matcher : "");
+  const card = h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("b", { class: v.cls, text: v.t }),
+      p.meta && p.meta.verifier ? h("span", { class: "chip", text: "verified by " + p.meta.verifier }) : null,
+      h("span", { class: "spacer" }),
+      h("span", { class: "small muted mono", title: "how Nestor answered", text: detail })),
+    (p.state === "sealed" || p.state === "draft")
+      ? h("p", { style: "font-size:17px;margin:10px 0 2px", text: p.target || "—" }) : null,
+    h("p", { class: "small muted", style: "margin-top:4px", text: v.say }));
+  if (p.state !== "sealed") {
+    card.append(h("div", { class: "row", style: "margin-top:10px" },
+      h("input", { id: "ask-seal-target", value: p.target || "", placeholder: "the verified answer",
+                   style: "flex:1;min-width:220px" }),
+      h("button", { class: "primary small", disabled: S.state.read_only, onclick: () => sealFromAsk(r) },
+        "Seal this decision")));
+  }
+  card.append(candidates(r.matches, r.threshold, "source", "target",
+    (m) => rejectMatch(r.query, m)));
+  return card;
 }
 
 function remembered(key, fallback) { return localStorage.getItem("nestor." + key) || fallback; }

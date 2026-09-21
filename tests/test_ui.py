@@ -740,3 +740,24 @@ def test_the_numeric_check_tells_the_page_the_figure_was_half_read(filled):
     assert out["observed"] == 100.0 and out["observed_partial"] is True
     assert out["observed_text"] == "$1,00o,000"
     assert out["baseline_partial"] is False and out["flagged"] is True
+
+
+def test_ask_tab_is_legible_and_decision_native():
+    """The Ask tab says what it's for in plain words, drops the insider jargon
+    from the recipe blurbs, and offers a first-class Decision recipe (ask a
+    question → the sealed answer, or an honest 'no decision on record') that a
+    decision-shaped store opens on by default."""
+    from nestor.ui_page import PAGE
+    # a plain-language orientation line, not just a recipe picker
+    assert "You get an answer only when a human has verified it" in PAGE
+    # the Decision recipe exists, is first, and is decision-framed
+    assert '["decision",  "Decision"' in PAGE
+    assert "function decisionForm" in PAGE
+    assert "function decisionResult" in PAGE
+    assert "No decision on record" in PAGE
+    # a decision-shaped store defaults to it
+    assert "function defaultRecipe" in PAGE
+    assert 'startsWith("decision") ? "decision" : "translate"' in PAGE
+    # the insider jargon is gone from the user-facing recipe blurbs
+    assert "the bare seam: any domain, either shipped matcher" not in PAGE
+    assert "through the three-tier cascade" not in PAGE
