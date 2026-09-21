@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 270,
+    "pairs": 275,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-09-21T00:00:00+00:00",
-  "digest": "e87be03895b8358747e96133f1e55ebd23046e72ec6e2f845c99b134d36da8e6",
+  "digest": "964e35b5f4482dfe1075d1c2d3efc1b9a75b18f76f1797bce77fbfffc423679c",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -38,6 +38,20 @@
     },
     {
       "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "a35b95f9-a879-561e-bd3a-e3a1a72502ae",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "coverage misses nestormisses are computed on every ask but have no api route and no cli command how does the ui read them and does it leak the queries",
+      "source_text": "Coverage misses (nestor.misses) are computed on every ask but have no API route and no CLI command. How does the UI read them, and does it leak the queries?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A new read-only GET /api/misses returns nestor.misses.coverage verbatim — {supported, distinct_misses, total_misses, surfaced, withheld, queue} — and the Signals card renders the queue (queries missed more than once, with their text and sighting count) and states the withheld count. It never shows the text of a one-off. The endpoint reads the miss ledger only; there is no POST counterpart.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
       "id": "9632dba0-e3d3-5cd4-83c6-ce8abbad7671",
       "origin": "pr:?",
       "seal_sig": "",
@@ -47,6 +61,48 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "A first-class 'Decision' recipe, listed first and defaulted to on a decision-shaped store (askDomain's source_lang starts with 'decision'; an explicit human pick always wins). Its form is a single question box scoped to the store's decision domain — no source/target tag boxes — and it calls /api/ask over that domain. Its result is decision-framed: '✓ Decided' with the sealed commitment and who verified it, '~ Proposed, not sealed' for a draft, or '✗ No decision on record' with the closest questions found for a miss. Sealing from a miss reuses the existing seal-from-ask ceremony.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "46dabfb8-d05c-534f-b0d6-f477fab53a8d",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the queue tab named awaiting a human is empty and inert for a decisionfirst store because it only lists translation segments a workflow no longer central to nestor rename it explain the emptiness or repurpose it",
+      "source_text": "The Queue tab named 'Awaiting a human' is empty and inert for a decision-first store because it only lists translation segments — a workflow no longer central to Nestor. Rename it, explain the emptiness, or repurpose it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Repurpose it into a review hub. 'Awaiting a human' now surfaces every kind of review work in this store as a row with a count and a jump: draft pairs awaiting a seal (open in Memory, count from the store summary), proposed relationships to review (open in Triage), and translation segments queued (the original inline seal/reject rows, kept as one section when a store still has them). The name stays because it is now true.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "030c7203-6329-5362-bcb9-b17c162b3a67",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the signals tab is three failurealarm cards that are empty for a healthy solo store so it reads as useless reframe the emptiness or make the tab carry more of what nestor knows",
+      "source_text": "The Signals tab is three failure-alarm cards that are empty for a healthy solo store, so it reads as useless. Reframe the emptiness, or make the tab carry more of what Nestor knows?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both, as a health panel. Alarms (overruled seals, junk pairs, and newly sealed-but-unverifiable rows) come first under an 'Alarms' heading with a header badge that reads 'all clear' when they are all empty — empty is the good state and now says so. Below them, a 'Coverage & upkeep' group carries signals that are informative even on a healthy store: seals due for re-verification, coverage misses, and the existing repeatedly-refused-queries card (the calibration hint). The replaced-seals card always renders because it carries the 'include self-corrections' toggle.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "f6419b24-90d0-5ea0-9031-5835c1da240a",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the graph tab renders a line of dots and explains nothing its data is 264 decisions and 0 relationships what does it show when there are decisions but no edges between them",
+      "source_text": "The Graph tab renders a line of dots and explains nothing. Its data is 264 decisions and 0 relationships. What does it show when there are decisions but no edges between them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It stops drawing. Instead of laying every decision out as a node (which, with no edges, the breadthfirst layout lines up as unreadable dots), the tab shows a plain-language panel: N decisions, none related yet; this page draws the relationships between decisions — supersedes (a newer replaces an older) and contradicts (two disagree) — and there is nothing to draw until one exists; confirm a proposed relationship in Triage to draw the first; this view only reads. A one-line intro naming what a box and an arrow are runs above the canvas in every state.",
       "verifier": "",
       "weight": 1.0
     },
@@ -75,6 +131,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "Both. `nestor db renormalize` (dry run unless --apply) walks live rows and, per row: re-keys a stale-keyed draft with no twin; retires a stale draft that duplicates a live twin; reports (never touches) a sealed row with a stale key as needing a human re-seal; reports empty-normalisation and lineage-less conflicts instead of guessing. memory.renormalize_keys is the library entry point. It uses the default StringMatcher and scopes by domain, because one matcher cannot key two domains (§6.40).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-09-20T00:00:00+00:00",
+      "id": "ca68a856-cb30-51bb-9d3f-d1e3368116ee",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "when relationships do exist a store of hundreds of decisions with a handful of edges would still bury those edges among hundreds of unconnected nodes what does the canvas draw by default",
+      "source_text": "When relationships DO exist, a store of hundreds of decisions with a handful of edges would still bury those edges among hundreds of unconnected nodes. What does the canvas draw by default?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The connected sub-graph: only decisions touched by at least one edge, with a toggle ('show all N, connected or not') to reveal the rest. The relationships are the picture; the unconnected decisions live in Memory and Triage and are one click away here, never gone.",
       "verifier": "",
       "weight": 1.0
     },

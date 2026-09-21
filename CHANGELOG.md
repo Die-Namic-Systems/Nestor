@@ -153,6 +153,21 @@ what moved.
 
 ---
 
+## [0.24.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.23.0...v0.24.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make the Graph tab draw relationships, not a node pile ([#304](https://github.com/Die-Namic-Systems/Nestor/issues/304)) ([12fa59b](https://github.com/Die-Namic-Systems/Nestor/commit/12fa59b449b495c95301fcab58394f9327764839))
+
+## [0.23.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.22.0...v0.23.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make Signals a health panel of what Nestor knows ([3599f35](https://github.com/Die-Namic-Systems/Nestor/commit/3599f35dcc56acd05943f3b6add61883e7258d20))
+* **ui:** make Signals a health panel of what Nestor knows ([#307](https://github.com/Die-Namic-Systems/Nestor/issues/307)) ([1a63342](https://github.com/Die-Namic-Systems/Nestor/commit/1a6334282093693a29eac002eff571ff0e725990))
+
 ## [0.22.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.21.0...v0.22.0) (2026-09-21)
 
 

@@ -804,6 +804,12 @@ const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             // destroys it before every re-render so a stale one never
             // outlives the canvas element it was drawn into (see render()).
             graph: null, cy: null, graphSelected: null,
+            // The graph draws relationships, so it leads with the decisions
+            // that have one — a store of a few hundred decisions with a handful
+            // of sealed edges is otherwise hundreds of unconnected nodes the
+            // breadthfirst layout lines up as dots. `graphShowAll` expands the
+            // canvas to every decision, connected or not, on demand.
+            graphShowAll: false,
             // Triage tab (read-only, GET /api/triage only — no seal, no edge
             // write reachable from this tab; see nestor.ui's `_triage`).
             // `triageDetail` is the full pair fetched via the existing
@@ -1592,51 +1598,76 @@ function sim(value) {
     h("span", { class: "small muted mono", text: value.toFixed(3) }));
 }
 
-/* ---------- Queue --------------------------------------------------------- */
+/* ---------- Queue: "Awaiting a human" — the review hub -------------------- */
+/* This tab used to read only *segments* — text the cascade ingested through a
+   document. Nestor is not mostly a translation tool any more, so on a store
+   built by decisions and add_pair the segment queue is empty while real review
+   work (drafts to seal, relationships to confirm) sits in other tabs — the one
+   tab named "Awaiting a human" was the one place they were not. It is now a hub
+   over every review surface: each row is a count and a jump to the tab that
+   owns that work, and the legacy segment queue is one section of it, inline,
+   when a store still has segments. (History: 44 rows once awaited a human two
+   inches under a badge that said everything was decided — the empty-queue
+   message this hub replaces.) */
+function reviewRow(count, label, hint, btnLabel, onclick) {
+  const known = count !== null && count !== undefined;
+  return h("div", { class: "seg" },
+    h("div", { class: "row" },
+      h("span", { class: "badge" + (known && count ? " good" : ""),
+                  text: known ? String(count) : "—" }),
+      h("b", { text: label }),
+      h("span", { class: "spacer" }),
+      (btnLabel && onclick) ? h("button", { class: "small", onclick }, btnLabel) : null),
+    h("div", { class: "small muted", style: "margin-top:4px", text: hint }));
+}
+
 function viewQueue() {
   const view = $("view");
-  if (!S.state.capabilities.queue) {
-    view.append(h("div", { class: "card" },
-      h("p", { class: "empty", text: "This store cannot list the review queue " +
-        "(storage.supports_queue). Sealing and curation still work." })));
-    return;
-  }
+  const st = S.state || {}, sum = st.summary || {}, base = st.stats || {};
+  const drafts = sum.draft ?? base.draft ?? 0;
+  const capQueue = !!(st.capabilities && st.capabilities.queue);
   const q = S.queue || { documents: [], pending: 0 };
+  const segs = capQueue ? (q.pending || 0) : 0;
+  // Triage clustering is O(n^2) and only computed on its own tab; show its
+  // count only when a prior visit already cached it, and never trigger it here.
+  const props = (S.triage && S.triage.counts) ? (S.triage.counts.edges || 0) : null;
+
   view.append(h("div", { class: "card" },
     h("h2", { text: "Awaiting a human" }),
-    h("p", { class: "muted small", text: q.pending
-      ? q.pending + " segment(s) the cascade could not serve from the sealed memory. " +
-        "Sealing one enters it into tier 1; rejecting one means that candidate is never offered for this text again."
-      : queueEmptyLine() })));
+    h("p", { class: "muted small", text:
+      "What still needs a person in this store. Nestor only serves an answer a "
+      + "human signed, so this is the work that earns that — drafts to seal, "
+      + "relationships to review, and any text the translate cascade queued." })));
 
-  for (const doc of q.documents) {
+  view.append(h("div", { class: "card" },
+    reviewRow(drafts, "draft" + (drafts === 1 ? "" : "s") + " awaiting a seal",
+      "Unsealed pairs — open them in Memory to seal, correct, or reject.",
+      "Open in Memory",
+      () => { S.filters.status = "draft"; S.offset = 0; S.tab = "memory"; refresh(); }),
+    reviewRow(props, "proposed relationship" + (props === 1 ? "" : "s") + " to review",
+      props === null
+        ? "Conflicts and duplicates between decisions — open Triage to compute and review them."
+        : "Conflicts and duplicates nestor.triage found between your decisions.",
+      "Open in Triage",
+      () => { S.tab = "triage"; refresh(); }),
+    reviewRow(segs, "translation segment" + (segs === 1 ? "" : "s") + " queued",
+      capQueue
+        ? (segs ? "Text the cascade could not serve from sealed memory — reviewed below."
+                : "Text the cascade ingested through a document; none are queued now.")
+        : "This store has no segment queue (storage.supports_queue is off).",
+      "", null)));
+
+  // The segment queue itself, inline — the tab's original content, now one
+  // section of the hub rather than the whole tab.
+  for (const doc of (capQueue ? q.documents : [])) {
     const card = h("div", { class: "card" },
       h("div", { class: "row" },
         h("b", { text: doc.title || "(untitled)" }),
         h("span", { class: "chip", text: (doc.source_lang || "?") + " → " + (doc.target_lang || "?") }),
         h("span", { class: "chip mono", text: (doc.id || "").slice(0, 8) })));
     for (const seg of doc.segments) card.append(segmentRow(doc, seg));
-    $("view").append(card);
+    view.append(card);
   }
-}
-
-/* What an empty queue means depends on what is in the store.
-   This tab reads *segments* — text the cascade ingested through a document. A
-   store filled by `memory.add_pair` has none, so the queue is empty while the
-   memory is full: 44 rows were awaiting a human here, two inches under a header
-   badge that said so, and this card claimed everything had been decided. An
-   empty room is not the same as a finished job, and only one of those is
-   something a person should be told. */
-function queueEmptyLine() {
-  const st = S.state || {}, c = st.summary || {}, base = st.stats || {};
-  const draft = c.draft ?? base.draft ?? 0;
-  if (draft) {
-    return `No segments are queued — this tab reads text the cascade ingested `
-      + `through a document, and this store has none. ${draft} row(s) are still `
-      + `awaiting a human in Memory, which is where they were added directly.`;
-  }
-  return "Nothing queued. Every segment the cascade has seen was either served "
-    + "from the sealed memory or already decided.";
 }
 
 function segmentRow(doc, seg) {
@@ -3267,8 +3298,13 @@ function viewGraph() {
     h("div", { class: "row" },
       h("h2", { style: "margin:0", text: "Decision graph" }),
       h("span", { class: "spacer" }),
-      h("span", { class: "badge good", text: g.nodes.length + " decision(s)" }),
-      h("span", { class: "badge", text: g.edges.length + " relation(s)" })));
+      h("span", { class: "badge good", text: g.nodes.length + " decisions" }),
+      h("span", { class: "badge", text: g.edges.length + " relationships" })),
+    h("p", { class: "small muted", text:
+      "How your decisions connect to each other. Each box is a decision; an arrow "
+      + "is a sealed relationship between two — ↻ one replaces another (supersedes) "
+      + "or ⚠ two disagree (contradicts). Relationships are made by confirming a "
+      + "proposal in the Triage tab; this view only reads." }));
   view.append(card);
 
   if (!g.nodes.length) {
@@ -3278,11 +3314,46 @@ function viewGraph() {
     return;
   }
 
+  // The graph draws relationships. With none, laying every decision out as a
+  // node is a line of unreadable dots that says nothing — so say what the page
+  // is for instead of drawing an empty relationship-graph as if it were full.
+  if (!g.edges.length) {
+    view.append(h("div", { class: "card" },
+      h("p", { class: "empty", text:
+        g.nodes.length + " decisions, but none are related to each other yet. "
+        + "This page draws the relationships between decisions — a newer one "
+        + "replacing an older (↻ supersedes), or two that disagree (⚠ contradicts) "
+        + "— and there is nothing to draw until one exists. Confirm a proposed "
+        + "relationship in the Triage tab to draw the first; this view only reads, "
+        + "so it cannot create one for you." })));
+    return;
+  }
+
+  // Relationships exist: lead with the decisions that have one. `connected` is
+  // every node touched by an edge; the rest are drawn only when the reviewer
+  // asks (graphShowAll), so a few relationships are not lost among hundreds of
+  // unconnected nodes the layout would line up as dots.
+  const linked = new Set();
+  for (const e of g.edges) { linked.add(e.source); linked.add(e.target); }
+  const shownNodes = S.graphShowAll ? g.nodes : g.nodes.filter((n) => linked.has(n.id));
+  const hidden = g.nodes.length - shownNodes.length;
+  const shownGraph = { nodes: shownNodes, edges: g.edges };
+
+  if (hidden > 0 || S.graphShowAll) {
+    view.append(h("div", { class: "card" }, h("div", { class: "row small muted" },
+      h("span", { text: S.graphShowAll
+        ? "showing all " + g.nodes.length + " decisions, connected or not"
+        : "showing " + shownNodes.length + " related decision(s); "
+          + hidden + " unconnected one(s) are hidden" }),
+      h("button", { class: "small", onclick: () => { S.graphShowAll = !S.graphShowAll; render(); } },
+        S.graphShowAll ? "show related only" : "show all " + g.nodes.length))));
+  }
+
   const canvas = h("div", { id: "graph-canvas" });
   const legend = h("div", { class: "graph-legend" },
-    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed"),
-    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft"),
-    h("span", { class: "item" }, h("span", { class: "line" }), "relation"),
+    h("span", { class: "item" }, h("span", { class: "swatch sealed" }), "sealed decision"),
+    h("span", { class: "item" }, h("span", { class: "swatch draft" }), "draft decision"),
+    h("span", { class: "item" }, h("span", { class: "line" }), "supersedes →"),
     h("span", { class: "item" }, h("span", { class: "line contradicts" }), "contradicts"));
   const frame = h("div", { class: "graph-frame" }, canvas, legend);
   const detail = h("div", { class: "card", id: "graph-detail-card" }, graphDetail(S.graphSelected));
@@ -3290,7 +3361,7 @@ function viewGraph() {
 
   const cy = cytoscape({
     container: canvas,
-    elements: graphElements(g),
+    elements: graphElements(shownGraph),
     style: graphStylesheet(graphPalette()),
     layout: { name: "breadthfirst", directed: true, spacingFactor: 1.15, padding: 24 },
     // Canvas only, no DOM to click through — a read-only view has nothing to
@@ -3654,7 +3725,133 @@ function viewSignals() {
       text: "This store does not implement the curation capability (storage.supports_curation)." })));
     return;
   }
-  view.append(replacedCard(), rejectedQueriesCard(), junkPairsCard());
+  const s = S.signals || {};
+  // Alarms: something is wrong. Empty across all of them is the good state,
+  // and the header says so rather than leaving three blank cards to read as
+  // broken. Overrules (replaced, self-corrections hidden by default), junk
+  // pairs still being served, and rows that say sealed but will not verify.
+  const alarms = (s.replaced || []).length
+    + ((s.rejections && s.rejections.pairs) || []).length
+    + (s.unverifiable || []).length;
+
+  view.append(h("div", { class: "card" },
+    h("div", { class: "row" },
+      h("h2", { style: "margin:0", text: "Signals" }),
+      h("span", { class: "spacer" }),
+      h("span", { class: "badge" + (alarms ? "" : " good"),
+                  text: alarms ? alarms + " to look at" : "all clear" })),
+    h("p", { class: "small muted", text:
+      "What the store is telling you about itself. Alarms first — empty is good, "
+      + "it means nothing is wrong — then coverage and upkeep, which are worth a "
+      + "glance even on a healthy store." })));
+
+  view.append(h("div", { class: "row", style: "margin:4px 2px" }, h("b", { text: "Alarms" })));
+  if (!alarms) {
+    view.append(h("div", { class: "card" }, h("p", { class: "empty", text:
+      "All clear — no seal overruled, no junk pair being served, every sealed row verifies." })));
+  }
+  // replacedCard always renders: it carries the "include self-corrections"
+  // toggle, the only way to reveal the overrules the alarm count hides.
+  view.append(replacedCard());
+  if (((s.rejections && s.rejections.pairs) || []).length) view.append(junkPairsCard());
+  if ((s.unverifiable || []).length) view.append(unverifiableCard());
+
+  view.append(h("div", { class: "row", style: "margin:12px 2px 4px" }, h("b", { text: "Coverage & upkeep" })));
+  view.append(dueCard(), missesCard(), rejectedQueriesCard());
+}
+
+function unverifiableCard() {
+  const rows = (S.signals && S.signals.unverifiable) || [];
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Sealed, but Nestor won't serve them" }),
+    h("p", { class: "small muted", text:
+      "These rows say 'sealed', but their signature does not verify here, so every serve "
+      + "path refuses them (Nestor#2). A seal written by something that did not hold the key "
+      + "looks exactly like this. Open one in Memory to unseal or re-seal it." }));
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Every sealed row verifies." }));
+    return card;
+  }
+  for (const p of rows) {
+    card.append(h("div", { class: "pair",
+                           onclick: async () => { S.tab = "memory"; await refresh(); openPair(p.id); } },
+      h("div", { class: "texts" }, mark(p.status),
+        h("span", { class: "src", text: p.source_text || "(row is gone)" }),
+        h("span", { class: "arrow", text: "→" }),
+        h("span", { text: p.target_text })),
+      h("div", { class: "row small muted", style: "margin-top:4px" },
+        h("span", { class: "chip", style: "color:var(--rejected);border-color:var(--rejected)",
+                    text: "won't verify" }),
+        p.verifier ? h("span", { class: "chip", text: p.verifier }) : null)));
+  }
+  return card;
+}
+
+function dueCard() {
+  const d = (S.signals && S.signals.due) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Seals due for re-verification" }),
+    h("p", { class: "small muted", text:
+      "Sealed answers whose last human check is older than " + (d.threshold_days ?? 90)
+      + " days. Not wrong — aging; a human may want to confirm they still hold." }));
+  if (d.chain_ok === false) {
+    card.append(h("p", { class: "empty", text:
+      "Can't check — the ledger chain does not verify: " + (d.detail || "") }));
+    return card;
+  }
+  const rows = d.rows || [];
+  if (!rows.length) {
+    card.append(h("p", { class: "empty", text: "Nothing is past the re-verification age." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["age (days)", "pair", "last verifier", "last checked"].map((t) => h("th", { text: t }))));
+  for (const r of rows) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.days) })),
+      h("td", { class: "mono small", text: (r.pair_id || "").slice(0, 8) }),
+      h("td", { text: r.verifier || "(unknown)" }),
+      h("td", { class: "small muted", text: (r.last || "").slice(0, 10) })));
+  }
+  card.append(table);
+  if (d.total > rows.length) {
+    card.append(h("p", { class: "small muted", text: "showing " + rows.length + " of " + d.total }));
+  }
+  return card;
+}
+
+function missesCard() {
+  const m = (S.signals && S.signals.misses) || {};
+  const card = h("div", { class: "card" },
+    h("h2", { text: "Questions Nestor couldn't answer" }),
+    h("p", { class: "small muted", text:
+      "Inputs that were asked but had no verified answer to serve — the shortlist of what "
+      + "to seal next. Questions seen only once are counted but their text is not shown." }));
+  if (m.supported === false) {
+    card.append(h("p", { class: "empty", text: "This store does not record misses." }));
+    return card;
+  }
+  const q = m.queue || [];
+  if (!q.length) {
+    card.append(h("p", { class: "empty", text: m.withheld
+      ? m.withheld + " one-off question(s) seen; none has been asked more than once yet."
+      : "No unanswered question has been recorded." }));
+    return card;
+  }
+  const table = h("table", {}, h("tr", {},
+    ...["times", "query (normalized)", "domain"].map((t) => h("th", { text: t }))));
+  for (const r of q) {
+    table.append(h("tr", {},
+      h("td", {}, h("b", { text: String(r.seen) })),
+      h("td", { class: "mono small", text: r.query }),
+      h("td", { class: "small muted", text: (r.source_lang || "") + "→" + (r.target_lang || "") })));
+  }
+  card.append(table);
+  if (m.withheld) {
+    card.append(h("p", { class: "small muted", text:
+      m.withheld + " question(s) seen only once are counted but not shown." }));
+  }
+  return card;
 }
 
 function replacedCard() {
@@ -3906,6 +4103,9 @@ async function refresh() {
       S.signals = {
         replaced: (await api("/api/replaced-seals?all=" + (S.showAllReplaced ? "1" : "0"))).replaced,
         rejections: await api("/api/rejections?" + q.toString()),
+        unverifiable: (await api("/api/pairs?unverifiable=1&limit=200")).pairs,
+        due: await api("/api/due-for-reverification?limit=200"),
+        misses: await api("/api/misses?limit=200"),
       };
     }
     if (S.tab === "ledger") {
