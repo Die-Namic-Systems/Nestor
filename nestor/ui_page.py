@@ -302,6 +302,16 @@ main { padding: 22px; max-width: 1180px; margin: 0 auto; }
   font-weight: 400; letter-spacing: .06em; text-transform: none; color: var(--warm);
 }
 .card h2::before { content: "✦ "; color: var(--glow); font-size: 12px; vertical-align: 2px; }
+/* Signals: each signal is a collapsed one-line panel you open on demand, so the
+   tab reads as a short list rather than a wall of full row-tables. */
+details.signal > summary { cursor: pointer; list-style: none; }
+details.signal > summary::-webkit-details-marker { display: none; }
+details.signal > summary b {
+  font-family: var(--display); font-weight: 400; letter-spacing: .06em; color: var(--warm);
+}
+details.signal > summary::before { content: "▸"; color: var(--glow); margin-right: 8px; }
+details.signal[open] > summary::before { content: "▾"; }
+details.signal[open] > summary { margin-bottom: 12px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
@@ -3727,12 +3737,13 @@ function viewSignals() {
   }
   const s = S.signals || {};
   // Alarms: something is wrong. Empty across all of them is the good state,
-  // and the header says so rather than leaving three blank cards to read as
-  // broken. Overrules (replaced, self-corrections hidden by default), junk
-  // pairs still being served, and rows that say sealed but will not verify.
-  const alarms = (s.replaced || []).length
-    + ((s.rejections && s.rejections.pairs) || []).length
-    + (s.unverifiable || []).length;
+  // and the header says so rather than leaving blank cards to read as broken.
+  // Overrules (replaced, self-corrections hidden by default), junk pairs still
+  // being served, and rows that say sealed but will not verify.
+  const replaced = s.replaced || [];
+  const junk = (s.rejections && s.rejections.pairs) || [];
+  const unver = s.unverifiable || [];
+  const alarms = replaced.length + junk.length + unver.length;
 
   view.append(h("div", { class: "card" },
     h("div", { class: "row" },
@@ -3741,29 +3752,56 @@ function viewSignals() {
       h("span", { class: "badge" + (alarms ? "" : " good"),
                   text: alarms ? alarms + " to look at" : "all clear" })),
     h("p", { class: "small muted", text:
-      "What the store is telling you about itself. Alarms first — empty is good, "
-      + "it means nothing is wrong — then coverage and upkeep, which are worth a "
-      + "glance even on a healthy store." })));
+      "What the store is telling you about itself — one line per signal; open one "
+      + "to see its rows. Alarms first (empty is good, it means nothing is wrong); "
+      + "a firing alarm opens itself. Then coverage and upkeep, collapsed until you ask." })));
 
+  // Each signal is a collapsed panel: title + a count/clear badge, opened on
+  // click. An alarm that is actually firing opens itself so a real problem is
+  // not one click away; everything quiet stays a single line to scan past.
   view.append(h("div", { class: "row", style: "margin:4px 2px" }, h("b", { text: "Alarms" })));
-  if (!alarms) {
-    view.append(h("div", { class: "card" }, h("p", { class: "empty", text:
-      "All clear — no seal overruled, no junk pair being served, every sealed row verifies." })));
-  }
-  // replacedCard always renders: it carries the "include self-corrections"
-  // toggle, the only way to reveal the overrules the alarm count hides.
-  view.append(replacedCard());
-  if (((s.rejections && s.rejections.pairs) || []).length) view.append(junkPairsCard());
-  if ((s.unverifiable || []).length) view.append(unverifiableCard());
+  // Overwritten seals always render — the panel carries the "include
+  // self-corrections" toggle, the only way to reveal the overrules the count hides.
+  view.append(signalPanel("Seals that were overwritten", sigBadge(replaced.length, "bad"),
+                          replaced.length > 0, replacedCard()));
+  if (junk.length) view.append(signalPanel("Pairs refused against many queries",
+                                           sigBadge(junk.length, "bad"), true, junkPairsCard()));
+  if (unver.length) view.append(signalPanel("Sealed, but Nestor won't serve them",
+                                            sigBadge(unver.length, "bad"), true, unverifiableCard()));
 
   view.append(h("div", { class: "row", style: "margin:12px 2px 4px" }, h("b", { text: "Coverage & upkeep" })));
-  view.append(dueCard(), missesCard(), rejectedQueriesCard());
+  const due = s.due || {}, misses = s.misses || {};
+  const dueTotal = due.total ?? (due.rows || []).length;
+  const missN = (misses.queue || []).length;
+  const refusedN = ((s.rejections && s.rejections.queries) || []).length;
+  view.append(signalPanel("Seals due for re-verification", sigBadge(dueTotal), false, dueCard()));
+  view.append(signalPanel("Questions Nestor couldn't answer", sigBadge(missN), false, missesCard()));
+  view.append(signalPanel("Queries the reviewers keep refusing", sigBadge(refusedN), false, rejectedQueriesCard()));
+}
+
+// A signal as a collapsed panel: the title and a count/clear badge are the
+// summary you scan; the rows live behind it until opened. `open` is passed
+// true for a firing alarm so it reveals itself. Native <details> — no state to
+// track, keyboard-accessible, and no inline script (the CSP forbids it).
+function signalPanel(title, badge, open, body) {
+  return h("details", { class: "card signal", open: open ? true : null },
+    h("summary", { class: "row" },
+      h("b", { text: title }),
+      h("span", { class: "spacer" }),
+      badge || null),
+    body);
+}
+
+// The one-line state a signal shows before you open it: a count, or "clear"
+// when there is nothing in it. `tone` "bad" colours a non-zero alarm count.
+function sigBadge(n, tone) {
+  if (!n) return h("span", { class: "badge good", text: "clear" });
+  return h("span", { class: "badge" + (tone === "bad" ? " bad" : ""), text: String(n) });
 }
 
 function unverifiableCard() {
   const rows = (S.signals && S.signals.unverifiable) || [];
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Sealed, but Nestor won't serve them" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "These rows say 'sealed', but their signature does not verify here, so every serve "
       + "path refuses them (Nestor#2). A seal written by something that did not hold the key "
@@ -3789,8 +3827,7 @@ function unverifiableCard() {
 
 function dueCard() {
   const d = (S.signals && S.signals.due) || {};
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Seals due for re-verification" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "Sealed answers whose last human check is older than " + (d.threshold_days ?? 90)
       + " days. Not wrong — aging; a human may want to confirm they still hold." }));
@@ -3822,8 +3859,7 @@ function dueCard() {
 
 function missesCard() {
   const m = (S.signals && S.signals.misses) || {};
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Questions Nestor couldn't answer" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "Inputs that were asked but had no verified answer to serve — the shortlist of what "
       + "to seal next. Questions seen only once are counted but their text is not shown." }));
@@ -3856,8 +3892,7 @@ function missesCard() {
 
 function replacedCard() {
   const rows = (S.signals && S.signals.replaced) || [];
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Seals that were overwritten" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "The memory keeps one row per source, so a replaced seal leaves no trace in the "
       + "store — the previous target and verifier exist only in the ledger. Sealing over "
@@ -3894,8 +3929,7 @@ function replacedCard() {
 
 function rejectedQueriesCard() {
   const sig = (S.signals && S.signals.rejections) || { queries: [], pairs: [], rejections: 0 };
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Queries the reviewers keep refusing" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "Several different answers offered for one input, all refused. That is evidence about "
       + "the THRESHOLD in this domain rather than about any one pair — and the seal threshold "
@@ -3920,8 +3954,7 @@ function rejectedQueriesCard() {
 
 function junkPairsCard() {
   const sig = (S.signals && S.signals.rejections) || { pairs: [] };
-  const card = h("div", { class: "card" },
-    h("h2", { text: "Pairs refused against many queries" }),
+  const card = h("div", {},
     h("p", { class: "small muted", text:
       "A good mapping is the wrong answer now and then. One that is wrong for many unrelated "
       + "inputs is junk — and a sealed one is still being served while reviewers keep saying no. "
