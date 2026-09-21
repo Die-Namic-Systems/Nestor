@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 268,
+    "pairs": 269,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-20T00:00:00+00:00",
-  "digest": "d23da17ad0c602b2c1462c0af0d6350bed730dd7f00372c5130aa48c19aebab2",
+  "created_at": "2026-09-21T00:00:00+00:00",
+  "digest": "7e08e36f462b534a496aafa3b54923eaa2f73174cbf9462989622fba3ef75115",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-09-21T00:00:00+00:00",
+      "id": "46dabfb8-d05c-534f-b0d6-f477fab53a8d",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "the queue tab named awaiting a human is empty and inert for a decisionfirst store because it only lists translation segments a workflow no longer central to nestor rename it explain the emptiness or repurpose it",
+      "source_text": "The Queue tab named 'Awaiting a human' is empty and inert for a decision-first store because it only lists translation segments — a workflow no longer central to Nestor. Rename it, explain the emptiness, or repurpose it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Repurpose it into a review hub. 'Awaiting a human' now surfaces every kind of review work in this store as a row with a count and a jump: draft pairs awaiting a seal (open in Memory, count from the store summary), proposed relationships to review (open in Triage), and translation segments queued (the original inline seal/reject rows, kept as one section when a store still has them). The name stays because it is now true.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-20T00:00:00+00:00",
       "id": "edd9f7ef-aaa0-5fac-877b-ccc576a09aba",
