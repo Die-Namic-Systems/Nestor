@@ -153,6 +153,21 @@ what moved.
 
 ---
 
+## [0.22.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.21.0...v0.22.0) (2026-09-21)
+
+
+### Added
+
+* **ui:** make the Triage tab read as decisions, not hashes ([502dbfe](https://github.com/Die-Namic-Systems/Nestor/commit/502dbfe0e2f88dfb1657b416d8c8dede3423afa4))
+* **ui:** make the Triage tab read as decisions, not hashes ([#303](https://github.com/Die-Namic-Systems/Nestor/issues/303)) ([0464659](https://github.com/Die-Namic-Systems/Nestor/commit/04646597589366602695b89237f41a6a43ee957d))
+
+
+### Fixed
+
+* **db:** renormalize leaves rejected rows and foreign domains alone ([96c0a78](https://github.com/Die-Namic-Systems/Nestor/commit/96c0a7825573a8675c8401675a6f242553dda4bb))
+* **ui:** seal a draft in place when its stored key is stale ([#302](https://github.com/Die-Namic-Systems/Nestor/issues/302)) ([40b48b5](https://github.com/Die-Namic-Systems/Nestor/commit/40b48b5c6795c21fc3c79be85241e0b15494b123))
+* **ui:** seal the draft in place when its stored key is stale ([564be0a](https://github.com/Die-Namic-Systems/Nestor/commit/564be0ac365d2ef020ddda948bad132943b78810))
+
 ## [0.21.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.20.2...v0.21.0) (2026-09-16)
 
 
