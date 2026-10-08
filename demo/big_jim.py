@@ -120,7 +120,11 @@ def cmd_state(desk: desks.Desk, args) -> int:
             who = r.get("verifier") or "-"
             print(f"   {mark} {r['source_norm']:>8}  {who:8} {r['source_text'][:44]}")
     # Two cars keyed the same is the trade-off KEY_TAIL makes; say so rather
-    # than wait for it to surface as a wrong disclosure.
+    # than wait for it to surface as a wrong disclosure. On a store with the
+    # live unique index (the default SQLite store) this cannot fire: rows()
+    # returns live rows only, one per key, and `draft` refuses a second car on
+    # a held key. It stays as a guard for a store whose index could not be
+    # built because duplicate keys were already present.
     keys = [r["source_norm"] for r in rows]
     collides = {k for k in keys if keys.count(k) > 1}
     if collides:
@@ -166,10 +170,42 @@ def cmd_ask(desk: desks.Desk, args) -> int:
     return 0
 
 
+def _vin_run(value) -> str:
+    """The whole VIN-like run :meth:`VinMatcher.normalize` keys on, not just its
+    tail, so two cars that share a key can still be told apart."""
+    packed = re.sub(r"[^A-Z0-9]", "", str(value).upper())
+    runs = [r for r in _ALNUM_RUN.findall(packed) if any(c.isdigit() for c in r)]
+    return max(runs, key=len) if runs else ""
+
+
 def cmd_draft(desk: desks.Desk, args) -> int:
     """A machine proposing. There is no route to sealed from here."""
-    row = desk.propose(args.vin, " ".join(args.disclosure),
-                       reason="Drafted by the machine. Nobody has checked it.")
+    disclosure = " ".join(args.disclosure)
+    try:
+        row = desk.propose(args.vin, disclosure,
+                           reason="Drafted by the machine. Nobody has checked it.")
+    except memory.ConflictingDraftError as refusal:
+        # The key already holds a different draft. Nestor refuses rather than
+        # hand back the stored draft as if it were this one; say so in the
+        # desk's voice, and keep Nestor's own words below it, unedited.
+        key = MATCHER.normalize(args.vin)
+        held = next((r for r in desk.rows() if r["source_norm"] == key), None)
+        print(f"\n   {RED}refused{OFF}  key {key!r} already holds a draft")
+        if held is not None:
+            print(f"   held by  {held['source_text']}")
+            print(f"   drafted  {held['target_text']}")
+        print(f"   yours    {args.vin}")
+        print(f"   proposed {disclosure}")
+        if held is not None and _vin_run(held["source_text"]) != _vin_run(args.vin):
+            print(f"\n   Two different cars end in the same {KEY_TAIL} characters. "
+                  f"That is the\n   trade-off KEY_TAIL makes: this desk holds one "
+                  f"row per key, so the\n   second car cannot be drafted until the "
+                  f"first leaves the key.")
+        else:
+            print("\n   Same car, a different disclosure. A human seals or rejects "
+                  "the draft\n   that is there first; a machine does not replace it.")
+        print(f"\n   {DIM}nestor: {refusal}{OFF}")
+        return 1
     print(f"\n   {AMBER}~ draft{OFF} queued  {DIM}id {row['id']}{OFF}")
     print(f"   key      {row['source_norm']!r}")
     print(f"   vehicle  {row['source_text']}")
