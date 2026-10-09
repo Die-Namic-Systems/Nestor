@@ -21,6 +21,6 @@
 # finds. Both callers move together or neither does.
 ruff==0.16.7
 bandit==1.9.4
-mypy==2.3.1
+mypy==2.4.0
 pip-audit==2.10.1
 detect-secrets==1.5.0
