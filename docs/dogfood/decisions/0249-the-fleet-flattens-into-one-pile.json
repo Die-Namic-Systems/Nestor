@@ -1,0 +1,27 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-19",
+  "note": "Proposed, not sealed. The operator, in a desk session, after the per-prompt one-script hook was put back. The record in full, with the phases: willows-grove docs/design/one-script/flatten-2026-10-19.md.",
+  "decisions": [
+    {
+      "question": "Does the Table keep the ai-game-master chain beside the one-script record (forge-convergence §9 row 11)?",
+      "commitment": "No. The row is reopened and the one-script record is the one chain. The table's ledger_sink.py, a byte-for-byte copy of the ai-game-master hashing, retires with a tombstone once table results are verdict rows in the record.",
+      "why": "SPEC-rival §3 row 2: the row's reasons (isolated boxes, own verifier, the games verify) now hold for the one-script record, which also keeps its head outside the box. The operator: \"1 yes\"."
+    },
+    {
+      "question": "Does the fleet flatten into one contract its pieces follow, or one pile of code?",
+      "commitment": "One pile: one repo, one runtime. The pile is willow-bot (seal D2); Rat stays the one runtime that seats a model (D1).",
+      "why": "The operator: \"2 one pile\"; and earlier: \"You could literally smash it into one giant pile of one script, and, my guess is, that it would still do the same job. All of it.\""
+    },
+    {
+      "question": "Do the game pieces stay in safe-app-store, where a promoted build lifts into its own repo (rule 8)?",
+      "commitment": "No. the-table, catgrid and the game-lab rule helpers the table imports move into willow-bot; for these pieces the decision overrides safe-app-store rule 8. A tombstone at each old path names the new home.",
+      "why": "The operator: \"2, move into the bot\"."
+    },
+    {
+      "question": "Does catgrid give up its xorshift32 generator for the one stream when it moves?",
+      "commitment": "No. catgrid moves and keeps both: xorshift32, which its JS port and the APK replay, beside the one stream.",
+      "why": "The operator: \"3, move and keep both. The game will still be played as a game, just the way it's played is a bit different\"."
+    }
+  ]
+}

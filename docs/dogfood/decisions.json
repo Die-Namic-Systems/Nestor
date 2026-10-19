@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 282,
+    "pairs": 286,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-10-19T00:00:00+00:00",
-  "digest": "4438508d62eba4cb44087a8dc93ce916d24f95ceabf6fba50cfc5ea0ede6b12e",
+  "digest": "76280d2272508be53188ce4b27dd01696654f2ef32b748edf2b03012f0c9d961",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,34 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "f8c63d18-5d8b-5d07-95f0-68a58a2b279b",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the fleet flatten into one contract its pieces follow or one pile of code",
+      "source_text": "Does the fleet flatten into one contract its pieces follow, or one pile of code?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "One pile: one repo, one runtime. The pile is willow-bot (seal D2); Rat stays the one runtime that seats a model (D1).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "f63aab35-dfac-5660-9e1c-6e9248f04507",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does the table keep the aigamemaster chain beside the onescript record forgeconvergence 9 row 11",
+      "source_text": "Does the Table keep the ai-game-master chain beside the one-script record (forge-convergence §9 row 11)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. The row is reopened and the one-script record is the one chain. The table's ledger_sink.py, a byte-for-byte copy of the ai-game-master hashing, retires with a tombstone once table results are verdict rows in the record.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
       "id": "cfcad4b2-934f-56fc-97d5-3792354a4a6c",
@@ -52,6 +80,20 @@
     },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "9bb37ab1-9328-5bfb-a360-6d31229745e3",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do the game pieces stay in safeappstore where a promoted build lifts into its own repo rule 8",
+      "source_text": "Do the game pieces stay in safe-app-store, where a promoted build lifts into its own repo (rule 8)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. the-table, catgrid and the game-lab rule helpers the table imports move into willow-bot; for these pieces the decision overrides safe-app-store rule 8. A tombstone at each old path names the new home.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
       "id": "6f8beb72-89fe-5e05-85f4-2f2a19814ac5",
       "origin": "pr:?",
       "seal_sig": "",
@@ -61,6 +103,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "The bundle is stored in Nestor under its own SHA-256 (session_bundles). Before any seal of a session pair, add_pair re-reads it, re-hashes it against the target, and re-renders its actions against the pair's source_text; anything else is unverifiable and refused, on every seal path. The UI's session view shows the bundle's actions and offers Seal only while verified.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "1852eb4b-c6d7-58aa-b6e3-7133439ea642",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "does catgrid give up its xorshift32 generator for the one stream when it moves",
+      "source_text": "Does catgrid give up its xorshift32 generator for the one stream when it moves?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. catgrid moves and keeps both: xorshift32, which its JS port and the APK replay, beside the one stream.",
       "verifier": "",
       "weight": 1.0
     },
