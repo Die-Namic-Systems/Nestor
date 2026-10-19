@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 289,
+    "pairs": 293,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-10-19T00:00:00+00:00",
-  "digest": "45ad5c1b215eb2ffad685fe0de8705e20e10e84e730c765f0c14566d98cf4169",
+  "digest": "dedb6e2bc27e1231285e9dd19c98107e8bf9f1ffedc7e9a50318549e2d001adf",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -80,6 +80,20 @@
     },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "bb46ed8b-7deb-54d1-8a66-eed1b4b46a21",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where in willowbot do the games go beside the onescript or inside it",
+      "source_text": "Where in willow-bot do the games go: beside the one-script or inside it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Inside it: willow-bot/one-script/games/<app>/.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
       "id": "b737c204-2ee0-51a2-b893-65b6f25e487a",
       "origin": "pr:?",
       "seal_sig": "",
@@ -108,6 +122,34 @@
     },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "b36a2d5d-bc63-5cec-864c-bf0496f54cd9",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what is left at the old paths in safeappstore",
+      "source_text": "What is left at the old paths in safe-app-store?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The code stays in place, beside a tombstone that marks it non-authoritative and names the one-script as its home.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "9d278de9-34b3-5d13-a1fe-13d147697847",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "is the move a plain copy or does it carry the files git history",
+      "source_text": "Is the move a plain copy, or does it carry the files' git history?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A plain copy, with the source repo and commit named in the commit.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
       "id": "9bb37ab1-9328-5bfb-a360-6d31229745e3",
       "origin": "pr:?",
       "seal_sig": "",
@@ -117,6 +159,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. the-table, catgrid and the game-lab rule helpers the table imports move into willow-bot; for these pieces the decision overrides safe-app-store rule 8. A tombstone at each old path names the new home.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "9b7553c2-0fa7-5bb2-a8f6-104ae9f4619b",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "what moves into the bot only what f3 named or everything thetable reaches",
+      "source_text": "What moves into the bot: only what F-3 named, or everything the-table reaches?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Everything the-table reaches, the Python-based games: the-table, catgrid, game-lab, bureau, game and ai-game-master. Their Python moves; the JS ports stay in safe-app-store beside the Python they are held to.",
       "verifier": "",
       "weight": 1.0
     },

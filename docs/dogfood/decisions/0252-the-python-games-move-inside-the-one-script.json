@@ -1,0 +1,27 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-19",
+  "note": "Proposed, not sealed. The operator, in a desk session, on flatten phase F4 (the move). The record in full: willows-grove docs/design/one-script/flatten-2026-10-19.md.",
+  "decisions": [
+    {
+      "question": "What moves into the bot: only what F-3 named, or everything the-table reaches?",
+      "commitment": "Everything the-table reaches, the Python-based games: the-table, catgrid, game-lab, bureau, game and ai-game-master. Their Python moves; the JS ports stay in safe-app-store beside the Python they are held to.",
+      "why": "The operator: \"1 b with the python based games\"."
+    },
+    {
+      "question": "Where in willow-bot do the games go: beside the one-script or inside it?",
+      "commitment": "Inside it: willow-bot/one-script/games/<app>/.",
+      "why": "The operator: \"2 b, it's called the one script for a reason\"."
+    },
+    {
+      "question": "What is left at the old paths in safe-app-store?",
+      "commitment": "The code stays in place, beside a tombstone that marks it non-authoritative and names the one-script as its home.",
+      "why": "The operator: \"3 b, because safe-app-store is the parts bin\"; the owner, 2026-09-12: \"safe-app-store isn't to be vendored — it's to be archived and turned into a parts bin\"."
+    },
+    {
+      "question": "Is the move a plain copy, or does it carry the files' git history?",
+      "commitment": "A plain copy, with the source repo and commit named in the commit.",
+      "why": "The operator: \"4 a\"."
+    }
+  ]
+}
