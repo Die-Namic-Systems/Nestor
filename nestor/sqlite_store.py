@@ -186,6 +186,18 @@ CREATE TABLE IF NOT EXISTS decision_warrants (
 );
 CREATE INDEX IF NOT EXISTS idx_decision_warrants_pair ON decision_warrants(pair_id);
 
+-- Session bundles (nestor.session_seal). The bytes a session pair's seal is
+-- over: a host's whole session, compressed by the host, keyed by its own
+-- SHA-256, so a row can only ever hold the bytes its key names. A session
+-- pair's target is `session:<sha256>`; the reviewer is shown what these bytes
+-- say, and the seal is refused unless they still hash to it. Content-addressed
+-- and append-only: the same bytes are one row, and nothing updates or deletes.
+CREATE TABLE IF NOT EXISTS session_bundles (
+    sha256     TEXT PRIMARY KEY,
+    bundle     BLOB NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 -- Query misses (the seal queue's odometer). A `pending` answer means nothing
 -- verified matched, and the whole architecture rests on that set shrinking as
 -- more is sealed — but nothing measured it, so "which should I seal next?" had
@@ -1052,6 +1064,26 @@ class SqliteStore:
         with self._db() as conn:
             return [dict(r) for r in conn.execute(q + " ORDER BY source_norm, id",
                                                   args)]
+
+    # --- session bundles (optional; nestor.session_seal) ------------------
+
+    def memory_put_session_bundle(self, sha256: str, bundle: bytes,
+                                  created_at: str) -> None:
+        """Store one bundle under its own hash. The same bytes twice are one
+        row (INSERT OR IGNORE); the recipe checks the key is the bytes' hash."""
+        with self._db() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO session_bundles (sha256, bundle, created_at) "
+                "VALUES (?, ?, ?)", (sha256, bundle, created_at))
+
+    def memory_get_session_bundle(self, sha256: str) -> bytes | None:
+        """The bytes stored under ``sha256``, or None. Never re-hashed here:
+        the reader checks them (:func:`nestor.session_seal.view`)."""
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT bundle FROM session_bundles WHERE sha256=?",
+                (sha256,)).fetchone()
+        return None if row is None else bytes(row[0])
 
     # --- warrants (optional; docs/warrants.md, decision 0164) -------------
 

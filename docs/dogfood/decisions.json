@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 279,
+    "pairs": 282,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-09-21T00:00:00+00:00",
-  "digest": "8d25572351fad1d7f731f701b726ef799f2989603c7b0229e42d0def34970b79",
+  "created_at": "2026-10-19T00:00:00+00:00",
+  "digest": "4438508d62eba4cb44087a8dc93ce916d24f95ceabf6fba50cfc5ea0ede6b12e",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "cfcad4b2-934f-56fc-97d5-3792354a4a6c",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "where does a persons seal sit in a session run through a host like the one script",
+      "source_text": "Where does a person's seal sit in a session run through a host like the one script?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "At the end, once. The host gathers the session (what the person did and what came of each, and the pieces it pulled in), compresses it into one bundle, and proposes one draft pair in the `session` domain: source = the actions rendered from the bundle, target = session:<sha256> over its bytes (nestor.session_seal.propose). The person seals it (yes, these were my actions in this session) or denies it (reject_pair). Nothing is sealed mid-session.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "b39c1c4d-47cc-5da0-9fef-481ef1004123",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "are session pairs kept out of matching",
+      "source_text": "Are session pairs kept out of matching?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No. `session` is a tag, not an exclusion: a sealed session matches and serves in its domain like any sealed pair; a denied one is never served (reject_pair).",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "6f8beb72-89fe-5e05-85f4-2f2a19814ac5",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "how does the person know what they are sealing is what was bundled",
+      "source_text": "How does the person know what they are sealing is what was bundled?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "The bundle is stored in Nestor under its own SHA-256 (session_bundles). Before any seal of a session pair, add_pair re-reads it, re-hashes it against the target, and re-renders its actions against the pair's source_text; anything else is unverifiable and refused, on every seal path. The UI's session view shows the bundle's actions and offers Seal only while verified.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-09-21T00:00:00+00:00",
       "id": "f5d961be-3d69-59c7-9485-7d723147fdf1",

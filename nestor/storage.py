@@ -20,11 +20,12 @@ Two ways to supply a store:
 
 The reference implementation is :mod:`nestor.sqlite_store`.
 
-Beyond the core Protocol there are **eleven optional capabilities**, each
+Beyond the core Protocol there are **twelve optional capabilities**, each
 all-or-nothing and each reported by a predicate, so a store predating one keeps
 working and the surfaces that need it say so rather than showing an empty list.
-Seven live here; the last four are declared beside the recipes that use them
-(``supports_edges``, ``supports_evidence``, and ``supports_warrants`` below,
+Seven live here; the last five are declared beside the recipes that use them
+(``supports_edges``, ``supports_evidence``, ``supports_session_bundles`` and
+``supports_warrants`` below,
 ``supports_embedding_store`` in :mod:`nestor.embedding_store`,
 ``supports_misses`` in :mod:`nestor.misses`) — if you add another, add a row
 here:
@@ -50,6 +51,8 @@ Evidence            :func:`supports_evidence`              a sealed claim cannot
                                                            rests on, and the report is empty
 Warrants            :func:`supports_warrants`              a claim cannot record why a stranger
                                                            should believe it — only who sealed it
+Session bundles     :func:`supports_session_bundles`       a session pair can be neither proposed
+                                                           nor sealed — :mod:`nestor.session_seal`
 Query misses        :func:`supports_misses`                a `pending` is not counted, so nothing
                                                            says which gap to seal next
 Verifier policy     :func:`supports_verifier_policy`       every verifier name is accepted at
@@ -549,6 +552,30 @@ def supports_evidence(store: Storage) -> bool:
 
 
 
+_SESSION_BUNDLE_OPS = ("memory_put_session_bundle", "memory_get_session_bundle")
+
+
+class SessionBundleStorage(Storage, Protocol):
+    """``Storage`` plus the session-bundle capability (:mod:`nestor.session_seal`)
+    — a ``cast`` target on the same terms as :class:`EvidenceStorage`; see
+    :func:`supports_session_bundles`."""
+
+    def memory_put_session_bundle(self, sha256: str, bundle: bytes,
+                                  created_at: str) -> None: ...
+
+    def memory_get_session_bundle(self, sha256: str) -> bytes | None: ...
+
+
+def supports_session_bundles(store: Storage) -> bool:
+    """Whether ``store`` can hold session bundles (:mod:`nestor.session_seal`).
+
+    A store without it still seals and serves everything else; it cannot hold
+    a session pair's bundle, so a session pair can be neither proposed nor
+    sealed there, and says so.
+    """
+    return supports(store, "session_bundles")
+
+
 _WARRANT_OPS = ("memory_add_warrant", "memory_warrants_for")
 
 
@@ -641,6 +668,7 @@ _CAPABILITY_OPS: dict[str, tuple[str, ...]] = {
     "edges": _EDGE_OPS,
     "evidence": _EVIDENCE_OPS,
     "warrants": _WARRANT_OPS,
+    "session_bundles": _SESSION_BUNDLE_OPS,
     "verifier_policy": _VERIFIER_POLICY_OPS,
     "embedding_store": ("embedding_load", "embedding_save", "embedding_drop"),
 }
