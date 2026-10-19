@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 288,
+    "pairs": 289,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-10-19T00:00:00+00:00",
-  "digest": "8a11838aef988c41742469753daff3c01c482a48a02a945c2f7ac82042d6f787",
+  "digest": "45ad5c1b215eb2ffad685fe0de8705e20e10e84e730c765f0c14566d98cf4169",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -145,6 +145,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "No. catgrid moves and keeps both: xorshift32, which its JS port and the APK replay, beside the one stream.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "0194dfbb-658f-525d-bf81-5cdc1eb4e4be",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "storysession let a person reject a proposed fact the onescript could only seal how is a rejection made a new onescript verb two proposals per decision or no rejection at all",
+      "source_text": "StorySession let a person reject a proposed fact; the one-script could only seal. How is a rejection made: a new one-script verb, two proposals per decision, or no rejection at all?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "A one-script verb: the human's proof (or Nestor pair) over reject:<proposal subject>, recorded as durably as a seal, writing nothing. The story moves on REJECTED. A sealed proposal can't be rejected and a rejected one can't be sealed.",
       "verifier": "",
       "weight": 1.0
     },
