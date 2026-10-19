@@ -1,0 +1,17 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-19",
+  "note": "Proposed, not sealed. The operator, in a desk session, on flatten phase F2 (one record). The record in full: willows-grove docs/design/one-script/flatten-2026-10-19.md.",
+  "decisions": [
+    {
+      "question": "aetheris5e (sealed_run, gm5e, combat) writes into campaign.db through LedgerSink. Does it keep campaign.db, anchored by one agm_head row, or move onto verdict rows in F2?",
+      "commitment": "It moves onto verdict rows in F2. sealed_run's human seal moves to Run.seal in F3; until then its decision beat is a proposal awaiting the human's seal.",
+      "why": "The operator: \"1 b\". One chain (decision 0249) leaves no second chain for the table's sessions."
+    },
+    {
+      "question": "Until F4 the-table cannot write the record without the bot. How do the scripts that run a session reach it?",
+      "commitment": "They find the one-script beside them (way B): a sys.path shim to ../willow-bot/one-script, or ONESCRIPT_HOME, the way the-table already reaches its sibling apps. The library modules keep the injected writer and import no onescript. With no one-script beside, a script says it is unreachable and exits 2. The shim goes at F4.",
+      "why": "The operator: \"1 B\", after A (the bot runs each script), B, C (move first) and D (a second chain, ruled out by 0249) were laid out."
+    }
+  ]
+}

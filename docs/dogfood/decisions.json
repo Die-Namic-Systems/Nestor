@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 286,
+    "pairs": 288,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-10-19T00:00:00+00:00",
-  "digest": "76280d2272508be53188ce4b27dd01696654f2ef32b748edf2b03012f0c9d961",
+  "digest": "8a11838aef988c41742469753daff3c01c482a48a02a945c2f7ac82042d6f787",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "fb08a6ee-a1f1-551c-8602-bbb224a29c89",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "aetheris5e sealed_run gm5e combat writes into campaigndb through ledgersink does it keep campaigndb anchored by one agm_head row or move onto verdict rows in f2",
+      "source_text": "aetheris5e (sealed_run, gm5e, combat) writes into campaign.db through LedgerSink. Does it keep campaign.db, anchored by one agm_head row, or move onto verdict rows in F2?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "It moves onto verdict rows in F2. sealed_run's human seal moves to Run.seal in F3; until then its decision beat is a proposal awaiting the human's seal.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
       "id": "f8c63d18-5d8b-5d07-95f0-68a58a2b279b",
@@ -61,6 +75,20 @@
       "status": "draft",
       "target_lang": "decision",
       "target_text": "At the end, once. The host gathers the session (what the person did and what came of each, and the pieces it pulled in), compresses it into one bundle, and proposes one draft pair in the `session` domain: source = the actions rendered from the bundle, target = session:<sha256> over its bytes (nestor.session_seal.propose). The person seals it (yes, these were my actions in this session) or denies it (reject_pair). Nothing is sealed mid-session.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-19T00:00:00+00:00",
+      "id": "b737c204-2ee0-51a2-b893-65b6f25e487a",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "until f4 thetable cannot write the record without the bot how do the scripts that run a session reach it",
+      "source_text": "Until F4 the-table cannot write the record without the bot. How do the scripts that run a session reach it?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "They find the one-script beside them (way B): a sys.path shim to ../willow-bot/one-script, or ONESCRIPT_HOME, the way the-table already reaches its sibling apps. The library modules keep the injected writer and import no onescript. With no one-script beside, a script says it is unreachable and exits 2. The shim goes at F4.",
       "verifier": "",
       "weight": 1.0
     },
