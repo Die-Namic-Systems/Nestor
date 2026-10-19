@@ -1,0 +1,22 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-19",
+  "note": "Proposed, not sealed. The operator, building a game through willow-bot's one script: a seal at the start of a session gates an idea, not a decision. The seal moves to the end, over the whole session.",
+  "decisions": [
+    {
+      "question": "Where does a person's seal sit in a session run through a host like the one script?",
+      "commitment": "At the end, once. The host gathers the session (what the person did and what came of each, and the pieces it pulled in), compresses it into one bundle, and proposes one draft pair in the `session` domain: source = the actions rendered from the bundle, target = session:<sha256> over its bytes (nestor.session_seal.propose). The person seals it (yes, these were my actions in this session) or denies it (reject_pair). Nothing is sealed mid-session.",
+      "why": "The operator: \"there is really nothing to seal yet because no real decision has been made other than hey I want to build this thing that's not a decision that's an idea\"; \"It's still my seal, the bundle is what I'm sealing. I don't need to seal tool calls, I need, and user's, to be able to say, yes, these were my actions in this session. Agree, or disagree, if disagree, then deny the pair. The record is still there, and can still be looked at, it just can't be served.\""
+    },
+    {
+      "question": "How does the person know what they are sealing is what was bundled?",
+      "commitment": "The bundle is stored in Nestor under its own SHA-256 (session_bundles). Before any seal of a session pair, add_pair re-reads it, re-hashes it against the target, and re-renders its actions against the pair's source_text; anything else is unverifiable and refused, on every seal path. The UI's session view shows the bundle's actions and offers Seal only while verified.",
+      "why": "A shown list that differs from the sealed bundle would make the seal a lie. The check lives in add_pair, the one function that turns a pair into a sealed one, so no path can skip it (agent-guide: remove the interaction, do not add a condition)."
+    },
+    {
+      "question": "Are session pairs kept out of matching?",
+      "commitment": "No. `session` is a tag, not an exclusion: a sealed session matches and serves in its domain like any sealed pair; a denied one is never served (reject_pair).",
+      "why": "The operator: \"It can still be tagged as session, but it shouldn't be excluded. The point is to give the system, or the model, or the cloud model, as much information as could be relevant, without overloading any one step.\""
+    }
+  ]
+}

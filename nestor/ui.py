@@ -80,7 +80,7 @@ from email.message import Message
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, cast
 
-from . import answer, cascade, config, home_paths, keyring, memory, misses, portable, signing, storage
+from . import answer, cascade, config, home_paths, keyring, memory, misses, portable, session_seal, signing, storage
 from . import ledger as ledger_mod
 from .curator import CurationUnsupportedError, Curator
 from .decision import EDGE_KINDS, DecisionMemory
@@ -639,6 +639,15 @@ def _pair(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dic
     if detail is None:
         raise ApiError(404, "no such pair", code="not_found")
     return {"pair": detail}
+
+
+def _session_seal(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
+    """One session pair as its reviewer sees it: the actions its bundle holds,
+    and whether that bundle still hashes to the pair (nestor.session_seal)."""
+    try:
+        return {"session": session_seal.view(_str(query, "id"), store=app.store)}
+    except session_seal.SessionBundleError as exc:
+        raise ApiError(404, str(exc), code="not_a_session") from exc
 
 
 def _queue(app: App, query: Mapping[str, Any], payload: Mapping[str, Any]) -> dict:
@@ -1579,6 +1588,7 @@ _ROUTES: dict[tuple[str, str], Handler] = {
     ("GET", "/api/state"): _state,
     ("GET", "/api/pairs"): _pairs,
     ("GET", "/api/pair"): _pair,
+    ("GET", "/api/session-seal"): _session_seal,
     ("GET", "/api/queue"): _queue,
     ("GET", "/api/misses"): _misses,
     ("GET", "/api/ledger"): _ledger_view,
@@ -1645,6 +1655,8 @@ def dispatch(app: App, method: str, path: str, query: Mapping[str, Any],
         # 403, not 400: the request is well-formed; this process is not
         # entitled to put that name on a seal without their key.
         return 403, {"error": str(exc), "code": "unsigned_seal"}
+    except session_seal.SessionBundleError as exc:
+        return 409, {"error": str(exc), "code": "unverifiable_session"}
     except keyring.UnknownVerifierError as exc:
         return 403, {"error": str(exc), "code": "unknown_verifier"}
     except keyring.RevokedKeyError as exc:

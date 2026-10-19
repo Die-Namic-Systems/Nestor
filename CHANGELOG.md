@@ -22,6 +22,20 @@ what moved.
 
 ### Added
 
+* **Session seals** — `nestor/session_seal.py`, a `session_bundles` table and
+  the `session_bundles` storage capability. A host that runs a whole session
+  with no seal in the middle proposes one draft pair at its end, in the
+  `session` domain: the person's actions rendered from the session's bundle,
+  and `session:<sha256>` over the bundle's bytes. The person seals it ("yes,
+  these were my actions in this session") or denies it (`reject_pair`: still
+  readable, never served). `add_pair` and `supersede_pair` refuse to seal a
+  session pair whose stored bundle doesn't hash to its target or doesn't render
+  to its source, on every seal path; `nestor ui` shows the session's actions
+  and offers Seal only while that holds (`GET /api/session-seal`). A sealed
+  session serves in its domain like any sealed pair: tagged, not excluded.
+  Decision 0248. **Schema change: long-lived processes must be restarted** to
+  get the `session_bundles` table (docs/releasing.md).
+
 * **`nestor embed-tick`** — wall-clock-bounded warm of `tm_embeddings` for the
   ollama / semantic matcher (`SemanticMatcher.warm_embeddings`). Receipt is
   three-state (`ok` / `empty` / `unreachable`) so a timer or steward tick can

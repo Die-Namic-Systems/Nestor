@@ -714,6 +714,7 @@ def add_pair(source_text: str, target_text: str, source_lang: str, target_lang: 
     # reason: a refusal here must leave no row behind, sealed or otherwise.
     if status == "sealed":
         _check_verifier_policy(store, source_lang, target_lang, verifier)
+        _check_session_bundle(store, source_lang, source_text, target_text)
     # A seal has to be auditable to be a seal. Refuse before touching the store,
     # so a broken or unwritable chain cannot leave a verified row with no trail.
     if status == "sealed" and audit:
@@ -842,6 +843,17 @@ def _require_lineage(store: Storage) -> None:
     )
 
 
+def _check_session_bundle(store: Storage, source_lang: str, source_text: str,
+                          target_text: str) -> None:
+    """A session pair seals only while what it shows is what its bundle says
+    (:mod:`nestor.session_seal`). Here, in the one function every seal passes
+    through, so no seal path can skip it."""
+    from . import session_seal
+
+    if source_lang == session_seal.DOMAIN:
+        session_seal.require_verified(source_text, target_text, store)
+
+
 def supersede_pair(source_text: str, target_text: str, source_lang: str,
                    target_lang: str, verifier: str, reason: str = "",
                    weight: float = 1.0, origin: str = "",
@@ -877,6 +889,7 @@ def supersede_pair(source_text: str, target_text: str, source_lang: str,
         raise ValueError("supersede_pair requires a verifier — replacing a "
                          "sealed decision is itself a decision")
     _check_verifier_policy(store, source_lang, target_lang, verifier)
+    _check_session_bundle(store, source_lang, source_text, target_text)
     if audit:
         _ledger_preflight()   # a supersede is a seal; refuse before writing
     norm = matcher.normalize(source_text)

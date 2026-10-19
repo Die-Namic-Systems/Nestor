@@ -806,6 +806,9 @@ const RECIPES = [
 const S = { tab: "welcome", state: null, pairs: [], detail: null, queue: null,
             ledger: null, result: null, domains: [], signals: null,
             offset: 0, more: false, session: null, typedVerifier: "",
+            // The open session pair's view (nestor.session_seal), keyed by its
+            // pair id; null until /api/session-seal answers for the open pair.
+            sessionView: null, sessionLoading: null,
             commitmentPickByPair: {},
             batchSeal: null,
             gateEcho: null,
@@ -2237,6 +2240,7 @@ function fleetDetailStage(p) {
 function detailPanel() {
   const p = S.detail;
   if (!p) return h("div", { class: "card" });
+  if (p.source_lang === "session") return sessionPanel(p);
   if (fleetGapReviewMode()) {
     return fleetDetailStage(p);
   }
@@ -2317,6 +2321,63 @@ function detailPanel() {
             "rejecting retires it as wrong. Both are written to the ledger." }));
   }
   return card;
+}
+
+// A session pair (nestor.session_seal): the person's one yes to their own
+// session. The actions shown are the bundle's, re-read and re-hashed by the
+// server; Seal is offered only while that check says verified, and the answer
+// sealed is the pair's own session:<sha256>, never an edited one.
+function sessionPanel(p) {
+  const card = h("div", { class: "card" });
+  appendKids(card, h("h2", { text: "Your session" }));
+  const v = S.sessionView && S.sessionView.pair_id === p.id ? S.sessionView : null;
+  if (!v) {
+    loadSessionView(p.id);
+    appendKids(card, h("p", { class: "small muted", text: "Checking this session's bundle…" }));
+    return card;
+  }
+  const ro = S.state.read_only;
+  const ok = v.state === "verified";
+  appendKids(card,
+    h("p", { class: "small muted", style: "margin:0 0 8px",
+             text: "Seal: yes, these were my actions in this session. " +
+                   "Deny: the record stays readable and is never served." }),
+    h("div", {},
+      h("span", { class: "chip", text: p.status }),
+      h("span", { class: "chip", text: v.state }),
+      h("span", { class: "chip mono", text: p.id.slice(0, 8) })),
+    ok ? null : h("p", { class: "small", text: "Can't be sealed: " + v.why }),
+    h("ol", {}, ...(v.actions || []).map((a) => h("li", {},
+      h("span", { text: a.did }),
+      (a.came_of || []).length
+        ? h("ul", {}, ...a.came_of.map((c) => h("li", { class: "small muted", text: c })))
+        : null))),
+    h("div", { class: "row", style: "margin-top:12px" },
+      h("button", { class: "primary small", disabled: ro || !ok || p.status !== "draft",
+                    onclick: () => sealSession(p) }, "Seal: these were my actions"),
+      h("button", { class: "small danger", disabled: ro || p.status === "rejected",
+                    onclick: () => rejectPair(p) }, "Deny")));
+  return card;
+}
+
+async function loadSessionView(id) {
+  if (S.sessionLoading === id) return;
+  S.sessionLoading = id;
+  try { S.sessionView = (await api("/api/session-seal?id=" + encodeURIComponent(id))).session; }
+  catch (e) { S.sessionView = { pair_id: id, state: "unverifiable", why: e.message, actions: [] }; }
+  S.sessionLoading = null;
+  render();
+}
+
+async function sealSession(p) {
+  if (!verifier()) return toast("Set who you are in the 'acting as' box first.", "err");
+  const extra = await signSealFields(p.source_text, p.target_text, p.source_lang, p.target_lang);
+  if (!extra) return;
+  const out = await sealWithOverride("/api/seal-draft",
+    { pair_id: p.id, target: p.target_text, ...extra }, "Session sealed.");
+  if (out && out.pair) S.detail = out.pair;
+  S.sessionView = null;
+  render();
 }
 
 async function sealDraftInPlace(p) {
