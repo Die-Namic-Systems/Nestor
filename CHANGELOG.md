@@ -167,6 +167,14 @@ what moved.
 
 ---
 
+## [0.28.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.27.0...v0.28.0) (2026-10-19)
+
+
+### Added
+
+* **session_seal:** one seal per session, at its end, over the session's bundle ([8c36305](https://github.com/Die-Namic-Systems/Nestor/commit/8c3630573618dad1de39cd605440ffca68fd8451))
+* **session_seal:** one seal per session, at its end, over the session's bundle ([#322](https://github.com/Die-Namic-Systems/Nestor/issues/322)) ([5495cfc](https://github.com/Die-Namic-Systems/Nestor/commit/5495cfc3f9c105a8bc88cde5e31a03be0e160fd0))
+
 ## [0.27.0](https://github.com/Die-Namic-Systems/Nestor/compare/v0.26.0...v0.27.0) (2026-09-21)
 
 
