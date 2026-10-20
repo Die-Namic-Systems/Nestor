@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 293,
+    "pairs": 296,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
-  "created_at": "2026-10-19T00:00:00+00:00",
-  "digest": "dedb6e2bc27e1231285e9dd19c98107e8bf9f1ffedc7e9a50318549e2d001adf",
+  "created_at": "2026-10-20T00:00:00+00:00",
+  "digest": "d9db5af4805c435127f4a0d162af9aa3fdd670e38744510c7c7e002705839561",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,48 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-10-20T00:00:00+00:00",
+      "id": "efdba934-f387-5473-a2d9-582fb448c0f6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do the python games move into the one script decision 0252",
+      "source_text": "Do the python games move into the one script (decision 0252)?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "No; 0252 is withdrawn. The games stay in safe-app-store. The move was undone before it was pushed.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-20T00:00:00+00:00",
+      "id": "a18048d3-a0a1-5da8-83ac-78bd68fb06c6",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "do catgrids and bureaus xorshift come in beside the stream or stay with their games for the js ports that replay them",
+      "source_text": "Do catgrid's and bureau's xorshift come in beside the stream, or stay with their games for the JS ports that replay them?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "Both: named generators beside sha256-stream/v1 in the one script, and the games keep theirs; a parity test is the middle between each pair.",
+      "verifier": "",
+      "weight": 1.0
+    },
+    {
+      "created_at": "2026-10-20T00:00:00+00:00",
+      "id": "984e894e-510b-5739-b1d9-2edc944f19c2",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "which of the games randomness comes into the one script",
+      "source_text": "Which of the games' randomness comes into the one script?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "All of it: the table side of the stream, the dice source, the odds, the pools, catgrid's and bureau's generators and daily seed, and the 5e dice.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-10-19T00:00:00+00:00",
       "id": "fb08a6ee-a1f1-551c-8602-bbb224a29c89",

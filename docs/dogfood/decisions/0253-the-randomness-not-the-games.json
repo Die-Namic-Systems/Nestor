@@ -1,0 +1,22 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-20",
+  "note": "Proposed, not sealed. The operator, in a desk session, changing course on flatten phase F4. Withdraws decision 0252's four drafts. The record in full: willows-grove docs/design/one-script/flatten-2026-10-19.md (F-13 to F-15).",
+  "decisions": [
+    {
+      "question": "Do the python games move into the one script (decision 0252)?",
+      "commitment": "No; 0252 is withdrawn. The games stay in safe-app-store. The move was undone before it was pushed.",
+      "why": "The operator: \"Before we go any farther, I think I want a change. I think it was more the randomness I wanted from the scripts, into the one script, than the games themselves.\" Then \"1 undo the move\"."
+    },
+    {
+      "question": "Which of the games' randomness comes into the one script?",
+      "commitment": "All of it: the table side of the stream, the dice source, the odds, the pools, catgrid's and bureau's generators and daily seed, and the 5e dice.",
+      "why": "The operator: \"2 all of them\"."
+    },
+    {
+      "question": "Do catgrid's and bureau's xorshift come in beside the stream, or stay with their games for the JS ports that replay them?",
+      "commitment": "Both: named generators beside sha256-stream/v1 in the one script, and the games keep theirs; a parity test is the middle between each pair.",
+      "why": "The operator: \"3 keep both\"."
+    }
+  ]
+}
