@@ -1,0 +1,12 @@
+{
+  "branch": "ccr-ea47b784-7l76tp",
+  "date": "2026-10-19",
+  "note": "Proposed, not sealed. The operator, in a desk session, on flatten phase F3 (one seal). The record in full: willows-grove docs/design/one-script/flatten-2026-10-19.md.",
+  "decisions": [
+    {
+      "question": "StorySession let a person reject a proposed fact; the one-script could only seal. How is a rejection made: a new one-script verb, two proposals per decision, or no rejection at all?",
+      "commitment": "A one-script verb: the human's proof (or Nestor pair) over reject:<proposal subject>, recorded as durably as a seal, writing nothing. The story moves on REJECTED. A sealed proposal can't be rejected and a rejected one can't be sealed.",
+      "why": "The operator: \"1 a\". It keeps 'a rejection is recorded as durably as an approval' in one place; two proposals per decision would double every decision's proposals."
+    }
+  ]
+}
