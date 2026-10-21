@@ -16,22 +16,22 @@
     {
       "question": "Do the hash chains fold into one chain or keep their own stores?",
       "commitment": "They keep their own stores; the one script holds one verifier per chain shape.",
-      "why": "No verbatim words recorded; the plan records the operator's answer to D-c as \"One verifier per shape\"."
+      "why": "The operator chose, in the session's question dialog: \"One verifier per shape (Recommended)\"."
     },
     {
       "question": "Is Grove's loading a fourth state?",
       "commitment": "No. loading is UI-only, not a state. Only populated, empty and unreachable are states.",
-      "why": "No verbatim words recorded; the plan records the operator's answer to D-f as \"`loading` is UI-only, not a state\"."
+      "why": "The operator chose, in the question dialog: \"UI-only, not a state (Recommended)\"."
     },
     {
       "question": "In what order do the phases land?",
       "commitment": "A branch per phase, in waves: F6.5; then F7 to F13; then F14, F16, F17; then F15.",
-      "why": "No verbatim words recorded; the plan records the operator's answer under \"Landing\"."
+      "why": "The operator chose, in the question dialog: \"Branch per phase (Recommended)\"."
     },
     {
       "question": "Do persisted bytes change?",
       "commitment": "No. Old encodings, formats and generators survive as named variants in the one script, each pinned byte for byte.",
-      "why": "No verbatim words recorded; the builder brief lists it among the operator's binding decisions (D-e)."
+      "why": "No operator words: the agent derived this from what is already on disk and wrote it into the builders' brief; the operator never ruled on it. Agent-reported, unratified."
     },
     {
       "question": "What was the side bar, and does it become one ledger in the one script?",
@@ -61,7 +61,7 @@
     {
       "question": "What does Grove's page do with no one script?",
       "commitment": "It starts with no one script and says unreachable (grove/three_states.ABSENT).",
-      "why": "No verbatim words recorded; the builder brief lists it among the operator's binding rulings of 2026-10-21."
+      "why": "The operator: \"1 revert, 2 start and say unreachable\" (the \"2\")."
     },
     {
       "question": "Does merge_check follow the deterministic loop's section 9?",
