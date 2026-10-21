@@ -1,0 +1,97 @@
+{
+  "branch": "claude/flatten-2-le-3-decision-drafts",
+  "date": "2026-10-21",
+  "note": "Proposed, not sealed. The operator, in a cloud session, on the second flattening (F-19 onward). Held open, not decided: O-1 to O-5 (willows-grove docs/design/one-script/flatten-2-2026-10-21.md section 6). The record in full: that file.",
+  "decisions": [
+    {
+      "question": "Does the second flattening put every rule in the one script, with the copies importing it?",
+      "commitment": "Yes. Every rule gets one home in onescript/ and the copies import it.",
+      "why": "The operator: \"Using the onescript at every path. Please plan a full and proper flattening.\""
+    },
+    {
+      "question": "Do willow-mcp and ratatosk import the one script, and what happens to the Forge?",
+      "commitment": "willow-mcp and ratatosk import it, through the reach helper. The Forge is untouched until the operator says what.",
+      "why": "The operator: \"I am thinking all need to import it, but I'm possibly thinking about something different for the Forge. Basically we are building beyond what the forge engine already does.\""
+    },
+    {
+      "question": "Do the hash chains fold into one chain or keep their own stores?",
+      "commitment": "They keep their own stores; the one script holds one verifier per chain shape.",
+      "why": "The operator chose, in the session's question dialog: \"One verifier per shape (Recommended)\"."
+    },
+    {
+      "question": "Is Grove's loading a fourth state?",
+      "commitment": "No. loading is UI-only, not a state. Only populated, empty and unreachable are states.",
+      "why": "The operator chose, in the question dialog: \"UI-only, not a state (Recommended)\"."
+    },
+    {
+      "question": "In what order do the phases land?",
+      "commitment": "A branch per phase, in waves: F6.5; then F7 to F13; then F14, F16, F17; then F15.",
+      "why": "The operator chose, in the question dialog: \"Branch per phase (Recommended)\"."
+    },
+    {
+      "question": "Do persisted bytes change?",
+      "commitment": "No. Old encodings, formats and generators survive as named variants in the one script, each pinned byte for byte.",
+      "why": "No operator words: the agent derived this from what is already on disk and wrote it into the builders' brief; the operator never ruled on it. Agent-reported, unratified."
+    },
+    {
+      "question": "What was the side bar, and does it become one ledger in the one script?",
+      "commitment": "It was a ledger of the human prompts and the system and model outputs (Rat's ratatosk/session.py). It becomes one ledger in the one script, Rat's rows moving onto record rows.",
+      "why": "The operator: \"what the side bar was ... was a ledger or the human prompts and the system/model outputs.\" Then \"1 yes\"."
+    },
+    {
+      "question": "Does the Claude Code seat get a side bar?",
+      "commitment": "Yes: a Stop hook beside the prompt hook. Held until the side bar's words-or-hashes question (Q2) is answered, since both write words.",
+      "why": "The operator: \"3 yes\"."
+    },
+    {
+      "question": "May trust-owner code import the one script?",
+      "commitment": "No. In willow-mcp the modules the trust owner's root-owned venv loads stay local, hold byte for byte to the one script's by a test outside the trust path.",
+      "why": "The operator: \"1 yes\"."
+    },
+    {
+      "question": "Does safe-app-store change, and are rudi193-cmd repos homes?",
+      "commitment": "No. safe-app-store is a parts bin and is not changed; the proper homes are the org repos. A rudi193-cmd repo or a manifest's rudi193-cmd URL is never a home.",
+      "why": "The operator: \"safe-app-store is a playground. a parts bin\"; its pieces are \"rudi193-cmd pieces, not the proper org ones\"."
+    },
+    {
+      "question": "Does oakenscrolls-office take the one script's calibration?",
+      "commitment": "No. It keeps its own stdlib-only calibration, held by a value test in the one script.",
+      "why": "The operator: \"1 revert\"."
+    },
+    {
+      "question": "What does Grove's page do with no one script?",
+      "commitment": "It starts with no one script and says unreachable (grove/three_states.ABSENT).",
+      "why": "The operator: \"1 revert, 2 start and say unreachable\" (the \"2\")."
+    },
+    {
+      "question": "Does merge_check follow the deterministic loop's section 9?",
+      "commitment": "Yes.",
+      "why": "The operator: \"yes, follow §9\"."
+    },
+    {
+      "question": "Are the states residue fixes made?",
+      "commitment": "Yes.",
+      "why": "The operator: \"go ahead with the §5 fixes\"."
+    },
+    {
+      "question": "Does merge_check gate 3 run repo tests as non-root?",
+      "commitment": "Yes; the uid is a hidden input.",
+      "why": "The operator: \"go ahead, run tests as non-root\"."
+    },
+    {
+      "question": "Is escalated a state?",
+      "commitment": "No. It is a step, the return to 0 for the next tier.",
+      "why": "The operator: \"escalated is a step, not a state, and it's just the return to 0 for the next tier.\""
+    },
+    {
+      "question": "What are the report field names?",
+      "commitment": "Constants, a named fourth vocabulary (states.REPORT_*).",
+      "why": "The operator: \"make them constants, a named fourth vocabulary\"."
+    },
+    {
+      "question": "Do the branches get pushed and PR'd, and do open ideas get loose-end builders?",
+      "commitment": "Push and PR the branches when the builders finish; send loose-end builders for open ideas, fast.",
+      "why": "The operator: \"push and PR the branches when the builders finish. Please send out any loose end builders for any ideas left open from this session. Fast and quick on those.\""
+    }
+  ]
+}
