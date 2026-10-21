@@ -1,0 +1,12 @@
+{
+  "branch": "claude/nestor-marks-proposal",
+  "date": "2026-10-21",
+  "note": "Proposed, not sealed. A question for the operator, not a commitment: no option below is chosen. Found by a loose-end builder (LE4) reading StringMatcher.normalize against decision 0200's bar. Changing normalize would rekey every sealed non-ASCII row, so nothing here changes behaviour; tests/test_matcher_marks_proposal.py documents the finding as strict xfail.",
+  "decisions": [
+    {
+      "question": "After NFC, StringMatcher.normalize deletes every combining mark (Unicode Mn/Mc) because a mark is not \\w. Should marks stay in the key?",
+      "commitment": "None yet. This is the operator's to make; the agent only proposes. Until it is decided, normalize is unchanged and the cost below is not paid.",
+      "why": "Evidence, computed by running StringMatcher().normalize: 'हिन्दी भाषा' -> 'हनद भष' (vowel signs and virama deleted, leaving consonant skeletons; 'हिंदी' -> 'हद', and 'कि', 'की', 'के', 'का' all -> 'क'). Thai 'ไม่' (not) -> 'ไม' and 'ไม้' (wood) -> 'ไม', so two different words share one key; 'ง่าย' -> 'งาย' (tone mark lost). Deleting marks is accidentally right for Arabic and Hebrew, whose vowel marks are optional, and wrong for Devanagari, Thai and others, whose marks are required. Decision 0200's bar: the operator sees a letter on their screen, and the store treats it the same way the operator does. Options: (A) Keep: marks stay deleted; document that the key is a consonant skeleton for mark-dependent scripts. (B) Keep marks inside the word: treat \\p{M} (Mn, Mc, Me) as word characters, so a mark survives wherever the base letter does; simplest, but Arabic/Hebrew optional vowels then distinguish keys that today collapse (voweled vs unvoweled). (C) Per-script folding: keep marks by default and name, explicitly and per script, the optional ones to fold (Arabic harakat U+064B-U+065F, Hebrew niqqud U+05B0-U+05C7), so each fold is a written decision rather than an accident. Cost of B or C: every sealed non-ASCII row whose text contains a combining mark is rekeyed (its key changes), so sealed rows need a migration or a dual-key lookup; 7-bit ASCII text is byte-for-byte identical under every option, and text with no marks is unchanged. Precedent: decisions 0200 (NFC fold) and 0202 (So/Sk emoji kept) each changed this function."
+    }
+  ]
+}
