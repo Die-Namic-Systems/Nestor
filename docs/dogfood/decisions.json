@@ -1,14 +1,14 @@
 {
   "counts": {
     "evidence": 0,
-    "pairs": 314,
+    "pairs": 315,
     "rejections": 0,
     "sealed": 244,
     "servable": 244,
     "warrants": 0
   },
   "created_at": "2026-10-21T00:00:00+00:00",
-  "digest": "ec203eca6950fb778c37e031e76c4478b7c68c21838f2010fb511db0ede85bd8",
+  "digest": "3185581150df39dce93042bf1281fe66cb0c2339f55eb0448364355e99e95391",
   "domain": {
     "source_lang": "*",
     "target_lang": "*"
@@ -22,6 +22,20 @@
   "matcher": "StringMatcher",
   "nestor_bundle": 4,
   "pairs": [
+    {
+      "created_at": "2026-10-21T00:00:00+00:00",
+      "id": "e49933c2-5466-5751-bec7-a9e53cdd15b9",
+      "origin": "pr:?",
+      "seal_sig": "",
+      "source_lang": "decision",
+      "source_norm": "after nfc stringmatchernormalize deletes every combining mark unicode mnmc because a mark is not w should marks stay in the key",
+      "source_text": "After NFC, StringMatcher.normalize deletes every combining mark (Unicode Mn/Mc) because a mark is not \\w. Should marks stay in the key?",
+      "status": "draft",
+      "target_lang": "decision",
+      "target_text": "None yet. This is the operator's to make; the agent only proposes. Until it is decided, normalize is unchanged and the cost below is not paid.",
+      "verifier": "",
+      "weight": 1.0
+    },
     {
       "created_at": "2026-10-21T00:00:00+00:00",
       "id": "df0ed6da-ee92-5f25-8408-e9ac28053f1e",
